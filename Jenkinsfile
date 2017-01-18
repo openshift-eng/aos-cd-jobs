@@ -12,7 +12,19 @@ node('buildvm-devops') {
     )
 
     stage('Merge and build') {
-        // sh "./merge-and-build.sh --major=${OSE_MAJOR} --minor=${OSE_MINOR}"
+        try {
+            sh "./merge-and-build.sh --major=${OSE_MAJOR} --minor=${OSE_MINOR}"
+        } catch ( err ) {
+            mail(to: "jupierce@redhat.com",
+                    subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
+                    body: """Encoutered an error while running merge-and-build.sh: ${err}
+
+
+Jenkins job: ${env.BUILD_URL}
+""");
+            // Re-throw the error in order to fail the job
+            throw err
+        }
 
         /*
         def specVersion = readFile( file: 'ose/origin.spec' ).find( /Version: ([.0-9]+)/) {
@@ -21,7 +33,7 @@ node('buildvm-devops') {
         def specVersion="3.5.0.5"
 
         mail(to: "jupierce@redhat.com",
-                subject: "[aos-devel] New AtomicOpenShift Puddle for: ${specVersion}",
+                subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${specVersion}",
                 body: """v${specVersion}
 Images have been built for this puddle
 Images have been pushed to registry.ops

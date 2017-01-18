@@ -22,7 +22,7 @@ node('buildvm-devops') {
 
         mail(to: "jupierce@redhat.com",
                 subject: "[aos-devel] New AtomicOpenShift Puddle for: ${specVersion}",
-                body: """"v${specVersion}
+                body: """v${specVersion}
 Images have been built for this puddle
 Images have been pushed to registry.ops
 Puddles have been synched to mirrors

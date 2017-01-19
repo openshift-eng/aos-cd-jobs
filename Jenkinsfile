@@ -18,7 +18,7 @@ node('buildvm-devops') {
             def specVersion = readFile( file: 'ose/origin.spec' ).find( /Version: ([.0-9]+)/) {
                 full, ver -> return ver;
             }
-            
+
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "jupierce@redhat.com",
                     subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${specVersion}",

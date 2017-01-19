@@ -1,9 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
 set -o errexit   # All non-zero statuses will terminate script
 set -o pipefail  # All components of piped command will terminate script if they fail
+set -o nounset   # Makes substituting unset variables an error
 
-opts=`getopt -o hm:n: --long help,major:,minor: -n 'merge-and-build' -- "$@"`
+opts="$( getopt -o hm:n: --long help,major:,minor: -n 'merge-and-build' -- "$@" )"
 eval set -- "$opts"
 major=""
 minor=""
@@ -14,35 +15,52 @@ function usage() {
     echo "Syntax: --major=X --minor=Y"
 }
 
+# The use of `getopt` is considered less than desirable often, but is the only
+# way to get double-dash long-form options. See also:
+#
+# Unless it's the version from util-linux, and you use its advanced mode, never
+# use getopt(1). Traditional versions of getopt cannot handle empty argument
+# strings, or arguments with embedded whitespace. The POSIX shell (and others)
+# offer getopts which is safe to use instead.
+# http://mywiki.wooledge.org/BashFAQ/035#getopts
 while true; do
   case "$1" in
-    -h | --help )    help=1; shift ;;
-    -m | --major ) major="$2"; shift; shift ;;
-    -n | --minor ) minor="$2"; shift; shift ;;
-    -- ) shift; break ;;
-    * ) break ;;
+    -h | --help )
+        help=1; shift
+        ;;
+    -m | --major )
+        major="$2"; shift; shift
+        ;;
+    -n | --minor )
+        minor="$2"; shift; shift
+        ;;
+    -- )
+        shift; break
+        ;;
+    * )
+        break
+        ;;
   esac
 done
 
 
-if [[ "$help" == "1" ]]; then
+if [[ "${help}" == "1" ]]; then
     usage
-    exit 1
+    exit 0
 fi
 
-if [[ "$major" == "" || "$minor" == "" ]]; then
-    echo "--major and --minor are required"
-    usage
+if [[ -z "${major}" || -z "${minor}" ]]; then
+    echo >&2 "--major and --minor are required"
+    usage >&2
     exit 1
 fi
 
 set -o xtrace  # Verbose script execution output
 ose_version="${major}.${minor}"
 
-buildpath="~/go"
-cd "$buildpath"
-export GOPATH=`pwd`
-workpath="${buildpath}/src/github.com/openshift/"
+GOPATH=${HOME}/go
+export GOPATH
+workpath=${GOPATH}/src/github.com/openshift/
 cd "${workpath}"
 
 # Clean up old clones
@@ -58,11 +76,11 @@ git merge master -m "Merge master into enterprise-${ose_version}"
 cd "${workpath}"
 git clone git@github.com:openshift/ose.git
 cd ose
-git add remote upstream git@github.com:openshift/origin.git
-git fetch --all
+git remote add upstream git@github.com:openshift/origin.git
+git fetch upstream master
 git merge -m "Merge remote-tracking branch upstream/master" upstream/master
 # Pull in the origin-web-console stuff
-vc_commit="$(GIT_REF=master hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
+vc_commit=$(GIT_REF=master hack/vendor-console.sh | awk '/Vendoring origin-web-console/{print $4}')
 git add pkg/assets/bindata.go
 git add pkg/assets/java/bindata.go
 git commit -m "Merge remote-tracking branch upstream/master, bump origin-web-console ${vc_commit}"
@@ -71,12 +89,13 @@ git commit -m "Merge remote-tracking branch upstream/master, bump origin-web-con
 
 # Have bew build the RPMs
 tito tag --accept-auto-changelog
-export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
-echo ${VERSION}
+VERSION="v$(grep Version: origin.spec | awk '{print $2}')"; export VERSION
+echo "${VERSION}"
 git push
-## Need kerberos credential      * How to initialize kerberos credential
-# kinit ??
-task_number=`tito release --yes --test aos-${ose_version} | grep 'Created task:' | awk '{print $3}'`
+
+## Need kerberos credential
+kinit -k -t $KEYTAB $PRINCIPLE
+task_number="$( tito release --yes --test "aos-${ose_version}" | grep 'Created task:' | awk '{print $3}' )"
 brew watch-task "${task_number}"
 
 # RPMs are now built, on to the images

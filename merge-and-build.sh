@@ -81,9 +81,11 @@ git fetch upstream master
 git merge -m "Merge remote-tracking branch upstream/master" upstream/master
 # Pull in the origin-web-console stuff
 vc_commit=$(GIT_REF=master hack/vendor-console.sh | awk '/Vendoring origin-web-console/{print $4}')
-git add pkg/assets/bindata.go
-git add pkg/assets/java/bindata.go
-git commit -m "Merge remote-tracking branch upstream/master, bump origin-web-console ${vc_commit}"
+if [ "$(git status --porcelain)" ]; then
+    git add pkg/assets/bindata.go
+    git add pkg/assets/java/bindata.go
+    git commit -m "Merge remote-tracking branch upstream/master, bump origin-web-console ${vc_commit}"
+fi
 
 # Future - build a test rpm locally in mock?
 

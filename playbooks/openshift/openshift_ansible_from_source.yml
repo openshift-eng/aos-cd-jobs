@@ -1,6 +1,0 @@
----
-- hosts: all
-  sudo: '{{ sudo | default("no") }}'
-  remote_user: '{{ user | default("root") }}'
-  roles:
-    - oafs

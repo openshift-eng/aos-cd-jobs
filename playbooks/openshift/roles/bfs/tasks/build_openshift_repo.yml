@@ -1,0 +1,32 @@
+---
+- name: install tito and builddeps
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - tito
+    - createrepo_c
+
+- name: ensure builddeps are installed
+  shell: yum-builddep origin.spec -y
+  args:
+    chdir: "{{ openshift_repo_path }}"
+
+- name: tag build if origin
+  shell: tito tag --keep-version --changelog="Update to v{{ version }}" --accept-auto-changelog
+  args:
+    chdir: "{{ openshift_repo_path }}"
+  register: pkgs_built
+  when: project == "origin"
+
+- name: build packages
+  shell: tito build --test --rpm --rpmbuild-options="--define 'dist .el7'" --output={{ web_docroot }}/{{ project }}
+  args:
+    chdir: "{{ openshift_repo_path }}"
+  register: pkgs_built
+
+- name: generate repo
+  shell: createrepo_c .
+  args:
+    chdir: "{{ web_docroot }}/{{ project }}/{{ arch }}"
+  when: pkgs_built|success

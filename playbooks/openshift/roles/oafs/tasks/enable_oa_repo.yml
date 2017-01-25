@@ -1,0 +1,12 @@
+---
+- name: openshift-ansible yum repo on all nodes
+  template:
+    src: yumrepo.j2
+    dest: "/etc/yum.repos.d/{{ project }}-{{ groups['repo_host'][0] }}.repo"
+    mode: 0644
+    owner: root
+    group: root
+
+- name: clean yum repos
+  command: yum clean all
+

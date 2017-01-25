@@ -1,0 +1,16 @@
+- name: Install atomic-openshift-utils for installer
+  yum: name=atomic-openshift-utils state=latest
+  when: "'masters' in group_names"
+
+- name: create installer.cfg.yml
+  template:
+    src: installer-cfg-yml.j2
+    dest: "{{ installer_cfg_yml_path }}"
+    mode: 0644
+    owner: root
+    group: root
+  when: "'masters' in group_names"
+
+- name: run atomic-openshift-installer
+  command: "atomic-openshift-installer -uc {{ installer_cfg_yml_path }} install"
+  when: "'masters' in group_names"

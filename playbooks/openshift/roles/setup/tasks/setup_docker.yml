@@ -1,0 +1,8 @@
+- name: Change Docker configuration
+  lineinfile: dest=/etc/sysconfig/docker
+              regexp=^OPTIONS=.*
+              line="OPTIONS='--insecure-registry=172.30.0.0/16 --selinux-enabled'"
+              state=present
+
+- name: Extend timeout for docker start
+  synchronize: src=docker-timeoutstartsec.conf dest=/etc/systemd/system/docker.service.d/

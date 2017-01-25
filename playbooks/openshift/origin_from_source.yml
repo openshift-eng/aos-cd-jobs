@@ -1,0 +1,20 @@
+# this role requires the following procedure.
+#
+# #### Run the baseline setup
+#
+# ansible-playbook \
+# $WORKSPACE/paas-sig-ci/playbooks/openshift/setup.yml
+#
+# #### Finally, build the RPMs and the corresponding yum repository
+#
+# ansible-playbook \
+# $WORKSPACE/paas-sig-ci/playbooks/openshift/repo_from_source.yml
+#
+# NOTE: The above command calls this file and builds out the openshift yum repo
+
+---
+- hosts: all
+  sudo: '{{ sudo | default("no") }}'
+  remote_user: '{{ user | default("root") }}'
+  roles:
+    - ofs

@@ -1,0 +1,8 @@
+---
+- name: Setup openshift-origin-common repo
+  template:
+    src: openshift-origin-common-repo.j2
+    dest: /etc/yum.repos.d/openshift-origin-common.repo
+    mode: 0644
+    owner: root
+    group: root

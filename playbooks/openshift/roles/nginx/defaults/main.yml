@@ -1,0 +1,3 @@
+---
+nginx_config_path: /etc/nginx
+web_docroot: /srv/www

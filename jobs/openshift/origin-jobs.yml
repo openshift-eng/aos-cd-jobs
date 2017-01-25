@@ -1,0 +1,80 @@
+#################################################################
+## MATRIX JOB TO BUILD FROM SOURCE FOR FUTURE CANDIDATE BUILDS ##
+#################################################################
+
+#    parameters:
+#      - label:
+#          name: node
+#          default: paas-sig-ci-slave01
+#          description: "The node on which to run the job"
+
+- job-template:
+    name: '{paas-bfs-master-name}-0-test-matrix'
+    defaults: openshift-defaults
+    concurrent: false
+    node: '{jslave_name}'
+    project-type: matrix
+    axes:
+      - axis:
+          type: user-defined
+          name: TOPOLOGY
+          values:
+            - duffy_3node_cluster
+      - axis:
+          type: python
+          values:
+            - system-CPython-2.7
+      - axis:
+         type: slave
+         name: nodes
+         values:
+          - '{jslave_name}'
+    scm:
+      - paas-sig-ci-scm
+    builders:
+      - shining-panda:
+          build-environment: virtualenv
+          python-version: system-CPython-2.7
+          name: venv
+          nature: shell
+          clear: true
+          use-distribute: false
+          system-site-packages: true
+          command: |
+            {configure-ansible21}
+            {provision-cluster}
+      - shell: |
+          {prep-cluster}
+      - shell: |
+          {bfs-origin}
+      - shell: |
+          {bfs-openshift-ansible}
+      - shell: |
+          {deploy-aosi}
+      - shell: |
+          {run-e2e-tests}
+    publishers:
+      - archive:
+          artifacts: "**/*.output, **/${{TOPOLOGY}}.inventory"
+          allow-empty: 'false'
+      - openshift-email
+      - postbuildscript:
+          builders:
+            - shining-panda:
+                build-environment: virtualenv
+                python-version: system-CPython-2.7
+                name: venv
+                clear: true
+                use-distribute: false
+                system-site-packages: true
+                command: |
+                  {configure-ansible21}
+                  {teardown-cluster}
+          script-only-if-succeeded: false
+          execute-on: axes
+
+- job-group:
+    name: paas-bfs-master-provision-prep-test-teardown
+    jobs:
+        - '{paas-bfs-master-name}-0-test-matrix'
+

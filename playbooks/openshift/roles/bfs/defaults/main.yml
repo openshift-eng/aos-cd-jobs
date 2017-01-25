@@ -1,0 +1,19 @@
+---
+# file defaults/{{ project }}
+# Build project from source
+repo_from_source: false
+
+# Project for sig-paas: origin or openshift-ansible
+project: origin
+
+# Path to repo for {{ project }}
+openshift_repo_path: /root/{{ project }}
+
+# Architecture
+arch: x86_64
+
+# Directory where repo will be created
+web_docroot: /srv/www
+
+# Cleanup before building {{ project }} from source
+cleanup: false

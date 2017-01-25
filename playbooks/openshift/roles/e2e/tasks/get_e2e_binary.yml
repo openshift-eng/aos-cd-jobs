@@ -1,2 +1,0 @@
-- name: Install atomic-openshift-tests
-  yum: name=origin-tests state=present

@@ -1,3 +1,0 @@
----
-dependencies:
-  - { role: nginx, when: "'repo_host' in group_names" }

@@ -1,4 +1,0 @@
----
-# file defaults/main.yml for node role
-fileGlob: /tmp/{{ host_label.stdout }}/id_rsa.pub.*
-

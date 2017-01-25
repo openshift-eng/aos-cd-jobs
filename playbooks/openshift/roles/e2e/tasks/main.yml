@@ -1,3 +1,0 @@
----
-- include: get_e2e_binary.yml
-- include: execute_e2e_tests.yml

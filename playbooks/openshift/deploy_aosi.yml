@@ -1,0 +1,18 @@
+# #### Dependencies
+#
+# - setup.yml
+# - repo_from_source.yml
+#
+# #### Install ose from built rpms
+# ## defined in install_ose.yml ##
+#
+# - drop yum repo config onto all nodes
+# - yum install packages
+# - configure and run atomic-openshift-installer
+
+---
+- hosts: all
+  sudo: '{{ sudo | default("no") }}'
+  remote_user: '{{ user | default("root") }}'
+  roles:
+    - deploy

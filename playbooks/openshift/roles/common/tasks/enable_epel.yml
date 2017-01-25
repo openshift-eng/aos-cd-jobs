@@ -1,0 +1,11 @@
+- name: get epel RPM signing key
+  rpm_key: state=present key=https://getfedora.org/static/352C64E5.txt
+
+- name: enable epel repo
+  template:
+    src: roles/common/templates/epel-repo.j2
+    dest: "/etc/yum.repos.d/epel.repo"
+    mode: 0644
+    owner: root
+    group: root
+

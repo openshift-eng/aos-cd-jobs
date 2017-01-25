@@ -1,0 +1,6 @@
+---
+# file defaults/oserepo
+openshift_repo_path: /root/openshift_repo
+pkgs_to_exclude: "atomic-openshift atomic-openshift-clients atomic-openshift-dockerregistry atomic-openshift-master atomic-openshift-node atomic-openshift-pod atomic-openshift-recycle atomic-openshift-sdn-ovs atomic-openshift-tests tuned-profiles-atomic-openshift-node"
+project: openshift
+arch: x86_64

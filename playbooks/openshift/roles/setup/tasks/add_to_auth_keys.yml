@@ -1,0 +1,5 @@
+- name: Add to authorized_keys
+  authorized_key: user=root
+                  key="{{ lookup('file', item) }}"
+  with_fileglob:
+    - "{{ fileGlob }}"

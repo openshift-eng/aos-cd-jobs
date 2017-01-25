@@ -1,0 +1,8 @@
+[openshift-origin-common]
+name=CentOS openshift-origin-common repo
+baseurl="http://mirror.centos.org/centos/7/paas/x86_64/openshift-origin"
+enabled=1
+gpgcheck=0
+{% if repo_from_source is defined %}
+exclude=ansible atomc-openshift-utils openshift-ansible-* *origin*
+{% endif %}

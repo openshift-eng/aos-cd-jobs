@@ -1,0 +1,99 @@
+- project:
+    name: paas-bfs-master
+    paas-bfs-master-name: paas-bfs-master
+    site: duffy
+    jslave_name: aos-ci-cd-slave
+    jslave_username: root
+    lpsha1: a950a170e0694f2b596431eb2e54f1ec38b873d1
+    provision-pb: $WORKSPACE/linch-pin/provision/site.yml
+    inventory-layout-file: openshift-3node-inventory.yml
+    prep-pb: aos-cd-jobs/playbooks/openshift/setup.yml
+    bfs-pb: aos-cd-jobs/playbooks/openshift/bfs.yml
+    deploy-aosi-pb: aos-cd-jobs/playbooks/openshift/deploy_aosi.yml
+    run-e2e-pb: aos-cd-jobs/playbooks/openshift/run_e2e_tests.yml
+    origin_version: 1.5.0
+    oa_version: 3.4
+    configure-ansible21: |
+      #!/bin/bash
+      set -xeuo pipefail
+      pip install --upgrade ansible>=2.1.0
+      pip install jsonschema functools32
+
+      # create ansible.cfg
+      cat << EOF > ansible.cfg
+      [defaults]
+      remote_user = root
+      library  = $WORKSPACE/linch-pin/library:$WORKSPACE/duffy-ansible-module/library
+
+      EOF
+    provision-cluster: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      mkdir -p $WORKSPACE/inventory
+
+      # provision cluster
+      ansible-playbook {provision-pb} -u root -v \
+      -e "topology=$WORKSPACE/paas-ci/config/topologies/${{TOPOLOGY}}.yml" \
+      -e "inventory_layout_file=$WORKSPACE/paas-ci/config/inv_layouts/{inventory-layout-file}" \
+      -e "inventory_outputs_path=$WORKSPACE/inventory" -e "state=present"
+    prep-cluster: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{prep-pb} -e "repo_from_source=true"
+    bfs-origin: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{bfs-pb} \
+      -e "repo_from_source=true" \
+      -e "project=origin" \
+      -e "version={origin_version}" \
+      -e "bleeding_edge=true"
+    bfs-openshift-ansible: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{bfs-pb} \
+      -e "repo_from_source=true" \
+      -e "project=openshift-ansible" \
+      -e "version={oa_version}" \
+      -e "origin_version={origin_version}" \
+      -e "arch=noarch"
+    deploy-aosi: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{deploy-aosi-pb} \
+      -e "version={origin_version}"
+    run-e2e-tests: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{run-e2e-pb}
+    teardown-cluster: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # teardown cluster
+      ansible-playbook {provision-pb} -u root -v \
+      -e "topology=$WORKSPACE/paas-ci/config/topologies/${{TOPOLOGY}}.yml" \
+      -e "schema=$WORKSPACE/linch-pin/ex_schemas/schema_v2.json state=absent"
+    jobs:
+      - paas-bfs-master-provision-prep-test-teardown

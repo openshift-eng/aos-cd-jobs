@@ -1,0 +1,18 @@
+---
+#- include_vars: secret.yml
+
+- name: "Create oa_repo_path"
+  file: path={{ oa_repo_path }} state=directory
+
+- stat: path="{{ oa_repo_path }}.git/"
+  register: oa_dot_git_path
+
+- name: git clone openshift-ansible
+  git:
+    repo: git://github.com/openshift/openshift-ansible.git
+    accept_hostkey: yes
+    dest: "{{ oa_repo_path }}"
+    clone: yes
+    update: yes
+  when: oa_dot_git_path.stat.isdir is undefined or oa_dot_git_path.stat.isdir == False
+

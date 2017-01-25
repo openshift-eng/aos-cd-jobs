@@ -1,0 +1,6 @@
+---
+- include: clone_oa_from_github.yml
+  when: "'repo_host' in group_names"
+- include: build_oa_repo.yml
+  when: "'repo_host' in group_names"
+- include: enable_oa_repo.yml

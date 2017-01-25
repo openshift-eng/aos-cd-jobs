@@ -1,0 +1,14 @@
+- name: "Create {{ openshift_repo_path }}"
+  file: path={{ openshift_repo_path }} state=directory
+
+- stat: path="{{ openshift_repo_path }}.git/"
+  register: dot_git_path
+
+- name: git clone origin
+  git:
+    repo: https://github.com/openshift/{{ project }}
+    dest: "{{ openshift_repo_path }}"
+    clone: yes
+    update: yes
+    accept_hostkey: yes
+  when: dot_git_path.stat.isdir is undefined or dot_git_path.stat.isdir == False

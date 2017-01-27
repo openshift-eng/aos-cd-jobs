@@ -37,6 +37,15 @@ Jenkins job: ${env.BUILD_URL}
 """);
 }
 
+def git_merge(branch, commit, commit_msg, merge_opts = '') {
+    sh("""\
+git config user.name jenkins
+git config user.email jenkins@example.com
+git checkout ${branch}
+git merge ${merge_opts} '${commit}' -m '${commit_msg}'
+""")
+}
+
 node {
     properties([[
         $class: 'ParametersDefinitionProperty',
@@ -81,21 +90,22 @@ node {
             sh 'go get github.com/jteeuwen/go-bindata'
             dir(env.GOPATH + '/src/github.com/openshift/origin-web-console') {
                 git url: WEB_CONSOLE_REPO
-                sh 'git config user.name jenkins'
-                sh 'git config user.email jenkins@example.com'
-                sh "git checkout --track origin/enterprise-${OSE_MAJOR}.${OSE_MINOR}"
-                sh "git merge master -m 'Merge master into enterprise-${OSE_MAJOR}.${OSE_MINOR}'"
+                def v = "enterprise-${OSE_MAJOR}.${OSE_MINOR}"
+                git_merge('master', "origin/${v}", "Merge master into ${v}")
             }
             dir(env.GOPATH + '/src/github.com/openshift/ose') {
                 checkout(
                     $class: 'GitSCM',
-                    branches: [[name: 'master']],
+                    branches: [[name: 'refs/remotes/origin/master']],
+                    extensions:
+                        [[$class: 'LocalBranch', localBranch: 'master']],
                     userRemoteConfigs: [
                         [name: 'upstream', url: "${ORIGIN_REPO}"],
                         [name: 'origin', url: "${OSE_REPO}"]])
-                sh 'git config user.name jenkins'
-                sh 'git config user.email jenkins@example.com'
-                sh 'git merge --strategy-option=theirs -m "Merge remote-tracking branch upstream/master" upstream/master'
+                git_merge(
+                    'master', 'upstream/master',
+                    'Merge remote-tracking branch upstream/master',
+                    '--strategy-option=theirs')
                 def web_console_ref = sh(
                     returnStdout: true,
                     script: "set -o pipefail && GIT_REF=master hack/vendor-console.sh | awk '/Vendoring origin-web-console/{print \$4}'")

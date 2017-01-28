@@ -83,16 +83,20 @@ node {
             ],
         ],
     ]])
-    stage('Merge and build') {
-        try_wrapper(mail_failure) {
+    try_wrapper(mail_failure) {
+        stage('dependencies') {
             env.GOPATH = env.WORKSPACE + '/go'
             dir(env.GOPATH) { deleteDir() }
             sh 'go get github.com/jteeuwen/go-bindata'
+        }
+        stage('web console') {
             dir(env.GOPATH + '/src/github.com/openshift/origin-web-console') {
                 git url: WEB_CONSOLE_REPO
                 def v = "enterprise-${OSE_MAJOR}.${OSE_MINOR}"
                 git_merge('master', "origin/${v}", "Merge master into ${v}")
             }
+        }
+        stage('merge') {
             dir(env.GOPATH + '/src/github.com/openshift/ose') {
                 checkout(
                     $class: 'GitSCM',

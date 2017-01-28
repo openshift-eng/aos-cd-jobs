@@ -106,15 +106,7 @@ node {
                     'master', 'upstream/master',
                     'Merge remote-tracking branch upstream/master',
                     '--strategy-option=theirs')
-                def web_console_ref = sh(
-                    returnStdout: true,
-                    script: "set -o pipefail && GIT_REF=master hack/vendor-console.sh | awk '/Vendoring origin-web-console/{print \$4}'")
-                if(sh(
-                        script: 'git status --porcelain',
-                        returnStdout: true)) {
-                    sh 'git add pkg/assets/{,java/}bindata.go'
-                    sh "git commit -m 'Merge remote-tracking branch upstream/master, bump origin-web-console ${web_console_ref}'"
-                }
+                sh 'GIT_REF=master COMMIT=1 hack/vendor-console.sh'
                 sh 'tito tag --accept-auto-changelog'
                 def v = readFile(file: 'origin.spec') =~ /Version:\s+([.0-9]+)/
                 mail_success(v[0][1])

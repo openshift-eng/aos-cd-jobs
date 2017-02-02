@@ -84,10 +84,22 @@ node {
         ],
     ]])
     try_wrapper(mail_failure) {
+        deleteDir()
+        def image = null
+        stage('builder image') {
+            dir('aos-cd-jobs') {
+                checkout scm
+                image = docker.build 'ose-builder', 'builder'
+            }
+        }
         stage('dependencies') {
             env.GOPATH = env.WORKSPACE + '/go'
-            dir(env.GOPATH) { deleteDir() }
-            sh 'go get github.com/jteeuwen/go-bindata'
+            dir(env.GOPATH + '/src/github.com/jteeuwen/go-bindata') {
+                git url: 'https://github.com/jteeuwen/go-bindata.git'
+            }
+            image.inside {
+                sh 'go get github.com/jteeuwen/go-bindata'
+            }
         }
         stage('web console') {
             dir(env.GOPATH + '/src/github.com/openshift/origin-web-console') {
@@ -110,8 +122,15 @@ node {
                     'master', 'upstream/master',
                     'Merge remote-tracking branch upstream/master',
                     '--strategy-option=theirs')
-                sh 'GIT_REF=master COMMIT=1 hack/vendor-console.sh'
-                sh 'tito tag --accept-auto-changelog'
+            }
+            image.inside {
+                sh '''\
+cd "$GOPATH/src/github.com/openshift/ose"
+GIT_REF=master COMMIT=1 hack/vendor-console.sh
+tito tag --accept-auto-changelog
+'''
+            }
+            dir(env.GOPATH + '/src/github.com/openshift/ose') {
                 def v = readFile(file: 'origin.spec') =~ /Version:\s+([.0-9]+)/
                 mail_success(v[0][1])
             }

@@ -1,0 +1,18 @@
+---
+  topology_name: "os_origin_cluster1"
+  site: "ci-osp"
+  resource_groups:
+    -
+      resource_group_name: "aos-ci-cd"
+      res_group_type: "openstack"
+      res_defs:
+        - res_name: "origin-cluster"
+          flavor: "m1.medium"
+          res_type: "os_server"
+          image: "rhel-7.3-server-x86_64-updated"
+          count: 3
+          keypair: "ci-factory"
+          networks:
+            - "openshift-enterprise"
+          fip_pool: "10.8.168.0/22"
+      assoc_creds: "os_openshift-tenant"

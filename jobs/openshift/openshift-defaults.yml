@@ -24,6 +24,15 @@
             properties-content: |
               lp_sha1={lpsha1}
 
+## Added for creds to reference openshift-enterprise tenant in openstack
+- wrapper:
+    name: openshift-cred-wrappers
+    wrappers:
+        - credentials-binding:
+          - text:
+              credential-id: b83f057b-6dde-402e-8cc6-c995d2b48e69
+              variable: OS_OSE_TENANT
+
 - scm:
     name: paas-sig-ci-scm
     scm:

@@ -4,7 +4,7 @@
     site: duffy
     jslave_name: aos-ci-cd-slave
     jslave_username: root
-    lpsha1: a950a170e0694f2b596431eb2e54f1ec38b873d1
+    lpsha1: 2b028bf787ae82f1671986572f9837dbd82c8e8c
     provision-pb: $WORKSPACE/linch-pin/provision/site.yml
     inventory-layout-file: openshift-3node-inventory.yml
     prep-pb: aos-cd-jobs/playbooks/openshift/setup.yml
@@ -13,30 +13,48 @@
     run-e2e-pb: aos-cd-jobs/playbooks/openshift/run_e2e_tests.yml
     origin_version: 1.5.0
     oa_version: 3.4
-    configure-ansible21: |
+    provision-cluster: |
       #!/bin/bash
+      set -xeo pipefail
+
+      # Setup venv
+      UUID=$( uuidgen | awk -F"-" '{{print $1}}')
+      virtualenv $WORKSPACE/lp-venv-${{UUID}}
+      source $WORKSPACE/lp-venv-${{UUID}}/bin/activate
+
       set -xeuo pipefail
-      pip install --upgrade ansible>=2.1.0
-      pip install jsonschema functools32
+
+      # Install linch-pin
+      pip install packaging
+      pip install appdirs
+      cp -r /usr/lib64/python2.7/site-packages/selinux $WORKSPACE/lp-venv-$UUID/lib64/python2.7/site-packages/
+
+      # Install linch-pin deps in virtualenv
+      pushd linch-pin
+      ./install.sh
+      popd linch-pin
 
       # create ansible.cfg
-      cat << EOF > ansible.cfg
+      cat << EOF > $WORKSPACE/ansible.cfg
       [defaults]
       remote_user = root
       library  = $WORKSPACE/linch-pin/library:$WORKSPACE/duffy-ansible-module/library
 
       EOF
-    provision-cluster: |
-      #!/bin/bash
-      set -xeuo pipefail
 
+      # Setup to provision
       mkdir -p $WORKSPACE/inventory
+      cp $OS_OSE_TENANT $WORKSPACE/linch-pin/provision/roles/openstack/vars/os_openshift-tenant.yml
+      sed -i "s|res_name: \"\(.*\)\"|res_name: \1-${{UUID}}|g" $WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml
 
       # provision cluster
-      ansible-playbook {provision-pb} -u root -v \
-      -e "topology=$WORKSPACE/paas-ci/config/topologies/${{TOPOLOGY}}.yml" \
-      -e "inventory_layout_file=$WORKSPACE/paas-ci/config/inv_layouts/{inventory-layout-file}" \
+      ansible-playbook {provision-pb} -u root -vv \
+      -e "topology=$WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml" \
+      -e "inventory_layout_file=$WORKSPACE/aos-cd-jobs/configs/inv_layouts/{inventory-layout-file}" \
       -e "inventory_outputs_path=$WORKSPACE/inventory" -e "state=present"
+
+      set +u
+      deactivate
     prep-cluster: |
       #!/bin/bash
       set -xeuo pipefail
@@ -89,11 +107,45 @@
       $WORKSPACE/{run-e2e-pb}
     teardown-cluster: |
       #!/bin/bash
+      set -xeo pipefail
+
+      # Setup venv
+      UUID=$( uuidgen | awk -F"-" '{{print $1}}')
+      virtualenv $WORKSPACE/lp-venv-${{UUID}}
+      source $WORKSPACE/lp-venv-${{UUID}}/bin/activate
+
       set -xeuo pipefail
 
+      # Install linch-pin
+      pip install packaging
+      pip install appdirs
+      cp -r /usr/lib64/python2.7/site-packages/selinux $WORKSPACE/lp-venv-$UUID/lib64/python2.7/site-packages/
+
+      # Install linch-pin deps in virtualenv
+      pushd linch-pin
+      ./install.sh
+      popd linch-pin
+
+      # create ansible.cfg
+      cat << EOF > $WORKSPACE/ansible.cfg
+      [defaults]
+      remote_user = root
+      library  = $WORKSPACE/linch-pin/library:$WORKSPACE/duffy-ansible-module/library
+
+      EOF
+
+      # Setup to provision
+      mkdir -p $WORKSPACE/inventory
+      cp $OS_OSE_TENANT $WORKSPACE/linch-pin/provision/roles/openstack/vars/os_openshift-tenant.yml
+      sed -i "s|res_name: \"\(.*\)\"|res_name: \1-${{UUID}}|g" $WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml
+
       # teardown cluster
-      ansible-playbook {provision-pb} -u root -v \
-      -e "topology=$WORKSPACE/paas-ci/config/topologies/${{TOPOLOGY}}.yml" \
-      -e "schema=$WORKSPACE/linch-pin/ex_schemas/schema_v2.json state=absent"
+      ansible-playbook {provision-pb} -u root -vv \
+      -e "topology=$WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml" \
+      -e "inventory_layout_file=$WORKSPACE/aos-cd-jobs/configs/inv_layouts/{inventory-layout-file}" \
+      -e "inventory_outputs_path=$WORKSPACE/inventory" -e "state=absent"
+
+      set +u
+      deactivate
     jobs:
       - paas-bfs-master-provision-prep-test-teardown

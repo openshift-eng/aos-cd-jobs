@@ -19,11 +19,7 @@
           type: user-defined
           name: TOPOLOGY
           values:
-            - duffy_3node_cluster
-      - axis:
-          type: python
-          values:
-            - system-CPython-2.7
+            - os_origin-3node-cluster.yml
       - axis:
          type: slave
          name: nodes
@@ -31,18 +27,11 @@
           - '{jslave_name}'
     scm:
       - paas-sig-ci-scm
+    wrappers:
+      - openshift-cred-wrappers
     builders:
-      - shining-panda:
-          build-environment: virtualenv
-          python-version: system-CPython-2.7
-          name: venv
-          nature: shell
-          clear: true
-          use-distribute: false
-          system-site-packages: true
-          command: |
-            {configure-ansible21}
-            {provision-cluster}
+      - shell: |
+          {provision-cluster}
       - shell: |
           {prep-cluster}
       - shell: |
@@ -60,16 +49,8 @@
       - openshift-email
       - postbuildscript:
           builders:
-            - shining-panda:
-                build-environment: virtualenv
-                python-version: system-CPython-2.7
-                name: venv
-                clear: true
-                use-distribute: false
-                system-site-packages: true
-                command: |
-                  {configure-ansible21}
-                  {teardown-cluster}
+            - shell: |
+                {teardown-cluster}
           script-only-if-succeeded: false
           execute-on: axes
 

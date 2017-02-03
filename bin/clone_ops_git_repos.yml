@@ -33,26 +33,6 @@
       dest: /home/opsmedic/aos-cd/git/openshift-ansible-private
       branch: prod
 
-#  - name: Checkout git repo
-#    git:
-#      repo: /srv/git/openshift-ansible-private
-#      dest: /home/opsmedic/aos-cd/git/openshift-ansible-private
-#      update: yes
-#      force: yes
-
-  - name: clone the aos-cd-jobs repo
-    git_clone:
-      repo: https://github.com/openshift/aos-cd-jobs.git
-      dest: /home/opsmedic/aos-cd/git/aos-cd-jobs
-      branch: master
-
-#  - name: Checkout git repo
-#    git:
-#      repo: https://github.com/openshift/aos-cd-jobs.git
-#      dest: /home/opsmedic/aos-cd/git/aos-cd-jobs
-#      update: yes
-#      force: yes
-
   - name: load github credentials
     include_vars:
       file: ../git/openshift-ansible-private/private_vars/global/github_bot.yml
@@ -62,12 +42,6 @@
       repo: https://github.com/openshift/openshift-tools
       dest: /home/opsmedic/aos-cd/git/openshift-tools
       branch: prod
-
-#  - name: clone the openshift-tools 
-#    git:
-#      repo: https://github.com/openshift/openshift-tools
-#      dest: /home/opsmedic/aos-cd/git/openshift-tools
-      #update: yes
 
   - name: clone the openshift-ansible-ops
     git_clone:

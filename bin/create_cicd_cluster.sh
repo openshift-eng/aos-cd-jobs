@@ -1,26 +1,12 @@
 #!/bin/bash -e
-#
 
-#function print_usage() {
-#  echo
-#  echo "Usage: $(basename $0)<clusterid>"
-#  echo "Examples:"
-#  echo
-#  echo "    $(basename $0) prod-cluster"
-#  echo
-#}
-
-#if [ "$#" -ne 1 ]
-#then
-#  print_usage
-#  exit 1
-#fi
+# Kill all background jobs on normal exit or signal
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 export AWS_CREDENTIALS_FILE=/home/opsmedic/.aws/credentials
 export IDP_HOST=login.ops.openshift.com
 export AWS_ACCOUNT_ID=639866565627
 export AWS_ACCOUNT_NAME=opstest
-#export USER=autokeys
 
 # Install ssh key to allow us to ssh locally
 ./add_ssh_key_to_localhost.yml

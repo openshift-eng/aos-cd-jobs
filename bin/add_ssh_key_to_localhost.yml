@@ -1,0 +1,13 @@
+#!/usr/bin/ansible-playbook
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ssh_key_state: present
+
+  pre_tasks:
+  - name: "{{ present }} ssh key to opsmedic"
+    authorized_key:
+      user: opsmedic
+      state: "{{ ssh_key_state }}"
+      key: "{{ lookup('file', '/home/opsmedic/.ssh/id_rsa.pub') }}"

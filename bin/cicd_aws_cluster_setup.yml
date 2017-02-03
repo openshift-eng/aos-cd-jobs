@@ -1,0 +1,119 @@
+---
+########################################################################
+# EDIT THESE VALUES BASED ON REGION AND CUSTOMER NETWORK INFORMATION
+########################################################################
+g_aws_account_id: 639866565627
+g_location: aws
+g_ec2_region: us-east-1
+g_aws_account: opstest
+g_environment: stg
+g_clusterid: cicd
+
+g_install_version: 3.4
+
+g_routers:
+  - name: router
+    shard: 9g7y
+    type: default
+
+g_setup_vpc_cidr: 172.31.0.0/16
+g_setup_vpc_subnets:
+  us-east-1: # These are us-east-1 region defaults
+  - cidr: 172.31.48.0/20
+    az: "us-east-1c"
+  - cidr: 172.31.32.0/20
+    az: "us-east-1e"
+  - cidr: 172.31.16.0/20
+    az: "us-east-1a"
+
+g_instance_counts:
+  g_master_exact_count: 3
+  g_infra_node_exact_count: 2
+  g_compute_node_exact_count: 3
+
+########################################################################
+#  PV Space
+#
+#  By default, we Openshift Dedicated gives a user 100GB of PV Space
+#  A customer can pay more and have this upgraded.  By default 100GB is
+#  already alocated to each user.
+#
+#  Only uncomment and change this if the user has bought more than 100GB
+#  of space and is shown in the relase ticket
+#
+g_pv_storage_size: 50G
+########################################################################
+
+########################################################################
+#  Deployment Type
+#
+#  Uncomment this line if deployment type is 'online'
+#  Note: This is not common
+#
+#g_deployment: online
+########################################################################
+
+#########################################################################
+#  AUTH TYPE
+#########################################################################
+#  See:  https://docs.openshift.com/container-platform/3.3/install_config/configuring_authentication.html
+#
+# Here we are expecting the exact identityProviders 'list' that will end up in the master-config.yml
+#
+#  For example, if the auth is httpd, the master-config.yml would look like this:
+#
+# ...
+# oauthConfig:
+#   identityProviders:
+#   - name: htpasswd_auth
+#     challenge: true
+#     login: false
+#     mappingMethod: "claim"
+# ...
+#
+# The setting would be:
+#
+# g_authentication_identityproviders:
+# - name: htpasswd_auth
+#   challenge: true
+#   login: false
+#   mappingMethod: "claim"
+#
+#
+g_authentication_identityproviders:
+ - name: google
+   challenge: false
+   login: true
+   mappingMethod: claim
+   provider:
+     apiVersion: v1
+     kind: GoogleIdentityProvider
+     clientID: 198287808360-3ejaic1vq80j3qse6andjpu3rv6bs5v3.apps.googleusercontent.com
+     clientSecret: Tsb6uuVSbZerAxNxJAdQMCl3
+     hostedDomain: redhat.com
+
+#########################################################################
+# END AUTH TYPE
+#########################################################################
+
+# Specify the SDN type
+# There are two options:
+#  - 'redhat/openshift-ovs-subnet'
+#  - 'redhat/openshift-ovs-multitenant'
+#  The default for dedicated is redhat/openshift-ovs-subnet
+g_cluster_sdn_plugin: redhat/openshift-ovs-subnet
+
+g_openshift_ded_admin_users:
+- mwoodson@redhat.com
+- jupierce@redhat.com
+- chmurphy@redhat.com
+
+# Turn things on and off
+# This will enable the config loop to run on the system schedule
+g_enable_config_loop: false
+
+# If set to false, this will prevent the cluster from reporting to Zabbix
+g_enable_monitoring: false
+
+# This will run the config loop during the provision on the cluster
+g_run_config_loop: false

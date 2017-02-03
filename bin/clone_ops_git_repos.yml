@@ -1,0 +1,77 @@
+#!/usr/bin/ansible-playbook
+---
+- hosts: localhost
+  gather_facts: no
+  connection: local
+
+  tasks:
+
+# Create local work environment
+  - name: Create local work directory
+    file:
+      path: /home/opsmedic/aos-cd
+      state: directory
+      owner: opsmedic
+      group: opsmedic
+      mode: 0770
+
+  - name: Create local work directory
+    file:
+      path: /home/opsmedic/aos-cd/git
+      state: directory
+      owner: opsmedic
+      group: opsmedic
+      mode: 0770
+
+  - name: include git modules
+    include_role:
+      name: tools_roles/lib_git
+
+  - name: clone the openshift-ansible-private
+    git_clone:
+      repo: /srv/git/openshift-ansible-private
+      dest: /home/opsmedic/aos-cd/git/openshift-ansible-private
+      branch: prod
+
+#  - name: Checkout git repo
+#    git:
+#      repo: /srv/git/openshift-ansible-private
+#      dest: /home/opsmedic/aos-cd/git/openshift-ansible-private
+#      update: yes
+#      force: yes
+
+  - name: clone the aos-cd-jobs repo
+    git_clone:
+      repo: https://github.com/openshift/aos-cd-jobs.git
+      dest: /home/opsmedic/aos-cd/git/aos-cd-jobs
+      branch: master
+
+#  - name: Checkout git repo
+#    git:
+#      repo: https://github.com/openshift/aos-cd-jobs.git
+#      dest: /home/opsmedic/aos-cd/git/aos-cd-jobs
+#      update: yes
+#      force: yes
+
+  - name: load github credentials
+    include_vars:
+      file: ../git/openshift-ansible-private/private_vars/global/github_bot.yml
+      
+  - name: clone the openshift-tools
+    git_clone:
+      repo: https://github.com/openshift/openshift-tools
+      dest: /home/opsmedic/aos-cd/git/openshift-tools
+      branch: prod
+
+#  - name: clone the openshift-tools 
+#    git:
+#      repo: https://github.com/openshift/openshift-tools
+#      dest: /home/opsmedic/aos-cd/git/openshift-tools
+      #update: yes
+
+  - name: clone the openshift-ansible-ops
+    git_clone:
+      repo: "git@github.com:openshift/openshift-ansible-ops.git"
+      dest: /home/opsmedic/aos-cd/git/openshift-ansible-ops
+      branch: prod
+      ssh_key: "{{ g_user_github_bot_private_ssh_key }}"

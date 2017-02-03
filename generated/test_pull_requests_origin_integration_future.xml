@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<com.tikal.jenkins.plugins.multijob.MultiJobProject plugin="jenkins-multijob-plugin@1.21">
+  <actions/>
+  <description>&lt;div style=&quot;white-space: pre-wrap;&quot;&gt;Run some commands in an EC2 VM.&#xd;
+  &#xd;
+&lt;div style=&quot;font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;&quot;&gt;WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. MAKE CHANGES TO THE JOB DEFINITIONS IN THE openshift/aos-cd-jobs REPOSITORY INSTEAD.&#xd;
+&lt;/div&gt;&#xd;
+THIS JOB WAS GENERATED WITH CONFIGURATION OPTIONS:
+command=&quot;go get github.com/openshift/imagebuilder/cmd/imagebuilder
+
+export OS_BUILD_IMAGE_ARGS=&#39;&#39;
+hack/build-base-images.sh
+make release
+JUNIT_REPORT=&#39;true&#39; make test -o check -k&quot;&lt;/div&gt;</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.buildblocker.BuildBlockerProperty plugin="build-blocker-plugin@1.7.3">
+      <useBuildBlocker>false</useBuildBlocker>
+      <blockLevel>GLOBAL</blockLevel>
+      <scanQueueFor>DISABLED</scanQueueFor>
+      <blockingJobs></blockingJobs>
+    </hudson.plugins.buildblocker.BuildBlockerProperty>
+    <com.sonyericsson.jenkins.plugins.bfa.model.ScannerJobProperty plugin="build-failure-analyzer@1.15.0">
+      <doNotScan>false</doNotScan>
+    </com.sonyericsson.jenkins.plugins.bfa.model.ScannerJobProperty>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_ID</name>
+          <description>The pull-request to merge changes from.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>BRANCH</name>
+          <description>Branch to merge the PR into for testing.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>0</maxConcurrentTotal>
+      <categories class="java.util.concurrent.CopyOnWriteArrayList"/>
+      <throttleEnabled>false</throttleEnabled>
+      <throttleOption>project</throttleOption>
+      <limitOneJobWithMatchingParams>false</limitOneJobWithMatchingParams>
+      <paramsToUseForLimit></paramsToUseForLimit>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>true</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o xtrace
+
+# set up the virtualenv for the origin-ci-tool
+if [[ ! -d &quot;./venv&quot; ]]; then
+    virtualenv venv --system-site-packages # we need system yum, can&apos;t install it in a venv
+    # minimal virtualenv activation
+    cat &gt; ./activate &lt;&lt;EOF
+export VIRTUAL_ENV=&quot;$( pwd )/venv&quot;
+export PATH=&quot;\${VIRTUAL_ENV}/bin:\${PATH}&quot;
+unset PYTHON_HOME
+EOF
+fi
+
+# enter the origin-ci-tool virtualenv
+source activate
+
+# install the origin-ci-tool
+pip install git+https://github.com/openshift/origin-ci-tool.git --upgrade --process-dependency-links
+
+# localize configuration for this workspace
+export OCT_CONFIG_HOME=&quot;$(pwd)/.config&quot;
+mkdir -p &quot;${OCT_CONFIG_HOME}&quot;
+
+# remove any configuration from previous runs
+rm -rf &quot;${OCT_CONFIG_HOME}/origin-ci-tool&quot;
+
+# configure the Ansible client to give us non-pretty output
+oct configure ansible-client verbosity 2
+
+# configure the AWS client information we don&apos;t get from ~/.aws/credentials
+oct configure aws-client &apos;keypair_name&apos; &apos;libra&apos;
+oct configure aws-client &apos;private_key_path&apos; &apos;/var/lib/jenkins/.ssh/devenv.pem&apos;
+
+# set up a remote host in AWS EC2
+oct provision remote all-in-one --os &apos;rhel&apos;           \
+                                --stage &apos;base&apos;        \
+                                --provider &apos;aws&apos;      \
+                                --discrete-ssh-config \
+                                --name &quot;${JOB_NAME}_${BUILD_NUMBER}&quot;
+
+# get the Origin repo to the right state
+oct sync remote origin
+oct sync remote origin --refspec=&quot;pull/${PULL_ID}/head&quot; \
+                       --branch=&quot;pull-${PULL_ID}&quot;       \
+                       --merge-into=&quot;${BRANCH}&quot;
+
+# run the test
+{
+cat &lt;&lt;EOF
+set -o errexit
+set -o nounset
+set -o pipefail
+set -o xtrace
+
+# run tests as the right user
+sudo su origin
+
+# use a ramdisk for etcd storage
+sudo mkdir /tmp || true
+sudo mount -t tmpfs -o size=2048m tmpfs /tmp
+
+# Print useful version information
+go version
+docker version
+
+cd &quot;\${GOPATH}/src/github.com/openshift/origin&quot;
+go get github.com/openshift/imagebuilder/cmd/imagebuilder
+
+export OS_BUILD_IMAGE_ARGS=&#39;&#39;
+hack/build-base-images.sh
+make release
+JUNIT_REPORT=&#39;true&#39; make test -o check -k
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
+      <buildSteps>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+
+pushd &quot;${WORKSPACE}&quot;
+
+# enter the origin-ci-tool virtualenv
+source activate
+
+# localize configuration for this workspace
+export OCT_CONFIG_HOME=&quot;$(pwd)/.config&quot;
+mkdir -p &quot;${OCT_CONFIG_HOME}&quot;
+
+# harvest artifacts
+ARTIFACT_DIR=&quot;$( pwd )/artifacts&quot;
+rm -rf &quot;${ARTIFACT_DIR}&quot;
+mkdir &quot;${ARTIFACT_DIR}&quot;
+oct download origin-artifacts --dest=&quot;${ARTIFACT_DIR}&quot;
+
+# make sure we unprovision any remote hosts when this script exits
+oct deprovision
+
+popd</command>
+        </hudson.tasks.Shell>
+      </buildSteps>
+      <scriptOnlyIfSuccess>false</scriptOnlyIfSuccess>
+      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
+      <markBuildUnstable>false</markBuildUnstable>
+    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/**/**/*.xml</artifacts>
+      <allowEmptyArchive>true</allowEmptyArchive>
+      <onlyIfSuccessful>false</onlyIfSuccessful>
+      <fingerprint>false</fingerprint>
+      <defaultExcludes>true</defaultExcludes>
+      <caseSensitive>true</caseSensitive>
+    </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
+      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/**/**/*.xml</testResults>
+      <keepLongStdio>true</keepLongStdio>
+      <healthScaleFactor>1.0</healthScaleFactor>
+      <allowEmptyResults>true</allowEmptyResults>
+    </hudson.tasks.junit.JUnitResultArchiver>
+    <hudson.plugins.s3.S3BucketPublisher plugin="s3@0.10.11-SNAPSHOT">
+      <profileName>Jenkins-AWS</profileName>
+      <entries>
+        <hudson.plugins.s3.Entry>
+          <bucket>aos-ci/jenkinsorigin</bucket>
+          <sourceFile>artifacts/**, .config/origin-ci-tool/**</sourceFile>
+          <excludedFile></excludedFile>
+          <storageClass>STANDARD</storageClass>
+          <selectedRegion>us-east-1</selectedRegion>
+          <noUploadOnFailure>false</noUploadOnFailure>
+          <uploadFromSlave>false</uploadFromSlave>
+          <managedArtifacts>true</managedArtifacts>
+          <useServerSideEncryption>false</useServerSideEncryption>
+          <flatten>false</flatten>
+          <gzipFiles>false</gzipFiles>
+          <showDirectlyInBrowser>false</showDirectlyInBrowser>
+          <keepForever>false</keepForever>
+        </hudson.plugins.s3.Entry>
+      </entries>
+      <dontWaitForConcurrentBuildCompletion>true</dontWaitForConcurrentBuildCompletion>
+      <consoleLogLevel>
+        <name>WARNING</name>
+        <value>900</value>
+        <resourceBundleName>sun.util.logging.resources.logging</resourceBundleName>
+      </consoleLogLevel>
+      <pluginFailureResultConstraint>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </pluginFailureResultConstraint>
+      <userMetadata/>
+    </hudson.plugins.s3.S3BucketPublisher>
+  </publishers>
+  <buildWrappers/>
+  <pollSubjobs>false</pollSubjobs>
+</com.tikal.jenkins.plugins.multijob.MultiJobProject>

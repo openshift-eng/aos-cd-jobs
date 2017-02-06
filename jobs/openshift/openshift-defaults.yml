@@ -37,10 +37,10 @@
     name: paas-sig-ci-scm
     scm:
         - git:
-            url: 'git://github.com/herlo/paas-sig-ci.git'
+            url: 'git://github.com/openshift/aos-cd-jobs.git'
             branches:
                 - origin/master
-            basedir: paas-ci
+            basedir: aos-cd-jobs
             skip-tag: true
         - git:
             url: 'git://github.com/CentOS-PaaS-SIG/duffy-ansible-module.git'

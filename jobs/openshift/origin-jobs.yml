@@ -5,7 +5,7 @@
 #    parameters:
 #      - label:
 #          name: node
-#          default: paas-sig-ci-slave01
+#          default: aos-ci-cd-slave in the openshift-enterprise tenant
 #          description: "The node on which to run the job"
 
 - job-template:

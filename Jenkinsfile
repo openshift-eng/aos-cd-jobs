@@ -66,7 +66,7 @@ node {
                 $class: 'hudson.model.StringParameterDefinition',
                 name: 'OSE_REPO',
                 description: 'OSE repository url',
-                defaultValue: 'https://github.com/openshift/ose.git',
+                defaultValue: 'git@github.com:openshift/ose.git',
             ],
             [
                 $class: 'hudson.model.StringParameterDefinition',

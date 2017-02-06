@@ -19,7 +19,7 @@
           type: user-defined
           name: TOPOLOGY
           values:
-            - os_origin-3node-cluster.yml
+            - os_origin-3node-cluster
       - axis:
          type: slave
          name: nodes

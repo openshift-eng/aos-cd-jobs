@@ -137,7 +137,6 @@
       # Setup to provision
       mkdir -p $WORKSPACE/inventory
       cp $OS_OSE_TENANT $WORKSPACE/linch-pin/provision/roles/openstack/vars/os_openshift-tenant.yml
-      sed -i "s|res_name: \"\(.*\)\"|res_name: \1-${{UUID}}|g" $WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml
 
       # teardown cluster
       ansible-playbook {provision-pb} -u root -vv \

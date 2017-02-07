@@ -33,6 +33,7 @@
       - shining-panda:
           build-environment: virtualenv
           python-version: System-CPython-2.7
+          name: lp-test-env
           nature: shell
           command: |
             {provision-cluster}
@@ -57,6 +58,7 @@
             - shining-panda:
                 build-environment: virtualenv
                 python-version: System-CPython-2.7
+                name: lp-test-env
                 nature: shell
                 command: |
                   {teardown-cluster}

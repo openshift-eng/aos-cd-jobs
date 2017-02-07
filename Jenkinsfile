@@ -46,7 +46,7 @@ git merge ${merge_opts} '${commit}' -m '${commit_msg}'
 """)
 }
 
-node {
+node('buildvm-devops') {
     properties([[
         $class: 'ParametersDefinitionProperty',
         parameterDefinitions: [

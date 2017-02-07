@@ -1,7 +1,6 @@
 - project:
-    name: paas-bfs-master
-    paas-bfs-master-name: paas-bfs-master
-    site: duffy
+    name: aos-cd-bfs-master
+    aos-cd-bfs-master-name: aos-cd-bfs-master
     jslave_name: aos-ci-cd-slave
     jslave_username: root
     lpsha1: 2b028bf787ae82f1671986572f9837dbd82c8e8c
@@ -15,19 +14,14 @@
     oa_version: 3.4
     provision-cluster: |
       #!/bin/bash
-      set -xeo pipefail
-
-      # Setup venv
-      UUID=$( uuidgen | awk -F"-" '{{print $1}}')
-      virtualenv $WORKSPACE/lp-venv-${{UUID}}
-      source $WORKSPACE/lp-venv-${{UUID}}/bin/activate
-
       set -xeuo pipefail
+
+      UUID=$( uuidgen | awk -F"-" '{{print $1}}')
 
       # Install linch-pin
       pip install packaging
       pip install appdirs
-      cp -r /usr/lib64/python2.7/site-packages/selinux $WORKSPACE/lp-venv-$UUID/lib64/python2.7/site-packages/
+      cp -r /usr/lib64/python2.7/site-packages/selinux $VIRTUAL_ENV/lib64/python2.7/site-packages/
 
       # Install linch-pin deps in virtualenv
       pushd linch-pin
@@ -53,8 +47,6 @@
       -e "inventory_layout_file=$WORKSPACE/aos-cd-jobs/configs/inv_layouts/{inventory-layout-file}" \
       -e "inventory_outputs_path=$WORKSPACE/inventory" -e "state=present"
 
-      set +u
-      deactivate
     prep-cluster: |
       #!/bin/bash
       set -xeuo pipefail
@@ -107,36 +99,7 @@
       $WORKSPACE/{run-e2e-pb}
     teardown-cluster: |
       #!/bin/bash
-      set -xeo pipefail
-
-      # Setup venv
-      UUID=$( uuidgen | awk -F"-" '{{print $1}}')
-      virtualenv $WORKSPACE/lp-venv-${{UUID}}
-      source $WORKSPACE/lp-venv-${{UUID}}/bin/activate
-
       set -xeuo pipefail
-
-      # Install linch-pin
-      pip install packaging
-      pip install appdirs
-      cp -r /usr/lib64/python2.7/site-packages/selinux $WORKSPACE/lp-venv-$UUID/lib64/python2.7/site-packages/
-
-      # Install linch-pin deps in virtualenv
-      pushd linch-pin
-      ./install.sh
-      popd linch-pin
-
-      # create ansible.cfg
-      cat << EOF > $WORKSPACE/ansible.cfg
-      [defaults]
-      remote_user = root
-      library  = $WORKSPACE/linch-pin/library:$WORKSPACE/duffy-ansible-module/library
-
-      EOF
-
-      # Setup to provision
-      mkdir -p $WORKSPACE/inventory
-      cp $OS_OSE_TENANT $WORKSPACE/linch-pin/provision/roles/openstack/vars/os_openshift-tenant.yml
 
       # teardown cluster
       ansible-playbook {provision-pb} -u root -vv \
@@ -144,7 +107,5 @@
       -e "inventory_layout_file=$WORKSPACE/aos-cd-jobs/configs/inv_layouts/{inventory-layout-file}" \
       -e "inventory_outputs_path=$WORKSPACE/inventory" -e "state=absent"
 
-      set +u
-      deactivate
     jobs:
-      - paas-bfs-master-provision-prep-test-teardown
+      - aos-cd-bfs-master-provision-prep-test-teardown

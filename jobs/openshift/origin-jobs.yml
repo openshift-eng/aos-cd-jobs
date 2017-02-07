@@ -2,14 +2,9 @@
 ## MATRIX JOB TO BUILD FROM SOURCE FOR FUTURE CANDIDATE BUILDS ##
 #################################################################
 
-#    parameters:
-#      - label:
-#          name: node
-#          default: aos-ci-cd-slave in the openshift-enterprise tenant
-#          description: "The node on which to run the job"
 
 - job-template:
-    name: '{paas-bfs-master-name}-0-test-matrix'
+    name: '{aos-cd-bfs-master-name}-0-test-matrix'
     defaults: openshift-defaults
     concurrent: false
     node: '{jslave_name}'
@@ -25,23 +20,33 @@
          name: nodes
          values:
           - '{jslave_name}'
+      - axis:
+          type: python
+          values:
+          - System-CPython-2.7
     scm:
       - paas-sig-ci-scm
     wrappers:
+      - openshift-wrappers
       - openshift-cred-wrappers
     builders:
-      - shell: |
-          {provision-cluster}
-      - shell: |
-          {prep-cluster}
-      - shell: |
-          {bfs-origin}
-      - shell: |
-          {bfs-openshift-ansible}
-      - shell: |
-          {deploy-aosi}
-      - shell: |
-          {run-e2e-tests}
+      - shining-panda:
+          build-environment: virtualenv
+          python-version: System-CPython-2.7
+          nature: shell
+          command: |
+            {provision-cluster}
+          clear: true
+#      - shell: |
+#          {prep-cluster}
+#      - shell: |
+#          {bfs-origin}
+#      - shell: |
+#          {bfs-openshift-ansible}
+#      - shell: |
+#          {deploy-aosi}
+#      - shell: |
+#          {run-e2e-tests}
     publishers:
       - archive:
           artifacts: "**/*.output, **/${{TOPOLOGY}}.inventory"
@@ -49,13 +54,18 @@
       - openshift-email
       - postbuildscript:
           builders:
-            - shell: |
-                {teardown-cluster}
+            - shining-panda:
+                build-environment: virtualenv
+                python-version: System-CPython-2.7
+                nature: shell
+                command: |
+                  {teardown-cluster}
+                clear: true
           script-only-if-succeeded: false
           execute-on: axes
 
 - job-group:
-    name: paas-bfs-master-provision-prep-test-teardown
+    name: aos-cd-bfs-master-provision-prep-test-teardown
     jobs:
-        - '{paas-bfs-master-name}-0-test-matrix'
+        - '{aos-cd-bfs-master-name}-0-test-matrix'
 

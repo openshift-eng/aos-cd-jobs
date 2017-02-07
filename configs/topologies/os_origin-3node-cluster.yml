@@ -1,5 +1,5 @@
 ---
-  topology_name: "os_origin_cluster1"
+  topology_name: "os_origin-3node-cluster"
   site: "ci-osp"
   resource_groups:
     -

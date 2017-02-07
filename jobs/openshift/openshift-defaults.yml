@@ -1,28 +1,29 @@
 - defaults:
     name: openshift-defaults
     description: |
-        Maintainer: <a href="mailto:herlo@redhat.com>Clint Savage</a>
-        Secondary Maintainer: <a href="mailto:alivigni@redhat.com>Ari LiVigni</a>
-        Code Location: http://github.com/CentOS-PaaS-SIG/paas-sig-ci
-        IRC: #centos-devel on freenode<br/><br/>
-        Mailing List: <a href="mailto:centos-devel@centos.org">CentOS Devel</a>
+        Maintainer: <a href="mailto:jhadvig@redhat.com">Jacub Hadvig</a><br/>
+        Secondary Maintainer: <a href="mailto:skuznets@redhat.com">Steve Kuznetsov</a><br/>
+        Code Location: http://github.com/openshift/aos-cd-jobs<br/><br/>
         Managed by Jenkins Job Builder. Do not edit via the web interface.
-    node: openshift-ansible-slave
-    wrappers:
-        - ansicolor
-        - workspace-cleanup
-        - timestamps
-        - inject:
-            properties-content: |
-                ANSIBLE_SSH_CONTROL_PATH=%(directory)s/%%h-%%r
-                ANSIBLE_HOST_KEY_CHECKING=False
     properties:
-        - build-discarder:
-            num-to-keep: 50
-            artifact-num-to-keep: 15
-        - inject:
-            properties-content: |
-              lp_sha1={lpsha1}
+      - build-discarder:
+          num-to-keep: 50
+          artifact-num-to-keep: 15
+      - inject:
+          properties-content: |
+            lp_sha1={lpsha1}
+
+## Wrapper/Build Environment to cleanup the workspace, timestamps, color console
+- wrapper:
+    name: openshift-wrappers
+    wrappers:
+      - ansicolor
+      - workspace-cleanup
+      - timestamps
+      - inject:
+          properties-content: |
+              ANSIBLE_SSH_CONTROL_PATH=%(directory)s/%%h-%%r
+              ANSIBLE_HOST_KEY_CHECKING=False
 
 ## Added for creds to reference openshift-enterprise tenant in openstack
 - wrapper:
@@ -39,7 +40,7 @@
         - git:
             url: 'git://github.com/openshift/aos-cd-jobs.git'
             branches:
-                - origin/master
+                - origin/jjb
             basedir: aos-cd-jobs
             skip-tag: true
         - git:
@@ -59,12 +60,12 @@
     name: openshift-email
     publishers:
       - email-ext:
-          recipients: herlo@redhat.com,tdawson@redhat.com
+          recipients: jhadvig@redhat.com, skuznets@redhat.com, jupierce@redhat.com
           reply-to: $DEFAULT_REPLYTO
           content-type: default
-          subject: $DEFAULT_SUBJECT CentOS-PaaS-SIG
+          subject: $DEFAULT_SUBJECT aos-cd
           body: $DEFAULT_CONTENT
-          attach-build-log: false
+          attach-build-log: true
           always: false
           unstable: false
           first-failure: true

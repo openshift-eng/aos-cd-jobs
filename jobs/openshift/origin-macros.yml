@@ -18,12 +18,11 @@
 
       UUID=$( uuidgen | awk -F"-" '{{print $1}}')
 
-      # Install linch-pin
+      # Install linch-pin deps in virtualenv
       pip install packaging
       pip install appdirs
       cp -r /usr/lib64/python2.7/site-packages/selinux $VIRTUAL_ENV/lib64/python2.7/site-packages/
 
-      # Install linch-pin deps in virtualenv
       pushd linch-pin
       ./install.sh
       popd linch-pin
@@ -100,6 +99,15 @@
     teardown-cluster: |
       #!/bin/bash
       set -xeuo pipefail
+
+      # Install linch-pin deps in virtualenv
+      pip install packaging
+      pip install appdirs
+      cp -r /usr/lib64/python2.7/site-packages/selinux $VIRTUAL_ENV/lib64/python2.7/site-packages/
+
+      pushd linch-pin
+      ./install.sh
+      popd linch-pin
 
       # teardown cluster
       ansible-playbook {provision-pb} -u root -vv \

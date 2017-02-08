@@ -47,7 +47,7 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
     # Add proper ssh key
     ssh-add ${HOME}/.ssh/origin-web-console/id_rsa
     git merge master -m "Merge master into enterprise-${OSE_VERSION}"
-    git push
+    # git push
     # REMOVE SLEEP - FOR TESTING ONLY
     echo "Check that this worked"
     sleep 30
@@ -60,8 +60,9 @@ echo "Setup ose stuff"
 echo "=========="
 cd ${WORKPATH}
 rm -rf ose
-git clone git@github.com:openshift/ose.git
+git clone git@github.com:kargakis/ose.git
 cd ose
+git checkout fake-master
 if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
@@ -70,7 +71,7 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "=========="
   echo "Merge origin into ose stuff"
   echo "=========="
-  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
+  git rebase upstream/master
   if [ "$?" != "0" ]; then exit 1 ; fi
 else
   git checkout -q enterprise-${OSE_VERSION}
@@ -100,6 +101,8 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   git add pkg/assets/java/bindata.go
   git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
 fi # End check if we are version 3.2
+
+exit 0
 
 # Put local rpm testing here
 echo

@@ -1,6 +1,9 @@
 #!/bin/bash
-# Setup
-#set -o xtrace
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
 OSE_MASTER="3.5"
 if [ "$#" -ne 2 ]; then
   MAJOR="3"
@@ -15,13 +18,19 @@ OSE_VERSION="${MAJOR}.${MINOR}"
 if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
   PUSH_EXTRA="--nolatest"
 fi
-BUILDPATH="${HOME}/go"
+
+# Use the directory relative to this Jenkins job.
+BUILDPATH="${WORKSPACE}/go"
+mkdir -p $BUILDPATH
 cd $BUILDPATH
-export GOPATH=`pwd`
+export GOPATH="$( pwd )"
 WORKPATH="${BUILDPATH}/src/github.com/openshift/"
+mkdir -p $WORKPATH
 echo "GOPATH: ${GOPATH}"
 echo "BUILDPATH: ${BUILDPATH}"
 echo "WORKPATH ${WORKPATH}"
+
+go get github.com/jteeuwen/go-bindata
 
 if [ "${OSE_VERSION}" == "3.2" ] ; then
   echo
@@ -42,10 +51,7 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   git clone git@github.com:openshift/origin-web-console.git
   cd origin-web-console/
   git checkout enterprise-${OSE_VERSION}
-   if [ "$?" != "0" ]; then exit 1 ; fi
   if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-    # Add proper ssh key
-    ssh-add ${HOME}/.ssh/origin-web-console/id_rsa
     git merge master -m "Merge master into enterprise-${OSE_VERSION}"
     git push
     # REMOVE SLEEP - FOR TESTING ONLY
@@ -71,7 +77,6 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "Merge origin into ose stuff"
   echo "=========="
   git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-  if [ "$?" != "0" ]; then exit 1 ; fi
 else
   git checkout -q enterprise-${OSE_VERSION}
   # Check to see if we need to rebuild or not
@@ -113,7 +118,6 @@ echo "=========="
 echo "Tito Tagging"
 echo "=========="
 tito tag --accept-auto-changelog
-  if [ "$?" != "0" ]; then exit 1 ; fi
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
 git push
@@ -128,7 +132,6 @@ echo "TASK NUMBER: ${TASK_NUMBER}"
 echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
 echo
 brew watch-task ${TASK_NUMBER}
-  if [ "$?" != "0" ]; then exit 1 ; fi
 
 echo
 echo "=========="
@@ -141,21 +144,18 @@ echo "=========="
 echo "Update Dockerfiles to new version"
 echo "=========="
 ose_images.sh update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version ${VERSION}
-   if [ "$?" != "0" ]; then exit 1 ; fi
 
 echo
 echo "=========="
 echo "Build Images"
 echo "=========="
 ose_images.sh build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo
-   if [ "$?" != "0" ]; then exit 1 ; fi
 
 echo
 echo "=========="
 echo "Push Images"
 echo "=========="
 sudo ose_images.sh push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base
-   if [ "$?" != "0" ]; then exit 1 ; fi
 
 echo
 echo "=========="

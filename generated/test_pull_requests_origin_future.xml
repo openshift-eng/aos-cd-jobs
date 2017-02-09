@@ -62,7 +62,7 @@ child_jobs=['test_pull_requests_origin_check_future', 'test_pull_requests_origin
   <builders>
     <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
       <regexp></regexp>
-      <description>Testing PR https://github.com/openshift/origin/pull/${PULL_ID} merged into ${BRANCH} branch.</description>
+      <description>Testing PR &lt;a href=&quot;https://github.com/openshift/origin/pull/${PULL_ID}&quot;&gt;${PULL_ID}&lt;/a&gt; merged into &lt;a href=&quot;https://github.com/openshift/origin/tree/${BRANCH}&quot;&gt;${BRANCH}&lt;/a&gt; branch.</description>
     </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
     <com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
       <phaseName>Test Phase</phaseName>

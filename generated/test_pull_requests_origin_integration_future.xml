@@ -59,6 +59,10 @@ JUNIT_REPORT=&#39;true&#39; make test -o check -k&quot;&lt;/div&gt;</description
   <triggers/>
   <concurrentBuild>true</concurrentBuild>
   <builders>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp></regexp>
+      <description>Testing PR https://github.com/openshift/origin/pull/${PULL_ID} merged into ${BRANCH} branch.</description>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
     <hudson.tasks.Shell>
       <command>#!/bin/bash
 

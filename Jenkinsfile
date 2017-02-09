@@ -56,6 +56,12 @@ node('buildvm-devops') {
                 description: 'OSE Version',
                 name: 'OSE_VERSION',
             ],
+            [
+                $class: 'hudson.model.StringParameterDefinition',
+                name: 'OSE_CREDENTIALS',
+                description: 'Credentials for the OSE repository',
+                defaultValue: '',
+            ],
         ],
     ]])
     try_wrapper(mail_failure) {
@@ -99,6 +105,7 @@ node('buildvm-devops') {
                         [
                             name: 'origin',
                             url: 'git@github.com:openshift/ose.git',
+                            credentialsId: OSE_CREDENTIALS,
                         ],
                     ])
                 git_merge(

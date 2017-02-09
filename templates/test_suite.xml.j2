@@ -61,6 +61,10 @@ child_jobs={{ child_jobs }}&lt;/div&gt;</description>
   <triggers/>
   <concurrentBuild>true</concurrentBuild>
   <builders>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp></regexp>
+      <description>Testing PR https://github.com/openshift/origin/pull/${PULL_ID} merged into ${BRANCH} branch.</description>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
     <com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
       <phaseName>Test Phase</phaseName>
       <phaseJobs>

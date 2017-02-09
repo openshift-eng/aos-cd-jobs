@@ -105,8 +105,18 @@ cat /var/lib/jenkins/jobs/{{ child_job }}/builds/${{ '{' }}{{ child_job | upper 
 {%- endfor %}
       </command>
     </hudson.tasks.Shell>
-    <hudson.tasks.Shell>
-      <command>#!/bin/bash
+  </builders>
+  <publishers>
+    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
+      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/**/**/*.xml</testResults>
+      <keepLongStdio>true</keepLongStdio>
+      <healthScaleFactor>1.0</healthScaleFactor>
+      <allowEmptyResults>true</allowEmptyResults>
+    </hudson.tasks.junit.JUnitResultArchiver>
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
+      <buildSteps>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 
 set -o errexit
 set -o nounset
@@ -120,16 +130,12 @@ if [[ &quot;${MERGE}&quot; == &quot;true&quot; ]]; then
 else
   test_pull_requests --mark_test_success &quot;${PULL_ID}&quot; --repo origin --config ~/.test_pull_requests_origin.json || true
 fi</command>
-    </hudson.tasks.Shell>
-
-  </builders>
-  <publishers>
-    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
-      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/**/**/*.xml</testResults>
-      <keepLongStdio>true</keepLongStdio>
-      <healthScaleFactor>1.0</healthScaleFactor>
-      <allowEmptyResults>true</allowEmptyResults>
-    </hudson.tasks.junit.JUnitResultArchiver>
+        </hudson.tasks.Shell>
+      </buildSteps>
+      <scriptOnlyIfSuccess>true</scriptOnlyIfSuccess>
+      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
+      <markBuildUnstable>false</markBuildUnstable>
+    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
   </publishers>
   <buildWrappers/>
   <pollSubjobs>false</pollSubjobs>

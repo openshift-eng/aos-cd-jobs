@@ -60,17 +60,16 @@ fi
 ################################################
 if [ "${OPERATION}" == "install" ]; then 
   set -o xtrace
-  
+
   CHILDREN=""
-  
+
   # Kill all background jobs on normal exit or signal
-  trap "[[ ! -z \"$CHILDREN\" ]] && kill $CHILDREN" SIGINT SIGTERM EXIT
-  
-  
+  trap 'kill $(jobs -p)' EXIT
+
   # Update cluster setup changes to the releases directory
   echo "Update cluster setup changes..."
   cp ${CLUSTER_SETUP_TEMPLATE_FILE} ../../openshift-ansible-ops/playbooks/release/bin
-  
+
   # Deploy all the things
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
     autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &
@@ -79,11 +78,11 @@ if [ "${OPERATION}" == "install" ]; then
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
   popd
-  
+
   echo
   echo "Deployment is complete. OpenShift Console can be found at https://${MASTER_DNS_NAME}"
   echo
-  
+
 ################################################
 # DELETE CLUSTER
 ################################################
@@ -93,11 +92,11 @@ elif [ "${OPERATION}" == "delete" ]; then
   echo "Updating the OPs inventory..."
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
   echo
-  
+
   pushd ../../openshift-ansible-ops/playbooks/release/decommission
     autokeys_loader /usr/bin/ansible-playbook aws_remove_cluster.yml -e cli_clusterid=${CLUSTERNAME} -e cluster_to_delete=${CLUSTERNAME} -e run_in_automated_mode=True
   popd
-  
+
   # This updates the OPs inventory
   echo "Updating the OPs inventory..."
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null

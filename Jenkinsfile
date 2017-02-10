@@ -58,6 +58,11 @@ def fix_workspace_label() {
     sh "chcon -Rt svirt_sandbox_file_t '${env.WORKSPACE}'*"
 }
 
+def version(f) {
+    def matcher = readFile(f) =~ /Version:\s+([.0-9]+)/
+    matcher ? matcher[0][1] : null
+}
+
 node('buildvm-devops') {
     properties([[
         $class: 'ParametersDefinitionProperty',
@@ -134,10 +139,8 @@ GIT_REF=master COMMIT=1 hack/vendor-console.sh
 tito tag --accept-auto-changelog
 '''
             }
-            dir(env.GOPATH + '/src/github.com/openshift/ose') {
-                def v = readFile(file: 'origin.spec') =~ /Version:\s+([.0-9]+)/
-                mail_success(v[0][1])
-            }
+            mail_success(
+                version("${GOPATH}/src/github.com/openshift/ose/origin.spec")))
         }
     }
 }

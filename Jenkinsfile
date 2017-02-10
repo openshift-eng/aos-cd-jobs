@@ -139,8 +139,8 @@ GIT_REF=master COMMIT=1 hack/vendor-console.sh
 tito tag --accept-auto-changelog
 '''
             }
-            mail_success(
-                version("${GOPATH}/src/github.com/openshift/ose/origin.spec"))
+            mail_success(version(
+                "${env.GOPATH}/src/github.com/openshift/ose/origin.spec"))
         }
     }
 }

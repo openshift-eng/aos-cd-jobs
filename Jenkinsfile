@@ -140,7 +140,7 @@ tito tag --accept-auto-changelog
 '''
             }
             mail_success(
-                version("${GOPATH}/src/github.com/openshift/ose/origin.spec")))
+                version("${GOPATH}/src/github.com/openshift/ose/origin.spec"))
         }
     }
 }

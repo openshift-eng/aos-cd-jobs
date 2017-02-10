@@ -1,3 +1,10 @@
+// https://issues.jenkins-ci.org/browse/JENKINS-33511
+def set_workspace() {
+    if(env.WORKSPACE == null) {
+        env.WORKSPACE = pwd()
+    }
+}
+
 node('buildvm-devops') {
 
     // Expose properties for a parameterized build
@@ -11,6 +18,7 @@ node('buildvm-devops') {
              ]]
     )
 
+    set_workspace()
     stage('Merge and build') {
         try {
             checkout scm

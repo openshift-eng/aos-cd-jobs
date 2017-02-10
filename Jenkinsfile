@@ -46,6 +46,13 @@ git merge ${merge_opts} '${commit}' -m '${commit_msg}'
 """)
 }
 
+// https://issues.jenkins-ci.org/browse/JENKINS-33511
+def set_workspace() {
+    if(env.WORKSPACE == null) {
+        env.WORKSPACE = pwd()
+    }
+}
+
 // https://issues.jenkins-ci.org/browse/JENKINS-37069
 def fix_workspace_label() {
     sh "chcon -Rt svirt_sandbox_file_t '${env.WORKSPACE}'*"
@@ -78,6 +85,7 @@ node('buildvm-devops') {
                 image = docker.build 'ose-builder', 'builder'
             }
         }
+        set_workspace()
         fix_workspace_label()
         stage('dependencies') {
             env.GOPATH = env.WORKSPACE + '/go'

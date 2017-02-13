@@ -1,8 +1,28 @@
+#!/usr/bin/env groovy
+
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
     if(env.WORKSPACE == null) {
         env.WORKSPACE = pwd()
     }
+}
+
+def version(f) {
+    def matcher = readFile(f) =~ /Version:\s+([.0-9]+)/
+    matcher ? matcher[0][1] : null
+}
+
+def mail_success(version) {
+    mail(
+        to: 'jupierce@redhat.com',
+        subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
+        body: """\
+v${version}
+Images have been built for this puddle
+Images have been pushed to registry.ops
+Puddles have been synched to mirrors
+Jenkins job: ${env.BUILD_URL}
+""");
 }
 
 node('buildvm-devops') {
@@ -24,21 +44,8 @@ node('buildvm-devops') {
             checkout scm
             sh "./merge-build-push/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
 
-            def specVersion = readFile( file: 'go/src/github.com/openshift/ose/origin.spec' ).find( /Version: ([.0-9]+)/) {
-                full, ver -> return ver;
-            }
-
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail(to: "jupierce@redhat.com",
-                    subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${specVersion}",
-                    body: """v${specVersion}
-Images have been built for this puddle
-Images have been pushed to registry.ops
-Puddles have been synched to mirrors
-
-
-Jenkins job: ${env.BUILD_URL}
-""");
+            mail_success(version("go/src/github.com/openshift/ose/origin.spec"))
 
 
         } catch ( err ) {

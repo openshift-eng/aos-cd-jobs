@@ -1,17 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <com.tikal.jenkins.plugins.multijob.MultiJobProject plugin="jenkins-multijob-plugin@1.21">
   <actions/>
-  <description>&lt;div style=&quot;white-space: pre-wrap;&quot;&gt;Run some commands in an EC2 VM.&#xd;
-  &#xd;
-&lt;div style=&quot;font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;&quot;&gt;WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. MAKE CHANGES TO THE JOB DEFINITIONS IN THE openshift/aos-cd-jobs REPOSITORY INSTEAD.&#xd;
-&lt;/div&gt;&#xd;
-THIS JOB WAS GENERATED WITH CONFIGURATION OPTIONS:
-command=&quot;go get github.com/openshift/imagebuilder/cmd/imagebuilder
-
-export OS_BUILD_IMAGE_ARGS=&#39;&#39;
-hack/build-base-images.sh
-make release
-JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance&quot;&lt;/div&gt;</description>
+  <description>
+    &lt;div style=&quot;font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;&quot;&gt;WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. MAKE CHANGES TO THE JOB DEFINITIONS IN THE openshift/aos-cd-jobs REPOSITORY INSTEAD.&#xd;&lt;/div&gt;
+  </description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.plugins.buildblocker.BuildBlockerProperty plugin="build-blocker-plugin@1.7.3">
@@ -118,16 +110,16 @@ oct sync remote origin --refspec=&quot;pull/${PULL_ID}/head&quot; \
 # run the test
 {
 cat &lt;&lt;EOF
+# run tests as the right user
+sudo su origin
+
 set -o errexit
 set -o nounset
 set -o pipefail
 set -o xtrace
 
-# run tests as the right user
-sudo su origin
-
 # use a ramdisk for etcd storage
-sudo mkdir /tmp || true
+sudo mkdir -p /tmp
 sudo mount -t tmpfs -o size=2048m tmpfs /tmp
 
 # Print useful version information
@@ -224,6 +216,11 @@ popd</command>
       <userMetadata/>
     </hudson.plugins.s3.S3BucketPublisher>
   </publishers>
-  <buildWrappers/>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.8"/>
+    <hudson.plugins.ansicolor.AnsiColorBuildWrapper plugin="ansicolor@0.4.2">
+      <colorMapName>xterm</colorMapName>
+    </hudson.plugins.ansicolor.AnsiColorBuildWrapper>
+  </buildWrappers>
   <pollSubjobs>false</pollSubjobs>
 </com.tikal.jenkins.plugins.multijob.MultiJobProject>

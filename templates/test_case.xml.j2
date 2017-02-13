@@ -122,7 +122,7 @@ set -o pipefail
 set -o xtrace
 
 # use a ramdisk for etcd storage
-sudo mkdir /tmp || true
+sudo mkdir -p /tmp
 sudo mount -t tmpfs -o size=2048m tmpfs /tmp
 
 # Print useful version information

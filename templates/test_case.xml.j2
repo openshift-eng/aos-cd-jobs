@@ -113,13 +113,13 @@ oct sync remote origin --refspec=&quot;pull/${PULL_ID}/head&quot; \
 # run the test
 {
 cat &lt;&lt;EOF
+# run tests as the right user
+sudo su origin
+
 set -o errexit
 set -o nounset
 set -o pipefail
 set -o xtrace
-
-# run tests as the right user
-sudo su origin
 
 # use a ramdisk for etcd storage
 sudo mkdir /tmp || true

@@ -135,7 +135,7 @@ if [[ &#34;\${branch}&#34; == &#34;master&#34; ]]; then
 	RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
 fi
 
-OS_BUILD_ENV_PRESERVE=_output/local hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -j -k
+OS_BUILD_ENV_DOCKER_ARGS=&#34;-v /tmp/ci:/tmp &#34; hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -j -k
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
     </hudson.tasks.Shell>

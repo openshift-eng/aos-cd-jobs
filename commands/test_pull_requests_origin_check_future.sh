@@ -6,4 +6,4 @@ if [[ "${branch}" == "master" ]]; then
 	RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
 fi
 
-OS_BUILD_ENV_PRESERVE=_output/local hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k
+OS_BUILD_ENV_DOCKER_ARGS="-v /tmp/ci:/tmp " hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k

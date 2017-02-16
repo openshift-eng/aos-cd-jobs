@@ -44,7 +44,7 @@ go get github.com/jteeuwen/go-bindata
 if [ "${OSE_VERSION}" == "3.2" ] ; then
   echo
   echo "=========="
-  echo "OCP 3.2 builds will not work in this build enviroment."
+  echo "OCP 3.2 builds will not work in this build environment."
   echo "We are exiting now to save you problems later."
   echo "Exiting ..."
   exit 1
@@ -118,7 +118,9 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
   git add pkg/assets/bindata.go
   git add pkg/assets/java/bindata.go
+  set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
   git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
+  set -e
 fi # End check if we are version 3.2
 
 # Put local rpm testing here

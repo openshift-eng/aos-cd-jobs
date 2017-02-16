@@ -21,6 +21,7 @@ else
   MINOR="$2"
 fi
 OSE_VERSION="${MAJOR}.${MINOR}"
+PUSH_EXTRA=""
 if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
   PUSH_EXTRA="--nolatest"
 fi

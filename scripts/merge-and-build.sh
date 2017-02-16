@@ -130,6 +130,8 @@ echo "Sleeping for a Minute so you can take a quick look"
 echo "=========="
 sleep 60
 
+kinit -k -t /home/jenkins/ocp-build.keytab.gpg ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
+
 echo
 echo "=========="
 echo "Tito Tagging"

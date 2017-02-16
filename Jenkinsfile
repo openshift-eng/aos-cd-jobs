@@ -42,7 +42,7 @@ node('buildvm-devops') {
     stage('Merge and build') {
         try {
             checkout scm
-            sh "./merge-build-push/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
+            sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success(version("go/src/github.com/openshift/ose/origin.spec"))

@@ -42,7 +42,7 @@ node('buildvm-devops') {
     )
     
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo "${OSE_MAJOR}.${OS_MINOR}, onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}]"
+    echo "${OSE_MAJOR}.${OSE_MINOR}, onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}]"
 
     set_workspace()
     stage('Merge and build') {

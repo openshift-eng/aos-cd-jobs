@@ -14,7 +14,7 @@ def version(f) {
 
 def mail_success(version) {
     mail(
-        to: 'jupierce@redhat.com',
+        to: "${MAIL_LIST_SUCCESS}",
         subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
         body: """\
 v${version}
@@ -34,9 +34,14 @@ node('buildvm-devops') {
                       [
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Major Version', name: 'OSE_MAJOR'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                       ]
              ]]
     )
+    
+    // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
+    echo "${OSE_MAJOR}.${OS_MINOR}, onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}]"
 
     set_workspace()
     stage('Merge and build') {
@@ -50,7 +55,7 @@ node('buildvm-devops') {
 
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail(to: "jupierce@redhat.com",
+            mail(to: "${MAIL_LIST_FAILURE}",
                     subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
                     body: """Encoutered an error while running merge-and-build.sh: ${err}
 

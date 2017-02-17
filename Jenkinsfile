@@ -15,6 +15,7 @@ def version(f) {
 def mail_success(version) {
     mail(
         to: "${MAIL_LIST_SUCCESS}",
+        replyTo: 'tdawson@redhat.com',
         subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
         body: """\
 v${version}

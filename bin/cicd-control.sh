@@ -17,10 +17,26 @@ then
   exit 1
 fi
 
+# Let's cd into where the script is.
+# Remember, we have to path everything based off of the script's dir
 cd "$(dirname "$0")"
 
-CLUSTERNAME=$1
-OPERATION=$2
+export CLUSTERNAME=$1
+export OPERATION=$2
+
+# Set the version for the upgrade
+export VERSION=3.5
+export VERSION_UNDERSCORE=$(echo ${VERSION} | /usr/bin/tr . _)
+
+# Allow for "test-key" to do some testing.
+# For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
+# and then exit successfully.
+if  [ "${CLUSTERNAME}" == "test-key" ]; then
+  echo "CLUSTERNAME is 'test-key'"
+  echo "OPERATION passed from Jenkins was ${OPERATION}"
+  echo "Thanks for playing"
+  exit 0
+fi
 
 # for now let's make sure we are using cicd
 if  [ "${CLUSTERNAME}" != "cicd" ]; then
@@ -29,36 +45,20 @@ if  [ "${CLUSTERNAME}" != "cicd" ]; then
   exit 10
 fi
 
-source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
-
-# Do we need this?
-if [ $? -ne 0 ]; then
-  echo "Unable to source ${CLUSTERNAME}'s variable file. Exiting..."
-
-  exit 10
-fi
-
-CLUSTER_SETUP_TEMPLATE_FILE=../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml
-
-if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then
-  echo "Unable to find ${CLUSTERNAME}'s cluster setup template file. Exiting..."
-
-  exit 10
-fi
 
 # update aos-cd-jobs repo
 
 
 # update git repos
-# This needs review. 
-# This isn't very portable. This requires that the git dirs are already 
+# This needs review.
+# This isn't very portable. This requires that the git dirs are already
 # in place to do updates
 /usr/bin/ansible-playbook ./clone_ops_git_repos.yml
 
 ################################################
 # CREATE CLUSTER
 ################################################
-if [ "${OPERATION}" == "install" ]; then 
+if [ "${OPERATION}" == "install" ]; then
   set -o xtrace
 
   CHILDREN=""
@@ -66,17 +66,26 @@ if [ "${OPERATION}" == "install" ]; then
   # Kill all background jobs on normal exit or signal
   trap 'kill $(jobs -p)' EXIT
 
+  source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
+
+  CLUSTER_SETUP_TEMPLATE_FILE=../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml
+  if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then
+    echo "Unable to find ${CLUSTERNAME}'s cluster setup template file. Exiting..."
+
+    exit 10
+  fi
+
   # Update cluster setup changes to the releases directory
   echo "Update cluster setup changes..."
-  cp ${CLUSTER_SETUP_TEMPLATE_FILE} ../../openshift-ansible-ops/playbooks/release/bin
+  /usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} ../../openshift-ansible-ops/playbooks/release/bin
 
   # Deploy all the things
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
-    autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &
+    /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
     CHILDREN="$CHILDREN $!"
     echo "Will terminate $CHILDREN at the end of this script"
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
-    autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
+    /usr/local/bin/autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
   popd
 
   echo
@@ -86,7 +95,7 @@ if [ "${OPERATION}" == "install" ]; then
 ################################################
 # DELETE CLUSTER
 ################################################
-elif [ "${OPERATION}" == "delete" ]; then 
+elif [ "${OPERATION}" == "delete" ]; then
 
   # This updates the OPs inventory
   echo "Updating the OPs inventory..."
@@ -94,7 +103,7 @@ elif [ "${OPERATION}" == "delete" ]; then
   echo
 
   pushd ../../openshift-ansible-ops/playbooks/release/decommission
-    autokeys_loader /usr/bin/ansible-playbook aws_remove_cluster.yml -e cli_clusterid=${CLUSTERNAME} -e cluster_to_delete=${CLUSTERNAME} -e run_in_automated_mode=True
+    /usr/local/bin/autokeys_loader /usr/bin/ansible-playbook aws_remove_cluster.yml -e cli_clusterid=${CLUSTERNAME} -e cluster_to_delete=${CLUSTERNAME} -e run_in_automated_mode=True
   popd
 
   # This updates the OPs inventory
@@ -104,9 +113,9 @@ elif [ "${OPERATION}" == "delete" ]; then
 ################################################
 # UPGRADE CLUSTER
 ################################################
-elif [ "${OPERATION}" == "upgrade" ]; then 
-
+elif [ "${OPERATION}" == "upgrade" ]; then
   echo Doing upgrade
+  /usr/local/bin/autokeys_loader /usr/bin/ansible-playbook -i ./ops-to-productization-inventory.py ../../openshift-tools/openshift/installer/atomic-openshift-${VERSION}/playbooks/byo/openshift-cluster/upgrades/v${VERSION_UNDERSCORE}/upgrade.yml
 
 else
   echo Error. Unrecognized operation. Exiting...

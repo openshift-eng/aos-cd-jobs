@@ -1,21 +1,16 @@
 #!/bin/bash
 #
-# This is a script for making images rebuilds semi-automated.
-# It can basically do two things:
-#  * create BZs (tracker bug and clones for other components)
-#  * rebase itself, that consists of:
-#    - bump release and update FROM clause in Dockerfile
-#    - commit, push in dist-git
-#    - run build in OSBS
-#    (BZs need to be created before running rebuild)
-#
-# Before working , you need your kerberos log in:
-#   kinit
+# This is a script initially designed for making images rebuilds semi-automated.
+#  It has grown beyond that, but that is still the heart of the program.
 #
 # Required packages:
 #   rhpkg
 #   krb5-workstation
 #   git
+#
+# Many options need your kerberos log in:
+#   kinit
+#
 ## COMMON VARIABLES ##
 #source ose.conf
 
@@ -34,7 +29,7 @@ PULL_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
 PUSH_REGISTRY=registry-push.ops.openshift.com
 #PUSH_REGISTRY=registry.qe.openshift.com
 ERRATA_ID="24510"
-ERRATA_PRODUCT_VERSION="RHEL-7-OSE-3.4"
+ERRATA_PRODUCT_VERSION="RHEL-7-OSE-${MAJOR_RELEASE}"
 SCRIPT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 usage() {
@@ -129,7 +124,7 @@ add_group_to_list() {
         add_to_list logging-deployment-docker
         add_to_list metrics-deployer-docker
       fi
-      ;;
+    ;;
     sti)
       add_to_list openshift-sti-base-docker
       add_to_list openshift-sti-nodejs-docker
@@ -137,50 +132,65 @@ add_group_to_list() {
       add_to_list openshift-sti-php-docker
       add_to_list openshift-sti-python-docker
       add_to_list openshift-sti-ruby-docker
-      ;;
+    ;;
     database)
       add_to_list openshift-mongodb-docker
       add_to_list openshift-mysql-docker
       add_to_list openshift-postgresql-docker
-      ;;
+    ;;
     misc)
       add_to_list image-inspector-docker
-      add_to_list registry-console-docker
-      ;;
+      if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] ; then
+        add_to_list registry-console-docker
+      fi
+    ;;
     logging)
       add_to_list logging-auth-proxy-docker
-      if ! [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
+      if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] ; then
         add_to_list logging-curator-docker
       fi
       add_to_list logging-elasticsearch-docker
       add_to_list logging-fluentd-docker
       add_to_list logging-kibana-docker
-      ;;
-    jenkins)
+    ;;
+    jenkins | jenkins-all )
       add_to_list openshift-jenkins-docker
-      if ! [ ${MAJOR_RELEASE} == "3.1" ] && ! [ ${MAJOR_RELEASE} == "3.2" ] && ! [ ${MAJOR_RELEASE} == "3.3" ] ; then
+      if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] ; then
         add_to_list openshift-jenkins-2-docker
       fi
       add_to_list jenkins-slave-base-rhel7-docker
       add_to_list jenkins-slave-maven-rhel7-docker
       add_to_list jenkins-slave-nodejs-rhel7-docker
-      ;;
+    ;;
+    jenkins-plain )
+      add_to_list openshift-jenkins-docker
+      if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] ; then
+        add_to_list openshift-jenkins-2-docker
+      fi
+    ;;
+    jenkins-slaves )
+      add_to_list jenkins-slave-base-rhel7-docker
+      add_to_list jenkins-slave-maven-rhel7-docker
+      add_to_list jenkins-slave-nodejs-rhel7-docker
+    ;;
     metrics)
       add_to_list metrics-cassandra-docker
       add_to_list metrics-hawkular-metrics-docker
-      if ! [ ${MAJOR_RELEASE} == "3.1" ] && ! [ ${MAJOR_RELEASE} == "3.2" ] && ! [ ${MAJOR_RELEASE} == "3.3" ] && ! [ ${MAJOR_RELEASE} == "3.4" ] ; then
+      if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] && [ ${MAJOR_RELEASE} != "3.4" ] ; then
         add_to_list metrics-hawkular-openshift-agent-docker
       fi
       add_to_list metrics-heapster-docker
-      ;;
+    ;;
     deployer)
       add_to_list logging-deployment-docker
       add_to_list metrics-deployer-docker
-      ;;
-    base_push)
-      add_group_to_list base
-      add_group_to_list deployer
-      ;;
+    ;;
+    oso)
+      add_group_to_list oso-accountant-docker
+      add_group_to_list oso-notifications-docker
+      add_group_to_list oso-reconciler-docker
+      add_group_to_list oso-user-analytics-docker
+    ;;
   esac
 }
 
@@ -877,12 +887,7 @@ case $key in
       ;;
     list)
       export action="${key}"
-      add_group_to_list base
-      add_group_to_list sti
-      add_group_to_list misc
-      add_group_to_list logging
-      add_group_to_list metrics
-      add_group_to_list rhscl
+      export group_list="${group_list} all"
       ;;
     --group)
       export group_list="${group_list} $2"
@@ -1005,12 +1010,15 @@ for group_input in ${group_list}
 do
   if [ "${group_input}" == "all" ] ; then
     add_group_to_list base
-    add_group_to_list sti
-    add_group_to_list database
-    add_group_to_list misc
     add_group_to_list logging
     add_group_to_list metrics
-    add_group_to_list jenkins
+    if [ ${MAJOR_RELEASE} == "3.4" ] || [ ${MAJOR_RELEASE} == "${MASTER_RELEASE}" ] ; then
+      add_group_to_list jenkins
+      add_to_list image-inspector-docker
+    fi
+    if [ "${MAJOR_RELEASE}" != "3.1" ] && [ "${MAJOR_RELEASE}" != "3.2" ] ; then
+      add_to_list registry-console-docker
+    fi
   else
     add_group_to_list "${group_input}"
   fi
@@ -1261,6 +1269,10 @@ case "$action" in
   compare_nodocker )
     if [ -s ${workingdir}/logs/mailfile ] ; then
       mail -s "[${MAJOR_RELEASE}] Dockerfile merge diffs" tdawson@redhat.com < ${workingdir}/logs/mailfile
+      echo "===== GIT COMPARE FAIL ====="
+      cat ${workingdir}/logs/mailfile
+      echo "Exiting ..."
+      exit 1
     fi
   ;;
 esac

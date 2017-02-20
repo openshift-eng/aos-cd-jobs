@@ -161,6 +161,12 @@ ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/pudd
 
 echo
 echo "=========="
+echo "Sync git to dist-git repos"
+echo "=========="
+$SCRIPTS_DIR/ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${OSE_VERSION}-rhel-7 --group base
+
+echo
+echo "=========="
 echo "Update Dockerfiles to new version"
 echo "=========="
 $SCRIPTS_DIR/ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version ${VERSION}

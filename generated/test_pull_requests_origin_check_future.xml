@@ -102,7 +102,7 @@ oct provision remote all-in-one --os &apos;rhel&apos;           \
                                 --name &quot;${JOB_NAME}_${BUILD_NUMBER}&quot;
 
 # get the Origin repo to the right state
-oct sync remote origin
+oct sync remote origin --branch=&quot;${BRANCH}&quot;
 oct sync remote origin --refspec=&quot;pull/${PULL_ID}/head&quot; \
                        --branch=&quot;pull-${PULL_ID}&quot;       \
                        --merge-into=&quot;${BRANCH}&quot;

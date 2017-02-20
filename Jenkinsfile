@@ -1,3 +1,5 @@
+#!/usr/bin/env groovy
+
 // TODO Replace flow control (when available) with:
 // https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/
 def try_wrapper(failure_func, f) {
@@ -44,6 +46,32 @@ git config user.email jenkins@example.com
 git checkout ${branch}
 git merge ${merge_opts} '${commit}' -m '${commit_msg}'
 """)
+}
+
+def git_rebase(branch, commit) {
+    try {
+        sh("""\
+git config user.name jenkins
+git config user.email jenkins@example.com
+git checkout ${branch}
+GIT_SEQUENCE_EDITOR=${WORKSPACE}/scripts/rebase.py -i '${commit}'
+""")
+    } catch (err) {
+        sh("""\
+CONFLICTING_COMMIT=$( cat .git/rebase-apply/original-commit )
+NAG_EMAIL=$( git log -1 ${CONFLICTING_COMMIT} --format='%ae' )
+""")
+        mail(
+        to: '${NAG_EMAIL}',
+        subject: "Error rebasing OSE: ${OSE_VERSION}",
+        body: """\
+Encountered an error while rebasing OSE onto Origin: ${err}
+
+Jenkins job: ${env.BUILD_URL}
+""");
+        // Re-throw the error in order to fail the job
+        throw err
+    }
 }
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
@@ -109,7 +137,7 @@ node('buildvm-devops') {
                     "Merge master into enterprise-${OSE_VERSION}")
             }
         }
-        stage('merge') {
+        stage('rebase') {
             dir(env.GOPATH + '/src/github.com/openshift/ose') {
                 checkout(
                     $class: 'GitSCM',
@@ -127,16 +155,26 @@ node('buildvm-devops') {
                             credentialsId: OSE_CREDENTIALS,
                         ],
                     ])
-                git_merge(
-                    'master', 'upstream/master',
-                    'Merge remote-tracking branch upstream/master',
-                    '--strategy-option=theirs')
+                image.inside {
+                    sh '''\
+cd "$GOPATH/src/github.com/openshift/ose"
+last_tag="$( git describe --abbrev=0 --tags )"
+PREVIOUS_HEAD=$(git merge-base master upstream/master)
+'''
+                }
+                git_rebase('master', 'upstream/master')
             }
             image.inside {
                 sh '''\
 cd "$GOPATH/src/github.com/openshift/ose"
+git tag -f "${last_tag}"
+CURRENT_HEAD=$(git merge-base master upstream/master)
 GIT_REF=master COMMIT=1 hack/vendor-console.sh
-tito tag --accept-auto-changelog
+declare -a changelog
+for commit in $( git log "${PREVIOUS_HEAD}..${CURRENT_HEAD}" --pretty=%h --no-merges ); do
+    changelog+=( "--changelog=$( git log -1 "${commit}" --pretty="%s (%ae)" )" )
+done
+tito tag --accept-auto-changelog "${changelog[@]}"
 '''
             }
             mail_success(version(

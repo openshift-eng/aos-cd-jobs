@@ -32,9 +32,10 @@ cd ${WORKPATH}
 rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
-if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+# Re-enable this once 3.6 is the master
+#if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
   git checkout enterprise-${OSE_VERSION}
-fi
+#fi
 export VERSION_NO_V="$(grep Version: origin.spec | awk '{print $2}')"
 export VERSION="v${VERSION_NO_V}"
 LATEST_BUILD="$(brew list-tagged --latest --quiet rhaos-${OSE_VERSION}-rhel-7-candidate atomic-openshift | awk '{print $1}' | grep ${VERSION_NO_V})"

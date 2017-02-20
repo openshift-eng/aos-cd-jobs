@@ -16,8 +16,8 @@
 
 
 ## LOCAL VARIABLES ##
-MASTER_RELEASE="3.5"
-MAJOR_RELEASE="3.4"
+MASTER_RELEASE="3.6"
+MAJOR_RELEASE="3.5"
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
@@ -555,20 +555,20 @@ show_git_diffs_nice_docker() {
     touch .osbs-logs/Dockerfile.diff
   fi
   newdiff=`diff -u0 .osbs-logs/Dockerfile.diff .osbs-logs/Dockerfile.diff.new | grep -v -e Dockerfile -e '@@' -e release= -e version= -e 'FROM '`
-  if [ "${newdiff}" == "" ] ; then
-    mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff 2> /dev/null
-    git add .osbs-logs/Dockerfile.diff 2> /dev/null
-  else
-    echo >> ${workingdir}/logs/mailfile
-    echo "===== ${container} =====" >> ${workingdir}/logs/mailfile
-    echo "${newdiff}" >> ${workingdir}/logs/mailfile
-  fi
   if ! [ "${newdiff}" == "" ] || ! [ "${extra_check}" == "" ] ; then
-    echo "${newdiff}"
     echo " "
     echo "Changes occured "
     echo "Committing non-Dockerfile changes "
-    echo "e-mailling Dockerfile changes "
+    mv -f .osbs-logs/Dockerfile.diff.new .osbs-logs/Dockerfile.diff 2> /dev/null
+    git add .osbs-logs/Dockerfile.diff 2> /dev/null
+    if ! [ "${newdiff}" == "" ] ; then
+      echo >> ${workingdir}/logs/mailfile
+      echo "===== ${container} =====" >> ${workingdir}/logs/mailfile
+      echo "${newdiff}" >> ${workingdir}/logs/mailfile
+      echo "e-mailling Dockerfile changes "
+      echo " "
+      echo "${newdiff}"
+    fi
     rhpkg ${USER_USERNAME} commit -p -m "${COMMIT_MESSAGE} ${version_version} ${release_version} ${rhel_version}" > /dev/null 2>&1
   fi
   popd >/dev/null
@@ -1012,7 +1012,7 @@ do
     add_group_to_list base
     add_group_to_list logging
     add_group_to_list metrics
-    if [ ${MAJOR_RELEASE} == "3.4" ] || [ ${MAJOR_RELEASE} == "${MASTER_RELEASE}" ] ; then
+    if [ ${MAJOR_RELEASE} == "3.4" ] || [ ${MAJOR_RELEASE} == "3.5" ] || [ ${MAJOR_RELEASE} == "${MASTER_RELEASE}" ] ; then
       add_group_to_list jenkins
       add_to_list image-inspector-docker
     fi
@@ -1268,7 +1268,7 @@ case "$action" in
   ;;
   compare_nodocker )
     if [ -s ${workingdir}/logs/mailfile ] ; then
-      mail -s "[${MAJOR_RELEASE}] Dockerfile merge diffs" tdawson@redhat.com < ${workingdir}/logs/mailfile
+      mail -s "[${MAJOR_RELEASE}] Dockerfile merge diffs" tdawson@redhat.com,smunilla@redhat.com < ${workingdir}/logs/mailfile
       echo "===== GIT COMPARE FAIL ====="
       cat ${workingdir}/logs/mailfile
       echo "Exiting ..."

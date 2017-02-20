@@ -64,13 +64,11 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   git clone git@github.com:openshift/origin-web-console.git
   cd origin-web-console/
   git checkout enterprise-${OSE_VERSION}
-  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
-    git push
-    # REMOVE SLEEP - FOR TESTING ONLY
-    echo "Check that this worked"
-    sleep 30
-  fi
+## Re-enable once master is 3.6
+#  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+#    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
+#    git push
+#  fi
   # Add back deploy key for cloning/pushing openshift/ose
   ssh-add -D
   ssh-add ${HOME}/.ssh/id_rsa
@@ -85,6 +83,8 @@ rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
 if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+## Remove git checkout once master is 3.6
+  git checkout -q enterprise-${OSE_VERSION}
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
 
@@ -92,7 +92,10 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "=========="
   echo "Merge origin into ose stuff"
   echo "=========="
-  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
+## Switch back once master is 3.6
+#  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
+  git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
+
 else
   git checkout -q enterprise-${OSE_VERSION}
   # Check to see if we need to rebuild or not
@@ -127,10 +130,8 @@ fi # End check if we are version 3.2
 # Put local rpm testing here
 echo
 echo "=========="
-echo "Sleeping for a Minute so you can take a quick look"
+echo "Making sure we have kerberos"
 echo "=========="
-sleep 60
-
 kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 
 echo

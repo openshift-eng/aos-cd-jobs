@@ -146,7 +146,9 @@ add_group_to_list() {
     ;;
     logging)
       add_to_list logging-auth-proxy-docker
-      if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] ; then
+      if [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
+        add_to_list logging-deployment-docker
+      else
         add_to_list logging-curator-docker
       fi
       add_to_list logging-elasticsearch-docker
@@ -176,6 +178,9 @@ add_group_to_list() {
     metrics)
       add_to_list metrics-cassandra-docker
       add_to_list metrics-hawkular-metrics-docker
+      if [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
+        add_to_list metrics-deployer-docker
+      fi
       if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] && [ ${MAJOR_RELEASE} != "3.4" ] ; then
         add_to_list metrics-hawkular-openshift-agent-docker
       fi

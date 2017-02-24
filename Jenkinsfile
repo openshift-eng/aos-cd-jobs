@@ -17,12 +17,12 @@ node('buildvm-devops') {
 			sh 'pip install git+https://github.com/openshift/origin-ci-tool.git --process-dependency-links'
 			sh 'oct configure ansible-client verbosity 2'
 			sh 'oct configure aws-client keypair_name libra'
-			withCredentials([file(credentialsId: 'devenv', variable: 'PRIVATE_KEY_PATH')]) {
+			withCredentials([[$class: 'FileBinding', credentialsId: 'devenv', variable: 'PRIVATE_KEY_PATH']]) {
 				sh "oct configure aws-client private_key_path ${env.PRIVATE_KEY_PATH}"
 			}
 		}
 		try {
-			withCredentials([file(credentialsId: 'aws', variable: 'AWS_CONFIG_FILE')]) {
+			withCredentials([[$class: 'FileBinding', credentialsId: 'aws', variable: 'AWS_CONFIG_FILE']]) {
 				stage ('Provision the remote host') {
 					sh "oct provision remote all-in-one --os rhel --stage bare --provider aws --name ${env.JOB_NAME}-${env.BUILD_NUMBER} --discrete-ssh-config"
 					def ssh_config = "${env.OCT_CONFIG_HOME}/origin-ci-tool/inventory/.ssh_config"

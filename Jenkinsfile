@@ -1,13 +1,13 @@
 node('buildvm-devops') {
 	stage ('Create a virtualenv for the origin-ci-tool') {
-		def venv_dir = "${WORKSPACE}/origin-ci-tool"
+		def venv_dir = "${env.WORKSPACE}/origin-ci-tool"
 		sh "test -d ${venv_dir} || virtualenv ${venv_dir} --system-site-packages"
 	}
 	environment {
 		VIRTUAL_ENV = "${venv_dir}"
-		PATH = "${venv_dir}/bin:${PATH}"
+		PATH = "${venv_dir}/bin:${env.PATH}"
 		PYTHON_HOME = ""
-		OCT_CONFIG_HOME = "${WORKSPACE}/.config"
+		OCT_CONFIG_HOME = "${env.WORKSPACE}/.config"
 	}
 	stage ('Install and configure the origin-ci-tool') {
 		sh 'pip install boto boto3'
@@ -15,14 +15,14 @@ node('buildvm-devops') {
 		sh 'oct configure ansible-client verbosity 2'
 		sh 'oct configure aws-client keypair_name libra'
 		withCredentials([file(credentialsId: 'devenv', variable: 'PRIVATE_KEY_PATH')]) {
-			sh "oct configure aws-client private_key_path ${PRIVATE_KEY_PATH}"
+			sh "oct configure aws-client private_key_path ${env.PRIVATE_KEY_PATH}"
 		}
 	}
 	try {
 		withCredentials([file(credentialsId: 'aws', variable: 'AWS_CONFIG_FILE')]) {
 			stage ('Provision the remote host') {
-				sh "oct provision remote all-in-one --os rhel --stage bare --provider aws --name ${JOB_NAME}-${BUILD_NUMBER} --discrete-ssh-config"
-				def ssh_config = "${OCT_CONFIG_HOME}/origin-ci-tool/inventory/.ssh_config"
+				sh "oct provision remote all-in-one --os rhel --stage bare --provider aws --name ${env.JOB_NAME}-${env.BUILD_NUMBER} --discrete-ssh-config"
+				def ssh_config = "${env.OCT_CONFIG_HOME}/origin-ci-tool/inventory/.ssh_config"
 			}
 			stage ('Prepare the remote host for testing') {
 				sh 'oct prepare dependencies'
@@ -51,7 +51,7 @@ container-selinux-${container_selinux_version}
 
 These RPMs have been pushed to the dockertested[2] repository.
 
-[1] ${JOB_URL}
+[1] ${env.JOB_URL}
 [2] https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/"""
 		)
 	}

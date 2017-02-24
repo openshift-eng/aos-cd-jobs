@@ -28,8 +28,8 @@ node('buildvm-devops') {
 				sh 'oct prepare dependencies'
 				sh 'oct prepare golang --version 1.6.3 --repo oso-rhui-rhel-server-releases-optional'
 				sh 'oct prepare docker --repourl https://mirror.openshift.com/enterprise/rhel/rhel7next/extras/'
-				def docker_version = sh script: 'rpm --query docker --queryformat %{VERSION}', returnStdout: true
-				def container_selinux_version = sh script: 'rpm --query container-selinux --queryformat %{VERSION}', returnStdout: true
+				def docker_rpm = sh script: 'rpm --query docker --queryformat %{SOURCERPM}', returnStdout: true
+				def container_selinux_rpm = sh script: 'rpm --query container-selinux --queryformat %{SOURCERPM}', returnStdout: true
 				sh 'oct prepare repositories'
 			}
 			stage ('Run the extended conformance suite') {
@@ -41,13 +41,13 @@ node('buildvm-devops') {
 		sh 'oct deprovision'
 		when { currentBuild.result == 'SUCCESS' }
 		sh 'kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
-		sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${docker_version} ${container_selinux_version}"
+		sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${docker_rpm} ${container_selinux_rpm}"
 		mail (
 			to: ['aos-devel@redhat.com', 'skuznets@redhat.com'],
-			subject: "docker-${docker_version} and container-selinux-${container_selinux_version} pushed to dockertested repository",
+			subject: "${docker_rpm} and ${container_selinux_rpm} pushed to dockertested repository",
 			body: """The latest job[1] marked the following RPMs as successful:
-docker-${docker_version}
-container-selinux-${container_selinux_version}
+${docker_rpm}
+${container_selinux_rpm}
 
 These RPMs have been pushed to the dockertested[2] repository.
 

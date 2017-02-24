@@ -26,7 +26,7 @@ def runner(program, *args):
         os.execlp(program, program, *args)
     except:
         pass
-    print("exec failed for command: " + str.join(" ", [program] + list(args)))
+    print("exec failed for command: " + str.join(" ", [program]+list(args)))
     sys.exit(11)
     # runner never returns
 
@@ -37,11 +37,12 @@ logger.addHandler(logging.handlers.SysLogHandler('/dev/log'))
 keyname = sys.argv[1] if len(sys.argv) >= 2 else "<none specified>"
 cmd = os.environ.get("SSH_ORIGINAL_COMMAND", "")
 
-match = re.match(r"(?P<operation>install|delete|upgrade)", cmd)
+# Allow alphanumerics, whitespace, -, =. Permits command lines like "install --openshift-ansible=3.6.30"
+match = re.match("^[\\w\\s\\-\\=.]+$", cmd)
 
 if match:
     logger.info("%s Restricted key '%s' running command: %s" % (os.path.basename(__file__), keyname, cmd))
-    runner("/home/opsmedic/aos-cd/git/aos-cd-jobs/bin/cicd-control.sh", keyname, match.group("operation"))
+    runner("/home/opsmedic/aos-cd/git/aos-cd-jobs/bin/cicd-control.sh", *[keyname]+match.group().split())
 
 logger.info("%s Restricted key '%s' disallowed command: %s" % (os.path.basename(__file__), keyname, cmd))
 print("doesn't match an allowed pattern")

@@ -2,7 +2,7 @@ node('buildvm-devops') {
 	stage ('Create a virtualenv for the origin-ci-tool') {
 		// https://issues.jenkins-ci.org/browse/JENKINS-33511
 		env.WORKSPACE == pwd()
-		def venv_dir = "${env.WORKSPACE}/origin-ci-tool"
+		venv_dir = "${env.WORKSPACE}/origin-ci-tool"
 		sh "test -d ${venv_dir} || virtualenv ${venv_dir} --system-site-packages"
 	}
 	withEnv([
@@ -30,8 +30,8 @@ node('buildvm-devops') {
 					sh 'oct prepare dependencies'
 					sh 'oct prepare golang --version 1.6.3 --repo oso-rhui-rhel-server-releases-optional'
 					sh 'oct prepare docker --repourl https://mirror.openshift.com/enterprise/rhel/rhel7next/extras/'
-					def docker_rpm = sh script: 'rpm --query docker --queryformat %{SOURCERPM}', returnStdout: true
-					def container_selinux_rpm = sh script: 'rpm --query container-selinux --queryformat %{SOURCERPM}', returnStdout: true
+					docker_rpm = sh script: 'rpm --query docker --queryformat %{SOURCERPM}', returnStdout: true
+					container_selinux_rpm = sh script: 'rpm --query container-selinux --queryformat %{SOURCERPM}', returnStdout: true
 					sh 'oct prepare repositories'
 				}
 				stage ('Run the extended conformance suite') {

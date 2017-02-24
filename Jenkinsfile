@@ -11,15 +11,12 @@ node('buildvm-devops') {
 	// https://issues.jenkins-ci.org/browse/JENKINS-33511
 	env.WORKSPACE = pwd()
 	venv_dir = "${env.WORKSPACE}/origin-ci-tool"
-	if ( env.CLEAN_INSTALL ) {
-		stage ('Create a virtualenv for the origin-ci-tool') {
+	stage ('Create a virtualenv for the origin-ci-tool') {
+		if ( params.CLEAN_INSTALL ) {
 			sh "rm -rf ${venv_dir}"
 			sh "virtualenv ${venv_dir} --system-site-packages"
 		}
-	} else {
-		stage ('Verify a virtualenv exists for the origin-ci-tool') {
-			sh "test -d ${venv_dir}"
-		}
+		sh "test -d ${venv_dir}"
 	}
 	withEnv([
 		"VIRTUAL_ENV=${venv_dir}",
@@ -69,7 +66,7 @@ node('buildvm-devops') {
 				}
 			}
 		} finally {
-			stage ('Deprovision the remot host') {
+			stage ('Deprovision the remote host') {
 				sh 'oct deprovision'
 			}
 			if ( currentBuild.result == 'SUCCESS' ) {

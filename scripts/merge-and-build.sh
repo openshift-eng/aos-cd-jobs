@@ -51,6 +51,47 @@ if [ "${OSE_VERSION}" == "3.2" ] ; then
   exit 1
 fi # End check if we are version 3.2
 
+# Load deploy key for cloning/pushing openshift/openshift-ansible
+ssh-add -D
+ssh-add ${HOME}/.ssh/openshift-ansible/id_rsa
+
+rm -rf openshift-ansible
+git clone git@github.com:openshift/openshift-ansible.git
+cd openshift-ansible/
+git checkout release-1.${MINOR}
+
+# Check to see if there have been any changes since the last tag
+HEAD_COMMIT="$(git log -n1 --oneline | awk '{print $1}')"
+echo $HEAD_COMMIT
+LAST_TAG=$(git describe --abbrev=0 --tags)
+git checkout -q ${LAST_TAG}
+LAST_COMMIT="$(git log -n1 --oneline | awk '{print $1}')"
+echo $LAST_COMMIT
+
+if [ "${HEAD_COMMIT}" == "${LAST_COMMIT}" ]; then
+    echo ; echo "No changes in release-1.${MINOR} since last build"
+    echo "This is fine, so continuing with the rest of the build"
+else
+    #There have been changes, so rebuild
+    echo
+    echo "=========="
+    echo "Tito Tagging"
+    echo "=========="
+    tito tag --accept-auto-changelog
+    git push
+    git push --tags
+
+    echo
+    echo "=========="
+    echo "Tito building in brew"
+    echo "=========="
+    TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
+    echo "TASK NUMBER: ${TASK_NUMBER}"
+    echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
+    echo
+    brew watch-task ${TASK_NUMBER}
+fi
+
 if [ "${OSE_VERSION}" != "3.2" ] ; then
   echo
   echo "=========="

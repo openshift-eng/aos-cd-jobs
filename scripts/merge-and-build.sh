@@ -84,9 +84,21 @@ git clone git@github.com:openshift/ose.git
 cd ose
 if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
 ## Remove git checkout once master is 3.6
-  git checkout -q enterprise-${OSE_VERSION}
+  git checkout -q fake-master
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
+
+  # TODO: Once we hard-reset master to contain Origin commits, the carry commits, and the latest tito tag commit
+  # all previous tags are going to be dropped. During the migration, I think we will need to manually tag the
+  # last tito commit or maybe not.
+  last_tag="$( git describe --abbrev=0 --tags )"
+  # Assumes the two latest commits are the tito diffs - won't work otherwise
+  git reset --soft HEAD~2
+  git commit -m "[CARRY][BUILD] Specfile updates"
+  set +e
+  # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
+  git tag "${last_tag}" HEAD
+  set -e
 
   echo
   echo "=========="
@@ -94,7 +106,7 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "=========="
 ## Switch back once master is 3.6
 #  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-  git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
+  git rebase upstream/release-1.5
 
 else
   git checkout -q enterprise-${OSE_VERSION}
@@ -114,6 +126,8 @@ else
   fi
 fi # End check if we are master
 
+# TODO: Origin already vendors the web console. Should we stop updating it separately for OSE?
+# The commit produced by this change breaks the assumption that the two latest commits are tito-specific.
 if [ "${OSE_VERSION}" != "3.2" ] ; then
   echo
   echo "=========="
@@ -141,6 +155,7 @@ echo "=========="
 tito tag --accept-auto-changelog
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
+exit 0
 git push
 git push --tags
 

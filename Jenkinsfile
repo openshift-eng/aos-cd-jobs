@@ -12,6 +12,7 @@ node('buildvm-devops') {
 		"OCT_CONFIG_HOME=${env.WORKSPACE}/.config"
 	]) {
 		stage ('Install and configure the origin-ci-tool') {
+			sh "pip install --upgrade pip"
 			sh 'pip install boto boto3'
 			sh 'pip install git+https://github.com/openshift/origin-ci-tool.git --process-dependency-links'
 			sh 'oct configure ansible-client verbosity 2'

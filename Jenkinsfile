@@ -42,7 +42,7 @@ node('buildvm-devops') {
 			}
 		} finally {
 			sh 'oct deprovision'
-			if currentBuild.result == 'SUCCESS' {
+			if ( currentBuild.result == 'SUCCESS' ) {
 				sh 'kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
 				sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${docker_rpm} ${container_selinux_rpm}"
 				mail (

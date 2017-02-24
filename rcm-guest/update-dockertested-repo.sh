@@ -27,8 +27,8 @@ rm -f *.rpm
 while [[ "$#" -ge 1 ]]
 do
   cd ${LOCAL_BASE_DIR}/x86_64/os/Packages/
-  brew download-build --arch=noarch --arch=x86_64 ${$1}
-  if [ "$?" != "0" ]; then exit 1 ; fi
+  brew download-build --arch=noarch --arch=x86_64 ${1}
+  if [ "$?" != "0" ]; then echo "Bad NVR: ${1}" ; echo "exiting..." ; exit 5 ; fi
   shift
 done
 

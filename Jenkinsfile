@@ -1,9 +1,23 @@
 node('buildvm-devops') {
+	properties ([[
+		$class: 'ParametersDefinitionProperty',
+		parameterDefinitions: [[
+			$class: 'BooleanParameterDefinition',
+			defaultValue: false,
+			description: 'Destroy the previous <code>virtualenv</code> and install the <code>origin-ci-tool</code> from scratch.',
+			name: 'CLEAN_INSTALL'
+		]]
+	]])
 	stage ('Create a virtualenv for the origin-ci-tool') {
 		// https://issues.jenkins-ci.org/browse/JENKINS-33511
-		env.WORKSPACE == pwd()
+		env.WORKSPACE = pwd()
 		venv_dir = "${env.WORKSPACE}/origin-ci-tool"
-		sh "test -d ${venv_dir} || virtualenv ${venv_dir} --system-site-packages"
+		if ( env.CLEAN_INSTALL ) {
+			sh "rm -rf ${venv_dir}"
+			sh "virtualenv ${venv_dir} --system-site-packages"
+		} else {
+			sh "test -d ${venv_dir}"
+		}
 	}
 	withEnv([
 		"VIRTUAL_ENV=${venv_dir}",

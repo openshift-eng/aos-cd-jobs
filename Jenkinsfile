@@ -42,21 +42,22 @@ node('buildvm-devops') {
 			}
 		} finally {
 			sh 'oct deprovision'
-			when { currentBuild.result == 'SUCCESS' }
-			sh 'kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
-			sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${docker_rpm} ${container_selinux_rpm}"
-			mail (
-				to: ['aos-devel@redhat.com', 'skuznets@redhat.com'],
-				subject: "${docker_rpm} and ${container_selinux_rpm} pushed to dockertested repository",
-				body: """The latest job[1] marked the following RPMs as successful:
-	${docker_rpm}
-	${container_selinux_rpm}
+			if currentBuild.result == 'SUCCESS' {
+				sh 'kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
+				sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${docker_rpm} ${container_selinux_rpm}"
+				mail (
+					to: ['aos-devel@redhat.com', 'skuznets@redhat.com'],
+					subject: "${docker_rpm} and ${container_selinux_rpm} pushed to dockertested repository",
+					body: """The latest job[1] marked the following RPMs as successful:
+		${docker_rpm}
+		${container_selinux_rpm}
 
-	These RPMs have been pushed to the dockertested[2] repository.
+		These RPMs have been pushed to the dockertested[2] repository.
 
-	[1] ${env.JOB_URL}
-	[2] https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/"""
-			)
+		[1] ${env.JOB_URL}
+		[2] https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/"""
+				)
+			}
 		}
 	}
 }

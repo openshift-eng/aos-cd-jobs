@@ -1,5 +1,7 @@
 node('buildvm-devops') {
 	stage ('Create a virtualenv for the origin-ci-tool') {
+		// https://issues.jenkins-ci.org/browse/JENKINS-33511
+		env.WORKSPACE == pwd()
 		def venv_dir = "${env.WORKSPACE}/origin-ci-tool"
 		sh "test -d ${venv_dir} || virtualenv ${venv_dir} --system-site-packages"
 	}

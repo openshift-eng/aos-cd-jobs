@@ -12,7 +12,7 @@ node('buildvm-devops') {
 	env.WORKSPACE = pwd()
 	venv_dir = "${env.WORKSPACE}/origin-ci-tool"
 	stage ('Create a virtualenv for the origin-ci-tool') {
-		if ( params.CLEAN_INSTALL ) {
+		if ( CLEAN_INSTALL.toBoolean() ) {
 			sh "rm -rf ${venv_dir}"
 			sh "virtualenv ${venv_dir} --system-site-packages"
 		}

@@ -42,7 +42,7 @@ node('buildvm-devops') {
     )
     
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo "${OSE_MAJOR}.${OSE_MINOR}, onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}]"
+    // echo "${OSE_MAJOR}.${OSE_MINOR}, onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}]"
 
     set_workspace()
     stage('Merge and build') {
@@ -51,18 +51,17 @@ node('buildvm-devops') {
             sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail_success(version("go/src/github.com/openshift/ose/origin.spec"))
+            // mail_success(version("go/src/github.com/openshift/ose/origin.spec"))
 
 
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail(to: "${MAIL_LIST_FAILURE}",
-                    subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
-                    body: """Encoutered an error while running merge-and-build.sh: ${err}
+            //  mail(to: "${MAIL_LIST_FAILURE}",
+            //        subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
+            //       body: """Encoutered an error while running merge-and-build.sh: ${err}
+            //Jenkins job: ${env.BUILD_URL}
+            //""");
 
-
-Jenkins job: ${env.BUILD_URL}
-""");
             // Re-throw the error in order to fail the job
             throw err
         }

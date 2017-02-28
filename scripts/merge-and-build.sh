@@ -74,6 +74,37 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   ssh-add ${HOME}/.ssh/id_rsa
 fi # End check if we are version 3.2
 
+function sanity_check() {
+  echo "Checking if the last commit is the last tito tag commit..."
+  last_commit_subject="$( git log HEAD~1..HEAD --pretty=%s )"
+  if [[ ! ${last_commit_subject} =~ "Automatic commit of package [atomic-openshift] release"* ]]; then
+    echo "[FATAL] The last commit doesn't look like a commit from \`tito\`!"
+    echo "[FATAL]   ${last_commit_subject}"
+    exit 1
+  fi
+
+  echo "Checking if the second to last commit is the specfile squashed commit..."
+  squash_commit_subject="$( git log HEAD~2..HEAD~1 --pretty=%s )"
+  if [[ ${squash_commit_subject} != "[CARRY][BUILD] Specfile updates" ]]; then
+    # The second to last commit may be the web console bump
+    echo "Checking if the second to last commit is a webconsole bump commit..."
+    squash_commit_again="$( git log HEAD~3..HEAD~2 --pretty=%s )"
+    if [[ ${squash_commit_again} != "[CARRY][BUILD] Specfile updates" ||
+    ! ${squash_commit_subject} =~ "[DROP] bump origin-web-console"* ]]; then
+      set +o xtrace
+      echo "[FATAL] The latest three commits are not in the required sequence!"
+      echo "Expected:"
+      echo "Automatic commit of package [atomic-openshift] release*"
+      echo "[DROP] bump origin-web-console (optional)"
+      echo "[CARRY][BUILD] Specfile updates"
+      echo "Got:"
+      git log -3 --oneline --pretty=%s
+      exit 1
+    fi
+  fi
+}
+readonly -f sanity_check
+
 echo
 echo "=========="
 echo "Setup ose stuff"
@@ -84,9 +115,30 @@ git clone git@github.com:openshift/ose.git
 cd ose
 if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
 ## Remove git checkout once master is 3.6
-  git checkout -q enterprise-${OSE_VERSION}
+  git checkout -q fake-master
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
+  PREVIOUS_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
+
+  # TODO: Once we hard-reset master to contain Origin commits, the carry commits, and the latest tito tag commit
+  # all previous tags are going to be dropped. During the migration, I think we will need to manually tag the
+  # last tito commit or maybe not.
+  last_tag="$( git describe --abbrev=0 --tags )"
+
+  sanity_check
+  maybe_webconsole_commit="$( git log HEAD~2..HEAD~1 --pretty=%s )"
+  if [[ ${maybe_webconsole_commit} =~ "[DROP] bump origin-web-console"* ]]; then
+    git reset --soft HEAD~3
+  else
+    git reset --soft HEAD~2
+  fi
+
+  git add .tito/ origin.spec
+  git commit -m "[CARRY][BUILD] Specfile updates"
+  set +e
+  # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
+  git tag "${last_tag}" HEAD
+  set -e
 
   echo
   echo "=========="
@@ -94,7 +146,8 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "=========="
 ## Switch back once master is 3.6
 #  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-  git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
+  git rebase upstream/release-1.5
+  CURRENT_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
 
 else
   git checkout -q enterprise-${OSE_VERSION}
@@ -123,7 +176,8 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   git add pkg/assets/bindata.go
   git add pkg/assets/java/bindata.go
   set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
-  git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
+  # This fails only when there is nothing new to commit, which is normal.
+  git commit -m "[DROP] bump origin-web-console ${VC_COMMIT}"
   set -e
 fi # End check if we are version 3.2
 
@@ -138,10 +192,14 @@ echo
 echo "=========="
 echo "Tito Tagging"
 echo "=========="
-tito tag --accept-auto-changelog
+CHANGELOG=$(git log $PREVIOUS_ORIGIN_HEAD..$CURRENT_ORIGIN_HEAD --pretty="%s (%ae)" --no-merges)
+tito tag --accept-auto-changelog --changelog="$CHANGELOG"
+git diff HEAD~1..HEAD > tito_new_diff
+cat tito_new_diff
+git log --oneline -10
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
-git push
+exit 0
 git push --tags
 
 echo

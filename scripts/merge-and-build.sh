@@ -118,6 +118,7 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   git checkout -q fake-master
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
+  PREVIOUS_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
 
   # TODO: Once we hard-reset master to contain Origin commits, the carry commits, and the latest tito tag commit
   # all previous tags are going to be dropped. During the migration, I think we will need to manually tag the
@@ -146,6 +147,7 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
 ## Switch back once master is 3.6
 #  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
   git rebase upstream/release-1.5
+  CURRENT_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
 
 else
   git checkout -q enterprise-${OSE_VERSION}
@@ -190,7 +192,8 @@ echo
 echo "=========="
 echo "Tito Tagging"
 echo "=========="
-tito tag --accept-auto-changelog
+CHANGELOG=$(git log $PREVIOUS_ORIGIN_HEAD..$CURRENT_ORIGIN_HEAD --pretty="%s (%ae)" --no-merges)
+tito tag --accept-auto-changelog --changelog="$CHANGELOG"
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
 exit 0

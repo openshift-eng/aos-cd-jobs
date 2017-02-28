@@ -194,6 +194,9 @@ echo "Tito Tagging"
 echo "=========="
 CHANGELOG=$(git log $PREVIOUS_ORIGIN_HEAD..$CURRENT_ORIGIN_HEAD --pretty="%s (%ae)" --no-merges)
 tito tag --accept-auto-changelog --changelog="$CHANGELOG"
+git diff HEAD~1..HEAD > tito_new_diff
+cat tito_new_diff
+git log --oneline -10
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
 exit 0

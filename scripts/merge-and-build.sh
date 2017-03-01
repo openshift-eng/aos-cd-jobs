@@ -192,8 +192,11 @@ echo
 echo "=========="
 echo "Tito Tagging"
 echo "=========="
-CHANGELOG=$(git log $PREVIOUS_ORIGIN_HEAD..$CURRENT_ORIGIN_HEAD --pretty="%s (%ae)" --no-merges)
-tito tag --accept-auto-changelog --changelog="$CHANGELOG"
+declare -a changelog
+for commit in $( git log "${PREVIOUS_ORIGIN_HEAD}..${CURRENT_ORIGIN_HEAD}" --pretty=%h --no-merges ); do
+  changelog+=( "--changelog='$( git log -1 "${commit}" --pretty='%s (%ae)' )'" )
+done
+tito tag --accept-auto-changelog "${changelog[@]}"
 git diff HEAD~1..HEAD > tito_new_diff
 cat tito_new_diff
 git log --oneline -10

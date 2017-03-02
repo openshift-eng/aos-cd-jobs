@@ -37,6 +37,7 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Update fake-master before rebasing', name: 'FAKE_MASTER_UPDATE'],
                       ]
              ]]
     )
@@ -48,6 +49,9 @@ node('buildvm-devops') {
     stage('Merge and build') {
         try {
             checkout scm
+            if ("${FAKE_MASTER_UPDATE}" != "") {
+                sh "./scripts/update-fake-master.sh"
+            }
             sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available

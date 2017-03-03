@@ -15,13 +15,12 @@ def version(f) {
 def mail_success(version) {
     mail(
         to: "${MAIL_LIST_SUCCESS}",
-        replyTo: 'tdawson@redhat.com',
+        replyTo: 'smunilla@redhat.com',
         subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
         body: """\
 v${version}
-Images have been built for this puddle
-Images have been pushed to registry.ops
-Puddles have been synched to mirrors
+RPMS have been built for this openshift-scripts
+Build has been tagged in brew
 Jenkins job: ${env.BUILD_URL}
 """);
 }
@@ -33,10 +32,8 @@ node('buildvm-devops') {
             [[$class              : 'ParametersDefinitionProperty',
               parameterDefinitions:
                       [
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                       ]
              ]]
     )
@@ -48,7 +45,7 @@ node('buildvm-devops') {
     stage('Merge and build') {
         try {
             checkout scm
-            sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
+            sh "./scripts/merge-and-build-openshift-scripts.sh"
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success(version("go/src/github.com/openshift/ose/origin.spec"))
@@ -57,8 +54,8 @@ node('buildvm-devops') {
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
-                    subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
-                    body: """Encoutered an error while running merge-and-build.sh: ${err}
+                    subject: "Error building openshift-scripts",
+                    body: """Encoutered an error while running merge-and-build-openshift-scripts.sh: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}

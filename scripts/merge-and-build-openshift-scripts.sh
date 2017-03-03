@@ -71,6 +71,5 @@ fi
 echo
 echo
 echo "=========="
-echo "Finished"
-echo "OCP ${VERSION}"
+echo "Finished OpenShift scripts"
 echo "=========="

@@ -1017,7 +1017,7 @@ do
     add_group_to_list base
     add_group_to_list logging
     add_group_to_list metrics
-    if [ ${MAJOR_RELEASE} == "3.4" ] || [ ${MAJOR_RELEASE} == "3.5" ] || [ ${MAJOR_RELEASE} == "${MASTER_RELEASE}" ] ; then
+    if [ ${MAJOR_RELEASE} == "${MASTER_RELEASE}" ] ; then
       add_group_to_list jenkins
       add_to_list image-inspector-docker
     fi

@@ -7,24 +7,6 @@ def set_workspace() {
     }
 }
 
-def version(f) {
-    def matcher = readFile(f) =~ /Version:\s+([.0-9]+)/
-    matcher ? matcher[0][1] : null
-}
-
-def mail_success(version) {
-    mail(
-        to: "${MAIL_LIST_SUCCESS}",
-        replyTo: 'smunilla@redhat.com',
-        subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
-        body: """\
-v${version}
-RPMS have been built for this openshift-scripts
-Build has been tagged in brew
-Jenkins job: ${env.BUILD_URL}
-""");
-}
-
 node('buildvm-devops') {
 
     // Expose properties for a parameterized build
@@ -46,11 +28,6 @@ node('buildvm-devops') {
         try {
             checkout scm
             sh "./scripts/merge-and-build-openshift-scripts.sh"
-
-            // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail_success(version("go/src/github.com/openshift/ose/origin.spec"))
-
-
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",

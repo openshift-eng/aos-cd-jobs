@@ -4,7 +4,6 @@ set -o xtrace
 kinit -k -t $KEYTAB $PRINCIPLE
 
 MB_PATH=$(readlink -f $0)
-SCRIPTS_DIR=$(dirname $MB_PATH)
 
 set -o errexit
 set -o nounset
@@ -208,25 +207,25 @@ echo
 echo "=========="
 echo "Sync git to dist-git repos"
 echo "=========="
-$SCRIPTS_DIR/ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${OSE_VERSION}-rhel-7 --group base
+ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${OSE_VERSION}-rhel-7 --group base
 
 echo
 echo "=========="
 echo "Update Dockerfiles to new version"
 echo "=========="
-$SCRIPTS_DIR/ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version ${VERSION}
+ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version ${VERSION}
 
 echo
 echo "=========="
 echo "Build Images"
 echo "=========="
-$SCRIPTS_DIR/ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo
+ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo
 
 echo
 echo "=========="
 echo "Push Images"
 echo "=========="
-sudo $SCRIPTS_DIR/ose_images.sh --user ocp-build push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base
+sudo ose_images.sh --user ocp-build push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base
 
 echo
 echo "=========="

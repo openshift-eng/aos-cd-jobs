@@ -48,6 +48,16 @@ node('buildvm-devops') {
     stage('Merge and build') {
         try {
             checkout scm
+
+            checkout changelog: false, poll: false,
+                       scm: [$class: 'GitSCM', branches: [[name: 'build-scripts']],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [   [$class: 'RelativeTargetDirectory', relativeTargetDir: 'build-scripts'],
+                                                [$class: 'WipeWorkspace']], submoduleCfg: [],
+                                                userRemoteConfigs: [[url: 'https://github.com/openshift/aos-cd-jobs.git']]]
+
+            env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
+
             sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available

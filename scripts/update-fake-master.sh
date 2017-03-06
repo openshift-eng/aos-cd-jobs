@@ -22,7 +22,12 @@ eval "$(ssh-agent -s)"
 
 
 cd ${WORKPATH}
-rm -rf ose
+rm -rf ose origin-web-console
+git clone git@github.com:openshift/origin-web-console.git
+cd origin-web-console/
+git checkout enterprise-3.5
+
+cd ${WORKPATH}
 git clone git@github.com:openshift/ose.git
 pushd ose
 git remote add upstream git@github.com:openshift/origin

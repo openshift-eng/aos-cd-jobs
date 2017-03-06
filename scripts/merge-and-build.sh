@@ -78,29 +78,28 @@ function sanity_check() {
   echo "Checking if the last commit is the last tito tag commit..."
   last_commit_subject="$( git log HEAD~1..HEAD --pretty=%s )"
   if [[ ! ${last_commit_subject} =~ "Automatic commit of package [atomic-openshift] release"* ]]; then
+    set +o xtrace
     echo "[FATAL] The last commit doesn't look like a commit from \`tito\`!"
     echo "[FATAL]   ${last_commit_subject}"
     exit 1
   fi
 
-  echo "Checking if the second to last commit is the specfile squashed commit..."
-  squash_commit_subject="$( git log HEAD~2..HEAD~1 --pretty=%s )"
-  if [[ ${squash_commit_subject} != "[CARRY][BUILD] Specfile updates" ]]; then
-    # The second to last commit may be the web console bump
-    echo "Checking if the second to last commit is a webconsole bump commit..."
-    squash_commit_again="$( git log HEAD~3..HEAD~2 --pretty=%s )"
-    if [[ ${squash_commit_again} != "[CARRY][BUILD] Specfile updates" ||
-    ! ${squash_commit_subject} =~ "[DROP] bump origin-web-console"* ]]; then
-      set +o xtrace
-      echo "[FATAL] The latest three commits are not in the required sequence!"
-      echo "Expected:"
-      echo "Automatic commit of package [atomic-openshift] release*"
-      echo "[DROP] bump origin-web-console (optional)"
-      echo "[CARRY][BUILD] Specfile updates"
-      echo "Got:"
-      git log -3 --oneline --pretty=%s
-      exit 1
-    fi
+  echo "Checking if the second to last commit is a webconsole bump commit..."
+  webconsole_commit="$( git log HEAD~2..HEAD~1 --pretty=%s )"
+  if [[ ! ${webconsole_commit} =~ "[DROP] bump origin-web-console"* ]]; then
+    set +o xtrace
+    echo "[FATAL] The second to last commit doesn't look like a commit from \`origin-web-console\`!"
+    echo "[FATAL]   ${webconsole_commit}"
+    exit 1
+  fi
+
+  echo "Checking if the third to last commit is the specfile commit..."
+  specfile_commit="$( git log HEAD~3..HEAD~2 --pretty=%s )"
+  if [[ ${specfile_commit} != "[CARRY][BUILD] Specfile updates" ]]; then
+    set +o xtrace
+    echo "[FATAL] The third to last commit doesn't look like the specfile commit!"
+    echo "[FATAL]   ${specfile_commit}"
+    exit 1
   fi
 }
 readonly -f sanity_check
@@ -120,21 +119,17 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   git fetch --all
   PREVIOUS_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
 
-  # TODO: Once we hard-reset master to contain Origin commits, the carry commits, and the latest tito tag commit
-  # all previous tags are going to be dropped. During the migration, I think we will need to manually tag the
-  # last tito commit or maybe not.
+  # Tags are global to a git repo but accessible only through the branch they were tagged on.
+  # This means that a tag created in enterprise-3.5 will not be accessible from master.
   last_tag="$( git describe --abbrev=0 --tags )"
 
   sanity_check
-  maybe_webconsole_commit="$( git log HEAD~2..HEAD~1 --pretty=%s )"
-  if [[ ${maybe_webconsole_commit} =~ "[DROP] bump origin-web-console"* ]]; then
-    git reset --soft HEAD~3
-  else
-    git reset --soft HEAD~2
-  fi
-
+  # Reset the last three commits and pick up only the tito diff.
+  git reset HEAD~3
   git add .tito/ origin.spec
   git commit -m "[CARRY][BUILD] Specfile updates"
+  # Drop the previous web console diff - will be regenerated below.
+  git checkout -- pkg/assets/bindata.go pkg/assets/java/bindata.go
   set +e
   # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
   git tag "${last_tag}" HEAD

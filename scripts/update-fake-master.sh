@@ -65,7 +65,7 @@ git revert $LATEST_TITO_COMMIT --no-edit
 # the commit we want to cherry-pick back to fake-master.
 git reset rebase-target
 git add .tito origin.spec
-git commit -m "[SQUASH] specfile updates"
+git commit -m "[CARRY][BUILD] Specfile updates"
 TITO_SQUASH=$(git log -1 --pretty=%h)
 
 # Cleanup in order to switch branches

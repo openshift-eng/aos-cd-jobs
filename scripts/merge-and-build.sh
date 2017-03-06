@@ -10,7 +10,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-OSE_MASTER="3.5"
+## Update OSE_MASTER and OSE_MASTER_BRANCHED when releasing or branching master
+## Be sure to update lines 136 when 3.5 has been released
+## OSE_MASTER means it ose master, ie ose/master
+## OSE_MASTER_BRANCHED means it has been branched, ie ose/enterprise-3.5 but hasn't been released
+## Right after a release, but before a master branch, both should be set the same, ie both are 3.6
+OSE_MASTER="3.6"
+OSE_MASTER_BRANCHED="3.5"
 if [ "$#" -ne 2 ]; then
   MAJOR="3"
   MINOR="5"  
@@ -22,7 +28,7 @@ else
 fi
 OSE_VERSION="${MAJOR}.${MINOR}"
 PUSH_EXTRA=""
-if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+if [ "${OSE_VERSION}" != "${OSE_MASTER_BRANCHED}" ] && [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
   PUSH_EXTRA="--nolatest"
 fi
 
@@ -98,11 +104,10 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   git clone git@github.com:openshift/origin-web-console.git
   cd origin-web-console/
   git checkout enterprise-${OSE_VERSION}
-## Re-enable once master is 3.6
-#  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-#    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
-#    git push
-#  fi
+  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
+    git push
+  fi
   # Add back deploy key for cloning/pushing openshift/ose
   ssh-add -D
   ssh-add ${HOME}/.ssh/id_rsa
@@ -116,9 +121,10 @@ cd ${WORKPATH}
 rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
-if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-## Remove git checkout once master is 3.6
-  git checkout -q enterprise-${OSE_VERSION}
+if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] || [ "${OSE_VERSION}" == "${OSE_MASTER}" ]; then
+  if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] ; then
+    git checkout -q enterprise-${OSE_VERSION}
+  fi
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
 
@@ -126,9 +132,13 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "=========="
   echo "Merge origin into ose stuff"
   echo "=========="
-## Switch back once master is 3.6
-#  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-  git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
+  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+    git merge -m "Merge remote-tracking branch upstream/master" upstream/master
+  else
+    ## Once 3.5 is released, change this to the following
+    # git merge -m "Merge remote-tracking branch upstream/release-${OSE_VERSION}" upstream/release-${OSE_VERSION}
+    git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
+  fi
 
 else
   git checkout -q enterprise-${OSE_VERSION}

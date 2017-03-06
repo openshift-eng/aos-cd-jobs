@@ -14,6 +14,7 @@
 ## COMMON VARIABLES ##
 #source ose.conf
 
+set -o xtrace
 
 ## LOCAL VARIABLES ##
 MASTER_RELEASE="3.6"

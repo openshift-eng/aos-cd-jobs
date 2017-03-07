@@ -32,12 +32,11 @@ if [ "${OSE_VERSION}" != "${OSE_MASTER_BRANCHED}" ] && [ "${OSE_VERSION}" != "${
 fi
 
 # Use the directory relative to this Jenkins job.
-BUILDPATH="${WORKSPACE}/go"
-mkdir -p $BUILDPATH
-cd $BUILDPATH
-export GOPATH="$( pwd )"
+BUILDPATH="$(mktemp -d ${WORKSPACE}/tmpdir-XXXXXX)"
 WORKPATH="${BUILDPATH}/src/github.com/openshift/"
-mkdir -p $WORKPATH
+mkdir -p ${WORKPATH}
+cd ${BUILDPATH}
+export GOPATH="$( pwd )"
 echo "GOPATH: ${GOPATH}"
 echo "BUILDPATH: ${BUILDPATH}"
 echo "WORKPATH ${WORKPATH}"
@@ -238,6 +237,15 @@ echo "=========="
 echo "Sync latest puddle to mirrors"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors-bot.sh simple ${OSE_VERSION}"
+
+echo
+echo
+echo "=========="
+echo "Cleanup"
+echo "=========="
+## First checkin, let's make sure things ar right first
+#rm -rf ${BUILDPATH}
+echo "I would have run: rm -rf ${BUILDPATH}"
 
 echo
 echo

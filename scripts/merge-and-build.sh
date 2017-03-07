@@ -240,6 +240,32 @@ echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors-bot.sh simple ${OSE_VERSION}"
 
 echo
+echo "=========="
+echo "Publish the oc binary
+echo "=========="
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+    sh -s "$OSE_VERSION" "${VERSION#v}" <<-'EOF'
+	set -eux
+	rpm=/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/$1/latest/x86_64/os
+	rpm=$rpm/Packages/atomic-openshift-clients-redistributable-$2
+	rpm=$(echo "$rpm"*)
+	tmpdir=$(mktemp -dt ocbinary.XXXXXXXXXX)
+	trap "rm -rf '$tmpdir'" EXIT INT TERM
+	mkdir -p "$tmpdir/$2/"{linux,macosx,windows}
+	rpm2cpio "$rpm" | cpio -D "$tmpdir" -idm --quiet
+	cd "$tmpdir/usr/share/atomic-openshift"
+	tar --owner 0 --group 0 -C linux/ -zc oc -f "$tmpdir/$2/linux/oc.tar.gz"
+	tar --owner 0 --group 0 -C macosx/ -zc oc -f "$tmpdir/$2/macosx/oc.tar.gz"
+	zip --quiet --junk-path - windows/oc.exe > "$tmpdir/$2/windows/oc.zip"
+	rsync -a "$tmpdir/$2" mirror.openshift.com:/srv/pub/openshift-v3/clients/
+EOF
+for x in "${VERSION#v}/"{linux/oc.tar.gz,macosx/oc.tar.gz,windows/oc.zip}; do
+    curl --silent --show-error --head \
+        "https://mirror.openshift.com/pub/openshift-v3/clients/$x" \
+        | awk '$2!="200"{print > "/dev/stderr"; exit 1}{exit}'
+done
+
+echo
 echo
 echo "=========="
 echo "Finished"

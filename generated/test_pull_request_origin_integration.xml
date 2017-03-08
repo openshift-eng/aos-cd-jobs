@@ -126,7 +126,8 @@ cat &lt;&lt;EOF
 sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-JUNIT_REPORT=&#39;true&#39; make test -o check -k
+OS_BUILD_ENV_DOCKER_ARGS=&#34;-v /tmp:/openshifttmp &#34; OS_BUILD_ENV_PRESERVE=_output/local hack/env JUNIT_REPORT=&#39;true&#39; make test-tools test-integration -o check -k
+JUNIT_REPORT=&#39;true&#39; make test-end-to-end -o check -k
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>

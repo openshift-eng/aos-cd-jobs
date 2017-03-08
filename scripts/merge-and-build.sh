@@ -261,7 +261,14 @@ ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
 	tar --owner 0 --group 0 -C linux/ -zc oc -f "$outdir/linux/oc.tar.gz"
 	tar --owner 0 --group 0 -C macosx/ -zc oc -f "$outdir/macosx/oc.tar.gz"
 	zip --quiet --junk-path - windows/oc.exe > "$outdir/windows/oc.zip"
-	rsync -a "$outdir" mirror.openshift.com:/srv/pub/openshift-v3/clients/
+	rsync \
+		-av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
+		-e "ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no" \
+		"$outdir" \
+		use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v3/clients/
+	ssh -l jenkins_aos_cd_bot -o StrictHostKeychecking=no \
+		use-mirror-upload.ops.rhcloud.com \
+		/usr/local/bin/push.pub.sh openshift-v3 -v
 EOF
 for x in "${VERSION#v}/"{linux/oc.tar.gz,macosx/oc.tar.gz,windows/oc.zip}; do
     curl --silent --show-error --head \

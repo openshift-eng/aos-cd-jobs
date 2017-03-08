@@ -11,6 +11,6 @@ if [[ -n "$( git status --porcelain 2>&1 )" ]]; then
 fi
 
 if [[ -n "$( git diff HEAD~1..HEAD --stat -- generated/ )" ]]; then
-    updated_jobs=( "$( git diff HEAD~1..HEAD --numstat -- generated/ | awk '{ print $3 }' )" )
+    updated_jobs=( $( git diff HEAD~1..HEAD --numstat -- generated/ | awk '{ print $3 }' ) )
     ./push-update.sh "${updated_jobs[@]}"
 fi

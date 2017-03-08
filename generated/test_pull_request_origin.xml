@@ -20,6 +20,16 @@
           <description>The pull-request in the &lt;a href=&#34;https://github.com/openshift/origin&#34;&gt;origin&lt;/a&gt; repository to test.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>AOS_CD_JOBS_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs&#34;&gt;aos-cd-jobs&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>OPENSHIFT_ANSIBLE_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/openshift-ansible&#34;&gt;openshift-ansible&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
@@ -77,7 +87,7 @@
           <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
         </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
         <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_origin_extended_conformance</jobName>
+          <jobName>test_pull_request_origin_extended_conformance_install</jobName>
           <currParams>true</currParams>
           <exposedSCM>false</exposedSCM>
           <disableJob>false</disableJob>
@@ -134,12 +144,12 @@
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_origin_extended_conformance</project>
+      <project>test_pull_request_origin_extended_conformance_install</project>
       <filter>**</filter>
-      <target>test_pull_request_origin_extended_conformance/</target>
+      <target>test_pull_request_origin_extended_conformance_install/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_INSTALL_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
@@ -159,7 +169,7 @@
       <command># record the log from the downstream job here for FCM parsing
 cat /var/lib/jenkins/jobs/test_pull_request_origin_check/builds/${TEST_PULL_REQUEST_ORIGIN_CHECK_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_origin_integration/builds/${TEST_PULL_REQUEST_ORIGIN_INTEGRATION_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_conformance/builds/${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_conformance_install/builds/${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_INSTALL_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_networking_minimal/builds/${TEST_PULL_REQUEST_ORIGIN_EXTENDED_NETWORKING_MINIMAL_BUILD_NUMBER}/log
       </command>
     </hudson.tasks.Shell>

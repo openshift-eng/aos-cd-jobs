@@ -20,7 +20,7 @@ extensions:
         openshift_pkgs=( $pkg_name openshift-ansible-playbooks )
         for pkg in "${openshift_pkgs[@]}"
         do
-          python hack/get_available_pkgs.py $pkg > "all_${pkg}_versions"
+          sudo python hack/get_available_pkgs.py $pkg > "all_${pkg}_versions"
           sed -i '/^[a-zA-Z]/d' all_${pkg}_versions
           sort -u -o all_${pkg}_versions all_${pkg}_versions
           cat all_${pkg}_versions

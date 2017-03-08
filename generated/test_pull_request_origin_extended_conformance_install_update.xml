@@ -145,7 +145,7 @@ fi
 openshift_pkgs=( \$pkg_name openshift-ansible-playbooks )
 for pkg in &#34;\${openshift_pkgs[@]}&#34;
 do
-  python hack/get_available_pkgs.py \$pkg &gt; &#34;all_\${pkg}_versions&#34;
+  sudo python hack/get_available_pkgs.py \$pkg &gt; &#34;all_\${pkg}_versions&#34;
   sed -i &#39;/^[a-zA-Z]/d&#39; all_\${pkg}_versions
   sort -u -o all_\${pkg}_versions all_\${pkg}_versions
   cat all_\${pkg}_versions

@@ -1,0 +1,83 @@
+---
+parameters: []
+provision:
+  os: "rhel"
+  stage: "bare"
+  provider: "aws"
+actions:
+  - type: "host_script"
+    title: "install base dependencies"
+    script: |-
+      oct prepare dependencies
+  - type: "host_script"
+    title: "install golang"
+    script: |-
+      oct prepare golang --version '1.6.3' --repo 'oso-rhui-rhel-server-releases-optional'
+  - type: "host_script"
+    title: "install docker"
+    script: |-
+      oct prepare docker --repourl "https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/" --repo 'oso-rhui-rhel-server-*'
+  - type: "host_script"
+    title: "prepare repositories"
+    script: |-
+      oct prepare repositories
+  - type: "host_script"
+    title: "package the AMI"
+    script: |-
+      oct package ami --upgrade
+  - type: "script"
+    title: "log system information"
+    script: |-
+      go version
+      docker version
+  - type: "script"
+    title: "use a ramdisk for etcd"
+    script: |-
+      sudo mkdir -p /tmp
+      sudo mount -t tmpfs -o size=2048m tmpfs /tmp
+      sudo restorecon -R /tmp
+  - type: "script"
+    title: "build an origin release"
+    repository: "origin"
+    script: |-
+      export OS_BUILD_IMAGE_ARGS=''
+      hack/build-base-images.sh
+      make release
+  - type: "script"
+    title: "verify commit history"
+    repository: "origin"
+    script: |-
+      # run commitchecker outside release container as it needs
+      # access to git; also explicitly force godeps verification
+      symbolic_ref="$( git symbolic-ref HEAD )"
+      branch="${symbolic_ref##refs/heads/}"
+      if [[ "${branch}" == "master" ]]; then
+        RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+      fi
+  - type: "script"
+    title: "run check and verify tasks"
+    repository: "origin"
+    script: |-
+      OS_BUILD_ENV_DOCKER_ARGS="-v /tmp:/openshifttmp " hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+      # root user runs in the container and this may screw up
+      # permissions on the contents of /tmp/openshift
+      sudo chown -R origin:origin /tmp/openshift
+  - type: "script"
+    title: "run integration tests"
+    repository: "origin"
+    script: |-
+      JUNIT_REPORT='true' make test -o check -o build -k
+  - type: "script"
+    title: "run extended conformance tests"
+    repository: "origin"
+    script: |-
+      JUNIT_REPORT='true' make test-extended SUITE=conformance
+  - type: "script"
+    title: "run extended networking tests"
+    repository: "origin"
+    script: |-
+      JUNIT_REPORT='true' make test-extended SUITE=networking-minimal
+  - type: "host_script"
+    title: "release the AMI"
+    script: |-
+      oct package ami --mark-ready

@@ -252,7 +252,8 @@ ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
 	tmpdir=$(mktemp -dt ocbinary.XXXXXXXXXX)
 	trap "rm -rf '$tmpdir'" EXIT INT TERM
 	mkdir -p "$tmpdir/$2/"{linux,macosx,windows}
-	rpm2cpio "$rpm" | cpio -D "$tmpdir" -idm --quiet
+	cd "$tmpdir"
+	rpm2cpio "$rpm" | cpio -idm --quiet
 	cd "$tmpdir/usr/share/atomic-openshift"
 	tar --owner 0 --group 0 -C linux/ -zc oc -f "$tmpdir/$2/linux/oc.tar.gz"
 	tar --owner 0 --group 0 -C macosx/ -zc oc -f "$tmpdir/$2/macosx/oc.tar.gz"

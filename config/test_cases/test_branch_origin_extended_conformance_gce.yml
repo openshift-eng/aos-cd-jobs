@@ -1,0 +1,146 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  sync_repos:
+    - name: "release"
+  parameters:
+    - name: "DOCKER_STORAGE_DRIVER"
+      description: >
+        The storage driver to use when configuring the cluster. 'overlay2' and 'devicemapper' are allowed.
+      default_value: "devicemapper"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      description: >
+        The image to install the cluster with. If set, defaults to the value defined by the
+        <a href='https://github.com/openshift/release/blob/master/cluster/bin/local.sh'><code>cluster/bin/local.sh</code></a>
+        script.
+    - name: "ADDITIONAL_SKIP"
+      description: |-
+        Regular expression to filter additional tests from the conformance suite.
+        See also:
+        <div>
+        <a style="display: block" href='https://github.com/openshift/openshift-ansible/pull/3017'><code>openshift-ansible</code> pull 3017</a></br>
+        <a style="display: block" href='https://github.com/openshift/origin/issues/12361'><code>origin</code> issue 12361</a></br>
+        <a style="display: block" href='https://github.com/openshift/origin/issues/12362'><code>origin</code> issue 12362</a></br>
+        <a style="display: block" href='https://github.com/openshift/origin/issues/12784'><code>origin</code> issue 12784</a></br>
+        <a style="display: block" href='https://github.com/openshift/origin/issues/12629'><code>origin</code> issue 12629</a></br>
+        <a style="display: block" href='https://github.com/openshift/origin/issues/11016'><code>origin</code> issue 11016</a></br>
+        <a style="display: block" href='https://github.com/kubernetes/kubernetes/issues/40953'><code>kubernetes</code> issue 40953</a></br>
+        <a style="display: block" href='https://github.com/openshift/origin/issues/12072'><code>origin</code> issue 12072</a></br>
+        </div>
+      default_value: '|should provide DNS for services|should support subPath|should work with TCP \(when fully idled\)|should test kubelet managed /etc/hosts file|\[networking\]\[router\]|Downward API volume should update annotations on modification|should run a deployment to completion and then scale to zero|Basic StatefulSet functionality Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed|Probing container should \*not\* be restarted with a /healthz http liveness probe'
+  actions:
+    - type: "forward_parameters"
+      parameters:
+        - OPENSHIFT_ANSIBLE_IMAGE
+        - ADDITIONAL_SKIP
+        - JOB_NAME
+        - BUILD_NUMBER
+        - DOCKER_STORAGE_DRIVER
+    - type: "script"
+      title: "build origin RPMs"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1
+    - type: "host_script"
+      title: "move RPMs to GCS repo"
+      script: |-
+        if [[ -n "${ORIGIN_PULL_ID-}" ]]; then
+          location_base="origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/${BUILD_NUMBER}"
+          location="${location_base}/artifacts/rpms"
+        else
+          location_root="origin-ci-test/branch-logs/origin/${ORIGIN_TARGET_BRANCH}/builds"
+          location_base="${location_root}/${BUILD_NUMBER}"
+          location="${location_base}/artifacts/rpms"
+          base_location_url="https://storage.googleapis.com/${location_base}"
+        fi
+        location_url="https://storage.googleapis.com/${location}"
+        echo "${JOB_NAME}/${BUILD_NUMBER}" > .build
+        if gsutil ls "gs://${location_base}" &>/dev/null; then
+          gsutil rm -rf "gs://${location_base}"
+        fi
+        gsutil cp .build "gs://${location_base}/.build"
+
+        mkdir -p artifacts/rpms
+        rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
+        gsutil -m cp -r artifacts/rpms "gs://${location}"
+        if [[ -n "${ORIGIN_PULL_ID:-}" ]]; then
+          # if we've built this PR before, remove older rpm artifact directories
+          out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -1 )"
+          if [[ -n "${out}" ]]; then
+            echo "${out}" | xargs -L 1 gsutil rm -rf
+          fi
+        else
+          # update the pointer to this location
+          echo "${base_location_url}" > .latest
+          gsutil cp .latest "gs://${location_root}/.latest"
+        fi
+
+        # hack around forwarding this to the other machine
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
+    - type: "host_script"
+      title: "move secrets to remote host"
+      script: |-
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/data/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/data/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/data/'
+    - type: "script"
+      title: "provsion test cluster"
+      repository: "release"
+      script: |-
+        cd cluster/test-deploy/data/
+        if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE}" ]]; then
+          docker pull "${OPENSHIFT_ANSIBLE_IMAGE}"
+          docker tag "${OPENSHIFT_ANSIBLE_IMAGE}" "openshift/origin-gce:latest"
+        fi
+
+        # we need a short but unique identifier, so we take the first 7 of SHA
+        hashed_identifier="$( echo "${JOB_NAME}-${BUILD_NUMBER}" | sha1sum )"
+        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}"
+
+        function cleanup() {
+          cd "${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data"
+          # we need a short but unique identifier, so we take the first 7 of SHA
+          hashed_identifier="$( echo "${JOB_NAME}-${BUILD_NUMBER}" | sha1sum )"
+          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}"
+          ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
+        }
+        trap cleanup ERR
+
+        ../../bin/local.sh ansible-playbook -e "provision_gce_docker_storage_driver=${DOCKER_STORAGE_DRIVER}" -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
+        cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      script: |-
+        mkdir -p /tmp/artifacts/junit
+        export KUBECONFIG=/tmp/cluster-admin.kubeconfig
+        export PARALLEL_NODES=25
+        export EXTENDED_TEST_PATH=test/extended
+        export TEST_ONLY=1
+        export TEST_REPORT_DIR=/tmp/artifacts/junit
+        export TEST_EXTENDED_SKIP="\[local\]"
+        TEST_EXTENDED_SKIP+="${ADDITIONAL_SKIP-}"
+        export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/data/gce.json"
+        export TEST_EXTENDED_ARGS='-provider=gce -gce-zone=us-central1-a -gce-project=openshift-gce-devel-ci'
+
+        function gather() {
+          set +e
+          hack/build-go.sh cmd/oc
+          export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
+          oc get nodes --template '{{ range .items }}{{ .metadata.name }}{{ "\n" }}{{ end }}' | xargs -L 1 -I X bash -c 'oc get --raw /api/v1/nodes/X/proxy/metrics > /tmp/artifacts/X.metrics' ''
+          set -e
+        }
+        trap gather ERR
+
+        function cleanup() {
+          cd "${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data"
+          # we need a short but unique identifier, so we take the first 7 of SHA
+          hashed_identifier="$( echo "${JOB_NAME}-${BUILD_NUMBER}" | sha1sum )"
+          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}"
+          ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
+        }
+        trap cleanup EXIT
+
+        make test-extended SUITE="conformance"
+  artifacts:
+    - "/tmp/artifacts"

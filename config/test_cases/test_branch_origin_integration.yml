@@ -1,0 +1,9 @@
+---
+parent: 'common/test_cases/origin_release.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "run integration tests"
+      repository: "origin"
+      script: |-
+        JUNIT_REPORT='true' make test -o check -k

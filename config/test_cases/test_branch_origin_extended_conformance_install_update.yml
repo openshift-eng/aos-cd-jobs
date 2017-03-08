@@ -94,7 +94,7 @@ extensions:
         sed -i '/^[a-zA-Z]/d' all_origin_versions
         sort -u -o all_origin_versions all_origin_versions
         upgrade_version=$(tail -1 all_origin_versions)
-        upgrade_minor_version=$(echo upgrade_version | awk -F'.' '{print $2}')
+        upgrade_minor_version=$(echo "${upgrade_version}" | awk -F'.' '{print $2}')
         ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${upgrade_minor_version}/upgrade.yml -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )" -e openshift_upgrade_target="${upgrade_version}"
     - type: "script"
       title: "expose the kubeconfig"

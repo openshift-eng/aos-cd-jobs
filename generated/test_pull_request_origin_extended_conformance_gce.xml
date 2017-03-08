@@ -227,14 +227,14 @@ if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34; ]]; then
 fi
 
 # we need a short but unique identifier, so we take the first 7 of SHA
-hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}-\${BUILD_NUMBER}&#34; | sha1sum )&#34;
-export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}&#34;
+hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
+export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
 
 function cleanup() {
   cd &#34;\${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data&#34;
   # we need a short but unique identifier, so we take the first 7 of SHA
-  hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}-\${BUILD_NUMBER}&#34; | sha1sum )&#34;
-  export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}&#34;
+  hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
+  export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
   ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
 }
 trap cleanup ERR
@@ -275,8 +275,8 @@ trap gather ERR
 function cleanup() {
   cd &#34;\${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data&#34;
   # we need a short but unique identifier, so we take the first 7 of SHA
-  hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}-\${BUILD_NUMBER}&#34; | sha1sum )&#34;
-  export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}&#34;
+  hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
+  export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
   ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
 }
 trap cleanup EXIT

@@ -4,7 +4,9 @@ from actions.named_shell_task import render_task
 from .interface import Action
 
 _OCT_INSTALL_TITLE = "INSTALL THE ORIGIN-CI-TOOL"
-_OCT_INSTALL_ACTION = """cp "${HOME}/origin-ci-tool/latest/bin/activate" "${WORKSPACE}/activate"
+_OCT_INSTALL_ACTION = """latest="$( readlink "${HOME}/origin-ci-tool/latest" )"
+touch "${latest}"
+cp "${latest}/bin/activate" "${WORKSPACE}/activate"
 cat >> "${WORKSPACE}/activate" <<EOF
 export OCT_CONFIG_HOME="${WORKSPACE}/.config"
 EOF

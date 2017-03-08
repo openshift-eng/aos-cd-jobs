@@ -1,0 +1,10 @@
+---
+parent: 'test_cases/test_pull_request_openshift_ansible_extended_conformance_install.yml'
+overrides:
+  merge: "openshift-ansible"
+extensions:
+  actions:
+    - type: "host_script"
+      title: "check other job statuses"
+      script: |-
+        /usr/bin/check-pull-request-status.py "${OPENSHIFT_ANSIBLE_PULL_ID}" /var/lib/jenkins/.config/hub

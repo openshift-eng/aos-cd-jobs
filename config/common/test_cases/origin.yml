@@ -1,0 +1,22 @@
+---
+parameters: []
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync_repos:
+  - name: "origin"
+actions:
+  - type: "script"
+    title: "log system information"
+    script: |-
+      go version
+      docker version
+  - type: "script"
+    title: "use a ramdisk for etcd"
+    script: |-
+      sudo mkdir -p /tmp
+      sudo mount -t tmpfs -o size=2048m tmpfs /tmp
+      sudo restorecon -R /tmp
+artifacts:
+  - "/tmp/openshift"

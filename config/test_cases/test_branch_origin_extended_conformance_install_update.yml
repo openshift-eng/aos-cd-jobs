@@ -1,0 +1,108 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  sync_repos:
+    - name: "openshift-ansible"
+    - name: "aos-cd-jobs"
+  actions:
+    - type: "script"
+      title: "install origin GA and update"
+      repository: "aos-cd-jobs"
+      script: |-
+        pkg_name="origin"
+        sudo yum install -y ansible-2.2.0.0
+        git checkout sjb
+        general_yml_file=inventory/group_vars/OSEv3/general.yml
+        if [ $pkg_name = "atomic-openshift" ]
+        then
+          sed -i "s/deployment_type:.*/deployment_type: \"openshift-enterprise\" /g" $general_yml_file
+        fi
+        openshift_pkgs=( $pkg_name openshift-ansible-playbooks )
+        for pkg in "${openshift_pkgs[@]}"
+        do
+          python hack/get_available_pkgs.py $pkg > "all_${pkg}_versions"
+          sed -i '/^[a-zA-Z]/d' all_${pkg}_versions
+          sort -u -o all_${pkg}_versions all_${pkg}_versions
+          cat all_${pkg}_versions
+        done
+        current_openshift_version=$(tail -n1 all_${pkg_name}_versions | awk -F'-' '{print $1}')
+        echo "current version -> $current_openshift_version"
+        current_openshift_major_version=$(echo $current_openshift_version | awk -F'.' '{print $1}')
+        current_openshift_minor_version=$(echo $current_openshift_version | awk -F'.' '{print $2}')
+        latest_version=$current_openshift_major_version.$(($current_openshift_minor_version + 1))
+        all_current_openshift_versions_array=($(cat "all_${pkg_name}_versions" | grep "$current_openshift_major_version.$current_openshift_minor_version"))
+        all_current_openshift_ansible_versions_array=($(cat "all_openshift-ansible-playbooks_versions" | grep "^3.$current_openshift_minor_version"))
+        set_openshift_version=$(echo ${all_current_openshift_versions_array[0]} | awk -F'-' '{print $1}')
+        echo "=== Installing openshift-ansible-${all_current_openshift_ansible_versions_array[0]} ==="
+        sudo yum install -y openshift-ansible-playbooks-${all_current_openshift_ansible_versions_array[0]}
+        echo "=== Installing ${pkg_name}-${set_openshift_version} ==="
+        ansible-playbook --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+        ansible-playbook --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e set_openshift_version="${set_openshift_version}"
+        if [ ${#all_current_openshift_versions_array[@]} -gt 1 ]
+        then
+          echo "=== Updating openshift-ansible to openshift-ansible-${all_current_openshift_ansible_versions_array[${#all_current_openshift_ansible_versions_array[@]}-1]} ==="
+          sudo yum erase -y openshift-ansible
+          sudo yum install -y openshift-ansible-playbooks-${all_current_openshift_ansible_versions_array[${#all_current_openshift_ansible_versions_array[@]}-1]}
+          echo "=== Updating ${pkg_name} to ${pkg_name}-${all_current_openshift_versions_array[${#all_current_openshift_versions_array[@]}-1]} ==="
+          ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${current_openshift_minor_version}/upgrade.yml -e openshift_upgrade_target="${all_current_openshift_versions_array[${#all_current_openshift_versions_array[@]}-1]}"
+        fi
+    - type: "script"
+      title: "build an origin release"
+      repository: "origin"
+      script: |-
+        hack/build-base-images.sh
+        OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+        sudo systemctl restart docker
+        hack/build-images.sh
+        sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+        sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+    - type: "script"
+      title: "build an openshift-ansible release"
+      repository: "openshift-ansible"
+      script: |-
+        tito_tmp_dir="tito"
+        mkdir -p "${tito_tmp_dir}"
+        tito tag --offline --use-version 3.6.0 --accept-auto-changelog
+        tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
+        createrepo "${tito_tmp_dir}/noarch"
+        cat << EOR > ./openshift-ansible-local-release.repo
+        [openshift-ansible-local-release]
+        baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
+        gpgcheck = 0
+        name = OpenShift Ansible Release from Local Source
+        EOR
+        sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+    - type: "script"
+      title: "install the openshift-ansible release"
+      script: |-
+        sudo yum install -y atomic-openshift-utils
+    - type: "script"
+      title: "check out the correct branch of aos-cd-jobs"
+      repository: "aos-cd-jobs"
+      script: |-
+        git checkout sjb
+    - type: "script"
+      title: "determine the release commit for origin images"
+      repository: "origin"
+      script: |-
+        git log -1 --pretty=%h >> /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT
+    - type: "script"
+      title: "update origin"
+      repository: "aos-cd-jobs"
+      script: |-
+        python hack/get_available_pkgs.py origin > "all_origin_versions"
+        sed -i '/^[a-zA-Z]/d' all_origin_versions
+        sort -u -o all_origin_versions all_origin_versions
+        upgrade_version=$(tail -1 all_origin_versions)
+        upgrade_minor_version=$(echo upgrade_version | awk -F'.' '{print $2}')
+        ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${upgrade_minor_version}/upgrade.yml -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )" -e openshift_upgrade_target="${upgrade_version}"
+    - type: "script"
+      title: "expose the kubeconfig"
+      script: |-
+        sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
+        sudo chmod a+rw /etc/origin/master/admin.kubeconfig
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      script: |-
+        KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance

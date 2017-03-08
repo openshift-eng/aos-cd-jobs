@@ -1,0 +1,7 @@
+---
+children:
+  - "test_branch_origin_check"
+  - "test_branch_origin_integration"
+  - "test_branch_origin_extended_conformance"
+  - "test_branch_origin_extended_networking_minimal"
+  - "test_branch_origin_extended_conformance_gce"

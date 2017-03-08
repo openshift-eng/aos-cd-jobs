@@ -252,7 +252,7 @@ sudo python hack/get_available_pkgs.py origin &gt; &#34;all_origin_versions&#34;
 sed -i &#39;/^[a-zA-Z]/d&#39; all_origin_versions
 sort -u -o all_origin_versions all_origin_versions
 upgrade_version=\$(tail -1 all_origin_versions)
-upgrade_minor_version=\$(echo upgrade_version | awk -F&#39;.&#39; &#39;{print \$2}&#39;)
+upgrade_minor_version=\$(echo &#34;\${upgrade_version}&#34; | awk -F&#39;.&#39; &#39;{print \$2}&#39;)
 ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_\${upgrade_minor_version}/upgrade.yml -e openshift_image_tag=&#34;\$( cat ./ORIGIN_COMMIT )&#34; -e openshift_upgrade_target=&#34;\${upgrade_version}&#34;
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>

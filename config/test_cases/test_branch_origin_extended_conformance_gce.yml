@@ -94,14 +94,14 @@ extensions:
         fi
 
         # we need a short but unique identifier, so we take the first 7 of SHA
-        hashed_identifier="$( echo "${JOB_NAME}-${BUILD_NUMBER}" | sha1sum )"
-        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}"
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
 
         function cleanup() {
           cd "${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data"
           # we need a short but unique identifier, so we take the first 7 of SHA
-          hashed_identifier="$( echo "${JOB_NAME}-${BUILD_NUMBER}" | sha1sum )"
-          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}"
+          hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
           ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
         }
         trap cleanup ERR
@@ -135,8 +135,8 @@ extensions:
         function cleanup() {
           cd "${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data"
           # we need a short but unique identifier, so we take the first 7 of SHA
-          hashed_identifier="$( echo "${JOB_NAME}-${BUILD_NUMBER}" | sha1sum )"
-          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}"
+          hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
           ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
         }
         trap cleanup EXIT

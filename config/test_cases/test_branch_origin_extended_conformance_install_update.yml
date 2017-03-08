@@ -90,7 +90,7 @@ extensions:
       title: "update origin"
       repository: "aos-cd-jobs"
       script: |-
-        python hack/get_available_pkgs.py origin > "all_origin_versions"
+        sudo python hack/get_available_pkgs.py origin > "all_origin_versions"
         sed -i '/^[a-zA-Z]/d' all_origin_versions
         sort -u -o all_origin_versions all_origin_versions
         upgrade_version=$(tail -1 all_origin_versions)

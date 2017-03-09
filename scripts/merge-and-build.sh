@@ -240,7 +240,7 @@ ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/sc
 
 echo
 echo "=========="
-echo "Publish the oc binary
+echo "Publish the oc binary"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
     sh -s "$OSE_VERSION" "${VERSION#v}" <<-'EOF'

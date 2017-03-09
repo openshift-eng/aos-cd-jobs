@@ -11,7 +11,8 @@ rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for unit in units %}
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit {{ unit }} --no-pager --all --lines=all >> "${ARTIFACT_DIR}/{{ unit }}"
-{%- endfor %}""")
+{%- endfor %}
+tree "${ARTIFACT_DIR}" """)
 
 
 class SystemdJournalAction(Action):

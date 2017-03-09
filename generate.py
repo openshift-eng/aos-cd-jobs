@@ -11,6 +11,7 @@ from actions.child_jobs import ChildJobAction
 from actions.deprovision import DeprovisionAction
 from actions.download_artifacts import DownloadArtifactsAction
 from actions.forward_parameter import ForwardParametersAction
+from actions.generate_artifacts import GenerateArtifactsAction
 from actions.host_script import HostScriptAction
 from actions.multi_action import MultiAction
 from actions.multi_sync import MultiSyncAction
@@ -20,6 +21,7 @@ from actions.provision import ProvisionAction
 from actions.pull_request_sync import PullRequestSyncAction
 from actions.repo_sync import SyncAction
 from actions.script import ScriptAction
+from actions.systemd_journal import SystemdJournalAction
 
 config_base_dir = abspath(join(dirname(__file__), 'config'))
 
@@ -113,6 +115,14 @@ if job_type == "test":
     # next, the job needs to retrieve artifacts
     if "artifacts" in job_config:
         actions.append(DownloadArtifactsAction(job_config["artifacts"]))
+
+    # some artifacts may not exist on the remote filesystem
+    # but will need to be generated
+    if "generated_artifacts" in job_config:
+        actions.append(GenerateArtifactsAction(job_config["generated_artifacts"]))
+
+    if "system_journals" in job_config:
+        actions.append(SystemdJournalAction(job_config["system_journals"]))
 
     # finally, the job will deprovision cloud resources
     actions.append(DeprovisionAction())

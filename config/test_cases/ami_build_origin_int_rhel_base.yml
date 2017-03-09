@@ -66,8 +66,7 @@ actions:
     title: "run integration tests"
     repository: "origin"
     script: |-
-      OS_BUILD_ENV_DOCKER_ARGS="-v /tmp:/openshifttmp " OS_BUILD_ENV_PRESERVE=_output/local hack/env JUNIT_REPORT='true' make test-tools test-integration -o check -k
-      JUNIT_REPORT='true' make test-end-to-end -o check -k
+      JUNIT_REPORT='true' make test -o check -o build -k
   - type: "script"
     title: "run extended conformance tests"
     repository: "origin"

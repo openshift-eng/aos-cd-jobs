@@ -145,7 +145,8 @@ mkdir &#34;${ARTIFACT_DIR}&#34;
 if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /tmp/openshift; then
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/openshift
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/openshift &#34;${ARTIFACT_DIR}&#34;
-fi</command>
+fi
+tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -154,7 +155,8 @@ ARTIFACT_DIR=&#34;$( pwd )/artifacts/generated&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo yum list installed &gt;&gt; &#34;${ARTIFACT_DIR}/installed_packages.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo ausearch -m avc &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true</command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo ausearch -m avc &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true
+tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -162,7 +164,8 @@ echo &#34;########## STARTING STAGE: FETCH SYSTEMD JOURNALS FROM THE REMOTE HOST
 ARTIFACT_DIR=&#34;$( pwd )/artifacts/journals&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit docker.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/docker.service&#34;</command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit docker.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/docker.service&#34;
+tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

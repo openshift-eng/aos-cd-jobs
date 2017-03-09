@@ -14,7 +14,8 @@ if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo sta
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX {{ artifact }}
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:{{ artifact }} "${ARTIFACT_DIR}"
 fi
-{%- endfor %}""")
+{%- endfor %}
+tree "${ARTIFACT_DIR}" """)
 
 
 class DownloadArtifactsAction(Action):

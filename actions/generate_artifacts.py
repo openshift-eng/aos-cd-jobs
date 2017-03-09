@@ -11,7 +11,8 @@ rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for name, action in artifacts.iteritems() %}
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel {{ action }} >> "${ARTIFACT_DIR}/{{ name }}" || true
-{%- endfor %}""")
+{%- endfor %}
+tree "${ARTIFACT_DIR}" """)
 
 
 class GenerateArtifactsAction(Action):

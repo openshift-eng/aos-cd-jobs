@@ -10,7 +10,7 @@ _GENERATE_ARTIFACTS_ACTION_TEMPLATE = Template("""ARTIFACT_DIR="$( pwd )/artifac
 rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for name, action in artifacts.iteritems() %}
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel {{ action }} >> "${ARTIFACT_DIR}/{{ name }}"
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel {{ action }} >> "${ARTIFACT_DIR}/{{ name }}" || true
 {%- endfor %}""")
 
 

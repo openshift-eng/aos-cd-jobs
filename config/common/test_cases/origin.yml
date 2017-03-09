@@ -20,3 +20,8 @@ actions:
       sudo restorecon -R /tmp
 artifacts:
   - "/tmp/openshift"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m avc'
+system_journals:
+  - docker.service

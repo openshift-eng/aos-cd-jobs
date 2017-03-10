@@ -159,7 +159,7 @@ current_openshift_minor_version=\$(echo \$current_openshift_version | awk -F&#39
 latest_version=\$current_openshift_major_version.\$((\$current_openshift_minor_version + 1))
 all_current_openshift_versions_array=(\$(cat &#34;all_\${pkg_name}_versions&#34; | grep &#34;\$current_openshift_major_version.\$current_openshift_minor_version&#34;))
 all_current_openshift_ansible_versions_array=(\$(cat &#34;all_openshift-ansible-playbooks_versions&#34; | grep &#34;^3.\$current_openshift_minor_version&#34;))
-set_openshift_version=\$(echo \${all_current_openshift_versions_array[0]} | awk -F&#39;-&#39; &#39;{print \$1}&#39;)
+set_openshift_version=\$(echo \${all_current_openshift_versions_array[0]})
 echo &#34;=== Installing openshift-ansible-\${all_current_openshift_ansible_versions_array[0]} ===&#34;
 sudo yum install -y openshift-ansible-playbooks-\${all_current_openshift_ansible_versions_array[0]}
 echo &#34;=== Installing \${pkg_name}-\${set_openshift_version} ===&#34;

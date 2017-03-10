@@ -25,6 +25,39 @@
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs&#34;&gt;aos-cd-jobs&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>DOCKER_STORAGE_DRIVER</name>
+          <description>The storage driver to use when configuring the cluster. &#39;overlay2&#39; and &#39;devicemapper&#39; are allowed.
+</description>
+          <defaultValue>devicemapper</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>OPENSHIFT_ANSIBLE_IMAGE</name>
+          <description>The image to install the cluster with. If set, defaults to the value defined by the &lt;a href=&#39;https://github.com/openshift/release/blob/master/cluster/bin/local.sh&#39;&gt;&lt;code&gt;cluster/bin/local.sh&lt;/code&gt;&lt;/a&gt; script.
+</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ADDITIONAL_SKIP</name>
+          <description>Regular expression to filter additional tests from the conformance suite.
+See also:
+&lt;div&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/openshift-ansible/pull/3017&#39;&gt;&lt;code&gt;openshift-ansible&lt;/code&gt; pull 3017&lt;/a&gt;&lt;/br&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/12361&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 12361&lt;/a&gt;&lt;/br&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/12362&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 12362&lt;/a&gt;&lt;/br&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/12784&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 12784&lt;/a&gt;&lt;/br&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/12629&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 12629&lt;/a&gt;&lt;/br&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/11016&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 11016&lt;/a&gt;&lt;/br&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/kubernetes/kubernetes/issues/40953&#39;&gt;&lt;code&gt;kubernetes&lt;/code&gt; issue 40953&lt;/a&gt;&lt;/br&gt;
+&lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/12072&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 12072&lt;/a&gt;&lt;/br&gt;
+&lt;/div&gt;</description>
+          <defaultValue>|should provide DNS for services|should support subPath|should work with TCP \(when fully idled\)|should test kubelet managed /etc/hosts file|\[networking\]\[router\]|Downward API volume should update annotations on modification|should run a deployment to completion and then scale to zero|Basic StatefulSet functionality Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed|Probing container should \*not\* be restarted with a /healthz http liveness probe</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>RELEASE_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/release&#34;&gt;release&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
@@ -113,6 +146,22 @@
           <buildOnlyIfSCMChanges>false</buildOnlyIfSCMChanges>
           <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
         </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
+        <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
+          <jobName>test_branch_origin_extended_conformance_gce</jobName>
+          <currParams>true</currParams>
+          <exposedSCM>false</exposedSCM>
+          <disableJob>false</disableJob>
+          <parsingRulesPath></parsingRulesPath>
+          <maxRetries>0</maxRetries>
+          <enableRetryStrategy>false</enableRetryStrategy>
+          <enableCondition>false</enableCondition>
+          <abortAllJob>false</abortAllJob>
+          <condition></condition>
+          <configs class="empty-list"/>
+          <killPhaseOnJobResultCondition>NEVER</killPhaseOnJobResultCondition>
+          <buildOnlyIfSCMChanges>false</buildOnlyIfSCMChanges>
+          <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
+        </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
       </phaseJobs>
       <continuationCondition>ALWAYS</continuationCondition>
     </com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
@@ -160,12 +209,24 @@
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
+    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
+      <project>test_branch_origin_extended_conformance_gce</project>
+      <filter>**</filter>
+      <target>test_branch_origin_extended_conformance_gce/</target>
+      <excludes></excludes>
+      <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
+        <buildNumber>${TEST_BRANCH_ORIGIN_EXTENDED_CONFORMANCE_GCE_BUILD_NUMBER}</buildNumber>
+      </selector>
+      <optional>true</optional>
+      <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
+    </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.tasks.Shell>
       <command># record the log from the downstream job here for FCM parsing
 cat /var/lib/jenkins/jobs/test_branch_origin_check/builds/${TEST_BRANCH_ORIGIN_CHECK_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_branch_origin_integration/builds/${TEST_BRANCH_ORIGIN_INTEGRATION_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_branch_origin_extended_conformance_install/builds/${TEST_BRANCH_ORIGIN_EXTENDED_CONFORMANCE_INSTALL_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_branch_origin_extended_networking_minimal/builds/${TEST_BRANCH_ORIGIN_EXTENDED_NETWORKING_MINIMAL_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test_branch_origin_extended_conformance_gce/builds/${TEST_BRANCH_ORIGIN_EXTENDED_CONFORMANCE_GCE_BUILD_NUMBER}/log
       </command>
     </hudson.tasks.Shell>
   </builders>

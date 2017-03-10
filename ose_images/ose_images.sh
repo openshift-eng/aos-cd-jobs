@@ -222,9 +222,13 @@ setup_dockerfile() {
   mkdir -p "${container}" &>/dev/null
   pushd ${container} >/dev/null
   wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/rpms/${container}/plain/Dockerfile?h=${branch} &>/dev/null
-  if ! [ -s Dockerfile ] ; then
+  test_file="$(head -n 1 Dockerfile | awk '{print $1}')"
+  if [ "${test_file}" == "" ] ; then
     rm -f Dockerfile
     wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/rpms/${container}/plain/Dockerfile.product?h=${branch} &>/dev/null
+  elif [ "${test_file}" == "Dockerfile.product" ] || [ "${test_file}" == "Dockerfile.rhel7" ] ; then
+    rm -f Dockerfile
+    wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/rpms/${container}/plain/${test_file}?h=${branch} &>/dev/null
   fi
   popd >/dev/null
 }
@@ -667,11 +671,8 @@ add_errata_build() {
 function push_image {
    docker push $1
    if [ $? -ne 0 ]; then
-     echo "OH NO!!! There was a problem pushing the image, you may not be logged in or there was some other error.
-To login, visit https://api.qe.openshift.com/oauth/token/request then
-  docker login -e USERID@redhat.com -u USERID@redhat.com -p TOKEN https://registry.qe.redhat.com
-"
-     echo "::${1}::" >> ${workingdir}/logs/buildfailed
+     echo "OH NO!!! There was a problem pushing the image."
+     echo "::BAD_PUSH ${container} ${1}::" >> ${workingdir}/logs/buildfailed
      sed -i "/::${1}::/d" ${workingdir}/logs/working
      exit 1
    fi
@@ -694,87 +695,93 @@ start_push_image() {
   echo "    START: ${START_TIME}" | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   # Do our pull
-  docker pull ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
-  echo | tee -a ${workingdir}/logs/push.image.log
-  # Work through what tags to push to, one group at a time
-  for current_tag in ${tag_list} ; do
-    case ${current_tag} in
-      default )
-        # Full name - <name>:<version>-<release>
-        echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
-        docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
-        echo | tee -a ${workingdir}/logs/push.image.log
-        push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
-        echo | tee -a ${workingdir}/logs/push.image.log
-        # Name and Version - <name>:<version>
-        if ! [ "${NOVERSIONONLY}" == "TRUE" ] ; then
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
-          docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+  docker pull ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version}
+  if [ $? -ne 0 ]; then
+    echo "OH NO!!! There was a problem pulling the image."
+    echo "::BAD_PULL ${container} ${package_name}:${version_version}-${release_version}::" >> ${workingdir}/logs/buildfailed
+    sed -i "/::${container}::/d" ${workingdir}/logs/working
+  else
+    echo | tee -a ${workingdir}/logs/push.image.log
+    # Work through what tags to push to, one group at a time
+    for current_tag in ${tag_list} ; do
+      case ${current_tag} in
+        default )
+          # Full name - <name>:<version>-<release>
+          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
+          docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
-          push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+          push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
-        fi
-        # Latest - <name>:latest
-        if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest" | tee -a ${workingdir}/logs/push.image.log
-          docker tag  -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
-          echo | tee -a ${workingdir}/logs/push.image.log
-          push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
-          echo | tee -a ${workingdir}/logs/push.image.log
-        fi
-      ;;
-      single-v )
-        if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
-          version_trim="v${MAJOR_RELEASE}"
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
-          docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-          echo | tee -a ${workingdir}/logs/push.image.log
-          push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-          echo | tee -a ${workingdir}/logs/push.image.log
-        fi
-      ;;
-      all-v )
-        if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
-          version_trim_list="v3.1 v3.2 v3.3 v3.4"
-          for version_trim in ${version_trim_list} ; do
+          # Name and Version - <name>:<version>
+          if ! [ "${NOVERSIONONLY}" == "TRUE" ] ; then
+            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
+            docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+            echo | tee -a ${workingdir}/logs/push.image.log
+            push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
+            echo | tee -a ${workingdir}/logs/push.image.log
+          fi
+          # Latest - <name>:latest
+          if ! [ "${NOTLATEST}" == "TRUE" ] ; then
+            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest" | tee -a ${workingdir}/logs/push.image.log
+            docker tag  -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
+            echo | tee -a ${workingdir}/logs/push.image.log
+            push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
+            echo | tee -a ${workingdir}/logs/push.image.log
+          fi
+        ;;
+        single-v )
+          if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
+            version_trim="v${MAJOR_RELEASE}"
             echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
             docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
             echo | tee -a ${workingdir}/logs/push.image.log
             push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
             echo | tee -a ${workingdir}/logs/push.image.log
-          done
-        fi
-      ;;
-      three-only )
-        if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
-          version_trim=`echo ${version_version} | sed 's|v||g' | cut -d'.' -f-3`
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
-          docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-          echo | tee -a ${workingdir}/logs/push.image.log
-          push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-          echo | tee -a ${workingdir}/logs/push.image.log
-        fi
-      ;;
-    esac
-  done
-  if ! [ "${alt_name}" == "" ] ; then
-    if [ "${VERBOSE}" == "TRUE" ] ; then
-      echo "----------"
-      echo "docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version}"
-      echo "push_image ${PUSH_REGISTRY}/${alt_name}:${version_version}"
-      echo "----------"
-    fi
-    echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} " | tee -a ${workingdir}/logs/push.image.log
-    docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
-    echo | tee -a ${workingdir}/logs/push.image.log
-    push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
-    echo | tee -a ${workingdir}/logs/push.image.log
-    if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-      echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest " | tee -a ${workingdir}/logs/push.image.log
-      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+          fi
+        ;;
+        all-v )
+          if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
+            version_trim_list="v3.1 v3.2 v3.3 v3.4"
+            for version_trim in ${version_trim_list} ; do
+              echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
+              docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+              echo | tee -a ${workingdir}/logs/push.image.log
+              push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+              echo | tee -a ${workingdir}/logs/push.image.log
+            done
+          fi
+        ;;
+        three-only )
+          if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
+            version_trim=`echo ${version_version} | sed 's|v||g' | cut -d'.' -f-3`
+            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
+            docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+            echo | tee -a ${workingdir}/logs/push.image.log
+            push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+            echo | tee -a ${workingdir}/logs/push.image.log
+          fi
+        ;;
+      esac
+    done
+    if ! [ "${alt_name}" == "" ] ; then
+      if [ "${VERBOSE}" == "TRUE" ] ; then
+        echo "----------"
+        echo "docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version}"
+        echo "push_image ${PUSH_REGISTRY}/${alt_name}:${version_version}"
+        echo "----------"
+      fi
+      echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} " | tee -a ${workingdir}/logs/push.image.log
+      docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
-      push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+      push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
       echo | tee -a ${workingdir}/logs/push.image.log
+      if ! [ "${NOTLATEST}" == "TRUE" ] ; then
+        echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest " | tee -a ${workingdir}/logs/push.image.log
+        docker tag -f ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+        echo | tee -a ${workingdir}/logs/push.image.log
+        push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
+        echo | tee -a ${workingdir}/logs/push.image.log
+      fi
     fi
   fi
   STOP_TIME=$(date +"%Y-%m-%d %H:%M:%S")

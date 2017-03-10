@@ -25,7 +25,7 @@ cd ${WORKPATH}
 rm -rf ose origin-web-console
 git clone git@github.com:openshift/origin-web-console.git
 cd origin-web-console/
-git checkout enterprise-3.5
+git checkout enterprise-3.6
 
 cd ${WORKPATH}
 git clone git@github.com:openshift/ose.git
@@ -75,21 +75,15 @@ git clean -d -fx ""
 # Check if there is a commit for the web-console. Hard reset because we already have
 # the updated specfile updates commit ready for cherry-picking.
 git checkout fake-master
-maybe_webconsole_commit="$(git log HEAD~2..HEAD~1 --pretty=%s)"
-if [[ ${maybe_webconsole_commit} =~ "bump origin-web-console" ]]; then
-	git reset --hard HEAD~3
-else
-    git reset --hard HEAD~2
-fi
+git reset --hard HEAD~3
 
 # Reconstruct fake-master carries.
 git cherry-pick $TITO_SQUASH
-VC_COMMIT="$(GIT_REF=enterprise-3.5 hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
+VC_COMMIT="$(GIT_REF=enterprise-3.6 hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
 git add pkg/assets/bindata.go
 git add pkg/assets/java/bindata.go
-if [ "$(git status --porcelain)" ]; then
-	git commit -m "[DROP] bump origin-web-console ${VC_COMMIT}"
-fi
+git commit -m "[DROP] bump origin-web-console ${VC_COMMIT}"
+
 git cherry-pick $LATEST_TITO_COMMIT
 
 # Rebase on top of the last commit that was brought in with the last rebase.

@@ -59,7 +59,7 @@
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/.test_pull_requests_{{ target_repo | replace('-', '_') }}.json || true
+test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/.test_pull_requests_{{ target_repo | replace('-', '_') }}.json || true
           </command>
         </hudson.tasks.Shell>
       </buildSteps>
@@ -74,7 +74,7 @@ test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | upper }}
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --merge_pull_request &quot;${{ '{' }}{{ target_repo | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/.test_pull_requests_{{ target_repo | replace('-', '_') }}.json
+test_pull_requests --merge_pull_request &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/.test_pull_requests_{{ target_repo | replace('-', '_') }}.json
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

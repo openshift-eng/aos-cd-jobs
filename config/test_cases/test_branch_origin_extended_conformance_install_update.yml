@@ -32,7 +32,7 @@ extensions:
         latest_version=$current_openshift_major_version.$(($current_openshift_minor_version + 1))
         all_current_openshift_versions_array=($(cat "all_${pkg_name}_versions" | grep "$current_openshift_major_version.$current_openshift_minor_version"))
         all_current_openshift_ansible_versions_array=($(cat "all_openshift-ansible-playbooks_versions" | grep "^3.$current_openshift_minor_version"))
-        set_openshift_version=$(echo ${all_current_openshift_versions_array[0]} | awk -F'-' '{print $1}')
+        set_openshift_version=$(echo ${all_current_openshift_versions_array[0]})
         echo "=== Installing openshift-ansible-${all_current_openshift_ansible_versions_array[0]} ==="
         sudo yum install -y openshift-ansible-playbooks-${all_current_openshift_ansible_versions_array[0]}
         echo "=== Installing ${pkg_name}-${set_openshift_version} ==="

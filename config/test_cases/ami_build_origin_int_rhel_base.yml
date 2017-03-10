@@ -81,3 +81,13 @@ actions:
     title: "release the AMI"
     script: |-
       oct package ami --mark-ready
+artifacts:
+  - "/tmp/openshift"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m avc'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+system_journals:
+  - docker.service
+  - origin-master.service
+  - origin-node.service

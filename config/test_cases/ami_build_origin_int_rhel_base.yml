@@ -66,7 +66,8 @@ actions:
     title: "run integration tests"
     repository: "origin"
     script: |-
-      JUNIT_REPORT='true' make test -o check -o build -k
+      OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
+      OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test -o check -o build -k
   - type: "script"
     title: "run extended conformance tests"
     repository: "origin"
@@ -81,3 +82,13 @@ actions:
     title: "release the AMI"
     script: |-
       oct package ami --mark-ready
+artifacts:
+  - "/tmp/openshift"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m avc'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+system_journals:
+  - docker.service
+  - origin-master.service
+  - origin-node.service

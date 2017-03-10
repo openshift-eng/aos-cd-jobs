@@ -299,7 +299,7 @@ oct deprovision</command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --merge_pull_request &quot;${OPENSHIFT-ANSIBLE_PULL_ID}&quot; --repo openshift-ansible --config ~/.test_pull_requests_openshift_ansible.json
+test_pull_requests --merge_pull_request &quot;${OPENSHIFT_ANSIBLE_PULL_ID}&quot; --repo openshift-ansible --config ~/.test_pull_requests_openshift_ansible.json
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

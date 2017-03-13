@@ -58,7 +58,9 @@ node('buildvm-devops') {
 
             env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
 
-            sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
+            sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
+                sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
+            }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success(version("go/src/github.com/openshift/ose/origin.spec"))

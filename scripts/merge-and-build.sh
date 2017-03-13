@@ -1,4 +1,7 @@
 #!/bin/bash
+
+## This script must run with an ssh key for openshift-bot loaded.
+
 set -o xtrace
 
 kinit -k -t $KEYTAB $PRINCIPLE
@@ -41,9 +44,6 @@ echo "GOPATH: ${GOPATH}"
 echo "BUILDPATH: ${BUILDPATH}"
 echo "WORKPATH ${WORKPATH}"
 
-# Ensure ssh-agent is running
-eval "$(ssh-agent -s)"
-
 go get github.com/jteeuwen/go-bindata
 
 if [ "${OSE_VERSION}" == "3.2" ] ; then
@@ -54,10 +54,6 @@ if [ "${OSE_VERSION}" == "3.2" ] ; then
   echo "Exiting ..."
   exit 1
 fi # End check if we are version 3.2
-
-# Load deploy key for cloning/pushing openshift/openshift-ansible
-ssh-add -D
-ssh-add ${HOME}/.ssh/openshift-ansible/id_rsa
 
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
@@ -95,9 +91,6 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   echo "Setup origin-web-console stuff"
   echo "=========="
   cd ${WORKPATH}
-  # Load deploy key for cloning/pushing openshift/origin-web-console
-  ssh-add -D
-  ssh-add ${HOME}/.ssh/origin-web-console/id_rsa
   rm -rf origin-web-console
   git clone git@github.com:openshift/origin-web-console.git
   cd origin-web-console/
@@ -106,9 +99,6 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
     git merge master -m "Merge master into enterprise-${OSE_VERSION}"
     git push
   fi
-  # Add back deploy key for cloning/pushing openshift/ose
-  ssh-add -D
-  ssh-add ${HOME}/.ssh/id_rsa
 fi # End check if we are version 3.2
 
 echo

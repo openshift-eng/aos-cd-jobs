@@ -6,45 +6,86 @@ extensions:
     - name: "aos-cd-jobs"
   actions:
     - type: "script"
+      title: "determine the release commit for origin images"
+      repository: "origin"
+      script: |-
+        git log -1 --pretty=%h >> /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT
+    - type: "script"
+      title: "install ansible atomic-openshift-utils"
+      repository: "aos-cd-jobs"
+      script: |-
+        pkg_name="origin"
+        git checkout sjb
+        echo "openshift-ansible openshift-ansible-callback-plugins openshift-ansible-docs openshift-ansible-filter-plugins openshift-ansible-lookup-plugins openshift-ansible-playbooks openshift-ansible-roles" > OPENSHIFT_ANSIBLE_PKGS
+        openshift_pkgs=( $pkg_name atomic-openshift-utils )
+        for pkg in "${openshift_pkgs[@]}"
+        do
+          sudo python hack/get_available_pkgs.py $pkg > "all_${pkg}_versions"
+          sed -i '/^[a-zA-Z]/d' all_${pkg}_versions
+          sed -i '/^[1|3][.0-9]*-0/d' all_${pkg}_versions
+          sort -u -o all_${pkg}_versions all_${pkg}_versions
+          cat all_${pkg}_versions
+        done
+        current_openshift_version=$(tail -n1 all_${pkg_name}_versions | awk -F'-' '{print $1}')
+        current_openshift_major_version=$(echo $current_openshift_version | awk -F'.' '{print $1}')
+        current_openshift_minor_version=$(echo $current_openshift_version | awk -F'.' '{print $2}')
+        echo $current_openshift_minor_version > CURRENT_OPENSHIFT_MINOR_VERSION
+        all_current_openshift_versions_array=($(cat "all_${pkg_name}_versions" | grep "$current_openshift_major_version.$current_openshift_minor_version"))
+        all_current_atomic_openshift_utils_versions_array=($(cat "all_atomic-openshift-utils_versions" | grep "^3.$current_openshift_minor_version"))
+        set_openshift_version=$(echo ${all_current_openshift_versions_array[0]})
+        echo ${all_current_openshift_versions_array[0]} > /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_INSTALL_VERSION
+        echo ${all_current_atomic_openshift_utils_versions_array[0]} > /data/src/github.com/openshift/aos-cd-jobs/ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION
+        if [ ${#all_current_openshift_versions_array[@]} -gt 1 ]
+        then
+          echo ${all_current_atomic_openshift_utils_versions_array[${#all_current_atomic_openshift_utils_versions_array[@]}-1]} > /data/src/github.com/openshift/aos-cd-jobs/ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION
+          echo ${all_current_openshift_versions_array[${#all_current_openshift_versions_array[@]}-1]} > /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_UPGRADE_VERSION
+        fi
+        openshift_ansible_pkgs_versions=""
+        if [[ ${current_openshift_minor_version} == 4 ]]
+        then
+          sudo yum erase -y ansible
+          openshift_ansible_pkgs_versions="ansible-2.2.0.0"
+        fi
+        openshift_ansible_pkgs=( $( cat ./OPENSHIFT_ANSIBLE_PKGS ) )
+        for pkg in "${openshift_ansible_pkgs[@]}"
+        do
+          openshift_ansible_pkgs_versions="${openshift_ansible_pkgs_versions} ${pkg}-$( sed 's/-.*$//' ./ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION )"
+        done
+        echo "=== Installing atomic-openshift-utils-$( cat ./ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION ) packages ==="
+        sudo yum install -y ${openshift_ansible_pkgs_versions}
+    - type: "script"
+      title: "install Ansible plugins"
+      repository: "origin"
+      script: |-
+        sudo yum install -y python-pip
+        sudo pip install junit_xml
+        sudo chmod o+rw /etc/environment
+        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/tests/ansible_junit" >> /etc/environment
+        sudo mkdir -p /usr/share/ansible/plugins/callback
+        for plugin in 'default_with_output_lists' 'generate_junit'; do
+           wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+           sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
+        done
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+    - type: "script"
       title: "install origin GA and update"
       repository: "aos-cd-jobs"
       script: |-
         pkg_name="origin"
-        sudo yum install -y ansible-2.2.0.0
-        git checkout sjb
         general_yml_file=inventory/group_vars/OSEv3/general.yml
         if [ $pkg_name = "atomic-openshift" ]
         then
           sed -i "s/deployment_type:.*/deployment_type: \"openshift-enterprise\" /g" $general_yml_file
         fi
-        openshift_pkgs=( $pkg_name openshift-ansible-playbooks )
-        for pkg in "${openshift_pkgs[@]}"
-        do
-          sudo python hack/get_available_pkgs.py $pkg > "all_${pkg}_versions"
-          sed -i '/^[a-zA-Z]/d' all_${pkg}_versions
-          sort -u -o all_${pkg}_versions all_${pkg}_versions
-          cat all_${pkg}_versions
-        done
-        current_openshift_version=$(tail -n1 all_${pkg_name}_versions | awk -F'-' '{print $1}')
-        echo "current version -> $current_openshift_version"
-        current_openshift_major_version=$(echo $current_openshift_version | awk -F'.' '{print $1}')
-        current_openshift_minor_version=$(echo $current_openshift_version | awk -F'.' '{print $2}')
-        latest_version=$current_openshift_major_version.$(($current_openshift_minor_version + 1))
-        all_current_openshift_versions_array=($(cat "all_${pkg_name}_versions" | grep "$current_openshift_major_version.$current_openshift_minor_version"))
-        all_current_openshift_ansible_versions_array=($(cat "all_openshift-ansible-playbooks_versions" | grep "^3.$current_openshift_minor_version"))
-        set_openshift_version=$(echo ${all_current_openshift_versions_array[0]})
-        echo "=== Installing openshift-ansible-${all_current_openshift_ansible_versions_array[0]} ==="
-        sudo yum install -y openshift-ansible-playbooks-${all_current_openshift_ansible_versions_array[0]}
-        echo "=== Installing ${pkg_name}-${set_openshift_version} ==="
-        ansible-playbook --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-        ansible-playbook --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e set_openshift_version="${set_openshift_version}"
-        if [ ${#all_current_openshift_versions_array[@]} -gt 1 ]
+        echo "=== Installing ${pkg_name}-$( cat ./OPENSHIFT_INSTALL_VERSION ) ==="
+        ansible-playbook -vv --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+        ansible-playbook -vv --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e openshift_pkg_version="-$( cat ./OPENSHIFT_INSTALL_VERSION )" -e enable_excluders=false
+        if [ -f ./OPENSHIFT_UPGRADE_VERSION  && -f ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ]
         then
-          echo "=== Updating openshift-ansible to openshift-ansible-${all_current_openshift_ansible_versions_array[${#all_current_openshift_ansible_versions_array[@]}-1]} ==="
-          sudo yum erase -y openshift-ansible
-          sudo yum install -y openshift-ansible-playbooks-${all_current_openshift_ansible_versions_array[${#all_current_openshift_ansible_versions_array[@]}-1]}
-          echo "=== Updating ${pkg_name} to ${pkg_name}-${all_current_openshift_versions_array[${#all_current_openshift_versions_array[@]}-1]} ==="
-          ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${current_openshift_minor_version}/upgrade.yml -e openshift_upgrade_target="${all_current_openshift_versions_array[${#all_current_openshift_versions_array[@]}-1]}"
+          echo "=== Updating openshift-ansible to openshift-ansible-$( cat ./ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ) ==="
+          sudo yum upgrade -y atomic-openshift-utils-$( cat ./ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION )
+          echo "=== Updating ${pkg_name} to $( cat ./OPENSHIFT_UPGRADE_VERSION ) ==="
+          ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_$(CURRENT_OPENSHIFT_MINOR_VERSION)/upgrade.yml -e openshift_pkg_version="-${upgrade_version}" -e oreg_url='openshift/origin-${component}:'"$( cat ./OPENSHIFT_UPGRADE_VERSION | awk -F'-' '{print $1}' )"
         fi
     - type: "script"
       title: "build an origin release"
@@ -73,29 +114,33 @@ extensions:
         EOR
         sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
     - type: "script"
-      title: "install the openshift-ansible release"
-      script: |-
-        sudo yum install -y atomic-openshift-utils
-    - type: "script"
-      title: "check out the correct branch of aos-cd-jobs"
+      title: "upgrade the openshift-ansible and origin to release"
       repository: "aos-cd-jobs"
       script: |-
-        git checkout sjb
+        if [[ $( cat ./CURRENT_OPENSHIFT_MINOR_VERSION) == 4 ]]
+        then
+          upgrade_pkgs="$( cat ./OPENSHIFT_ANSIBLE_PKGS )"
+        else
+          upgrade_pkgs="atomic-openshift-utils"
+        fi
+        sudo yum upgrade -y ansible ${upgrade_pkgs}
     - type: "script"
-      title: "determine the release commit for origin images"
-      repository: "origin"
+      title: "update origin"
+      repository: "openshift-ansible"
       script: |-
-        git log -1 --pretty=%h >> /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT
+        git pull origin master
     - type: "script"
       title: "update origin"
       repository: "aos-cd-jobs"
       script: |-
-        sudo python hack/get_available_pkgs.py origin > "all_origin_versions"
-        sed -i '/^[a-zA-Z]/d' all_origin_versions
-        sort -u -o all_origin_versions all_origin_versions
-        upgrade_version=$(tail -1 all_origin_versions)
+        pkg_name="origin"
+        sudo python hack/get_available_pkgs.py ${pkg_name} > "all_${pkg_name}_versions"
+        sed -i '/^[a-zA-Z]/d' all_${pkg_name}_versions
+        sort -u -o all_${pkg_name}_versions all_${pkg_name}_versions
+        upgrade_version=$(tail -1 all_${pkg_name}_versions)
+        upgrade_major_version=$(echo "${upgrade_version}" | awk -F'.' '{print $1}')
         upgrade_minor_version=$(echo "${upgrade_version}" | awk -F'.' '{print $2}')
-        ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${upgrade_minor_version}/upgrade.yml -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )" -e openshift_upgrade_target="${upgrade_version}"
+        ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${upgrade_minor_version}/upgrade.yml -e openshift_pkg_version="-${upgrade_version}" -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
     - type: "script"
       title: "expose the kubeconfig"
       script: |-

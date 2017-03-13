@@ -272,6 +272,8 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journa
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-node.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-node.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit openvswitch.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/openvswitch.service&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovs-vswitchd.service&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovsdb-server.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit etcd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/etcd.service&#34;
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>

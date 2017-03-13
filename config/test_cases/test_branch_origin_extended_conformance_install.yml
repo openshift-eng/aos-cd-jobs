@@ -64,3 +64,5 @@ extensions:
   system_journals:
     - origin-master.service
     - origin-node.service
+    - openvswitch.service
+    - etcd.service

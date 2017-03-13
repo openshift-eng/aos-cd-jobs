@@ -123,16 +123,14 @@ extensions:
         export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/data/gce.json"
         export TEST_EXTENDED_ARGS='-provider=gce -gce-zone=us-central1-a -gce-project=openshift-gce-devel-ci'
 
-        function gather() {
+        function cleanup() {
           set +e
           hack/build-go.sh cmd/oc
           export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
           oc get nodes --template '{{ range .items }}{{ .metadata.name }}{{ "\n" }}{{ end }}' | xargs -L 1 -I X bash -c 'oc get --raw /api/v1/nodes/X/proxy/metrics > /tmp/artifacts/X.metrics' ''
+          oc get --raw /metrics > /tmp/artifacts/master.metrics
           set -e
-        }
-        trap gather ERR
 
-        function cleanup() {
           cd "${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data"
           # we need a short but unique identifier, so we take the first 7 of SHA
           hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"

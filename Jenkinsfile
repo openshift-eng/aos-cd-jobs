@@ -62,9 +62,28 @@ def fix_workspace_label() {
     sh "chcon -Rt svirt_sandbox_file_t '${env.WORKSPACE}'*"
 }
 
-def version(f) {
-    def matcher = readFile(f) =~ /Version:\s+([.0-9]+)/
+def version(type, s) {
+    def matcher = s =~ [
+        "origin": /Version:\s+([.0-9]+)/,
+        "console": /Vendoring origin-web-console commit (.*)/,
+    ][type]
     matcher ? matcher[0][1] : null
+}
+
+def vendor_console(image, ref) {
+    def vc_commit = null
+    image.inside {
+        vc_commit = sh(
+            returnStdout: true,
+            script: "cd '${pwd()}'; GIT_REF=${ref} hack/vendor-console.sh")
+    }
+    vc_commit = version("console", vc_commit)
+    sh """\
+[ "\$(git status --porcelain)" ] || exit 0
+git add pkg/assets/{,java/}bindata.go
+git commit --message \
+    'Merge remote-tracking branch ${ref}, bump origin-web-console ${vc_commit}'
+"""
 }
 
 node('buildvm-devops') {
@@ -142,16 +161,12 @@ node('buildvm-devops') {
                     ])
                 git_config()
                 sh "git merge '${upstream}' -m '${commit_msg}'"
+                vendor_console(image, "enterprise-${OSE_VERSION}")
+                image.inside {
+                    sh "cd '${pwd()}'; tito tag --accept-auto-changelog"
+                }
+                mail_success(version("origin", readFile("origin.spec")))
             }
-            image.inside {
-                sh '''\
-cd "$GOPATH/src/github.com/openshift/ose"
-GIT_REF=master COMMIT=1 hack/vendor-console.sh
-tito tag --accept-auto-changelog
-'''
-            }
-            mail_success(version(
-                "${env.GOPATH}/src/github.com/openshift/ose/origin.spec"))
         }
     }
 }

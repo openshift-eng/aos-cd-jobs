@@ -11,7 +11,7 @@ def try_wrapper(failure_func, f) {
 }
 
 def mail_success(version) {
-    mail(
+    def args = [
         to: 'jupierce@redhat.com',
         subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
         body: """\
@@ -22,11 +22,14 @@ Puddles have been synched to mirrors
 
 
 Jenkins job: ${env.BUILD_URL}
-""");
+""",
+    ]
+    for(x in args) {println "${x.key}: ${x.value}"}
+    mail args
 }
 
 def mail_failure = { err ->
-    mail(
+    def args = [
         to: 'jupierce@redhat.com',
         subject: "Error building OSE: ${OSE_VERSION}",
         body: """\
@@ -34,7 +37,10 @@ Encoutered an error while running merge-and-build.sh: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}
-""");
+""",
+    ]
+    for(x in args) {println "${x.key}: ${x.value}"}
+    mail args
 }
 
 def git_merge(branch, commit, commit_msg, merge_opts = '') {
@@ -69,7 +75,13 @@ node('buildvm-devops') {
         parameterDefinitions: [
             [
                 $class: 'hudson.model.StringParameterDefinition',
-                defaultValue: '',
+                defaultValue: '3.5',
+                description: 'OSE version branched but not yet released',
+                name: 'OSE_MASTER_BRANCHED',
+            ],
+            [
+                $class: 'hudson.model.StringParameterDefinition',
+                defaultValue: '3.5',
                 description: 'OSE Version',
                 name: 'OSE_VERSION',
             ],
@@ -82,12 +94,14 @@ node('buildvm-devops') {
         ],
     ]])
     try_wrapper(mail_failure) {
+        if(OSE_VERSION != OSE_MASTER_BRANCHED) {
+            error 'This script only handles building ${OSE_MASTER_BRANCHED}.'
+        }
         deleteDir()
-        def image = null
-        stage('builder image') {
+        def image = stage('builder image') {
             dir('aos-cd-jobs') {
                 checkout scm
-                image = docker.build 'ose-builder', 'builder'
+                docker.build 'ose-builder', 'builder'
             }
         }
         set_workspace()

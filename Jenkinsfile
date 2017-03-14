@@ -123,20 +123,22 @@ node('buildvm-devops') {
         }
         set_workspace()
         fix_workspace_label()
+        def repos = [
+            'bindata': 'https://github.com/jteeuwen/go-bindata.git',
+            'console': 'https://github.com/openshift/origin-web-console.git',
+            'origin': 'https://github.com/openshift/origin.git',
+            'ose': 'git@github.com:openshift/ose.git',
+        ]
+        env.GOPATH = env.WORKSPACE + '/go'
         stage('dependencies') {
-            env.GOPATH = env.WORKSPACE + '/go'
             dir(env.GOPATH + '/src/github.com/jteeuwen/go-bindata') {
-                git url: 'https://github.com/jteeuwen/go-bindata.git'
+                git url: repos['bindata']
             }
-            image.inside {
-                sh 'go get github.com/jteeuwen/go-bindata'
-            }
+            image.inside { sh 'go get github.com/jteeuwen/go-bindata' }
         }
         stage('web console') {
             dir(env.GOPATH + '/src/github.com/openshift/origin-web-console') {
-                git(
-                    url: 'https://github.com/openshift/origin-web-console.git',
-                    branch: "enterprise-${OSE_VERSION}")
+                git url: repos['console'], branch: "enterprise-${OSE_VERSION}"
                 git_config()
             }
         }
@@ -149,16 +151,8 @@ node('buildvm-devops') {
                     $class: 'GitSCM',
                     branches: [[name: "origin/${branch}"]],
                     userRemoteConfigs: [
-                        [
-                            name: 'upstream',
-                            url: 'https://github.com/openshift/origin.git',
-                        ],
-                        [
-                            name: 'origin',
-                            url: 'git@github.com:openshift/ose.git',
-                            credentialsId: OSE_CREDENTIALS,
-                        ],
-                    ])
+                        [url: repos['ose'], credentialsId: OSE_CREDENTIALS],
+                        [url: repos['origin'], name: 'upstream']])
                 git_config()
                 sh "git merge '${upstream}' -m '${commit_msg}'"
                 vendor_console(image, "enterprise-${OSE_VERSION}")

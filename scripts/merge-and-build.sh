@@ -124,16 +124,6 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   last_tag="$( git describe --abbrev=0 --tags )"
 
   sanity_check
-  # Reset the last three commits and pick up only the tito diff.
-  git reset HEAD~3
-  git add .tito/ origin.spec
-  git commit -m "[CARRY][BUILD] Specfile updates"
-  # Drop the previous web console diff - will be regenerated below.
-  git checkout -- pkg/assets/bindata.go pkg/assets/java/bindata.go
-  set +e
-  # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
-  git tag "${last_tag}" HEAD
-  set -e
 
   echo
   echo "=========="
@@ -141,8 +131,12 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "=========="
 ## Switch back once master is 3.6
 #  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-  git rebase upstream/release-1.5
+  GIT_SEQUENCE_EDITOR=rebase.py git rebase -i upstream/release-1.5
   CURRENT_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
+  set +e
+  # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
+  git tag "${last_tag}" HEAD
+  set -e
 
 else
   git checkout -q enterprise-${OSE_VERSION}
@@ -170,10 +164,7 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
   git add pkg/assets/bindata.go
   git add pkg/assets/java/bindata.go
-  set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
-  # This fails only when there is nothing new to commit, which is normal.
   git commit -m "[DROP] bump origin-web-console ${VC_COMMIT}"
-  set -e
 fi # End check if we are version 3.2
 
 # Put local rpm testing here

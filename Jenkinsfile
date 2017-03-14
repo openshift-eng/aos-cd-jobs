@@ -43,13 +43,11 @@ Jenkins job: ${env.BUILD_URL}
     mail args
 }
 
-def git_merge(branch, commit, commit_msg, merge_opts = '') {
-    sh("""\
-git config user.name jenkins
-git config user.email jenkins@example.com
-git checkout ${branch}
-git merge ${merge_opts} '${commit}' -m '${commit_msg}'
-""")
+def git_config() {
+    sh '''\
+git config user.name 'Jenkins CD Merge Bot'
+git config user.email 'tdawson@redhat.com'
+'''
 }
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
@@ -117,19 +115,20 @@ node('buildvm-devops') {
         }
         stage('web console') {
             dir(env.GOPATH + '/src/github.com/openshift/origin-web-console') {
-                git url: 'https://github.com/openshift/origin-web-console.git'
-                git_merge(
-                    'master', "origin/enterprise-${OSE_VERSION}",
-                    "Merge master into enterprise-${OSE_VERSION}")
+                git(
+                    url: 'https://github.com/openshift/origin-web-console.git',
+                    branch: "enterprise-${OSE_VERSION}")
+                git_config()
             }
         }
         stage('merge') {
             dir(env.GOPATH + '/src/github.com/openshift/ose') {
+                def branch = "enterprise-${OSE_VERSION}"
+                def upstream = 'upstream/release-1.5'
+                def commit_msg = "Merge remote-tracking branch ${upstream}"
                 checkout(
                     $class: 'GitSCM',
-                    branches: [[name: 'refs/remotes/origin/master']],
-                    extensions:
-                        [[$class: 'LocalBranch', localBranch: 'master']],
+                    branches: [[name: "origin/${branch}"]],
                     userRemoteConfigs: [
                         [
                             name: 'upstream',
@@ -141,10 +140,8 @@ node('buildvm-devops') {
                             credentialsId: OSE_CREDENTIALS,
                         ],
                     ])
-                git_merge(
-                    'master', 'upstream/master',
-                    'Merge remote-tracking branch upstream/master',
-                    '--strategy-option=theirs')
+                git_config()
+                sh "git merge '${upstream}' -m '${commit_msg}'"
             }
             image.inside {
                 sh '''\

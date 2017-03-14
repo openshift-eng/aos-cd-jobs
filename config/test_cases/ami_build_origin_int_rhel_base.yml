@@ -84,6 +84,7 @@ actions:
       oct package ami --mark-ready
 artifacts:
   - "/tmp/openshift"
+  - "/data/src/github/openshift/origin/_output/tests"
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
   avc_denials.log: 'sudo ausearch -m avc'

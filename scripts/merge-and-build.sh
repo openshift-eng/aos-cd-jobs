@@ -74,35 +74,6 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   ssh-add ${HOME}/.ssh/id_rsa
 fi # End check if we are version 3.2
 
-function sanity_check() {
-  echo "Checking if the last commit is the last tito tag commit..."
-  last_commit_subject="$( git log HEAD~1..HEAD --pretty=%s )"
-  if [[ ! ${last_commit_subject} =~ "Automatic commit of package [atomic-openshift] release"* ]]; then
-    set +o xtrace
-    echo "[FATAL] The last commit doesn't look like a commit from \`tito\`!"
-    echo "[FATAL]   ${last_commit_subject}"
-    exit 1
-  fi
-
-  echo "Checking if the second to last commit is a webconsole bump commit..."
-  webconsole_commit="$( git log HEAD~2..HEAD~1 --pretty=%s )"
-  if [[ ! ${webconsole_commit} =~ "[DROP] bump origin-web-console"* ]]; then
-    set +o xtrace
-    echo "[FATAL] The second to last commit doesn't look like a commit from \`origin-web-console\`!"
-    echo "[FATAL]   ${webconsole_commit}"
-    exit 1
-  fi
-
-  echo "Checking if the third to last commit is the specfile commit..."
-  specfile_commit="$( git log HEAD~3..HEAD~2 --pretty=%s )"
-  if [[ ${specfile_commit} != "[CARRY][BUILD] Specfile updates" ]]; then
-    set +o xtrace
-    echo "[FATAL] The third to last commit doesn't look like the specfile commit!"
-    echo "[FATAL]   ${specfile_commit}"
-    exit 1
-  fi
-}
-readonly -f sanity_check
 
 echo
 echo "=========="
@@ -122,8 +93,6 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   # Tags are global to a git repo but accessible only through the branch they were tagged on.
   # This means that a tag created in enterprise-3.5 will not be accessible from master.
   last_tag="$( git describe --abbrev=0 --tags )"
-
-  sanity_check
 
   echo
   echo "=========="

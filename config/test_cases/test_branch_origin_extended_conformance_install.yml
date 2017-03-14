@@ -65,4 +65,6 @@ extensions:
     - origin-master.service
     - origin-node.service
     - openvswitch.service
+    - ovs-vswitchd.service
+    - ovsdb-server.service
     - etcd.service

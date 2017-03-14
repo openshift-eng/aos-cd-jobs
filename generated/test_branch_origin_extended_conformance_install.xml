@@ -190,7 +190,7 @@ sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e openshift_image_tag=&#34;\$( cat ./ORIGIN_COMMIT )&#34;
+ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>

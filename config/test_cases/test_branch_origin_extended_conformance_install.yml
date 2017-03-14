@@ -50,7 +50,7 @@ extensions:
       repository: "aos-cd-jobs"
       script: |-
         ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-        ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )"
+        ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
     - type: "script"
       title: "expose the kubeconfig"
       script: |-

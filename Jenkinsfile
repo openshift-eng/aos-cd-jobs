@@ -86,6 +86,50 @@ git commit --message \
 """
 }
 
+def create_passwd_wrapper() {
+    sh env.NSS_WRAPPER_PASSWD
+        ? "cp ${env.NSS_WRAPPER_PASSWD} passwd"
+        : 'echo "jenkins:x:$(id -u):$(id -g)::$HOME:/sbin/nologin" > passwd'
+}
+
+def build_and_push(tag, version) {
+    def ose_images = [
+        "${env.WORKSPACE}/aos-cd-jobs/ose_images/ose_images.sh",
+        '--user ocp-build',
+        "--branch 'rhaos-${tag}-rhel-7'",
+        '--group base',
+    ].join(' ')
+    def rcm_guest = 'ocp-build@rcm-guest.app.eng.bos.redhat.com'
+    def rcm_dir = '/mnt/rcm-guest/puddles/RHAOS'
+    def puddle = "${rcm_dir}/conf/atomic_openshift-${tag}.conf"
+    sh """\
+LD_PRELOAD=libnss_wrapper.so
+NSS_WRAPPER_PASSWD=${env.WORKSPACE}/passwd
+NSS_WRAPPER_GROUP=/etc/group
+export LD_PRELOAD NSS_WRAPPER_PASSWD NSS_WRAPPER_GROUP
+kinit -k -t ${env.WORKSPACE}/keytab \
+    ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
+t=\$(tito release --yes --test 'aos-${tag}' | awk '/Created task:/{print \$3}')
+echo TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=\$t
+brew watch-task "\$t"
+ssh '${rcm_guest}' 'puddle -b -d -n -s --label=building ${puddle}'
+${ose_images} compare_nodocker
+${ose_images} update_docker  --force --release 1 --version 'v${version}'
+${ose_images} build_container \
+    --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo
+sudo ${ose_images} push_images
+ssh '${rcm_guest}' 'puddle -b -d ${puddle}'
+ssh '${rcm_guest}' '${rcm_dir}/scripts/push-to-mirrors-bot.sh simple ${tag}'
+ssh '${rcm_guest}' sh -s '${tag}' '${version}' \
+    < '${env.WORKSPACE}/aos-cd-jobs/rcm-guest/publish-oc-binary.sh'
+for x in '${version}/'{linux/oc.tar.gz,macosx/oc.tar.gz,windows/oc.zip}; do
+    curl --silent --show-error --head \
+        "https://mirror.openshift.com/pub/openshift-v3/clients/\$x" \
+        | awk '\$2!="200"{print > "/dev/stderr"; exit 1}{exit}'
+done
+"""
+}
+
 node('buildvm-devops') {
     properties([[
         $class: 'ParametersDefinitionProperty',
@@ -159,7 +203,22 @@ node('buildvm-devops') {
                 image.inside {
                     sh "cd '${pwd()}'; tito tag --accept-auto-changelog"
                 }
-                mail_success(version("origin", readFile("origin.spec")))
+            }
+        }
+        stage('build and push') {
+            create_passwd_wrapper()
+            dir('aos-cd-jobs') { sh 'git checkout origin/build-scripts' }
+            dir(env.GOPATH + '/src/github.com/openshift/ose') {
+                // TODO local rpm testing
+                sh 'git push --tags'
+                def version = version("origin", readFile("origin.spec"))
+                // TODO keytab and ssh key as credentials
+                def flags = [
+                    "-v ${env.HOME}/ocp-build.keytab:${env.WORKSPACE}/keytab",
+                    "-v ${env.HOME}/.ssh/id_rsa:${env.HOME}/.ssh/id_rsa",
+                ].join(' ')
+                image.inside(flags) { build_and_push(OSE_VERSION, version) }
+                mail_success(version)
             }
         }
     }

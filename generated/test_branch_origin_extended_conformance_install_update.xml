@@ -285,9 +285,9 @@ if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo sta
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/openshift
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/openshift &#34;${ARTIFACT_DIR}&#34;
 fi
-if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /data/src/github/openshift/origin/_output/tests; then
-    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github/openshift/origin/_output/tests
-    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github/openshift/origin/_output/tests &#34;${ARTIFACT_DIR}&#34;
+if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /data/src/github.com/openshift/origin/_output/tests; then
+    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin/_output/tests
+    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin/_output/tests &#34;${ARTIFACT_DIR}&#34;
 fi
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>

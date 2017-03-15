@@ -37,12 +37,13 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force openshift-ansible build?', name: 'FORCE_OPENSHIFT_ANSIBLE_BUILD'],
                       ]
              ]]
     )
     
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo "${OSE_MAJOR}.${OSE_MINOR}, onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}]"
+    echo "${OSE_MAJOR}.${OSE_MINOR}, onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}], forceOpenShiftAnsibleBuild:${FORCE_OPENSHIFT_ANSIBLE_BUILD}"
 
     set_workspace()
     stage('Merge and build') {
@@ -59,6 +60,7 @@ node('buildvm-devops') {
             env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
 
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
+                env.FORCE_OPENSHIFT_ANSIBLE_BUILD = "${FORCE_OPENSHIFT_ANSIBLE_BUILD}"
                 sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
             }
 

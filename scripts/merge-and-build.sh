@@ -4,7 +4,12 @@
 
 set -o xtrace
 
+echo
+echo "=========="
+echo "Making sure we have kerberos"
+echo "=========="
 kinit -k -t $KEYTAB $PRINCIPLE
+kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 
 MB_PATH=$(readlink -f $0)
 
@@ -34,8 +39,18 @@ if [ "${OSE_VERSION}" != "${OSE_MASTER_BRANCHED}" ] && [ "${OSE_VERSION}" != "${
   PUSH_EXTRA="--nolatest"
 fi
 
+if [ -z "$WORKSPACE" ]; then
+    echo "WORKSPACE environment variable has not been set. Aborting."
+    exit 1
+fi
+
 # Use the directory relative to this Jenkins job.
-BUILDPATH="$(mktemp -d ${WORKSPACE}/tmpdir-XXXXXX)"
+BUILDPATH="${WORKSPACE}"
+
+if [ -d "${BUILDPATH}/src" ]; then
+    rm -rf "${BUILDPATH}/src" # Remove any previous clone
+fi
+
 WORKPATH="${BUILDPATH}/src/github.com/openshift/"
 mkdir -p ${WORKPATH}
 cd ${BUILDPATH}
@@ -61,7 +76,8 @@ cd openshift-ansible/
 git checkout release-1.${MINOR}
 
 # Check to see if there have been any changes since the last tag
-if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1; then
+git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1
+if [ "$?" == "0" -a "${FORCE_OPENSHIFT_ANSIBLE_BUILD}" != "true" ]; then
     echo ; echo "No changes in release-1.${MINOR} since last build"
     echo "This is fine, so continuing with the rest of the build"
 else
@@ -160,11 +176,6 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
 fi # End check if we are version 3.2
 
 # Put local rpm testing here
-echo
-echo "=========="
-echo "Making sure we have kerberos"
-echo "=========="
-kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 
 echo
 echo "=========="

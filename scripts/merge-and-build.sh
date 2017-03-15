@@ -76,8 +76,7 @@ cd openshift-ansible/
 git checkout release-1.${MINOR}
 
 # Check to see if there have been any changes since the last tag
-git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1
-if [ "$?" == "0" -a "${FORCE_OPENSHIFT_ANSIBLE_BUILD}" != "true" ]; then
+if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_OPENSHIFT_ANSIBLE_BUILD}" != "true" ]; then
     echo ; echo "No changes in release-1.${MINOR} since last build"
     echo "This is fine, so continuing with the rest of the build"
 else

@@ -69,6 +69,20 @@ else
 fi
 
 echo
+echo "=========="
+echo "Update Dockerfiles"
+echo "=========="
+ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force
+
+
+echo
+echo "=========="
+echo "Build Images"
+echo "=========="
+ose_images.sh --user ocp-build build_container --branch libra-rhel-7 --group oso
+
+
+echo
 echo
 echo "=========="
 echo "Finished OpenShift scripts"

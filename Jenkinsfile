@@ -65,7 +65,7 @@ node('buildvm-devops') {
             }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail_success(version("go/src/github.com/openshift/ose/origin.spec"))
+            mail_success(version("${env.WORKSPACE}/src/github.com/openshift/ose/origin.spec"))
 
 
         } catch ( err ) {

@@ -201,7 +201,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo c
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-echo &#34;########## STARTING STAGE: PROVSION TEST CLUSTER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PROVSION TEST CLUSTER ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+echo &#34;########## STARTING STAGE: PROVISION TEST CLUSTER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PROVISION TEST CLUSTER ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 {
 cat &lt;&lt;EOF
 sudo su origin
@@ -216,15 +216,7 @@ fi
 # we need a short but unique identifier, so we take the first 7 of SHA
 hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
 export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
-
-function cleanup() {
-  cd &#34;\${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data&#34;
-  # we need a short but unique identifier, so we take the first 7 of SHA
-  hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
-  export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
-  ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
-}
-trap cleanup ERR
+echo &#34;INSTANCE_PREFIX=\${INSTANCE_PREFIX}&#34; &gt;&gt; /etc/environment
 
 ../../bin/local.sh ansible-playbook -e &#34;provision_gce_docker_storage_driver=\${DOCKER_STORAGE_DRIVER}&#34; -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/launch.yaml
 cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
@@ -250,21 +242,15 @@ TEST_EXTENDED_SKIP+=&#34;\${ADDITIONAL_SKIP-}&#34;
 export GOOGLE_APPLICATION_CREDENTIALS=&#34;/data/src/github.com/openshift/release/cluster/test-deploy/data/gce.json&#34;
 export TEST_EXTENDED_ARGS=&#39;-provider=gce -gce-zone=us-central1-a -gce-project=openshift-gce-devel-ci&#39;
 
-function cleanup() {
+function gather() {
   set +e
   hack/build-go.sh cmd/oc
   export PATH=\$(pwd)/_output/local/bin/linux/amd64:\$PATH
   oc get nodes --template &#39;{{ range .items }}{{ .metadata.name }}{{ &#34;\n&#34; }}{{ end }}&#39; | xargs -L 1 -I X bash -c &#39;oc get --raw /api/v1/nodes/X/proxy/metrics &gt; /tmp/artifacts/X.metrics&#39; &#39;&#39;
   oc get --raw /metrics &gt; /tmp/artifacts/master.metrics
   set -e
-
-  cd &#34;\${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data&#34;
-  # we need a short but unique identifier, so we take the first 7 of SHA
-  hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
-  export INSTANCE_PREFIX=&#34;prtest-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
-  ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
 }
-trap cleanup EXIT
+trap gather EXIT
 
 make test-extended SUITE=&#34;conformance&#34;
 EOF
@@ -314,6 +300,19 @@ rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit docker.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/docker.service&#34;
 tree &#34;${ARTIFACT_DIR}&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: DEPROVISION TEST CLUSTER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DEPROVISION TEST CLUSTER ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
+cd cluster/test-deploy/data
+../../bin/local.sh ansible-playbook playbooks/terminate.yaml
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

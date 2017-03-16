@@ -84,7 +84,7 @@ extensions:
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/data/'
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/data/'
     - type: "script"
-      title: "provsion test cluster"
+      title: "provision test cluster"
       repository: "release"
       script: |-
         cd cluster/test-deploy/data/
@@ -96,15 +96,7 @@ extensions:
         # we need a short but unique identifier, so we take the first 7 of SHA
         hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
         export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
-
-        function cleanup() {
-          cd "${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data"
-          # we need a short but unique identifier, so we take the first 7 of SHA
-          hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
-          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
-          ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
-        }
-        trap cleanup ERR
+        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX}" >> /etc/environment
 
         ../../bin/local.sh ansible-playbook -e "provision_gce_docker_storage_driver=${DOCKER_STORAGE_DRIVER}" -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
@@ -123,22 +115,23 @@ extensions:
         export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/data/gce.json"
         export TEST_EXTENDED_ARGS='-provider=gce -gce-zone=us-central1-a -gce-project=openshift-gce-devel-ci'
 
-        function cleanup() {
+        function gather() {
           set +e
           hack/build-go.sh cmd/oc
           export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
           oc get nodes --template '{{ range .items }}{{ .metadata.name }}{{ "\n" }}{{ end }}' | xargs -L 1 -I X bash -c 'oc get --raw /api/v1/nodes/X/proxy/metrics > /tmp/artifacts/X.metrics' ''
           oc get --raw /metrics > /tmp/artifacts/master.metrics
           set -e
-
-          cd "${GOPATH}/src/github.com/openshift/release/cluster/test-deploy/data"
-          # we need a short but unique identifier, so we take the first 7 of SHA
-          hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
-          export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
-          ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
         }
-        trap cleanup EXIT
+        trap gather EXIT
 
         make test-extended SUITE="conformance"
+  post_actions:
+    - type: "script"
+      title: "deprovision test cluster"
+      repository: "release"
+      script: |-
+        cd cluster/test-deploy/data
+        ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
   artifacts:
     - "/tmp/artifacts"

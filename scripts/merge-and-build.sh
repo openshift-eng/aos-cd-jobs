@@ -73,7 +73,7 @@ fi # End check if we are version 3.2
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
 cd openshift-ansible/
-git checkout release-1.${MINOR}
+#git checkout release-1.${MINOR}
 
 # Check to see if there have been any changes since the last tag
 if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_OPENSHIFT_ANSIBLE_BUILD}" != "true" ]; then

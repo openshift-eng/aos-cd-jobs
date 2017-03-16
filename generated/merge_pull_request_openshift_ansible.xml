@@ -169,6 +169,27 @@ EOF
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: INSTALL ANSIBLE PLUGINS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE PLUGINS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+sudo yum install -y python-pip
+sudo pip install junit_xml
+sudo chmod o+rw /etc/environment
+echo &#34;ANSIBLE_JUNIT_DIR=\$( pwd )/_output/tests/ansible_junit&#34; &gt;&gt; /etc/environment
+sudo mkdir -p /usr/share/ansible/plugins/callback
+for plugin in &#39;default_with_output_lists&#39; &#39;generate_junit&#39;; do
+   wget &#34;https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/\${plugin}.py&#34;
+   sudo mv &#34;\${plugin}.py&#34; /usr/share/ansible/plugins/callback
+done
+sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_whitelist.*/callback_whitelist = generate_junit/&#39; /etc/ansible/ansible.cfg
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: CHECK OUT THE CORRECT BRANCH OF AOS-CD-JOBS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CHECK OUT THE CORRECT BRANCH OF AOS-CD-JOBS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 {
 cat &lt;&lt;EOF
@@ -199,8 +220,8 @@ cat &lt;&lt;EOF
 sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
+ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>

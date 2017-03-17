@@ -33,7 +33,15 @@
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <authToken>origin1</authToken>
+{%- if timer %}
+  <triggers>
+    <hudson.triggers.TimerTrigger>
+      <spec>{{ timer }}</spec>
+    </hudson.triggers.TimerTrigger>
+  </triggers>
+{%- else %}
   <triggers/>
+{%- endif %}
   <concurrentBuild>true</concurrentBuild>
   <builders>
 {%- for build_step in build_steps %}

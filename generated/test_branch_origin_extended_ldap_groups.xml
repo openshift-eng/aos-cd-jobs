@@ -109,7 +109,7 @@ cat &lt;&lt;EOF
 sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=core FOCUS=&#34;\[image_ecosystem\]&#34;
+JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=ldap_groups
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>

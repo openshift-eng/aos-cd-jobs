@@ -8,4 +8,4 @@ extensions:
       title: "run extended tests"
       repository: "origin"
       script: |-
-        JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="\[image_ecosystem\]"
+        JUNIT_REPORT='true' make test-extended SUITE=gssapi

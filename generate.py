@@ -186,6 +186,7 @@ with open(output_path, "w") as output_file:
         build_steps=generator.generate_build_steps(),
         post_build_steps=generator.generate_post_build_steps(),
         action=action,
-        target_repo=target_repo
+        target_repo=target_repo,
+        timer=job_config.get("timer", None)
     ))
 print("[INFO] Wrote job definition to {}".format(output_path))

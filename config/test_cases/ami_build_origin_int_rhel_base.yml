@@ -1,4 +1,5 @@
 ---
+timer: 'H H * * *'
 parameters: []
 provision:
   os: "rhel"

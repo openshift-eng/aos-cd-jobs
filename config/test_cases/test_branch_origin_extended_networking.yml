@@ -1,5 +1,7 @@
 ---
 parent: 'common/test_cases/origin_release.yml'
+overrides:
+  timer: 'H H * * *'
 extensions:
   actions:
     - type: "script"

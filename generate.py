@@ -17,6 +17,8 @@ from actions.multi_action import MultiAction
 from actions.multi_sync import MultiSyncAction
 from actions.oct_install import OCTInstallAction
 from actions.parameter import ParameterAction
+from actions.post_host_script import PostHostScriptAction
+from actions.post_script import PostScriptAction
 from actions.provision import ProvisionAction
 from actions.pull_request_sync import PullRequestSyncAction
 from actions.repo_sync import SyncAction
@@ -123,6 +125,12 @@ if job_type == "test":
 
     if "system_journals" in job_config:
         actions.append(SystemdJournalAction(job_config["system_journals"]))
+
+    for post_action in job_config.get("post_actions", []):
+        if post_action["type"] == "script":
+            actions.append(PostScriptAction(post_action.get("repository", None), post_action["script"], post_action.get("title", None)))
+        elif post_action["type"] == "host_script":
+            actions.append(PostHostScriptAction(post_action["script"], post_action.get("title", None)))
 
     # finally, the job will deprovision cloud resources
     actions.append(DeprovisionAction())

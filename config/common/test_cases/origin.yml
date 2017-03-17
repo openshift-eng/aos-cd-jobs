@@ -13,6 +13,7 @@ actions:
       sudo mkdir -p /tmp
       sudo mount -t tmpfs -o size=2048m tmpfs /tmp
       sudo restorecon -R /tmp
+post_actions: []
 artifacts:
   - "/tmp/openshift"
   - "/data/src/github.com/openshift/origin/_output/tests"

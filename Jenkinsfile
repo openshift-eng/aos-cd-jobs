@@ -37,7 +37,7 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                              [$class: 'ChoiceParameterDefinition', choices: ['online/master', 'online/stg', 'enterprise/master', 'enterprise/release'], description: '''online/master openshift/origin/master -> online-int yum repo<br>
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: ['online/master', 'online/stg', 'enterprise/master', 'enterprise/release'], description: '''online/master openshift/origin/master -> online-int yum repo<br>
 online/stg openshift/origin/stg -> online-stg yum repo<br>
 enterprise/master  openshift/origin/master ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
 enterprise/release  openshift/origin/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>''', name: 'BUILD_MODE'],

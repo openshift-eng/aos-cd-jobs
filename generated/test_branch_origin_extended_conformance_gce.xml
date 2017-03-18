@@ -11,6 +11,16 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
+          <name>SUITE</name>
+          <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
+          <defaultValue>conformance</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>FOCUS</name>
+          <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>DOCKER_STORAGE_DRIVER</name>
           <description>The storage driver to use when configuring the cluster. &#39;overlay2&#39; and &#39;devicemapper&#39; are allowed.
 </description>
@@ -242,7 +252,14 @@ function gather() {
 }
 trap gather EXIT
 
-make test-extended SUITE=&#34;conformance&#34;
+# rosie-bot does not know how to split suite and focus
+# so we need to detect that she is doing her best and
+# help her out by parsing the input she gives
+if [[ -z &#34;\${FOCUS:-}&#34; &amp;&amp; &#34;\${SUITE}&#34; =~ ^(.*)\((.*)\)\$ ]]; then
+  SUITE=&#34;\${BASH_REMATCH[1]}&#34;
+  FOCUS=&#34;\${BASH_REMATCH[2]}&#34;
+fi
+make test-extended SUITE=&#34;\${SUITE}&#34; FOCUS=&#34;\${FOCUS:-}&#34;
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>

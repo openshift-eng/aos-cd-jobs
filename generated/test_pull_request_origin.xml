@@ -31,6 +31,16 @@
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>SUITE</name>
+          <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
+          <defaultValue>conformance</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>FOCUS</name>
+          <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>DOCKER_STORAGE_DRIVER</name>
           <description>The storage driver to use when configuring the cluster. &#39;overlay2&#39; and &#39;devicemapper&#39; are allowed.
 </description>

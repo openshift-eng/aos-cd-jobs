@@ -65,7 +65,7 @@ extensions:
         gsutil -m cp -r artifacts/rpms "gs://${location}"
         if [[ -n "${ORIGIN_PULL_ID:-}" ]]; then
           # if we've built this PR before, remove older rpm artifact directories
-          out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -1 )"
+          out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -2 )"
           if [[ -n "${out}" ]]; then
             echo "${out}" | xargs -L 1 gsutil rm -rf
           fi

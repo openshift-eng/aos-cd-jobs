@@ -169,7 +169,7 @@ rsync --archive --omit-dir-times --rsh &#34;ssh -F ./.config/origin-ci-tool/inve
 gsutil -m cp -r artifacts/rpms &#34;gs://${location}&#34;
 if [[ -n &#34;${ORIGIN_PULL_ID:-}&#34; ]]; then
   # if we&#39;ve built this PR before, remove older rpm artifact directories
-  out=&#34;$( gsutil ls -d &#34;gs://origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/*/artifacts/rpms&#34; | sort -n -t / -k 7 | head -n -1 )&#34;
+  out=&#34;$( gsutil ls -d &#34;gs://origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/*/artifacts/rpms&#34; | sort -n -t / -k 7 | head -n -2 )&#34;
   if [[ -n &#34;${out}&#34; ]]; then
     echo &#34;${out}&#34; | xargs -L 1 gsutil rm -rf
   fi

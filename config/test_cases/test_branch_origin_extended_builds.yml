@@ -2,6 +2,13 @@
 parent: 'common/test_cases/origin_release.yml'
 overrides:
   timer: 'H H * * *'
+  email:
+    - bparees@redhat.com
+    - cewong@redhat.com
+    - gmontero@redhat.com
+    - rymurphy@redhat.com
+    - cdaley@redhat.com
+    - jminter@redhat.com
 extensions:
   actions:
     - type: "script"

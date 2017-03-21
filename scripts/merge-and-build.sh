@@ -74,35 +74,6 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   ssh-add ${HOME}/.ssh/id_rsa
 fi # End check if we are version 3.2
 
-function sanity_check() {
-  echo "Checking if the last commit is the last tito tag commit..."
-  last_commit_subject="$( git log HEAD~1..HEAD --pretty=%s )"
-  if [[ ! ${last_commit_subject} =~ "Automatic commit of package [atomic-openshift] release"* ]]; then
-    set +o xtrace
-    echo "[FATAL] The last commit doesn't look like a commit from \`tito\`!"
-    echo "[FATAL]   ${last_commit_subject}"
-    exit 1
-  fi
-
-  echo "Checking if the second to last commit is a webconsole bump commit..."
-  webconsole_commit="$( git log HEAD~2..HEAD~1 --pretty=%s )"
-  if [[ ! ${webconsole_commit} =~ "[DROP] bump origin-web-console"* ]]; then
-    set +o xtrace
-    echo "[FATAL] The second to last commit doesn't look like a commit from \`origin-web-console\`!"
-    echo "[FATAL]   ${webconsole_commit}"
-    exit 1
-  fi
-
-  echo "Checking if the third to last commit is the specfile commit..."
-  specfile_commit="$( git log HEAD~3..HEAD~2 --pretty=%s )"
-  if [[ ${specfile_commit} != "[CARRY][BUILD] Specfile updates" ]]; then
-    set +o xtrace
-    echo "[FATAL] The third to last commit doesn't look like the specfile commit!"
-    echo "[FATAL]   ${specfile_commit}"
-    exit 1
-  fi
-}
-readonly -f sanity_check
 
 echo
 echo "=========="
@@ -123,26 +94,18 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   # This means that a tag created in enterprise-3.5 will not be accessible from master.
   last_tag="$( git describe --abbrev=0 --tags )"
 
-  sanity_check
-  # Reset the last three commits and pick up only the tito diff.
-  git reset HEAD~3
-  git add .tito/ origin.spec
-  git commit -m "[CARRY][BUILD] Specfile updates"
-  # Drop the previous web console diff - will be regenerated below.
-  git checkout -- pkg/assets/bindata.go pkg/assets/java/bindata.go
-  set +e
-  # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
-  git tag "${last_tag}" HEAD
-  set -e
-
   echo
   echo "=========="
   echo "Merge origin into ose stuff"
   echo "=========="
 ## Switch back once master is 3.6
 #  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-  git rebase upstream/release-1.5
+  GIT_SEQUENCE_EDITOR=rebase.py git rebase -i upstream/release-1.5
   CURRENT_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
+  set +e
+  # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
+  git tag "${last_tag}" HEAD
+  set -e
 
 else
   git checkout -q enterprise-${OSE_VERSION}
@@ -170,10 +133,7 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
   git add pkg/assets/bindata.go
   git add pkg/assets/java/bindata.go
-  set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
-  # This fails only when there is nothing new to commit, which is normal.
   git commit -m "[DROP] bump origin-web-console ${VC_COMMIT}"
-  set -e
 fi # End check if we are version 3.2
 
 # Put local rpm testing here

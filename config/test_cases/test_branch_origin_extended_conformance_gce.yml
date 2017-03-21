@@ -42,6 +42,8 @@ rectory to run."
         - JOB_NAME
         - BUILD_NUMBER
         - DOCKER_STORAGE_DRIVER
+        - SUITE
+        - FOCUS
     - type: "script"
       title: "build origin RPMs"
       repository: "origin"

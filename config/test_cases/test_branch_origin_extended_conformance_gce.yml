@@ -4,6 +4,12 @@ extensions:
   sync_repos:
     - name: "release"
   parameters:
+    - name: "SUITE"
+      description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
+rectory to run."
+      default_value: "conformance"
+    - name: "FOCUS"
+      description: "Literal string to pass to <code>--ginkgo.focus</code>"
     - name: "DOCKER_STORAGE_DRIVER"
       description: >
         The storage driver to use when configuring the cluster. 'overlay2' and 'devicemapper' are allowed.
@@ -125,7 +131,14 @@ extensions:
         }
         trap gather EXIT
 
-        make test-extended SUITE="conformance"
+        # rosie-bot does not know how to split suite and focus
+        # so we need to detect that she is doing her best and
+        # help her out by parsing the input she gives
+        if [[ -z "${FOCUS:-}" && "${SUITE}" =~ ^(.*)\((.*)\)$ ]]; then
+          SUITE="${BASH_REMATCH[1]}"
+          FOCUS="${BASH_REMATCH[2]}"
+        fi
+        make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"
   post_actions:
     - type: "script"
       title: "deprovision test cluster"

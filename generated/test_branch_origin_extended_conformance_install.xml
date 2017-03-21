@@ -132,7 +132,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 tito_tmp_dir=&#34;tito&#34;
 mkdir -p &#34;\${tito_tmp_dir}&#34;
-tito tag --offline --use-version 3.6.0 --accept-auto-changelog
+tito tag --offline --accept-auto-changelog
 tito build --output=&#34;\${tito_tmp_dir}&#34; --rpm --test --offline --quiet
 createrepo &#34;\${tito_tmp_dir}/noarch&#34;
 cat &lt;&lt; EOR &gt; ./openshift-ansible-local-release.repo

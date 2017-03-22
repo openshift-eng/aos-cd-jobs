@@ -47,7 +47,6 @@ fi
 
 # Set the version for the upgrade
 export VERSION=3.5
-export VERSION_UNDERSCORE=$(echo ${VERSION} | /usr/bin/tr . _)
 
 # Allow for "test-key" to do some testing.
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
@@ -59,63 +58,65 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   exit 0
 fi
 
+# Kill all background jobs on normal exit or signal
+trap 'kill $(jobs -p)' EXIT 
+
+
+
 # update git repos
-# This needs review.
-# This isn't very portable. This requires that the git dirs are already
+# This needs review. 
+# This isn't very portable. This requires that the git dirs are already 
 # in place to do updates
 /usr/bin/ansible-playbook ./clone_ops_git_repos.yml
+
+
+source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
+set -o xtrace
+
+CLUSTER_SETUP_TEMPLATE_FILE=../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml
+if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then
+  echo "Unable to find ${CLUSTERNAME}'s cluster setup template file. Exiting..."
+  exit 10
+fi
+  
+# Update cluster setup changes to the releases directory
+echo "Update cluster setup changes..."
+/usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} ../../openshift-ansible-ops/playbooks/release/bin
+ 
+
+
 
 ################################################
 # CREATE CLUSTER
 ################################################
-if [ "${OPERATION}" == "install" ]; then
-  set -o xtrace
-
-  CHILDREN=""
-
-  # Kill all background jobs on normal exit or signal
-  trap 'kill $(jobs -p)' EXIT 
-
-  source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
-
-  CLUSTER_SETUP_TEMPLATE_FILE=../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml
-  if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then
-    echo "Unable to find ${CLUSTERNAME}'s cluster setup template file. Exiting..."
-    exit 10
-  fi
-  
-  # Update cluster setup changes to the releases directory
-  echo "Update cluster setup changes..."
-  /usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} ../../openshift-ansible-ops/playbooks/release/bin
+if [ "${OPERATION}" == "install" ]; then 
   
   # Deploy all the things
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
     /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
-    CHILDREN="$CHILDREN $!"
-    echo "Will terminate $CHILDREN at the end of this script"
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
   popd
-
+  
   echo
   echo "Deployment is complete. OpenShift Console can be found at https://${MASTER_DNS_NAME}"
   echo
-
+  
 ################################################
 # DELETE CLUSTER
 ################################################
-elif [ "${OPERATION}" == "delete" ]; then
+elif [ "${OPERATION}" == "delete" ]; then 
 
   # This updates the OPs inventory
   echo "Updating the OPs inventory..."
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
   echo
-
+  
   pushd ../../openshift-ansible-ops/playbooks/release/decommission
     /usr/local/bin/autokeys_loader /usr/bin/ansible-playbook aws_remove_cluster.yml -e cli_clusterid=${CLUSTERNAME} -e cluster_to_delete=${CLUSTERNAME} -e run_in_automated_mode=True
   popd
-
+  
   # This updates the OPs inventory
   echo "Updating the OPs inventory..."
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
@@ -125,9 +126,16 @@ elif [ "${OPERATION}" == "delete" ]; then
 ################################################
 elif [ "${OPERATION}" == "upgrade" ]; then 
   echo Doing upgrade
-  /usr/local/bin/autokeys_loader /usr/bin/ansible-playbook -i ./ops-to-productization-inventory.py ../../openshift-tools/openshift/installer/atomic-openshift-${VERSION}/playbooks/byo/openshift-cluster/upgrades/v${VERSION_UNDERSCORE}/upgrade.yml
 
+  # Run the upgrade, including post_byo steps and config loop 
+  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
+    /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
+    export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
+    export SKIP_GIT_VALIDATION=TRUE
+    /usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
+  popd
+ 
 else
-  echo "Error. Unrecognized operation '${OPERATION}'. Exiting..."
+  echo "Error. Unrecognized operation '${OPERATION}'. Exiting..."  
   exit 10
 fi

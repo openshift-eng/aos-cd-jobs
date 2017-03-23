@@ -46,6 +46,8 @@ else
     echo "Tito Tagging"
     echo "=========="
     tito tag --accept-auto-changelog
+    export VERSION="v$(grep Version: openshift-scripts.spec | awk '{print $2}')"
+    echo ${VERSION} 
     git push
     git push --tags
 
@@ -72,7 +74,7 @@ echo
 echo "=========="
 echo "Update Dockerfiles"
 echo "=========="
-ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force
+ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
 
 
 echo

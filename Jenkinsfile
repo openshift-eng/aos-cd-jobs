@@ -40,7 +40,7 @@ node('buildvm-devops') {
     }
 
     // Clusters that can be deleted & installed
-    disposableCluster = CLUSTER_NAME in [ 'test-key', 'cicd', 'dev-preview-int']
+    disposableCluster = [ 'test-key', 'cicd', 'dev-preview-int'].contains( CLUSTER_NAME )
 
     if ( MODE != "upgrade" && !disposableCluster ) {
         error( "This script is not permitted to perform that operation" )
@@ -53,7 +53,7 @@ node('buildvm-devops') {
             }
         }
 
-        minorUpdate = CLUSTER_NAME in [ 'test-key', 'cicd' ] || OPERATION == "delete" || MODE == "quiet"
+        minorUpdate = [ 'test-key', 'cicd' ].contains( CLUSTER_NAME ) || OPERATION == "delete" || MODE == "quiet"
         
         if ( mode != "silent" ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available

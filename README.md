@@ -1,1 +1,1 @@
-Jenkins job for MWF build. Scripts are designed to run on buildvm-devops.
+Runs delete, install, upgrade tasks on supported clusters.

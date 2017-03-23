@@ -55,7 +55,7 @@ node('buildvm-devops') {
 
         minorUpdate = [ 'test-key', 'cicd' ].contains( CLUSTER_NAME ) || OPERATION == "delete" || MODE == "quiet"
         
-        if ( mode != "silent" ) {
+        if ( MODE != "silent" ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success(minorUpdate?MAIL_LIST_SUCCESS_MINOR:MAIL_LIST_SUCCESS)
         }

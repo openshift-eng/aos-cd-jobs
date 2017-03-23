@@ -74,11 +74,15 @@ fi # End check if we are version 3.2
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
 cd openshift-ansible/
-if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-  if [ "${MINOR}" -le 5 ] ; then
-    git checkout -q release-1.${MINOR}
-  else
-    git checkout -q release-${OSE_VERSION}
+if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    git checkout -q stage
+else
+  if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+    if [ "${MINOR}" -le 5 ] ; then
+      git checkout -q release-1.${MINOR}
+    else
+      git checkout -q release-${OSE_VERSION}
+    fi
   fi
 fi
 

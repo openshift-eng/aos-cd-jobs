@@ -83,6 +83,11 @@ echo "Build Images"
 echo "=========="
 ose_images.sh --user ocp-build build_container --repo http://file.rdu.redhat.com/tdawson/repo/oso-building.repo --branch libra-rhel-7 --group oso
 
+echo
+echo "=========="
+echo "Push Images"
+echo "=========="
+sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso
 
 echo
 echo

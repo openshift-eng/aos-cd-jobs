@@ -116,10 +116,14 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   rm -rf origin-web-console
   git clone git@github.com:openshift/origin-web-console.git
   cd origin-web-console/
-  git checkout enterprise-${OSE_VERSION}
-  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
-    git push
+  if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    git checkout stage
+  else
+    git checkout enterprise-${OSE_VERSION}
+    if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+      git merge master -m "Merge master into enterprise-${OSE_VERSION}"
+      git push
+    fi
   fi
 fi # End check if we are version 3.2
 
@@ -132,8 +136,12 @@ rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
 if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] || [ "${OSE_VERSION}" == "${OSE_MASTER}" ]; then
-  if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] ; then
-    git checkout -q enterprise-${OSE_VERSION}
+  if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    git checkout -q stage
+  else
+    if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] ; then
+      git checkout -q enterprise-${OSE_VERSION}
+    fi
   fi
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
@@ -142,12 +150,16 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] || [ "${OSE_VERSION}" == "${
   echo "=========="
   echo "Merge origin into ose stuff"
   echo "=========="
-  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-    git merge -m "Merge remote-tracking branch upstream/master" upstream/master
+  if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    git merge -m "Merge remote-tracking branch upstream/stage" upstream/stage
   else
-    ## Once 3.5 is released, change this to the following
-    # git merge -m "Merge remote-tracking branch upstream/release-${OSE_VERSION}" upstream/release-${OSE_VERSION}
-    git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
+    if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+      git merge -m "Merge remote-tracking branch upstream/master" upstream/master
+    else
+      ## Once 3.5 is released, change this to the following
+      # git merge -m "Merge remote-tracking branch upstream/release-${OSE_VERSION}" upstream/release-${OSE_VERSION}
+      git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
+    fi
   fi
 
 else
@@ -177,7 +189,11 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   git add pkg/assets/bindata.go
   git add pkg/assets/java/bindata.go
   set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
-  git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
+  if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    git commit -m "Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
+  else  
+    git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
+  fi
   set -e
 fi # End check if we are version 3.2
 

@@ -55,16 +55,18 @@ extensions:
       script: |-
         git checkout sjb
     - type: "script"
-      title: "determine the release commit for origin images"
+      title: "determine the release commit for origin images and version for rpms"
       repository: "origin"
       script: |-
-        git log -1 --pretty=%h >> /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT
+        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
+        git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+        ( source hack/lib/init.sh; os::build::rpm::get_nvr_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
     - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-
         ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-        ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
+        ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"
     - type: "script"
       title: "expose the kubeconfig"
       script: |-

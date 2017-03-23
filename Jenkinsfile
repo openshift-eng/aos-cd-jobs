@@ -23,7 +23,7 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com, chmurphy@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "test-key\ncicd\ndev-preview-int\ndev-preview-stg\npreview", name: 'CLUSTER_NAME', description: 'The name of the cluster to affect'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "noop\ndelete\ninstall\nupgrade", name: 'OPERATION', description: 'Operation to perform'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails.'],
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
                       ]
              ]]
     )
@@ -32,7 +32,7 @@ node('buildvm-devops') {
     echo "MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], CLUSTER_NAME:${CLUSTER_NAME}, OPERATION:${OPERATION}, MODE:${MODE}"
 
     if ( MODE != "automatic" ) {
-        input 'Are you certain you want to =====>${MODE}<===== the =====>${CLUSTER_NAME}<===== cluster?'
+        input "Are you certain you want to =====>${MODE}<===== the =====>${CLUSTER_NAME}<===== cluster?"
     }
 
     if ( OPERATION == "noop" ) {
@@ -54,8 +54,11 @@ node('buildvm-devops') {
         }
 
         minorUpdate = CLUSTER_NAME in [ 'test-key', 'cicd' ] || OPERATION == "delete" || MODE == "quiet"
-        // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-        mail_success(minorUpdate?MAIL_LIST_SUCCESS_MINOR:MAIL_LIST_SUCCESS)
+        
+        if ( mode != "silent" ) {
+            // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
+            mail_success(minorUpdate?MAIL_LIST_SUCCESS_MINOR:MAIL_LIST_SUCCESS)
+        }
 
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available

@@ -17,7 +17,14 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                       ]
-             ]]
+             ],
+             [
+            $class: 'PipelineTriggersJobProperty',
+		        triggers: [[
+			    $class: 'TimerTrigger',
+			    spec: 'H 11 * * *'
+		    ]]
+	]]
     )
     
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.

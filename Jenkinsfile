@@ -32,7 +32,7 @@ node('buildvm-devops') {
     echo "MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], CLUSTER_NAME:${CLUSTER_NAME}, OPERATION:${OPERATION}, MODE:${MODE}"
 
     if ( MODE != "automatic" ) {
-        input "Are you certain you want to =====>${MODE}<===== the =====>${CLUSTER_NAME}<===== cluster?"
+        input "Are you certain you want to =====>${OPERATION}<===== the =====>${CLUSTER_NAME}<===== cluster?"
     }
 
     if ( OPERATION == "noop" ) {

@@ -22,7 +22,7 @@ def validate_commits(commits):
 
         if not drop_commit and not carry_commit and not squash_commit and not tito_commit:
             print('Commit `{}` ({}) does not conform to naming requirements!'.format(commit.subject, commit.hash))
-            print('For more info, read :link to doc:')
+            print('For more info, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements')
             exit(1)
 
         if tito_commit:
@@ -33,14 +33,17 @@ def validate_commits(commits):
 
     if tito_index < 0:
         print('No commit from `tito tag` found!')
+        print('For more info, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements')
         exit(1)
 
     if spec_index < 0:
-        print('No carry commit for `.spec` file found!')
+        print('No [CARRY] commit for `origin.spec` file found!')
+        print('For more info, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements')
         exit(1)
 
     if tito_index < spec_index:
-        print('Found the `tito tag` commit before the `.spec` file  commit!')
+        print('Found the `tito tag` commit before the `origin.spec` file commit!')
+        print('For more info, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements')
         exit(1)
 
     # Validate that CARRIES have a type.
@@ -48,7 +51,8 @@ def validate_commits(commits):
 
     # Validate that CARRY types are unique across all CARRIES.
     if len(carry_types) != len(set(carry_types)):
-        print('Found more than one carry commit with the same type!')
+        print('Found more than one [CARRY] commit with the same type!')
+        print('For more info, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements')
         exit(1)
 
     # Validate that SQUASHES have a type.
@@ -56,7 +60,8 @@ def validate_commits(commits):
 
     # Validate that all SQUASHES have a corresponding CARRY commit.
     if set(squash_types) & set(carry_types) != set(squash_types):
-        print('Not all SQUASH commits correspond to a CARRY commit!')
+        print('Not all [SQUASH] commits correspond to a [CARRY] commit!')
+        print('For more info, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements')
         exit(1)
 
 
@@ -69,6 +74,7 @@ def filter_commits_by_prefix(commits, prefix):
             match = re.match(r"\[.*\]", subject)
             if match is None:
                 print('Found a {} commit without a type: `{}` ({})'.format(prefix, commit.subject, commit.hash))
+                print('For more info, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements')
                 exit(1)
 
             types.append(match.group(0))

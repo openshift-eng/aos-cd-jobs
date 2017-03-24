@@ -80,7 +80,7 @@ echo
 echo "=========="
 echo "Push Images"
 echo "=========="
-sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso
+sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
 
 echo
 echo

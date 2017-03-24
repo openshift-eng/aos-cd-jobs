@@ -34,7 +34,9 @@ node('buildvm-devops') {
     stage('Merge and build') {
         try {
             checkout scm
-            sh "./scripts/merge-and-build-openshift-scripts.sh"
+            sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
+                sh "./scripts/merge-and-build-openshift-scripts.sh"
+            }
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",

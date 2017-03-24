@@ -38,9 +38,6 @@ echo "GOPATH: ${GOPATH}"
 echo "BUILDPATH: ${BUILDPATH}"
 echo "WORKPATH ${WORKPATH}"
 
-# Ensure ssh-agent is running
-eval "$(ssh-agent -s)"
-
 go get github.com/jteeuwen/go-bindata
 
 if [ "${OSE_VERSION}" == "3.2" ] ; then

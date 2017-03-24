@@ -58,9 +58,6 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   echo "Setup origin-web-console stuff"
   echo "=========="
   cd ${WORKPATH}
-  # Load deploy key for cloning/pushing openshift/origin-web-console
-  ssh-add -D
-  ssh-add ${HOME}/.ssh/origin-web-console/id_rsa
   rm -rf origin-web-console
   git clone git@github.com:openshift/origin-web-console.git
   cd origin-web-console/
@@ -70,9 +67,6 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
 #    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
 #    git push
 #  fi
-  # Add back deploy key for cloning/pushing openshift/ose
-  ssh-add -D
-  ssh-add ${HOME}/.ssh/id_rsa
 fi # End check if we are version 3.2
 
 

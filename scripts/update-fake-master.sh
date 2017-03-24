@@ -18,9 +18,6 @@ echo "GOPATH: ${GOPATH}"
 echo "BUILDPATH: ${BUILDPATH}"
 echo "WORKPATH ${WORKPATH}"
 
-# Ensure ssh-agent is running
-eval "$(ssh-agent -s)"
-
 
 cd ${WORKPATH}
 rm -rf ose origin-web-console

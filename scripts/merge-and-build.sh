@@ -2,6 +2,7 @@
 set -o xtrace
 
 kinit -k -t $KEYTAB $PRINCIPLE
+kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 
 MB_PATH=$(readlink -f $0)
 SCRIPTS_DIR=$(dirname $MB_PATH)
@@ -10,10 +11,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-OSE_MASTER="3.5"
+OSE_MASTER="3.6"
 if [ "$#" -ne 2 ]; then
   MAJOR="3"
-  MINOR="5"  
+  MINOR="6"
   echo "Please pass in MAJOR and MINOR version"
   echo "Using default of ${MAJOR} and ${MINOR}"
 else
@@ -88,7 +89,7 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   git checkout -q fake-master
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
-  PREVIOUS_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
+  PREVIOUS_ORIGIN_HEAD=$(git merge-base fake-master upstream/master)
 
   # Tags are global to a git repo but accessible only through the branch they were tagged on.
   # This means that a tag created in enterprise-3.5 will not be accessible from master.
@@ -100,8 +101,8 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
   echo "=========="
 ## Switch back once master is 3.6
 #  git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-  GIT_SEQUENCE_EDITOR=rebase.py git rebase -i upstream/release-1.5
-  CURRENT_ORIGIN_HEAD=$(git merge-base fake-master upstream/release-1.5)
+  GIT_SEQUENCE_EDITOR=${WORKSPACE}/scripts/rebase.py git rebase -i upstream/master
+  CURRENT_ORIGIN_HEAD=$(git merge-base fake-master upstream/master)
   set +e
   # Do not error out for now because these tags already exist due to master (we are testing on fake-master)
   git tag "${last_tag}" HEAD
@@ -133,7 +134,9 @@ if [ "${OSE_VERSION}" != "3.2" ] ; then
   VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
   git add pkg/assets/bindata.go
   git add pkg/assets/java/bindata.go
+  set +e
   git commit -m "[DROP] bump origin-web-console ${VC_COMMIT}"
+  set -e
 fi # End check if we are version 3.2
 
 # Put local rpm testing here

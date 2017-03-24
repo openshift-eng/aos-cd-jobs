@@ -21,15 +21,8 @@ echo "GOPATH: ${GOPATH}"
 echo "BUILDPATH: ${BUILDPATH}"
 echo "WORKPATH ${WORKPATH}"
 
-# Ensure ssh-agent is running
-eval "$(ssh-agent -s)"
-
 # Kerberos credeneitslf of ocp-build
 kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
-
-# Load deploy key for cloning/pushing openshift/openshift-online
-ssh-add -D
-ssh-add ${HOME}/.ssh/openshift-online/id_rsa
 
 rm -rf online
 git clone git@github.com:openshift/online.git

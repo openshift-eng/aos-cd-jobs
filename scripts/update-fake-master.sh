@@ -37,7 +37,7 @@ git fetch --all
 git checkout master
 LATEST_TAG=$(git describe --abbrev=0 --tags)
 LATEST_TITO_COMMIT_MERGE=$(git log -1 $LATEST_TAG --pretty=%s)
-LATEST_TITO_COMMIT_REBASE=$(git log $(git merge-base fake-master public/master)..fake-master --pretty='%h %s' | grep "Automatic commit of package" | awk '{print $1}')
+LATEST_TITO_COMMIT_REBASE=$(git log $(git merge-base origin/fake-master public/master)..origin/fake-master --pretty='%h %s' | grep "Automatic commit of package" | awk '{print $1}')
 LATEST_TITO_COMMIT_REBASE=$(git log -1 $LATEST_TITO_COMMIT_REBASE --pretty=%s)
 if [[ $LATEST_TITO_COMMIT_MERGE == $LATEST_TITO_COMMIT_REBASE ]]; then
 	echo "Nothing to update!"

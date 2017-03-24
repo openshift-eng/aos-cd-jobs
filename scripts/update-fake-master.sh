@@ -5,6 +5,7 @@ set -o nounset
 set -o pipefail
 
 kinit -k -t $KEYTAB $PRINCIPLE
+kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 
 # Use the directory relative to this Jenkins job.
 BUILDPATH="${WORKSPACE}/go"

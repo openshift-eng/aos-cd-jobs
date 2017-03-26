@@ -47,7 +47,7 @@
           <name>DOCKER_STORAGE_DRIVER</name>
           <description>The storage driver to use when configuring the cluster. &#39;overlay2&#39; and &#39;devicemapper&#39; are allowed.
 </description>
-          <defaultValue>devicemapper</defaultValue>
+          <defaultValue>overlay2</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_IMAGE</name>

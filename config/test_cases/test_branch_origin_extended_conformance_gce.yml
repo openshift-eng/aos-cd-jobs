@@ -13,7 +13,7 @@ rectory to run."
     - name: "DOCKER_STORAGE_DRIVER"
       description: >
         The storage driver to use when configuring the cluster. 'overlay2' and 'devicemapper' are allowed.
-      default_value: "devicemapper"
+      default_value: "overlay2"
     - name: "OPENSHIFT_ANSIBLE_IMAGE"
       description: >
         The image to install the cluster with. If set, defaults to the value defined by the

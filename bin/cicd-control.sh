@@ -58,11 +58,6 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   exit 0
 fi
 
-# Kill all background jobs on normal exit or signal
-trap 'kill $(jobs -p)' EXIT 
-
-
-
 # update git repos
 # This needs review. 
 # This isn't very portable. This requires that the git dirs are already 

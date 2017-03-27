@@ -61,28 +61,27 @@ else
     TAG=`git describe --abbrev=0`
     COMMIT=`git log -n 1 --pretty=%h`
     brew tag-pkg libra-rhel-7-candidate ${TAG}.git.0.${COMMIT}.el7
+
+    echo
+    echo "=========="
+    echo "Update Dockerfiles"
+    echo "=========="
+    ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
+
+
+    echo
+    echo "=========="
+    echo "Build Images"
+    echo "=========="
+    ose_images.sh --user ocp-build build_container --repo http://file.rdu.redhat.com/tdawson/repo/oso-building.repo --branch libra-rhel-7 --group oso
+
+    echo
+    echo "=========="
+    echo "Push Images"
+    echo "=========="
+    sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
 fi
 
-echo
-echo "=========="
-echo "Update Dockerfiles"
-echo "=========="
-ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
-
-
-echo
-echo "=========="
-echo "Build Images"
-echo "=========="
-ose_images.sh --user ocp-build build_container --repo http://file.rdu.redhat.com/tdawson/repo/oso-building.repo --branch libra-rhel-7 --group oso
-
-echo
-echo "=========="
-echo "Push Images"
-echo "=========="
-sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
-
-echo
 echo
 echo "=========="
 echo "Finished OpenShift scripts"

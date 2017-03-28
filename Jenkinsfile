@@ -57,6 +57,7 @@ online/stg openshift/origin/stg -> online-stg yum repo<br>
 enterprise/master  openshift/origin/master ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
 enterprise/release  openshift/origin/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>''', name: 'BUILD_MODE'],
                               [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force openshift-ansible build?', name: 'FORCE_OPENSHIFT_ANSIBLE_BUILD'],
+                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'OSE master updated after a conflict', name: 'IGNORE_OSE_REBASE'],
                       ]
              ]]
     )

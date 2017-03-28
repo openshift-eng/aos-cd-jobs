@@ -101,7 +101,6 @@ else
     echo "Tito Tagging: openshift-ansible"
     echo "=========="
     tito tag --accept-auto-changelog
-    git push
     git push --tags
 
     echo
@@ -162,9 +161,22 @@ if [[ "${OSE_VERSION}" == "${OSE_MASTER}" || "${OSE_VERSION}" == "${OSE_MASTER_B
 
   echo
   echo "=========="
-  echo "Merge origin into ose stuff"
+  echo "Rebase ose into origin stuff"
   echo "=========="
-  git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" ${UPSTREAM_BRANCH}
+  if [[ "${IGNORE_OSE_REBASE}" != "true" ]]; then
+    # Note down the last tag created by tito as the rebase will remove it.
+    last_tag="$( git describe --abbrev=0 --tags )"
+
+    # Will be needed for creating the custom changelog for tito.
+    PREVIOUS_HEAD=$(git merge-base ${CURRENT_BRANCH} ${UPSTREAM_BRANCH})
+    # Rebase
+    GIT_SEQUENCE_EDITOR=${WORKSPACE}/scripts/rebase.py git rebase -i "${UPSTREAM_BRANCH}"
+    # Retag so tito knows what's the next tag. Use force because the tag exists globally but
+    # it's not able to access it from this branch anymore.
+    git tag -f "${last_tag}"
+    # Will be needed for creating the custom changelog for tito.
+    CURRENT_HEAD=$(git merge-base ${CURRENT_BRANCH} ${UPSTREAM_BRANCH})
+  fi
 
 else
   git checkout -q enterprise-${OSE_VERSION}
@@ -179,7 +191,7 @@ else
   fi
 fi # End check if we are master
 
-if [ "${OSE_VERSION}" != "3.2" ] ; then
+if [[ "${OSE_VERSION}" != "3.2" && "${IGNORE_OSE_REBASE}" != "true" ]] ; then
   echo
   echo "=========="
   echo "Merge in origin-web-console stuff"
@@ -198,15 +210,28 @@ fi # End check if we are version 3.2
 
 # Put local rpm testing here
 
-echo
-echo "=========="
-echo "Tito Tagging"
-echo "=========="
-tito tag --accept-auto-changelog
+if [[ "${IGNORE_OSE_REBASE}" != "true" ]]; then
+  echo
+  echo "=========="
+  echo "Tito Tagging"
+  echo "=========="
+  if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] || [ "${OSE_VERSION}" == "${OSE_MASTER}" ]; then
+    declare -a changelog
+    for commit in $( git log "${PREVIOUS_HEAD}..${CURRENT_HEAD}" --pretty=%h --no-merges ); do
+      changelog+=( "--changelog='$( git log -1 "${commit}" --pretty='%s (%ae)' )'" )
+    done
+    tito tag --accept-auto-changelog "${changelog[@]}"
+    git push origin ${CURRENT_BRANCH} -f refs/tags/${last_tag}
+  else
+    tito tag --accept-auto-changelog
+    git push --tags
+  fi
+else
+  echo "Ignoring rebase and tito tagging..."
+fi
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
-git push
-git push --tags
+
 
 echo
 echo "=========="

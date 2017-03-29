@@ -68,6 +68,11 @@ else
     echo "=========="
     ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
 
+    echo
+    echo "=========="
+    echo "Sync distgit"
+    echo "=========="
+    ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force
 
     echo
     echo "=========="

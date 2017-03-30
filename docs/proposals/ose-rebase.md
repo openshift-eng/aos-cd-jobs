@@ -22,12 +22,12 @@ There are different types of commits that need to be carried on top of Origin ma
 In order to properly handle the additional commits, we need to set naming requirements
 for the messages of those commits. In particular:
 * long-term carries should start with a `[CARRY]` prefix followed by a prefix that denotes
-the type of the commit. For example, "[CARRY][BUILD] Tooling updates" denotes that this
+the type of the commit. For example, `[CARRY][BUILD] Tooling updates` denotes that this
 commit needs to be carried long-term and is specific to the building process of the repo.
 * updates to any existing [CARRY] commit should start with a `[SQUASH]` prefix followed
 by the type of the commit that they are supposed to squash to. For example, if the commit
-from the example above needs to be updated, a developer can simply create a PR that starts
-with "[SQUASH][BUILD]" followed by any message.
+from the example above needs to be updated, a developer can simply create a commit that
+starts with `[SQUASH][BUILD]` followed by any message.
 * commits that are not going to be carried long-term but are necessary until the next rebase
 lands, should use a `[DROP]` prefix. Note that these commits are going to be dropped
 automatically by the rebase process so you should be sure when to use this prefix.
@@ -60,20 +60,23 @@ last_tag="$( git describe --abbrev=0 --tags )"
 # naming requirements this proposal sets.
 #
 #
-#         .-Other [CARRY] commit
-#        /  .-[CARRY] Specfile updates
-#       /  /  .-[DROP] webconsole bump
-#      /  /  /  .-Tito tag commit
-#     /  /  /  /
-# m--c--c--w--t
-#  \           \
-#   \           `-ose/master/HEAD,v3.5.0.23
+#          .-[CARRY][BUILD] Tooling updates
+#         /  .-[CARRY][BRANDING] OAuth templates branding
+#        /  /  .-[CARRY][BUILD_GEN] Specfile updates
+#       /  /  /  .-[DROP] webconsole bump
+#      /  /  /  /  .-Tito tag commit
+#     /  /  /  /  /
+# m--c--c--c--w--t
+#  \              \
+#   \              `-ose/master/HEAD,v3.5.0.23
 #    `-origin/master/HEAD
 #
 GIT_SEQUENCE_EDITOR=rebase.py git rebase -i upstream/master
 
-# We need to retag, because the previous squash removed the latest tito tag.
-git tag "${last_tag}" HEAD
+# We need to retag, because the rebase removed the latest tito tag.
+# Needs to be forced because while the tag is removed from the branch,
+# it still exists globally in the repository.
+git tag -f "${last_tag}" HEAD
 ```
 
 Common conflicts can rise when new changes step on branding or tooling code. Manual resolution is the
@@ -86,5 +89,5 @@ those diffs will reduce even further the number of conflicts.
 
 In case a new [CARRY] commit needs to be introduced or an existing one needs to be updated, developers
 do not need to force-push to master. Instead, construct your commit messages using the naming requirements
-specified above and the rebase process should be responsible for collapsing [SQUASH] commits into existing
-[CARRY] commits.
+specified [above](#naming-requirements) and the rebase process should be responsible for collapsing [SQUASH]
+commits into existing [CARRY] commits.

@@ -18,6 +18,7 @@ node('buildvm-devops') {
                              [
                                      [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                                      [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                                     [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force openshift-ansible build?', name: 'FORCE_REBUILD'],
                              ]
                     ],
                     [$class: 'PipelineTriggersJobProperty',
@@ -30,13 +31,14 @@ node('buildvm-devops') {
     )
     
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo "onSuccess:[${MAIL_LIST_SUCCESS}], onFailure:[${MAIL_LIST_FAILURE}]"
+    echo "MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], FORCE_REBUILD:${FORCE_REBUILD}"
 
     set_workspace()
     stage('Merge and build') {
         try {
             checkout scm
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
+                env.FORCE_REBUILD = "${FORCE_REBUILD}"
                 sh "./scripts/merge-and-build-openshift-scripts.sh"
             }
         } catch ( err ) {

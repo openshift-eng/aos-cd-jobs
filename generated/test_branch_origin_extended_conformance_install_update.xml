@@ -115,6 +115,89 @@ EOF
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+git log -1 --pretty=%h &gt;&gt; /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: INSTALL ANSIBLE ATOMIC-OPENSHIFT-UTILS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE ATOMIC-OPENSHIFT-UTILS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+pkg_name=&#34;origin&#34;
+git checkout sjb
+echo &#34;openshift-ansible openshift-ansible-callback-plugins openshift-ansible-docs openshift-ansible-filter-plugins openshift-ansible-lookup-plugins openshift-ansible-playbooks openshift-ansible-roles&#34; &gt; OPENSHIFT_ANSIBLE_PKGS
+openshift_pkgs=( \$pkg_name atomic-openshift-utils )
+for pkg in &#34;\${openshift_pkgs[@]}&#34;
+do
+  sudo python hack/get_available_pkgs.py \$pkg &gt; &#34;all_\${pkg}_versions&#34;
+  sed -i &#39;/^[a-zA-Z]/d&#39; all_\${pkg}_versions
+  sed -i &#39;/^[1|3][.0-9]*-0/d&#39; all_\${pkg}_versions
+  sort -u -o all_\${pkg}_versions all_\${pkg}_versions
+  cat all_\${pkg}_versions
+done
+current_openshift_version=\$(tail -n1 all_\${pkg_name}_versions | awk -F&#39;-&#39; &#39;{print \$1}&#39;)
+current_openshift_major_version=\$(echo \$current_openshift_version | awk -F&#39;.&#39; &#39;{print \$1}&#39;)
+current_openshift_minor_version=\$(echo \$current_openshift_version | awk -F&#39;.&#39; &#39;{print \$2}&#39;)
+echo \$current_openshift_minor_version &gt; CURRENT_OPENSHIFT_MINOR_VERSION
+all_current_openshift_versions_array=(\$(cat &#34;all_\${pkg_name}_versions&#34; | grep &#34;\$current_openshift_major_version.\$current_openshift_minor_version&#34;))
+all_current_atomic_openshift_utils_versions_array=(\$(cat &#34;all_atomic-openshift-utils_versions&#34; | grep &#34;^3.\$current_openshift_minor_version&#34;))
+set_openshift_version=\$(echo \${all_current_openshift_versions_array[0]})
+echo \${all_current_openshift_versions_array[0]} &gt; /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_INSTALL_VERSION
+echo \${all_current_atomic_openshift_utils_versions_array[0]} &gt; /data/src/github.com/openshift/aos-cd-jobs/ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION
+if [ \${#all_current_openshift_versions_array[@]} -gt 1 ]
+then
+  echo \${all_current_atomic_openshift_utils_versions_array[\${#all_current_atomic_openshift_utils_versions_array[@]}-1]} &gt; /data/src/github.com/openshift/aos-cd-jobs/ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION
+  echo \${all_current_openshift_versions_array[\${#all_current_openshift_versions_array[@]}-1]} &gt; /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_UPGRADE_VERSION
+fi
+openshift_ansible_pkgs_versions=&#34;&#34;
+if [[ \${current_openshift_minor_version} == 4 ]]
+then
+  sudo yum erase -y ansible
+  openshift_ansible_pkgs_versions=&#34;ansible-2.2.0.0&#34;
+fi
+openshift_ansible_pkgs=( \$( cat ./OPENSHIFT_ANSIBLE_PKGS ) )
+for pkg in &#34;\${openshift_ansible_pkgs[@]}&#34;
+do
+  openshift_ansible_pkgs_versions=&#34;\${openshift_ansible_pkgs_versions} \${pkg}-\$( sed &#39;s/-.*\$//&#39; ./ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION )&#34;
+done
+echo &#34;=== Installing atomic-openshift-utils-\$( cat ./ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION ) packages ===&#34;
+sudo yum install -y \${openshift_ansible_pkgs_versions}
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: INSTALL ANSIBLE PLUGINS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE PLUGINS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+sudo yum install -y python-pip
+sudo pip install junit_xml
+sudo chmod o+rw /etc/environment
+echo &#34;ANSIBLE_JUNIT_DIR=\$( pwd )/_output/tests/ansible_junit&#34; &gt;&gt; /etc/environment
+sudo mkdir -p /usr/share/ansible/plugins/callback
+for plugin in &#39;default_with_output_lists&#39; &#39;generate_junit&#39;; do
+   wget &#34;https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/\${plugin}.py&#34;
+   sudo mv &#34;\${plugin}.py&#34; /usr/share/ansible/plugins/callback
+done
+sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_whitelist.*/callback_whitelist = generate_junit/&#39; /etc/ansible/ansible.cfg
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: INSTALL ORIGIN GA AND UPDATE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ORIGIN GA AND UPDATE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 {
 cat &lt;&lt;EOF
@@ -122,41 +205,20 @@ sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 pkg_name=&#34;origin&#34;
-sudo yum install -y ansible-2.2.0.0
-git checkout sjb
 general_yml_file=inventory/group_vars/OSEv3/general.yml
 if [ \$pkg_name = &#34;atomic-openshift&#34; ]
 then
   sed -i &#34;s/deployment_type:.*/deployment_type: \&#34;openshift-enterprise\&#34; /g&#34; \$general_yml_file
 fi
-openshift_pkgs=( \$pkg_name openshift-ansible-playbooks )
-for pkg in &#34;\${openshift_pkgs[@]}&#34;
-do
-  sudo python hack/get_available_pkgs.py \$pkg &gt; &#34;all_\${pkg}_versions&#34;
-  sed -i &#39;/^[a-zA-Z]/d&#39; all_\${pkg}_versions
-  sort -u -o all_\${pkg}_versions all_\${pkg}_versions
-  cat all_\${pkg}_versions
-done
-current_openshift_version=\$(tail -n1 all_\${pkg_name}_versions | awk -F&#39;-&#39; &#39;{print \$1}&#39;)
-echo &#34;current version -&gt; \$current_openshift_version&#34;
-current_openshift_major_version=\$(echo \$current_openshift_version | awk -F&#39;.&#39; &#39;{print \$1}&#39;)
-current_openshift_minor_version=\$(echo \$current_openshift_version | awk -F&#39;.&#39; &#39;{print \$2}&#39;)
-latest_version=\$current_openshift_major_version.\$((\$current_openshift_minor_version + 1))
-all_current_openshift_versions_array=(\$(cat &#34;all_\${pkg_name}_versions&#34; | grep &#34;\$current_openshift_major_version.\$current_openshift_minor_version&#34;))
-all_current_openshift_ansible_versions_array=(\$(cat &#34;all_openshift-ansible-playbooks_versions&#34; | grep &#34;^3.\$current_openshift_minor_version&#34;))
-set_openshift_version=\$(echo \${all_current_openshift_versions_array[0]})
-echo &#34;=== Installing openshift-ansible-\${all_current_openshift_ansible_versions_array[0]} ===&#34;
-sudo yum install -y openshift-ansible-playbooks-\${all_current_openshift_ansible_versions_array[0]}
-echo &#34;=== Installing \${pkg_name}-\${set_openshift_version} ===&#34;
-ansible-playbook --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-ansible-playbook --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e set_openshift_version=&#34;\${set_openshift_version}&#34;
-if [ \${#all_current_openshift_versions_array[@]} -gt 1 ]
+echo &#34;=== Installing \${pkg_name}-\$( cat ./OPENSHIFT_INSTALL_VERSION ) ===&#34;
+ansible-playbook -vv --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+ansible-playbook -vv --become --become-user root --connection local -i inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e openshift_pkg_version=&#34;-\$( cat ./OPENSHIFT_INSTALL_VERSION )&#34; -e enable_excluders=false
+if [ -f ./OPENSHIFT_UPGRADE_VERSION  &amp;&amp; -f ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ]
 then
-  echo &#34;=== Updating openshift-ansible to openshift-ansible-\${all_current_openshift_ansible_versions_array[\${#all_current_openshift_ansible_versions_array[@]}-1]} ===&#34;
-  sudo yum erase -y openshift-ansible
-  sudo yum install -y openshift-ansible-playbooks-\${all_current_openshift_ansible_versions_array[\${#all_current_openshift_ansible_versions_array[@]}-1]}
-  echo &#34;=== Updating \${pkg_name} to \${pkg_name}-\${all_current_openshift_versions_array[\${#all_current_openshift_versions_array[@]}-1]} ===&#34;
-  ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_\${current_openshift_minor_version}/upgrade.yml -e openshift_upgrade_target=&#34;\${all_current_openshift_versions_array[\${#all_current_openshift_versions_array[@]}-1]}&#34;
+  echo &#34;=== Updating openshift-ansible to openshift-ansible-\$( cat ./ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ) ===&#34;
+  sudo yum upgrade -y atomic-openshift-utils-\$( cat ./ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION )
+  echo &#34;=== Updating \${pkg_name} to \$( cat ./OPENSHIFT_UPGRADE_VERSION ) ===&#34;
+  ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_\$(CURRENT_OPENSHIFT_MINOR_VERSION)/upgrade.yml -e openshift_pkg_version=&#34;-\${upgrade_version}&#34; -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./OPENSHIFT_UPGRADE_VERSION | awk -F&#39;-&#39; &#39;{print \$1}&#39; )&#34;
 fi
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
@@ -203,37 +265,31 @@ EOF
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-echo &#34;########## STARTING STAGE: INSTALL THE OPENSHIFT-ANSIBLE RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL THE OPENSHIFT-ANSIBLE RELEASE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${HOME}&#34;
-sudo yum install -y atomic-openshift-utils
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-echo &#34;########## STARTING STAGE: CHECK OUT THE CORRECT BRANCH OF AOS-CD-JOBS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CHECK OUT THE CORRECT BRANCH OF AOS-CD-JOBS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+echo &#34;########## STARTING STAGE: UPGRADE THE OPENSHIFT-ANSIBLE AND ORIGIN TO RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPGRADE THE OPENSHIFT-ANSIBLE AND ORIGIN TO RELEASE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 {
 cat &lt;&lt;EOF
 sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-git checkout sjb
+if [[ \$( cat ./CURRENT_OPENSHIFT_MINOR_VERSION) == 4 ]]
+then
+  upgrade_pkgs=&#34;\$( cat ./OPENSHIFT_ANSIBLE_PKGS )&#34;
+else
+  upgrade_pkgs=&#34;atomic-openshift-utils&#34;
+fi
+sudo yum upgrade -y ansible \${upgrade_pkgs}
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-echo &#34;########## STARTING STAGE: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+echo &#34;########## STARTING STAGE: UPDATE ORIGIN ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPDATE ORIGIN ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 {
 cat &lt;&lt;EOF
 sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-git log -1 --pretty=%h &gt;&gt; /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT
+cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+git pull origin master
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>
@@ -245,12 +301,14 @@ cat &lt;&lt;EOF
 sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-sudo python hack/get_available_pkgs.py origin &gt; &#34;all_origin_versions&#34;
-sed -i &#39;/^[a-zA-Z]/d&#39; all_origin_versions
-sort -u -o all_origin_versions all_origin_versions
-upgrade_version=\$(tail -1 all_origin_versions)
+pkg_name=&#34;origin&#34;
+sudo python hack/get_available_pkgs.py \${pkg_name} &gt; &#34;all_\${pkg_name}_versions&#34;
+sed -i &#39;/^[a-zA-Z]/d&#39; all_\${pkg_name}_versions
+sort -u -o all_\${pkg_name}_versions all_\${pkg_name}_versions
+upgrade_version=\$(tail -1 all_\${pkg_name}_versions)
+upgrade_major_version=\$(echo &#34;\${upgrade_version}&#34; | awk -F&#39;.&#39; &#39;{print \$1}&#39;)
 upgrade_minor_version=\$(echo &#34;\${upgrade_version}&#34; | awk -F&#39;.&#39; &#39;{print \$2}&#39;)
-ansible-playbook --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_\${upgrade_minor_version}/upgrade.yml -e openshift_image_tag=&#34;\$( cat ./ORIGIN_COMMIT )&#34; -e openshift_upgrade_target=&#34;\${upgrade_version}&#34;
+ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_\${upgrade_minor_version}/upgrade.yml -e openshift_pkg_version=&#34;-\${upgrade_version}&#34; -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>

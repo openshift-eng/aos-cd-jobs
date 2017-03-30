@@ -29,7 +29,7 @@ git clone git@github.com:openshift/online.git
 cd online/
 
 # Check to see if there have been any changes since the last tag
-if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1; then
+if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_REBUILD}" != "true" ] ; then
     echo ; echo "No changes since last tagged build"
     echo "This is fine, continuing build"
 else

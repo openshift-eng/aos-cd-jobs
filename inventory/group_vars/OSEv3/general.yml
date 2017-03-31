@@ -13,5 +13,3 @@ openshift_master_identity_providers:
     kind: "AllowAllPasswordIdentityProvider"
 deployment_type: "origin"
 ansible_ssh_user: "ec2-user"
-etcd_data_dir: "/tmp/etcd"
-etcd_debug: true

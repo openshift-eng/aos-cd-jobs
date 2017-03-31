@@ -72,7 +72,7 @@ else
     echo "=========="
     echo "Sync distgit"
     echo "=========="
-    ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force
+    ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force --message="MaxFileSize: 52428800"
 
     echo
     echo "=========="

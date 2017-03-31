@@ -1,0 +1,12 @@
+- [ ] Rename the following branches to stage-sprint###
+  - [ ] origin/stage
+  - [ ] ose/stage
+  - [ ] origin-web-console/stage
+  - [ ] online/stage
+  - [ ] openshift-ansible
+- [ ] Branch master into the following:
+  - [ ] origin/stage
+  - [ ] ose/stage
+  - [ ] origin-web-console/stage
+  - [ ] online/stage
+  - [ ] openshift-ansible (check with sdodson whether this should be a tracking branch)

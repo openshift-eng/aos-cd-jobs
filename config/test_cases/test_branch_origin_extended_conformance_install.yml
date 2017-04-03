@@ -65,8 +65,20 @@ extensions:
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-
-        ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-        ansible-playbook -vv --become --become-user root --connection local --inventory inventory/ /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"
+        ansible-playbook -vv --become              \
+                         --become-user root        \
+                         --connection local        \
+                         --inventory inventory/    \
+                         -e deployment_type=origin \
+                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+        ansible-playbook -vv --become              \
+                         --become-user root        \
+                         --connection local        \
+                         --inventory inventory/    \
+                         -e deployment_type=origin \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
     - type: "script"
       title: "expose the kubeconfig"
       script: |-

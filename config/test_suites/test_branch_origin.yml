@@ -6,3 +6,4 @@ children:
   - "test_branch_origin_extended_conformance_install_update"
   - "test_branch_origin_extended_networking_minimal"
   - "test_branch_origin_extended_conformance_gce"
+  - "push_origin_release"

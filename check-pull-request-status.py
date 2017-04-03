@@ -24,10 +24,6 @@ pull_request = client.pull_request(owner='openshift', repository='openshift-ansi
 pull_request_statuses = client._json(client._get(pull_request.statuses_url.replace('statuses', 'status')), 200)['statuses']
 
 blocking_statuses = [
-    'aos-ci-jenkins/OS_3.4_NOT_containerized',
-    'aos-ci-jenkins/OS_3.4_NOT_containerized_e2e_tests',
-    'aos-ci-jenkins/OS_3.4_containerized',
-    'aos-ci-jenkins/OS_3.4_containerized_e2e_tests',
     'aos-ci-jenkins/OS_3.5_NOT_containerized',
     'aos-ci-jenkins/OS_3.5_NOT_containerized_e2e_tests',
     'aos-ci-jenkins/OS_3.5_containerized',

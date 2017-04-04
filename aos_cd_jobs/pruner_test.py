@@ -11,7 +11,7 @@ class TestPruneMethods(TestCase):
         ref.repo.working_dir = 'base'
         ref.remote_head = 'path'
 
-        self.assertEqual(jenkinsfile_for_ref(ref), 'base/path/Jenkinsfile')
+        self.assertEqual(jenkinsfile_for_ref(ref), 'base/jobs/path/Jenkinsfile')
 
     def test_prunable_remote_refs_exclude_head(self):
         """ HEAD should not be considered prunable """

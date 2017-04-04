@@ -5,39 +5,38 @@ from shutil import rmtree
 
 from git import Repo
 
-def initialize_repo():
-    repo_dir = join(getenv('WORKSPACE'), 'aos-cd-jobs')
-    return Repo.clone_from('git@github.com:openshift/aos-cd-jobs.git', repo_dir)
+from aos_cd_jobs.common import JOBS_DIRECTORY, initialize_repo
 
 def update_branches(repo):
-    jobs_directory = join(repo.working_dir, 'jobs')
-    for job in list_jobs(jobs_directory, walk(jobs_directory)):
+    for job in list_jobs(repo):
         branch = get_branch_by_name(repo.branches, job)
         if branch is not None:
             branch.delete()
         create_remote_branch(repo, job)
 
-def list_jobs(directory, walker):
-    return (
-        name[len(directory) + 1:]
-        for (name, _, files) in walker
-        if 'Jenkinsfile' in files
-    )
+def list_jobs(repo):
+    jobs = []
+    jobs_directory = join(repo.working_dir, JOBS_DIRECTORY)
+    for (dirpath, _, filenames) in walk(jobs_directory):
+        if 'Jenkinsfile' in filenames:
+            jobs.append(dirpath[len(jobs_directory) + 1:])
+    return jobs
 
 def get_branch_by_name(branches, name):
-    return next((b for b in branches if b.name == name), None)
+    if name in branches:
+        return branches[name]
 
 def create_remote_branch(repo, name):
     branch = repo.active_branch.checkout(orphan=name)
-    directory = join(repo.working_dir, 'jobs', name)
-    create_branch(directory, listdir(directory))
+    directory = join(repo.working_dir, JOBS_DIRECTORY, name)
+    create_job_file_tree(directory, listdir(directory))
     repo.index.add(['.'])
     repo.index.commit(
         'Auto-generated job branch from {} from {}'.format(
             name, repo.heads.master.commit.hexsha[:7]))
     repo.remotes.origin.push(name, force=True)
 
-def create_branch(directory, files):
+def create_job_file_tree(directory, files):
     for file in files:
         rename(join(directory, file), file)
     rmtree(directory)

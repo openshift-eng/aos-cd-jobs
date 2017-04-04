@@ -13,15 +13,29 @@ def version(f) {
 }
 
 def mail_success(version) {
+
+    def target = "Enterprise"
+    def mirrorURL = "https://mirror.openshift.com/enterprise/enterprise-${version.substring(0,3)}/"
+
+    if ( BUILD_MODE == "online/master" ) {
+        target = "Online-int"
+        mirrorURL = "https://mirror.openshift.com/enterprise/online-int/"
+    }
+    if ( BUILD_MODE == "online/stg" ) {
+        target = "Online-stg"
+        mirrorURL = "https://mirror.openshift.com/enterprise/online-stg/"
+    }
+
     mail(
         to: "${MAIL_LIST_SUCCESS}",
         replyTo: 'tdawson@redhat.com',
-        subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
+        subject: "[aos-devel] New Puddle for OpenShift ${target}: ${version}",
         body: """\
 v${version}
 Images have been built for this puddle
 Images have been pushed to registry.ops
-Puddles have been synched to mirrors
+Puddles have been synced to mirrors : ${mirrorURL}
+
 Jenkins job: ${env.BUILD_URL}
 """);
 }

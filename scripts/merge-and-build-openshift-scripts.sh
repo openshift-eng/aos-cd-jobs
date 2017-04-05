@@ -28,10 +28,14 @@ rm -rf online
 git clone git@github.com:openshift/online.git
 cd online/
 
+if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    git checkout -q stage
+fi
+
 # Check to see if there have been any changes since the last tag
 if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_REBUILD}" != "true" ] ; then
     echo ; echo "No changes since last tagged build"
-    echo "This is fine, continuing build"
+    echo "No need to build anything. Stopping."
 else
     #There have been changes, so rebuild
     echo
@@ -68,11 +72,14 @@ else
     echo "=========="
     ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
 
-    echo
-    echo "=========="
-    echo "Sync distgit"
-    echo "=========="
-    ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force --message "MaxFileSize: 52428800"
+    # If we are at the stage mode, dont be messing with the dist-git checking
+    if [ "${BUILD_MODE}" != "online/stg" ] ; then
+        echo
+        echo "=========="
+        echo "Sync distgit"
+        echo "=========="
+        ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force --message "MaxFileSize: 52428800"
+    fi
 
     echo
     echo "=========="

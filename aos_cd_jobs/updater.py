@@ -26,19 +26,20 @@ def list_jobs(repo):
     return jobs
 
 def create_remote_branch(repo, name):
-    branch = repo.active_branch.checkout(orphan=name)
+    branch = repo.heads.master.checkout(orphan=name)
     directory = join(repo.working_dir, JOBS_DIRECTORY, name)
-    create_job_file_tree(directory, listdir(directory))
-    repo.index.add(['.'])
+    create_job_file_tree(repo.working_dir, directory)
+    repo.index.remove(repo.index.entries.values())
+    repo.index.add([f for f in listdir(repo.working_dir) if f != '.git'])
     repo.index.commit(
         'Auto-generated job branch from {} from {}'.format(
             name, repo.heads.master.commit.hexsha[:7]))
     repo.remotes.origin.push(name, force=True)
 
-def create_job_file_tree(directory, files):
-    for file in files:
-        rename(join(directory, file), file)
-    rmtree(directory)
+def create_job_file_tree(repo_directory, job_directory):
+    for f in listdir(job_directory):
+        rename(join(job_directory, f), join(repo_directory, f))
+    rmtree(join(repo_directory, JOBS_DIRECTORY))
 
 if __name__ == '__main__':
     repo = initialize_repo()

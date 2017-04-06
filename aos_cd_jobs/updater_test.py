@@ -19,15 +19,16 @@ class TestUpdateMethods(TestCase):
         repo.working_dir = 'dir'
         self.assertEqual(list_jobs(repo), [])
 
+    @patch('aos_cd_jobs.updater.listdir', lambda _: ('Jenkinsfile', 'README'))
     @patch('aos_cd_jobs.updater.rename')
     @patch('aos_cd_jobs.updater.rmtree')
     def test_create_job_file_tree(self, rmtree_mock, rename_mock):
         directory = 'jobs/build/ose'
-        create_job_file_tree(directory, ('Jenkinsfile', 'README'))
+        create_job_file_tree('', 'jobs/build/ose')
         rename_mock.assert_has_calls((
             call('jobs/build/ose/Jenkinsfile', 'Jenkinsfile'),
             call('jobs/build/ose/README', 'README')))
-        rmtree_mock.assert_called_once_with(directory)
+        rmtree_mock.assert_called_once_with('jobs')
 
     @patch('aos_cd_jobs.updater.list_jobs', lambda *_: ('jobs0',))
     @patch('aos_cd_jobs.updater.create_remote_branch', lambda *_: None)

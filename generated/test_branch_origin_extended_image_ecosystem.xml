@@ -89,9 +89,13 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-sudo mkdir -p /tmp
-sudo mount -t tmpfs -o size=2048m tmpfs /tmp
-sudo restorecon -R /tmp
+sudo su root &lt;&lt;SUDO
+mkdir -p /tmp
+mount -t tmpfs -o size=2048m tmpfs /tmp
+restorecon -R /tmp
+mkdir -p /tmp/etcd
+echo &#34;ETCD_DATA_DIR=/tmp/etcd&#34; &gt;&gt; /etc/environment
+SUDO
 SCRIPT
 chmod +x &#34;${script}&#34;
 cat &#34;${script}&#34;

@@ -22,7 +22,7 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com, chmurphy@redhat.com', description: 'Success for minor cluster operation', name: 'MAIL_LIST_SUCCESS_MINOR'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com, chmurphy@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "test-key\ncicd\ndev-preview-int\ndev-preview-stg\npreview", name: 'CLUSTER_NAME', description: 'The name of the cluster to affect'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "noop\ndelete\ninstall\nupgrade", name: 'OPERATION', description: 'Operation to perform'],
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "noop\nreinstall\ndelete\ninstall\nupgrade", name: 'OPERATION', description: 'Operation to perform'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
                       ]
              ]]
@@ -49,7 +49,12 @@ node('buildvm-devops') {
     try {
         stage( 'Cluster operation' ) {
             sshagent([CLUSTER_NAME]) {
-                sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com ${OPERATION}"
+                if ( OPERATION == "reinstall" ) {
+                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com delete"
+                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com install"
+                } else {
+                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com ${OPERATION}"
+                }
             }
         }
 

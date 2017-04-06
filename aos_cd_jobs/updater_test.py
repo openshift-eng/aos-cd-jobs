@@ -2,7 +2,7 @@
 from unittest import TestCase, main
 from mock import Mock, call, patch
 
-from aos_cd_jobs.updater import create_job_file_tree, create_remote_branch, get_branch_by_name, list_jobs, update_branches
+from aos_cd_jobs.updater import create_job_file_tree, create_remote_branch, list_jobs, update_branches
 
 class TestUpdateMethods(TestCase):
     @patch('aos_cd_jobs.updater.walk')
@@ -18,14 +18,6 @@ class TestUpdateMethods(TestCase):
         repo = Mock()
         repo.working_dir = 'dir'
         self.assertEqual(list_jobs(repo), [])
-
-    def test_get_branch_by_name_positive(self):
-        branches = {'branch0': 'branch0'}
-        self.assertEqual(get_branch_by_name(branches, 'branch0'), 'branch0')
-
-    def test_get_branch_by_name_negative(self):
-        branches = {'branch0': 'branch0'}
-        self.assertIsNone(get_branch_by_name(branches, 'branch1'))
 
     @patch('aos_cd_jobs.updater.rename')
     @patch('aos_cd_jobs.updater.rmtree')
@@ -48,14 +40,14 @@ class TestUpdateMethods(TestCase):
         update_branches(repo)
         self.assertTrue(branch.delete.called)
 
-    @patch('aos_cd_jobs.updater.list_jobs', lambda *_: ('jobs0', 'job1'))
-    @patch('aos_cd_jobs.updater.get_branch_by_name', lambda *_: None)
+    @patch('aos_cd_jobs.updater.list_jobs', lambda *_: ('job0', 'job1'))
     @patch('aos_cd_jobs.updater.create_remote_branch')
     def test_update_branches(self, create_mock):
         repo = Mock()
         repo.working_dir = '/tmp/aos-cd-jobs'
+        repo.branches = {'job0': Mock(), 'job1': Mock()}
         update_branches(repo)
-        create_mock.assert_has_calls((call(repo, 'jobs0'), call(repo, 'job1')))
+        create_mock.assert_has_calls((call(repo, 'job0'), call(repo, 'job1')))
 
 
 if __name__ == '__main__':

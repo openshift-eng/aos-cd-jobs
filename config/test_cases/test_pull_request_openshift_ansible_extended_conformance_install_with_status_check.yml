@@ -1,7 +1,11 @@
 ---
 parent: 'test_cases/test_pull_request_openshift_ansible_extended_conformance_install.yml'
 overrides:
-  merge: "openshift-ansible"
+  sync_repos:
+    - name: "aos-cd-jobs"
+    - name: "openshift-ansible"
+      type: "pull_request"
+    - name: "origin"
 extensions:
   actions:
     - type: "host_script"

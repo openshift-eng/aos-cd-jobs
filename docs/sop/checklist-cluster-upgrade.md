@@ -1,4 +1,9 @@
+- [ ] If the minor version of openshift has not been used in an upgrade before
+  - [ ] Vendor the required version of openshift ansible version of openshift-ansible
+  - [ ] Setup tech profile: https://github.com/openshift/openshift-ansible-ops/pull/2431/files
 - [ ] If the cluster has not been upgraded before
+  - [ ] Ensure that there is an ssh key for the cluster in Jenkins
+  - [ ] Setup tower authorized_keys for the ssh key
   - [ ] Create the template directory for the cluster (including upgrading the private AWS information for the cluster)
   - [ ] If the job is an upgrade, log into the cluster and remove any legacy yum repos
 - [ ] Re-vendor appropriate openshift-ansible if it is still not dynamic  (origin/openshift-ansible:stage? release-1.5?)

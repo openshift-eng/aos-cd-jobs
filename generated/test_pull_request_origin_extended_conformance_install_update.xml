@@ -242,7 +242,6 @@ ansible-playbook  -vv                \
                   -i inventory/      \
                   /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
-# Remove &#34;enable_excluders&#34; variable after openshift-ansbile pkgs are rebuilded with https://github.com/openshift/openshift-ansible/pull/3788
 ansible-playbook  -vv                \
                   --become           \
                   --become-user root \
@@ -250,8 +249,7 @@ ansible-playbook  -vv                \
                   -i inventory/      \
                   /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_INSTALL_VERSION}&#34;         \
-                  -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)                  \
-                  -e enable_excluders=false
+                  -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
 if [[ -v ORIGIN_UPGRADE_VERSION  &amp;&amp; -v ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ]]
 then
   echo &#34;=== Updating atomic-openshift-utils-\${ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION} ===&#34;

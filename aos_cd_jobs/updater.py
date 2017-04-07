@@ -10,11 +10,7 @@ from aos_cd_jobs.common import JOBS_DIRECTORY, initialize_repo
 def update_branches(repo):
     for job in list_jobs(repo):
         if job in repo.branches:
-            branch = repo.branches[job]
-        else:
-            branch = None
-        if branch is not None:
-            branch.delete()
+            repo.branches[job].delete()
         create_remote_branch(repo, job)
 
 def list_jobs(repo):
@@ -26,20 +22,28 @@ def list_jobs(repo):
     return jobs
 
 def create_remote_branch(repo, name):
-    branch = repo.heads.master.checkout(orphan=name)
+    initialize_orphan_branch(repo, name)
+    populate_branch(repo, name)
+    publish_branch(repo, name)
+
+def initialize_orphan_branch(repo, name):
+    repo.heads.master.checkout(orphan=name)
+
+def populate_branch(repo, name):
     directory = join(repo.working_dir, JOBS_DIRECTORY, name)
     create_job_file_tree(repo.working_dir, directory)
-    repo.index.remove(repo.index.entries.values())
-    repo.index.add([f for f in listdir(repo.working_dir) if f != '.git'])
+    repo.git.add(all=True)
     repo.index.commit(
         'Auto-generated job branch from {} from {}'.format(
             name, repo.heads.master.commit.hexsha[:7]))
-    repo.remotes.origin.push(name, force=True)
 
 def create_job_file_tree(repo_directory, job_directory):
     for f in listdir(job_directory):
         rename(join(job_directory, f), join(repo_directory, f))
     rmtree(join(repo_directory, JOBS_DIRECTORY))
+
+def publish_branch(repo, name):
+    repo.remotes.origin.push(name, force=True)
 
 if __name__ == '__main__':
     repo = initialize_repo()

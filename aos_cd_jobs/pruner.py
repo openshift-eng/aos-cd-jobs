@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-from os import getenv
 from os.path import join, exists
-
-from git import Repo, RemoteReference
 
 from aos_cd_jobs.common import JOBS_DIRECTORY, initialize_repo
 

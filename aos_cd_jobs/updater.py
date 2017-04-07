@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-from os import getenv, listdir, rename, walk
+from os import listdir, rename, walk
 from os.path import join, relpath
 from shutil import rmtree
-
-from git import Repo
 
 from aos_cd_jobs.common import JOBS_DIRECTORY, initialize_repo
 

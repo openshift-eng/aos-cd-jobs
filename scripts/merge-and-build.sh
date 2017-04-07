@@ -23,7 +23,7 @@ set -o pipefail
 ## OSE_MASTER_BRANCHED means it has been branched, ie ose/enterprise-3.5 but hasn't been released
 ## Right after a release, but before a master branch, both should be set the same, ie both are 3.6
 OSE_MASTER="3.6"
-OSE_MASTER_BRANCHED="3.5"
+OSE_MASTER_BRANCHED="3.6"
 if [ "$#" -ne 2 ]; then
   MAJOR="3"
   MINOR="5"  
@@ -35,7 +35,7 @@ else
 fi
 OSE_VERSION="${MAJOR}.${MINOR}"
 PUSH_EXTRA=""
-if [ "${OSE_VERSION}" != "${OSE_MASTER_BRANCHED}" ] && [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
   PUSH_EXTRA="--nolatest"
 fi
 
@@ -139,13 +139,9 @@ cd ${WORKPATH}
 rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
-if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] || [ "${OSE_VERSION}" == "${OSE_MASTER}" ]; then
+if [ "${OSE_VERSION}" == "${OSE_MASTER}" ]; then
   if [ "${BUILD_MODE}" == "online/stg" ] ; then
     git checkout -q stage
-  else
-    if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] ; then
-      git checkout -q enterprise-${OSE_VERSION}
-    fi
   fi
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all

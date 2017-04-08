@@ -71,6 +71,10 @@ if [ "${OSE_VERSION}" == "3.2" ] ; then
   exit 1
 fi # End check if we are version 3.2
 
+echo
+echo "=========="
+echo "Setup: openshift-ansible"
+echo "=========="
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
 cd openshift-ansible/
@@ -94,7 +98,7 @@ else
     #There have been changes, so rebuild
     echo
     echo "=========="
-    echo "Tito Tagging"
+    echo "Tito Tagging: openshift-ansible"
     echo "=========="
     tito tag --accept-auto-changelog
     git push
@@ -102,7 +106,7 @@ else
 
     echo
     echo "=========="
-    echo "Tito building in brew"
+    echo "Tito building in brew: openshift-ansible"
     echo "=========="
     TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
     echo "TASK NUMBER: ${TASK_NUMBER}"
@@ -165,18 +169,13 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ]; then
 else
   git checkout -q enterprise-${OSE_VERSION}
   # Check to see if we need to rebuild or not
-  HEAD_COMMIT="$(git log -n1 --oneline | awk '{print $1}')"
-  OLD_VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
-  git checkout -q ${OLD_VERSION}
-  LAST_COMMIT="$(git log -n1 --oneline | awk '{print $1}')"
-  if [ "${HEAD_COMMIT}" == "${LAST_COMMIT}" ]; then
+  if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 ; then
     echo ; echo "No changes in enterprise-${OSE_VERSION} since last build"
     echo "This is good, so we are exiting with 0"
     exit 0
   else
    echo ; echo "There were changes in enterprise-${OSE_VERSION} since last build"
    echo "So we are moving on with the build"
-   git checkout -q enterprise-${OSE_VERSION}
   fi
 fi # End check if we are master
 

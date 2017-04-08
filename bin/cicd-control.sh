@@ -92,7 +92,7 @@ if [ "${OPERATION}" == "install" ]; then
     /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
 
     # Kill all background jobs on normal exit or signal
-    trap 'kill $(jobs -p)' EXIT
+    trap 'if kill $(jobs -p); then echo Killed autokeys; else echo Unable to kill autokeys; fi' EXIT
 
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE
@@ -137,7 +137,7 @@ elif [ "${OPERATION}" == "upgrade" ]; then
     /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
 
     # Kill all background jobs on normal exit or signal
-    trap 'kill $(jobs -p)' EXIT
+    trap 'if kill $(jobs -p); then echo Killed autokeys; else echo Unable to kill autokeys; fi' EXIT
 
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE

@@ -3,7 +3,6 @@
 set -o errexit
 set -o nounset
 set -o pipefail
-set -o xtrace
 
 if [[ -n "$( git status --porcelain 2>&1 )" ]]; then
     echo "[FATAL] Cannot run this without a clean git state. Commit your changes and try again."

@@ -7,3 +7,4 @@ children:
   - "test_branch_origin_extended_networking_minimal"
   - "test_branch_origin_extended_conformance_gce"
   - "push_origin_release"
+  - "ami_build_origin_int_rhel_build"

@@ -1,0 +1,22 @@
+---
+parameters: []
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync_repos:
+  - name: "openshift-ansible"
+    type: "pull_request"
+actions:
+  - type: "script"
+    title: "install test dependencies"
+    script: |-
+      sudo pip install tox
+  - type: "script"
+    title: "run unit tests"
+    repository: "openshift-ansible"
+    script: |-
+      tox
+post_actions: []
+artifacts: []
+generated_artifacts: {}

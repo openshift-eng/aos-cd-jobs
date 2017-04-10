@@ -119,7 +119,8 @@ elif [ "${OPERATION}" == "delete" ]; then
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
   echo
 
-  pushd ../../openshift-ansible-ops/playbooks/release/decommission /usr/local/bin/autokeys_loader /usr/bin/ansible-playbook aws_remove_cluster.yml -e cli_clusterid=${CLUSTERNAME} -e cluster_to_delete=${CLUSTERNAME} -e run_in_automated_mode=True
+  pushd ../../openshift-ansible-ops/playbooks/release/decommission 
+    /usr/local/bin/autokeys_loader /usr/bin/ansible-playbook aws_remove_cluster.yml -e cli_clusterid=${CLUSTERNAME} -e cluster_to_delete=${CLUSTERNAME} -e run_in_automated_mode=True
   popd
 
   # This updates the OPs inventory

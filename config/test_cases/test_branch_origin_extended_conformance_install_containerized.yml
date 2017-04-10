@@ -78,6 +78,7 @@ extensions:
                          --inventory inventory/    \
                          -e containerized=true     \
                          -e deployment_type=origin \
+                         -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml

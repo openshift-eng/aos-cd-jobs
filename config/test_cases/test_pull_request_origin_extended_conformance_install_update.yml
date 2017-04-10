@@ -4,5 +4,5 @@ overrides:
   sync_repos:
     - name: "aos-cd-jobs"
     - name: "openshift-ansible"
-      type: "pull_request"
     - name: "origin"
+      type: "pull_request"

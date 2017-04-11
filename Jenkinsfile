@@ -1,3 +1,11 @@
+properties(
+  [
+    disableConcurrentBuilds()
+  ]
+)
+
 node('buildvm-devops') {
-  echo "Bruno's branch split pipeline"
+  sshagent(['openshift-bot']) { // git repo privileges stored in Jenkins credential store
+    echo "Bruno's branch split pipeline"
+  }
 }

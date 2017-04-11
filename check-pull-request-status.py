@@ -28,7 +28,6 @@ blocking_statuses = [
     'aos-ci-jenkins/OS_3.5_NOT_containerized_e2e_tests',
     'aos-ci-jenkins/OS_3.5_containerized',
     'aos-ci-jenkins/OS_3.5_containerized_e2e_tests',
-    'aos-ci-jenkins/OS_unit_tests',
     'continuous-integration/travis-ci/pr'
 ]
 

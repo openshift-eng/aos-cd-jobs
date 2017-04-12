@@ -143,28 +143,28 @@ cd ${WORKPATH}
 rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
-if [ "${OSE_VERSION}" == "${OSE_MASTER}" ]; then
-  if [ "${BUILD_MODE}" == "online/stg" ] ; then
-    git checkout -q stage
-  fi
+if [[ "${OSE_VERSION}" == "${OSE_MASTER}" || "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ]]; then
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
+
+  if [[ "${BUILD_MODE}" == "online/stg" ]]; then
+    CURRENT_BRANCH="stage"
+    UPSTREAM_BRANCH="upstream/stage"
+  else if [[ "${OSE_VERSION}" == "${OSE_MASTER}" ]]; then
+    CURRENT_BRANCH="master"
+    UPSTREAM_BRANCH="upstream/master"
+  else if [[ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ]]; then
+    CURRENT_BRANCH="enterprise-${OSE_VERSION}"
+    UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
+  fi
+
+  git checkout -q ${CURRENT_BRANCH}
 
   echo
   echo "=========="
   echo "Merge origin into ose stuff"
   echo "=========="
-  if [ "${BUILD_MODE}" == "online/stg" ] ; then
-    git merge -m "Merge remote-tracking branch upstream/stage" upstream/stage
-  else
-    if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-      git merge -m "Merge remote-tracking branch upstream/master" upstream/master
-    else
-      ## Once 3.5 is released, change this to the following
-      # git merge -m "Merge remote-tracking branch upstream/release-${OSE_VERSION}" upstream/release-${OSE_VERSION}
-      git merge -m "Merge remote-tracking branch upstream/release-1.5" upstream/release-1.5
-    fi
-  fi
+  git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" ${UPSTREAM_BRANCH}
 
 else
   git checkout -q enterprise-${OSE_VERSION}

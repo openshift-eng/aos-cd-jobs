@@ -83,6 +83,28 @@ oct prepare repositories</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: INSTALL SYSTEM ACCOUNTING RULES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL SYSTEM ACCOUNTING RULES ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+cat &lt;&lt;EOF &gt;origin-ami-accounting.conf
+[Manager]
+DefaultCPUAccounting=yes
+DefaultMemoryAccounting=yes
+EOF
+sudo mkdir -p /etc/systemd/system.conf.d/
+sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
+
+if systemctl show docker.service --property CPUAccounting --property MemoryAccounting | grep &#39;no&#39;; then
+    sudo systemctl daemon-reexec
+fi
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: PACKAGE THE AMI ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PACKAGE THE AMI ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 oct package ami --upgrade</command>
         </hudson.tasks.Shell>

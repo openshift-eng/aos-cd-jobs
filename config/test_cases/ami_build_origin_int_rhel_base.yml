@@ -25,11 +25,11 @@ actions:
   - type: "script"
     title: "install system accounting rules"
     script: |-
-      cat <<EOF >origin-ami-accounting.conf
+      cat <<CONF >origin-ami-accounting.conf
       [Manager]
       DefaultCPUAccounting=yes
       DefaultMemoryAccounting=yes
-      EOF
+      CONF
       sudo mkdir -p /etc/systemd/system.conf.d/
       sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
       sudo systemctl daemon-reexec

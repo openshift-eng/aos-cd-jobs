@@ -28,6 +28,7 @@ def mail_success(version) {
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",
+        from: "aos-cd@redhat.com",
         replyTo: 'tdawson@redhat.com',
         subject: "[aos-devel] New Puddle for OpenShift ${target}: ${version}",
         body: """\
@@ -90,6 +91,7 @@ enterprise/release  openshift/origin/release-X.Y ->  https://mirror.openshift.co
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
+                    from: "aos-cd@redhat.com",
                     subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
                     body: """Encoutered an error while running merge-and-build.sh: ${err}
 

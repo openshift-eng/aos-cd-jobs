@@ -11,6 +11,20 @@ function print_usage() {
   echo
 }
 
+function get_latest_openshift_ansible()  {
+
+  # Vendor everything but int.
+  if [[ "${1}" == "int" ]]; then
+    pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms
+      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml e cli_type=online -e cli_release=$1
+    popd
+
+    export OPENSHIFT_ANSIBLE_INSTALL_DIR="/tmp/${USER}/openshift-ansible"
+  else
+    export OPENSHIFT_ANSIBLE_INSTALL_DIR="./../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
+  fi
+}
+
 if [ "$#" -lt 2 ]
 then
   print_usage
@@ -45,15 +59,13 @@ if [[ "$help" == "1" ]]; then
     exit 0
 fi
 
-# Set the version for the upgrade
-export VERSION=3.5
-
 # Allow for "test-key" to do some testing.
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
 # and then exit successfully.
 if  [ "${CLUSTERNAME}" == "test-key" ]; then
+  get_latest_openshift_ansible ${oo_environment}
+  echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"
   echo "Operation requested on mock cluster '${CLUSTERNAME}'. The operation is: '${OPERATION}' with options: ${ARGS}"
-  echo "  VERSION=${VERSION}"
   echo "  OPENSHIFT_ANSIBLE_VERSION=${OPENSHIFT_ANSIBLE_VERSION}"
   exit 0
 fi
@@ -64,7 +76,6 @@ fi
 # in place to do updates
 ####### DEBUG. UNCOMMENT THE FOLLOWING FOR PRODUCTION ####
 /usr/bin/ansible-playbook ./clone_ops_git_repos.yml
-
 
 set -o xtrace
 source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
@@ -79,13 +90,16 @@ fi
 echo "Update cluster setup changes..."
 /usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} ../../openshift-ansible-ops/playbooks/release/bin
 
-
-
+# Get the version and env from the template file
+oo_version="$(grep -Po '(?<=^g_install_version: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}" | /usr/bin/cut -c 1-3)"
+oo_environment="$(grep -Po '(?<=^g_environment: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}")"
 
 ################################################
 # CREATE CLUSTER
 ################################################
 if [ "${OPERATION}" == "install" ]; then
+
+  get_latest_openshift_ansible ${oo_environment}
 
   # Deploy all the things
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
@@ -119,7 +133,7 @@ elif [ "${OPERATION}" == "delete" ]; then
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
   echo
 
-  pushd ../../openshift-ansible-ops/playbooks/release/decommission 
+  pushd ../../openshift-ansible-ops/playbooks/release/decommission
     /usr/local/bin/autokeys_loader /usr/bin/ansible-playbook aws_remove_cluster.yml -e cli_clusterid=${CLUSTERNAME} -e cluster_to_delete=${CLUSTERNAME} -e run_in_automated_mode=True
   popd
 
@@ -132,6 +146,9 @@ elif [ "${OPERATION}" == "delete" ]; then
 ################################################
 elif [ "${OPERATION}" == "upgrade" ]; then
   echo Doing upgrade
+
+  # Get the latest openshift-ansible rpms
+  get_latest_openshift_ansible ${oo_environment}
 
   # Run the upgrade, including post_byo steps and config loop
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin

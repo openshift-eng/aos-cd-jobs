@@ -22,6 +22,17 @@ actions:
     title: "prepare repositories"
     script: |-
       oct prepare repositories
+  - type: "script"
+    title: "install system accounting rules"
+    script: |-
+      cat <<EOF >origin-ami-accounting.conf
+      [Manager]
+      DefaultCPUAccounting=yes
+      DefaultMemoryAccounting=yes
+      EOF
+      sudo mkdir -p /etc/systemd/system.conf.d/
+      sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
+      sudo systemctl daemon-reexec
   - type: "host_script"
     title: "package the AMI"
     script: |-

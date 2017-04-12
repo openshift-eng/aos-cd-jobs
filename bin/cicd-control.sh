@@ -21,7 +21,7 @@ function get_latest_openshift_ansible()  {
 
     export OPENSHIFT_ANSIBLE_INSTALL_DIR="/tmp/${USER}/openshift-ansible"
   else
-    export OPENSHIFT_ANSIBLE_INSTALL_DIR="./../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
+    export OPENSHIFT_ANSIBLE_INSTALL_DIR="../../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
   fi
 }
 

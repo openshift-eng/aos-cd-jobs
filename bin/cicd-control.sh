@@ -12,11 +12,17 @@ function print_usage() {
 }
 
 function get_latest_openshift_ansible()  {
-  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms
-    /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml e cli_type=online -e cli_release=$1
-  popd
 
-  export OPENSHIFT_ANSIBLE_INSTALL_DIR="/tmp/${USER}/openshift-ansible"
+  # Vendor everything but int.
+  if [[ "${1}" == "int" ]]; then
+    pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms
+      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml e cli_type=online -e cli_release=$1
+    popd
+
+    export OPENSHIFT_ANSIBLE_INSTALL_DIR="/tmp/${USER}/openshift-ansible"
+  else
+    export OPENSHIFT_ANSIBLE_INSTALL_DIR="./../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
+  fi
 }
 
 if [ "$#" -lt 2 ]
@@ -57,6 +63,8 @@ fi
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
 # and then exit successfully.
 if  [ "${CLUSTERNAME}" == "test-key" ]; then
+  get_latest_openshift_ansible ${oo_environment}
+  echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"
   echo "Operation requested on mock cluster '${CLUSTERNAME}'. The operation is: '${OPERATION}' with options: ${ARGS}"
   echo "  OPENSHIFT_ANSIBLE_VERSION=${OPENSHIFT_ANSIBLE_VERSION}"
   exit 0

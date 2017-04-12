@@ -16,7 +16,7 @@ function get_latest_openshift_ansible()  {
   # Vendor everything but int.
   if [[ "${1}" == "int" ]]; then
     pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms
-      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml e cli_type=online -e cli_release=$1
+      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1
     popd
 
     export OPENSHIFT_ANSIBLE_INSTALL_DIR="/tmp/${USER}/openshift-ansible"

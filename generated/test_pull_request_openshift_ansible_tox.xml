@@ -112,6 +112,34 @@ tox
 EOF
 } | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
         </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: BUILD IMAGES FOR INTEGRATION TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD IMAGES FOR INTEGRATION TESTS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [ -x test/integration/build-images.sh ]; then
+  test/integration/build-images.sh
+fi
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: RUN INTEGRATION TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN INTEGRATION TESTS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+{
+cat &lt;&lt;EOF
+sudo su origin
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [ -x test/integration/run-tests.sh ]; then
+  test/integration/run-tests.sh
+fi
+EOF
+} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+        </hudson.tasks.Shell>
   </builders>
   <publishers>
     <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">

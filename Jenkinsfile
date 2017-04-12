@@ -3,6 +3,7 @@
 def mail_success(list) {
     mail(
         to: "${list}",
+        from: "aos-cd@redhat.com",
         replyTo: 'jupierce@redhat.com',
         subject: "[aos-devel] Cluster ${OPERATION} complete: ${CLUSTER_NAME}",
         body: """\
@@ -68,8 +69,9 @@ node('buildvm-devops') {
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
         mail(to: "${MAIL_LIST_FAILURE}",
-            subject: "Error during ${OPERATION} on cluster ${CLUSTER_NAME}",
-            body: """Encoutered an error: ${err}
+                from: "aos-cd@redhat.com",
+                subject: "Error during ${OPERATION} on cluster ${CLUSTER_NAME}",
+                body: """Encoutered an error: ${err}
 
 Jenkins job: ${env.BUILD_URL}
 """);

@@ -6,9 +6,9 @@ from actions.named_shell_task import render_task
 from .interface import Action
 
 _SCRIPT_TITLE = "EXECUTE A SCRIPT ON THE REMOTE HOST"
-_SCRIPT_ACTION_TEMPLATE = Template("""{
-cat <<EOF
-sudo su origin
+_SCRIPT_ACTION_TEMPLATE = Template("""script="$( mktemp )"
+cat <<SCRIPT >"${script}"
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 {%- if repository %}
 cd "\${GOPATH}/src/github.com/openshift/{{ repository }}"
@@ -16,8 +16,12 @@ cd "\${GOPATH}/src/github.com/openshift/{{ repository }}"
 cd "\${HOME}"
 {%- endif %}
 {{ command | replace("$", "\$") }}
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel""")
+SCRIPT
+chmod +x "${script}"
+cat "${script}"
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config "${script}" openshiftdevel:"${script}"
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin "${script}"
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin "${script}" """)
 
 
 class ScriptAction(Action):

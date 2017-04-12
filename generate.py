@@ -159,7 +159,7 @@ elif job_type == "suite":
             ))
             registered_names.append(parameter_name)
 
-    print("[INFO] Added the following parameters for child jobs:\n{}".format(",e ".join(registered_names)))
+    print("[INFO] Added the following parameters for child jobs:\n{}".format(", ".join(registered_names)))
     actions.append(ChildJobAction(job_config["children"]))
 
 generator = MultiAction(actions)

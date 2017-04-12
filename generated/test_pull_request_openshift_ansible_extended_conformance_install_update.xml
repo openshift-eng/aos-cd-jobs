@@ -112,38 +112,46 @@ oct sync remote origin --branch &#34;${ORIGIN_TARGET_BRANCH}&#34; </command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: USE A RAMDISK FOR ETCD ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: USE A RAMDISK FOR ETCD ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo mkdir -p /tmp
 sudo mount -t tmpfs -o size=2048m tmpfs /tmp
 sudo restorecon -R /tmp
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 git log -1 --pretty=%h &gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
 source hack/lib/init.sh
 os::build::rpm::format_nvra &gt; &#34;\${jobs_repo}/ORIGIN_BUILT_VERSION&#34;
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: BUILD AN OPENSHIFT-ANSIBLE RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD AN OPENSHIFT-ANSIBLE RELEASE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 tito_tmp_dir=&#34;tito&#34;
@@ -159,15 +167,19 @@ name = OpenShift Ansible Release from Local Source
 EOR
 sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
 basename &#34;\${tito_tmp_dir}&#34;/noarch/atomic-openshift-utils*.rpm .rpm &gt; /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_ANSIBLE_BUILT_VERSION
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: INSTALL ANSIBLE ATOMIC-OPENSHIFT-UTILS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE ATOMIC-OPENSHIFT-UTILS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 pkg_name=&#34;origin&#34;
@@ -189,15 +201,19 @@ do
 done
 echo &#34;=== Installing atomic-openshift-utils-\${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION} packages ===&#34;
 sudo yum install -y \${versioned_packages_to_install}
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: INSTALL ANSIBLE PLUGINS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE PLUGINS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 sudo yum install -y python-pip
@@ -210,15 +226,19 @@ for plugin in &#39;default_with_output_lists&#39; &#39;generate_junit&#39;; do
    sudo mv &#34;\${plugin}.py&#34; /usr/share/ansible/plugins/callback
 done
 sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_whitelist.*/callback_whitelist = generate_junit/&#39; /etc/ansible/ansible.cfg
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: INSTALL ORIGIN GA AND UPDATE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ORIGIN GA AND UPDATE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 pkg_name=\$( cat ./PKG_NAME )
@@ -272,15 +292,19 @@ then
                     -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)          \
                     -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\${ORIGIN_UPGRADE_VERSION_PKG_VERSION}&#34;
 fi
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: BUILD AN ORIGIN RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD AN ORIGIN RELEASE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 hack/build-base-images.sh
@@ -289,15 +313,19 @@ sudo systemctl restart docker
 hack/build-images.sh
 sed -i &#39;s|go/src|data/src|&#39; _output/local/releases/rpms/origin-local-release.repo
 sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: UPGRADE OPENSHIFT-ANSIBLE TO RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPGRADE OPENSHIFT-ANSIBLE TO RELEASE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 source ORIGIN_VARS
@@ -309,15 +337,19 @@ do
   versioned_packages_to_upgrade+=&#34; \${pkg}-\${ATOMIC_OPENSHIFT_UTILS_UPGRADE_RELEASE_VERSION}&#34;
 done
 sudo yum upgrade -y \${versioned_packages_to_upgrade}
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: UPDATE ORIGIN TO RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPDATE ORIGIN TO RELEASE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 pkg_name=\$( cat ./PKG_NAME )
@@ -332,33 +364,45 @@ ansible-playbook  -vv                    \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_UPGRADE_RELEASE_VERSION}&#34; \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE) \
                   -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: EXPOSE THE KUBECONFIG ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: EXPOSE THE KUBECONFIG ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: RUN EXTENDED TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN EXTENDED TESTS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>

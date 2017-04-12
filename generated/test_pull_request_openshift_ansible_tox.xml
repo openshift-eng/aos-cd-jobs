@@ -90,55 +90,71 @@ oct sync remote openshift-ansible --refspec &#34;pull/${OPENSHIFT_ANSIBLE_PULL_I
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: INSTALL TEST DEPENDENCIES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL TEST DEPENDENCIES ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo yum install -y gcc libffi-devel python-devel openssl-devel python-pip
 sudo pip install tox
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: RUN UNIT TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN UNIT TESTS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 tox
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: BUILD IMAGES FOR INTEGRATION TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD IMAGES FOR INTEGRATION TESTS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 if [ -x test/integration/build-images.sh ]; then
   test/integration/build-images.sh
 fi
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: RUN INTEGRATION TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN INTEGRATION TESTS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-{
-cat &lt;&lt;EOF
-sudo su origin
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 if [ -x test/integration/run-tests.sh ]; then
   test/integration/run-tests.sh
 fi
-EOF
-} | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+cat &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>

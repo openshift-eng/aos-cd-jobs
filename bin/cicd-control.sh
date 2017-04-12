@@ -59,6 +59,13 @@ if [[ "$help" == "1" ]]; then
     exit 0
 fi
 
+# update git repos
+# This needs review.
+# This isn't very portable. This requires that the git dirs are already
+# in place to do updates
+####### DEBUG. UNCOMMENT THE FOLLOWING FOR PRODUCTION ####
+/usr/bin/ansible-playbook ./clone_ops_git_repos.yml
+
 # Allow for "test-key" to do some testing.
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
 # and then exit successfully.
@@ -70,15 +77,9 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   exit 0
 fi
 
-# update git repos
-# This needs review.
-# This isn't very portable. This requires that the git dirs are already
-# in place to do updates
-####### DEBUG. UNCOMMENT THE FOLLOWING FOR PRODUCTION ####
-/usr/bin/ansible-playbook ./clone_ops_git_repos.yml
+source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
 
 set -o xtrace
-source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
 
 CLUSTER_SETUP_TEMPLATE_FILE=../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml
 if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then

@@ -63,7 +63,7 @@ fi
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
 # and then exit successfully.
 if  [ "${CLUSTERNAME}" == "test-key" ]; then
-  get_latest_openshift_ansible ${oo_environment}
+  get_latest_openshift_ansible "int"
   echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"
   echo "Operation requested on mock cluster '${CLUSTERNAME}'. The operation is: '${OPERATION}' with options: ${ARGS}"
   echo "  OPENSHIFT_ANSIBLE_VERSION=${OPENSHIFT_ANSIBLE_VERSION}"

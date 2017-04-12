@@ -19,6 +19,11 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
+          <name>AOS_CD_JOBS_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs&#34;&gt;aos-cd-jobs&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/openshift-ansible&#34;&gt;openshift-ansible&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
@@ -27,11 +32,6 @@
           <name>OPENSHIFT_ANSIBLE_PULL_ID</name>
           <description>The pull-request in the &lt;a href=&#34;https://github.com/openshift/openshift-ansible&#34;&gt;openshift-ansible&lt;/a&gt; repository to test.</description>
           <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>AOS_CD_JOBS_TARGET_BRANCH</name>
-          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs&#34;&gt;aos-cd-jobs&lt;/a&gt; repository to test against.</description>
-          <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>ORIGIN_TARGET_BRANCH</name>
@@ -62,22 +62,6 @@
     <com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
       <phaseName>Test Phase</phaseName>
       <phaseJobs>
-        <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_openshift_ansible_tox</jobName>
-          <currParams>true</currParams>
-          <exposedSCM>false</exposedSCM>
-          <disableJob>false</disableJob>
-          <parsingRulesPath></parsingRulesPath>
-          <maxRetries>0</maxRetries>
-          <enableRetryStrategy>false</enableRetryStrategy>
-          <enableCondition>false</enableCondition>
-          <abortAllJob>false</abortAllJob>
-          <condition></condition>
-          <configs class="empty-list"/>
-          <killPhaseOnJobResultCondition>NEVER</killPhaseOnJobResultCondition>
-          <buildOnlyIfSCMChanges>false</buildOnlyIfSCMChanges>
-          <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
-        </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
         <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
           <jobName>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check</jobName>
           <currParams>true</currParams>
@@ -114,17 +98,6 @@
       <continuationCondition>ALWAYS</continuationCondition>
     </com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
     <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_openshift_ansible_tox</project>
-      <filter>**</filter>
-      <target>test_pull_request_openshift_ansible_tox/</target>
-      <excludes></excludes>
-      <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_TOX_BUILD_NUMBER}</buildNumber>
-      </selector>
-      <optional>true</optional>
-      <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
-    </hudson.plugins.copyartifact.CopyArtifact>
-    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
       <project>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check</project>
       <filter>**</filter>
       <target>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check/</target>
@@ -148,7 +121,6 @@
     </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.tasks.Shell>
       <command># record the log from the downstream job here for FCM parsing
-cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_tox/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_TOX_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install_with_status_check/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_WITH_STATUS_CHECK_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install_update/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_UPDATE_BUILD_NUMBER}/log
       </command>

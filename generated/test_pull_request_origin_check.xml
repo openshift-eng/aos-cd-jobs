@@ -111,8 +111,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 # run commitchecker outside release container as it needs
 # access to git; also explicitly force godeps verification
-symbolic_ref=&#34;\$( git symbolic-ref HEAD )&#34;
-branch=&#34;\${symbolic_ref##refs/heads/}&#34;
+branch=&#34;\$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )&#34;
 if [[ &#34;\${branch}&#34; == &#34;master&#34; ]]; then
   RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
 fi

@@ -18,6 +18,20 @@ actions:
     repository: "openshift-ansible"
     script: |-
       tox
+  - type: "script"
+    title: "build images for integration tests"
+    repository: "openshift-ansible"
+    script: |-
+      if [ -x test/integration/build-images.sh ]; then
+        test/integration/build-images.sh
+      fi
+  - type: "script"
+    title: "run integration tests"
+    repository: "openshift-ansible"
+    script: |-
+      if [ -x test/integration/run-tests.sh ]; then
+        test/integration/run-tests.sh
+      fi
 post_actions: []
 artifacts: []
 generated_artifacts: {}

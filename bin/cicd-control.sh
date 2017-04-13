@@ -8,6 +8,7 @@ function print_usage() {
   echo "    $(basename $0) testcluster install"
   echo "    $(basename $0) testcluster delete"
   echo "    $(basename $0) testcluster upgrade"
+  echo "    $(basename $0) testcluster status"
   echo
 }
 
@@ -186,6 +187,16 @@ elif [ "${OPERATION}" == "upgrade" ]; then
 
   # clean up temp openshift-ansible dir, if there is one
   delete_openshift_ansible_tmp_dir
+
+################################################
+# CLUSTER STATUS
+################################################
+elif [ "${OPERATION}" == "status" ]; then
+
+  # Run the upgrade, including post_byo steps and config loop
+  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
+    /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh
+  popd
 
 else
   echo Error. Unrecognized operation. Exiting...

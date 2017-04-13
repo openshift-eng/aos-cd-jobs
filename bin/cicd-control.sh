@@ -15,13 +15,27 @@ function get_latest_openshift_ansible()  {
 
   # Vendor everything but int.
   if [[ "${1}" == "int" ]]; then
+
+    TMPDIR="$HOME/aos-cd/tmp"
+    mkdir -p "${TMPDIR}"
+    AOS_TMPDIR=$(mktemp -d -p "${TMPDIR}")
+
     pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms
-      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1
+      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1 -e cli_download_dir=${AOS_TMPDIR}
     popd
 
-    export OPENSHIFT_ANSIBLE_INSTALL_DIR="/tmp/${USER}/openshift-ansible"
+    export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"
   else
     export OPENSHIFT_ANSIBLE_INSTALL_DIR="../../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
+  fi
+}
+
+function delete_openshift_ansible_tmp_dir()  {
+
+  if [[ -n "${AOS_TMPDIR}" ]]; then
+    if [[ -d "${AOS_TMPDIR}" ]]; then
+      rm -rf "${AOS_TMPDIR}"
+    fi
   fi
 }
 
@@ -74,6 +88,10 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"
   echo "Operation requested on mock cluster '${CLUSTERNAME}'. The operation is: '${OPERATION}' with options: ${ARGS}"
   echo "  OPENSHIFT_ANSIBLE_VERSION=${OPENSHIFT_ANSIBLE_VERSION}"
+
+  # clean up temp openshift-ansible dir, if there is one
+  delete_openshift_ansible_tmp_dir
+
   exit 0
 fi
 
@@ -113,6 +131,9 @@ if [ "${OPERATION}" == "install" ]; then
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
   popd
+
+  # clean up temp openshift-ansible dir, if there is one
+  delete_openshift_ansible_tmp_dir
 
   echo
   echo "Deployment is complete. OpenShift Console can be found at https://${MASTER_DNS_NAME}"
@@ -162,6 +183,9 @@ elif [ "${OPERATION}" == "upgrade" ]; then
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
   popd
+
+  # clean up temp openshift-ansible dir, if there is one
+  delete_openshift_ansible_tmp_dir
 
 else
   echo Error. Unrecognized operation. Exiting...

@@ -16,4 +16,4 @@ extensions:
       title: "run check and verify tasks"
       repository: "origin"
       script: |-
-        OS_BUILD_ENV_DOCKER_ARGS="-v /tmp:/openshifttmp " hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k
+        hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k

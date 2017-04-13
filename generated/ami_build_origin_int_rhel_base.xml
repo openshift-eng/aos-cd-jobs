@@ -191,10 +191,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_DOCKER_ARGS=&#34;-v /tmp:/openshifttmp &#34; hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -o build -j -k
-# root user runs in the container and this may screw up
-# permissions on the contents of /tmp/openshift
-sudo chown -R origin:origin /tmp/openshift
+OS_BUILD_ENV_EXCLUDE=&#39;_output/local/go&#39; hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -o build -j -k
 SCRIPT
 chmod +x &#34;${script}&#34;
 cat &#34;${script}&#34;

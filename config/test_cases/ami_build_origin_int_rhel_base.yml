@@ -69,10 +69,7 @@ actions:
     title: "run check and verify tasks"
     repository: "origin"
     script: |-
-      OS_BUILD_ENV_DOCKER_ARGS="-v /tmp:/openshifttmp " hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
-      # root user runs in the container and this may screw up
-      # permissions on the contents of /tmp/openshift
-      sudo chown -R origin:origin /tmp/openshift
+      OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
   - type: "script"
     title: "run integration tests"
     repository: "origin"

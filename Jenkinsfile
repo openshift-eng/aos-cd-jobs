@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-def mail_success(list) {
+def mail_success(list,detail) {
     mail(
         to: "${list}",
         from: "aos-cd@redhat.com",
@@ -48,6 +48,8 @@ node('buildvm-devops') {
     }
 
     try {
+        cluster_detail = ""
+
         stage( 'Cluster operation' ) {
             sshagent([CLUSTER_NAME]) {
                 if ( OPERATION == "reinstall" ) {
@@ -56,6 +58,9 @@ node('buildvm-devops') {
                 } else {
                     sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com ${OPERATION}"
                 }
+                if ( OPERATION != "delete" ) {
+                    cluster_detail = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com status").trim()
+                }
             }
         }
 
@@ -63,7 +68,7 @@ node('buildvm-devops') {
         
         if ( MODE != "silent" ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail_success(minorUpdate?MAIL_LIST_SUCCESS_MINOR:MAIL_LIST_SUCCESS)
+            mail_success(minorUpdate?MAIL_LIST_SUCCESS_MINOR:MAIL_LIST_SUCCESS, cluster_detail)
         }
 
     } catch ( err ) {

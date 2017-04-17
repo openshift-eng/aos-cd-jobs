@@ -6,6 +6,9 @@ extensions:
       title: "build an origin release"
       repository: "origin"
       script: |-
+        make clean
         export OS_BUILD_IMAGE_ARGS=''
-        hack/build-base-images.sh
-        make release
+        hack/env hack/build-base-images.sh
+        OS_ONLY_BUILD_PLATFORMS="linux/amd64" hack/build-release.sh
+        OS_BUILD_ENV_EXCLUDE='_output/local/pkgdir' hack/env hack/build-images.sh
+        OS_BUILD_ENV_EXCLUDE='_output/local/pkgdir' OS_BUILD_ENV_PRESERVE='_output/local/bin' hack/env hack/extract-release.sh

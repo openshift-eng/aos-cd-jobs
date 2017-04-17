@@ -56,9 +56,12 @@ actions:
     title: "build an origin release"
     repository: "origin"
     script: |-
-      export OS_BUILD_IMAGE_ARGS=''
-      hack/build-base-images.sh
-      make release
+        make clean
+        export OS_BUILD_IMAGE_ARGS=''
+        hack/env hack/build-base-images.sh
+        OS_ONLY_BUILD_PLATFORMS="linux/amd64" hack/build-release.sh
+        OS_BUILD_ENV_EXCLUDE='_output/local/pkgdir' hack/env hack/build-images.sh
+        OS_BUILD_ENV_EXCLUDE='_output/local/pkgdir' OS_BUILD_ENV_PRESERVE='_output/local/bin' hack/env hack/extract-release.sh
   - type: "script"
     title: "verify commit history"
     repository: "origin"
@@ -73,7 +76,7 @@ actions:
     title: "run check and verify tasks"
     repository: "origin"
     script: |-
-      OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+      OS_BUILD_ENV_EXCLUDE='_output/local/pkgdir' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
   - type: "script"
     title: "run integration tests"
     repository: "origin"

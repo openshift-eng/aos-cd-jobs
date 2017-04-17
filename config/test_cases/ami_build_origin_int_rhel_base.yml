@@ -7,6 +7,10 @@ provision:
   provider: "aws"
 actions:
   - type: "host_script"
+    title: "install CI user account"
+    script: |-
+      oct prepare user
+  - type: "host_script"
     title: "install base dependencies"
     script: |-
       oct prepare dependencies

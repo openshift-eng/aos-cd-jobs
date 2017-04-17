@@ -12,6 +12,8 @@ mkdir "${ARTIFACT_DIR}"
 {%- for unit in units %}
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit {{ unit }} --no-pager --all --lines=all >> "${ARTIFACT_DIR}/{{ unit }}"
 {%- endfor %}
+# May exit 1 if files were modified while archiving
+tar czf "${ARTIFACT_DIR}/journal.tar.gz" -C /var/log/journal .
 tree "${ARTIFACT_DIR}" """)
 
 

@@ -157,9 +157,12 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+make clean
 export OS_BUILD_IMAGE_ARGS=&#39;&#39;
-hack/build-base-images.sh
-make release
+hack/env hack/build-base-images.sh
+OS_ONLY_BUILD_PLATFORMS=&#34;linux/amd64&#34; hack/build-release.sh
+OS_BUILD_ENV_EXCLUDE=&#39;_output/local/pkgdir&#39; hack/env hack/build-images.sh
+OS_BUILD_ENV_EXCLUDE=&#39;_output/local/pkgdir&#39; OS_BUILD_ENV_PRESERVE=&#39;_output/local/bin&#39; hack/env hack/extract-release.sh
 SCRIPT
 chmod +x &#34;${script}&#34;
 cat &#34;${script}&#34;
@@ -196,7 +199,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_EXCLUDE=&#39;_output/local/go&#39; hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -o build -j -k
+OS_BUILD_ENV_EXCLUDE=&#39;_output/local/pkgdir&#39; hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -o build -j -k
 SCRIPT
 chmod +x &#34;${script}&#34;
 cat &#34;${script}&#34;

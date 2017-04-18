@@ -94,10 +94,8 @@ sudo mount -t tmpfs -o size=2048m tmpfs /tmp
 sudo restorecon -R /tmp
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -112,10 +110,8 @@ hack/build-base-images.sh
 make release
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -128,10 +124,8 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=ldap_groups
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>

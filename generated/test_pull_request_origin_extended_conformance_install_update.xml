@@ -122,10 +122,8 @@ sudo mount -t tmpfs -o size=2048m tmpfs /tmp
 sudo restorecon -R /tmp
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -141,10 +139,8 @@ source hack/lib/init.sh
 os::build::rpm::format_nvra &gt; &#34;\${jobs_repo}/ORIGIN_BUILT_VERSION&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -169,10 +165,8 @@ sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
 basename &#34;\${tito_tmp_dir}&#34;/noarch/atomic-openshift-utils*.rpm .rpm &gt; /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_ANSIBLE_BUILT_VERSION
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -203,10 +197,8 @@ echo &#34;=== Installing atomic-openshift-utils-\${ATOMIC_OPENSHIFT_UTILS_INSTAL
 sudo yum install -y \${versioned_packages_to_install}
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -228,10 +220,8 @@ done
 sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_whitelist.*/callback_whitelist = generate_junit/&#39; /etc/ansible/ansible.cfg
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -294,10 +284,8 @@ then
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -315,10 +303,8 @@ sed -i &#39;s|go/src|data/src|&#39; _output/local/releases/rpms/origin-local-rel
 sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -339,10 +325,8 @@ done
 sudo yum upgrade -y \${versioned_packages_to_upgrade}
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -366,10 +350,8 @@ ansible-playbook  -vv                    \
                   -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -383,10 +365,8 @@ sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -399,10 +379,8 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>

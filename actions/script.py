@@ -18,10 +18,8 @@ cd "\${HOME}"
 {{ command | replace("$", "\$") }}
 SCRIPT
 chmod +x "${script}"
-cat "${script}"
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config "${script}" openshiftdevel:"${script}"
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin "${script}"
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin "${script}" """)
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "${script}" """)
 
 
 class ScriptAction(Action):

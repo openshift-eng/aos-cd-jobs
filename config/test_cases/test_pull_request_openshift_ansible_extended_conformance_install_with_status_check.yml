@@ -7,12 +7,8 @@ overrides:
       type: "pull_request"
     - name: "origin"
 extensions:
-  sync_repos:
-    - name: "aos-cd-jobs"
   actions:
     - type: "host_script"
       title: "check other job statuses"
-      repository: "aos-cd-jobs"
       script: |-
-        git checkout sjb
-        python check-pull-request-status.py "${OPENSHIFT_ANSIBLE_PULL_ID}" "${OPENSHIFT_ANSIBLE_TARGET_BRANCH}" /var/lib/jenkins/.config/hub test_status_config.yml
+        /usr/bin/check-pull-request-status.py "${OPENSHIFT_ANSIBLE_PULL_ID}" /var/lib/jenkins/.config/hub

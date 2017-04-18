@@ -6,14 +6,12 @@ import sys
 from yaml import load
 from github3 import login
 
-if len(sys.argv) != 5:
-    print("USAGE: {} PULL_REQUEST_ID OPENSHIFT_ANSIBLE_TARGET_BRANCH CREDENTIAL_STORE STATUS_CONFIG".format(sys.argv[0]))
+if len(sys.argv) != 3:
+    print("USAGE: {} PULL_REQUEST_ID CREDENTIAL_STORE".format(sys.argv[0]))
     exit(1)
 
 pull_request_id = int(sys.argv[1])
-target_branch = sys.argv[2]
-credential_file = sys.argv[3]
-status_config_file = sys.argv[4]
+credential_file = sys.argv[2]
 
 with open(credential_file) as credential_store:
     credentials = load(credential_store)
@@ -25,14 +23,13 @@ client = login(token=oauth_token)
 pull_request = client.pull_request(owner='openshift', repository='openshift-ansible', number=pull_request_id)
 pull_request_statuses = client._json(client._get(pull_request.statuses_url.replace('statuses', 'status')), 200)['statuses']
 
-blocking_statuses = []
-
-with open(status_config_file) as status_config:
-    config = load(status_config)
-    if target_branch not in config:
-        print("[ERROR] No GitHub PR statuses have been configured for branch '{}'.".format(target_branch))
-    blocking_statuses.extend(config[target_branch])
-    blocking_statuses.extend(config["common_status"])
+blocking_statuses = [
+    'aos-ci-jenkins/OS_3.5_NOT_containerized',
+    'aos-ci-jenkins/OS_3.5_NOT_containerized_e2e_tests',
+    'aos-ci-jenkins/OS_3.5_containerized',
+    'aos-ci-jenkins/OS_3.5_containerized_e2e_tests',
+    'continuous-integration/travis-ci/pr'
+]
 
 found_statuses = {}
 

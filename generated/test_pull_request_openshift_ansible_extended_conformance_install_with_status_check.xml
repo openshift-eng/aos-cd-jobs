@@ -294,8 +294,24 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${scri
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: CHECK OUT CORRECT AOS-CD-JOBS BRANCH ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CHECK OUT CORRECT AOS-CD-JOBS BRANCH ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+git checkout sjb
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: CHECK OTHER JOB STATUSES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CHECK OTHER JOB STATUSES ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-/usr/bin/check-pull-request-status.py &#34;${OPENSHIFT_ANSIBLE_PULL_ID}&#34; /var/lib/jenkins/.config/hub</command>
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/check-pull-request-status.py .
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/test_status_config.yml .
+python check-pull-request-status.py &#34;${OPENSHIFT_ANSIBLE_PULL_ID}&#34; &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34; /var/lib/jenkins/.config/hub test_status_config.yml</command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>

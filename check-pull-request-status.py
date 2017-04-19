@@ -31,6 +31,7 @@ with open(status_config_file) as status_config:
     config = load(status_config)
     if target_branch not in config:
         print("[ERROR] No GitHub PR statuses have been configured for branch '{}'.".format(target_branch))
+        exit(1)
     blocking_statuses.extend(config[target_branch])
     blocking_statuses.extend(config["common_status"])
 

@@ -7,12 +7,15 @@ overrides:
       type: "pull_request"
     - name: "origin"
 extensions:
-  sync_repos:
-    - name: "aos-cd-jobs"
   actions:
-    - type: "host_script"
-      title: "check other job statuses"
+    - type: "script"
+      title: "check out correct aos-cd-jobs branch"
       repository: "aos-cd-jobs"
       script: |-
         git checkout sjb
+    - type: "host_script"
+      title: "check other job statuses"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/check-pull-request-status.py .
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/test_status_config.yml .
         python check-pull-request-status.py "${OPENSHIFT_ANSIBLE_PULL_ID}" "${OPENSHIFT_ANSIBLE_TARGET_BRANCH}" /var/lib/jenkins/.config/hub test_status_config.yml

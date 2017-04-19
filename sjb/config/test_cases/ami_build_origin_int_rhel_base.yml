@@ -1,0 +1,107 @@
+---
+timer: 'H H * * *'
+parameters: []
+provision:
+  os: "rhel"
+  stage: "bare"
+  provider: "aws"
+actions:
+  - type: "host_script"
+    title: "install CI user account"
+    script: |-
+      oct prepare user
+  - type: "host_script"
+    title: "install base dependencies"
+    script: |-
+      oct prepare dependencies
+  - type: "host_script"
+    title: "install golang"
+    script: |-
+      oct prepare golang --version '1.7.3' --repourl 'https://cbs.centos.org/repos/paas7-openshift-origin15-candidate/x86_64/os/'
+  - type: "host_script"
+    title: "install docker"
+    script: |-
+      oct prepare docker --repourl "https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/" --repo 'oso-rhui-rhel-server-*'
+  - type: "host_script"
+    title: "prepare repositories"
+    script: |-
+      oct prepare repositories
+  - type: "script"
+    title: "install system accounting rules"
+    script: |-
+      cat <<CONF >origin-ami-accounting.conf
+      [Manager]
+      DefaultCPUAccounting=yes
+      DefaultMemoryAccounting=yes
+      CONF
+      sudo mkdir -p /etc/systemd/system.conf.d/
+      sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
+      sudo systemctl daemon-reexec
+  - type: "host_script"
+    title: "package the AMI"
+    script: |-
+      oct package ami --upgrade
+  - type: "script"
+    title: "log system information"
+    script: |-
+      go version
+      docker version
+  - type: "script"
+    title: "use a ramdisk for etcd"
+    script: |-
+      sudo mkdir -p /tmp
+      sudo mount -t tmpfs -o size=2048m tmpfs /tmp
+      sudo restorecon -R /tmp
+  - type: "script"
+    title: "build an origin release"
+    repository: "origin"
+    script: |-
+      export OS_BUILD_IMAGE_ARGS=''
+      hack/build-base-images.sh
+      make release
+  - type: "script"
+    title: "verify commit history"
+    repository: "origin"
+    script: |-
+      # run commitchecker outside release container as it needs
+      # access to git; also explicitly force godeps verification
+      branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
+      if [[ "${branch}" == "master" ]]; then
+        RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+      fi
+  - type: "script"
+    title: "run check and verify tasks"
+    repository: "origin"
+    script: |-
+      OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+  - type: "script"
+    title: "run integration tests"
+    repository: "origin"
+    script: |-
+      OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
+      OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test -o check -o build -k
+  - type: "script"
+    title: "run extended conformance tests"
+    repository: "origin"
+    script: |-
+      JUNIT_REPORT='true' make test-extended SUITE=conformance
+  - type: "script"
+    title: "run extended networking tests"
+    repository: "origin"
+    script: |-
+      JUNIT_REPORT='true' make test-extended SUITE=networking-minimal
+  - type: "host_script"
+    title: "release the AMI"
+    script: |-
+      oct package ami --mark-ready
+artifacts:
+  - "/tmp/openshift"
+  - "/data/src/github/openshift/origin/_output/tests"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m avc'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+system_journals:
+  - docker.service
+  - origin-master.service
+  - origin-node.service

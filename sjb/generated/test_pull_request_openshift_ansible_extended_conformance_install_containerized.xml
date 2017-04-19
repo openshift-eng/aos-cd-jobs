@@ -208,20 +208,6 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${scri
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-echo &#34;########## STARTING STAGE: CHECK OUT THE CORRECT BRANCH OF AOS-CD-JOBS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CHECK OUT THE CORRECT BRANCH OF AOS-CD-JOBS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-git checkout sjb
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
@@ -247,14 +233,14 @@ cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 ansible-playbook -vv --become              \
                  --become-user root        \
                  --connection local        \
-                 --inventory inventory/    \
+                 --inventory sjb/inventory/    \
                  -e containerized=true     \
                  -e deployment_type=origin \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
 ansible-playbook -vv --become              \
                  --become-user root        \
                  --connection local        \
-                 --inventory inventory/    \
+                 --inventory sjb/inventory/    \
                  -e containerized=true     \
                  -e deployment_type=origin \
                  -e openshift_image_tag=&#34;\$( cat ./ORIGIN_COMMIT )&#34;                      \

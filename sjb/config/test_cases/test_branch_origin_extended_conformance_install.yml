@@ -50,11 +50,6 @@ extensions:
         done
         sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
     - type: "script"
-      title: "check out the correct branch of aos-cd-jobs"
-      repository: "aos-cd-jobs"
-      script: |-
-        git checkout sjb
-    - type: "script"
       title: "determine the release commit for origin images and version for rpms"
       repository: "origin"
       script: |-
@@ -65,17 +60,17 @@ extensions:
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-
-        ansible-playbook -vv --become              \
-                         --become-user root        \
-                         --connection local        \
-                         --inventory inventory/    \
-                         -e deployment_type=origin \
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e deployment_type=origin  \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
-        ansible-playbook -vv --become              \
-                         --become-user root        \
-                         --connection local        \
-                         --inventory inventory/    \
-                         -e deployment_type=origin \
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e deployment_type=origin  \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml

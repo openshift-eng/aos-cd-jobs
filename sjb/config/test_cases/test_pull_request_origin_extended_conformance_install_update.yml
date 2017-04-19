@@ -1,0 +1,8 @@
+---
+parent: 'test_cases/test_branch_origin_extended_conformance_install_update.yml'
+overrides:
+  sync_repos:
+    - name: "aos-cd-jobs"
+    - name: "openshift-ansible"
+    - name: "origin"
+      type: "pull_request"

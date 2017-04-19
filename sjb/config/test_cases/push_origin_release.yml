@@ -1,0 +1,20 @@
+---
+parent: 'common/test_cases/origin_release.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "transfer docker config to remote host"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "script"
+      title: "push the release"
+      repository: "origin"
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+        sudo rm -rf /tmp/.docker

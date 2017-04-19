@@ -1,0 +1,5 @@
+---
+- include: enable_epel.yml
+- include: enable_centos_extras.yml
+  when: "'repo_host' in group_names"
+- include: install_required_pkgs.yml

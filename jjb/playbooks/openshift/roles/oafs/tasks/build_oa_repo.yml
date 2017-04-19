@@ -1,0 +1,22 @@
+- name: install tito and builddeps
+  yum: name={{ item }} state=present
+  with_items:
+    - tito
+    - createrepo_c
+
+- name: ensure builddeps are installed
+  command: chdir={{ oa_repo_path }} yum-builddep openshift-ansible.spec -y
+
+- name: Create oa_build_dir
+  file:
+    path: "{{ web_docroot }}/{{ project }}/{{ arch }}"
+    state: directory
+    setype: httpd_sys_content_t
+
+- name: build packages
+  command: chdir={{ oa_repo_path }} tito build --test --rpm --output={{ web_docroot }}/{{ project }}
+  register: pkgs_built
+
+- name: generate repo
+  command: chdir={{ web_docroot }}/{{ project }}/{{ arch }} createrepo_c .
+  when: pkgs_built|success

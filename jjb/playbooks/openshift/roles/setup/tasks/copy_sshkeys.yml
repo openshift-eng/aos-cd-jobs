@@ -1,0 +1,26 @@
+- name: Retrieve hostnames from nodes
+  shell: hostname
+  register: host
+
+- name: Register label on general part of the node hostname
+  local_action: shell echo {{ host.stdout }} | awk -F'-r' '{print $1}'
+  register: host_label
+
+- name: Copy ssh keys
+  copy:
+    src: "~/.ssh/{{ item }}"
+    dest: "~/.ssh/{{ host.stdout }}-{{ item }}"
+    mode: 0600
+  with_items:
+    - "id_rsa.pub"
+    - "id_rsa"
+
+- name: Symlink ssh keys
+  file:
+    src: "~/.ssh/{{ host.stdout }}-{{ item }}"
+    dest: "~/.ssh/{{ item }}"
+    state: link
+  with_items:
+    - "id_rsa.pub"
+    - "id_rsa"
+

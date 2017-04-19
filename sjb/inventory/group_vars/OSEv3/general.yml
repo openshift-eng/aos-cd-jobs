@@ -1,0 +1,14 @@
+---
+debug_level: 5
+osm_default_node_selector: "region=infra"
+osm_controller_args:
+  enable-hostpath-provisioner:
+    - "true"
+openshift_hosted_router_selector: "region=infra"
+openshift_hosted_registry_selector: "region=infra"
+openshift_master_identity_providers:
+  - name: "allow_all"
+    login: "true"
+    challenge: "true"
+    kind: "AllowAllPasswordIdentityProvider"
+ansible_ssh_user: "ec2-user"

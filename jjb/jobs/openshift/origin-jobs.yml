@@ -1,0 +1,73 @@
+#################################################################
+## MATRIX JOB TO BUILD FROM SOURCE FOR FUTURE CANDIDATE BUILDS ##
+#################################################################
+
+
+- job-template:
+    name: '{aos-cd-bfs-master-name}-0-test-matrix'
+    defaults: openshift-defaults
+    concurrent: false
+    node: '{jslave_name}'
+    project-type: matrix
+    axes:
+      - axis:
+          type: user-defined
+          name: TOPOLOGY
+          values:
+            - os_origin-3node-cluster
+      - axis:
+         type: slave
+         name: nodes
+         values:
+          - '{jslave_name}'
+      - axis:
+          type: python
+          values:
+          - System-CPython-2.7
+    scm:
+      - paas-sig-ci-scm
+    wrappers:
+      - openshift-wrappers
+      - openshift-cred-wrappers
+    builders:
+      - shining-panda:
+          build-environment: virtualenv
+          python-version: System-CPython-2.7
+          name: lp-test-env
+          nature: shell
+          command: |
+            {provision-cluster}
+          clear: true
+#      - shell: |
+#          {prep-cluster}
+#      - shell: |
+#          {bfs-origin}
+#      - shell: |
+#          {bfs-openshift-ansible}
+#      - shell: |
+#          {deploy-aosi}
+#      - shell: |
+#          {run-e2e-tests}
+    publishers:
+      - archive:
+          artifacts: "**/*.output, **/${{TOPOLOGY}}.inventory"
+          allow-empty: 'false'
+      - openshift-email
+      - postbuildscript:
+          builders:
+            - shining-panda:
+                build-environment: virtualenv
+                python-version: System-CPython-2.7
+                name: lp-test-env
+                nature: shell
+                command: |
+                  {teardown-cluster}
+                clear: true
+          script-only-if-succeeded: false
+          execute-on: axes
+
+- job-group:
+    name: aos-cd-bfs-master-provision-prep-test-teardown
+    jobs:
+        - '{aos-cd-bfs-master-name}-0-test-matrix'
+

@@ -1,0 +1,4 @@
+---
+installer_cfg_yml_path: /root/aos-installer.cfg.yml
+docker_options: "OPTIONS='--insecure-registry=<put docker registry host here>:8888 --selinux-enabled'"
+docker_add_registry: "ADD_REGISTRY='--add-registry <put docker registry host here>:8888'"

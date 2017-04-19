@@ -1,0 +1,13 @@
+---
+- include: cleanup_bfs.yml
+  when: "'repo_host' in group_names and cleanup"
+- include: clone_from_github.yml
+  when: "'repo_host' in group_names"
+- include: build_origin_repo.yml
+  when: "'repo_host' in group_names and project == 'origin'"
+- include: build_openshift-ansible_repo.yml
+  when: "'repo_host' in group_names and project == 'openshift-ansible'"
+- include: build_openshift_repo.yml
+  when: "'repo_host' in group_names"
+- include: enable_openshift_repo.yml
+

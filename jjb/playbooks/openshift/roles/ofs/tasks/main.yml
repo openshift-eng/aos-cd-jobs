@@ -1,0 +1,9 @@
+---
+- include: clone_from_github.yml
+  when: "'repo_host' in group_names"
+- include: enable_openshift-future_repo.yml
+  when: "'repo_host' in group_names"
+- include: build_openshift_repo.yml
+  when: "'repo_host' in group_names"
+- include: enable_openshift_repo.yml
+

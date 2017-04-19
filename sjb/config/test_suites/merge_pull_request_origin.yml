@@ -1,0 +1,4 @@
+---
+parent: "common/test_suites/origin_fast.yml"
+overrides:
+  merge: "origin"

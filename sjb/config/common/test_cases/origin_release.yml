@@ -1,0 +1,11 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "build an origin release"
+      repository: "origin"
+      script: |-
+        export OS_BUILD_IMAGE_ARGS=''
+        hack/build-base-images.sh
+        make release

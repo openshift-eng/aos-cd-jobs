@@ -1,0 +1,42 @@
+---
+ansible_config: /usr/share/atomic-openshift-utils/ansible.cfg
+ansible_log_path: /tmp/ansible.log
+ansible_ssh_user: root
+deployment:
+  ansible_ssh_user: root
+{% if repo_from_source is defined %}
+  openshift_enable_origin_repo: false
+{% endif %}
+{% if openshift_docker_insecure_registries is defined %}
+  openshift_docker_insecure_registries: {{ openshift_docker_insecure_registries }}
+{% endif %}
+{% if openshift_docker_additional_registries is defined %}
+  openshift_docker_additional_registries: {{ openshift_docker_additional_registries }}
+{% endif %}
+  hosts:
+{% for host in groups['masters'] %}
+    -
+      connect_to: "{{ hostvars[host]['openshift_hostname'] }}"
+      hostname: "{{ hostvars[host]['openshift_hostname'] }}"
+      public_hostname: "{{ host }}"
+      roles:
+        - master
+        - node
+        - etcd
+{% endfor %}
+{% for host in groups['nodes'] %}
+    -
+      connect_to: "{{ hostvars[host]['openshift_hostname'] }}"
+      hostname: "{{ hostvars[host]['openshift_hostname'] }}"
+      public_hostname: "{{ host }}"
+      roles:
+        - node
+{% endfor %}
+  roles:
+    master:
+    node:
+    etcd:
+deployment_type: origin
+variant: origin
+variant_version: {{ version.split('.')[0] }}.{{ version.split('.')[1] }}
+version: v2

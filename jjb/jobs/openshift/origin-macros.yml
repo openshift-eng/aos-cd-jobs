@@ -1,0 +1,119 @@
+- project:
+    name: aos-cd-bfs-master
+    aos-cd-bfs-master-name: aos-cd-bfs-master
+    jslave_name: aos-ci-cd-slave
+    jslave_username: root
+    lpsha1: 2b028bf787ae82f1671986572f9837dbd82c8e8c
+    provision-pb: $WORKSPACE/linch-pin/provision/site.yml
+    inventory-layout-file: openshift-3node-inventory.yml
+    prep-pb: aos-cd-jobs/playbooks/openshift/setup.yml
+    bfs-pb: aos-cd-jobs/playbooks/openshift/bfs.yml
+    deploy-aosi-pb: aos-cd-jobs/playbooks/openshift/deploy_aosi.yml
+    run-e2e-pb: aos-cd-jobs/playbooks/openshift/run_e2e_tests.yml
+    origin_version: 1.5.0
+    oa_version: 3.4
+    provision-cluster: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      UUID=$( uuidgen | awk -F"-" '{{print $1}}')
+
+      # Install linch-pin deps in virtualenv
+      pip install packaging
+      pip install appdirs
+      cp -r /usr/lib64/python2.7/site-packages/selinux $VIRTUAL_ENV/lib64/python2.7/site-packages/
+
+      pushd linch-pin
+      ./install.sh
+      popd linch-pin
+
+      # create ansible.cfg
+      cat << EOF > $WORKSPACE/ansible.cfg
+      [defaults]
+      remote_user = root
+      library  = $WORKSPACE/linch-pin/library:$WORKSPACE/duffy-ansible-module/library
+
+      EOF
+
+      # Setup to provision
+      mkdir -p $WORKSPACE/inventory
+      cp $OS_OSE_TENANT $WORKSPACE/linch-pin/provision/roles/openstack/vars/os_openshift-tenant.yml
+      sed -i "s|res_name: \"\(.*\)\"|res_name: \1-${{UUID}}|g" $WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml
+
+      # provision cluster
+      ansible-playbook {provision-pb} -u root -vv \
+      -e "topology=$WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml" \
+      -e "inventory_layout_file=$WORKSPACE/aos-cd-jobs/configs/inv_layouts/{inventory-layout-file}" \
+      -e "inventory_outputs_path=$WORKSPACE/inventory" -e "state=present"
+
+    prep-cluster: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{prep-pb} -e "repo_from_source=true"
+    bfs-origin: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{bfs-pb} \
+      -e "repo_from_source=true" \
+      -e "project=origin" \
+      -e "version={origin_version}" \
+      -e "bleeding_edge=true"
+    bfs-openshift-ansible: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{bfs-pb} \
+      -e "repo_from_source=true" \
+      -e "project=openshift-ansible" \
+      -e "version={oa_version}" \
+      -e "origin_version={origin_version}" \
+      -e "arch=noarch"
+    deploy-aosi: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{deploy-aosi-pb} \
+      -e "version={origin_version}"
+    run-e2e-tests: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # see what we have in terms of inventory
+      ansible-playbook -u root -v \
+      -i $WORKSPACE/inventory/${{TOPOLOGY}}.inventory \
+      $WORKSPACE/{run-e2e-pb}
+    teardown-cluster: |
+      #!/bin/bash
+      set -xeuo pipefail
+
+      # Install linch-pin deps in virtualenv
+      pip install packaging
+      pip install appdirs
+      cp -r /usr/lib64/python2.7/site-packages/selinux $VIRTUAL_ENV/lib64/python2.7/site-packages/
+
+      pushd linch-pin
+      ./install.sh
+      popd linch-pin
+
+      # teardown cluster
+      ansible-playbook {provision-pb} -u root -vv \
+      -e "topology=$WORKSPACE/aos-cd-jobs/configs/topologies/${{TOPOLOGY}}.yml" \
+      -e "inventory_layout_file=$WORKSPACE/aos-cd-jobs/configs/inv_layouts/{inventory-layout-file}" \
+      -e "inventory_outputs_path=$WORKSPACE/inventory" -e "state=absent"
+
+    jobs:
+      - aos-cd-bfs-master-provision-prep-test-teardown

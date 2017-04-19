@@ -1,0 +1,36 @@
+#- include: ../../common/tasks/enable_epel.yml
+
+- name: install nginx
+  yum: name=nginx state=present
+
+- name: Configure nginx.conf
+  template:
+    src: nginx.conf.j2
+    dest: "{{ nginx_config_path }}/nginx.conf"
+    mode: 0644
+  notify:
+    - reload nginx
+
+- name: Create {{ web_docroot }}/{{ project }}/{{ arch }}
+  file:
+    path: "{{ web_docroot }}/{{ project }}/{{ arch }}"
+    state: directory
+    owner: nginx
+    group: nginx
+    setype: httpd_sys_content_t
+
+- name: Start the nginx service
+  service: name=nginx state=started enabled=yes
+
+- name: install firewalld
+  yum: name=firewalld state=present
+
+- name: Start firewalld
+  service: name=firewalld state=started enabled=yes
+
+- name: allow http traffic
+  firewalld: service=http permanent=true state=enabled
+
+- name: reload firewalld
+  command: firewall-cmd --reload
+

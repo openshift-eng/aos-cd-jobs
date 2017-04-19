@@ -35,10 +35,9 @@ extensions:
       repository: "aos-cd-jobs"
       script: |-
         pkg_name="origin"
-        git checkout sjb
         echo $pkg_name > PKG_NAME
         echo "openshift-ansible openshift-ansible-callback-plugins openshift-ansible-docs openshift-ansible-filter-plugins openshift-ansible-lookup-plugins openshift-ansible-playbooks openshift-ansible-roles" > OPENSHIFT_ANSIBLE_PKGS
-        sudo python hack/determine_install_upgrade_version.py $( cat OPENSHIFT_ANSIBLE_BUILT_VERSION ) > OPENSHIFT_ANSIBLE_VARS
+        sudo python sjb/hack/determine_install_upgrade_version.py $( cat OPENSHIFT_ANSIBLE_BUILT_VERSION ) > OPENSHIFT_ANSIBLE_VARS
         source OPENSHIFT_ANSIBLE_VARS
         versioned_packages_to_install=""
         if [[ ${ATOMIC_OPENSHIFT_UTILS_INSTALL_MINOR_VERSION} -le 4 ]]
@@ -81,7 +80,7 @@ extensions:
             exit 1
         fi
         echo "${deployment_type}" > DEPLOYMENT_TYPE
-        sudo python hack/determine_install_upgrade_version.py $( cat ORIGIN_BUILT_VERSION ) > ORIGIN_VARS
+        sudo python sjb/hack/determine_install_upgrade_version.py $( cat ORIGIN_BUILT_VERSION ) > ORIGIN_VARS
         source ORIGIN_VARS
         source OPENSHIFT_ANSIBLE_VARS
         echo "=== Installing ${pkg_name}-${ORIGIN_INSTALL_VERSION} ==="
@@ -89,14 +88,14 @@ extensions:
                           --become           \
                           --become-user root \
                           --connection local \
-                          -i inventory/      \
+                          -i sjb/inventory/      \
                           /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
         ansible-playbook  -vv                \
                           --become           \
                           --become-user root \
                           --connection local \
-                          -i inventory/      \
+                          -i sjb/inventory/      \
                           /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
@@ -116,7 +115,7 @@ extensions:
                             --become               \
                             --become-user root     \
                             --connection local     \
-                            --inventory inventory/ \
+                            --inventory sjb/inventory/ \
                             "${upgrade_playbook}"  \
                             -e openshift_pkg_version="-${ORIGIN_UPGRADE_VERSION}" \
                             -e deployment_type=$( cat ./DEPLOYMENT_TYPE)          \
@@ -156,7 +155,7 @@ extensions:
                           --become               \
                           --become-user root     \
                           --connection local     \
-                          --inventory inventory/ \
+                          --inventory sjb/inventory/ \
                            "${upgrade_playbook}" \
                           -e openshift_pkg_version="-${ORIGIN_UPGRADE_RELEASE_VERSION}" \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE) \

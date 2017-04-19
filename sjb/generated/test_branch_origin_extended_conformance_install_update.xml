@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <com.tikal.jenkins.plugins.multijob.MultiJobProject plugin="jenkins-multijob-plugin@1.21">
   <actions/>
-  <description>&lt;div style=&quot;font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;&quot;&gt;WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. MAKE CHANGES TO THE JOB DEFINITIONS IN THE &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs/tree/sjb&#34;&gt;openshift/aos-cd-jobs&lt;/a&gt; REPOSITORY INSTEAD.&lt;/div&gt;</description>
+  <description>&lt;div style=&quot;font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;&quot;&gt;WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. MAKE CHANGES TO THE JOB DEFINITIONS IN THE &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs/tree/master/sjb&#34;&gt;openshift/aos-cd-jobs&lt;/a&gt; REPOSITORY INSTEAD.&lt;/div&gt;</description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
@@ -167,10 +167,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 pkg_name=&#34;origin&#34;
-git checkout sjb
 echo \$pkg_name &gt; PKG_NAME
 echo &#34;openshift-ansible openshift-ansible-callback-plugins openshift-ansible-docs openshift-ansible-filter-plugins openshift-ansible-lookup-plugins openshift-ansible-playbooks openshift-ansible-roles&#34; &gt; OPENSHIFT_ANSIBLE_PKGS
-sudo python hack/determine_install_upgrade_version.py \$( cat OPENSHIFT_ANSIBLE_BUILT_VERSION ) &gt; OPENSHIFT_ANSIBLE_VARS
+sudo python sjb/hack/determine_install_upgrade_version.py \$( cat OPENSHIFT_ANSIBLE_BUILT_VERSION ) &gt; OPENSHIFT_ANSIBLE_VARS
 source OPENSHIFT_ANSIBLE_VARS
 versioned_packages_to_install=&#34;&#34;
 if [[ \${ATOMIC_OPENSHIFT_UTILS_INSTALL_MINOR_VERSION} -le 4 ]]
@@ -231,7 +230,7 @@ else
     exit 1
 fi
 echo &#34;\${deployment_type}&#34; &gt; DEPLOYMENT_TYPE
-sudo python hack/determine_install_upgrade_version.py \$( cat ORIGIN_BUILT_VERSION ) &gt; ORIGIN_VARS
+sudo python sjb/hack/determine_install_upgrade_version.py \$( cat ORIGIN_BUILT_VERSION ) &gt; ORIGIN_VARS
 source ORIGIN_VARS
 source OPENSHIFT_ANSIBLE_VARS
 echo &#34;=== Installing \${pkg_name}-\${ORIGIN_INSTALL_VERSION} ===&#34;
@@ -239,14 +238,14 @@ ansible-playbook  -vv                \
                   --become           \
                   --become-user root \
                   --connection local \
-                  -i inventory/      \
+                  --inventory sjb/inventory/ \
                   /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
 ansible-playbook  -vv                \
                   --become           \
                   --become-user root \
                   --connection local \
-                  -i inventory/      \
+                  --inventory sjb/inventory/ \
                   /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_INSTALL_VERSION}&#34;         \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
@@ -266,8 +265,8 @@ then
                     --become               \
                     --become-user root     \
                     --connection local     \
-                    --inventory inventory/ \
-                    &#34;\${upgrade_playbook}&#34;  \
+                    --inventory sjb/inventory/ \
+                    &#34;\${upgrade_playbook}&#34;      \
                     -e openshift_pkg_version=&#34;-\${ORIGIN_UPGRADE_VERSION}&#34; \
                     -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)          \
                     -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\${ORIGIN_UPGRADE_VERSION_PKG_VERSION}&#34;
@@ -333,8 +332,8 @@ ansible-playbook  -vv                    \
                   --become               \
                   --become-user root     \
                   --connection local     \
-                  --inventory inventory/ \
-                   &#34;\${upgrade_playbook}&#34; \
+                  --inventory sjb/inventory/ \
+                   &#34;\${upgrade_playbook}&#34;     \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_UPGRADE_RELEASE_VERSION}&#34; \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE) \
                   -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;

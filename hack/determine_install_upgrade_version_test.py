@@ -108,6 +108,12 @@ class GetInstallUpgradeVersionTestCase(unittest.TestCase):
 		install_upgrade_versions = ["1.5.0-0.4.el7"]
 		self.assertEqual(get_install_upgrade_version(matching_versions), install_upgrade_versions)
 
+	def test_with_version_duplicates(self):
+		""" when the install and upgrade verions are the same, which is cause by having the same versions in different repositories """
+		matching_versions = ["1.5.0-0.4.el7", "1.5.0-0.4.el7"]
+		install_upgrade_versions = ["1.5.0-0.4.el7"]
+		self.assertEqual(get_install_upgrade_version(matching_versions), install_upgrade_versions)
+
 class GetVersionTestCase(unittest.TestCase):
 	"Test for `determine_install_upgrade_version.py`"
 

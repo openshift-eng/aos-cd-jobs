@@ -25,8 +25,9 @@ def get_matching_versions(input_pkg_name, available_pkgs, search_version):
 
 # Get only install(first) and upgrade(last) versions from version list
 def get_install_upgrade_version(version_list):
-	if len(version_list) > 1: 
-		return [version_list[0],version_list[len(version_list)-1]]
+	last_version_index = len(version_list)-1
+	if (len(version_list) > 1 and version_list[0] != version_list[last_version_index])
+		return [version_list[0],version_list[last_version_index]]
 	return [version_list[0]]
 
 # Return minor version of provided package version-release pair

@@ -1,0 +1,20 @@
+---
+- name: Execute extended.tests binary with set of tests
+  shell: KUBECONFIG=/etc/origin/master/admin.kubeconfig {{ extended_test_binary }} --ginkgo.v={{ ginkgo_v }} --ginkgo.skip="{{ ginkgo_skip }}" --ginkgo.focus="{{ ginkgo_focus }}" 1>e2e.log 2>&1
+  run_once: true
+  register: e2e_execution
+  ignore_errors: yes
+
+- name: Print out results from running e2e tests
+  shell: cat e2e.log
+  run_once: true
+  register: e2e_log_output
+
+- name: Grab e2e.log file from test run
+  fetch:
+    dest: "{{ lookup('env','PWD') }}/e2e.log"
+    src: /root/e2e.log
+    fail_on_missing: yes
+    flat: yes
+  run_once: true
+  failed_when: "e2e_execution.rc != 0"

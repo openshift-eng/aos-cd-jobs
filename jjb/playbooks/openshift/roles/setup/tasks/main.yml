@@ -1,0 +1,6 @@
+---
+- include: enable_openshift_origin_common.yml
+- include: copy_sshkeys.yml
+- include: add_to_auth_keys.yml
+- include: setup_docker.yml
+

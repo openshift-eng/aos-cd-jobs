@@ -1,0 +1,49 @@
+- name: set latest tag from git tag
+  shell: "git tag | grep {{ project }}-{{ version }} | cut -d'.' -f3 | sort -n | tail -n1"
+  args:
+    chdir: "{{ openshift_repo_path }}"
+  register: LATEST_TAG
+
+- debug:
+    msg: "PaaS-sig Props: {{ item.prop }} [ {{ item.value }} ]"
+  with_items:
+    - { prop: 'project', value: "{{ project }}" }
+    - { prop: 'version', value: "{{ version }}" }
+    - { prop: 'latest_tag', value: "{{ LATEST_TAG.stdout }}" }
+
+- name: Check if changes have been applied
+  shell: "git log -n1 | grep 'Update variants for origin - {{ LATEST_TAG.stdout }}'"
+  args:
+    chdir: "{{ openshift_repo_path }}"
+  ignore_errors: yes
+  register: git_log
+
+- name: Checkout openshift-ansible version and latest tag
+  shell: "git checkout {{ project }}-{{ version }}.{{ LATEST_TAG.stdout }}"
+  args:
+    chdir: "{{ openshift_repo_path }}"
+  when: git_log.stdout == ""
+
+- name: update version of origin
+  lineinfile:
+    dest: "{{ openshift_repo_path }}/utils/src/ooinstall/variants.py"
+    regexp: "Version\\('1\\.2', 'origin'\\).*"
+    line: "                     Version('{{ origin_version.split('.')[0] }}.{{ origin_version.split('.')[1] }}', 'origin')"
+    backrefs: yes
+    state: present
+  when: git_log.stdout == ""
+
+- name: update variant
+  lineinfile:
+    dest: "{{ openshift_repo_path }}/utils/src/ooinstall/variants.py"
+    regexp: "^DISPLAY_VARIANTS =.*"
+    line: "DISPLAY_VARIANTS = (origin, OSE, REG,)"
+    backrefs: yes
+    state: present
+  when: git_log.stdout == ""
+
+- name: git commit updated variants for origin
+  shell: git commit -m "Update variants for origin - {{ LATEST_TAG.stdout }}" utils/src/ooinstall/variants.py
+  args:
+    chdir: "{{ openshift_repo_path }}"
+  when: git_log.stdout == ""

@@ -1,0 +1,57 @@
+#!/usr/bin/python -tt
+
+import itertools
+from optparse import OptionParser
+import sys
+
+import errata_json
+
+
+def get_opts():
+    usage = """%prog [option] Advisory-ID Product-Version Package-NVR
+
+Adds a build (package) to an advisory. Use the internal integer form of
+the ID, the one that appears at the end of the URL to it in the Web UI."""
+    parser = OptionParser(usage=usage)
+    parser.add_option('-d', '--debug', default=False, action='store_true',
+        help='Enable debuggable output')
+    parser.add_option('-s', '--server',
+        default='https://errata.devel.redhat.com',
+        help='Errata Tool server')
+    opts, args = parser.parse_args()
+    if len(args) != 3:
+        parser.error('You must provide a release and Brew tag at a minimum.')
+    if opts.server.startswith('http://'):
+        print 'Your URL should start with https:// not http:// (fixing)'
+    errata_json.ET_SERVER = opts.server.replace('http://', 'https://')
+    global DEBUG
+    DEBUG = opts.debug
+    return opts, args[0], args[1], args[2]
+
+def add_package(id, pv, nvr, **opts):
+    """
+    Adds a package to the builds in an errata advisory.
+
+    Supported options are:
+      debug   = (bool) print out extra debug output
+    """
+    def printd(msg):
+        """Only print if DEBUG == True"""
+        if opts['debug']:
+            print 'D: ' + msg
+
+    # gather up relevant builds from ET
+    try:
+        data = errata_json.add_build(id, pv, nvr)
+    except errata_json.ErrataToolError, e:
+        print e
+        sys.exit(1)
+    printd('Updated advisory #%s' % id)
+    if len(data) == 0:
+        printd('  No output in %s' % id)
+    else:
+        printd('  Output: %s' % data)
+
+if __name__ == '__main__':
+    opts, release, pv, package = get_opts()
+    add_package(release, pv, package, debug=opts.debug)

@@ -1,0 +1,37 @@
+---
+parameters: []
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync_repos:
+  - name: "openshift-ansible"
+    type: "pull_request"
+actions:
+  - type: "script"
+    title: "install test dependencies"
+    script: |-
+      sudo yum install -y gcc libffi-devel python-devel openssl-devel python-pip
+      sudo pip install tox
+  - type: "script"
+    title: "run unit tests"
+    repository: "openshift-ansible"
+    script: |-
+      tox
+  - type: "script"
+    title: "build images for integration tests"
+    repository: "openshift-ansible"
+    script: |-
+      if [ -x test/integration/build-images.sh ]; then
+        test/integration/build-images.sh
+      fi
+  - type: "script"
+    title: "run integration tests"
+    repository: "openshift-ansible"
+    script: |-
+      if [ -x test/integration/run-tests.sh ]; then
+        test/integration/run-tests.sh
+      fi
+post_actions: []
+artifacts: []
+generated_artifacts: {}

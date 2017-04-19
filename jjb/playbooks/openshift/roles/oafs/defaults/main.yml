@@ -1,0 +1,6 @@
+---
+oa_repo_path: /root/openshift-ansible_repo
+project: openshift-ansible
+arch: noarch
+disable_oa_pkgs: true
+pkgs_to_exclude: "openshift-ansible-docs openshift-ansible-filter-plugins openshift-ansible-lookup-plugins openshift-ansible-playbooks openshift-ansible-roles"

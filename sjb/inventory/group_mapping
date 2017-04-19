@@ -1,0 +1,8 @@
+[masters]
+localhost
+
+[nodes]
+localhost
+
+[etcd]
+localhost

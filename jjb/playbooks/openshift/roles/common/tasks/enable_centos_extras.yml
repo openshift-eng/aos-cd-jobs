@@ -1,0 +1,7 @@
+- name: enable CentOS Extras repo
+  template:
+    src: roles/common/templates/centos7-extras-repo.j2
+    dest: "/etc/yum.repos.d/centos7-extras.repo"
+    mode: 0644
+    owner: root
+    group: root

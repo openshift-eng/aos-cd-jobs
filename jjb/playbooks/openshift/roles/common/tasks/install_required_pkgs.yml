@@ -1,0 +1,13 @@
+---
+# Set a var with packages to install as below
+# which is what is currently in defaults/main.yml
+- name: update all packages
+  yum: name=* state=latest
+
+- name: Install packages on masters and nodes
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ setup_pkgs }}"
+

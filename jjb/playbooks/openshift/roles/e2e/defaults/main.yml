@@ -1,0 +1,7 @@
+---
+# file e2e/defaults/main.yml
+extended_test_binary: /usr/libexec/origin/extended.test
+
+ginkgo_v: true
+ginkgo_skip: "should becomes"
+ginkgo_focus: "EmptyDir"

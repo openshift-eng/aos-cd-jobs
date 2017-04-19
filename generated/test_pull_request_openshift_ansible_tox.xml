@@ -99,10 +99,8 @@ sudo yum install -y gcc libffi-devel python-devel openssl-devel python-pip
 sudo pip install tox
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -115,10 +113,8 @@ cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 tox
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -133,10 +129,8 @@ if [ -x test/integration/build-images.sh ]; then
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -151,10 +145,8 @@ if [ -x test/integration/run-tests.sh ]; then
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-cat &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chown origin:origin &#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo su origin &#34;${script}&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;${script}&#34; </command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>

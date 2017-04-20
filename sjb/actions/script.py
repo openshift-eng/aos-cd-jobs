@@ -19,7 +19,7 @@ cd "\${HOME}"
 SCRIPT
 chmod +x "${script}"
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config "${script}" openshiftdevel:"${script}"
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c \\"${script}\\" """)
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c \\"${script}\\"" """)
 
 
 class ScriptAction(Action):

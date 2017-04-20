@@ -46,7 +46,7 @@
 
   - name: load github credentials
     include_vars:
-      file: ../../openshift-ansible-private/private_vars/global/github_bot.yml
+      file: /home/opsmedic/aos-cd/git/openshift-ansible-private/private_vars/global/github_bot.yml
       
   - name: clone the openshift-tools
     git_clone:

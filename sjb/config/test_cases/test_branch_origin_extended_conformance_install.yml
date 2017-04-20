@@ -71,6 +71,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e deployment_type=origin  \
+                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
@@ -91,3 +92,5 @@ extensions:
     - ovs-vswitchd.service
     - ovsdb-server.service
     - etcd.service
+  generated_artifacts:
+    etcd.conf: 'sudo cat /etc/etcd/etcd.conf'

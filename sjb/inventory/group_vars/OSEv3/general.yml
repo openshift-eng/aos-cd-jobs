@@ -12,3 +12,4 @@ openshift_master_identity_providers:
     challenge: "true"
     kind: "AllowAllPasswordIdentityProvider"
 ansible_ssh_user: "ec2-user"
+enable_excluders: "false"

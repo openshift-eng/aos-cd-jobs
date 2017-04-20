@@ -138,7 +138,7 @@ See also:
           <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
         </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
         <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_origin_extended_conformance_install</jobName>
+          <jobName>test_pull_request_origin_extended_conformance_install_update</jobName>
           <currParams>true</currParams>
           <exposedSCM>false</exposedSCM>
           <disableJob>false</disableJob>
@@ -211,12 +211,12 @@ See also:
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_origin_extended_conformance_install</project>
+      <project>test_pull_request_origin_extended_conformance_install_update</project>
       <filter>**</filter>
-      <target>test_pull_request_origin_extended_conformance_install/</target>
+      <target>test_pull_request_origin_extended_conformance_install_update/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_INSTALL_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_INSTALL_UPDATE_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
@@ -247,7 +247,7 @@ See also:
       <command># record the log from the downstream job here for FCM parsing
 cat /var/lib/jenkins/jobs/test_pull_request_origin_check/builds/${TEST_PULL_REQUEST_ORIGIN_CHECK_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_origin_integration/builds/${TEST_PULL_REQUEST_ORIGIN_INTEGRATION_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_conformance_install/builds/${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_INSTALL_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_conformance_install_update/builds/${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_INSTALL_UPDATE_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_conformance_gce/builds/${TEST_PULL_REQUEST_ORIGIN_EXTENDED_CONFORMANCE_GCE_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_networking_minimal/builds/${TEST_PULL_REQUEST_ORIGIN_EXTENDED_NETWORKING_MINIMAL_BUILD_NUMBER}/log
       </command>

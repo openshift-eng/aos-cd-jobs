@@ -43,6 +43,7 @@ node('buildvm-devops') {
     stage('Merge and build') {
         try {
             checkout scm
+            env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
             env.BUILD_MODE = "${BUILD_MODE}"
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
                 env.FORCE_REBUILD = "${FORCE_REBUILD}"

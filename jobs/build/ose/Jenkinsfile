@@ -69,15 +69,6 @@ enterprise/release  openshift/origin/release-X.Y ->  https://mirror.openshift.co
         try {
             checkout scm
 
-            /*
-            checkout changelog: false, poll: false,
-                       scm: [$class: 'GitSCM', branches: [[name: 'build-scripts']],
-                                doGenerateSubmoduleConfigurations: false,
-                                extensions: [   [$class: 'RelativeTargetDirectory', relativeTargetDir: 'build-scripts'],
-                                                [$class: 'WipeWorkspace']], submoduleCfg: [],
-                                                userRemoteConfigs: [[url: 'https://github.com/openshift/aos-cd-jobs.git']]]
-            */
-
             env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
 
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed

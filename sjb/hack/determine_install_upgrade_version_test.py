@@ -3,55 +3,75 @@ import rpmUtils.miscutils as rpmutils
 from determine_install_upgrade_version import *
 
 class TestPackage(object):
-	def __init__(self, version, release, vra):
+	def __init__(self, version, release, vra, pkgtup):
 		self.version = version
 		self.release = release
 		self.vra = vra
+		self.pkgtup = pkgtup
 
-class GetMatchingVersionTestCase(unittest.TestCase):
-	"Test for `determine_install_upgrade_version.py`"
-
+	@classmethod
 	def create_test_packages(self, test_pkgs):
 		test_pkgs_objs = []
 		for pkg in test_pkgs:
 			pkg_name, pkg_version, pkg_release, pkg_epoch, pkg_arch =  rpmutils.splitFilename(pkg)
 			pkg_vra = pkg_version + "-" + pkg_release + "." + pkg_arch
-			test_pkgs_objs.append(TestPackage(pkg_version, pkg_release, pkg_vra))
+			pkg_tup = (pkg_name , pkg_arch, pkg_epoch, pkg_version, pkg_release)
+			test_pkgs_objs.append(TestPackage(pkg_version, pkg_release, pkg_vra, pkg_tup))
 		return test_pkgs_objs
+
+class RemoveDuplicatePackages(unittest.TestCase):
+	"Test for `determine_install_upgrade_version.py`"
+
+	def test_removing_single_duplicate_package(self):
+		""" when is multiple duplicate packages, return only one """
+		test_pkgs = ["origin-1.4.1-1.el7.x86_64", "origin-1.5.0-0.4.el7.x86_64", "origin-1.5.0-0.4.el7.x86_64"]
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
+		result_pkgs_objs = test_pkgs_objs[:2]
+		self.assertEqual(remove_duplicate_pkgs(test_pkgs_objs), result_pkgs_objs)
+
+	def test_removing_no_duplicate_package(self):
+		""" when there is no duplicate package, return the single one """
+		test_pkgs = ["origin-1.4.1-1.el7.x86_64", "origin-1.5.0-0.4.el7.x86_64"]
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
+		result_pkgs_objs = test_pkgs_objs[:2]
+		self.assertEqual(remove_duplicate_pkgs(test_pkgs_objs), result_pkgs_objs)
+
+class GetMatchingVersionTestCase(unittest.TestCase):
+	"Test for `determine_install_upgrade_version.py`"
 
 	def test_get_matching_versions(self):
 		""" when only one matching version exist and its pre-release, it is returned """
 		test_pkgs = ["origin-1.4.1-1.el7.x86_64", "origin-1.5.0-0.4.el7.x86_64"]
-		test_pkgs_objs = self.create_test_packages(test_pkgs)
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
 		self.assertEqual(get_matching_versions('origin', test_pkgs_objs, '1.5'), ['1.5.0-0.4.el7'])
 
 	def test_with_single_pre_release(self):
 		""" when only one pre-release version exist, it is returned """
 		test_pkgs = ["origin-1.5.0-0.4.el7.x86_64"]
-		test_pkgs_objs = self.create_test_packages(test_pkgs)
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
 		self.assertEqual(get_matching_versions('origin', test_pkgs_objs, '1.5'), ['1.5.0-0.4.el7'])
 
 	def test_with_multiple_pre_release(self):
 		""" when only one pre-release version exist, it is returned """
 		test_pkgs = ["origin-1.5.0-0.4.el7.x86_64", "origin-1.5.2-0.1.el7.x86_64"]
-		test_pkgs_objs = self.create_test_packages(test_pkgs)
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
 		self.assertEqual(get_matching_versions('origin', test_pkgs_objs, '1.5'), ['1.5.0-0.4.el7', '1.5.2-0.1.el7'])
 
 	def test_with_single_release(self):
 		""" when both release and pre-release versions exist, only release versions are returned """
 		test_pkgs = ["origin-1.5.0-0.4.el7.x86_64", "origin-1.5.0-1.1.el7.x86_64"]
-		test_pkgs_objs = self.create_test_packages(test_pkgs)
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
 		self.assertEqual(get_matching_versions('origin', test_pkgs_objs, '1.5'), ["1.5.0-1.1.el7"])
 
 	def test_with_muptiple_release(self):
 		""" when both release and pre-release versions exist, only release version is returned """
 		test_pkgs = ["origin-1.5.0-0.4.el7.x86_64", "origin-1.5.0-1.1.el7.x86_64", "origin-1.5.2-1.1.el7.x86_64"]
-		test_pkgs_objs = self.create_test_packages(test_pkgs)
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
 		self.assertEqual(get_matching_versions('origin', test_pkgs_objs, '1.5'), ["1.5.0-1.1.el7", "1.5.2-1.1.el7"])
 
 	def test_with_no_matches(self):
 		test_pkgs = ["origin-1.2.0-0.4.el7.x86_64", "origin-1.3.0-1.1.el7.x86_64", "origin-1.4.2-1.1.el7.x86_64"]
-		test_pkgs_objs = self.create_test_packages(test_pkgs)
+		test_pkgs_objs = TestPackage.create_test_packages(test_pkgs)
 		self.assertRaises(SystemExit, get_matching_versions, 'origin', test_pkgs_objs, '1.5')
 
 class DetermineSearchVersionTestCase(unittest.TestCase):

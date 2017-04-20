@@ -13,7 +13,7 @@ An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenk
 | `build/ose`                |             |
 | `build/stage-to-prod`      | Promote RPMs from the staging repositories to the production repositories. |
 | `build/make-puddle`        | Create an Atomic OpenShift puddle on `rcm-guest`. |
-| `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](github.com/openshift/online) team. |
+| `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](https://github.com/openshift/online) team. |
 | `build/ose-pipeline`       |             |
 | `build/refresh-images`     |             |
 | `cluster/sprint-control`   |             |
@@ -38,3 +38,5 @@ A typical workflow for a developer making changes to the job would look like:
  - run `sjb/push-update-automatic.sh` once changes are approved and merged into `master`
 
 In order to test a job, it is necessary to copy a configuration file under `sjb/config/` to a new YAML file with a different name, then re-generate XML and use `sjb/push-update.sh` to push only the test job up to the server. Cleanup of these jobs post-test is still manual.
+
+Note: the `sjb/push-update{,-automatic}.sh` scripts expect `$USERNAME` and `$PASSWORD` to be set as envars when they are run. These are the credentials with which you log in to the Jenkins master at [ci.openshift](http://ci.openshift.redhat.com/) and are used for basic auth against the server on push actions.

@@ -192,18 +192,13 @@ arise, they will need to be manually resolved as it already is the case today. I
 we will extend the conflict resolution mechanism in Jenkins to send an e-mail to the author
 and committer of the conflicting commits.
 
-A nightly build of OSE will follow the steps below in order to rebase on top of Origin:
+The steps below will be followed to rebase OSE on top of Origin.
 ```sh
 git clone git@github.com:openshift/ose.git
 pushd ose
 git remote add upstream git@github.com:openshift/origin.git
 git fetch upstream
 git checkout master
-
-# Note down the current latest tag because squashing the tito commit into specfile updates
-# will drop it and tito tag needs it further down the build process in order to determine
-# the next (new) tag.
-last_tag="$( git describe --abbrev=0 --tags )"
 
 # Will be needed for creating the custom changelog for tito.
 PREVIOUS_HEAD=$(git merge-base master upstream/master)
@@ -226,42 +221,34 @@ PREVIOUS_HEAD=$(git merge-base master upstream/master)
 #   \              `-ose/master/HEAD,v3.5.0.23
 #    `-origin/master/HEAD
 #
-GIT_SEQUENCE_EDITOR=rebase.py git rebase -i upstream/master
+# WORKSPACE is meant to be the root of aos-cd-jobs
+#
+GIT_SEQUENCE_EDITOR=$WORKSPACE/jobs/build/ose/scripts/rebase.py git rebase -i upstream/master
 
 # Will be needed for creating the custom changelog for tito.
 CURRENT_HEAD=$(git merge-base master upstream/master)
-
-# We need to retag, because the rebase removed the latest tito tag.
-# Needs to be forced because while the tag is removed from the branch,
-# it still exists globally in the repository.
-git tag -f "${last_tag}" HEAD
-
-# Merge web-console stuff in
-VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
-git add pkg/assets/bindata.go
-git add pkg/assets/java/bindata.go
-git commit -m "[DROP] Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
 
 # Create custom changelog for tito
 declare -a changelog
 for commit in $( git log "${PREVIOUS_HEAD}..${CURRENT_HEAD}" --pretty=%h --no-merges ); do
   changelog+=( "--changelog='$( git log -1 "${commit}" --pretty='%s (%ae)' )'" )
 done
+
 # Tag
 tito tag --accept-auto-changelog "${changelog[@]}"
+
 # Force-update master and push the latest tag
-git push origin ${CURRENT_BRANCH} -f refs/tags/${last_tag}
+git push origin ${CURRENT_BRANCH} -f refs/tags/$(git describe)
 ```
 ### What changes for build cops
 
 Common conflicts can rise when new changes step on branding or tooling code. Manual
 resolution is the only thing we can do in such cases. Today when a conflict occurs, it is
-resolved manually ie. master is updated with the conflict resolved and a new build is
-kicked off. This is not going to be possible with the suggested process because the
-changelog for tito needs to be constructed based on the previous and the current HEAD of
-Origin that got pulled in with the rebase. All the steps above need to run manually and
-then the build can be restarted. This also means that the build process is idempotent and
-it will skip the above part.
+resolved manually by simply using `git merge`, resolving any conflicts, and then kick off
+a new build. The process of updating master with resolved conflicts needs to slightly
+change because the changelog for tito needs to be constructed based on the previous and
+the current HEAD of Origin that got pulled in with `git rebase`. All the steps above need to
+run manually and then the build can be restarted in Jenkins.
 
 We are also actively investigating whether we can stop checking in various code like tito
 diffs, generated docs, bindata, and the ose-images script. Avoiding most of those diffs

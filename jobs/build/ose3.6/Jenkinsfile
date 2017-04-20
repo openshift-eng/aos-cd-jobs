@@ -1,8 +1,9 @@
 
-properties( [
-        $class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '60']],
-        disableConcurrentBuilds()
-    ] )
+properties( 
+        [
+                [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '60']],
+                disableConcurrentBuilds()
+        ] )
 
 build job: '../aos-cd-builds/build%2Fose',
     parameters: [   [$class: 'StringParameterValue', name: 'OSE_MAJOR', value: '3'],

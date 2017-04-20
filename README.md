@@ -11,10 +11,9 @@ An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenk
 | `build/scheduled/ose`      |             |
 | `build/scheduled/t-th`     |             |
 | `build/ose`                |             |
-| `build/stage-to-prod`      |             |
-| `build/make-puddle`        |             |
-| `build/openshift-scripts`  |             |
-| `build/ose-rebase-test`    |             |
+| `build/stage-to-prod`      | Promote RPMs from the staging repositories to the production repositories. |
+| `build/make-puddle`        | Create an Atomic OpenShift puddle on `rcm-guest`. |
+| `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](github.com/openshift/online) team. |
 | `build/ose-pipeline`       |             |
 | `build/refresh-images`     |             |
 | `cluster/sprint-control`   |             |

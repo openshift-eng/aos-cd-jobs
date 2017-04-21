@@ -7,20 +7,8 @@ properties( [
     [$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 0, maxConcurrentTotal: 0, paramsToUseForLimit: '', throttleEnabled: false, throttleOption: 'project'],
     pipelineTriggers([[$class: 'TimerTrigger', spec: '0 4 * * 2,4']])] )
 
-build job: '../aos-cd-builds/build%2Fose',
-    propagate: false,
-    parameters: [   [$class: 'StringParameterValue', name: 'OSE_MAJOR', value: '3'],
-                    [$class: 'StringParameterValue', name: 'OSE_MINOR', value: '3'],
-                ]
+build job: '../aos-cd-builds/build%2Fose3.3', propagate: false
 
-build job: '../aos-cd-builds/build%2Fose',
-    propagate: false,
-    parameters: [   [$class: 'StringParameterValue', name: 'OSE_MAJOR', value: '3'],
-                    [$class: 'StringParameterValue', name: 'OSE_MINOR', value: '4'],
-                ]
+build job: '../aos-cd-builds/build%2Fose3.4', propagate: false
 
-build job: '../aos-cd-builds/build%2Fose',
-    propagate: false,
-    parameters: [   [$class: 'StringParameterValue', name: 'OSE_MAJOR', value: '3'],
-                    [$class: 'StringParameterValue', name: 'OSE_MINOR', value: '5'],
-                ]
+build job: '../aos-cd-builds/build%2Fose3.5', propagate: false

@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+GIT_ROOT="/home/opsmedic/aos-cd/git"
+
 function print_usage() {
   echo
   echo "Usage: $(basename $0) <clusterid> <operation> [options]"
@@ -21,18 +23,17 @@ function get_latest_openshift_ansible()  {
     mkdir -p "${TMPDIR}"
     AOS_TMPDIR=$(mktemp -d -p "${TMPDIR}")
 
-    pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms
+    pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
       /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1 -e cli_download_dir=${AOS_TMPDIR}
     popd
 
     export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"
   else
-    export OPENSHIFT_ANSIBLE_INSTALL_DIR="../../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
+    export OPENSHIFT_ANSIBLE_INSTALL_DIR="$GIT_ROOT/openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
   fi
 }
 
 function delete_openshift_ansible_tmp_dir()  {
-
   if [[ -n "${AOS_TMPDIR}" ]]; then
     if [[ -d "${AOS_TMPDIR}" ]]; then
       rm -rf "${AOS_TMPDIR}"
@@ -47,7 +48,6 @@ then
 fi
 
 # Let's cd into where the script is.
-# Remember, we have to path everything based off of the script's dir
 cd "$(dirname "$0")"
 
 export CLUSTERNAME=$1
@@ -103,11 +103,11 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   exit 0
 fi
 
-source ../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh
+source "$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh"
 
 set -o xtrace
 
-CLUSTER_SETUP_TEMPLATE_FILE=../../openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml
+CLUSTER_SETUP_TEMPLATE_FILE="$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml"
 if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then
   echo "Unable to find ${CLUSTERNAME}'s cluster setup template file. Exiting..."
   exit 10
@@ -115,7 +115,7 @@ fi
 
 # Update cluster setup changes to the releases directory
 echo "Update cluster setup changes..."
-/usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} ../../openshift-ansible-ops/playbooks/release/bin
+/usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} "$GIT_ROOT/openshift-ansible-ops/playbooks/release/bin"
 
 # Get the version and env from the template file
 oo_version="$(grep -Po '(?<=^g_install_version: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}" | /usr/bin/cut -c 1-3)"

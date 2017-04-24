@@ -3,6 +3,16 @@ import sys
 import os.path
 import rpmUtils.miscutils as rpmutils
 
+# Remove duplicate packages from different repositories
+def remove_duplicate_pkgs(available_pkgs):
+	available_pkgs_tups = []
+	uniq_available_pkgs = []
+	for pkg in available_pkgs:
+		if pkg.pkgtup not in available_pkgs_tups:
+			available_pkgs_tups.append(pkg.pkgtup)
+			uniq_available_pkgs.append(pkg)
+	return uniq_available_pkgs
+
 # Get all the matching `MAJOR.MINOR` versions of provided input package nerva
 # Returned list of package versions is in `'pkg_version'-'pkg_release'` format ,eg: `1.3.0-3.el7`
 def get_matching_versions(input_pkg_name, available_pkgs, search_version):
@@ -80,8 +90,9 @@ if __name__ == "__main__":
 	yb.conf.disable_excludes = ["all"]
 	sys.stdout = old_stdout
 	available_pkgs = rpmutils.unique(yb.doPackageLists('available', patterns=[pkg_name], showdups=True).available)
-	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
 	search_version = determine_search_version(pkg_name, pkg_version)
+	available_pkgs = remove_duplicate_pkgs(available_pkgs)
+	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
 	matching_pkgs = get_matching_versions(pkg_name, available_pkgs, search_version)
 	install_upgrade_version_list = get_install_upgrade_version(matching_pkgs)
 	print_version_vars(install_upgrade_version_list)

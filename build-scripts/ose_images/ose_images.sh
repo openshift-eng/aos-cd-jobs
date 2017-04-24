@@ -59,7 +59,7 @@ usage() {
   echo "  --nolatest          :: Do not tag or push as latest, still do channel latest" >&2
   echo "  --noversiononly     :: Do not tag or push without a release (v3.3.0.4)" >&2
   echo "  --message [message] :: Git commit message" >&2
-  echo "  --group [group]     :: Which group list to use (base sti database deployer metrics logging jenkins misc all)" >&2
+  echo "  --group [group]     :: Which group list to use (base metrics logging jenkins misc all base_only)" >&2
   echo "  --package [package] :: Which package to use e.g. openshift-enterprise-pod-docker" >&2
   echo "  --version [version] :: Change Dockerfile version e.g. 3.1.1.2" >&2
   echo "  --release [version] :: Change Dockerfile release e.g. 3" >&2
@@ -141,19 +141,6 @@ add_group_to_list() {
         add_to_list openshift-enterprise-openvswitch-docker
       fi
     ;;
-    sti)
-      add_to_list openshift-sti-base-docker
-      add_to_list openshift-sti-nodejs-docker
-      add_to_list openshift-sti-perl-docker
-      add_to_list openshift-sti-php-docker
-      add_to_list openshift-sti-python-docker
-      add_to_list openshift-sti-ruby-docker
-    ;;
-    database)
-      add_to_list openshift-mongodb-docker
-      add_to_list openshift-mysql-docker
-      add_to_list openshift-postgresql-docker
-    ;;
     misc)
       add_to_list image-inspector-docker
       if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] ; then
@@ -205,6 +192,41 @@ add_group_to_list() {
     deployer)
       add_to_list logging-deployment-docker
       add_to_list metrics-deployer-docker
+    ;;
+    base_only)
+      add_to_list openshift-enterprise-base-docker
+      if [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
+        add_to_list openshift-enterprise-openvswitch-docker
+        add_to_list openshift-enterprise-pod-docker
+        add_to_list openshift-enterprise-docker
+        add_to_list openshift-enterprise-haproxy-router-base-docker
+        add_to_list openshift-enterprise-dockerregistry-docker
+        add_to_list openshift-enterprise-keepalived-ipfailover-docker
+        add_to_list openshift-enterprise-recycler-docker
+        add_to_list aos-f5-router-docker
+        add_to_list openshift-enterprise-deployer-docker
+        add_to_list openshift-enterprise-node-docker
+        add_to_list openshift-enterprise-sti-builder-docker
+        add_to_list openshift-enterprise-docker-builder-docker
+        add_to_list openshift-enterprise-haproxy-router-docker
+      else
+        add_to_list openshift-enterprise-pod-docker
+        add_to_list aos3-installation-docker
+        add_to_list openshift-enterprise-docker
+        add_to_list openshift-enterprise-dockerregistry-docker
+        add_to_list openshift-enterprise-egress-router-docker
+        add_to_list openshift-enterprise-keepalived-ipfailover-docker
+        add_to_list aos-f5-router-docker
+        add_to_list openshift-enterprise-deployer-docker
+        add_to_list openshift-enterprise-haproxy-router-docker
+        add_to_list openshift-enterprise-node-docker
+        add_to_list openshift-enterprise-recycler-docker
+        add_to_list openshift-enterprise-sti-builder-docker
+        add_to_list openshift-enterprise-docker-builder-docker
+        add_to_list logging-deployment-docker
+        add_to_list metrics-deployer-docker
+        add_to_list openshift-enterprise-openvswitch-docker
+      fi
     ;;
     oso)
       add_to_list oso-accountant-docker

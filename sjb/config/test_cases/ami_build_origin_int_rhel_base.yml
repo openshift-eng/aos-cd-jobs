@@ -42,11 +42,6 @@ actions:
     script: |-
       oct package ami --upgrade
   - type: "script"
-    title: "log system information"
-    script: |-
-      go version
-      docker version
-  - type: "script"
     title: "use a ramdisk for etcd"
     script: |-
       sudo mkdir -p /tmp

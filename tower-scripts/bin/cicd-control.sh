@@ -78,7 +78,14 @@ fi
 # This needs review.
 # This isn't very portable. This requires that the git dirs are already
 # in place to do updates
-/usr/bin/ansible-playbook ./clone_ops_git_repos.yml > /dev/null
+set +x
+# Prevent output from this operation unless it actually fails; just to keep logs cleaner
+CLONE_RESULT=$(/usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
+if [ "$?" != "0" ]; then
+  echo "Error updating git repos"
+  echo "$CLONE_RESULTS"
+fi
+set -x
 
 # Allow for "test-key" to do some testing.
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables

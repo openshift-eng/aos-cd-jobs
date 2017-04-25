@@ -210,7 +210,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 sudo yum install -y python-pip
 sudo pip install junit_xml
 sudo chmod o+rw /etc/environment
-echo &#34;ANSIBLE_JUNIT_DIR=\$( pwd )/_output/tests/ansible_junit&#34; &gt;&gt; /etc/environment
+echo &#34;ANSIBLE_JUNIT_DIR=\$( pwd )/_output/scripts/ansible_junit&#34; &gt;&gt; /etc/environment
 sudo mkdir -p /usr/share/ansible/plugins/callback
 for plugin in &#39;default_with_output_lists&#39; &#39;generate_junit&#39;; do
    wget &#34;https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/\${plugin}.py&#34;

@@ -53,7 +53,7 @@ actions:
       oct package ami --mark-ready
 artifacts:
   - "/tmp/openshift"
-  - "/data/src/github/openshift/origin/_output/tests"
+  - "/data/src/github/openshift/origin/_output/scripts"
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
 system_journals:

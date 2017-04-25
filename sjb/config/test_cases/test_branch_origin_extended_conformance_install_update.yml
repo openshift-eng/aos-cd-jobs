@@ -59,7 +59,7 @@ extensions:
         sudo yum install -y python-pip
         sudo pip install junit_xml
         sudo chmod o+rw /etc/environment
-        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/tests/ansible_junit" >> /etc/environment
+        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
         sudo mkdir -p /usr/share/ansible/plugins/callback
         for plugin in 'default_with_output_lists' 'generate_junit'; do
            wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"

@@ -98,6 +98,7 @@ extensions:
                           --inventory sjb/inventory/ \
                           /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
+                          -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
         if [[ -v ORIGIN_UPGRADE_VERSION  && -v ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ]]
         then
@@ -117,6 +118,7 @@ extensions:
                             --connection local     \
                             --inventory sjb/inventory/ \
                             "${upgrade_playbook}"      \
+                            -e etcd_data_dir="${ETCD_DATA_DIR}" \
                             -e openshift_pkg_version="-${ORIGIN_UPGRADE_VERSION}" \
                             -e deployment_type=$( cat ./DEPLOYMENT_TYPE)          \
                             -e oreg_url='openshift/origin-${component}:'"${ORIGIN_UPGRADE_VERSION_PKG_VERSION}"
@@ -157,6 +159,7 @@ extensions:
                           --connection local     \
                           --inventory sjb/inventory/ \
                            "${upgrade_playbook}"     \
+                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                           -e openshift_pkg_version="-${ORIGIN_UPGRADE_RELEASE_VERSION}" \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE) \
                           -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"

@@ -107,9 +107,14 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-sudo mkdir -p /tmp
-sudo mount -t tmpfs -o size=2048m tmpfs /tmp
-sudo restorecon -R /tmp
+sudo su root &lt;&lt;SUDO
+mkdir -p /tmp
+mount -t tmpfs -o size=2048m tmpfs /tmp
+mkdir -p /tmp/etcd
+chmod a+rwx /tmp/etcd
+restorecon -R /tmp
+echo &#34;ETCD_DATA_DIR=/tmp/etcd&#34; &gt;&gt; /etc/environment
+SUDO
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -248,6 +253,7 @@ ansible-playbook  -vv                \
                   --inventory sjb/inventory/ \
                   /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_INSTALL_VERSION}&#34;         \
+                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34;                           \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
 if [[ -v ORIGIN_UPGRADE_VERSION  &amp;&amp; -v ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ]]
 then
@@ -267,6 +273,7 @@ then
                     --connection local     \
                     --inventory sjb/inventory/ \
                     &#34;\${upgrade_playbook}&#34;      \
+                    -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                     -e openshift_pkg_version=&#34;-\${ORIGIN_UPGRADE_VERSION}&#34; \
                     -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)          \
                     -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\${ORIGIN_UPGRADE_VERSION_PKG_VERSION}&#34;
@@ -334,6 +341,7 @@ ansible-playbook  -vv                    \
                   --connection local     \
                   --inventory sjb/inventory/ \
                    &#34;\${upgrade_playbook}&#34;     \
+                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_UPGRADE_RELEASE_VERSION}&#34; \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE) \
                   -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;

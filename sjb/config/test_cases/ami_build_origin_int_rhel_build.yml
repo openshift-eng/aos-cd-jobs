@@ -9,7 +9,7 @@ actions:
     title: "bring source code up to date"
     script: |-
       for repo in origin origin-web-console openshift-ansible; do
-          oct sync remote "${repo}"
+        oct sync remote "${repo}"
       done
   - type: "script"
     title: "build an origin release"

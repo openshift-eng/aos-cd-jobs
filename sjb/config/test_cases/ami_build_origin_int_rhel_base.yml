@@ -18,7 +18,7 @@ actions:
   - type: "host_script"
     title: "install golang"
     script: |-
-      oct prepare golang --version '1.7.3' --repourl 'https://cbs.centos.org/repos/paas7-openshift-origin15-candidate/x86_64/os/'
+      oct prepare golang --version '1.7' --repourl 'https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/'
   - type: "host_script"
     title: "install docker"
     script: |-

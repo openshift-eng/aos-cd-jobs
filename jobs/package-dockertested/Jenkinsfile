@@ -96,7 +96,9 @@ sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd /data/src/github.com/openshift/origin
 hack/build-base-images.sh
-make release
+OS_BUILD_ENV_PRESERVE="_output/local/releases:_output/local/bin" hack/env make build-rpms
+hack/build-images.sh
+hack/extract-release.sh
 EOF
 } | ssh -F ${ssh_config} openshiftdevel"""
 			}

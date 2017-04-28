@@ -3,8 +3,40 @@
 This repository backs Jenkins jobs on a couple of Jenkins masters.
 
 ## Jenkins pipeline definitions under `jobs/`
- 
-An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/) indexes Jenkinsfiles in the branches of this repository, which are generated from the Jenkinsfiles that live under the `jobs/` directory. Jobs under the `jobs/build/` directory are indexed at the [`aos-cd-builds`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd-builds/) grouping, while the jobs under `jobs/cluster/` are indexed at the general [`aos-cd`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd/) grouping. A quick synopsis of these indexed jobs is as follows:
+
+An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/) indexes Jenkinsfiles in the branches of this repository.  The branches are automatically generated from the Jenkinsfiles that live under the `jobs/` directory on the `master` branch. The job responsible for generating, updating and removing the branches can be found in the [`Jenkinsfile`](Jenkinsfile) at the root directory. The builds are currently configured to be executed periodically, but can be manually triggered in [jenkins](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd-master/job/master/).
+
+The scripts used by the job described above are [`pruner.py`](aos_cd_jobs/pruner.py), which removes branches for jobs that no longer exist, and [`updater.py`](aos_cd_jobs/updater.py), which creates/updates branches for existing jobs. A "job" is any directory under the `jobs/` directory which contains a `Jenkinsfile`.  Every branch is an orphan (doesn't contain any history) and its contents are the contents of the `master` branch with the corresponding directory under `jobs/` copied to the root directory and the `jobs/` directory removed.
+
+As an example, the contents of the root and `jobs/build/openshift-scripts` directories in master are currently:
+
+    ├── build-scripts
+    │   └── …
+    ├── Jenkinsfile
+    ├── jobs
+    │   …
+    │   └── build
+    │       └── openshift-scripts
+    │           ├── Jenkinsfile
+    │           ├── README.md
+    │           └── scripts
+    │               └── merge-and-build-openshift-scripts.sh
+    …
+    └── README.md
+
+The final contents of the `build/openshift-scripts` branch, after the execution of the job, will be:
+
+    ├── build-scripts
+    │   └── …
+    ├── Jenkinsfile
+    ├── README.md
+    …
+    └── scripts
+        └── merge-and-build-openshift-scripts.sh
+
+Note that the files `Jenkinsfile` and `README.md` in the master branch exist both in the root directory and in the job directory.  Because of the sequence of steps described above, the former will be overwritten by the latter.
+
+Jobs under the `jobs/build/` directory are indexed at the [`aos-cd-builds`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd-builds/) grouping, while the jobs under `jobs/cluster/` are indexed at the general [`aos-cd`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd/) grouping. A quick synopsis of these indexed jobs is as follows:
 
 |          Job Name          | Description |
 | -------------------------- | ----------- |

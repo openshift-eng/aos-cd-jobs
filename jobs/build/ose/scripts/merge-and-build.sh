@@ -90,30 +90,24 @@ else
   fi
 fi
 
-# Check to see if there have been any changes since the last tag
-if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_OPENSHIFT_ANSIBLE_BUILD}" != "true" ]; then
-    echo ; echo "No changes in release-1.${MINOR} since last build"
-    echo "This is fine, so continuing with the rest of the build"
-else
-    #There have been changes, so rebuild
-    echo
-    echo "=========="
-    echo "Tito Tagging: openshift-ansible"
-    echo "=========="
-    tito tag --accept-auto-changelog
-    git push
-    git push --tags
+#There have been changes, so rebuild
+echo
+echo "=========="
+echo "Tito Tagging: openshift-ansible"
+echo "=========="
+tito tag --accept-auto-changelog
+git push
+git push --tags
 
-    echo
-    echo "=========="
-    echo "Tito building in brew: openshift-ansible"
-    echo "=========="
-    TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
-    echo "TASK NUMBER: ${TASK_NUMBER}"
-    echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
-    echo
-    brew watch-task ${TASK_NUMBER}
-fi
+echo
+echo "=========="
+echo "Tito building in brew: openshift-ansible"
+echo "=========="
+TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
+echo "TASK NUMBER: ${TASK_NUMBER}"
+echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
+echo
+brew watch-task ${TASK_NUMBER}
 
 echo
 echo "=========="
@@ -167,16 +161,6 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] || [ "${OSE_VERSION}" == "${OSE_MASTE
 
 else
   git checkout -q enterprise-${OSE_VERSION}
-  # Check to see if we need to rebuild or not
-  if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 ; then
-    echo ; echo "No changes in enterprise-${OSE_VERSION} since last build"
-    echo "We are skipping the build, and moving on"
-    OSE_BUILD="false"
-  else
-    echo ; echo "There were changes in enterprise-${OSE_VERSION} since last build"
-    echo "So we are moving on with the build"
-    OSE_BUILD="true"
-  fi
 fi # End check if we are master
 
 echo

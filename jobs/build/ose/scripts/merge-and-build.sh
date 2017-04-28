@@ -115,25 +115,23 @@ else
     brew watch-task ${TASK_NUMBER}
 fi
 
-if [ "${OSE_VERSION}" != "3.2" ] ; then
-  echo
-  echo "=========="
-  echo "Setup origin-web-console stuff"
-  echo "=========="
-  cd ${WORKPATH}
-  rm -rf origin-web-console
-  git clone git@github.com:openshift/origin-web-console.git
-  cd origin-web-console/
-  if [ "${BUILD_MODE}" == "online/stg" ] ; then
-    git checkout stage
-  else
-    git checkout enterprise-${OSE_VERSION}
-    if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-      git merge master -m "Merge master into enterprise-${OSE_VERSION}"
-      git push
-    fi
+echo
+echo "=========="
+echo "Setup origin-web-console stuff"
+echo "=========="
+cd ${WORKPATH}
+rm -rf origin-web-console
+git clone git@github.com:openshift/origin-web-console.git
+cd origin-web-console/
+if [ "${BUILD_MODE}" == "online/stg" ] ; then
+  git checkout stage
+else
+  git checkout enterprise-${OSE_VERSION}
+  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
+    git push
   fi
-fi # End check if we are version 3.2
+fi
 
 echo
 echo "=========="
@@ -165,36 +163,36 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] || [ "${OSE_VERSION}" == "${OSE_MASTE
   echo "Merge origin into ose stuff"
   echo "=========="
   git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" ${UPSTREAM_BRANCH}
+  OSE_BUILD="true"
 
 else
   git checkout -q enterprise-${OSE_VERSION}
   # Check to see if we need to rebuild or not
   if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 ; then
     echo ; echo "No changes in enterprise-${OSE_VERSION} since last build"
-    echo "This is good, so we are exiting with 0"
-    exit 0
+    echo "We are skipping the build, and moving on"
+    OSE_BUILD="false"
   else
-   echo ; echo "There were changes in enterprise-${OSE_VERSION} since last build"
-   echo "So we are moving on with the build"
+    echo ; echo "There were changes in enterprise-${OSE_VERSION} since last build"
+    echo "So we are moving on with the build"
+    OSE_BUILD="true"
   fi
 fi # End check if we are master
 
-if [ "${OSE_VERSION}" != "3.2" ] ; then
-  echo
-  echo "=========="
-  echo "Merge in origin-web-console stuff"
-  echo "=========="
-  VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
-  git add pkg/assets/bindata.go
-  git add pkg/assets/java/bindata.go
-  set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
-  if [ "${BUILD_MODE}" == "online/stg" ] ; then
-    git commit -m "Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
-  else  
-    git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
-  fi
-  set -e
-fi # End check if we are version 3.2
+echo
+echo "=========="
+echo "Merge in origin-web-console stuff"
+echo "=========="
+VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
+git add pkg/assets/bindata.go
+git add pkg/assets/java/bindata.go
+set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
+if [ "${BUILD_MODE}" == "online/stg" ] ; then
+  git commit -m "Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
+else  
+  git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
+fi
+set -e
 
 # Put local rpm testing here
 

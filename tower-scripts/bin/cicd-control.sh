@@ -212,6 +212,14 @@ elif [ "${OPERATION}" == "status" ]; then
     /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
   popd
 
+################################################
+# CLUSTER LOG GATHERING
+################################################
+elif [ "${OPERATION}" == "logs" ]; then
+
+  # Gather the logs for the specified cluster
+  ./gather_logs.sh ${CLUSTERNAME}
+
 else
   echo Error. Unrecognized operation. Exiting...
 fi

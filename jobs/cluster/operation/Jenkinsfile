@@ -32,6 +32,8 @@ node('buildvm-devops') {
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], CLUSTER_NAME:${CLUSTER_NAME}, OPERATION:${OPERATION}, MODE:${MODE}"
 
+    currentBuild.displayName = "#${currentBuild.number} - ${OPERATION} ${CLUSTER_NAME}"
+    
     if ( MODE != "automatic" ) {
         input "Are you certain you want to =====>${OPERATION}<===== the =====>${CLUSTER_NAME}<===== cluster?"
     }

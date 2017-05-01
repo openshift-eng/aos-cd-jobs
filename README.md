@@ -8,16 +8,16 @@ An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenk
 
 |          Job Name          | Description |
 | -------------------------- | ----------- |
-| `build/scheduled/ose`      |             |
-| `build/scheduled/t-th`     |             |
-| `build/ose`                |             |
+| `build/scheduled/ose`      | Runs build/ose daily. Presently used to build 3.6 for daily integration test environments.            |
+| `build/scheduled/t-th`     | Runs build/ose every Tuesday and Thursday for particular builds of OCP.            |
+| `build/ose`                | Main build task for OCP. Can build 3.3, 3.4, and so on up through the current ose/master branch. Also builds openshift-ansible artifiacts and jenkins images.            |
 | `build/stage-to-prod`      | Promote RPMs from the staging repositories to the production repositories. |
 | `build/make-puddle`        | Create an Atomic OpenShift puddle on `rcm-guest`. |
 | `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](https://github.com/openshift/online) team. |
-| `build/ose-pipeline`       |             |
+| `build/ose-pipeline`       | R&D to replace build/ose shell scripts with Jenkins pipeline syntax.            |
 | `build/refresh-images`     |             |
-| `cluster/sprint-control`   |             |
-| `cluster/operation`        |             |
+| `cluster/sprint-control`   | R&D task to drive full Spring cadence when human intervention is no longer required.            |
+| `cluster/operation`        | Deletes/upgrades/installs specific Redhat clusters.            |
 | `package-dockertested`     | Tests new Brew builds of Docker and tags them into a [mirror repo](https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/Packages/) for use by the CI systems. |
 
 ## Jenkins Job Builder configuration under `jjb/`

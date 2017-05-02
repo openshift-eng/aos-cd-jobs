@@ -34,8 +34,6 @@ fi
 if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_REBUILD}" != "true" ] ; then
     echo ; echo "No changes since last tagged build"
     echo "No need to build anything. Stopping."
-    currentBuild.displayName = "#${currentBuild.number} - No changes found"
-
 else
     #There have been changes, so rebuild
     echo
@@ -44,7 +42,7 @@ else
     echo "=========="
     tito tag --accept-auto-changelog
     export VERSION="v$(grep Version: openshift-scripts.spec | awk '{print $2}')"
-    currentBuild.displayName = "#${currentBuild.number} - ${VERSION}"
+    
     echo ${VERSION}
     git push
     git push --tags

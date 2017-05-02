@@ -8,7 +8,6 @@ echo
 echo "=========="
 echo "Making sure we have kerberos"
 echo "=========="
-kinit -k -t $KEYTAB $PRINCIPLE
 kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 
 MB_PATH=$(readlink -f $0)
@@ -135,6 +134,11 @@ cd ${WORKPATH}
 rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
+
+# Enable fake merge driver used in our .gitattributes
+# https://github.com/openshift/ose/commit/02b57ed38d94ba1d28b9bc8bd8abcb6590013b7c
+git config merge.ours.driver true
+
 if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] || [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] ; then
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all

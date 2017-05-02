@@ -1,8 +1,6 @@
 #!/bin/bash
 set -o xtrace
 
-kinit -k -t $KEYTAB $PRINCIPLE
-
 MB_PATH=$(readlink -f $0)
 SCRIPTS_DIR=$(dirname $MB_PATH)
 
@@ -32,82 +30,74 @@ if [ "${BUILD_MODE}" == "online/stg" ] ; then
     git checkout -q stage
 fi
 
-# Check to see if there have been any changes since the last tag
-if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_REBUILD}" != "true" ] ; then
-    echo ; echo "No changes since last tagged build"
-    echo "No need to build anything. Stopping."
+echo
+echo "=========="
+echo "Tito Tagging"
+echo "=========="
+tito tag --accept-auto-changelog
+export VERSION="v$(grep Version: openshift-scripts.spec | awk '{print $2}')"
+echo ${VERSION} 
+git push
+git push --tags
+
+echo
+echo "=========="
+echo "Tito building in brew"
+echo "=========="
+TASK_NUMBER=`tito release --yes --test brew | grep 'Created task:' | awk '{print $3}'`
+echo "TASK NUMBER: ${TASK_NUMBER}"
+echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
+echo
+brew watch-task ${TASK_NUMBER}
+
+echo
+echo "=========="
+echo "Tagging package in brew"
+echo "=========="
+TAG=`git describe --abbrev=0`
+COMMIT=`git log -n 1 --pretty=%h`
+if [ "${BUILD_MODE}" == "online/stg" ] ; then
+  brew tag-pkg libra-rhel-7-stage ${TAG}.git.0.${COMMIT}.el7
 else
-    #There have been changes, so rebuild
-    echo
-    echo "=========="
-    echo "Tito Tagging"
-    echo "=========="
-    tito tag --accept-auto-changelog
-    export VERSION="v$(grep Version: openshift-scripts.spec | awk '{print $2}')"
-    echo ${VERSION} 
-    git push
-    git push --tags
-
-    echo
-    echo "=========="
-    echo "Tito building in brew"
-    echo "=========="
-    TASK_NUMBER=`tito release --yes --test brew | grep 'Created task:' | awk '{print $3}'`
-    echo "TASK NUMBER: ${TASK_NUMBER}"
-    echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
-    echo
-    brew watch-task ${TASK_NUMBER}
-
-    echo
-    echo "=========="
-    echo "Tagging package in brew"
-    echo "=========="
-    TAG=`git describe --abbrev=0`
-    COMMIT=`git log -n 1 --pretty=%h`
-    if [ "${BUILD_MODE}" == "online/stg" ] ; then
-      brew tag-pkg libra-rhel-7-stage ${TAG}.git.0.${COMMIT}.el7
-    else
-      brew tag-pkg libra-rhel-7-candidate ${TAG}.git.0.${COMMIT}.el7
-    fi
-
-    echo
-    echo "=========="
-    echo "Build and Push libra repos"
-    echo "=========="
-    if [ "${BUILD_MODE}" == "online/stg" ] ; then
-      ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh stage"
-    else
-      ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh candidate"
-    fi
-
-    echo
-    echo "=========="
-    echo "Update Dockerfiles"
-    echo "=========="
-    ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
-
-    # If we are at the stage mode, dont be messing with the dist-git checking
-    if [ "${BUILD_MODE}" != "online/stg" ] ; then
-        echo
-        echo "=========="
-        echo "Sync distgit"
-        echo "=========="
-        ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force --message "MaxFileSize: 52428800"
-    fi
-
-    echo
-    echo "=========="
-    echo "Build Images"
-    echo "=========="
-    ose_images.sh --user ocp-build build_container --repo http://file.rdu.redhat.com/tdawson/repo/oso-building.repo --branch libra-rhel-7 --group oso
-
-    echo
-    echo "=========="
-    echo "Push Images"
-    echo "=========="
-    sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
-
+  brew tag-pkg libra-rhel-7-candidate ${TAG}.git.0.${COMMIT}.el7
 fi
+
+echo
+echo "=========="
+echo "Build and Push libra repos"
+echo "=========="
+if [ "${BUILD_MODE}" == "online/stg" ] ; then
+  ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh stage"
+else
+  ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh candidate"
+fi
+
+echo
+echo "=========="
+echo "Update Dockerfiles"
+echo "=========="
+ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
+
+# If we are at the stage mode, dont be messing with the dist-git checking
+if [ "${BUILD_MODE}" != "online/stg" ] ; then
+    echo
+    echo "=========="
+    echo "Sync distgit"
+    echo "=========="
+    ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force --message "MaxFileSize: 52428800"
+fi
+
+echo
+echo "=========="
+echo "Build Images"
+echo "=========="
+ose_images.sh --user ocp-build build_container --repo http://file.rdu.redhat.com/tdawson/repo/oso-building.repo --branch libra-rhel-7 --group oso
+
+echo
+echo "=========="
+echo "Push Images"
+echo "=========="
+sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
 
 echo
 echo "=========="

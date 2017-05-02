@@ -33,8 +33,11 @@ pushd "$BASEDIR" > /dev/null
         done
 
         mkdir -p "reports"
+        # TODO: make namespace configurable
+        # TODO: return logs from failed deployments
         autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc get pods --all-namespaces" > reports/pods.txt
-        autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc status" > reports/status.txt
+        autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc status -v --all-namespaces" > reports/status.txt
+        autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc get events --all-namespaces" > reports/events.txt
     } > "$BASEDIR/gather-logs.debug" 2>&1
 
     tar zcf - *

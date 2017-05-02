@@ -36,6 +36,7 @@ echo "Tito Tagging"
 echo "=========="
 tito tag --accept-auto-changelog
 export VERSION="v$(grep Version: openshift-scripts.spec | awk '{print $2}')"
+currentBuild.displayName = "#${currentBuild.number} - ${VERSION}"
 echo ${VERSION} 
 git push
 git push --tags

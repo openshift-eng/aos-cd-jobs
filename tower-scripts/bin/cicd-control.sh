@@ -7,10 +7,15 @@ function print_usage() {
   echo "Usage: $(basename $0) <clusterid> <operation> [options]"
   echo "Examples:"
   echo
+  echo "  Cluster Operations:"
   echo "    $(basename $0) testcluster install"
   echo "    $(basename $0) testcluster delete"
   echo "    $(basename $0) testcluster upgrade"
   echo "    $(basename $0) testcluster status"
+  echo
+  echo "  Log Gathering Operations:"
+  echo "  Output will be a tarball of cluster logs. Do not pipe to stdout."
+  echo "    $(basename $0) <clusterid> logs"
   echo
 }
 
@@ -54,6 +59,17 @@ export CLUSTERNAME=$1
 export OPERATION=$2
 shift 2
 ARGS="$@"
+
+################################################
+# CLUSTER LOG GATHERING
+# PLEASE DO NOT ADD ANY NEW OPERATIONS BEFORE HERE
+################################################
+if [ "${OPERATION}" == "logs" ]; then
+
+  # Gather the logs for the specified cluster
+  ./gather-logs.sh ${CLUSTERNAME}
+  exit 0
+fi
 
 opts=`getopt -o ha: --long help,openshift-ansible: -n 'cicd-control' -- "$@"`
 eval set -- "$opts"

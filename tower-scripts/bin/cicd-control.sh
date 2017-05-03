@@ -68,6 +68,7 @@ if [ "${OPERATION}" == "logs" ]; then
 
   # Gather the logs for the specified cluster
   ./gather-logs.sh ${CLUSTERNAME}
+  exit 0
 fi
 
 opts=`getopt -o ha: --long help,openshift-ansible: -n 'cicd-control' -- "$@"`

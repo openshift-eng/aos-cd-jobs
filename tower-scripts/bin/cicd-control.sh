@@ -156,6 +156,8 @@ if [ "${OPERATION}" == "install" ]; then
 
     # Kill all background jobs on normal exit or signal
     trap 'if kill $(jobs -p); then echo Killed autokeys; else echo Unable to kill autokeys; fi' EXIT
+
+    export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
   popd

@@ -7,10 +7,15 @@ function print_usage() {
   echo "Usage: $(basename $0) <clusterid> <operation> [options]"
   echo "Examples:"
   echo
+  echo "  Cluster Operations:"
   echo "    $(basename $0) testcluster install"
   echo "    $(basename $0) testcluster delete"
   echo "    $(basename $0) testcluster upgrade"
   echo "    $(basename $0) testcluster status"
+  echo
+  echo "  Log Gathering Operations:"
+  echo "  Output will be a tarball of cluster logs. Do not pipe to stdout."
+  echo "    $(basename $0) <clusterid> logs"
   echo
 }
 
@@ -54,6 +59,16 @@ export CLUSTERNAME=$1
 export OPERATION=$2
 shift 2
 ARGS="$@"
+
+################################################
+# CLUSTER LOG GATHERING
+# PLEASE DO NOT ADD ANY NEW OPERATIONS BEFORE HERE
+################################################
+if [ "${OPERATION}" == "logs" ]; then
+
+  # Gather the logs for the specified cluster
+  ./gather-logs.sh ${CLUSTERNAME}
+fi
 
 opts=`getopt -o ha: --long help,openshift-ansible: -n 'cicd-control' -- "$@"`
 eval set -- "$opts"
@@ -141,8 +156,6 @@ if [ "${OPERATION}" == "install" ]; then
 
     # Kill all background jobs on normal exit or signal
     trap 'if kill $(jobs -p); then echo Killed autokeys; else echo Unable to kill autokeys; fi' EXIT
-
-    export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
   popd
@@ -211,14 +224,6 @@ elif [ "${OPERATION}" == "status" ]; then
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
     /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
   popd
-
-################################################
-# CLUSTER LOG GATHERING
-################################################
-elif [ "${OPERATION}" == "logs" ]; then
-
-  # Gather the logs for the specified cluster
-  ./gather_logs.sh ${CLUSTERNAME}
 
 else
   echo Error. Unrecognized operation. Exiting...

@@ -9,8 +9,10 @@
   - [ ] Set the annotation `openshift.io/node-selector: ""` on the logging project. 
   - [ ] Make sure, within the logging namespace, that the logging pvcs are labeled logging-infra=support  (e.g. oc label pvc logging-es-???? logging-infra=support). https://github.com/openshift/openshift-ansible/issues/3896
   - [ ] Set logging-infra-fluentd=true label on all non-masters nodes.
-  - [ ] Make sure that metrics pvcs are labeled in the openshift-infra namespace with metrics-infra: hawkular-cassandra 
+  - [ ] Make sure that metrics pvcs are labeled in the openshift-infra namespace with metrics-infra: hawkular-cassandra
+  - [ ] Set an appropriate parallelism for the cluster: https://github.com/openshift/openshift-ansible/blob/master/playbooks/common/openshift-cluster/upgrades/upgrade_nodes.yml#L4-L6  (openshift_upgrade_nodes_serial)
 - [ ] Re-vendor appropriate openshift-ansible if it is still not dynamic  (origin/openshift-ansible:stage? release-1.5?)
+  - [ ] Make sure https://github.com/openshift/openshift-tools/commit/196d3c7facb872be04c9ca6b347907ce374487b5 is in place until https://access.redhat.com/solutions/3020271 is fixed
 - [ ] Modify cluster template with target OpenShift version: openshift-ansible-private/private_roles/aos-cicd/files/CLUSTER/CLUSTER_aws_cluster_setup.yml
 - [ ] Check that the yum repo for the cluster's target version is accurate: openshift-ansible-private/private_vars/global/aws/dev-preview-int/int/dev-preview-int/yum_extra_repos.yml
   - e.g. Set to https://mirror.openshift.com/enterprise/enterprise-3.4/latest/x86_64/os/ if back leveling to 3.4

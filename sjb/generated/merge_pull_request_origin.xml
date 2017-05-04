@@ -81,6 +81,11 @@ See also:
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/release&#34;&gt;release&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>MERGE_SEVERITY</name>
+          <description>How important this pull request is.</description>
+          <defaultValue>none</defaultValue>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
@@ -102,6 +107,12 @@ See also:
   <triggers/>
   <concurrentBuild>true</concurrentBuild>
   <builders>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+approve.sh origin &quot;${ORIGIN_TARGET_BRANCH}&quot; &quot;${MERGE_SEVERITY}&quot;
+          </command>
+        </hudson.tasks.Shell>
     <com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
       <phaseName>Test Phase</phaseName>
       <phaseJobs>

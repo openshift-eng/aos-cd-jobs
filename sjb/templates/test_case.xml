@@ -22,6 +22,13 @@
 {%- for parameter in parameters %}
 {{ parameter }}
 {%- endfor %}
+{%- if action == "merge" %}
+        <hudson.model.StringParameterDefinition>
+          <name>MERGE_SEVERITY</name>
+          <description>How important this pull request is.</description>
+          <defaultValue>none</defaultValue>
+        </hudson.model.StringParameterDefinition>
+{%- endif %}
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
 {%- endif %}
@@ -52,6 +59,14 @@
 {%- endif %}
   <concurrentBuild>true</concurrentBuild>
   <builders>
+{%- if action == "merge" %}
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+approve.sh {{ target_repo }} &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_TARGET_BRANCH}&quot; &quot;${MERGE_SEVERITY}&quot;
+          </command>
+        </hudson.tasks.Shell>
+{%- endif %}
 {%- for build_step in build_steps %}
 {{ build_step }}
 {%- endfor %}

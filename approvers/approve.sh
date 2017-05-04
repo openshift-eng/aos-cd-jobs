@@ -12,8 +12,8 @@ else
 	branch="$2"
 	severity="$3"
 	if [[ ! -f "/var/lib/jenkins/approvers/openshift/${repo}/${branch}/approver" ]]; then
-		echo "[ERROR] No approval criteria are configured for '${branch}' branch of '${repo}' repo."
-		exit 127
+		echo "[ERROR] No approval criteria are configured for '${branch}' branch of '${repo}' repo." | tee -a "/var/lib/jenkins/approvers/denials.log"
+		exit 0
 	else
 		"/var/lib/jenkins/approvers/openshift/${repo}/${branch}/approver" "${severity}"
 	fi

@@ -9,13 +9,15 @@ pushd approvers/ >/dev/null
 
 for master in 'ci.openshift' 'ci.dev.openshift'; do
 	echo "[INFO] Updating Jenkins master at ${master}..."
+	scripts=()
 	for stage in 'open' 'devcut' 'stagecut' 'closed'; do
-		scp "${stage}_approver.sh" "${master}:/usr/bin"
+		scripts+=( "${stage}_approver.sh" )
 	done
 
-	scp approve.sh "${master}:/usr/bin"
-	scp configure_approver.sh "${master}:/usr/bin"
-	scp list_approvers.sh "${master}:/usr/bin"
+	scripts+=( approve.sh )
+	scripts+=( configure_approver.sh )
+	scripts+=( list_approvers.sh )
+	scp "${scripts[@]}" "${master}:/usr/bin"
 done
 
 popd >/dev/null

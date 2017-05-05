@@ -15,6 +15,10 @@ else
 		echo "[ERROR] No approval criteria are configured for '${branch}' branch of '${repo}' repo." | tee -a "/var/lib/jenkins/approvers/denials.log"
 		exit 0
 	else
-		"/var/lib/jenkins/approvers/openshift/${repo}/${branch}/approver" "${severity}"
+		if ! "/var/lib/jenkins/approvers/openshift/${repo}/${branch}/approver" "${severity}"; then
+			result='approved'
+		fi
+		echo "[INF0] Pull request of '${severity}' severity would be ${result:-rejected} for merge into '${branch}' branch of '${repo}' repo." | tee -a "/var/lib/jenkins/approvers/denials.log"
+		exit 0
 	fi
 fi

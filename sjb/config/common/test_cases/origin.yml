@@ -20,7 +20,6 @@ actions:
       SUDO
 post_actions: []
 artifacts:
-  - "/tmp/openshift"
   - "/data/src/github.com/openshift/origin/_output/scripts"
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'

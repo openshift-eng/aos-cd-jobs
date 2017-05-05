@@ -71,6 +71,17 @@ if [ "${OPERATION}" == "logs" ]; then
   exit 0
 fi
 
+# Stdout from 'status' invocation is sent out verbatim after an
+# online-first install/upgrade. Similar to logs operation, don't
+# output any stdout before this point.
+if [ "${OPERATION}" == "status" ]; then
+  # Run the upgrade, including post_byo steps and config loop
+  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin > /dev/null
+    /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
+  popd > /dev/null
+  exit 0
+fi
+
 opts=`getopt -o ha: --long help,openshift-ansible: -n 'cicd-control' -- "$@"`
 eval set -- "$opts"
 OPENSHIFT_ANSIBLE_VERSION="latest"
@@ -217,16 +228,6 @@ elif [ "${OPERATION}" == "upgrade" ]; then
 
   # clean up temp openshift-ansible dir, if there is one
   delete_openshift_ansible_tmp_dir
-
-################################################
-# CLUSTER STATUS
-################################################
-elif [ "${OPERATION}" == "status" ]; then
-
-  # Run the upgrade, including post_byo steps and config loop
-  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
-    /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
-  popd
 
 else
   echo Error. Unrecognized operation. Exiting...

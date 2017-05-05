@@ -11,11 +11,10 @@ An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenk
 | `build/scheduled/ose`      | Runs build/ose daily. Presently used to build 3.6 for daily integration test environments.            |
 | `build/scheduled/t-th`     | Runs build/ose every Tuesday and Thursday for particular builds of OCP.            |
 | `build/ose`                | Main build task for OCP. Can build 3.3, 3.4, and so on up through the current ose/master branch. Also builds openshift-ansible artifiacts and jenkins images.            |
-| `build/stage-to-prod`      | Promote RPMs from the staging repositories to the production repositories. |
+| `build/stage-to-prod`      | Promote RPMs from the staging repositories to the production repositories (Copies files from [latest/ in the enterprise online-stg](https://mirror.openshift.com/enterprise/online-stg/latest/) repo to [online-prod/lastest](https://mirror.openshift.com/enterprise/online-prod/latest/). Also copies files from [libra rhel-7-libra-stage](https://mirror.ops.rhcloud.com/libra/rhel-7-libra-stage/) to [libra's latest online-prod](https://mirror.ops.rhcloud.com/libra/online-prod/latest/) in a new directory based on the day's date.).  |
 | `build/make-puddle`        | Create an Atomic OpenShift puddle on `rcm-guest`. |
 | `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](https://github.com/openshift/online) team. |
 | `build/ose-pipeline`       | R&D to replace build/ose shell scripts with Jenkins pipeline syntax.            |
-| `build/stage-to-prod`      | Copies files from [latest/ in the enterprise online-stg](https://mirror.openshift.com/enterprise/online-stg/latest/) repo to [online-prod/lastest](https://mirror.openshift.com/enterprise/online-prod/latest/).<BR>Also copies files from [libra rhel-7-libra-stage](https://mirror.ops.rhcloud.com/libra/rhel-7-libra-stage/) to [libra's latest online-prod](https://mirror.ops.rhcloud.com/libra/online-prod/latest/) in a new directory based on the day's date.           |
 | `build/refresh-images`     |             |
 | `cluster/sprint-control`   | R&D task to drive full Spring cadence when human intervention is no longer required.            |
 | `cluster/operation`        | Deletes/upgrades/installs specific Redhat clusters.            |

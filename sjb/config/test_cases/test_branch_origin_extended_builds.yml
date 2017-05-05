@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release.yml'
+parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   timer: 'H H * * *'
   email:

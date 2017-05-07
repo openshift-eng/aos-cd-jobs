@@ -10,6 +10,7 @@ echo "Making sure we have kerberos"
 echo "=========="
 kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 
+# Path for merge-and-build script
 MB_PATH=$(readlink -f $0)
 
 set -o errexit
@@ -50,6 +51,12 @@ if [ -d "${BUILDPATH}/src" ]; then
     rm -rf "${BUILDPATH}/src" # Remove any previous clone
 fi
 
+RESULTS="${BUILDPATH}/results"
+if [ -d "${RESULTS}" ]; then
+    rm -rf "${RESULTS}"
+fi
+mkdir -p "${RESULTS}"
+
 WORKPATH="${BUILDPATH}/src/github.com/openshift/"
 mkdir -p ${WORKPATH}
 cd ${BUILDPATH}
@@ -81,15 +88,14 @@ if [ "${BUILD_MODE}" == "online/stg" ] ; then
     git checkout -q stage
 else
   if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-    if [ "${MINOR}" -le 5 ] ; then
+    if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
       git checkout -q release-1.${MINOR}
-    else
+    else  # Afterwards, version maps directly; 3.5 => "release-3.5"
       git checkout -q release-${OSE_VERSION}
     fi
   fi
 fi
 
-#There have been changes, so rebuild
 echo
 echo "=========="
 echo "Tito Tagging: openshift-ansible"
@@ -106,6 +112,7 @@ TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:'
 echo "TASK NUMBER: ${TASK_NUMBER}"
 echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
 echo
+echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/openshift-ansible-brew.url"
 brew watch-task ${TASK_NUMBER}
 
 echo
@@ -202,6 +209,7 @@ TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:'
 echo "TASK NUMBER: ${TASK_NUMBER}"
 echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
 echo
+echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/ose-brew.url"
 brew watch-task ${TASK_NUMBER}
 
 echo
@@ -242,6 +250,10 @@ echo "=========="
 echo "Create latest puddle"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf"
+# Record the name of the puddle which was created
+PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/$OSE_VERSION}/latest")
+echo -n "${PUDDLE_NAME}" > "${RESULTS}/ose-puddle.name"
+echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/$OSE_VERSION}/${PUDDLE_NAME}"
 
 echo
 echo "=========="

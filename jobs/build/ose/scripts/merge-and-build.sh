@@ -251,7 +251,7 @@ echo "Create latest puddle"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf"
 # Record the name of the puddle which was created
-PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/$OSE_VERSION}/latest")
+PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/latest")
 echo -n "${PUDDLE_NAME}" > "${RESULTS}/ose-puddle.name"
 echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/$OSE_VERSION}/${PUDDLE_NAME}"
 

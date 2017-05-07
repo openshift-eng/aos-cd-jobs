@@ -26,16 +26,25 @@ def mail_success(version) {
         mirrorURL = "https://mirror.openshift.com/enterprise/online-stg/"
     }
 
+    def oaBrewURL = readFile("results/openshift-ansible-brew.url")
+    def oseBrewURL = readFile("results/ose-brew.url")
+    def puddleName = readFile("results/ose-puddle.name")
+
     mail(
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
         replyTo: 'tdawson@redhat.com',
         subject: "[aos-devel] New Puddle for OpenShift ${target}: ${version}",
         body: """\
-v${version}
-Images have been built for this puddle
-Images have been pushed to registry.ops
-Puddles have been synced to mirrors : ${mirrorURL}
+OpenShift Version: v${version}
+
+Puddle: ${mirrorURL}/${puddleName}
+  - Images have been built for this puddle
+  - Images have been pushed to registry.ops
+
+Brew:
+  - Openshift: ${oseBrewURL}
+  - OpenShift Ansible: ${oaBrewURL}
 
 Jenkins job: ${env.BUILD_URL}
 """);

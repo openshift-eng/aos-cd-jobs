@@ -98,7 +98,7 @@ else
     echo "=========="
     echo "Build Images"
     echo "=========="
-    if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    if [ "${BUILD_MODE}" == "online:stg" ] ; then
       ose_images.sh --user ocp-build build_container --repo http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/oso-stage.repo --branch libra-rhel-7 --group oso
     else
       ose_images.sh --user ocp-build build_container --repo http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/oso-candidate.repo --branch libra-rhel-7 --group oso

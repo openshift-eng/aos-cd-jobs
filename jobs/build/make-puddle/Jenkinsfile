@@ -19,7 +19,7 @@ def mail_success() {
     mail(
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
-        replyTo: 'tdawson@redhat.com',
+        replyTo: 'smunilla@redhat.com',
         subject: "Puddle has been created: ${OSE_MAJOR}.${OSE_MINOR} ${PUDDLE_TYPE}:${PUDDLE_PURPOSE}",
         body: """\
 Jenkins job: ${env.BUILD_URL}
@@ -38,8 +38,8 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "building\nlatest", description: 'What is it for', name: 'PUDDLE_PURPOSE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "simple\nerrata\nsigned", description: 'What type to make (CURRENTLY ONLY WORKS WITH simple)', name: 'PUDDLE_TYPE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'tdawson@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'tdawson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                       ]
              ]]
     )

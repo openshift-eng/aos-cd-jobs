@@ -16,7 +16,7 @@ def mail_success() {
     mail(
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
-        replyTo: 'tdawson@redhat.com',
+        replyTo: 'smunilla@redhat.com',
         subject: "Stage has been synced to prod",
         body: """\
 For details see the jenkins job.
@@ -33,8 +33,8 @@ node('buildvm-devops') {
                       [
                                [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Really sync Stage to Prod?', name: 'CONFIRM_STAGE_TO_PROD'],
 
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'tdawson@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'tdawson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                       ]
              ]]
     )

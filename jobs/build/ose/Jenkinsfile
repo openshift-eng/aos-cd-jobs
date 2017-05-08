@@ -37,7 +37,7 @@ def mail_success(version) {
     mail(
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
-        replyTo: 'tdawson@redhat.com',
+        replyTo: 'smunilla@redhat.com',
         subject: "[aos-devel] New Puddle for OpenShift ${target}: ${version}",
         body: """\
 OpenShift Version: v${version}

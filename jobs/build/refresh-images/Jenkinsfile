@@ -16,7 +16,7 @@ def mail_success() {
     mail(
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
-        replyTo: 'tdawson@redhat.com',
+        replyTo: 'smunilla@redhat.com',
         subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR} ${OSE_GROUP}",
         body: """\
 Jenkins job: ${env.BUILD_URL}
@@ -35,8 +35,8 @@ node('buildvm-devops') {
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", defaultValue: '4', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base\nmetrics\nlogging\njenkins\nmisc\nall", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo\nhttp://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-errata-building.repo\nhttp://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-signed-building.repo", defaultValue: 'http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo', description: 'Which repo to use', name: 'OSE_REPO'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'tdawson@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'tdawson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                       ]
              ]]
     )

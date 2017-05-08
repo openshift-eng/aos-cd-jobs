@@ -52,7 +52,7 @@ echo
 echo "=========="
 echo "Building Puddle"
 echo "=========="
-ssh tdawson@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf -n -s --label=building"
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf -n -s --label=building"
 
 echo
 echo "=========="
@@ -65,7 +65,7 @@ echo
 echo "=========="
 echo "Build Images"
 echo "=========="
-ose_images.sh build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo http://file.rdu.redhat.com/tdawson/repo/aos-unsigned-building.repo
+ose_images.sh build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo
    if [ "$?" != "0" ]; then exit 1 ; fi
 
 echo
@@ -79,7 +79,7 @@ echo
 echo "=========="
 echo "Create latest puddle"
 echo "=========="
-ssh tdawson@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf"
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf"
 
 echo
 echo "=========="

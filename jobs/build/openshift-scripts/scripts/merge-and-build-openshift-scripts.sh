@@ -26,7 +26,7 @@ rm -rf online
 git clone git@github.com:openshift/online.git
 cd online/
 
-if [ "${BUILD_MODE}" == "online/stg" ] ; then
+if [ "${BUILD_MODE}" == "online:stg" ] ; then
     git checkout -q stage
 fi
 
@@ -63,7 +63,7 @@ else
     echo "=========="
     TAG=`git describe --abbrev=0`
     COMMIT=`git log -n 1 --pretty=%h`
-    if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    if [ "${BUILD_MODE}" == "online:stg" ] ; then
       brew tag-pkg libra-rhel-7-stage ${TAG}.git.0.${COMMIT}.el7
     else
       brew tag-pkg libra-rhel-7-candidate ${TAG}.git.0.${COMMIT}.el7
@@ -73,7 +73,7 @@ else
     echo "=========="
     echo "Build and Push libra repos"
     echo "=========="
-    if [ "${BUILD_MODE}" == "online/stg" ] ; then
+    if [ "${BUILD_MODE}" == "online:stg" ] ; then
       ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh stage"
     else
       ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh candidate"
@@ -86,7 +86,7 @@ else
     ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
 
     # If we are at the stage mode, dont be messing with the dist-git checking
-    if [ "${BUILD_MODE}" != "online/stg" ] ; then
+    if [ "${BUILD_MODE}" != "online:stg" ] ; then
         echo
         echo "=========="
         echo "Sync distgit"

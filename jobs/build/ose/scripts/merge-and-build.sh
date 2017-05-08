@@ -17,25 +17,22 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-## Update OSE_MASTER and OSE_MASTER_BRANCHED when releasing or branching master
-## Be sure to update lines 136 when 3.5 has been released
-## OSE_MASTER means it ose master, ie ose/master
-## OSE_MASTER_BRANCHED means it has been branched, ie ose/enterprise-3.5 but hasn't been released
-## Right after a release, but before a master branch, both should be set the same, ie both are 3.6
-OSE_MASTER="3.6"
-OSE_MASTER_BRANCHED="3.6"
 if [ "$#" -ne 2 ]; then
-  MAJOR="3"
-  MINOR="5"  
   echo "Please pass in MAJOR and MINOR version"
-  echo "Using default of ${MAJOR} and ${MINOR}"
+  exit 1
 else
   MAJOR="$1"
   MINOR="$2"
 fi
+
 OSE_VERSION="${MAJOR}.${MINOR}"
 PUSH_EXTRA=""
+
 if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+  if [ "$BUILD_MODE" != "enterprise" ]; then
+    echo "Unable to build old version ($OSE_VERSION) in online mode when master contains: $OSE_MASTER"
+    exit 1
+  fi
   PUSH_EXTRA="--nolatest"
 fi
 
@@ -84,7 +81,7 @@ echo "=========="
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
 cd openshift-ansible/
-if [ "${BUILD_MODE}" == "online/stg" ] ; then
+if [ "${BUILD_MODE}" == "online:stg" ] ; then
     git checkout -q stage
 else
   if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
@@ -123,7 +120,7 @@ cd ${WORKPATH}
 rm -rf origin-web-console
 git clone git@github.com:openshift/origin-web-console.git
 cd origin-web-console/
-if [ "${BUILD_MODE}" == "online/stg" ] ; then
+if [ "${BUILD_MODE}" == "online:stg" ] ; then
   git checkout stage
 else
   git checkout enterprise-${OSE_VERSION}
@@ -146,21 +143,28 @@ cd ose
 # https://github.com/openshift/ose/commit/02b57ed38d94ba1d28b9bc8bd8abcb6590013b7c
 git config merge.ours.driver true
 
-if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] || [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] ; then
+if [ "${BUILD_MODE}" == "enterprise" ]; then
+
+  git checkout -q enterprise-${OSE_VERSION}
+
+else
+
+  # If we are here, we are building master or stage for online
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
 
-  if [ "${BUILD_MODE}" == "online/stg" ] ; then
+  if [ "${BUILD_MODE}" == "online:stg" ] ; then
     CURRENT_BRANCH="stage"
     UPSTREAM_BRANCH="upstream/stage"
-  elif [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-    CURRENT_BRANCH="master"
-    UPSTREAM_BRANCH="upstream/master"
-  elif [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] ; then
+  elif [ "${BUILD_MODE}" == "enterprise:pre-release" ] ; then
     CURRENT_BRANCH="enterprise-${OSE_VERSION}"
     UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
+  else # Otherwise, online:int
+    CURRENT_BRANCH="master"
+    UPSTREAM_BRANCH="upstream/master"
   fi
 
+  echo "Building from branch: ${CURRENT_BRANCH}"
   git checkout -q ${CURRENT_BRANCH}
 
   echo
@@ -168,11 +172,8 @@ if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] || [ "${OSE_VERSION}" == "${OSE_MASTE
   echo "Merge origin into ose stuff"
   echo "=========="
   git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" ${UPSTREAM_BRANCH}
-  OSE_BUILD="true"
 
-else
-  git checkout -q enterprise-${OSE_VERSION}
-fi # End check if we are master
+fi
 
 echo
 echo "=========="
@@ -182,7 +183,7 @@ VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/nul
 git add pkg/assets/bindata.go
 git add pkg/assets/java/bindata.go
 set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
-if [ "${BUILD_MODE}" == "online/stg" ] ; then
+if [ "${BUILD_MODE}" == "online:stg" ] ; then
   git commit -m "Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
 else  
   git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
@@ -219,7 +220,7 @@ echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf -n -s --label=building"
 
 # If we are at the stage mode, dont be messing with the dist-git checking
-if [ "${BUILD_MODE}" != "online/stg" ] ; then
+if [ "${BUILD_MODE}" != "online:stg" ] ; then
   echo
   echo "=========="
   echo "Sync git to dist-git repos"
@@ -259,16 +260,13 @@ echo
 echo "=========="
 echo "Sync latest puddle to mirrors"
 echo "=========="
-if [ "${OSE_VERSION}" == "${OSE_MASTER_BRANCHED}" ] || [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-  case "${BUILD_MODE}" in
-    online/master ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION} online-int" ;;
-    online/stg ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION} online-stg" ;;
-    enterprise/master | enterprise/release ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}" ;;
-    * ) echo "${BUILD_MODE} did not match anything we know about, not pushing"
-  esac
-else
-  ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}"
-fi
+case "${BUILD_MODE}" in
+online:int ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION} online-int" ;;
+online:stg ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION} online-stg" ;;
+enterprise ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}" ;;
+enterprise:pre-release ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}" ;;
+* ) echo "BUILD_MODE:${BUILD_MODE} did not match anything we know about, not pushing"
+esac
 
 
 echo
@@ -283,15 +281,6 @@ for x in "${VERSION#v}/"{linux/oc.tar.gz,macosx/oc.tar.gz,windows/oc.zip}; do
         "https://mirror.openshift.com/pub/openshift-v3/clients/$x" \
         | awk '$2!="200"{print > "/dev/stderr"; exit 1}{exit}'
 done
-
-echo
-echo
-echo "=========="
-echo "Cleanup"
-echo "=========="
-## First checkin, let's make sure things ar right first
-#rm -rf ${BUILDPATH}
-echo "I would have run: rm -rf ${BUILDPATH}"
 
 echo
 echo

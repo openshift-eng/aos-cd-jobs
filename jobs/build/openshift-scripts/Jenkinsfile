@@ -20,9 +20,9 @@ node('buildvm-devops') {
                                      [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                                      [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force rebuild even if no changes are detected?', name: 'FORCE_REBUILD'],
                                      [$class: 'hudson.model.ChoiceParameterDefinition',
-                                        choices: "online/master\nonline/stg", 
-                                        description: '''online/master openshift/online/master -> rhel-7-libra-candidate yum repo<br>
-                                                        online/stg openshift/online/stage -> rhel-7-libra-candidate-stage yum repo<br>
+                                        choices: "online:int\nonline:stg",
+                                        description: '''online:int      online/master -> rhel-7-libra-candidate yum repo<br>
+                                                        online:stg      online/stage -> rhel-7-libra-candidate-stage yum repo<br>
                                                         ''',
                                         name: 'BUILD_MODE'],
                              ]

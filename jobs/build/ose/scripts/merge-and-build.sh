@@ -150,8 +150,6 @@ if [ "${BUILD_MODE}" == "enterprise" ]; then
 else
 
   # If we are here, we are building master or stage for online
-  git remote add upstream git@github.com:openshift/origin.git --no-tags
-  git fetch --all
 
   if [ "${BUILD_MODE}" == "online:stg" ] ; then
     CURRENT_BRANCH="stage"
@@ -166,6 +164,10 @@ else
 
   echo "Building from branch: ${CURRENT_BRANCH}"
   git checkout -q ${CURRENT_BRANCH}
+
+  git remote add upstream git@github.com:openshift/origin.git --no-tags
+  git fetch --all
+
 
   echo
   echo "=========="

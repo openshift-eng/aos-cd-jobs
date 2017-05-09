@@ -33,11 +33,9 @@ def get_matching_versions(input_pkg_name, available_pkgs, search_version):
 		print("[ERROR] Can not determine install and upgrade version for the `" + input_pkg_name + "` package", sys.stderr)
 		sys.exit(1)
 
-# Get only install(first) and upgrade(last) versions from version list
-def get_install_upgrade_version(version_list):
-	if len(version_list) > 1: 
-		return [version_list[0],version_list[len(version_list)-1]]
-	return [version_list[0]]
+# Get only install(last) version from version list
+def get_install_version(version_list):
+	return version_list[-1]
 
 # Return minor version of provided package version-release pair
 def get_minor_version(pkg_version_release):
@@ -49,14 +47,10 @@ def get_version(pkg_version_release):
 
 # Print install, upgrade and upgrade_release versions of desired package to STDOUT.
 # The upgrade version will be printed only in case there is more then one version of packages previous minor release. 
-def print_version_vars(version_list):
+def print_version_vars(install_version):
 	used_pkg_name = pkg_name.upper().replace("-", "_")
-	print (used_pkg_name + "_INSTALL_VERSION=" + version_list[0])
-	print (used_pkg_name + "_INSTALL_MINOR_VERSION=" + get_minor_version(version_list[0]))
-	if len(version_list) > 1:
-		print (used_pkg_name + "_UPGRADE_VERSION=" + version_list[1])
-		print (used_pkg_name + "_UPGRADE_MINOR_VERSION=" + get_minor_version(version_list[1]))
-		print (used_pkg_name + "_UPGRADE_VERSION_PKG_VERSION=" + get_version(version_list[1]))
+	print (used_pkg_name + "_INSTALL_VERSION=" + install_version)
+	print (used_pkg_name + "_INSTALL_MINOR_VERSION=" + get_minor_version(install_version))
 	print (used_pkg_name + "_UPGRADE_RELEASE_VERSION=" + pkg_version + "-" + pkg_release)
 	print (used_pkg_name + "_UPGRADE_RELEASE_MINOR_VERSION=" + get_minor_version(pkg_version + "-" + pkg_release))
 
@@ -94,5 +88,5 @@ if __name__ == "__main__":
 	available_pkgs = remove_duplicate_pkgs(available_pkgs)
 	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
 	matching_pkgs = get_matching_versions(pkg_name, available_pkgs, search_version)
-	install_upgrade_version_list = get_install_upgrade_version(matching_pkgs)
-	print_version_vars(install_upgrade_version_list)
+	install_version = get_install_version(matching_pkgs)
+	print_version_vars(install_version)

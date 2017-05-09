@@ -100,29 +100,6 @@ extensions:
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
                           -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
-        if [[ -v ORIGIN_UPGRADE_VERSION  && -v ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ]]
-        then
-          echo "=== Updating atomic-openshift-utils-${ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION} ==="
-          versioned_packages_to_install=""
-          packages_to_install=( $( cat ./OPENSHIFT_ANSIBLE_PKGS ) )
-          for pkg in "${packages_to_install[@]}"
-          do
-            versioned_packages_to_install+=" ${pkg}-${ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION}"
-          done
-          sudo yum upgrade -y ${versioned_packages_to_install}
-          echo "=== Updating ${pkg_name} to ${ORIGIN_UPGRADE_VERSION} ==="
-          upgrade_playbook="/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${ORIGIN_UPGRADE_MINOR_VERSION}/upgrade.yml"
-          ansible-playbook  -vv                    \
-                            --become               \
-                            --become-user root     \
-                            --connection local     \
-                            --inventory sjb/inventory/ \
-                            "${upgrade_playbook}"      \
-                            -e etcd_data_dir="${ETCD_DATA_DIR}" \
-                            -e openshift_pkg_version="-${ORIGIN_UPGRADE_VERSION}" \
-                            -e deployment_type=$( cat ./DEPLOYMENT_TYPE)          \
-                            -e oreg_url='openshift/origin-${component}:'"${ORIGIN_UPGRADE_VERSION_PKG_VERSION}"
-        fi
     - type: "script"
       title: "build an origin release"
       repository: "origin"

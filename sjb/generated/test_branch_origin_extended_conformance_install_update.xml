@@ -255,29 +255,6 @@ ansible-playbook  -vv                \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_INSTALL_VERSION}&#34;         \
                   -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34;                           \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
-if [[ -v ORIGIN_UPGRADE_VERSION  &amp;&amp; -v ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION ]]
-then
-  echo &#34;=== Updating atomic-openshift-utils-\${ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION} ===&#34;
-  versioned_packages_to_install=&#34;&#34;
-  packages_to_install=( \$( cat ./OPENSHIFT_ANSIBLE_PKGS ) )
-  for pkg in &#34;\${packages_to_install[@]}&#34;
-  do
-    versioned_packages_to_install+=&#34; \${pkg}-\${ATOMIC_OPENSHIFT_UTILS_UPGRADE_VERSION}&#34;
-  done
-  sudo yum upgrade -y \${versioned_packages_to_install}
-  echo &#34;=== Updating \${pkg_name} to \${ORIGIN_UPGRADE_VERSION} ===&#34;
-  upgrade_playbook=&#34;/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_\${ORIGIN_UPGRADE_MINOR_VERSION}/upgrade.yml&#34;
-  ansible-playbook  -vv                    \
-                    --become               \
-                    --become-user root     \
-                    --connection local     \
-                    --inventory sjb/inventory/ \
-                    &#34;\${upgrade_playbook}&#34;      \
-                    -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
-                    -e openshift_pkg_version=&#34;-\${ORIGIN_UPGRADE_VERSION}&#34; \
-                    -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)          \
-                    -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\${ORIGIN_UPGRADE_VERSION_PKG_VERSION}&#34;
-fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

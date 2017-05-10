@@ -101,32 +101,32 @@ class DetermineSearchVersionTestCase(unittest.TestCase):
 		""" when openshift-ansible, which doesnt have different versioning schema is in 3.4 version """
 		self.assertEqual(determine_search_version("openshift-ansible", "3.5.0"), "3.4")
 
-class GetInstallUpgradeVersionTestCase(unittest.TestCase):
+class GetInstallVersionTestCase(unittest.TestCase):
 	"Test for `determine_install_upgrade_version.py`"
 
 	def test_with_multiple_matching_release_versions(self):
 		""" when multiple matching version are present in released versions """
 		matching_versions = ["1.2.0-1.el7", "1.2.2-1.el7", "1.2.5-1.el7"]
-		install_upgrade_versions = ["1.2.0-1.el7", "1.2.5-1.el7"]
-		self.assertEqual(get_install_upgrade_version(matching_versions), install_upgrade_versions)
+		install_version = "1.2.5-1.el7"
+		self.assertEqual(get_install_version(matching_versions), install_version)
 
 	def test_with_single_matching_release_version(self):
 		""" when only a single matching version is present in released versions """
 		matching_versions = ["1.5.0-1.4.el7"]
-		install_upgrade_versions = ["1.5.0-1.4.el7"]
-		self.assertEqual(get_install_upgrade_version(matching_versions), install_upgrade_versions)
+		install_version = "1.5.0-1.4.el7"
+		self.assertEqual(get_install_version(matching_versions), install_version)
 
 	def test_with_multiple_matching_pre_release_versions(self):
 		""" when multiple matching pre-release version are present in pre-released versions """
 		matching_versions = ["1.2.0-0.el7", "1.2.2-0.el7", "1.2.5-0.el7"]
-		install_upgrade_versions = ["1.2.0-0.el7", "1.2.5-0.el7"]
-		self.assertEqual(get_install_upgrade_version(matching_versions), install_upgrade_versions)
+		install_version = "1.2.5-0.el7"
+		self.assertEqual(get_install_version(matching_versions), install_version)
 
 	def test_with_single_matching_pre_release_version(self):
 		""" when only single matching pre-release version is present in pre-released versions """
 		matching_versions = ["1.5.0-0.4.el7"]
-		install_upgrade_versions = ["1.5.0-0.4.el7"]
-		self.assertEqual(get_install_upgrade_version(matching_versions), install_upgrade_versions)
+		install_version = "1.5.0-0.4.el7"
+		self.assertEqual(get_install_version(matching_versions), install_version)
 
 class GetVersionTestCase(unittest.TestCase):
 	"Test for `determine_install_upgrade_version.py`"

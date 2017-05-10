@@ -11,6 +11,7 @@
   - [ ] Set logging-infra-fluentd=true label on all non-masters nodes.
   - [ ] Make sure that metrics pvcs are labeled in the openshift-infra namespace with metrics-infra: hawkular-cassandra
   - [ ] Set an appropriate parallelism for the cluster: https://github.com/openshift/openshift-ansible/blob/master/playbooks/common/openshift-cluster/upgrades/upgrade_nodes.yml#L4-L6  (openshift_upgrade_nodes_serial)
+  - [ ] Make sure that fastdata's OVS repo is in yum_extra_repos for the cluster
 - [ ] Re-vendor appropriate openshift-ansible if it is still not dynamic  (origin/openshift-ansible:stage? release-1.5?)
   - [ ] Make sure https://github.com/openshift/openshift-tools/commit/196d3c7facb872be04c9ca6b347907ce374487b5 is in place until https://access.redhat.com/solutions/3020271 is fixed
 - [ ] Modify cluster template with target OpenShift version: openshift-ansible-private/private_roles/aos-cicd/files/CLUSTER/CLUSTER_aws_cluster_setup.yml

@@ -22,8 +22,7 @@ function print_usage() {
 function get_latest_openshift_ansible()  {
 
   # Vendor everything but int.
-  if [[ "${1}" == "int" ]]; then
-
+  if [[ "${1}" == "int" || "${1}" == "stg" ]]; then
     TMPDIR="$HOME/aos-cd/tmp"
     mkdir -p "${TMPDIR}"
     AOS_TMPDIR=$(mktemp -d -p "${TMPDIR}")

@@ -210,6 +210,10 @@ elif [ "${OPERATION}" == "delete" ]; then
 elif [ "${OPERATION}" == "upgrade" ]; then
   echo Doing upgrade
 
+  trap 'if kill $(jobs -p); then echo Killed background tasks; else echo Unable to kill background tasks; fi' EXIT
+
+  ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
+
   # Get the latest openshift-ansible rpms
   get_latest_openshift_ansible ${oo_environment}
 
@@ -218,7 +222,6 @@ elif [ "${OPERATION}" == "upgrade" ]; then
     /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
 
     # Kill all background jobs on normal exit or signal
-    trap 'if kill $(jobs -p); then echo Killed autokeys; else echo Unable to kill autokeys; fi' EXIT
 
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE

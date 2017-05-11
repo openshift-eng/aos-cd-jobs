@@ -21,7 +21,8 @@ node('buildvm-devops') {
                       ]
              ]]
     )
-
+    checkout scm
+    
     set_workspace()
 
     if ( LAST_SPRINT_NUMBER == "" ) {

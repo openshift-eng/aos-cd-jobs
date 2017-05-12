@@ -1,0 +1,188 @@
+#!/bin/bash
+
+usage() {
+  echo >&2
+  echo "Usage `basename $0` <jenkins-plugin> [release]" >&2
+  echo >&2
+  echo "Example: `basename $0` openshift-sync 3.6" >&2
+  echo >&2
+  popd &>/dev/null
+  exit 1
+}
+
+# Make sure they passed something in for us
+if [ "$#" -lt 1 ] ; then
+  usage
+fi
+
+# VARIABLES
+PLUGIN_NAME="$1"
+if [ "$#" -eq 2 ] ; then
+  RHAOS_RELEASE="$2"
+else
+  RHAOS_RELEASE="3.6"
+fi
+
+
+# Setup
+workingdir=$(mktemp -d /tmp/jenkins-plugin-XXXXXX)
+cd ${workingdir}
+mkdir testdir
+mkdir -p ${workingdir}/build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+topdir="${workingdir}/build"
+request_file="/tmp/rcm-requests-$(date +%Y-%m-%d)"
+
+# Get hpi and find version
+wget -q https://updates.jenkins-ci.org/latest/${PLUGIN_NAME}.hpi
+if [ "$?" != "0" ] ; then
+  echo
+  echo "ERROR:"
+  echo "  There is no jenkins plugin ${PLUGIN_NAME}"
+  echo
+  exit 1
+fi
+
+cd testdir
+unzip ../${PLUGIN_NAME}.hpi > /dev/null
+cat META-INF/MANIFEST.MF | tr -d '\r' | tr '\n' '|' | sed -e 's#| ##g' | tr '|' '\n' > META-INF/MANIFEST.MF.format
+PLUGIN_VERSION="$(grep Plugin-Version: META-INF/MANIFEST.MF.format | awk '{print $2}')"
+PLUGIN_JENKINS_VERSION="$(grep Jenkins-Version: META-INF/MANIFEST.MF.format | awk '{print $2}')"
+PLUGIN_URL="$(grep Url: META-INF/MANIFEST.MF.format | awk '{print $2}')"
+PLUGIN_DEPS="$(grep '^Plugin-Dependencies: ' META-INF/MANIFEST.MF.format | sed -e 's#^Plugin-Dependencies: ##')"
+PLUGIN_SUMMARY="$(grep Long-Name: META-INF/MANIFEST.MF.format |cut -d' ' -f2-)"
+PLUGIN_DESCRIPTION="$(grep Specification-Title: META-INF/MANIFEST.MF.format |cut -d' ' -f2-)"
+
+echo
+echo "Working on:"
+echo "  PLUGIN_NAME: ${PLUGIN_NAME}  PLUGIN_VERSION: ${PLUGIN_VERSION}"
+
+# Check if we already have that built
+brew download-build --arch=src --latestfrom=rhaos-3.6-rhel-7-candidate jenkins-plugin-${PLUGIN_NAME} > /dev/null 2>&1
+if [ "$?" == "0" ] ; then
+  SRC_RPM="$(ls -1 jenkins-plugin-${PLUGIN_NAME}*.src.rpm)"
+  OLD_VERSION="$(rpm -qp --qf '%{version}' ${SRC_RPM})"
+  echo "  OLD_VERSION: ${OLD_VERSION}"
+  if [ "${OLD_VERSION}" == "${PLUGIN_VERSION}" ] ; then
+    echo
+    echo "  Already Done: ${PLUGIN_NAME} - ${OLD_VERSION}"
+    echo
+    exit 1
+  else
+    rpm -U --define "_topdir ${topdir}" ${SRC_RPM}
+  fi
+else
+  echo "  No rpm has been built yet for jenkins-plugin-${PLUGIN_NAME}"
+  echo "    Creating initial spec file"
+  echo
+  cat <<EOF > ${topdir}/SPECS/jenkins-plugin-${PLUGIN_NAME}.spec
+%global plugin_name ${PLUGIN_NAME}
+
+Summary:    ${PLUGIN_VERSION}
+Name:       jenkins-plugin-%{plugin_name}
+Version:    ${PLUGIN_SUMMARY}
+Release:    1%{?dist}
+License:    ASL 2.0
+URL:        ${PLUGIN_URL}
+Source0:    https://updates.jenkins-ci.org/download/plugins/%{plugin_name}/%{version}/%{plugin_name}.hpi
+Requires:   jenkins >= ${PLUGIN_JENKINS_VERSION}
+
+%description
+${PLUGIN_DESCRIPTION}
+
+%prep
+
+
+%build
+
+
+%install
+rm -rf %{buildroot}
+mkdir -p %{buildroot}/%{_libdir}/jenkins/
+cp %{SOURCE0} %{buildroot}/%{_libdir}/jenkins/
+
+
+%files
+%{_libdir}/jenkins/%{plugin_name}.hpi
+
+%changelog
+EOF
+fi
+
+## Everything is setup, proceed with the update
+# Move in hpi
+rm -f ${topdir}/SOURCES/${PLUGIN_NAME}.hpi
+cp -f ${workingdir}/${PLUGIN_NAME}.hpi ${topdir}/SOURCES/${PLUGIN_NAME}.hpi
+
+## Update spec file
+cd ${topdir}/SPECS
+# Remove Requires: jenkins-plugin
+sed -i '/^Requires:.*jenkins-plugin.*/d' jenkins-plugin-${PLUGIN_NAME}.spec
+# Add in new Requires: jenkins-plugin
+IFS=',' read -a array <<< "${PLUGIN_DEPS}"
+for d in "${array[@]}"
+do
+  plugin="$(cut -d':' -f1 - <<< "$d")"
+  if [[ $d == *"resolution:=optional"* ]]; then
+    echo "  Skipping optional dependency $plugin"
+  else
+    echo "  ${PLUGIN_NAME}:: Requires:   jenkins-plugin-${plugin}"
+    sed -i "s/^Requires:.*jenkins .*/&\nRequires:   jenkins-plugin-${plugin}/" jenkins-plugin-${PLUGIN_NAME}.spec
+    echo "    ${PLUGIN_NAME}: verifying that we have dependency updated"
+    jenkins-plugin-rpm-update ${plugin}
+  fi
+done
+# Update Version, Jenkins Release, and Changelog
+sed -i "s|^Version: .*|Version:    ${PLUGIN_VERSION}|" jenkins-plugin-${PLUGIN_NAME}.spec
+sed -i "s|^Release: .*|Release:    0%{?dist}|" jenkins-plugin-${PLUGIN_NAME}.spec
+sed -i "s|^Requires:   jenkins >=.*|Requires:   jenkins >= ${PLUGIN_JENKINS_VERSION}|" jenkins-plugin-${PLUGIN_NAME}.spec
+rpmdev-bumpspec --comment="Update to ${PLUGIN_VERSION}" jenkins-plugin-${PLUGIN_NAME}.spec
+## END: Update spec file
+
+## Lets build the new package, if we can
+echo "Dependencies finished for ${PLUGIN_NAME}-${PLUGIN_VERSION}"
+echo
+
+# Create src.rpm
+NEW_SRPM=`rpmbuild -bs --define "_topdir ${topdir}" jenkins-plugin-${PLUGIN_NAME}.spec | grep Wrote: | awk '{print $2}'`
+
+# Build package in brew
+cd ${workingdir}
+echo "  Checking if a dist-git repo has been created ...."
+rhpkg clone jenkins-plugin-${PLUGIN_NAME} > /dev/null 2>&1
+if [ "$?" == "0" ] ; then
+  cd jenkins-plugin-${PLUGIN_NAME}
+  echo "    dist-git repo has been created."
+  echo
+  echo "  Checking if a dist-git branch has been created ...."
+  rhpkg switch-branch rhaos-${RHAOS_RELEASE}-rhel-7 > /dev/null 2>&1
+  if [ "$?" == "0" ] ; then
+    echo "    dist-git branch has been created."
+    echo
+  else
+    echo "    There is no dist-git branch rhaos-${RHAOS_RELEASE}-rhel-7 for jenkins-plugin-${PLUGIN_NAME}"
+    echo "    Adding to our list of package branches to request"
+    echo
+    echo "NeedBranch: jenkins-plugin-${PLUGIN_NAME} Branch: rhaos-${RHAOS_RELEASE}-rhel-7" >> ${request_file}
+    cat ${request_file}
+    echo
+    exit 1
+  fi
+else
+  echo "    There is no dist-git repo for jenkins-plugin-${PLUGIN_NAME}"
+  echo "    Adding to our list of packages to request"
+  echo
+  echo "NeedRepo: jenkins-plugin-${PLUGIN_NAME} Branch: rhaos-${RHAOS_RELEASE}-rhel-7" >> ${request_file}
+  cat ${request_file}
+  echo
+  exit 1
+fi
+
+echo "  BUILDING: jenkins-plugin-${PLUGIN_NAME}-${PLUGIN_VERSION}"
+echo
+
+rhpkg import --skip-diffs ${NEW_SRPM} > /dev/null 2>&1 
+rhpkg commit -p -m "Update to ${PLUGIN_VERSION}" > /dev/null 2>&1
+rhpkg build
+
+# cleanup
+rm -rf ${workingdir}

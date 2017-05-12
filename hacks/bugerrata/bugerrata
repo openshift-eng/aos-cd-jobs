@@ -1,0 +1,259 @@
+#!/bin/bash
+
+###############
+# VARIABLES
+###############
+DATADIR="${HOME}/bugerrata"
+VERBOSE="FALSE"
+FORMAT_ALL="%{last_change_time} ::%{id}:: ::%{component}:: ::VERSION:%{version}:: ::TARGET:%{target_release}:: ::SUMMARY:%{summary}"
+BUG_PRODUCT="OpenShift Container Platform"
+
+###############
+# SETUP and CHECK
+###############
+mkdir -vp ${DATADIR}/last
+testbug="$(which bugzilla 2>/dev/null)"
+if [ "${testbug}" == "" ] ; then
+  echo "bugzilla needs to be installed, and in your path."
+  echo "exiting..."
+  exit 1
+fi
+
+###############
+# Show help
+###############
+usage() {
+  echo "Usage `basename $0` [action] <options>" >&2
+  echo >&2
+  echo "Actions:" >&2
+  echo "  ub | update_bugs | update_bugzilla" >&2
+  echo "      Update all the bugzilla data" >&2
+  echo "  ue | update_errata | update_errata_bugs" >&2
+  echo "      Update the list of bugs attached to errata" >&2
+  echo "  cv | check_verified " >&2
+  echo "      Check that verified bugs are in errata" >&2
+  echo "  cq | check_qa | check_on_qa" >&2
+  echo "      Check that on_qa bugs are in errata" >&2
+  echo "  cp | check_post " >&2
+  echo "      Check that post bugs are in errata" >&2
+  echo "  cm | check_modified " >&2
+  echo "      Check modified bugs are not in errata" >&2
+  echo "  -d | --details " >&2
+  echo "      Output: Show bug details" >&2
+  echo "  -b | --bug " >&2
+  echo "      Output: Show bug number only (default)" >&2
+  echo "  -u | --url " >&2
+  echo "      Output: Show full bugzilla url" >&2
+  echo "  -f | --firefox " >&2
+  echo "      Output: Show firefox command to display the buzilla url" >&2
+  echo "  --target [target version]" >&2
+  echo "      Sort: Only show bugs with that target. Ex: 3.5.0" >&2
+  echo "  test" >&2
+  echo "      Test to make sure script runs" >&2
+  echo >&2
+  echo "Options:" >&2
+  echo "  -h, --help          :: Show this options menu" >&2
+  echo "  -v, --verbose       :: Be verbose" >&2
+  popd &>/dev/null
+  exit 1
+}
+
+
+###############
+# Update all bugzilla info
+###############
+update_all_bugzillas() {
+  echo "Updating bugzilla data ..."
+  mv -f ${DATADIR}/{NEW,ASSIGNED,MODIFIED,POST,ON_QA,VERIFIED}.all ${DATADIR}/last/
+  echo "  NEW ..."
+  bugzilla query --product="${BUG_PRODUCT}" --bug_status=NEW --outputformat "${FORMAT_ALL}" | sort > ${DATADIR}/NEW.all
+  echo "  ASSIGNED ..."
+  bugzilla query --product="${BUG_PRODUCT}" --bug_status=ASSIGNED --outputformat "${FORMAT_ALL}" | sort > ${DATADIR}/ASSIGNED.all
+  echo "  MODIFIED ..."
+  bugzilla query --product="${BUG_PRODUCT}" --bug_status=MODIFIED --outputformat "${FORMAT_ALL}" | sort > ${DATADIR}/MODIFIED.all
+  echo "  POST ..."
+  bugzilla query --product="${BUG_PRODUCT}" --bug_status=POST --outputformat "${FORMAT_ALL}" | sort > ${DATADIR}/POST.all
+  echo "  ON_QA ..."
+  bugzilla query --product="${BUG_PRODUCT}" --bug_status=ON_QA --outputformat "${FORMAT_ALL}" | sort > ${DATADIR}/ON_QA.all
+  echo "  VERIFIED ..."
+  bugzilla query --product="${BUG_PRODUCT}" --bug_status=VERIFIED --outputformat "${FORMAT_ALL}" | sort > ${DATADIR}/VERIFIED.all
+  echo "Data Updated"
+  if [ "${VERBOSE}" == "TRUE" ] ; then
+    echo
+    echo "  ** Changes in NEW **"
+    diff -U 0 ${DATADIR}/last/NEW.all ${DATADIR}/NEW.all
+    echo
+    echo "  ** Changes in ASSIGNED **"
+    diff -U 0 ${DATADIR}/last/ASSIGNED.all ${DATADIR}/ASSIGNED.all
+    echo
+    echo "  ** Changes in MODIFIED **"
+    diff -U 0 0 ${DATADIR}/last/MODIFIED.all ${DATADIR}/MODIFIED.all
+    echo
+    echo "  ** Changes in POST **"
+    diff -U 0 ${DATADIR}/last/POST.all ${DATADIR}/POST.all
+    echo
+    echo "  ** Changes in ON_QA **"
+    diff -U 0 ${DATADIR}/last/ON_QA.all ${DATADIR}/ON_QA.all
+    echo
+    echo "  ** Changes in VERIFIED **"
+    diff -U 0 ${DATADIR}/last/VERIFIED.all ${DATADIR}/VERIFIED.all
+  fi
+}
+
+###############
+# Update all bugs attached to errata
+###############
+update_all_errata_bugs() {
+  echo "Updating errata bug list ..."
+  mv -f ${DATADIR}/ERRATA.BUGS.all ${DATADIR}/last/
+  for errata in $(cat ${DATADIR}/ERRATA.list) ; do
+    echo "  Updating errata ${errata} ..."
+    et-info --advisory-id=${errata} --list-advisory-bugs >> ${DATADIR}/ERRATA.BUGS.all 2>/dev/null
+  done
+  echo "  Updates done.  Sorting ..."
+  sort -o ${DATADIR}/ERRATA.BUGS.all ${DATADIR}/ERRATA.BUGS.all
+  if [ "${VERBOSE}" == "TRUE" ] ; then
+    echo
+    echo "  ** Changes in Errata Bug List **"
+    diff -U 0 ${DATADIR}/last/ERRATA.BUGS.all ${DATADIR}/ERRATA.BUGS.all
+  fi
+}
+
+###############
+# Check that bugs are in errata
+###############
+check_bugs() {
+  STATUS="${1}"
+  if [ "${STATUS}" == "" ] ; then
+    echo "  check_bugs must be passed a variable"
+    echo "exiting."
+    exit 3
+  fi
+  if ! [ -f ${DATADIR}/${STATUS}.all ] ; then
+    echo "  There is not a status type of ${STATUS}"
+    echo "exiting."
+    exit 4
+  fi
+  echo "  The following ${STATUS} bugs are not attached to errata"
+  echo
+  cat ${DATADIR}/${STATUS}.all | while read line
+  do
+    bug=$(echo "${line}" | awk '{print $2}' | sed 's/:://g' )
+    if ! grep -q ${bug} ${DATADIR}/ERRATA.BUGS.all ; then
+      # target=$(echo "$line" | awk '{print $5}')
+      # version=$(echo "$line" | awk '{print $4}')
+      # echo ${bug}
+      component=$(echo "$line" | cut -d':' -f9)
+      target=$(echo "$line" | cut -d':' -f19)
+      version=$(echo "$line" | cut -d':' -f14)
+      summary=$(echo "$line" | cut -d':' -f24-)
+      if [ "${MY_TARGET}" != "" ] ; then
+        if [ "${target}" == "${MY_TARGET}" ] && ! [ "${version}" == "2.2.0" ]  && ! echo ${component} | grep -q -e "Documentation" && ! echo ${summary} | grep -q -e _public_ -e "ocp-on-osp" ; then 
+          SHOW_OUTPUT="true"
+        else
+          SHOW_OUTPUT="false"
+        fi
+      else
+        if ! [ "${version}" == "2.2.0" ] && ! echo ${component} | grep -q -e "Documentation" && ! echo ${summary} | grep -q -e _public_ -e "ocp-on-osp" ; then 
+          SHOW_OUTPUT="true"
+        else
+          SHOW_OUTPUT="false"
+        fi
+      fi
+      #echo "SUMMARY:${summary}"
+      #if [ "${target}" == "3.4.0" ] ; then
+      #if ! [ "${version}" == "2.2.0" ] && ! echo ${summary} | grep -q -e _public_ -e "ocp-on-osp" ; then
+      #if ${TARGET_FILTER} ! [ "${version}" == "2.2.0" ] && ! echo ${summary} | grep -q -e _public_ -e "ocp-on-osp" ; then
+      if ${SHOW_OUTPUT} ; then 
+        if [ "${OUTPUT_FORMAT}" == "details" ] ; then
+          echo "${line}"
+        elif [ "${OUTPUT_FORMAT}" == "url" ] ; then
+          echo "https://bugzilla.redhat.com/show_bug.cgi?id=${bug}"
+        elif [ "${OUTPUT_FORMAT}" == "firefox" ] ; then
+          echo "firefox --new-tab https://bugzilla.redhat.com/show_bug.cgi?id=${bug}"
+        else
+          echo ${bug}
+        fi
+      fi
+    fi
+  done
+  echo
+}
+
+###############
+# Get our arguments
+###############
+while [[ "$#" -ge 1 ]]
+do
+key="$1"
+case $key in
+    ub | update_bugs | update_bugzilla | ue | update_errata | update_errata_bugs |test)
+      export action="${key}"
+      ;;
+    cv | check_verified | cq | check_qa | check_on_qa | cp | check_post | cm | check_modified)
+      export action="${key}"
+      ;;
+    -v|--verbose)
+      export VERBOSE="TRUE"
+    ;;
+    -f | --firefox )
+      OUTPUT_FORMAT="firefox"
+    ;;
+    -u | --url )
+      OUTPUT_FORMAT="url"
+    ;;
+    -b | --bug )
+      OUTPUT_FORMAT="bug"
+    ;;
+    -d | --details )
+      OUTPUT_FORMAT="details"
+    ;;
+    --target )
+      MY_TARGET="${2}"
+      shift
+    ;;
+    -h| --help )
+      usage  # unknown option
+    ;;
+    *)
+      echo "Unknown Option: ${key}"
+      usage  # unknown option
+      exit 4
+    ;;
+esac
+shift # past argument or value
+done
+
+case "$action" in
+  ub | update_bugs | update_bugzilla )
+    update_all_bugzillas
+  ;;
+  ue | update_errata | update_errata_bugs )
+    update_all_errata_bugs
+  ;;
+  cv | check_verified )
+    check_bugs VERIFIED
+  ;;
+  cq | check_qa | check_on_qa )
+    check_bugs ON_QA
+  ;;
+  cp | check_post )
+    check_bugs POST
+  ;;
+  cm | check_modified )
+    check_bugs MODIFIED
+  ;;
+  test )
+    echo "Testing ..."
+    if [ "${VERBOSE}" == "TRUE" ] ; then
+      echo "  Verbose is working"
+    fi
+    echo ${TARGET_FILTER}
+    echo
+    echo "All tests passed."
+    echo
+  ;;
+  *)
+    usage
+  ;;
+esac

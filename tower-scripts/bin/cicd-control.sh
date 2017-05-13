@@ -106,7 +106,22 @@ fi
 # in place to do updates
 set +x
 # Prevent output from this operation unless it actually fails; just to keep logs cleaner
-CLONE_RESULT=$(/usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
+
+
+
+####USING TEST REPOS TEMPORARILY.
+if  [ "${CLUSTERNAME}" != "dev-preview-int" ]; then
+    echo "Re-enable git cloning before doing more upgrades!"
+    exit 1
+fi
+# Pull in the supported version of openshift ansible
+pushd $GIT_ROOT/ansible
+    git fetch origin
+    git checkout v2.3.0.0-1
+    source hacking/env-setup
+popd
+# UNCOMMENT THE NEXT LINE TO UNDO THIS TEST.
+# CLONE_RESULT=$(/usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
 if [ "$?" != "0" ]; then
   echo "Error updating git repos"
   echo "$CLONE_RESULTS"

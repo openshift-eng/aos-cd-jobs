@@ -26,8 +26,11 @@ rm -rf online
 git clone git@github.com:openshift/online.git
 cd online/
 
+TITO_USE_RELEASE=""
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
     git checkout -q stage
+    # Ensure that builds in stage do not conflict with versions built in master
+    TITO_USE_RELEASE="--use-release=stage"
 fi
 
 # Check to see if there have been any changes since the last tag

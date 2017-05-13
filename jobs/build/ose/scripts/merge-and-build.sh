@@ -4,6 +4,41 @@
 
 set -o xtrace
 
+# Checks the master and stage branch of the repo for the Version in the specified spec filename.
+# Calculates a higher version string which can be used with tito.
+function get_post_stage_version {
+    SPEC_FILE="$1"
+    if [ -z "$SPEC_FILE" ]; then
+        return 1
+    fi
+    {
+        # Determine which version of the spec had the most recent build / highest Z in v X.Y.Z. The
+        # weird 'rev' use is a means of grabbing only the last element of the version (so the logic will work
+        # on X.Y.Z or X.Y.Z.ZZ .
+        git checkout master
+        MASTER_VERSION_PATCH="$(grep Version: ${SPEC_FILE} | awk '{print $2}' | rev | cut -d . -f 1 | rev)"
+        git checkout stage
+        STAGE_VERSION_PATCH="$(grep Version: ${SPEC_FILE} | awk '{print $2}' | rev | cut -d . -f 1 | rev)"
+
+        if [ "$MASTER_VERSION_PATCH" -lt "$STAGE_VERSION_PATCH" ]; then
+            echo "stage branch $SPEC_FILE is ahead of master branch $SPEC_FILE"
+            LATEST_VERSION_PATCH=$(($STAGE_VERSION_PATCH + 1))
+        else
+            if [ "${BUILD_MODE}" == "online:stg" ]; then
+                echo "This should never happen. You will need to recut ose/stage from ose/master."
+                echo "online:int builds should not occur while stagecut is in progress."
+                exit 1
+            fi
+            echo "master branch $SPEC_FILE is ahead of stage branch $SPEC_FILE"
+            LATEST_VERSION_PATCH=$(($MASTER_VERSION_PATCH + 1))
+        fi
+
+    } >&2   # Redirect any stdout to stderr to avoid corrupting stdout to caller
+
+    # Cut off the patch version of the version and append the newly calculated patch version
+    echo -n "$(grep Version: ${SPEC_FILE} | awk '{print $2}' | rev | cut -d . -f 1 --complement | rev).$LATEST_VERSION_PATCH"
+}
+
 echo
 echo "=========="
 echo "Making sure we have kerberos"
@@ -81,8 +116,11 @@ echo "=========="
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
 cd openshift-ansible/
+TITO_USE_RELEASE=""
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
     git checkout -q stage
+    # Ensure that builds in stage do not conflict with versions built in master
+    TITO_USE_RELEASE="--use-release=stage"
 else
   if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
     if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
@@ -97,7 +135,7 @@ echo
 echo "=========="
 echo "Tito Tagging: openshift-ansible"
 echo "=========="
-tito tag --accept-auto-changelog
+tito tag --accept-auto-changelog "${TITO_USE_RELEASE}"
 git push
 git push --tags
 
@@ -143,6 +181,9 @@ cd ose
 # https://github.com/openshift/ose/commit/02b57ed38d94ba1d28b9bc8bd8abcb6590013b7c
 git config merge.ours.driver true
 
+# Set to empty string to use tito's normal version progression
+export TITO_USE_VERSION=""
+
 if [ "${BUILD_MODE}" == "enterprise" ]; then
 
   git checkout -q enterprise-${OSE_VERSION}
@@ -150,6 +191,10 @@ if [ "${BUILD_MODE}" == "enterprise" ]; then
 else
 
   # If we are here, we are building master or stage for online
+
+  # Creating a target version allows online:int builds to resume where the last stage build left off in terms
+  # of versioning. This should not be necessary when we can safely use a different 'release' in the tito version.
+  export TITO_USE_VERSION="--use-version=$(get_post_stage_version origin.spec)"
 
   if [ "${BUILD_MODE}" == "online:stg" ] ; then
     CURRENT_BRANCH="stage"
@@ -167,7 +212,6 @@ else
 
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
-
 
   echo
   echo "=========="
@@ -198,7 +242,7 @@ echo
 echo "=========="
 echo "Tito Tagging"
 echo "=========="
-tito tag --accept-auto-changelog
+tito tag --accept-auto-changelog ${TITO_USE_VERSION}      # TITO_USE_VERSION may be empty in some codepaths
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
 git push

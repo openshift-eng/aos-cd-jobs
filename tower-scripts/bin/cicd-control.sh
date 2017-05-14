@@ -1,6 +1,28 @@
 #!/bin/bash -e
 
 GIT_ROOT="/home/opsmedic/aos-cd/git"
+TMPDIR="$HOME/aos-cd/tmp"
+mkdir -p "${TMPDIR}"
+
+# TMPTMP is a directory specific to each invocation. It will be
+# deleted when the script terminates.
+TMPTMP=$(mktemp -d -p "${TMPDIR}")
+
+function on_exit() {
+    rm -rf "${TMPTMP}"
+
+    # JOBS is primarily designed to kill the autokey_loader process if it was launched
+    JOBS="$(jobs -p)"
+    if [[ ! -z "$JOBS" ]]; then
+        if kill $JOBS; then
+            echo "Background tasks terminated"
+        else
+            echo "Unable to terminate background tasks"
+        fi
+    fi
+}
+
+trap on_exit EXIT
 
 function print_usage() {
   echo
@@ -20,12 +42,9 @@ function print_usage() {
 }
 
 function get_latest_openshift_ansible()  {
-
-  # Vendor everything but int.
   if [[ "${1}" == "int" || "${1}" == "stg" ]]; then
-    TMPDIR="$HOME/aos-cd/tmp"
-    mkdir -p "${TMPDIR}"
-    AOS_TMPDIR=$(mktemp -d -p "${TMPDIR}")
+    AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
+    mkdir -p "${AOS_TMPDIR}"
 
     pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
       /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1 -e cli_download_dir=${AOS_TMPDIR}
@@ -34,14 +53,6 @@ function get_latest_openshift_ansible()  {
     export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"
   else
     export OPENSHIFT_ANSIBLE_INSTALL_DIR="$GIT_ROOT/openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
-  fi
-}
-
-function delete_openshift_ansible_tmp_dir()  {
-  if [[ -n "${AOS_TMPDIR}" ]]; then
-    if [[ -d "${AOS_TMPDIR}" ]]; then
-      rm -rf "${AOS_TMPDIR}"
-    fi
   fi
 }
 
@@ -64,7 +75,6 @@ ARGS="$@"
 # PLEASE DO NOT ADD ANY NEW OPERATIONS BEFORE HERE
 ################################################
 if [ "${OPERATION}" == "logs" ]; then
-
   # Gather the logs for the specified cluster
   ./gather-logs.sh ${CLUSTERNAME}
   exit 0
@@ -107,8 +117,6 @@ fi
 set +x
 # Prevent output from this operation unless it actually fails; just to keep logs cleaner
 
-
-
 ####USING TEST REPOS TEMPORARILY.
 if  [ "${CLUSTERNAME}" != "dev-preview-int" ]; then
     echo "Re-enable git cloning before doing more upgrades!"
@@ -145,9 +153,6 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   echo "Operation requested on mock cluster '${CLUSTERNAME}'. The operation is: '${OPERATION}' with options: ${ARGS}"
   echo "  OPENSHIFT_ANSIBLE_VERSION=${OPENSHIFT_ANSIBLE_VERSION}"
 
-  # clean up temp openshift-ansible dir, if there is one
-  delete_openshift_ansible_tmp_dir
-
   exit 0
 fi
 
@@ -179,17 +184,10 @@ if [ "${OPERATION}" == "install" ]; then
   # Deploy all the things
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
     /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
-
-    # Kill all background jobs on normal exit or signal
-    trap 'if kill $(jobs -p); then echo Killed autokeys; else echo Unable to kill autokeys; fi' EXIT
-
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
   popd
-
-  # clean up temp openshift-ansible dir, if there is one
-  delete_openshift_ansible_tmp_dir
 
   echo
   echo "Deployment is complete. OpenShift Console can be found at https://${MASTER_DNS_NAME}"
@@ -225,8 +223,6 @@ elif [ "${OPERATION}" == "delete" ]; then
 elif [ "${OPERATION}" == "upgrade" ]; then
   echo Doing upgrade
 
-  trap 'if kill $(jobs -p); then echo Killed background tasks; else echo Unable to kill background tasks; fi' EXIT
-
   ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
 
   # Get the latest openshift-ansible rpms
@@ -242,9 +238,6 @@ elif [ "${OPERATION}" == "upgrade" ]; then
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
   popd
-
-  # clean up temp openshift-ansible dir, if there is one
-  delete_openshift_ansible_tmp_dir
 
 else
   echo Error. Unrecognized operation. Exiting...

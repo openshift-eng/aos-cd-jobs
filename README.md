@@ -97,3 +97,93 @@ Cleanup of these jobs post-test is still manual.
 Note: the `sjb/push-update{,-automatic}.sh` scripts expect `$USERNAME` and `$PASSWORD` to be set as envars when they are run.
 These are the credentials with which you log in to the Jenkins master at [ci.openshift](http://ci.openshift.redhat.com/) and are
 used for basic auth against the server on push actions.
+
+## Pull Request approvers under `approvers/`
+
+In order to ensure that pull requests are only merged during phases of a sprint where they are appropriate, all `[merge]` jobs now
+call out to an approver on the Jenkins master that will determine if the pull request should merge into the specific branch and
+repo that it targets.
+
+When running `[merge]` on a PR, developers will optionally be able to add `[severity: value]` extensions, where value can take:
+
+ - none ( `[merge]` )
+ - bug ( `[merge][severity: bug]` )
+ - blocker ( `[merge][severity: blocker]` )
+
+There will be four possible designations for any branch in your repo:
+
+<table class="tg">
+  <tr>
+    <th class="tg-yw4l" colspan="2" rowspan="2"></th>
+    <th class="tg-baqh" colspan="3">Pull Request Severity<br></th>
+  </tr>
+  <tr>
+    <td class="tg-baqh">None</td>
+    <td class="tg-baqh">Bug</td>
+    <td class="tg-baqh">Blocker</td>
+  </tr>
+  <tr>
+    <td class="tg-031e" rowspan="4">Branch Stage<br></td>
+    <td class="tg-lqy6">Open</td>
+    <td class="tg-baqh">✔️</td>
+    <td class="tg-baqh">✔️</td>
+    <td class="tg-baqh">✔️</td>
+  </tr>
+  <tr>
+    <td class="tg-lqy6">DevCut</td>
+    <td class="tg-baqh">❌</td>
+    <td class="tg-baqh">✔️</td>
+    <td class="tg-baqh">✔️</td>
+  </tr>
+  <tr>
+    <td class="tg-lqy6">StageCut</td>
+    <td class="tg-baqh">❌</td>
+    <td class="tg-baqh">❌</td>
+    <td class="tg-baqh">✔️</td>
+  </tr>
+  <tr>
+    <td class="tg-lqy6">Closed</td>
+    <td class="tg-baqh">❌</td>
+    <td class="tg-baqh">❌</td>
+    <td class="tg-baqh">❌</td>
+  </tr>
+</table>
+
+### Consulting an Approver
+
+In order to determine if a pull request should merge, consult the [`approve.sh`](approvers/approve.sh) script on the Jenkins
+master on which the job runs:
+
+```shell
+approve.sh "${REPO}" "${TARGET_BRANCH}" "${MERGE_SEVERITY:-"none"}"
+```
+
+### Configuring Branch Status
+
+To configure a branch status, run the [`configure_approver`](https://ci.dev.openshift.redhat.com/jenkins/job/configure_approver/)
+job on the [ci.dev](https://ci.dev.openshift.redhat.com/jenkins/) Jenkins master. This job will configure the approver you ask
+for as well as propagate the changes to the [ci.openshift](http://ci.openshift.redhat.com/) server. The job runs the 
+[`configure_approver`](approvers/configure_approver.sh) script:
+ 
+```shell
+for repo in ${REPOSITORIES}; do
+    for branch in ${BRANCHES}; do
+        configure_approver.sh "${repo}" "${branch}" "${STAGE}"
+    done
+done
+    
+list_approvers.sh
+```
+
+### Approver Design
+
+Approvers are configured by creating a symbolic link at `~jenkins/approvers/openshift/${REPO}/${TARGET_BRANCH}/approver` for the
+approver that is requested for that branch. The approvers are the [`closed_approver.sh`](approvers/closed_approver.sh),
+[`open_approver.sh`](approvers/open_approver.sh), [`devcut_approver.sh`](approvers/devcut_approver.sh), and 
+[`stagecut_approver.sh`](approvers/stagecut_approver.sh) scripts in this repository under [`approvers/`](approvers/).
+
+### Developer Workflow
+
+Development on approver scripts in this repository is fairly straightforward. When your changes are ready and have been merged,
+run the [`push.sh`](approvers/push.sh) script to deploy your changes to the Jenkins masters. You will need to have your SSH config
+set up for the `ci.openshift` and `ci.dev.openshift` hosts in order for this script to work.

@@ -8,7 +8,7 @@ actions:
   - type: "host_script"
     title: "bring source code up to date"
     script: |-
-      for repo in origin origin-web-console openshift-ansible; do
+      for repo in origin origin-web-console openshift-ansible origin-aggregated-logging; do
         oct sync remote "${repo}"
       done
   - type: "script"
@@ -37,6 +37,11 @@ actions:
       name = OpenShift Ansible Release from Local Source
       EOR
       sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+  - type: "script"
+    title: "build an origin-aggregated-logging release"
+    repository: "origin-aggregated-logging"
+    script: |-
+      hack/build-images.sh
   - type: "host_script"
     title: "package the AMI"
     script: |-

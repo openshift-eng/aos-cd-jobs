@@ -55,13 +55,13 @@ node('buildvm-devops') {
         stage( 'Cluster operation' ) {
             sshagent([CLUSTER_NAME]) {
                 if ( OPERATION == "reinstall" ) {
-                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com delete"
-                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com install"
+                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com delete"
+                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com install"
                 } else {
-                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com ${OPERATION}"
+                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com ${OPERATION}"
                 }
                 if ( OPERATION != "delete" ) {
-                    cluster_detail = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower1.ops.rhcloud.com status").trim()
+                    cluster_detail = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com status").trim()
                     echo "Gathered status:\n${cluster_detail}"
                 }
             }

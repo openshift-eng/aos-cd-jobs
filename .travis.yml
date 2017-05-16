@@ -4,4 +4,4 @@ python:
 
 script:
 - python -m unittest discover -s jobs/build/ose/scripts/ -p '*_test.py'
-- jobs/build/ose/run-tests.sh
+- cd jobs/build/ose; ./run-tests.sh

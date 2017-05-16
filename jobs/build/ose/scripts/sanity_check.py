@@ -90,7 +90,7 @@ def filter_commits_by_prefix(commits, prefix, out):
         if commit.subject.startswith(prefix):
             subject = commit.subject[len(prefix):]
             # Commit message is already validated at this point.
-            types.append(re.match(r"\[.*\]", subject).group(0))
+            types.append(re.match(r"\[.*?\]", subject).group(0))
 
     return types
 

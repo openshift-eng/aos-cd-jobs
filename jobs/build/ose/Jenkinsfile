@@ -79,7 +79,7 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], BUILD_MODE:${BUILD_MODE}"
 
-    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.??"
+    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
     
     set_workspace()
     stage('Merge and build') {
@@ -101,7 +101,7 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
 
             thisBuildVersion = version("${env.WORKSPACE}/src/github.com/openshift/ose/origin.spec")
             
-            currentBuild.displayName = "#${currentBuild.number} - ${thisBuildVersion}"
+            currentBuild.displayName = "#${currentBuild.number} - ${thisBuildVersion} (${BUILD_MODE})"
             
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success(thisBuildVersion)

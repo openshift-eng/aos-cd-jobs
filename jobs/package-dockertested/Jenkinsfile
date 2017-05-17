@@ -92,21 +92,106 @@ node('buildvm-devops') {
 			stage ('Build an Origin release') {
 				sh """{
 cat <<EOF
-sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd /data/src/github.com/openshift/origin
 hack/build-base-images.sh
-make release
+OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+sudo systemctl restart docker
+hack/build-images.sh
+sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+EOF
+} | ssh -F ${ssh_config} openshiftdevel"""
+			}
+			stage ('Build an OpenShift Ansible release') {
+				sh """{
+cat <<EOF
+set -o errexit -o nounset -o pipefail -o xtrace
+cd /data/src/github.com/openshift/openshift-ansible
+tito_tmp_dir="tito"
+mkdir -p "${tito_tmp_dir}"
+tito tag --offline --accept-auto-changelog
+tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
+createrepo "${tito_tmp_dir}/noarch"
+cat << EOR > ./openshift-ansible-local-release.repo
+[openshift-ansible-local-release]
+baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
+gpgcheck = 0
+name = OpenShift Ansible Release from Local Source
+EOR
+sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+EOF
+} | ssh -F ${ssh_config} openshiftdevel"""
+			}
+			stage ('Install the OpenShift Ansible release') {
+				sh """{
+cat <<EOF
+set -o errexit -o nounset -o pipefail -o xtrace
+cd /data/src/github.com/openshift/openshift-ansible
+last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
+last_commit="$( git log -n 1 --pretty=%h )"
+sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+EOF
+} | ssh -F ${ssh_config} openshiftdevel"""
+			}
+			stage ('Install the Ansible plugins') {
+				sh """{
+cat <<EOF
+set -o errexit -o nounset -o pipefail -o xtrace
+sudo yum install -y python-pip
+sudo pip install junit_xml
+sudo chmod o+rw /etc/environment
+echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
+sudo mkdir -p /usr/share/ansible/plugins/callback
+for plugin in 'default_with_output_lists' 'generate_junit'; do
+   wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+   sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
+done
+sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+EOF
+} | ssh -F ${ssh_config} openshiftdevel"""
+			}
+			stage ('determine the release commit for origin images and version for rpms') {
+				sh """{
+cat <<EOF
+set -o errexit -o nounset -o pipefail -o xtrace
+cd /data/src/github.com/openshift/origin
+jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
+git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+EOF
+} | ssh -F ${ssh_config} openshiftdevel"""
+			}
+			stage ('determine the release commit for origin images and version for rpms') {
+				sh """{
+cat <<EOF
+set -o errexit -o nounset -o pipefail -o xtrace
+cd /data/src/github.com/openshift/aos-cd-jobs
+ansible-playbook -vv --become               \
+                 --become-user root         \
+                 --connection local         \
+                 --inventory sjb/inventory/ \
+                 -e deployment_type=origin  \
+                 /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+ansible-playbook -vv --become               \
+                 --become-user root         \
+                 --connection local         \
+                 --inventory sjb/inventory/ \
+                 -e deployment_type=origin  \
+                 -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                 -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                 /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
+sudo chmod a+rw /etc/origin/master/admin.kubeconfig
 EOF
 } | ssh -F ${ssh_config} openshiftdevel"""
 			}
 			stage ('Run the extended conformance suite') {
 				sh """{
 cat <<EOF
-sudo su origin
 set -o errexit -o nounset -o pipefail -o xtrace
 cd /data/src/github.com/openshift/origin
-JUNIT_REPORT='true' make test-extended SUITE=conformance
+KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
 EOF
 } | ssh -F ${ssh_config} openshiftdevel"""
 			}

@@ -111,47 +111,6 @@ fi # End check if we are version 3.2
 
 echo
 echo "=========="
-echo "Setup: openshift-ansible"
-echo "=========="
-rm -rf openshift-ansible
-git clone git@github.com:openshift/openshift-ansible.git
-cd openshift-ansible/
-TITO_USE_RELEASE=""
-if [ "${BUILD_MODE}" == "online:stg" ] ; then
-    git checkout -q stage
-    # Ensure that builds in stage do not conflict with versions built in master
-    TITO_USE_RELEASE="--use-release=stage"
-else
-  if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-    if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
-      git checkout -q release-1.${MINOR}
-    else  # Afterwards, version maps directly; 3.5 => "release-3.5"
-      git checkout -q release-${OSE_VERSION}
-    fi
-  fi
-fi
-
-echo
-echo "=========="
-echo "Tito Tagging: openshift-ansible"
-echo "=========="
-tito tag --accept-auto-changelog "${TITO_USE_RELEASE}"
-git push
-git push --tags
-
-echo
-echo "=========="
-echo "Tito building in brew: openshift-ansible"
-echo "=========="
-TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
-echo "TASK NUMBER: ${TASK_NUMBER}"
-echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
-echo
-echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/openshift-ansible-brew.url"
-brew watch-task ${TASK_NUMBER}
-
-echo
-echo "=========="
 echo "Setup origin-web-console stuff"
 echo "=========="
 cd ${WORKPATH}
@@ -258,6 +217,47 @@ echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TA
 echo
 echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/ose-brew.url"
 brew watch-task ${TASK_NUMBER}
+
+
+echo
+echo "=========="
+echo "Setup: openshift-ansible"
+echo "=========="
+rm -rf openshift-ansible
+git clone git@github.com:openshift/openshift-ansible.git
+cd openshift-ansible/
+if [ "${BUILD_MODE}" == "online:stg" ] ; then
+    git checkout -q stage
+else
+  if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+    if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
+      git checkout -q release-1.${MINOR}
+    else  # Afterwards, version maps directly; 3.5 => "release-3.5"
+      git checkout -q release-${OSE_VERSION}
+    fi
+  fi
+fi
+
+echo
+echo "=========="
+echo "Tito Tagging: openshift-ansible"
+echo "=========="
+# Openshift-ansible version will now be kept in synch with OCP's
+tito tag --accept-auto-changelog --use-version="${VERSION}"
+git push
+git push --tags
+
+echo
+echo "=========="
+echo "Tito building in brew: openshift-ansible"
+echo "=========="
+TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
+echo "TASK NUMBER: ${TASK_NUMBER}"
+echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
+echo
+echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/openshift-ansible-brew.url"
+brew watch-task ${TASK_NUMBER}
+
 
 echo
 echo "=========="

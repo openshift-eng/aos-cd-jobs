@@ -84,7 +84,14 @@ fi
 # online-first install/upgrade. Similar to logs operation, don't
 # output any stdout before this point.
 if [ "${OPERATION}" == "status" ]; then
-  # Run the upgrade, including post_byo steps and config loop
+  
+  if [ "${CLUSTERNAME}" == "test-key" ]; then
+    echo "This output represents the current status of the test-key cluster"
+    echo "This is the second line"
+    echo "This is the third and final"
+    exit 0
+  fi
+   
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin > /dev/null
     /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
   popd > /dev/null
@@ -127,13 +134,6 @@ set -x
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
 # and then exit successfully.
 if  [ "${CLUSTERNAME}" == "test-key" ]; then
-
-  if  [ "${OPERATION}" == "status" ]; then
-    echo "This output represents the current status of the test-key cluster"
-    echo "This is the second line"
-    echo "This is the third and final"
-    exit 0
-  fi
 
   get_latest_openshift_ansible "int"
   echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"

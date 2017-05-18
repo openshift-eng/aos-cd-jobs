@@ -201,7 +201,7 @@ set -e
 
 echo
 echo "=========="
-echo "Tito Tagging"
+echo "Tito Tagging: ose"
 echo "=========="
 tito tag --accept-auto-changelog ${TITO_USE_VERSION}      # TITO_USE_VERSION may be empty in some codepaths
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
@@ -211,7 +211,7 @@ git push --tags
 
 echo
 echo "=========="
-echo "Tito building in brew"
+echo "Tito Building: ose"
 echo "=========="
 TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
 echo "TASK NUMBER: ${TASK_NUMBER}"
@@ -245,13 +245,13 @@ echo "=========="
 echo "Tito Tagging: openshift-ansible"
 echo "=========="
 # Openshift-ansible version will now be kept in synch with OCP's
-tito tag --accept-auto-changelog --use-version="${VERSION}"
+tito tag --accept-auto-changelog --use-version="${VERSION#v}"
 git push
 git push --tags
 
 echo
 echo "=========="
-echo "Tito building in brew: openshift-ansible"
+echo "Tito Building: openshift-ansible"
 echo "=========="
 TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
 echo "TASK NUMBER: ${TASK_NUMBER}"

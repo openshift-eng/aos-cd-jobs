@@ -115,7 +115,7 @@ tito build --output="\${tito_tmp_dir}" --rpm --test --offline --quiet
 createrepo "\${tito_tmp_dir}/noarch"
 cat << EOR > ./openshift-ansible-local-release.repo
 [openshift-ansible-local-release]
-baseurl = file://$( pwd )/\${tito_tmp_dir}/noarch
+baseurl = file://\$( pwd )/\${tito_tmp_dir}/noarch
 gpgcheck = 0
 name = OpenShift Ansible Release from Local Source
 EOR
@@ -128,8 +128,8 @@ EOF
 cat <<EOF
 set -o errexit -o nounset -o pipefail -o xtrace
 cd /data/src/github.com/openshift/openshift-ansible
-last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
-last_commit="$( git log -n 1 --pretty=%h )"
+last_tag="\$( git describe --tags --abbrev=0 --exact-match HEAD )"
+last_commit="\$( git log -n 1 --pretty=%h )"
 sudo yum install -y "atomic-openshift-utils\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7"
 EOF
 } | ssh -F ${ssh_config} openshiftdevel"""
@@ -141,7 +141,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 sudo yum install -y python-pip
 sudo pip install junit_xml
 sudo chmod o+rw /etc/environment
-echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
+echo "ANSIBLE_JUNIT_DIR=\$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
 sudo mkdir -p /usr/share/ansible/plugins/callback
 for plugin in 'default_with_output_lists' 'generate_junit'; do
    wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/\${plugin}.py"
@@ -178,8 +178,8 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
-                 -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
-                 -e oreg_url='openshift/origin-\${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                 -e openshift_pkg_version="\$( cat ./ORIGIN_PKG_VERSION )"                \
+                 -e oreg_url='openshift/origin-\${component}:'"\$( cat ./ORIGIN_COMMIT )" \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
 sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig

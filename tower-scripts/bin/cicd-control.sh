@@ -116,7 +116,7 @@ fi
 # in place to do updates
 set +x
 # Prevent output from this operation unless it actually fails; just to keep logs cleaner
-CLONE_RESULT=$(/usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
+CLONE_RESULT=$(/usr/local/bin/autokeys_loader /usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
 if [ "$?" != "0" ]; then
   echo "Error updating git repos"
   echo "$CLONE_RESULTS"

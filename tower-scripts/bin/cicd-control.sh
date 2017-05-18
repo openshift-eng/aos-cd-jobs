@@ -143,9 +143,9 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   exit 0
 fi
 
+set +x  # Mask sensitive data
 source "$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh"
-
-set -o xtrace
+set -x
 
 CLUSTER_SETUP_TEMPLATE_FILE="$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml"
 if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then

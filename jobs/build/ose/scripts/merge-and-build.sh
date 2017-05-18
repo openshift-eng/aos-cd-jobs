@@ -11,6 +11,7 @@ function get_post_stage_version {
     if [ -z "$SPEC_FILE" ]; then
         return 1
     fi
+    current_branch=$(git rev-parse --abbrev-ref --symbolic-full-name HEAD)
     {
         # Determine which version of the spec had the most recent build / highest Z in v X.Y.Z. The
         # weird 'rev' use is a means of grabbing only the last element of the version (so the logic will work
@@ -37,6 +38,7 @@ function get_post_stage_version {
 
     # Cut off the patch version of the version and append the newly calculated patch version
     echo -n "$(grep Version: ${SPEC_FILE} | awk '{print $2}' | rev | cut -d . -f 1 --complement | rev).$LATEST_VERSION_PATCH"
+    git checkout -q "$current_branch"
 }
 
 echo

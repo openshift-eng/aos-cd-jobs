@@ -74,6 +74,10 @@ node('buildvm-devops') {
 				sh "oct provision remote all-in-one --os rhel --stage bare --provider aws --name package-dockertest-${env.BUILD_NUMBER} --discrete-ssh-config"
 				ssh_config = "${env.OCT_CONFIG_HOME}/origin-ci-tool/inventory/.ssh_config"
 			}
+			stage ('Install CI user') {
+				sh 'oct prepare user'
+				sh "sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config"
+			}
 			stage ('Install distribution dependencies') {
 				sh 'oct prepare dependencies'
 			}

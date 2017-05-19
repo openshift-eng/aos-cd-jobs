@@ -60,7 +60,7 @@ oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;base&#34; --pro
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 echo &#34;########## STARTING STAGE: BRING SOURCE CODE UP TO DATE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BRING SOURCE CODE UP TO DATE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-for repo in origin origin-web-console openshift-ansible; do
+for repo in origin origin-web-console openshift-ansible origin-aggregated-logging; do
   oct sync remote &#34;${repo}&#34;
 done</command>
         </hudson.tasks.Shell>
@@ -103,6 +103,20 @@ gpgcheck = 0
 name = OpenShift Ansible Release from Local Source
 EOR
 sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+echo &#34;########## STARTING STAGE: BUILD AN ORIGIN-AGGREGATED-LOGGING RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD AN ORIGIN-AGGREGATED-LOGGING RELEASE ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/origin-aggregated-logging&#34;
+hack/build-images.sh
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

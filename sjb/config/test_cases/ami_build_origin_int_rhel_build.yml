@@ -65,5 +65,7 @@ artifacts:
   - "/data/src/github/openshift/origin/_output/scripts"
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m avc'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
 system_journals:
   - docker.service

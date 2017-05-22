@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_installed_release.yml'
+parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   timer: 'H H * * *'
   email:
@@ -15,4 +15,4 @@ extensions:
       title: "run extended tests"
       repository: "origin"
       script: |-
-        KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="\[builds\]"
+        JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="\[builds\]"

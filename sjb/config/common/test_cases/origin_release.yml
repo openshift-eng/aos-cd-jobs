@@ -8,4 +8,6 @@ extensions:
       script: |-
         export OS_BUILD_IMAGE_ARGS=''
         hack/build-base-images.sh
-        make release
+        OS_BUILD_ENV_PRESERVE="_output/local" hack/env make build-rpms
+        hack/build-images.sh
+        hack/extract-release.sh

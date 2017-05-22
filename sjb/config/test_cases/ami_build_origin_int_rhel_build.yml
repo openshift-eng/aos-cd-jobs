@@ -45,7 +45,7 @@ actions:
   - type: "host_script"
     title: "package the AMI"
     script: |-
-      oct package ami --upgrade
+      oct package ami --stage=next
   - type: "script"
     title: "use a ramdisk for etcd"
     script: |-

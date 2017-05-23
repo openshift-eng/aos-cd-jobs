@@ -131,7 +131,7 @@ else
     git merge master -m "Merge master into enterprise-${OSE_VERSION}"
 
     # Use grunt to rebuild everything in the dist directory
-    # If grunt build fails, make sure to run $ sudo hack/install-deps.sh
+    hack/install-deps.sh
     grunt build
 
     git add dist

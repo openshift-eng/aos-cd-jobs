@@ -124,8 +124,20 @@ if [ "${BUILD_MODE}" == "online:stg" ] ; then
 else
   git checkout enterprise-${OSE_VERSION}
   if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
+    # We will be re-generating the dist directory, so ignore it for the merge
+    echo "dist/ merge=ours" >> .gitattributes
+    # Configure the merge driver for this repo
+    git config merge.ours.driver true
     git merge master -m "Merge master into enterprise-${OSE_VERSION}"
-    git push
+
+    # Use grunt to rebuild everything in the dist directory
+    # If grunt build fails, make sure to run $ sudo hack/install-deps.sh
+    grunt build
+
+    git add dist
+    git commit --amend --no-edit
+
+    git push  
   fi
 fi
 

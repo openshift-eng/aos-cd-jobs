@@ -137,7 +137,9 @@ else
     git add dist
     git commit --amend --no-edit
 
-    git push  
+    git push
+    # Clean up any unstaged changes (e.g. .gitattributes)
+    git reset --hard enterprise-${OSE_VERSION}
   fi
 fi
 

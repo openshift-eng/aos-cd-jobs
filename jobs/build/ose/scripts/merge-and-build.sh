@@ -139,7 +139,7 @@ else
 
     git push
     # Clean up any unstaged changes (e.g. .gitattributes)
-    git reset --hard enterprise-${OSE_VERSION}
+    git reset --hard HEAD
   fi
 fi
 

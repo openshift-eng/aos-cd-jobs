@@ -128,14 +128,14 @@ else
     echo 'dist/** merge=ours' >> .gitattributes
     # Configure the merge driver for this repo
     git config merge.ours.driver true
-    git merge master -m "Merge master into enterprise-${OSE_VERSION}"
+    git merge master --no-commit --no-ff
 
     # Use grunt to rebuild everything in the dist directory
     ./hack/install-deps.sh
     grunt build
 
     git add dist
-    git commit --amend --no-edit
+    git commit -m "Merge master into enterprise-${OSE_VERSION}" --allow-empty
 
     git push
     # Clean up any unstaged changes (e.g. .gitattributes)

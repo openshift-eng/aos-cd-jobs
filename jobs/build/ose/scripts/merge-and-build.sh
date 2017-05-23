@@ -125,7 +125,7 @@ else
   git checkout enterprise-${OSE_VERSION}
   if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
     # We will be re-generating the dist directory, so ignore it for the merge
-    echo "dist/ merge=ours" >> .gitattributes
+    echo 'dist/** merge=ours' >> .gitattributes
     # Configure the merge driver for this repo
     git config merge.ours.driver true
     git merge master -m "Merge master into enterprise-${OSE_VERSION}"

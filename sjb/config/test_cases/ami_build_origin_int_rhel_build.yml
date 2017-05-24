@@ -51,9 +51,17 @@ actions:
     script: |-
       oct package ami --stage=next
   - type: "host_script"
+    title: "set up CI user again"
+    script: |-
+      oct prepare user
+  - type: "host_script"
     title: "release the AMI"
     script: |-
       oct package ami --mark-ready
+  - type: "host_script"
+    title: "set up CI user again"
+    script: |-
+      oct prepare user
 artifacts:
   - "/data/src/github/openshift/origin/_output/scripts"
 generated_artifacts:

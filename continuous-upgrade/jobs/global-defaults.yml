@@ -1,0 +1,6 @@
+- defaults:
+    name: global
+    publishers:
+      - email:
+          recipients: jhadvig@redhat.com skuznets@redhat.com
+          notify-every-unstable-build: true

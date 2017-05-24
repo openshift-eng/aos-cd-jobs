@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+  <actions/>
+  <description>&lt;!-- Managed by Jenkins Job Builder --&gt;</description>
+  <keepDependencies>false</keepDependencies>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <concurrentBuild>false</concurrentBuild>
+  <canRoam>true</canRoam>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+latest=$( readlink $HOME/origin-ci-tool/latest )
+touch $latest
+cp $latest/bin/activate $WORKSPACE/activate
+cat &gt;&gt; $WORKSPACE/activate &lt;&lt;EOF
+export OCT_CONFIG_HOME=~/continuous-upgrade/
+EOF
+
+source $WORKSPACE/activate
+oct deprovision</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

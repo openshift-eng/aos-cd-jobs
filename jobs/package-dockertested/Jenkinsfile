@@ -85,6 +85,9 @@ node('buildvm-devops') {
 				sh 'oct prepare user'
 				sh "sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config"
 			}
+			stage ('Configure TMPFS') {
+				runScript './configure-tmpfs.sh'
+			}
 			stage ('Install distribution dependencies') {
 				sh 'oct prepare dependencies'
 			}

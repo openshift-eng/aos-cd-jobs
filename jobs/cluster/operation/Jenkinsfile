@@ -50,6 +50,10 @@ node('buildvm-devops') {
     }
 
     try {
+        echo "Initial cluster state:"
+        sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com status"
+        echo "\n\n"
+        
         cluster_detail = ""
 
         stage( 'Cluster operation' ) {

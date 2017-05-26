@@ -4,7 +4,7 @@ node() {
     
     stage( 'Burn-in operation' ) {
         sshagent(['cicd_cluster_key']) {
-            sh "ssh -o StrictHostKeyChecking=no 10.129.0.1 echo"
+            sh "ssh -o StrictHostKeyChecking=no 54.88.176.49 echo"
         }
     }
 

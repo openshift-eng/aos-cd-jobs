@@ -5,6 +5,7 @@ osm_controller_args:
   enable-hostpath-provisioner:
     - "true"
 openshift_hosted_router_selector: "region=infra"
+openshift_hosted_router_create_certificate: "true"
 openshift_hosted_registry_selector: "region=infra"
 openshift_master_identity_providers:
   - name: "allow_all"

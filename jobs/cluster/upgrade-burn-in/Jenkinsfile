@@ -1,0 +1,12 @@
+#!/usr/bin/env groovy
+
+node() {
+
+    try {
+        stage( 'Cluster operation' ) {
+            sshagent(['cicd_cluster_key']) {
+                sh "ssh -o StrictHostKeyChecking=no 10.129.0.1 echo"
+            }
+        }
+
+}

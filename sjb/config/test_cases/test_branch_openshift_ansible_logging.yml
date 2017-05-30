@@ -91,9 +91,9 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e deployment_type=origin  \
                          -e openshift_logging_image_prefix="openshift/origin-" \
-                         -e openshift_hosted_logging_hostname="kibana.127.0.0.1.xip.io"           \
+                         -e openshift_hosted_logging_hostname="kibana.127.0.0.1.nip.io"           \
                          -e openshift_logging_master_public_url="https://localhost:8443"          \
-                         -e openshift_master_logging_public_url="https://kibana.127.0.0.1.xip.io" \
+                         -e openshift_master_logging_public_url="https://kibana.127.0.0.1.nip.io" \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
                          --skip-tags=update_master_config
     - type: "script"

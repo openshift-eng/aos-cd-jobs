@@ -288,7 +288,7 @@ export OS_O_A_L_DIR=&#34;\$( pwd )&#34;
 export OS_ROOT=&#34;\$( realpath ./../origin )&#34;
 hack/testing/check-EFK-running.sh
 hack/testing/check-logs.sh
-hack/testing/test-datetime-future.sh ||
+hack/testing/test-datetime-future.sh || true
 hack/testing/test-curator.sh &#34;\${ENABLE_OPS_CLUSTER}&#34;
 USE_MUX_CLIENT=true MUX_ALLOW_EXTERNAL=true hack/testing/test-mux.sh || true
 hack/testing/test-viaq-data-model.sh || true

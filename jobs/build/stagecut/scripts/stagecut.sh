@@ -37,13 +37,11 @@ for repo in $@; do
             git push origin "stage-${LAST_SPRINT_NUMBER}"
             git checkout stage
             git reset --hard master
-            #git push origin stage --force
-            echo "TEST RUN - PUSHING IS NOT CURRENTLY ENABLED."
+            git push origin stage --force
         else
             echo "Stage branch did not yet exist; creating it..."
             git checkout -b stage
-            #git push origin stage
-            echo "TEST RUN - PUSHING IS NOT CURRENTLY ENABLED."
+            git push origin stage
         fi
     popd
 

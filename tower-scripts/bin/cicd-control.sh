@@ -226,6 +226,30 @@ elif [ "${OPERATION}" == "upgrade" ]; then
     /usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
   popd
 
+################################################
+# PERFORMANCE TEST1
+################################################
+elif [ "${OPERATION}" == "perf1" ]; then
+
+    echo "Running performance test 1"
+
+    # Find an appropriate master
+    MASTER="$(ossh --list | grep ${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
+
+    if [[ "${MASTER}" != "${CLUSTERNAME}"-* ]]; then
+        echo "Unable to find master for the specified cluster"
+        exit 1
+    fi
+
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "sh" <<EOF
+rm -rf perf1
+mkdir -p perf1
+cd perf1
+git clone -b master-vert-for-cicd https://github.com/mffiedler/svt
+cd svt/openshift_performance/ci/scripts
+./conc_builds_cicd.sh
+EOF
+
 else
   echo Error. Unrecognized operation. Exiting...
 fi

@@ -242,6 +242,7 @@ elif [ "${OPERATION}" == "perf1" ]; then
     fi
 
     /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "sh" <<EOF
+yum install -y python-ceph python-boto3 python-flask
 rm -rf perf1
 mkdir -p perf1
 cd perf1

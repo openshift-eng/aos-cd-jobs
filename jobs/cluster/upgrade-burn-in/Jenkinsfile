@@ -6,7 +6,7 @@ node('buildvm-devops') {
         sshagent(['cicd_cluster_key']) {
             // Agent forwarding is enabled in order to allow openshift-ansible to 
             // access all nodes on the cluster.
-            sh "ssh -A -o StrictHostKeyChecking=no root@54.88.176.49 echo hello"
+            sh "ssh -A -o StrictHostKeyChecking=no root@master1.cicd.openshift.com echo hello"
         }
     }
 

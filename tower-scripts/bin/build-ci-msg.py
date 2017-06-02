@@ -9,11 +9,15 @@ import subprocess
 import sys
 import json
 
-if len(sys.argv) != 1:
+if len(sys.argv) != 2:
     print "Invalid syntax; cluster name required"
-    exit 1
+    sys.exit(1)
 
-cluster_name = sys.argv[0]
+if sys.argv[0] != "-":
+    print "Invocation is no longer as stdin to python app; assumptions have changed so exiting."
+    sys.exit(1)
+
+cluster_name = sys.argv[1]
 
 oc_v = str(subprocess.check_output(["oc", "version"])).strip()
 
@@ -32,7 +36,7 @@ for line in oc_v.split("\n"):
 
 
 major,minor = oc_version.split(".")[:2]
-oc_short_version = "%s.%s" % (major,minor)"
+oc_short_version = "%s.%s" % (major,minor)
 
 docker_version = subprocess.check_output(["rpm", "-q", "--qf", "%{VERSION}-%{RELEASE}", "docker"])
 
@@ -56,7 +60,7 @@ msg = {
     "cluster name": cluster_name,
     "description" : "OSO cluster upgraded",
     "version": oc_version,
-    "short_version": short_version,
+    "short_version": oc_short_version,
     "oc_version": oc_version,
     "online_version": online_version,
     "docker_version": docker_version,

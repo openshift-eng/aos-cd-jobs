@@ -56,6 +56,19 @@ function get_latest_openshift_ansible()  {
   fi
 }
 
+# Outputs the name of one a master for a cluster
+function get_master_name() {
+    # Find an appropriate master
+    MASTER="$(ossh --list | grep ${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
+
+    if [[ "${MASTER}" != "${CLUSTERNAME}"-* ]]; then
+        echo "Unable to find master for the specified cluster"
+        exit 1
+    fi
+
+    echo "${MASTER}"
+}
+
 if [ "$#" -lt 2 ]
 then
   print_usage
@@ -72,12 +85,18 @@ ARGS="$@"
 
 ################################################
 # CLUSTER LOG GATHERING
-# PLEASE DO NOT ADD ANY NEW OPERATIONS BEFORE HERE
+# PLEASE DO NOT ADD STDOUT OPERATIONS BEFORE HERE
 ################################################
 if [ "${OPERATION}" == "logs" ]; then
   # Gather the logs for the specified cluster
   ./gather-logs.sh ${CLUSTERNAME}
   exit 0
+fi
+
+if [ "${OPERATION}" == "build-ci-msg" ]; then
+    MASTER="$(get_master_name)"
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "sh" < build-ci-msg.py
+    exit 0
 fi
 
 # Stdout from 'status' invocation is sent out verbatim after an
@@ -231,17 +250,16 @@ elif [ "${OPERATION}" == "upgrade" ]; then
 ################################################
 elif [ "${OPERATION}" == "perf1" ]; then
 
-    echo "Running performance test 1"
-
-    # Find an appropriate master
-    MASTER="$(ossh --list | grep ${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
-
-    if [[ "${MASTER}" != "${CLUSTERNAME}"-* ]]; then
-        echo "Unable to find master for the specified cluster"
+    if [[ "${CLUSTERNAME}" != "free-int" && "${CLUSTERNAME}" != "dev-preview-int" ]]; then
+        echo "Cannot run performance test on cluster: ${CLUSTERNAME}"
         exit 1
     fi
 
+    echo "Running performance test 1"
+    MASTER="$(get_master_name)"
+
     /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "sh" <<EOF
+yum install -y python-ceph python-boto3 python-flask
 rm -rf perf1
 mkdir -p perf1
 cd perf1

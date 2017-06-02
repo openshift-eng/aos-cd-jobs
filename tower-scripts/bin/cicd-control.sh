@@ -42,18 +42,14 @@ function print_usage() {
 }
 
 function get_latest_openshift_ansible()  {
-  if [[ "${1}" == "int" || "${1}" == "stg" ]]; then
-    AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
-    mkdir -p "${AOS_TMPDIR}"
+  AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
+  mkdir -p "${AOS_TMPDIR}"
 
-    pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
-      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1 -e cli_download_dir=${AOS_TMPDIR}
-    popd
+  pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
+    /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1 -e cli_download_dir=${AOS_TMPDIR}
+  popd
 
-    export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"
-  else
-    export OPENSHIFT_ANSIBLE_INSTALL_DIR="$GIT_ROOT/openshift-tools/openshift/installer/atomic-openshift-${oo_version}"
-  fi
+  export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"
 }
 
 # Outputs the name of one a master for a cluster
@@ -103,14 +99,14 @@ fi
 # online-first install/upgrade. Similar to logs operation, don't
 # output any stdout before this point.
 if [ "${OPERATION}" == "status" ]; then
-  
+
   if [ "${CLUSTERNAME}" == "test-key" ]; then
     echo "This output represents the current status of the test-key cluster"
     echo "This is the second line"
     echo "This is the third and final"
     exit 0
   fi
-   
+
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin > /dev/null
     /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
   popd > /dev/null

@@ -1,0 +1,18 @@
+- job:
+    name: continuous-upgrade_provision-job
+    project-type: freestyle
+    defaults: global
+    builders:
+      - shell: 
+          !include-raw:
+              - install-oct.sh
+              - provision-cloud-resources.sh
+              - install-ocp.sh
+    publishers:
+      - email:
+          recipients: jhadvig@redhat.com skuznets@redhat.com
+          notify-every-unstable-build: true
+    triggers:
+      - reverse:
+            jobs:
+                - 'continuous-upgrade_terminate-job'

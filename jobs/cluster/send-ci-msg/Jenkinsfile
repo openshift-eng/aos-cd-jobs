@@ -15,6 +15,7 @@ node('buildvm-devops') {
 
         sshagent([CLUSTER_NAME]) {
             msg = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com build-ci-msg").trim()
+            echo "Sending CI Message:\n${msg}"
             sendCIMessage messageContent: msg, messageProperties: '', messageType: 'ComponentBuildDone', providerName: 'CI Publish'
         }
 

@@ -91,7 +91,9 @@ fi
 
 if [ "${OPERATION}" == "build-ci-msg" ]; then
     MASTER="$(get_master_name)"
-    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py
+    # Streams the python script to the cluster master. Script outputs a json document.
+    # Grep is to eliminate ossh verbose output -- grabbing only the json doc.
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep '^{.*'
     exit 0
 fi
 

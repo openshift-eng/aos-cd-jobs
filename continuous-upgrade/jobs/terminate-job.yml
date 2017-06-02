@@ -1,0 +1,8 @@
+- job:
+    name: continuous-upgrade_terminate-job
+    project-type: freestyle
+    defaults: global
+    builders:
+      - shell:
+          !include-raw:
+              - terminate-cloud-resources.sh

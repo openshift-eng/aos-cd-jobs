@@ -91,7 +91,7 @@ fi
 
 if [ "${OPERATION}" == "build-ci-msg" ]; then
     MASTER="$(get_master_name)"
-    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "sh" < build-ci-msg.py
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py
     exit 0
 fi
 

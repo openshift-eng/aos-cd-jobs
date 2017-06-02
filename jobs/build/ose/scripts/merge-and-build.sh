@@ -258,8 +258,15 @@ echo
 echo "=========="
 echo "Tito Tagging: openshift-ansible"
 echo "=========="
-# Openshift-ansible version will now be kept in synch with OCP's
-tito tag --accept-auto-changelog --use-version="${VERSION#v}"
+if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below 
+    # Use tito's normal progression for older releases
+    export TITO_USE_VERSION=""
+else
+    # For 3.6 onward, match the OCP version
+    export TITO_USE_VERSION="${VERSION#v}"
+fi
+
+tito tag --accept-auto-changelog ${TITO_USE_VERSION}
 git push
 git push --tags
 

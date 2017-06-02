@@ -1,0 +1,23 @@
+#!/usr/bin/env groovy
+
+node('buildvm-devops') {
+
+    properties(
+            [[$class              : 'ParametersDefinitionProperty',
+              parameterDefinitions:
+                      [
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "test-key\ncicd\ndev-preview-int\ndev-preview-stg\npreview\nfree-int\nfree-stg\nstarter-us-east-1\nstarter-us-east-2\nstarter-us-west-2", name: 'CLUSTER_NAME', description: 'The name of the cluster to inspect'],
+                      ]
+             ]]
+    )
+
+    stage( 'Send CI Msg' ) {
+
+        sshagent([CLUSTER_NAME]) {
+            msg = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com build-ci-msg").trim()
+            sendCIMessage messageContent: msg, messageProperties: '', messageType: 'ComponentBuildDone', providerName: 'CI Publish'
+        }
+
+    }
+
+}

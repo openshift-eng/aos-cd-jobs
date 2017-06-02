@@ -281,14 +281,11 @@ echo "Building Puddle"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf -n -s --label=building"
 
-# If we are at the stage mode, dont be messing with the dist-git checking
-if [ "${BUILD_MODE}" != "online:stg" ] ; then
-  echo
-  echo "=========="
-  echo "Sync git to dist-git repos"
-  echo "=========="
-  ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${OSE_VERSION}-rhel-7 --group base
-fi # End check for stg
+echo
+echo "=========="
+echo "Sync git to dist-git repos"
+echo "=========="
+ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${OSE_VERSION}-rhel-7 --group base
 
 echo
 echo "=========="

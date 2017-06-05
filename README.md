@@ -69,6 +69,17 @@ grouping. A quick synopsis of these indexed jobs is as follows:
 Jenkins Job Builder definitions under the `jjb/` directory are not currently used to underpin any jobs, but were an investigation
 into how the JJB system was used by the AOS CI team to build and support CI jobs for the `openshift-ansible` repository.
 
+## Continuous Upgrade job configuration under `continuous-upgrade/`
+
+Continuous Upgrade job is using Jenkins Job Builder framework to continuously upgrade an Openshift cluster.
+
+To be able to generate XML configuration of continuous-upgrade jobs you need to install [jenkins-jobs tool](https://docs.openstack.org/infra/jenkins-job-builder/installation.html). After installing the tool run [`continuous-upgrade/generate-jobs.py`](continuous-upgrade/generate-jobs.py) to re-generate XMLs of the jobs. 
+
+To push the changes in any of the jobs to the server use:
+```shell
+sjb/push-update.sh continuous-upgrade/generated/continuous-upgrade_JOB_NAME.xml
+```
+
 ## Custom XML Generator configuration under `sjb/`
 
 A custom XML generator lives under the `sjb/` directory. This generator is meant to be a tightly scoped tool that would help us

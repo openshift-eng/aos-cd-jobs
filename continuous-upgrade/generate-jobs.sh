@@ -6,6 +6,8 @@ set -o pipefail
 
 jobs=( provision upgrade terminate )
 
-for job in ${jobs[@]}; do
+pushd sjb
+for job in "${jobs[@]}"; do
     jenkins-jobs test jobs/${job}-job.yml > generated/continuous-upgrade_${job}-job.xml
 done
+popd

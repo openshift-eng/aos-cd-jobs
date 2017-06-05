@@ -300,7 +300,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 source ORIGIN_VARS
 source OPENSHIFT_ANSIBLE_VARS
 versioned_packages_to_upgrade=&#34;&#34;
-packages_to_upgrade=&#34;\$( cat ./OPENSHIFT_ANSIBLE_PKGS )&#34;
+packages_to_upgrade=( \$( cat ./OPENSHIFT_ANSIBLE_PKGS ) )
 for pkg in &#34;\${packages_to_upgrade[@]}&#34;
 do
   versioned_packages_to_upgrade+=&#34; \${pkg}-\${ATOMIC_OPENSHIFT_UTILS_UPGRADE_RELEASE_VERSION}&#34;

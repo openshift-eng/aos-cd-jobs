@@ -100,20 +100,7 @@ extensions:
       title: "run logging tests"
       repository: "origin-aggregated-logging"
       script: |-
-        export KUBECONFIG=/etc/origin/master/admin.kubeconfig
-        export TEST_ONLY=true
-        export ENABLE_OPS_CLUSTER=true
-        export USE_LOCAL_SOURCE=true
-        export OS_O_A_L_DIR="$( pwd )"
-        export OS_ROOT="$( realpath ./../origin )"
-        hack/testing/check-EFK-running.sh
-        hack/testing/check-logs.sh
-        hack/testing/test-datetime-future.sh || true
-        hack/testing/test-curator.sh "${ENABLE_OPS_CLUSTER}"
-        USE_MUX_CLIENT=true MUX_ALLOW_EXTERNAL=true hack/testing/test-mux.sh || true
-        hack/testing/test-viaq-data-model.sh || true
-        hack/testing/test-mux.sh || true
-        hack/testing/test-fluentd-forward.sh || true
+        KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true SKIP_TEARDOWN=true make test
   system_journals:
     - origin-master.service
     - origin-node.service
@@ -121,3 +108,5 @@ extensions:
     - ovs-vswitchd.service
     - ovsdb-server.service
     - etcd.service
+  artifacts:
+    - "/data/src/github.com/openshift/origin-aggregated-logging/_output/scripts"

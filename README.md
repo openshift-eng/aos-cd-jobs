@@ -4,13 +4,13 @@ This repository backs Jenkins jobs on a couple of Jenkins masters.
 
 ## Jenkins pipeline definitions under `jobs/`
 
-An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/) indexes 
+An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/) indexes
 Jenkinsfiles in the branches of this repository.  The branches are automatically generated from the Jenkinsfiles that live under
 the `jobs/` directory on the `master` branch. The job responsible for generating, updating and removing the branches can be found
 in the [`Jenkinsfile`](Jenkinsfile) at the root directory. The builds are currently configured to be executed periodically, but
 can be manually triggered in [jenkins](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd-master/job/master/).
 
-The scripts used by the job described above are [`pruner.py`](aos_cd_jobs/pruner.py), which removes branches for jobs that no 
+The scripts used by the job described above are [`pruner.py`](aos_cd_jobs/pruner.py), which removes branches for jobs that no
 longer exist, and [`updater.py`](aos_cd_jobs/updater.py), which creates/updates branches for existing jobs. A "job" is any
 directory under the `jobs/` directory which contains a `Jenkinsfile`.  Every branch is an orphan (doesn't contain any history) and
 its contents are the contents of the `master` branch with the corresponding directory under `jobs/` copied to the root directory
@@ -45,7 +45,7 @@ The final contents of the `build/openshift-scripts` branch, after the execution 
 Note that the files `Jenkinsfile` and `README.md` in the master branch exist both in the root directory and in the job directory.
 Because of the sequence of steps described above, the former will be overwritten by the latter.
 
-Jobs under the `jobs/build/` directory are indexed at the 
+Jobs under the `jobs/build/` directory are indexed at the
 [`aos-cd-builds`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd-builds/) grouping, while the jobs under
 `jobs/cluster/` are indexed at the general [`aos-cd`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd/)
 grouping. A quick synopsis of these indexed jobs is as follows:
@@ -75,7 +75,7 @@ A custom XML generator lives under the `sjb/` directory. This generator is meant
 bridge the gap between monolithic scripts inside of Freestyle Jenkins Jobs and segmented Jenkins Pipelines driven by source-
 controlled Groovy scripts and libraries.
 
-The generator understand a small set of `action`s, each of which is underpinned by a Python module under 
+The generator understand a small set of `action`s, each of which is underpinned by a Python module under
 [`sjb/actions/`](sjb/actions). A configuration YAML file is read in by [`sjb/generate.py`](sjb/generate.py) and used to generate a
 set of input variables to the [Jinja job template XML](sjb/templates/test_case.xml). Jobs can depend on a parent to reuse
 configuration.
@@ -109,43 +109,53 @@ When running `[merge]` on a PR, developers will optionally be able to add `[seve
  - none ( `[merge]` )
  - bug ( `[merge][severity: bug]` )
  - blocker ( `[merge][severity: blocker]` )
+ - tooling ( `[merge][severity: tooling]` )
+
+The `tooling` severity is special in that all approvers other than the [`closed_approver.sh`](approvers/closed_approver.sh), will
+allow merges with it. Developers should use this tag when they are making changes to code in the repository that does not make up
+any part of the shipped product and therefore does not have any chance of impacting deployments.
 
 There will be four possible designations for any branch in your repo:
 
-<table class="tg">
+<table>
   <tr>
-    <th class="tg-yw4l" colspan="2" rowspan="2"></th>
-    <th class="tg-baqh" colspan="3">Pull Request Severity<br></th>
+    <th colspan="2" rowspan="2"></th>
+    <th colspan="4">Pull Request Severity<br></th>
   </tr>
   <tr>
-    <td class="tg-baqh">None</td>
-    <td class="tg-baqh">Bug</td>
-    <td class="tg-baqh">Blocker</td>
+    <td>None</td>
+    <td>Bug</td>
+    <td>Blocker</td>
+    <td>Tooling</td>
   </tr>
   <tr>
-    <td class="tg-031e" rowspan="4">Branch Stage<br></td>
-    <td class="tg-lqy6">Open</td>
-    <td class="tg-baqh">✔️</td>
-    <td class="tg-baqh">✔️</td>
-    <td class="tg-baqh">✔️</td>
+    <td rowspan="4">Branch Stage<br></td>
+    <td>Open</td>
+    <td>✔️</td>
+    <td>✔️</td>
+    <td>✔️</td>
+    <td>✔️</td>
   </tr>
   <tr>
-    <td class="tg-lqy6">DevCut</td>
-    <td class="tg-baqh">❌</td>
-    <td class="tg-baqh">✔️</td>
-    <td class="tg-baqh">✔️</td>
+    <td>DevCut</td>
+    <td>❌</td>
+    <td>✔️</td>
+    <td>✔️</td>
+    <td>✔️</td>
   </tr>
   <tr>
-    <td class="tg-lqy6">StageCut</td>
-    <td class="tg-baqh">❌</td>
-    <td class="tg-baqh">❌</td>
-    <td class="tg-baqh">✔️</td>
+    <td>StageCut</td>
+    <td>❌</td>
+    <td>❌</td>
+    <td>✔️</td>
+    <td>✔️</td>
   </tr>
   <tr>
-    <td class="tg-lqy6">Closed</td>
-    <td class="tg-baqh">❌</td>
-    <td class="tg-baqh">❌</td>
-    <td class="tg-baqh">❌</td>
+    <td>Closed</td>
+    <td>❌</td>
+    <td>❌</td>
+    <td>❌</td>
+    <td>❌</td>
   </tr>
 </table>
 
@@ -162,16 +172,16 @@ approve.sh "${REPO}" "${TARGET_BRANCH}" "${MERGE_SEVERITY:-"none"}"
 
 To configure a branch status, run the [`configure_approver`](https://ci.dev.openshift.redhat.com/jenkins/job/configure_approver/)
 job on the [ci.dev](https://ci.dev.openshift.redhat.com/jenkins/) Jenkins master. This job will configure the approver you ask
-for as well as propagate the changes to the [ci.openshift](http://ci.openshift.redhat.com/) server. The job runs the 
+for as well as propagate the changes to the [ci.openshift](http://ci.openshift.redhat.com/) server. The job runs the
 [`configure_approver`](approvers/configure_approver.sh) script:
- 
+
 ```shell
 for repo in ${REPOSITORIES}; do
     for branch in ${BRANCHES}; do
         configure_approver.sh "${repo}" "${branch}" "${STAGE}"
     done
 done
-    
+
 list_approvers.sh
 ```
 
@@ -179,7 +189,7 @@ list_approvers.sh
 
 Approvers are configured by creating a symbolic link at `~jenkins/approvers/openshift/${REPO}/${TARGET_BRANCH}/approver` for the
 approver that is requested for that branch. The approvers are the [`closed_approver.sh`](approvers/closed_approver.sh),
-[`open_approver.sh`](approvers/open_approver.sh), [`devcut_approver.sh`](approvers/devcut_approver.sh), and 
+[`open_approver.sh`](approvers/open_approver.sh), [`devcut_approver.sh`](approvers/devcut_approver.sh), and
 [`stagecut_approver.sh`](approvers/stagecut_approver.sh) scripts in this repository under [`approvers/`](approvers/).
 
 ### Developer Workflow

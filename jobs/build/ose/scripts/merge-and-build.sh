@@ -310,8 +310,8 @@ echo
 echo "=========="
 echo "Push Images"
 echo "=========="
-# Pass -E to ensure that sudo inherits Jenkins setup of PATH environment variable
-sudo -E ose_images.sh --user ocp-build push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base
+# Pass PATH to ensure that sudo inherits Jenkins setup of PATH environment variable
+sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base
 
 echo
 echo "=========="

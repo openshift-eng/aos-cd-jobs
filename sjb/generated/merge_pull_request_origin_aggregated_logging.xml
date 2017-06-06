@@ -24,24 +24,14 @@
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>OPENSHIFT_ANSIBLE_PULL_ID</name>
-          <description>The pull-request in the &lt;a href=&#34;https://github.com/openshift/openshift-ansible&#34;&gt;openshift-ansible&lt;/a&gt; repository to test.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging&#34;&gt;origin-aggregated-logging&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>AOS_CD_JOBS_TARGET_BRANCH</name>
-          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs&#34;&gt;aos-cd-jobs&lt;/a&gt; repository to test against.</description>
-          <defaultValue>master</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>ORIGIN_TARGET_BRANCH</name>
-          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/origin&#34;&gt;origin&lt;/a&gt; repository to test against.</description>
-          <defaultValue>master</defaultValue>
+          <name>ORIGIN_AGGREGATED_LOGGING_PULL_ID</name>
+          <description>The pull-request in the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging&#34;&gt;origin-aggregated-logging&lt;/a&gt; repository to test.</description>
+          <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>MERGE_SEVERITY</name>
@@ -72,14 +62,14 @@
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-approve.sh openshift-ansible &quot;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&quot; &quot;${MERGE_SEVERITY}&quot;
+approve.sh origin-aggregated-logging &quot;${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&quot; &quot;${MERGE_SEVERITY}&quot;
           </command>
         </hudson.tasks.Shell>
     <com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
       <phaseName>Test Phase</phaseName>
       <phaseJobs>
         <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_openshift_ansible_tox</jobName>
+          <jobName>test_pull_request_origin_aggregated_logging_ansible</jobName>
           <currParams>true</currParams>
           <exposedSCM>false</exposedSCM>
           <disableJob>false</disableJob>
@@ -95,39 +85,7 @@ approve.sh openshift-ansible &quot;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&quot; &quo
           <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
         </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
         <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_openshift_ansible_logging</jobName>
-          <currParams>true</currParams>
-          <exposedSCM>false</exposedSCM>
-          <disableJob>false</disableJob>
-          <parsingRulesPath></parsingRulesPath>
-          <maxRetries>0</maxRetries>
-          <enableRetryStrategy>false</enableRetryStrategy>
-          <enableCondition>false</enableCondition>
-          <abortAllJob>false</abortAllJob>
-          <condition></condition>
-          <configs class="empty-list"/>
-          <killPhaseOnJobResultCondition>NEVER</killPhaseOnJobResultCondition>
-          <buildOnlyIfSCMChanges>false</buildOnlyIfSCMChanges>
-          <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
-        </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-        <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check</jobName>
-          <currParams>true</currParams>
-          <exposedSCM>false</exposedSCM>
-          <disableJob>false</disableJob>
-          <parsingRulesPath></parsingRulesPath>
-          <maxRetries>0</maxRetries>
-          <enableRetryStrategy>false</enableRetryStrategy>
-          <enableCondition>false</enableCondition>
-          <abortAllJob>false</abortAllJob>
-          <condition></condition>
-          <configs class="empty-list"/>
-          <killPhaseOnJobResultCondition>NEVER</killPhaseOnJobResultCondition>
-          <buildOnlyIfSCMChanges>false</buildOnlyIfSCMChanges>
-          <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
-        </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-        <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_openshift_ansible_extended_conformance_install_update</jobName>
+          <jobName>test-origin-aggregated-logging</jobName>
           <currParams>true</currParams>
           <exposedSCM>false</exposedSCM>
           <disableJob>false</disableJob>
@@ -146,55 +104,31 @@ approve.sh openshift-ansible &quot;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&quot; &quo
       <continuationCondition>ALWAYS</continuationCondition>
     </com.tikal.jenkins.plugins.multijob.MultiJobBuilder>
     <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_openshift_ansible_tox</project>
+      <project>test_pull_request_origin_aggregated_logging_ansible</project>
       <filter>**</filter>
-      <target>test_pull_request_openshift_ansible_tox/</target>
+      <target>test_pull_request_origin_aggregated_logging_ansible/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_TOX_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${TEST_PULL_REQUEST_ORIGIN_AGGREGATED_LOGGING_ANSIBLE_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_openshift_ansible_logging</project>
+      <project>test-origin-aggregated-logging</project>
       <filter>**</filter>
-      <target>test_pull_request_openshift_ansible_logging/</target>
+      <target>test-origin-aggregated-logging/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_LOGGING_BUILD_NUMBER}</buildNumber>
-      </selector>
-      <optional>true</optional>
-      <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
-    </hudson.plugins.copyartifact.CopyArtifact>
-    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check</project>
-      <filter>**</filter>
-      <target>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check/</target>
-      <excludes></excludes>
-      <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_WITH_STATUS_CHECK_BUILD_NUMBER}</buildNumber>
-      </selector>
-      <optional>true</optional>
-      <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
-    </hudson.plugins.copyartifact.CopyArtifact>
-    <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_openshift_ansible_extended_conformance_install_update</project>
-      <filter>**</filter>
-      <target>test_pull_request_openshift_ansible_extended_conformance_install_update/</target>
-      <excludes></excludes>
-      <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_UPDATE_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${TEST-ORIGIN-AGGREGATED-LOGGING_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.tasks.Shell>
       <command># record the log from the downstream job here for FCM parsing
-cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_tox/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_TOX_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_logging/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_LOGGING_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install_with_status_check/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_WITH_STATUS_CHECK_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install_update/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_UPDATE_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test_pull_request_origin_aggregated_logging_ansible/builds/${TEST_PULL_REQUEST_ORIGIN_AGGREGATED_LOGGING_ANSIBLE_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test-origin-aggregated-logging/builds/${TEST-ORIGIN-AGGREGATED-LOGGING_BUILD_NUMBER}/log
       </command>
     </hudson.tasks.Shell>
   </builders>
@@ -204,7 +138,7 @@ cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conforman
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --merge_pull_request &quot;${OPENSHIFT_ANSIBLE_PULL_ID}&quot; --repo openshift-ansible --config ~/.test_pull_requests_openshift_ansible.json
+test_pull_requests --merge_pull_request &quot;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&quot; --repo origin-aggregated-logging --config ~/.test_pull_requests_origin_aggregated_logging.json
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

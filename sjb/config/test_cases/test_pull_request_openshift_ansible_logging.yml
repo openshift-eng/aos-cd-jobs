@@ -5,4 +5,3 @@ overrides:
     - name: "origin-aggregated-logging"
     - name: "openshift-ansible"
       type: "pull_request"
-  test: "openshift-ansible"

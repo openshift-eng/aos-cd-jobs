@@ -79,27 +79,43 @@ class DetermineSearchVersionTestCase(unittest.TestCase):
 
 	def test_origin_with_standard_versioning_schema(self):
 		""" when the origin version is higher then the first version of the new origin versioning schema - origin-3.6 """
-		self.assertEqual(determine_search_version("origin", "3.7.0"), "3.6")
+		self.assertEqual(determine_install_version("origin", "3.7.0"), "3.6")
+
+	def test_origin_with_short_standard_versioning_schema(self):
+		""" when the origin version is in short format and higher then the first version of the new origin versioning schema - origin-3.6 """
+		self.assertEqual(determine_install_version("origin", "3.7"), "3.6")
 
 	def test_origin_with_standard_to_legacy_versioning_schema(self):
 		""" when the origin version is the first from the new origin versioning schema - origin-3.6 """
-		self.assertEqual(determine_search_version("origin", "3.6.0"), "1.5")
+		self.assertEqual(determine_install_version("origin", "3.6.0"), "1.5")
+
+	def test_origin_with_short_standard_to_legacy_versioning_schema(self):
+		""" when the origin version is in short format and first from the new origin versioning schema - origin-3.6 """
+		self.assertEqual(determine_install_version("origin", "3.6"), "1.5")
 
 	def test_origin_with_legacy_schema(self):
 		""" when the origin version is in the old versioning schema """
-		self.assertEqual(determine_search_version("origin", "1.5.0"), "1.4")
+		self.assertEqual(determine_install_version("origin", "1.5.0"), "1.4")
+
+	def test_origin_with_short_legacy_schema(self):
+		""" when the origin version is in short and old versioning schema """
+		self.assertEqual(determine_install_version("origin", "1.5"), "1.4")
 
 	def test_openshift_ansible_with_standard_versioning_schema(self):
 		""" when openshift-ansible, which doesnt have different versioning schema, is in 3.7 version  """
-		self.assertEqual(determine_search_version("openshift-ansible", "3.7.0"), "3.6")
+		self.assertEqual(determine_install_version("openshift-ansible", "3.7.0"), "3.6")
 
 	def test_openshift_ansible_with_standard_to_legacy_versioning_schema(self):
 		""" when openshift-ansible, which doesnt have different versioning schema is in 3.6 version """
-		self.assertEqual(determine_search_version("openshift-ansible", "3.6.0"), "3.5")
+		self.assertEqual(determine_install_version("openshift-ansible", "3.6.0"), "3.5")
+
+	def test_openshift_ansible_with_short_standard_to_legacy_versioning_schema(self):
+		""" when openshift-ansible, which doesnt have different versioning schema, is in short format and in 3.6 version """
+		self.assertEqual(determine_install_version("openshift-ansible", "3.6"), "3.5")
 
 	def test_openshift_ansible_with_legacy_versioning_schema(self):
 		""" when openshift-ansible, which doesnt have different versioning schema is in 3.4 version """
-		self.assertEqual(determine_search_version("openshift-ansible", "3.5.0"), "3.4")
+		self.assertEqual(determine_install_version("openshift-ansible", "3.5.0"), "3.4")
 
 class GetInstallVersionTestCase(unittest.TestCase):
 	"Test for `determine_install_upgrade_version.py`"
@@ -108,38 +124,25 @@ class GetInstallVersionTestCase(unittest.TestCase):
 		""" when multiple matching version are present in released versions """
 		matching_versions = ["1.2.0-1.el7", "1.2.2-1.el7", "1.2.5-1.el7"]
 		install_version = "1.2.5-1.el7"
-		self.assertEqual(get_install_version(matching_versions), install_version)
+		self.assertEqual(get_last_version(matching_versions), install_version)
 
 	def test_with_single_matching_release_version(self):
 		""" when only a single matching version is present in released versions """
 		matching_versions = ["1.5.0-1.4.el7"]
 		install_version = "1.5.0-1.4.el7"
-		self.assertEqual(get_install_version(matching_versions), install_version)
+		self.assertEqual(get_last_version(matching_versions), install_version)
 
 	def test_with_multiple_matching_pre_release_versions(self):
 		""" when multiple matching pre-release version are present in pre-released versions """
 		matching_versions = ["1.2.0-0.el7", "1.2.2-0.el7", "1.2.5-0.el7"]
 		install_version = "1.2.5-0.el7"
-		self.assertEqual(get_install_version(matching_versions), install_version)
+		self.assertEqual(get_last_version(matching_versions), install_version)
 
 	def test_with_single_matching_pre_release_version(self):
 		""" when only single matching pre-release version is present in pre-released versions """
 		matching_versions = ["1.5.0-0.4.el7"]
 		install_version = "1.5.0-0.4.el7"
-		self.assertEqual(get_install_version(matching_versions), install_version)
-
-class GetVersionTestCase(unittest.TestCase):
-	"Test for `determine_install_upgrade_version.py`"
-
-	def test_get_version(self):
-		""" when package version is picked its version-release pair """
-		version_release = "1.5.0-0.4.el7"
-		self.assertEqual(get_version(version_release), "1.5.0")
-
-	def test_get_minor_version(self):
-		""" when package minor version is picked its version-release pair """
-		version_release = "1.5.0-0.4.el7"
-		self.assertEqual(get_minor_version(version_release), "5")
+		self.assertEqual(get_last_version(matching_versions), install_version)
 
 if __name__ == '__main__':
 	unittest.main()

@@ -19,18 +19,18 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH</name>
-          <description>The branch in the &lt;a href=&quot;https://github.com/openshift/origin-aggregated-logging&quot;&gt;origin-aggregated-logging&lt;/a&gt; repository to test against.</description>
-          <defaultValue>master</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&quot;https://github.com/openshift/openshift-ansible&quot;&gt;openshift-ansible&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>OPENSHIFT_ANSIBLE_PULL_ID</name>
-          <description>The pull-request in the &lt;a href=&quot;https://github.com/openshift/openshift-ansible&quot;&gt;openshift-ansible&lt;/a&gt; repository to test.</description>
+          <name>ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&quot;https://github.com/openshift/origin-aggregated-logging&quot;&gt;origin-aggregated-logging&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ORIGIN_AGGREGATED_LOGGING_PULL_ID</name>
+          <description>The pull-request in the &lt;a href=&quot;https://github.com/openshift/origin-aggregated-logging&quot;&gt;origin-aggregated-logging&lt;/a&gt; repository to test.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
@@ -79,15 +79,10 @@ oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;build&#34; --pr
     <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
       <regexp></regexp>
       <description>&lt;div&gt;
-Using the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging/tree/${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34;&gt;origin-aggregated-logging ${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
-Using PR &lt;a href=&#34;https://github.com/openshift/openshift-ansible/pull/${OPENSHIFT_ANSIBLE_PULL_ID}&#34;&gt;${OPENSHIFT_ANSIBLE_PULL_ID}&lt;/a&gt; merged into the &lt;a href=&#34;https://github.com/openshift/openshift-ansible/tree/${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34;&gt;openshift-ansible ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&lt;/a&gt; branch.
+Using the &lt;a href=&#34;https://github.com/openshift/openshift-ansible/tree/${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34;&gt;openshift-ansible ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
+Using PR &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging/pull/${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&#34;&gt;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&lt;/a&gt; merged into the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging/tree/${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34;&gt;origin-aggregated-logging ${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&lt;/a&gt; branch.
 &lt;/div&gt;</description>
     </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC ORIGIN-AGGREGATED-LOGGING REPOSITORY ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC ORIGIN-AGGREGATED-LOGGING REPOSITORY [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-oct sync remote origin-aggregated-logging --branch &#34;${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34; </command>
-        </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC OPENSHIFT-ANSIBLE REPOSITORY ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC OPENSHIFT-ANSIBLE REPOSITORY [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
@@ -95,8 +90,13 @@ oct sync remote openshift-ansible --branch &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANC
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC OPENSHIFT-ANSIBLE PULL REQUEST ${OPENSHIFT_ANSIBLE_PULL_ID} ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC OPENSHIFT-ANSIBLE PULL REQUEST ${OPENSHIFT_ANSIBLE_PULL_ID} [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-oct sync remote openshift-ansible --refspec &#34;pull/${OPENSHIFT_ANSIBLE_PULL_ID}/head&#34; --branch &#34;pull-${OPENSHIFT_ANSIBLE_PULL_ID}&#34; --merge-into &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34; </command>
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC ORIGIN-AGGREGATED-LOGGING REPOSITORY ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC ORIGIN-AGGREGATED-LOGGING REPOSITORY [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+oct sync remote origin-aggregated-logging --branch &#34;${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC ORIGIN-AGGREGATED-LOGGING PULL REQUEST ${ORIGIN_AGGREGATED_LOGGING_PULL_ID} ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC ORIGIN-AGGREGATED-LOGGING PULL REQUEST ${ORIGIN_AGGREGATED_LOGGING_PULL_ID} [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+oct sync remote origin-aggregated-logging --refspec &#34;pull/${ORIGIN_AGGREGATED_LOGGING_PULL_ID}/head&#34; --branch &#34;pull-${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&#34; --merge-into &#34;${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -351,6 +351,19 @@ oct deprovision</command>
         </hudson.tasks.Shell>
       </buildSteps>
       <scriptOnlyIfSuccess>false</scriptOnlyIfSuccess>
+      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
+      <markBuildUnstable>false</markBuildUnstable>
+    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
+      <buildSteps>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+test_pull_requests --mark_test_success &quot;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&quot; --repo origin-aggregated-logging --config ~/.test_pull_requests_origin_aggregated_logging.json || true
+          </command>
+        </hudson.tasks.Shell>
+      </buildSteps>
+      <scriptOnlyIfSuccess>true</scriptOnlyIfSuccess>
       <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
       <markBuildUnstable>false</markBuildUnstable>
     </org.jenkinsci.plugins.postbuildscript.PostBuildScript>

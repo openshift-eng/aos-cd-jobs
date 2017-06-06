@@ -21,8 +21,11 @@ else
 		"blocker")
 			exit 0
 			;;
+		"tooling")
+			exit 0
+			;;
 		*)
-			echo "[ERROR] Unknown severity '${severity}': only one of 'none', 'bug', or 'blocker' allowed."
+			echo "[ERROR] Unknown severity '${severity}': only one of 'none', 'bug', 'blocker', or 'tooling' allowed."
 			exit 127
 	esac
 fi

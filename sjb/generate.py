@@ -4,7 +4,7 @@ import sys
 from xml.dom.minidom import parse
 
 from jinja2 import Environment, FileSystemLoader
-from os.path import abspath, basename, dirname, join, splitext
+from os.path import abspath, basename, dirname, join, splitext, exists
 from yaml import dump, load
 
 from actions.child_jobs import ChildJobAction
@@ -138,6 +138,10 @@ elif job_type == "suite":
     registered_names = []
     for child in job_config["children"]:
         child_config_path = abspath(join(dirname(__file__), "generated", "{}.xml".format(child)))
+        if not exists(child_config_path):
+            print("[WARNING] Skipping child {}, configuration file not found.".format(child))
+            continue
+
         print("[INFO] Checking child {} for parameters".format(child))
         child_config = parse(child_config_path)
 

@@ -109,7 +109,7 @@
       <target>test-origin-aggregated-logging/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST-ORIGIN-AGGREGATED-LOGGING_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${TEST_ORIGIN_AGGREGATED_LOGGING_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
@@ -117,7 +117,7 @@
     <hudson.tasks.Shell>
       <command># record the log from the downstream job here for FCM parsing
 cat /var/lib/jenkins/jobs/test_pull_request_origin_aggregated_logging_ansible/builds/${TEST_PULL_REQUEST_ORIGIN_AGGREGATED_LOGGING_ANSIBLE_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test-origin-aggregated-logging/builds/${TEST-ORIGIN-AGGREGATED-LOGGING_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test-origin-aggregated-logging/builds/${TEST_ORIGIN_AGGREGATED_LOGGING_BUILD_NUMBER}/log
       </command>
     </hudson.tasks.Shell>
   </builders>
@@ -127,7 +127,7 @@ cat /var/lib/jenkins/jobs/test-origin-aggregated-logging/builds/${TEST-ORIGIN-AG
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&quot; --repo origin-aggregated-logging --config ~/.test_pull_requests_origin_aggregated_logging.json || true
+test_pull_requests --mark_test_success &quot;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&quot; --repo origin-aggregated-logging --config ~/test_pull_requests/origin-aggregated-logging.json || true
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

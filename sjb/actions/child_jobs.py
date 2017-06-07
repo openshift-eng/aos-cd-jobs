@@ -35,7 +35,7 @@ _CHILD_JOB_ACTION_TEMPLATE = Template("""    <com.tikal.jenkins.plugins.multijob
       <target>{{ child_job }}/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${{ '{' }}{{ child_job | upper }}_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${{ '{' }}{{ child_job | replace('-','_') | upper }}_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
@@ -44,7 +44,7 @@ _CHILD_JOB_ACTION_TEMPLATE = Template("""    <com.tikal.jenkins.plugins.multijob
     <hudson.tasks.Shell>
       <command># record the log from the downstream job here for FCM parsing
 {%- for child_job in child_jobs %}
-cat /var/lib/jenkins/jobs/{{ child_job }}/builds/${{ '{' }}{{ child_job | upper }}_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/{{ child_job }}/builds/${{ '{' }}{{ child_job | replace('-','_') | upper }}_BUILD_NUMBER}/log
 {%- endfor %}
       </command>
     </hudson.tasks.Shell>""")

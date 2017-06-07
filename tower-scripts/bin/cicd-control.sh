@@ -248,6 +248,11 @@ elif [ "${OPERATION}" == "upgrade" ]; then
 ################################################
 elif [ "${OPERATION}" == "perf1" ]; then
 
+    if [[ "${CLUSTERNAME}" == "test-key" ]]; then
+        echo "Mock run for: ${CLUSTERNAME}"
+        exit 0
+    fi
+
     if [[ "${CLUSTERNAME}" != "free-int" && "${CLUSTERNAME}" != "dev-preview-int" ]]; then
         echo "Cannot run performance test on cluster: ${CLUSTERNAME}"
         exit 1
@@ -261,7 +266,7 @@ yum install -y python-ceph python-boto3 python-flask
 rm -rf perf1
 mkdir -p perf1
 cd perf1
-git clone -b master-vert-for-cicd https://github.com/mffiedler/svt
+git clone -b svt_cicd https://github.com/openshift/svt
 cd svt/openshift_performance/ci/scripts
 ./conc_builds_cicd.sh
 EOF

@@ -30,13 +30,13 @@ node('buildvm-devops') {
         withCredentials([[
                 $class: 'FileBinding',
                 credentialsId: 'ocp-build.keytab',
-                variable: 'FILE'
+                variable: 'KEYTAB'
             ]]) {
-            sh "kinit -k -t $FILE ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
+            sh 'kinit -k -t $KEYTAB ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
         }
 
         // Run the script on rcm-guest in order to have the necessary privileges to push repos to mirrors.
-        sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${REPO} ${PACKAGES} < $WORKSPACE/update-cluster-overrides.sh"
+        sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${REPO} ${PACKAGES} < ${env.WORKSPACE}/update-cluster-overrides.sh"
     }
 
 }

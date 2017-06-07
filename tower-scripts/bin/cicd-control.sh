@@ -98,7 +98,7 @@ fi
 if [ "${OPERATION}" == "build-ci-msg" ]; then
     MASTER="$(get_master_name)"
 
-    if [ "$CLUSTERNAME}" == "test-key" ]; then
+    if [ "${CLUSTERNAME}" == "test-key" ]; then
         python - "${CLUSTERNAME}" < build-ci-msg.py
         exit 0
     fi

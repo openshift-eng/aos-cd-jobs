@@ -278,7 +278,7 @@ yum install -y python-ceph python-boto3 python-flask
 rm -rf perf1
 mkdir -p perf1
 cd perf1
-git clone -b svt_cicd https://github.com/openshift/svt
+git clone -b svt-cicd https://github.com/openshift/svt
 cd svt/openshift_performance/ci/scripts
 ./conc_builds_cicd.sh
 EOF

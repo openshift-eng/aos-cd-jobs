@@ -23,20 +23,17 @@ node('buildvm-devops') {
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "REPO:[${REPO}], PACKAGES:[${PACKAGES}]"
 
+    checkout scm
 
-    node('buildvm-devops') {
-        checkout scm
-
-        withCredentials([[
-                $class: 'FileBinding',
-                credentialsId: 'ocp-build.keytab',
-                variable: 'KEYTAB'
-            ]]) {
-            sh 'kinit -k -t $KEYTAB ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
-        }
-
-        // Run the script on rcm-guest in order to have the necessary privileges to push repos to mirrors.
-        sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${REPO} ${PACKAGES} < ${env.WORKSPACE}/scripts/update-cluster-overrides.sh"
+    withCredentials([[
+            $class: 'FileBinding',
+            credentialsId: 'ocp-build.keytab',
+            variable: 'KEYTAB'
+        ]]) {
+        sh 'kinit -k -t $KEYTAB ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
     }
+
+    // Run the script on rcm-guest in order to have the necessary privileges to push repos to mirrors.
+    sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${REPO} ${PACKAGES} < ${env.WORKSPACE}/scripts/update-cluster-overrides.sh"
 
 }

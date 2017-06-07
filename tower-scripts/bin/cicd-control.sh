@@ -54,6 +54,12 @@ function get_latest_openshift_ansible()  {
 
 # Outputs the name of one a master for a cluster
 function get_master_name() {
+
+    if [ "${CLUSTERNAME}" == "test-key" ]; then
+        echo "test-key-master-mock"
+        return 0
+    fi
+
     # Find an appropriate master
     MASTER="$(ossh --list | grep ${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
 
@@ -91,6 +97,12 @@ fi
 
 if [ "${OPERATION}" == "build-ci-msg" ]; then
     MASTER="$(get_master_name)"
+
+    if [ "$CLUSTERNAME}" == "test-key" ]; then
+        python - ${CLUSTERNAME}" < build-ci-msg.py
+        exit 0
+    fi
+
     # Streams the python script to the cluster master. Script outputs a json document.
     # Grep is to eliminate ossh verbose output -- grabbing only the json doc.
     /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep '^{.*'

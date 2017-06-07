@@ -84,12 +84,45 @@ node('buildvm-devops') {
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",
                 subject: "Error during ${OPERATION} on cluster ${CLUSTER_NAME}",
-                body: """Encoutered an error: ${err}
+                body: """Encountered an error: ${err}
 
 Jenkins job: ${env.BUILD_URL}
 """);
             // Re-throw the error in order to fail the job
             throw err
     }
+
+
+    if ( OPERATION == "install" || OPERATION == "reinstall" || OPERATION == "upgrade" ) {
+        try {
+            // Send out a CI message for QE
+            build job: 'cluster%2Fsend-ci-msg',
+                propagate: false,
+                parameters: [
+                    [$class: 'hudson.model.StringParameterValue', name: 'CLUSTER_NAME', value: CLUSTER_NAME],
+                ]
+        } catch ( err2 ) {
+            mail(to: "${MAIL_LIST_FAILURE}",
+                    from: "aos-cd@redhat.com",
+                    subject: "Error sending CI msg during ${OPERATION} on cluster ${CLUSTER_NAME}",
+                    body: """Encountered an error: ${err2}
+
+    Jenkins job: ${env.BUILD_URL}
+    """);
+
+        }
+    }
+
+    if ( CLUSTER_NAME == "free-int" && ( OPERATION == "install" || OPERATION == "reinstall" || OPERATION == "upgrade" )  ) {
+        // Run perf1 test on free-int
+        build job: 'cluster%2Fperf',
+            propagate: false,
+            parameters: [
+                [$class: 'hudson.model.StringParameterValue', name: 'CLUSTER_NAME', value: CLUSTER_NAME],
+                [$class: 'hudson.model.StringParameterValue', name: 'OPERATION', value: 'perf1'],
+                [$class: 'hudson.model.StringParameterValue', name: 'MODE', value: 'automatic'],
+            ]
+    }
+
 
 }

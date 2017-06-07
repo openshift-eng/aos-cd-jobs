@@ -354,19 +354,6 @@ oct deprovision</command>
       <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
       <markBuildUnstable>false</markBuildUnstable>
     </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
-    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
-      <buildSteps>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&quot; --repo origin-aggregated-logging --config ~/test_pull_requests/origin-aggregated-logging.json || true
-          </command>
-        </hudson.tasks.Shell>
-      </buildSteps>
-      <scriptOnlyIfSuccess>true</scriptOnlyIfSuccess>
-      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
-      <markBuildUnstable>false</markBuildUnstable>
-    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
     <hudson.tasks.ArtifactArchiver>
       <artifacts>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</artifacts>
       <allowEmptyArchive>true</allowEmptyArchive>

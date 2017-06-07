@@ -138,7 +138,7 @@ cat /var/lib/jenkins/jobs/test-origin-aggregated-logging/builds/${TEST-ORIGIN-AG
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --merge_pull_request &quot;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&quot; --repo origin-aggregated-logging --config ~/.test_pull_requests_origin_aggregated_logging.json
+test_pull_requests --merge_pull_request &quot;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&quot; --repo origin-aggregated-logging --config ~/test_pull_requests/origin-aggregated-logging.json
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

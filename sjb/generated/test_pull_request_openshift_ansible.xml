@@ -193,7 +193,7 @@ cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conforman
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${OPENSHIFT_ANSIBLE_PULL_ID}&quot; --repo openshift-ansible --config ~/.test_pull_requests_openshift_ansible.json || true
+test_pull_requests --mark_test_success &quot;${OPENSHIFT_ANSIBLE_PULL_ID}&quot; --repo openshift-ansible --config ~/test_pull_requests/openshift-ansible.json || true
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

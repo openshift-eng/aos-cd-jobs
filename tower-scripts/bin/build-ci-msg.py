@@ -19,7 +19,9 @@ if sys.argv[0] != "-":
 
 cluster_name = sys.argv[1]
 
-if cluster_name == "test-key":
+test_mode = (cluster_name == "test-key")
+
+if test_mode:
     oc_v = """
 oc v3.5.5.19
 kubernetes v1.5.2+43a9be4
@@ -49,7 +51,7 @@ for line in oc_v.split("\n"):
 major, minor = oc_version.split(".")[:2]
 oc_short_version = "%s.%s" % (major,minor)
 
-if cluster_name == "test-key":
+if test_mode:
     docker_version = "1.12.6-16.el7"
 else:
     docker_version = subprocess.check_output(["rpm", "-q", "--qf", "%{VERSION}-%{RELEASE}", "docker"])
@@ -65,12 +67,16 @@ try:
 except:
         pass
 
+product = "OSO"
+if test_mode:
+    product = "OSO-test"
+    
 msg = {
     "owner": "Continuous Delivery",
     "email": "jupierce@redhat.com",
     "CI_TYPE": "component-build-done",
     "destination": "/topic/CI",
-    "product": "OSO",
+    "product": product,
     "cluster name": cluster_name,
     "description": "OSO cluster upgraded",
     "version": oc_version,

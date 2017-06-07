@@ -36,7 +36,7 @@ node('buildvm-devops') {
         }
 
         // Run the script on rcm-guest in order to have the necessary privileges to push repos to mirrors.
-        sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${REPO} ${PACKAGES} < ${env.WORKSPACE}/update-cluster-overrides.sh"
+        sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${REPO} ${PACKAGES} < ${env.WORKSPACE}/scripts/update-cluster-overrides.sh"
     }
 
 }

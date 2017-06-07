@@ -113,7 +113,7 @@ Jenkins job: ${env.BUILD_URL}
         }
     }
 
-    if ( CLUSTER_NAME == "free-int" && ( OPERATION == "install" || OPERATION == "reinstall" || OPERATION == "upgrade" )  ) {
+    if ( ( CLUSTER_NAME == "free-int" || CLUSTER_NAME =="test-key" ) && ( OPERATION == "install" || OPERATION == "reinstall" || OPERATION == "upgrade" )  ) {
         // Run perf1 test on free-int
         build job: 'cluster%2Fperf',
             propagate: false,

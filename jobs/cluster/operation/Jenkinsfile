@@ -113,6 +113,7 @@ Jenkins job: ${env.BUILD_URL}
         }
     }
 
+    /* // Disabled until SVT works out issues in their test.
     if ( ( CLUSTER_NAME == "free-int" || CLUSTER_NAME =="test-key" ) && ( OPERATION == "install" || OPERATION == "reinstall" || OPERATION == "upgrade" )  ) {
         // Run perf1 test on free-int
         build job: 'cluster%2Fperf',
@@ -123,6 +124,7 @@ Jenkins job: ${env.BUILD_URL}
                 [$class: 'hudson.model.StringParameterValue', name: 'MODE', value: 'automatic'],
             ]
     }
+    */
 
 
 }

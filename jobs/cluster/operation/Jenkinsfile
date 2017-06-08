@@ -93,7 +93,7 @@ Jenkins job: ${env.BUILD_URL}
     }
 
 
-    if ( OPERATION == "install" || OPERATION == "reinstall" || OPERATION == "upgrade" ) {
+    if ( ( OPERATION == "install" || OPERATION == "reinstall" || OPERATION == "upgrade" ) && MODE != "silent" ) {
         try {
             // Send out a CI message for QE
             build job: 'cluster%2Fsend-ci-msg',

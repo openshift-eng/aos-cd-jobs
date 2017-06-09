@@ -121,9 +121,7 @@ if [ "${OPERATION}" == "status" ]; then
     exit 0
   fi
 
-  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin > /dev/null
-    /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
-  popd > /dev/null
+  /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
   exit 0
 fi
 

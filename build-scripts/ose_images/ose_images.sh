@@ -32,6 +32,12 @@ ERRATA_ID="24510"
 ERRATA_PRODUCT_VERSION="RHEL-7-OSE-${MAJOR_RELEASE}"
 SCRIPT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+export TOP_PID=$$
+
+hard_exit() {
+    kill "$TOP_PID"
+}
+
 usage() {
   echo "Usage `basename $0` [action] <options>" >&2
   echo >&2
@@ -547,7 +553,7 @@ show_git_diffs() {
     if [ "${?}" != "0" ] ; then
       echo "FAILED PATCH"
       echo "Exiting ..."
-      exit 5
+      hard_exit
     fi
     mv -f .osbs-logs/Dockerfile.git.new .osbs-logs/Dockerfile.git.last
     git add .osbs-logs/Dockerfile.patch
@@ -656,7 +662,7 @@ show_git_diffs_nice_docker() {
     if [ "${?}" != "0" ] ; then
       echo "FAILED PATCH"
       echo "Exiting ..."
-      exit 5
+      hard_exit
     fi
     mv -f .osbs-logs/Dockerfile.git.new .osbs-logs/Dockerfile.git.last
     git add .osbs-logs/Dockerfile.patch
@@ -776,7 +782,7 @@ function push_image {
      echo "OH NO!!! There was a problem pushing the image."
      echo "::BAD_PUSH ${container} ${1}::" >> ${workingdir}/logs/buildfailed
      sed -i "/::${1}::/d" ${workingdir}/logs/working
-     exit 1
+     hard_exit
    fi
    echo "::${1}::" >> ${workingdir}/logs/finished
    sed -i "/::${1}::/d" ${workingdir}/logs/working
@@ -802,6 +808,7 @@ start_push_image() {
     echo "OH NO!!! There was a problem pulling the image."
     echo "::BAD_PULL ${container} ${package_name}:${version_version}-${release_version}::" >> ${workingdir}/logs/buildfailed
     sed -i "/::${container}::/d" ${workingdir}/logs/working
+    hard_exit
   else
     echo | tee -a ${workingdir}/logs/push.image.log
     # Work through what tags to push to, one group at a time

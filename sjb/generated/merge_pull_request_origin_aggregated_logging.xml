@@ -85,7 +85,7 @@ approve.sh origin-aggregated-logging &quot;${ORIGIN_AGGREGATED_LOGGING_TARGET_BR
           <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
         </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
         <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test-origin-aggregated-logging</jobName>
+          <jobName>test_pull_request_origin_aggregated_logging_prior</jobName>
           <currParams>true</currParams>
           <exposedSCM>false</exposedSCM>
           <disableJob>false</disableJob>
@@ -115,12 +115,12 @@ approve.sh origin-aggregated-logging &quot;${ORIGIN_AGGREGATED_LOGGING_TARGET_BR
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test-origin-aggregated-logging</project>
+      <project>test_pull_request_origin_aggregated_logging_prior</project>
       <filter>**</filter>
-      <target>test-origin-aggregated-logging/</target>
+      <target>test_pull_request_origin_aggregated_logging_prior/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_ORIGIN_AGGREGATED_LOGGING_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${TEST_PULL_REQUEST_ORIGIN_AGGREGATED_LOGGING_PRIOR_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
@@ -128,7 +128,7 @@ approve.sh origin-aggregated-logging &quot;${ORIGIN_AGGREGATED_LOGGING_TARGET_BR
     <hudson.tasks.Shell>
       <command># record the log from the downstream job here for FCM parsing
 cat /var/lib/jenkins/jobs/test_pull_request_origin_aggregated_logging_ansible/builds/${TEST_PULL_REQUEST_ORIGIN_AGGREGATED_LOGGING_ANSIBLE_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test-origin-aggregated-logging/builds/${TEST_ORIGIN_AGGREGATED_LOGGING_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test_pull_request_origin_aggregated_logging_prior/builds/${TEST_PULL_REQUEST_ORIGIN_AGGREGATED_LOGGING_PRIOR_BUILD_NUMBER}/log
       </command>
     </hudson.tasks.Shell>
   </builders>

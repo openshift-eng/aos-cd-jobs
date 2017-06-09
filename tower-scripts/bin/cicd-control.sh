@@ -148,14 +148,15 @@ fi
 # This needs review.
 # This isn't very portable. This requires that the git dirs are already
 # in place to do updates
-set +x
+set +e
 # Prevent output from this operation unless it actually fails; just to keep logs cleaner
 CLONE_RESULT=$(/usr/local/bin/autokeys_loader /usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
 if [ "$?" != "0" ]; then
   echo "Error updating git repos"
   echo "$CLONE_RESULTS"
+  exit 1
 fi
-set -x
+set -e
 
 # Allow for "test-key" to do some testing.
 # For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables

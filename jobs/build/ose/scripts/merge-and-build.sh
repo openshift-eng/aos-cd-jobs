@@ -343,11 +343,21 @@ echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
     sh -s "$OSE_VERSION" "${VERSION#v}" \
     < "$WORKSPACE/build-scripts/rcm-guest/publish-oc-binary.sh"
+
 for x in "${VERSION#v}/"{linux/oc.tar.gz,macosx/oc.tar.gz,windows/oc.zip}; do
     curl --silent --show-error --head \
         "https://mirror.openshift.com/pub/openshift-v3/clients/$x" \
         | awk '$2!="200"{print > "/dev/stderr"; exit 1}{exit}'
 done
+
+
+echo
+echo "=========="
+echo "Gather changelogs"
+echo "=========="
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+    sh -s "$OSE_VERSION" \
+    < "$WORKSPACE/scripts/rcm-guest-print-latest-changelog-report.sh" > "${RESULTS}/changelogs.txt"
 
 echo
 echo

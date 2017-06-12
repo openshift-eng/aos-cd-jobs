@@ -33,6 +33,7 @@ def mail_success(version) {
     def oaBrewURL = readFile("results/openshift-ansible-brew.url")
     def oseBrewURL = readFile("results/ose-brew.url")
     def puddleName = readFile("results/ose-puddle.name")
+    def changelogs = readFile("results/changelogs.txt")
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",
@@ -51,6 +52,8 @@ Brew:
   - OpenShift Ansible: ${oaBrewURL}
 
 Jenkins job: ${env.BUILD_URL}
+
+${changelogs}
 """);
 }
 

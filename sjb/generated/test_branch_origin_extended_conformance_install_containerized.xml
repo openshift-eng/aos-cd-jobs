@@ -186,8 +186,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-sudo yum install -y python-pip
-sudo pip install junit_xml
 sudo chmod o+rw /etc/environment
 echo &#34;ANSIBLE_JUNIT_DIR=\$( pwd )/_output/scripts/ansible_junit&#34; &gt;&gt; /etc/environment
 sudo mkdir -p /usr/share/ansible/plugins/callback

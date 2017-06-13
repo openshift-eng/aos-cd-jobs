@@ -36,6 +36,9 @@ sudo ose_images.sh push_images --branch rhaos-3.4-rhel-7 --group logging --group
 sudo ose_images.sh push_images --branch rhaos-3.5-rhel-7 --group logging --group metrics --nolatest
 sudo ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group logging --group metrics
 
+echo "====Pushing efs-provisoner===="
+sudo ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group efs
+
 echo "====Docker statistics===="
 # Print out a report for the Jenkins job
 sudo docker info

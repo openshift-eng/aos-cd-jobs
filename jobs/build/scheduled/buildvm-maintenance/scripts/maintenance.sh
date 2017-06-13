@@ -29,7 +29,7 @@ echo "====Cleaning up older docker images===="
         for image in $( docker images -q ); do
                 sudo docker inspect --format='{{.Created}} {{.Id}}' --type=image ${image}
         done
-} | sort | awk '{ print $2 }' | uniq | head -n -100 | xargs --no-run-if-empty docker sudo rmi -f
+} | sort | awk '{ print $2 }' | uniq | head -n -100 | xargs --no-run-if-empty sudo docker rmi -f
 
 echo "====Pushing logging and metrics images===="
 sudo ose_images.sh push_images --branch rhaos-3.4-rhel-7 --group logging --group metrics --nolatest

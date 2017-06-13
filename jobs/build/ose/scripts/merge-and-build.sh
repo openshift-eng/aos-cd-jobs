@@ -263,7 +263,7 @@ if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below
     export TITO_USE_VERSION=""
 else
     # For 3.6 onward, match the OCP version
-    export TITO_USE_VERSION="${VERSION#v}"
+    export TITO_USE_VERSION="--use-version=${VERSION#v}"
 fi
 
 tito tag --accept-auto-changelog ${TITO_USE_VERSION}

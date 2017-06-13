@@ -37,7 +37,7 @@ ose_images.sh push_images --branch rhaos-3.5-rhel-7 --group logging --group metr
 ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group logging --group metrics
 
 set +e
-ose_images.sh push_images --branch rhaos-3.6-rhel-8 --group logging --group metrics
+ose_images.sh push_images --branch rhaos-3.7-rhel-7 --group logging --group metrics --nolatest
 if [ "$?" == "0" ]; then
         echo "A new branch has been introduced, script needs to be updated."
 fi

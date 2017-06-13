@@ -240,6 +240,9 @@ add_group_to_list() {
       # add_to_list oso-reconciler-docker    ## Deprecated per vdinh
       add_to_list oso-user-analytics-docker
     ;;
+    efs)
+      add_to_list efs-provisioner-docker
+    ;;
   esac
 }
 

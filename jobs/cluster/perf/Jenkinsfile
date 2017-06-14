@@ -17,7 +17,7 @@ node('buildvm-devops') {
             [[$class              : 'ParametersDefinitionProperty',
               parameterDefinitions:
                       [
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'mifiedle@redhat.com, jupierce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jeder@redhat.com, mifiedle@redhat.com, jupierce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'mifiedle@redhat.com, jupierce@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "test-key\ncicd\ndev-preview-int\ndev-preview-stg\npreview\nfree-int\nfree-stg\nstarter-us-east-1\nstarter-us-east-2\nstarter-us-west-2", name: 'CLUSTER_NAME', description: 'The name of the cluster to target'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "perf1\nperf2\nperf3", name: 'OPERATION', description: 'Test to perform'],
@@ -51,7 +51,7 @@ node('buildvm-devops') {
 
         if ( MODE != "silent" ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail_success(minorUpdate?MAIL_LIST_SUCCESS_MINOR:MAIL_LIST_SUCCESS)
+            mail_success(MAIL_LIST_SUCCESS)
         }
 
     } catch ( err ) {

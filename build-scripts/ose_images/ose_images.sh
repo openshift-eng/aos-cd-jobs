@@ -143,6 +143,7 @@ add_group_to_list() {
           add_to_list jenkins-slave-base-rhel7-docker
           add_to_list jenkins-slave-maven-rhel7-docker
           add_to_list jenkins-slave-nodejs-rhel7-docker
+          add_to_list registry-console-docker
         fi
         add_to_list openshift-enterprise-openvswitch-docker
       fi

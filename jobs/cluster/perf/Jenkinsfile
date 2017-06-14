@@ -17,8 +17,8 @@ node('buildvm-devops') {
             [[$class              : 'ParametersDefinitionProperty',
               parameterDefinitions:
                       [
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jeder@redhat.com, mifiedle@redhat.com, jupierce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'mifiedle@redhat.com, jupierce@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jeder@redhat.com, vlaad@redhat.com, mifiedle@redhat.com, jupierce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'mifiedle@redhat.com, jupierce@redhat.com, vlaad@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "test-key\ncicd\ndev-preview-int\ndev-preview-stg\npreview\nfree-int\nfree-stg\nstarter-us-east-1\nstarter-us-east-2\nstarter-us-west-2", name: 'CLUSTER_NAME', description: 'The name of the cluster to target'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "perf1\nperf2\nperf3", name: 'OPERATION', description: 'Test to perform'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],

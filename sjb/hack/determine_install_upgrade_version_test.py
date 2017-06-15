@@ -3,11 +3,16 @@ import rpmUtils.miscutils as rpmutils
 from determine_install_upgrade_version import *
 
 class TestPackage(object):
-	def __init__(self, version, release, vra, pkgtup):
+	def __init__(self, name, version, release, epoch, vra, pkgtup):
+		self.name = name
 		self.version = version
 		self.release = release
+		self.epoch = epoch
 		self.vra = vra
 		self.pkgtup = pkgtup
+
+	def __eq__(self, other):
+		return self.__dict__ == other.__dict__
 
 	@classmethod
 	def create_test_packages(self, test_pkgs):
@@ -16,7 +21,7 @@ class TestPackage(object):
 			pkg_name, pkg_version, pkg_release, pkg_epoch, pkg_arch =  rpmutils.splitFilename(pkg)
 			pkg_vra = pkg_version + "-" + pkg_release + "." + pkg_arch
 			pkg_tup = (pkg_name , pkg_arch, pkg_epoch, pkg_version, pkg_release)
-			test_pkgs_objs.append(TestPackage(pkg_version, pkg_release, pkg_vra, pkg_tup))
+			test_pkgs_objs.append(TestPackage(pkg_name, pkg_version, pkg_release, pkg_epoch, pkg_vra, pkg_tup))
 		return test_pkgs_objs
 
 class RemoveDuplicatePackages(unittest.TestCase):
@@ -117,7 +122,7 @@ class DetermineSearchVersionTestCase(unittest.TestCase):
 		""" when openshift-ansible, which doesnt have different versioning schema is in 3.4 version """
 		self.assertEqual(determine_install_version("openshift-ansible", "3.5.0"), "3.4")
 
-class GetInstallVersionTestCase(unittest.TestCase):
+class GetLastVersionTestCase(unittest.TestCase):
 	"Test for `determine_install_upgrade_version.py`"
 
 	def test_with_multiple_matching_release_versions(self):
@@ -143,6 +148,40 @@ class GetInstallVersionTestCase(unittest.TestCase):
 		matching_versions = ["1.5.0-0.4.el7"]
 		install_version = "1.5.0-0.4.el7"
 		self.assertEqual(get_last_version(matching_versions), install_version)
+
+class SortPackagesTestCase(unittest.TestCase):
+	"Test for `determine_install_upgrade_version.py`"
+
+	def test_sort_packages_with_exceptional_origin_pkg(self):
+		""" when sorting origin packages with exceptional origin-3.6.0-0.0.alpha.0.1 package """
+		test_pkgs = ["origin-3.6.0-0.0.alpha.0.1", "origin-3.6.0-0.alpha.0.2"]
+		properly_sorted_pkgs = ["origin-3.6.0-0.alpha.0.2", "origin-3.6.0-0.0.alpha.0.1"]
+		test_pkgs_obj = TestPackage.create_test_packages(test_pkgs)
+		properly_sorted_pkgs_obj = TestPackage.create_test_packages(properly_sorted_pkgs)
+		sorted_test_pkgs_obj = sort_pkgs(test_pkgs_obj)
+		self.assertTrue(sorted_test_pkgs_obj[0] == properly_sorted_pkgs_obj[0])
+		self.assertTrue(sorted_test_pkgs_obj[1] == properly_sorted_pkgs_obj[1])
+
+	def test_sort_packages_with_same_minor_version(self):
+		""" when sorting origin packages within the same minor version """
+		test_pkgs = ["origin-1.5.1-1.el7", "origin-1.5.0-1.el7"]
+		properly_sorted_pkgs = ["origin-1.5.0-1.el7", "origin-1.5.1-1.el7"]
+		test_pkgs_obj = TestPackage.create_test_packages(test_pkgs)
+		properly_sorted_pkgs_obj = TestPackage.create_test_packages(properly_sorted_pkgs)
+		sorted_test_pkgs_obj = sort_pkgs(test_pkgs_obj)
+		self.assertTrue(sorted_test_pkgs_obj[0], properly_sorted_pkgs_obj[0])
+		self.assertTrue(sorted_test_pkgs_obj[1], properly_sorted_pkgs_obj[1])
+
+	def test_sort_packages_with_different_minor_version(self):
+		""" when sorting origin packages with different minor version """
+		test_pkgs = ["origin-1.5.1-1.el7", "origin-1.4.0-1.el7"]
+		properly_sorted_pkgs = ["origin-1.4.0-1.el7", "origin-1.5.1-1.el7"]
+		test_pkgs_obj = TestPackage.create_test_packages(test_pkgs)
+		properly_sorted_pkgs_obj = TestPackage.create_test_packages(properly_sorted_pkgs)
+		sorted_test_pkgs_obj = sort_pkgs(test_pkgs_obj)
+		self.assertTrue(sorted_test_pkgs_obj[0], properly_sorted_pkgs_obj[0])
+		self.assertTrue(sorted_test_pkgs_obj[1], properly_sorted_pkgs_obj[1])
+
 
 if __name__ == '__main__':
 	unittest.main()

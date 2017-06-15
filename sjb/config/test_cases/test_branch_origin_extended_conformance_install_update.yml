@@ -71,6 +71,21 @@ extensions:
         done
         sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
     - type: "script"
+      title: "build an origin release"
+      repository: "origin"
+      script: |-
+        if [[ ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} == "master" ]]
+        then
+          hack/build-base-images.sh
+          OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+          sudo systemctl restart docker
+          hack/build-images.sh
+          sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+          sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+        else
+          echo "OPENSHIFT_ANSIBLE_TARGET_BRANCH points to ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} branch, skipping build of Origin release."
+        fi
+    - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-
@@ -104,21 +119,6 @@ extensions:
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
                           -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
-    - type: "script"
-      title: "build an origin release"
-      repository: "origin"
-      script: |-
-        if [[ ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} == "master" ]]
-        then
-          hack/build-base-images.sh
-          OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
-          sudo systemctl restart docker
-          hack/build-images.sh
-          sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
-          sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
-        else
-          echo "OPENSHIFT_ANSIBLE_TARGET_BRANCH points to ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} branch, skipping build of Origin release."
-        fi
     - type: "script"
       title: "upgrade openshift-ansible to release"
       repository: "aos-cd-jobs"

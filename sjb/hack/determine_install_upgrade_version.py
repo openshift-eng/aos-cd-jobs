@@ -2,6 +2,7 @@ import yum
 import sys
 import os.path
 import argparse
+import copy
 import rpmUtils.miscutils as rpmutils
 
 # Remove duplicate packages from different repositories
@@ -62,6 +63,26 @@ def determine_install_version(pkg_name, pkg_version):
 	search_version = '.'.join([major, str(int(minor) - 1)])
 	return search_version
 
+def sort_pkgs(available_pkgs):
+	# There is an issue that origin-3.6.0-0.0.alpha.0.1 package was wrongly tagged and proper tag
+	# should be origin-3.6.0-0.alpha.0.1. Because of this issue we have to replace the release with
+	# the proper one before sorting and after sorting replace it back.
+	exceptional_pkg = {}
+	for pkg in available_pkgs:
+		if (pkg.name == "origin" and pkg.version == "3.6.0" and pkg.release == "0.0.alpha.0.1"):
+			exceptional_pkg["original_pkg"] = copy.deepcopy(pkg)
+			pkg.release = "0.alpha.0.1 "
+			exceptional_pkg["updated_pkg"] = pkg
+
+	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
+
+	if exceptional_pkg:
+		pkg_index = available_pkgs.index(exceptional_pkg["updated_pkg"])
+		available_pkgs[pkg_index] = exceptional_pkg["original_pkg"]
+
+	return available_pkgs
+
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("input_pkg", type=str, help="Package NEVRA")
@@ -102,7 +123,7 @@ if __name__ == "__main__":
 	sys.stdout = old_stdout
 	available_pkgs = rpmutils.unique(yb.doPackageLists('available', patterns=[pkg_name], showdups=True).available)
 	available_pkgs = remove_duplicate_pkgs(available_pkgs)
-	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
+	available_pkgs = sort_pkgs(available_pkgs)
 
 	search_install_version = determine_install_version(pkg_name, pkg_version)
 

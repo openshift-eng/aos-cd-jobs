@@ -780,8 +780,26 @@ add_errata_build() {
   popd >/dev/null
 }
 
+function retry {
+  local n=1
+  local max=10
+  local delay=120
+  while true; do
+    "$@" && break || {
+      if [[ $n -lt $max ]]; then
+        ((n++))
+        echo "Command failed. Attempt $n/$max:"
+        sleep $delay;
+      else
+        echo "This command failed after $n attempts: $@"
+        return 1
+      fi
+    }
+  done
+}
+
 function push_image {
-   docker push $1
+   retry docker push $1
    if [ $? -ne 0 ]; then
      echo "OH NO!!! There was a problem pushing the image."
      echo "::BAD_PUSH ${container} ${1}::" >> ${workingdir}/logs/buildfailed
@@ -807,7 +825,7 @@ start_push_image() {
   echo "    START: ${START_TIME}" | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   # Do our pull
-  docker pull ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version}
+  retry docker pull ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version}
   if [ $? -ne 0 ]; then
     echo "OH NO!!! There was a problem pulling the image."
     echo "::BAD_PULL ${container} ${package_name}:${version_version}-${release_version}::" >> ${workingdir}/logs/buildfailed

@@ -8,18 +8,18 @@ if [[ $# -ne 1 ]]; then
 	echo "[ERROR] Usage: $0 SEVERITY"
 	exit 127
 else
-	severity="$1"
+	severity="${1,,}"
 	case "${severity}" in
 		"none")
 			exit 0
 			;;
-		"bug")
+		*"tooling"*)
 			exit 0
 			;;
-		"blocker")
+		*"blocker"*)
 			exit 0
 			;;
-		"tooling")
+		*"bug"*)
 			exit 0
 			;;
 		*)

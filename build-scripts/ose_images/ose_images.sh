@@ -17,9 +17,13 @@
 set -o xtrace
 
 ## LOCAL VARIABLES ##
-MASTER_RELEASE="3.6"
+MASTER_RELEASE="3.6"    # Update version_trim_list when this changes
 MASTER_BRANCHED_RELEASE="3.6"
 MAJOR_RELEASE="3.6"
+
+MAJOR_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
+MAJOR_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
+
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
@@ -29,6 +33,7 @@ COMMIT_MESSAGE=""
 PULL_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
 #PULL_REGISTRY=rcm-img-docker01.build.eng.bos.redhat.com:5001
 PUSH_REGISTRY=registry-push.ops.openshift.com
+DEST_REGISTRY=registry.ops.openshift.com
 #PUSH_REGISTRY=registry.qe.openshift.com
 ERRATA_ID="24510"
 ERRATA_PRODUCT_VERSION="RHEL-7-OSE-${MAJOR_RELEASE}"
@@ -362,7 +367,6 @@ check_builds() {
     else
         # Examples of other states: "failure", "canceled", "internal-timeout"
         echo "=== ${package} IMAGE BUILD FAILED due to state: $state ==="
-        mv ${line} ${package}.watchlog done/
         echo "::${package}::" >> ${workingdir}/logs/finished
         sed -i "/::${package}::/d" ${workingdir}/logs/working
         if grep -q -e "already exists" ${line} ; then
@@ -375,6 +379,7 @@ check_builds() {
             ls -1 ${workingdir}/logs/done/${package}.*
             cp -f ${workingdir}/logs/done/${package}.* ${workingdir}/logs/failed-logs/
         fi
+        mv ${line} ${package}.watchlog done/
     fi
 
   done
@@ -841,15 +846,64 @@ function retry {
 }
 
 function push_image {
-   retry docker push $1
-   if [ $? -ne 0 ]; then
-     echo "OH NO!!! There was a problem pushing the image."
-     echo "::BAD_PUSH ${container} ${1}::" >> ${workingdir}/logs/buildfailed
-     sed -i "/::${1}::/d" ${workingdir}/logs/working
-     hard_exit
-   fi
-   echo "::${1}::" >> ${workingdir}/logs/finished
-   sed -i "/::${1}::/d" ${workingdir}/logs/working
+    BREW_IMAGE_NAME="$1"  # The source image we want to push with a new tag
+    BREW_IMAGE_ID="$2"   # The imageid of the source image
+    REPO="$3"  # The new repo
+    TAG="$4"  # The new tag
+
+    TARGET_IMAGE_NAME="${PUSH_REGISTRY}/${REPO}:${TAG}"
+
+    # The push_cache directory will contain a history of pushes performed by this
+    # buildvm where a file named after the full image name (including tag) is populated
+    # with the imageid which was pushed to the PUSH_REGISTRY. If we are asked to push
+    # an image:tag and the brew_image_id matches what is in the cache, we skip the push.
+    PC_DIR="$HOME/push_cache"
+    mkdir -p "$PC_DIR"
+
+    # Remove unsafe chars from the push_cache filename
+    PC_FILENAME="${PC_DIR}/$( echo -n "$TARGET_IMAGE_NAME" | tr / _ | tr : _ )"
+
+    CACHED_IMAGE_ID=$(cat "$PC_FILENAME") # See if we have a record of pushing this image
+    if [ "$CACHED_IMAGE_ID" == "$BREW_IMAGE_ID" ]; then
+        echo "SKIPPING PUSH of $TARGET_IMAGE_NAME due to push cache. It appears buildvm has pushed this image recently."
+        return 0
+    fi
+
+    # Now, try to avoid re-pushing images that already have already been pushed.
+    # See if the image is stored on buildvm. If it is, assume it has been pushed and return immediately.
+    TARGET_IMAGE_ID=$(docker inspect --format="{{.Id}}" "${TARGET_IMAGE_NAME}") # Record the target image id if we have it locally
+
+    if [ "$TARGET_IMAGE_ID" == "$BREW_IMAGE_ID" ]; then
+        echo "SKIPPING PUSH of $TARGET_IMAGE_NAME . It appears buildvm has pushed this image recently."
+        # Keep a cache of what we have pushed to try and speed up subsequent pushes.
+        echo -n "$TARGET_IMAGE_ID" > "$PC_FILENAME"
+        return 0
+    fi
+
+    # TODO: The above checks can be improved dramatically if we can check the imageid directly in registry.ops.
+    # Unfortunately, registry.ops is presently returning schemaVerion: 1 instead of 2. Thus, we can't determine the image id.
+    # When we can, query the registry directly to see if the imageid is already tagged the way we want.
+    # curl  -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -X GET -vvv -k https://${DEST_REGISTRY}/v2/${REPO}/manifests/${TAG}
+
+
+    # If there is a mismatch, tag the image and push it.
+    docker tag "${BREW_IMAGE_NAME}" "${TARGET_IMAGE_NAME}" | tee -a ${workingdir}/logs/push.image.log
+
+    retry docker push "$TARGET_IMAGE_NAME"
+    if [ $? -ne 0 ]; then
+        echo "OH NO!!! There was a problem pushing the image."
+        echo "::BAD_PUSH ${container} ${TARGET_IMAGE_NAME}::" >> ${workingdir}/logs/buildfailed
+        sed -i "/::${TARGET_IMAGE_NAME}::/d" ${workingdir}/logs/working
+        hard_exit
+    fi
+
+    # Keep a cache of what we have pushed to try and speed up subsequent pushes.
+    echo -n "$BREW_IMAGE_ID" > "$PC_FILENAME"
+
+    echo "::${TARGET_IMAGE_NAME}::" >> ${workingdir}/logs/finished
+    sed -i "/::${TARGET_IMAGE_NAME}::/d" ${workingdir}/logs/working
+
+    echo | tee -a ${workingdir}/logs/push.image.log
 }
 
 start_push_image() {
@@ -860,6 +914,9 @@ start_push_image() {
   fi
   if ! [ "${update_release}" == "TRUE" ] ; then
     release_version=`grep release= Dockerfile | cut -d'"' -f2`
+    if [ -z "$release_version" ]; then
+        release_version=1
+    fi
   fi
   START_TIME=$(date +"%Y-%m-%d %H:%M:%S")
   echo "====================================================" >>  ${workingdir}/logs/push.image.log
@@ -867,59 +924,47 @@ start_push_image() {
   echo "    START: ${START_TIME}" | tee -a ${workingdir}/logs/push.image.log
   echo | tee -a ${workingdir}/logs/push.image.log
   # Do our pull
-  retry docker pull ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version}
+  BREW_IMAGE_NAME="${PULL_REGISTRY}/${package_name}:${version_version}-${release_version}"
+  retry docker pull "${BREW_IMAGE_NAME}"
   if [ $? -ne 0 ]; then
     echo "OH NO!!! There was a problem pulling the image."
     echo "::BAD_PULL ${container} ${package_name}:${version_version}-${release_version}::" >> ${workingdir}/logs/buildfailed
     sed -i "/::${container}::/d" ${workingdir}/logs/working
     hard_exit
   else
+    BREW_IMAGE_ID=$(docker inspect --format="{{.Id}}" "${BREW_IMAGE_NAME}") # Record the recently pulled image id
+
     echo | tee -a ${workingdir}/logs/push.image.log
     # Work through what tags to push to, one group at a time
     for current_tag in ${tag_list} ; do
       case ${current_tag} in
         default )
           # Full name - <name>:<version>-<release>
-          echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
-          docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
-          echo | tee -a ${workingdir}/logs/push.image.log
-          push_image ${PUSH_REGISTRY}/${package_name}:${version_version}-${release_version} | tee -a ${workingdir}/logs/push.image.log
+          push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
           # Name and Version - <name>:<version>
           if ! [ "${NOVERSIONONLY}" == "TRUE" ] ; then
-            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_version}" | tee -a ${workingdir}/logs/push.image.log
-            docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
-            push_image ${PUSH_REGISTRY}/${package_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
+            push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log
           fi
           # Latest - <name>:latest
           if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:latest" | tee -a ${workingdir}/logs/push.image.log
-            docker tag  ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
-            push_image ${PUSH_REGISTRY}/${package_name}:latest | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
+            push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "latest" | tee -a ${workingdir}/logs/push.image.log
           fi
         ;;
         single-v )
           if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
             version_trim="v${MAJOR_RELEASE}"
-            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
-            docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
-            push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
+            push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_trim}" | tee -a ${workingdir}/logs/push.image.log
           fi
         ;;
         all-v )
           if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
-            version_trim_list="v3.1 v3.2 v3.3 v3.4"
+            version_trim_list="v3.1 v3.2 v3.3 v3.4 v3.5"
             for version_trim in ${version_trim_list} ; do
               echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
               docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
               echo | tee -a ${workingdir}/logs/push.image.log
-              push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
+              push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_trim}" | tee -a ${workingdir}/logs/push.image.log
               echo | tee -a ${workingdir}/logs/push.image.log
             done
           fi
@@ -927,36 +972,19 @@ start_push_image() {
         three-only )
           if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
             version_trim=`echo ${version_version} | sed 's|v||g' | cut -d'.' -f-3`
-            echo "  TAG/PUSH: ${PUSH_REGISTRY}/${package_name}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
-            docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
-            push_image ${PUSH_REGISTRY}/${package_name}:${version_trim} | tee -a ${workingdir}/logs/push.image.log
-            echo | tee -a ${workingdir}/logs/push.image.log
+            push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_trim}" | tee -a ${workingdir}/logs/push.image.log
           fi
         ;;
       esac
     done
     if ! [ "${alt_name}" == "" ] ; then
-      if [ "${VERBOSE}" == "TRUE" ] ; then
-        echo "----------"
-        echo "docker tag ${PULL_REGISTRY}/${package_name}:${package_name}:${version_version} ${PUSH_REGISTRY}/${alt_name}:${version_version}"
-        echo "push_image ${PUSH_REGISTRY}/${alt_name}:${version_version}"
-        echo "----------"
-      fi
-      echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:${version_version} " | tee -a ${workingdir}/logs/push.image.log
-      docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
-      echo | tee -a ${workingdir}/logs/push.image.log
-      push_image ${PUSH_REGISTRY}/${alt_name}:${version_version} | tee -a ${workingdir}/logs/push.image.log
-      echo | tee -a ${workingdir}/logs/push.image.log
+      push_image ""${BREW_IMAGE_NAME}" ${BREW_IMAGE_ID}" "${alt_name}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log
       if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-        echo "  TAG/PUSH: ${PUSH_REGISTRY}/${alt_name}:latest " | tee -a ${workingdir}/logs/push.image.log
-        docker tag ${PULL_REGISTRY}/${package_name}:${version_version}-${release_version} ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
-        echo | tee -a ${workingdir}/logs/push.image.log
-        push_image ${PUSH_REGISTRY}/${alt_name}:latest | tee -a ${workingdir}/logs/push.image.log
-        echo | tee -a ${workingdir}/logs/push.image.log
+        push_image ""${BREW_IMAGE_NAME}" ${BREW_IMAGE_ID}" "${alt_name}" "latest" | tee -a ${workingdir}/logs/push.image.log
       fi
     fi
   fi
+
   STOP_TIME=$(date +"%Y-%m-%d %H:%M:%S")
   echo | tee -a ${workingdir}/logs/push.image.log
   echo "FINISHED: ${container} START TIME: ${START_TIME}  STOP TIME: ${STOP_TIME}" | tee -a ${workingdir}/logs/push.image.log

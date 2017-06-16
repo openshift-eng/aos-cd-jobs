@@ -6,6 +6,8 @@ set -e
 echo "====Cleaning up old ose_images.sh temporary directories===="
 sudo find /var/tmp/ose_images* -maxdepth 0 -mtime +4 -exec rm -r {} \;
 
+set +e   # docker rmi -f can fail if an image is in use, so ignore errors
+
 echo "====Cleaning up older docker images===="
 # Buildvm pulls images from brew/pulp constantly in order to push them to registry.ops .
 # If we don't clean out the docker images, it will fill up any drive over time.
@@ -30,6 +32,8 @@ echo "====Cleaning up older docker images===="
                 sudo docker inspect --format='{{.Created}} {{.Id}}' --type=image ${image}
         done
 } | sort | awk '{ print $2 }' | uniq | head -n -100 | xargs --no-run-if-empty sudo docker rmi -f
+
+set -e
 
 echo "====Pushing logging and metrics images===="
 sudo ose_images.sh push_images --branch rhaos-3.4-rhel-7 --group logging --group metrics --nolatest

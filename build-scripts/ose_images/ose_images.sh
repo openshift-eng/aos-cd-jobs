@@ -154,6 +154,10 @@ add_group_to_list() {
         add_to_list registry-console-docker
       fi
     ;;
+    installer)
+      add_to_list playbook2image-docker
+      add_to_list aos3-installation-docker
+    ;;
     logging)
       add_to_list logging-auth-proxy-docker
       if [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then

@@ -5,10 +5,6 @@ extensions:
     - name: "openshift-ansible"
     - name: "aos-cd-jobs"
   actions:
-    - type: "forward_parameters"
-      parameters:
-        - ORIGIN_TARGET_BRANCH
-        - OPENSHIFT_ANSIBLE_TARGET_BRANCH
     - type: "script"
       title: "determine the release commit for origin images"
       repository: "origin"
@@ -41,7 +37,7 @@ extensions:
         pkg_name="origin"
         echo $pkg_name > PKG_NAME
         echo "openshift-ansible openshift-ansible-callback-plugins openshift-ansible-docs openshift-ansible-filter-plugins openshift-ansible-lookup-plugins openshift-ansible-playbooks openshift-ansible-roles" > OPENSHIFT_ANSIBLE_PKGS
-        sudo python sjb/hack/determine_install_upgrade_version.py $( cat OPENSHIFT_ANSIBLE_BUILT_VERSION ) --dependency_branch ${ORIGIN_TARGET_BRANCH} > OPENSHIFT_ANSIBLE_VARS
+        sudo python sjb/hack/determine_install_upgrade_version.py $( cat OPENSHIFT_ANSIBLE_BUILT_VERSION ) > OPENSHIFT_ANSIBLE_VARS
         source OPENSHIFT_ANSIBLE_VARS
         versioned_packages_to_install=""
         if [[ ${ATOMIC_OPENSHIFT_UTILS_INSTALL_MINOR_VERSION} -le 4 ]]
@@ -69,21 +65,6 @@ extensions:
         done
         sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
     - type: "script"
-      title: "build an origin release"
-      repository: "origin"
-      script: |-
-        if [[ ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} == "master" ]]
-        then
-          hack/build-base-images.sh
-          OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
-          sudo systemctl restart docker
-          hack/build-images.sh
-          sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
-          sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
-        else
-          echo "OPENSHIFT_ANSIBLE_TARGET_BRANCH points to ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} branch, skipping build of Origin release."
-        fi
-    - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-
@@ -97,7 +78,7 @@ extensions:
             exit 1
         fi
         echo "${deployment_type}" > DEPLOYMENT_TYPE
-        sudo python sjb/hack/determine_install_upgrade_version.py $( cat ORIGIN_BUILT_VERSION ) --dependency_branch ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} > ORIGIN_VARS
+        sudo python sjb/hack/determine_install_upgrade_version.py $( cat ORIGIN_BUILT_VERSION ) > ORIGIN_VARS
         source ORIGIN_VARS
         source OPENSHIFT_ANSIBLE_VARS
         echo "=== Installing ${pkg_name}-${ORIGIN_INSTALL_VERSION} ==="
@@ -117,6 +98,16 @@ extensions:
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
                           -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
+    - type: "script"
+      title: "build an origin release"
+      repository: "origin"
+      script: |-
+        hack/build-base-images.sh
+        OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+        sudo systemctl restart docker
+        hack/build-images.sh
+        sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+        sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
     - type: "script"
       title: "upgrade openshift-ansible to release"
       repository: "aos-cd-jobs"

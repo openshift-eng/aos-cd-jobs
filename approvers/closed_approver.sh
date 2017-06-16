@@ -8,21 +8,21 @@ if [[ $# -ne 1 ]]; then
 	echo "[ERROR] Usage: $0 SEVERITY"
 	exit 127
 else
-	severity="$1"
+	severity="${1,,}"
 	case "${severity}" in
 		"none")
 			echo "[ERROR] This branch is closed for pull requests at this time."
 			exit 1
 			;;
-		"bug")
+		*"tooling"*)
 			echo "[ERROR] This branch is closed for pull requests at this time."
 			exit 1
 			;;
-		"blocker")
+		*"blocker"*)
 			echo "[ERROR] This branch is closed for pull requests at this time."
 			exit 1
 			;;
-		"tooling")
+		*"bug"*)
 			echo "[ERROR] This branch is closed for pull requests at this time."
 			exit 1
 			;;

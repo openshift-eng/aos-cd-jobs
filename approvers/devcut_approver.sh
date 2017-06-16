@@ -8,19 +8,20 @@ if [[ $# -ne 1 ]]; then
 	echo "[ERROR] Usage: $0 SEVERITY"
 	exit 127
 else
-	severity="$1"
+	# make severity lowercase
+	severity="${1,,}"
 	case "${severity}" in
 		"none")
 			echo "[ERROR] Only bugs and blocker bugs are allowed to merge during dev-cut."
 			exit 1
 			;;
-		"bug")
+		*"tooling"*)
 			exit 0
 			;;
-		"blocker")
+		*"blocker"*)
 			exit 0
 			;;
-		"tooling")
+		*"bug"*)
 			exit 0
 			;;
 		*)

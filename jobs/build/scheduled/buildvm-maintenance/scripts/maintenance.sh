@@ -4,7 +4,7 @@ set -o xtrace
 set -e
 
 echo "====Cleaning up old ose_images.sh temporary directories===="
-sudo find /var/tmp/ose_images* -maxdepth 0 -mtime +4 -exec rm -r {} \;
+sudo find /var/tmp/ose_images* -maxdepth 0 -mtime +1 -exec rm -r {} \;
 
 set +e   # docker rmi -f can fail if an image is in use, so ignore errors
 

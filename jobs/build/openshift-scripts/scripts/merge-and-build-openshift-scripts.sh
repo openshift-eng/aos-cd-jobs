@@ -85,7 +85,7 @@ else
     echo
     echo "=========="
     echo "Update Dockerfiles"
-    echo "=========="
+    echo "=========="ild
     ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version ${VERSION}
 
     # If we are at the stage mode, dont be messing with the dist-git checking
@@ -107,7 +107,7 @@ else
     echo "=========="
     echo "Push Images"
     echo "=========="
-    sudo ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
+    sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
 
 fi
 

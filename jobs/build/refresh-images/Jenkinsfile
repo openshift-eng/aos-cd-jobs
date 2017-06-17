@@ -42,6 +42,11 @@ node('buildvm-devops') {
              ]]
     )
     
+    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
+                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+        sh 'docker login -u $USERNAME -e aos-cd@redhat.com -p "$PASSWORD" registry-push.ops.openshift.com'
+    }      
+    
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO} MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
 

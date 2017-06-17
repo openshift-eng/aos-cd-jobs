@@ -20,6 +20,9 @@ node('buildvm-devops') {
                     ]
             ]
     )
+    
+    checkout scm
+    env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"    
 
     set_workspace()
     stage('Maintenance') {

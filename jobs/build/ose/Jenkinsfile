@@ -86,7 +86,7 @@ node(TARGET_NODE) {
     
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u $USERNAME -e aos-cd@redhat.com -p "$PASSWORD" registry-push.ops.openshift.com'
+        sh 'sudo docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
     }      
     
     set_workspace()

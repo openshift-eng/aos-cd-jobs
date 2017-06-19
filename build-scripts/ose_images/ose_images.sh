@@ -302,39 +302,75 @@ setup_git_repo() {
 
 check_builds() {
   pushd "${workingdir}/logs" >/dev/null
+
+  # For each buildlog in the working logs directory
   ls -1 *buildlog | while read line
   do
-    if grep -q -e "buildContainer (noarch) failed" -e "server startup error" ${line} ; then
-      package=`echo ${line} | cut -d'.' -f1`
-      echo "=== ${package} IMAGE BUILD FAILED ==="
-      mv ${line} ${package}.watchlog done/
-      echo "::${package}::" >> ${workingdir}/logs/finished
-      sed -i "/::${package}::/d" ${workingdir}/logs/working
-      if grep -q -e "already exists" ${line} ; then
-        grep -e "already exists" ${line} | cut -d':' -f4-
-        echo "Package with same NVR has already been built"
-        echo "::${package}::" >> ${workingdir}/logs/prebuilt
-      else
-        echo "::${package}::" >> ${workingdir}/logs/buildfailed
-        echo "Failed logs"
-        ls -1 ${workingdir}/logs/done/${package}.*
-        cp -f ${workingdir}/logs/done/${package}.* ${workingdir}/logs/failed-logs/
-      fi
-    else
-      if grep -q -e "completed successfully" ${line} ; then
-        package=`echo ${line} | cut -d'.' -f1`
+    package=`echo ${line} | cut -d'.' -f1`
+
+    ### Example .buildlog ###
+    # Created task: 13461148
+    # Task info: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=13461148
+    # Watching tasks (this may be safely interrupted)...
+    # 13461148 buildContainer (noarch): free
+    # 13461148 buildContainer (noarch): free -> open (x86-036.build.eng.bos.redhat.com)
+
+    taskid=`cat ${line} | grep -i "Created task:" | head -n 1 | awk '{print $3}'`
+
+    ### Example taskinfo output ###
+    # Task: 13464674
+    # Type: buildContainer
+    # Owner: ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com
+    # State: closed
+    # Created: Mon Jun 19 04:38:21 2017
+    # Started: Mon Jun 19 04:38:23 2017
+    # Finished: Mon Jun 19 05:28:49 2017
+    # Host: x86-036.build.eng.bos.redhat.com
+    # Log Files:
+    #   /mnt/redhat/brewroot/work/tasks/4674/13464674/checkout-for-labels.log
+    #   /mnt/redhat/brewroot/work/tasks/4674/13464674/openshift-incremental.log
+
+    n=0
+    until [ $n -ge 5 ]
+    do
+        state=$(brew taskinfo "${taskid}" | grep -i '^State:') && break
+        n=$[$n+1]
+        sleep 60
+    done
+
+    state=$(echo "$state" | awk '{print $2}')
+
+    if [ "$n" != "5" ]; then
+        echo "Unable to acquire brew task state"
+        state="internal-timeout"
+    fi
+
+    if [ "$state" == "open" ]; then
+        echo "brew build for $package is still running..."
+    elif [ "$state" == "closed" ]; then
         echo "==== ${package} IMAGE COMPLETED ===="
-        # Only doing false positives, but leave code incase we need something similar
-        #if grep "No package" ${package}.watchlog ; then
-        #  echo "===== ${package}: ERRORS IN COMPLETED IMAGE see above ====="
-        #  echo "::${package}::" >> ${workingdir}/logs/buildfailed
-        #fi
         echo "::${package}::" >> ${workingdir}/logs/finished
         echo "::${package}::" >> ${workingdir}/logs/success
         sed -i "/::${package}::/d" ${workingdir}/logs/working
         mv ${line} ${package}.watchlog done/
-      fi
+    else
+        # Examples of other states: "failure", "canceled", "internal-timeout"
+        echo "=== ${package} IMAGE BUILD FAILED due to state: $state ==="
+        mv ${line} ${package}.watchlog done/
+        echo "::${package}::" >> ${workingdir}/logs/finished
+        sed -i "/::${package}::/d" ${workingdir}/logs/working
+        if grep -q -e "already exists" ${line} ; then
+            grep -e "already exists" ${line} | cut -d':' -f4-
+            echo "Package with same NVR has already been built"
+            echo "::${package}::" >> ${workingdir}/logs/prebuilt
+        else
+            echo "::${package}::" >> ${workingdir}/logs/buildfailed
+            echo "Failed logs"
+            ls -1 ${workingdir}/logs/done/${package}.*
+            cp -f ${workingdir}/logs/done/${package}.* ${workingdir}/logs/failed-logs/
+        fi
     fi
+
   done
   popd >/dev/null
 }
@@ -383,12 +419,12 @@ build_image() {
     #rhpkg container-build --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-signed-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     echo -n "  Waiting for build to start ."
     sleep 10
-    taskid=`grep 'Watching tasks' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
+    taskid=`cat ${workingdir}/logs/${container}.buildlog | grep -i "Created task:" | head -n 1 | awk '{print $3}'`
     while [ "${taskid}" == "" ]
     do
       echo -n "."
       sleep 10
-      taskid=`grep 'Watching tasks' ${workingdir}/logs/${container}.buildlog | awk '{print $1}' | sort -u`
+      taskid=`cat ${workingdir}/logs/${container}.buildlog | grep -i "Created task:" | head -n 1 | awk '{print $3}'`
       if grep -q -e "Unknown build target:" -e "buildContainer (noarch) failed" -e "is not a valid repo" -e "server startup error" ${workingdir}/logs/${container}.buildlog ; then
         echo " error"
         echo "=== ${container} IMAGE BUILD FAILED ==="

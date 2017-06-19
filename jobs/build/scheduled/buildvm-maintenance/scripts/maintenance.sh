@@ -36,12 +36,12 @@ echo "====Cleaning up older docker images===="
 set -e
 
 echo "====Pushing logging and metrics images===="
-sudo ose_images.sh push_images --branch rhaos-3.4-rhel-7 --group logging --group metrics --nolatest
-sudo ose_images.sh push_images --branch rhaos-3.5-rhel-7 --group logging --group metrics --nolatest
-sudo ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group logging --group metrics
+sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.4-rhel-7 --group logging --group metrics --nolatest
+sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.5-rhel-7 --group logging --group metrics --nolatest
+sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group logging --group metrics
 
 echo "====Pushing efs-provisoner===="
-sudo ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group efs
+sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group efs
 
 echo "====Docker statistics===="
 # Print out a report for the Jenkins job

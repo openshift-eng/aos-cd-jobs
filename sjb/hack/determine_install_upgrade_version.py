@@ -1,6 +1,8 @@
 import yum
 import sys
 import os.path
+import argparse
+import copy
 import rpmUtils.miscutils as rpmutils
 
 # Remove duplicate packages from different repositories
@@ -33,29 +35,27 @@ def get_matching_versions(input_pkg_name, available_pkgs, search_version):
 		print("[ERROR] Can not determine install and upgrade version for the `" + input_pkg_name + "` package", sys.stderr)
 		sys.exit(1)
 
-# Get only install(last) version from version list
-def get_install_version(version_list):
+# Get only last version from version list
+def get_last_version(version_list):
 	return version_list[-1]
 
 # Return minor version of provided package version-release pair
 def get_minor_version(pkg_version_release):
 	return pkg_version_release.split('.', 2)[1]
 
-# Return version of provided package version-release pair
-def get_version(pkg_version_release):
-	return pkg_version_release.split('-', 2)[0]
-
 # Print install, upgrade and upgrade_release versions of desired package to STDOUT.
 # The upgrade version will be printed only in case there is more then one version of packages previous minor release. 
-def print_version_vars(install_version):
+def print_version_vars(install_version, upgrade_version):
 	used_pkg_name = pkg_name.upper().replace("-", "_")
 	print (used_pkg_name + "_INSTALL_VERSION=" + install_version)
 	print (used_pkg_name + "_INSTALL_MINOR_VERSION=" + get_minor_version(install_version))
-	print (used_pkg_name + "_UPGRADE_RELEASE_VERSION=" + pkg_version + "-" + pkg_release)
-	print (used_pkg_name + "_UPGRADE_RELEASE_MINOR_VERSION=" + get_minor_version(pkg_version + "-" + pkg_release))
+	print (used_pkg_name + "_UPGRADE_RELEASE_VERSION=" + upgrade_version)
+	print (used_pkg_name + "_UPGRADE_RELEASE_MINOR_VERSION=" + get_minor_version(upgrade_version))
 
-def determine_search_version(pkg_name, pkg_version):
-	major, minor, rest = pkg_version.split('.', 2)
+def determine_install_version(pkg_name, pkg_version):
+	parsed_version = pkg_version.split('.')
+	major = parsed_version[0]
+	minor = parsed_version[1]
 	# Cause of the origin version schema change we had to manually change the version just for this 
 	# case where we should look for 1.5.x versions if the built version is origin-3.6.x 
 	if pkg_name == "origin" and major == "3" and minor == "6":
@@ -63,15 +63,53 @@ def determine_search_version(pkg_name, pkg_version):
 	search_version = '.'.join([major, str(int(minor) - 1)])
 	return search_version
 
+def sort_pkgs(available_pkgs):
+	# There is an issue that origin-3.6.0-0.0.alpha.0.1 package was wrongly tagged and proper tag
+	# should be origin-3.6.0-0.alpha.0.1. Because of this issue we have to replace the release with
+	# the proper one before sorting and after sorting replace it back.
+	exceptional_pkg = {}
+	for pkg in available_pkgs:
+		if (pkg.name == "origin" and pkg.version == "3.6.0" and pkg.release == "0.0.alpha.0.1"):
+			exceptional_pkg["original_pkg"] = copy.deepcopy(pkg)
+			pkg.release = "0.alpha.0.1 "
+			exceptional_pkg["updated_pkg"] = pkg
+
+	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
+
+	if exceptional_pkg:
+		pkg_index = available_pkgs.index(exceptional_pkg["updated_pkg"])
+		available_pkgs[pkg_index] = exceptional_pkg["original_pkg"]
+
+	return available_pkgs
+
+
 if __name__ == "__main__":
-	if len(sys.argv) != 2:
-	    print ("[ERROR] No NEVRA provided!", sys.stderr)
-	    sys.exit(3)
-	input_pkg = sys.argv[1]
-	pkg_name, pkg_version, pkg_release, pkg_epoch, pkg_arch = rpmutils.splitFilename(input_pkg)
+	parser = argparse.ArgumentParser()
+	parser.add_argument("input_pkg", type=str, help="Package NEVRA")
+	parser.add_argument("--dependency_branch", type=str, default='master', help="Dependency target branch")
+	args = parser.parse_args()
+
+	pkg_name, pkg_version, pkg_release, pkg_epoch, pkg_arch = rpmutils.splitFilename(args.input_pkg)
+
+	# If dependency target branch is specified for a release or an enterprise release use that version so proper install
+	# and upgrade version are set.
+	#
+	# example: OPENSHIFT_ANSIBLE_TARGET_BRANCH - release-1.5
+	#          ORIGIN_TARGET_BRANCH            - master
+	#
+	#          ORIGIN_INSTALL_VERSION=1.4.1-1.el7
+	#          ORIGIN_INSTALL_MINOR_VERSION=4
+	#          ORIGIN_UPGRADE_RELEASE_VERSION=1.5.1-1.el7
+	#          ORIGIN_UPGRADE_RELEASE_MINOR_VERSION=5
+	#
+	if args.dependency_branch.startswith("release") or args.dependency_branch.startswith("enterprise"):
+		pkg_version = args.dependency_branch.split("-")[1]
+	else:
+		major, minor, rest = pkg_version.split('.', 2)
+		pkg_version = '.'.join([major, minor])
 
 	if any(char.isalpha() for char in pkg_version):
-		print ("[ERROR] Incorrect package nevra format: " + input_pkg, sys.stderr)
+		print ("[ERROR] Incorrect package nevra format: " + args.input_pkg, sys.stderr)
 		sys.exit(2)
 
 	yb = yum.YumBase()
@@ -84,9 +122,14 @@ if __name__ == "__main__":
 	yb.conf.disable_excludes = ["all"]
 	sys.stdout = old_stdout
 	available_pkgs = rpmutils.unique(yb.doPackageLists('available', patterns=[pkg_name], showdups=True).available)
-	search_version = determine_search_version(pkg_name, pkg_version)
 	available_pkgs = remove_duplicate_pkgs(available_pkgs)
-	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
-	matching_pkgs = get_matching_versions(pkg_name, available_pkgs, search_version)
-	install_version = get_install_version(matching_pkgs)
-	print_version_vars(install_version)
+	available_pkgs = sort_pkgs(available_pkgs)
+
+	search_install_version = determine_install_version(pkg_name, pkg_version)
+
+	matching_install_pkgs = get_matching_versions(pkg_name, available_pkgs, search_install_version)
+	matching_upgrade_pkgs = get_matching_versions(pkg_name, available_pkgs, pkg_version)
+	install_version = get_last_version(matching_install_pkgs)
+	upgrade_version = get_last_version(matching_upgrade_pkgs)
+
+	print_version_vars(install_version, upgrade_version)

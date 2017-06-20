@@ -978,9 +978,9 @@ start_push_image() {
       esac
     done
     if ! [ "${alt_name}" == "" ] ; then
-      push_image ""${BREW_IMAGE_NAME}" ${BREW_IMAGE_ID}" "${alt_name}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log
+      push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${alt_name}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log
       if ! [ "${NOTLATEST}" == "TRUE" ] ; then
-        push_image ""${BREW_IMAGE_NAME}" ${BREW_IMAGE_ID}" "${alt_name}" "latest" | tee -a ${workingdir}/logs/push.image.log
+        push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${alt_name}" "latest" | tee -a ${workingdir}/logs/push.image.log
       fi
     fi
   fi

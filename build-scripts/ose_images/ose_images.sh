@@ -346,7 +346,7 @@ check_builds() {
 
     state=$(echo "$state" | awk '{print $2}')
 
-    if [ "$n" != "5" ]; then
+    if [ "$n" == "5" ]; then
         echo "Unable to acquire brew task state"
         state="internal-timeout"
     fi

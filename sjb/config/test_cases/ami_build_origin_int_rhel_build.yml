@@ -8,7 +8,7 @@ actions:
   - type: "host_script"
     title: "bring source code up to date"
     script: |-
-      for repo in origin origin-web-console openshift-ansible origin-aggregated-logging; do
+      for repo in aos-cd-jobs origin origin-web-console openshift-ansible origin-aggregated-logging; do
         oct sync remote "${repo}"
       done
   - type: "script"

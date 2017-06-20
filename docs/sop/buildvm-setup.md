@@ -52,3 +52,54 @@ WantedBy=multi-user.target
 ```
  - Reload systemctl daemon (`sudo systemctl daemon-reload`)
   - Set swarm to autostart (`sudo systemctl enable swarm`)
+
+- Create the following repos on buildvm
+```
+[root@buildvm-devops-new ~]# cat /etc/yum.repos.d/dockertested.repo 
+[dockertested]
+name=Latest tested version of Docker
+baseurl=https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/
+failovermethod=priority
+enabled=0
+priority=40
+gpgcheck=0
+sslverify=0
+sslclientcert=/var/lib/yum/client-cert.pem
+sslclientkey=/var/lib/yum/client-key.pem
+
+
+
+[root@buildvm-devops-new ~]# cat /etc/yum.repos.d/rhel7next.repo 
+[rhel7next]
+name=Prerelease version of Enterprise Linux 7.x
+baseurl=https://mirror.openshift.com/enterprise/rhel/rhel7next/os/
+failovermethod=priority
+enabled=0
+priority=40
+gpgcheck=0
+sslverify=0
+sslclientcert=/var/lib/yum/client-cert.pem
+sslclientkey=/var/lib/yum/client-key.pem
+
+[rhel7next-optional]
+name=Prerelease version of Enterprise Linux 7.x
+baseurl=https://mirror.openshift.com/enterprise/rhel/rhel7next/optional/
+failovermethod=priority
+enabled=0
+priority=40
+gpgcheck=0
+sslverify=0
+sslclientcert=/var/lib/yum/client-cert.pem
+sslclientkey=/var/lib/yum/client-key.pem
+
+[rhel7next-extras]
+name=Prerelease version of Enterprise Linux 7.x
+baseurl=https://mirror.openshift.com/enterprise/rhel/rhel7next/extras/
+failovermethod=priority
+enabled=0
+priority=40
+gpgcheck=0
+sslverify=0
+sslclientcert=/var/lib/yum/client-cert.pem
+sslclientkey=/var/lib/yum/client-key.pem
+```

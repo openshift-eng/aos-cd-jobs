@@ -2,6 +2,7 @@
   - go
   - docker
   - git
+  - puddle
   - rhpkg  
   - brew
   - tito

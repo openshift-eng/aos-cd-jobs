@@ -98,7 +98,7 @@ extensions:
       title: "run logging tests"
       repository: "origin-aggregated-logging"
       script: |-
-        KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true SKIP_TEARDOWN=true make test
+        KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true SKIP_TEARDOWN=true JUNIT_REPORT=true make test
   system_journals:
     - origin-master.service
     - origin-node.service

@@ -26,16 +26,18 @@ for repo in $@; do
         git fetch --all
 
         if git checkout stage; then
-            BACKUP_BRANCH="stage-${LAST_SPRINT_NUMBER}"
-
-            if git checkout "$BACKUP_BRANCH"; then
-                echo "Backup branch $BACKUP_BRANCH already exists in $repo ; unable to proceed"
-                exit 1
+            if [ "$DESTRUCTIVE_SYNCH" != "true" ]; then
+                BACKUP_BRANCH="stage-${LAST_SPRINT_NUMBER}"
+                if git checkout "$BACKUP_BRANCH"; then
+                    echo "Backup branch $BACKUP_BRANCH already exists in $repo ; unable to proceed"
+                    exit 1
+                fi
+            
+                git checkout -b "stage-${LAST_SPRINT_NUMBER}"
+                git push origin "stage-${LAST_SPRINT_NUMBER}"
+                git checkout stage
             fi
-
-            git checkout -b "stage-${LAST_SPRINT_NUMBER}"
-            git push origin "stage-${LAST_SPRINT_NUMBER}"
-            git checkout stage
+            
             git reset --hard master
             git push origin stage --force
 
@@ -54,7 +56,7 @@ for repo in $@; do
         # To resolve this, during stagecut, openshift-ansible.spec in master
         # is tweaked to have four fields instead of 3 so that CI tito tags
         # won't conflict with tags created by stage builds.
-        if [ -f "openshift-ansible.spec" ]; then
+        if [ "$DESTRUCTIVE_SYNCH" != "true" -a -f "openshift-ansible.spec" ]; then
             git checkout master
             export VERSION="$(grep Version: openshift-ansible.spec | awk '{print $2}')"
             if [ ! -z "$(echo ${VERSION} | cut -d . -f 4)" ]; then

@@ -18,6 +18,7 @@ node('buildvm-devops') {
                       [
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'git@github.com:openshift/origin.git  git@github.com:openshift/origin-web-console.git git@github.com:openshift/ose.git git@github.com:openshift/openshift-ansible.git', description: 'Repositories to fork to stage', name: 'REPOS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Last sprint number (e.g. "130"); stage-### will be used to archive any previous stage branch', name: 'LAST_SPRINT_NUMBER'],
+                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Synch master to stage only (do not backup old stage branch)?', name: 'DESTRUCTIVE_SYNCH'],
                       ]
              ]]
     )
@@ -25,11 +26,12 @@ node('buildvm-devops') {
     
     set_workspace()
 
-    if ( LAST_SPRINT_NUMBER == "" ) {
+    if ( DESTRUCTIVE_SYNCH.toBoolean() && LAST_SPRINT_NUMBER == "" ) {
         error( "LAST_SPRINT_NUMBER is a required parameter" )
     }
 
     sshagent(['openshift-bot']) { // errata puddle must run with the permissions of openshift-bot to succeed
+        env.DESTRUCTIVE_SYNCH = "${DESTRUCTIVE_SYNCH}"
         sh "./scripts/stagecut.sh ${LAST_SPRINT_NUMBER} ${REPOS}"
     }
 

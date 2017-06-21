@@ -37,12 +37,12 @@ for repo in $@; do
             git push origin "stage-${LAST_SPRINT_NUMBER}"
             git checkout stage
             git reset --hard master
-            #git push origin stage --force
+            git push origin stage --force
 
         else
             echo "Stage branch did not yet exist; creating it..."
             git checkout -b stage
-            #git push origin stage
+            git push origin stage
         fi
 
         # If this is the openshift-ansible repository, we need to take an extra
@@ -66,7 +66,7 @@ for repo in $@; do
             sed -i "s/Version:.*/Version:        ${VERSION}/" openshift-ansible.spec
             git add openshift-ansible.spec
             git commit -m "Adding version field for stagecut"
-            # git push origin master
+            git push origin master
         fi
 
     popd

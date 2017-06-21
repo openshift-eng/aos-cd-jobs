@@ -109,6 +109,9 @@ if [ "${OPERATION}" == "build-ci-msg" ]; then
     exit 0
 fi
 
+################################################
+# OPERATION: STATUS
+################################################
 # Stdout from 'status' invocation is sent out verbatim after an
 # online-first install/upgrade. Similar to logs operation, don't
 # output any stdout before this point.
@@ -123,7 +126,17 @@ if [ "${OPERATION}" == "status" ]; then
 
   /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
   exit 0
+
+################################################
+# OPERATION: SMOKETEST
+################################################
+elif [ "${OPERATION}" == "smoketest" ]; then
+  echo "Performing smoketest on cluster: ${CLUSTERNAME}..."
+  echo
+  # 'exec' will exit this script and turn controll over to the script being called
+  exec ./aos-cd-cluster-smoke-test.sh ${CLUSTERNAME}
 fi
+
 
 opts=`getopt -o ha: --long help,openshift-ansible: -n 'cicd-control' -- "$@"`
 eval set -- "$opts"
@@ -282,6 +295,10 @@ cd svt/openshift_performance/ci/scripts
 ./conc_builds_cicd.sh
 EOF
 
+################################################
+# UNKNOWN OPERATION
+################################################
 else
   echo Error. Unrecognized operation. Exiting...
 fi
+

@@ -39,3 +39,4 @@ extensions:
     - etcd.service
   artifacts:
     - "/data/src/github.com/openshift/origin-aggregated-logging/_output/scripts"
+    - "/tmp/origin-aggregated-logging"

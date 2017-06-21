@@ -140,7 +140,7 @@ elif [ "${OPERATION}" == "smoketest" ]; then
   fi
 
   # 'exec' will exit this script and turn controll over to the script being called
-  exec ./aos-cd-cluster-smoke-test.sh ${CLUSTERNAME}
+  exec /usr/local/bin/autokeys_loader ./aos-cd-cluster-smoke-test.sh ${CLUSTERNAME}
 fi
 
 

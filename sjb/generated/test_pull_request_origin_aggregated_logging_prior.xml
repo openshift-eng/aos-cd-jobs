@@ -169,6 +169,10 @@ if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo sta
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin-aggregated-logging/_output/scripts
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin-aggregated-logging/_output/scripts &#34;${ARTIFACT_DIR}&#34;
 fi
+if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /tmp/origin-aggregated-logging; then
+    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/origin-aggregated-logging
+    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/origin-aggregated-logging &#34;${ARTIFACT_DIR}&#34;
+fi
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

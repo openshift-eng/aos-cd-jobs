@@ -133,6 +133,12 @@ if [ "${OPERATION}" == "status" ]; then
 elif [ "${OPERATION}" == "smoketest" ]; then
   echo "Performing smoketest on cluster: ${CLUSTERNAME}..."
   echo
+
+  if [ "${CLUSTERNAME}" == "test-key" ]; then
+    echo "This output represents the current smoketest of the test-key cluster"
+    exit 0
+  fi
+
   # 'exec' will exit this script and turn controll over to the script being called
   exec ./aos-cd-cluster-smoke-test.sh ${CLUSTERNAME}
 fi

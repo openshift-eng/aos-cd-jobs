@@ -26,7 +26,7 @@ node('buildvm-devops') {
     
     set_workspace()
 
-    if ( DESTRUCTIVE_SYNCH.toBoolean() && LAST_SPRINT_NUMBER == "" ) {
+    if ( !DESTRUCTIVE_SYNCH.toBoolean() && LAST_SPRINT_NUMBER == "" ) {
         error( "LAST_SPRINT_NUMBER is a required parameter" )
     }
 

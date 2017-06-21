@@ -34,12 +34,14 @@ extensions:
       repository: "aos-cd-jobs"
       script: |-
         local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
-        ansible-playbook -vv --become               \
-                         --become-user root         \
-                         --connection local         \
-                         --inventory sjb/inventory/ \
-                         -e deployment_type=origin  \
-                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+        if [ -f /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml ]; then
+            ansible-playbook -vv --become               \
+                             --become-user root         \
+                             --connection local         \
+                             --inventory sjb/inventory/ \
+                             -e deployment_type=origin  \
+                             /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+        fi
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \

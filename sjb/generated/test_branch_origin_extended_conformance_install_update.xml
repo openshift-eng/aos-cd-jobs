@@ -269,13 +269,15 @@ sudo python sjb/hack/determine_install_upgrade_version.py \$( cat ORIGIN_BUILT_V
 source ORIGIN_VARS
 source OPENSHIFT_ANSIBLE_VARS
 echo &#34;=== Installing \${pkg_name}-\${ORIGIN_INSTALL_VERSION} ===&#34;
-ansible-playbook  -vv                \
-                  --become           \
-                  --become-user root \
-                  --connection local \
-                  --inventory sjb/inventory/ \
-                  /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml \
-                  -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
+if [ -f /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml ]; then
+    ansible-playbook  -vv                \
+                      --become           \
+                      --become-user root \
+                      --connection local \
+                      --inventory sjb/inventory/ \
+                      /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml \
+                      -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
+fi
 ansible-playbook  -vv                \
                   --become           \
                   --become-user root \

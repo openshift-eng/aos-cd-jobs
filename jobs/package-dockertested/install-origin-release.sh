@@ -11,12 +11,14 @@ git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
 ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
 
 cd /data/src/github.com/openshift/aos-cd-jobs
-ansible-playbook -vv --become               \
-                 --become-user root         \
-                 --connection local         \
-                 --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+if [ -f /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml ]; then
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e deployment_type=origin  \
+                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \

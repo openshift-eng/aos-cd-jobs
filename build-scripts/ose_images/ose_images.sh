@@ -356,7 +356,7 @@ check_builds() {
         state="internal-timeout"
     fi
 
-    if [ "$state" == "open" ]; then
+    if [ "$state" == "open" -o "$state" == "free" ]; then # free state means brew is waiting for a free builder
         echo "brew build for $package is still running..."
     elif [ "$state" == "closed" ]; then
         echo "==== ${package} IMAGE COMPLETED ===="

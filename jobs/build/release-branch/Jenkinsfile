@@ -1,0 +1,108 @@
+// https://issues.jenkins-ci.org/browse/JENKINS-33511
+def set_workspace() {
+  if(env.WORKSPACE == null) {
+    env.WORKSPACE = pwd()
+  }
+}
+
+def ssh(cmd) {
+  sh "ssh openshiftdevel -- bash -x <<'EOF'\n${cmd}\nEOF"
+}
+
+def mail_failure(err, approvers) {
+  mail(
+    to: approvers, from: "aos-cd@redhat.com",
+    subject: 'build/release-branch job: error',
+    body: """\
+Encoutered an error while running the build/release-branch job: ${err}\n\n
+Jenkins job: ${env.BUILD_URL}
+""")
+}
+
+node('buildvm-devops') {
+  // TODO figure these out automatically
+  final new_branch = 'release-1.6'
+  final new_tag = 'v1.7.0-alpha.0'
+  final venv = "${env.WORKSPACE}/env"
+  final gopath = '/home/ec2-user/go'
+  final origin_dir = "${gopath}/src/github.com/openshift/origin"
+  final approvers = ['bbarcaro@redhat.com']
+  final input_msg = """\
+The build/release-branch job is finished and is waiting for approval to push
+the images.
+
+After the images are pushed, the release tag should be signed and pushed to the
+official repository.
+"""
+  try {
+    set_workspace()
+    stage('oct') {
+      if(!fileExists("${venv}")) {
+        sh """\
+virtualenv --system-site-packages ${venv}
+${venv}/bin/pip install --upgrade pip setuptools
+${venv}/bin/pip install --process-dependency-links \
+  boto boto3 git+https://github.com/openshift/origin-ci-tool.git
+"""
+      }
+      sh """\
+source ${venv}/bin/activate
+oct configure ansible-client verbosity 2
+oct configure aws-client keypair_name libra
+oct configure aws-client private_key_path /home/jenkins/.ssh/libra.pem
+"""
+    }
+    stage('provision') {
+      sh """\
+source ${venv}/bin/activate
+oct provision remote all-in-one --os rhel --stage bare --name bbarcaro-test
+"""
+    }
+    stage('dependencies') {
+      sh """\
+source ${venv}/bin/activate
+oct prepare dependencies
+oct prepare golang --version 1.7.5 --repourl \
+  https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/
+oct prepare docker --repo "rhel7next*"
+ssh root@openshiftdevel -- usermod -aG docker ec2-user
+"""
+      ssh("GOPATH=${gopath} go get github.com/openshift/imagebuilder/cmd/imagebuilder")
+    }
+    stage('clone') {
+      ssh("""\
+git clone https://github.com/openshift/origin.git ${origin_dir}
+cd ${origin_dir}
+git checkout -b ${new_branch}
+git tag ${new_tag}
+""")
+    }
+    stage('base image') {
+      ssh("cd ${origin_dir} && env SHELLOPTS=xtrace hack/build-base-images.sh")
+    }
+    stage('release') {
+      ssh("cd ${origin_dir} && make release")
+    }
+    stage('test') {
+      ssh("cd ${origin_dir} && JUNIT_REPORT=true make test-extended SUITE=conformance")
+    }
+    stage('wait for approval') {
+      mail(
+        from: "aos-cd@redhat.com", to: approvers,
+        subject: 'build/release-branch job: waiting approval',
+        body: "${input_msg}\n\nJenkins job: ${env.BUILD_URL}")
+      input message: input_msg
+    }
+    stage('push images') { ssh("cd ${origin_dir} && hack/push-release.sh") }
+  } catch(err) {
+    mail_failure(err, approvers)
+    throw err
+  } finally {
+    try {
+      sh "source ${venv}/bin/activate; oct deprovision"
+    } catch(err) {
+      mail_failure(err, approvers)
+      throw err
+    }
+  }
+}

@@ -120,9 +120,9 @@ When running `[merge]` on a PR, developers will optionally be able to add `[seve
  - none ( `[merge]` )
  - bug ( `[merge][severity: bug]` )
  - blocker ( `[merge][severity: blocker]` )
- - tooling ( `[merge][severity: tooling]` )
+ - low-risk ( `[merge][severity: lowrisk]` )
 
-The `tooling` severity is special in that all approvers other than the [`closed_approver.sh`](approvers/closed_approver.sh), will
+The `lowrisk` severity is special in that all approvers other than the [`closed_approver.sh`](approvers/closed_approver.sh), will
 allow merges with it. Developers should use this tag when they are making changes to code in the repository that does not make up
 any part of the shipped product and therefore does not have any chance of impacting deployments.
 
@@ -137,7 +137,7 @@ There will be four possible designations for any branch in your repo:
     <td>None</td>
     <td>Bug</td>
     <td>Blocker</td>
-    <td>Tooling</td>
+    <td>Low-Risk</td>
   </tr>
   <tr>
     <td rowspan="4">Branch Stage<br></td>

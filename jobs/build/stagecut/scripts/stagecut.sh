@@ -56,7 +56,7 @@ for repo in $@; do
         # won't conflict with tags created by stage builds.
         if [ -f "openshift-ansible.spec" ]; then
             git checkout master
-            export VERSION="v$(grep Version: openshift-ansible.spec | awk '{print $2}')"
+            export VERSION="$(grep Version: openshift-ansible.spec | awk '{print $2}')"
             if [ ! -z "$(echo ${VERSION} | cut -d . -f 4)" ]; then
                 echo "openshift-ansible already contains a 4 field Version in spec file. Something is wrong, so refusing to proceed."
                 echo "Performing a standard openshift-ansible build after stagecut ended should have restored a three field version."

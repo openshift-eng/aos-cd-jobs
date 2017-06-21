@@ -2,7 +2,6 @@ import yum
 import sys
 import os.path
 import argparse
-import copy
 import rpmUtils.miscutils as rpmutils
 
 # Remove duplicate packages from different repositories
@@ -65,21 +64,15 @@ def determine_install_version(pkg_name, pkg_version):
 
 def sort_pkgs(available_pkgs):
 	# There is an issue that origin-3.6.0-0.0.alpha.0.1 package was wrongly tagged and proper tag
-	# should be origin-3.6.0-0.alpha.0.1. Because of this issue we have to replace the release with
-	# the proper one before sorting and after sorting replace it back.
+	# should be origin-3.6.0-0.alpha.0.1. Because of this issue we have to ignore the package for
+	# installation and upgrade considerations.
 	exceptional_pkg = {}
 	for pkg in available_pkgs:
 		if (pkg.name == "origin" and pkg.version == "3.6.0" and pkg.release == "0.0.alpha.0.1"):
-			exceptional_pkg["original_pkg"] = copy.deepcopy(pkg)
-			pkg.release = "0.alpha.0.1 "
-			exceptional_pkg["updated_pkg"] = pkg
+			available_pkgs.remove(pkg)
+			break
 
 	available_pkgs.sort(lambda x, y: rpmutils.compareEVR((x.epoch, x.version, x.release), (y.epoch, y.version, y.release)))
-
-	if exceptional_pkg:
-		pkg_index = available_pkgs.index(exceptional_pkg["updated_pkg"])
-		available_pkgs[pkg_index] = exceptional_pkg["original_pkg"]
-
 	return available_pkgs
 
 

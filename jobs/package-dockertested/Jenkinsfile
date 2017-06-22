@@ -72,7 +72,7 @@ node('buildvm-devops') {
 			sh 'pip install git+https://github.com/openshift/origin-ci-tool.git --process-dependency-links'
 		}
 		stage ('Configure the origin-ci-tool') {
-			sh 'oct configure ansible-client verbosity 5'
+			sh 'oct configure ansible-client verbosity 2'
 			sh 'oct configure aws-client keypair_name libra'
 			sh "oct configure aws-client private_key_path /home/jenkins/.ssh/devenv.pem"
 		}

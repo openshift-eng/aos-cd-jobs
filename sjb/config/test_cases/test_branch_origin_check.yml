@@ -5,6 +5,7 @@ extensions:
     - type: "script"
       title: "verify commit history"
       repository: "origin"
+      timeout: 7200
       script: |-
         # run commitchecker outside release container as it needs
         # access to git; also explicitly force godeps verification

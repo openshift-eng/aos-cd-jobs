@@ -37,6 +37,7 @@ extensions:
     - type: "script"
       title: "install ansible atomic-openshift-utils"
       repository: "aos-cd-jobs"
+      timeout: 600
       script: |-
         pkg_name="origin"
         echo $pkg_name > PKG_NAME
@@ -71,6 +72,7 @@ extensions:
     - type: "script"
       title: "build an origin release"
       repository: "origin"
+      timeout: 5000
       script: |-
         if [[ ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} == "master" ]]
         then
@@ -86,6 +88,7 @@ extensions:
     - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
+      timeout: 1800
       script: |-
         pkg_name=$( cat ./PKG_NAME )
         if [[ "${pkg_name}" == "origin" ]]; then
@@ -133,6 +136,7 @@ extensions:
     - type: "script"
       title: "update origin to release"
       repository: "aos-cd-jobs"
+      timeout: 1800
       script: |-
         pkg_name=$( cat ./PKG_NAME )
         source ORIGIN_VARS

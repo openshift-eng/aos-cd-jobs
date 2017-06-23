@@ -6,6 +6,7 @@
   - rhpkg  
   - brew
   - tito
+  - rhtools  (required for sign_unsigned.py)
   - npm (needed for origin-web-console asset compilation)
 - Setup "jenkins" user
   - Create user

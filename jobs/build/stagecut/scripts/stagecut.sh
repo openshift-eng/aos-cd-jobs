@@ -56,6 +56,8 @@ for repo in $@; do
         # To resolve this, during stagecut, openshift-ansible.spec in master
         # is tweaked to have four fields instead of 3 so that CI tito tags
         # won't conflict with tags created by stage builds.
+        #.1000 is used as the four field because there are potentially moments
+        # when using .0 could conflict with the numbering of a release cut of OCP.
         if [ "$DESTRUCTIVE_SYNCH" != "true" -a -f "openshift-ansible.spec" ]; then
             git checkout master
             export VERSION="$(grep Version: openshift-ansible.spec | awk '{print $2}')"
@@ -64,7 +66,7 @@ for repo in $@; do
                 echo "Performing a standard openshift-ansible build after stagecut ended should have restored a three field version."
                 exit 1
             fi
-            VERSION="${VERSION}.0" # Add another field
+            VERSION="${VERSION}.1000" # Add another field
             sed -i "s/Version:.*/Version:        ${VERSION}/" openshift-ansible.spec
             git add openshift-ansible.spec
             git commit -m "Adding version field for stagecut"

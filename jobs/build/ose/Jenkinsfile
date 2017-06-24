@@ -59,7 +59,9 @@ ${changelogs}
 
 // Expose properties for a parameterized build
 properties(
-        [[$class              : 'ParametersDefinitionProperty',
+        [
+            [$class : 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360']],
+            [$class : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'buildvm-devops', description: 'Jenkins agent node', name: 'TARGET_NODE'],
@@ -75,7 +77,8 @@ online:int                {origin,origin-web-console,openshift-ansible}/master -
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
                   ]
-         ]]
+            ]
+        ]
 )
 
 // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.

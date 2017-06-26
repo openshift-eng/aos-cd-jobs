@@ -153,8 +153,8 @@ class SortPackagesTestCase(unittest.TestCase):
 
 	def test_sort_packages_with_exceptional_origin_pkg(self):
 		""" when sorting origin packages with exceptional origin-3.6.0-0.0.alpha.0.1 package """
-		test_pkgs = ["origin-3.6.0-0.0.alpha.0.1", "origin-3.6.0-0.alpha.0.2"]
-		properly_sorted_pkgs = ["origin-3.6.0-0.alpha.0.2"]
+		test_pkgs = ["origin-3.6.0-0.0.alpha.0.1.el7", "origin-3.6.0-0.alpha.0.2.el7"]
+		properly_sorted_pkgs = ["origin-3.6.0-0.alpha.0.2.el7"]
 		test_pkgs_obj = TestPackage.create_test_packages(test_pkgs)
 		properly_sorted_pkgs_obj = TestPackage.create_test_packages(properly_sorted_pkgs)
 		sorted_test_pkgs_obj = sort_pkgs(test_pkgs_obj)
@@ -167,8 +167,7 @@ class SortPackagesTestCase(unittest.TestCase):
 		test_pkgs_obj = TestPackage.create_test_packages(test_pkgs)
 		properly_sorted_pkgs_obj = TestPackage.create_test_packages(properly_sorted_pkgs)
 		sorted_test_pkgs_obj = sort_pkgs(test_pkgs_obj)
-		self.assertTrue(sorted_test_pkgs_obj[0], properly_sorted_pkgs_obj[0])
-		self.assertTrue(sorted_test_pkgs_obj[1], properly_sorted_pkgs_obj[1])
+		self.assertEqual(sorted_test_pkgs_obj, properly_sorted_pkgs_obj)
 
 	def test_sort_packages_with_different_minor_version(self):
 		""" when sorting origin packages with different minor version """
@@ -177,8 +176,7 @@ class SortPackagesTestCase(unittest.TestCase):
 		test_pkgs_obj = TestPackage.create_test_packages(test_pkgs)
 		properly_sorted_pkgs_obj = TestPackage.create_test_packages(properly_sorted_pkgs)
 		sorted_test_pkgs_obj = sort_pkgs(test_pkgs_obj)
-		self.assertTrue(sorted_test_pkgs_obj[0], properly_sorted_pkgs_obj[0])
-		self.assertTrue(sorted_test_pkgs_obj[1], properly_sorted_pkgs_obj[1])
+		self.assertEqual(sorted_test_pkgs_obj, properly_sorted_pkgs_obj)
 
 
 if __name__ == '__main__':

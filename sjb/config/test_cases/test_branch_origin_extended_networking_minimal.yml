@@ -5,5 +5,6 @@ extensions:
     - type: "script"
       title: "run extended tests"
       repository: "origin"
+      timeout: 3600
       script: |-
         JUNIT_REPORT='true' make test-extended SUITE=networking-minimal

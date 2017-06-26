@@ -9,6 +9,7 @@ sync_repos:
 actions:
   - type: "script"
     title: "use a ramdisk for etcd"
+    timeout: 300
     script: |-
       sudo su root <<SUDO
       mkdir -p /tmp

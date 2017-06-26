@@ -108,7 +108,7 @@ if job_type == "test":
     # now, the job can define actions to take
     for action in job_config.get("actions", []):
         if action["type"] == "script":
-            actions.append(ScriptAction(action.get("repository", None), action["script"], action.get("title", None)))
+            actions.append(ScriptAction(action.get("repository", None), action["script"], action.get("title", None), action.get("timeout", 3600)))
         elif action["type"] == "host_script":
             actions.append(HostScriptAction(action["script"], action.get("title", None)))
         elif action["type"] == "forward_parameters":

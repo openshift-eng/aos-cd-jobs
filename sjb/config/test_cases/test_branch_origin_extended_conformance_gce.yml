@@ -47,6 +47,7 @@ rectory to run."
     - type: "script"
       title: "build origin RPMs"
       repository: "origin"
+      timeout: 2400
       script: |-
         OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1
     - type: "host_script"
@@ -94,6 +95,7 @@ rectory to run."
     - type: "script"
       title: "provision test cluster"
       repository: "release"
+      timeout: 2800
       script: |-
         cd cluster/test-deploy/data/
         if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE}" ]]; then
@@ -111,6 +113,7 @@ rectory to run."
     - type: "script"
       title: "run extended tests"
       repository: "origin"
+      timeout: 4000
       script: |-
         mkdir -p /tmp/artifacts/junit
         export KUBECONFIG=/tmp/cluster-admin.kubeconfig
@@ -145,6 +148,7 @@ rectory to run."
     - type: "script"
       title: "deprovision test cluster"
       repository: "release"
+      timeout: 900
       script: |-
         cd cluster/test-deploy/data
         ../../bin/local.sh ansible-playbook playbooks/terminate.yaml

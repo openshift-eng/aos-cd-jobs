@@ -5,6 +5,7 @@ extensions:
     - type: "script"
       title: "install the openshift-ansible release"
       repository: "openshift-ansible"
+      timeout: 3600
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
         last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
@@ -12,6 +13,7 @@ extensions:
         sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
     - type: "script"
       title: "install Ansible plugins"
+      timeout: 600
       repository: "origin"
       script: |-
         sudo chmod o+rw /etc/environment
@@ -24,6 +26,7 @@ extensions:
         sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
     - type: "script"
       title: "determine the release commit for origin images and version for rpms"
+      timeout: 600
       repository: "origin"
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
@@ -31,6 +34,7 @@ extensions:
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
     - type: "script"
       title: "install origin"
+      timeout: 7200
       repository: "aos-cd-jobs"
       script: |-
         local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
@@ -52,6 +56,7 @@ extensions:
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
     - type: "script"
       title: "expose the kubeconfig"
+      timeout: 600
       script: |-
         sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
         sudo chmod a+rw /etc/origin/master/admin.kubeconfig

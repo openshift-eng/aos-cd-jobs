@@ -19,7 +19,7 @@ cd "\${HOME}"
 SCRIPT
 chmod +x "${script}"
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config "${script}" openshiftdevel:"${script}"
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c \\"${script}\\"" """)
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c \\"timeout {{ timeout }} ${script}\\"" """)
 
 
 class ScriptAction(Action):
@@ -30,12 +30,13 @@ class ScriptAction(Action):
     the repository as the working directory.
     """
 
-    def __init__(self, repository, script, title):
+    def __init__(self, repository, script, title, timeout=3600):
         self.repository = repository
         self.script = script
         if title == None:
             title = _SCRIPT_TITLE
         self.title = title
+        self.timeout = timeout
 
     def generate_build_steps(self):
         return [render_task(
@@ -43,5 +44,6 @@ class ScriptAction(Action):
             command=_SCRIPT_ACTION_TEMPLATE.render(
                 repository=self.repository,
                 command=self.script,
+                timeout=self.timeout
             )
         )]

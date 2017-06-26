@@ -86,7 +86,7 @@ A custom XML generator lives under the `sjb/` directory. This generator is meant
 bridge the gap between monolithic scripts inside of Freestyle Jenkins Jobs and segmented Jenkins Pipelines driven by source-
 controlled Groovy scripts and libraries.
 
-The generator understand a small set of `action`s, each of which is underpinned by a Python module under
+The generator understands a small set of `action`s, each of which is underpinned by a Python module under
 [`sjb/actions/`](sjb/actions). A configuration YAML file is read in by [`sjb/generate.py`](sjb/generate.py) and used to generate a
 set of input variables to the [Jinja job template XML](sjb/templates/test_case.xml). Jobs can depend on a parent to reuse
 configuration.

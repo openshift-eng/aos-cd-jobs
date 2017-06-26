@@ -305,7 +305,19 @@ setup_git_repo() {
   pushd "${workingdir}" >/dev/null
   git clone -q ${git_repo} 2>/dev/null
   pushd "${git_path}" >/dev/null
+  
   git checkout ${git_branch} 2>/dev/null
+  
+  # If we are running in online:stg mode, we want to update dist-git with 
+  # content from the stage branch, not from master.
+  if [ "${git_branch}" == "master" -a "${BUILD_MODE}" == "online:stg" ]; then
+    # See if this repo has a stage branch
+    git checkout "stage"
+    if [ "$?" == "0" ]; then
+        git_branch = "stage"
+    fi
+  fi
+    
   popd >/dev/null
   popd >/dev/null
 

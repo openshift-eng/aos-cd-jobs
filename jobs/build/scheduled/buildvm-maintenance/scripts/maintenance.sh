@@ -43,8 +43,8 @@ sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --grou
 echo "====Pushing efs-provisoner===="
 sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group efs
 
-echo "====Pushing etcd===="
-sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group etcd
+echo "====Pushing rhel-extras===="
+sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group rhel-extras
 
 echo "====Docker statistics===="
 # Print out a report for the Jenkins job

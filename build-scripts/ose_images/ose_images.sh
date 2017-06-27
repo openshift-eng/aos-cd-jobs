@@ -165,9 +165,10 @@ add_group_to_list() {
       add_to_list playbook2image-docker
       add_to_list aos3-installation-docker
     ;;
-    etcd)
+    rhel-extras)
       add_to_list etcd-docker
       add_to_list etcd3-docker
+      add_to_list container-engine-docker
     ;;
     logging)
       add_to_list logging-auth-proxy-docker

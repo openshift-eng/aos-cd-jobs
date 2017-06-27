@@ -30,7 +30,7 @@ class ScriptAction(Action):
     the repository as the working directory.
     """
 
-    def __init__(self, repository, script, title, timeout=3600):
+    def __init__(self, repository, script, title, timeout=7200):
         self.repository = repository
         self.script = script
         if title == None:

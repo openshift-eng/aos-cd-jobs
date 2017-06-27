@@ -114,7 +114,10 @@ if __name__ == "__main__":
 	# listing of origin or docker pkgs will be disabled, based on the enabled excluder.
 	yb.conf.disable_excludes = ["all"]
 	sys.stdout = old_stdout
-	available_pkgs = rpmutils.unique(yb.doPackageLists('available', patterns=[pkg_name], showdups=True).available)
+
+	generic_holder = yb.doPackageLists('all', patterns=[pkg_name], showdups=True)
+	available_pkgs = rpmutils.unique(generic_holder.available + generic_holder.installed)
+
 	available_pkgs = remove_duplicate_pkgs(available_pkgs)
 	available_pkgs = sort_pkgs(available_pkgs)
 

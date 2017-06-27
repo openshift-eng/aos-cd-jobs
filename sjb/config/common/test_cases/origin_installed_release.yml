@@ -7,10 +7,10 @@ extensions:
       repository: "openshift-ansible"
       timeout: 3600
       script: |-
-        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
         last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
         last_commit="$( git log -n 1 --pretty=%h )"
         sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+        rpm -V "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
     - type: "script"
       title: "install Ansible plugins"
       timeout: 600
@@ -60,6 +60,13 @@ extensions:
       script: |-
         sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
         sudo chmod a+rw /etc/origin/master/admin.kubeconfig
+    - type: "script"
+      title: "ensure built version of origin is installed"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        rpm -V "${origin_package}"
   system_journals:
     - origin-master.service
     - origin-node.service

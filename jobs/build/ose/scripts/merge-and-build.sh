@@ -156,44 +156,40 @@ cd ose
 # https://github.com/openshift/ose/commit/02b57ed38d94ba1d28b9bc8bd8abcb6590013b7c
 git config merge.ours.driver true
 
-# Set to empty string to use tito's normal version progression
-export TITO_USE_VERSION=""
+if [ "${BUILD_MODE}" == "online:stg" ] ; then
+  CURRENT_BRANCH="stage"
+  UPSTREAM_BRANCH="upstream/stage"
+elif [ "${BUILD_MODE}" == "enterprise:pre-release" ] ; then
+  CURRENT_BRANCH="enterprise-${OSE_VERSION}"
+  UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
+elif [ "${BUILD_MODE}" == "enterprise" ]; then
+  CURRENT_BRANCH="enterprise-${OSE_VERSION}"
+  # UPSTREAM_BRANCH is not needed in this case
+else # Otherwise, online:int
+  CURRENT_BRANCH="master"
+  UPSTREAM_BRANCH="upstream/master"
+fi
 
-if [ "${BUILD_MODE}" == "enterprise" ]; then
+# Keep the checkout prior to fetching the upstream branches, otherwise git weirdness
+# with the stage branch entails.
+echo "Building from branch: ${CURRENT_BRANCH}"
+git checkout -q ${CURRENT_BRANCH}
 
-  git checkout -q enterprise-${OSE_VERSION}
-
-else
-
+if [ "${BUILD_MODE}" != "enterprise" ]; then
   # If we are here, we are building master or stage for online
-
-  # Creating a target version allows online:int builds to resume where the last stage build left off in terms
-  # of versioning. This should not be necessary when we can safely use a different 'release' in the tito version.
-  export TITO_USE_VERSION="--use-version=$(get_post_stage_version origin.spec)"
-
-  if [ "${BUILD_MODE}" == "online:stg" ] ; then
-    CURRENT_BRANCH="stage"
-    UPSTREAM_BRANCH="upstream/stage"
-  elif [ "${BUILD_MODE}" == "enterprise:pre-release" ] ; then
-    CURRENT_BRANCH="enterprise-${OSE_VERSION}"
-    UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
-  else # Otherwise, online:int
-    CURRENT_BRANCH="master"
-    UPSTREAM_BRANCH="upstream/master"
-  fi
-
-  echo "Building from branch: ${CURRENT_BRANCH}"
-  git checkout -q ${CURRENT_BRANCH}
-
   git remote add upstream git@github.com:openshift/origin.git --no-tags
   git fetch --all
 
   echo
   echo "=========="
-  echo "Merge origin into ose stuff"
+  echo "Rebase ose onto origin stuff"
   echo "=========="
-  git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" ${UPSTREAM_BRANCH}
-
+  # Will be needed for creating the custom changelog for tito.
+  PREVIOUS_HEAD=$(git merge-base ${CURRENT_BRANCH} ${UPSTREAM_BRANCH})
+  # Rebase
+  GIT_SEQUENCE_EDITOR=${WORKSPACE}/scripts/rebase.py git rebase -i "${UPSTREAM_BRANCH}"
+  # Will be needed for creating the custom changelog for tito.
+  CURRENT_HEAD=$(git merge-base ${CURRENT_BRANCH} ${UPSTREAM_BRANCH})
 fi
 
 echo
@@ -205,9 +201,9 @@ git add pkg/assets/bindata.go
 git add pkg/assets/java/bindata.go
 set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
-  git commit -m "Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
+  git commit -m "[DROP] Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
 else  
-  git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
+  git commit -m "[DROP] Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
 fi
 set -e
 
@@ -217,11 +213,30 @@ echo
 echo "=========="
 echo "Tito Tagging: ose"
 echo "=========="
-tito tag --accept-auto-changelog ${TITO_USE_VERSION}      # TITO_USE_VERSION may be empty in some codepaths
+# Set to empty string to use tito's normal version progression
+export TITO_USE_VERSION=""
+# Set force pushes to empty string explicitly
+export FORCE_PUSH=""
+if [ "${BUILD_MODE}" != "enterprise" ]; then
+  # Creating a target version allows online:int builds to resume where the last stage build left off in terms
+  # of versioning. This should not be necessary when we can safely use a different 'release' in the tito version.
+  export TITO_USE_VERSION="--use-version=$(get_post_stage_version origin.spec)"
+  # If we are not building a release branch, we need to force-push because of git rebase.
+  export FORCE_PUSH="-f"
+  declare -a changelog
+  for commit in $( git log "${PREVIOUS_HEAD}..${CURRENT_HEAD}" --pretty=%h --no-merges ); do
+    changelog+=( "--changelog='$( git log -1 "${commit}" --pretty='%s (%ae)' )'" )
+  done
+fi
+set +u
+# changelog can be empty after a conflict is resolved - PREVIOUS_HEAD and CURRENT_HEAD are the
+# same, all the code is merged already. TITO_USE_VERSION may be empty in some codepaths, too.
+tito tag --accept-auto-changelog ${TITO_USE_VERSION} "${changelog[@]}"
+set -u
 export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
 echo ${VERSION}
-git push
-git push --tags
+git push origin ${CURRENT_BRANCH} ${FORCE_PUSH} refs/tags/$(git describe)
+
 
 echo
 echo "=========="
@@ -267,7 +282,6 @@ else
 fi
 
 tito tag --accept-auto-changelog ${TITO_USE_VERSION}
-git push
 git push --tags
 
 echo

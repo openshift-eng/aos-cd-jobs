@@ -14,7 +14,7 @@ echo "${ANSIBLE_JUNIT_DIR}"
 sudo mkdir -p "${ANSIBLE_JUNIT_DIR}"
 sudo mkdir -p /usr/share/ansible/plugins/callback
 for plugin in 'default_with_output_lists' 'generate_junit'; do
-   wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+   sudo wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
    sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
 done
 sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg

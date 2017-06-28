@@ -12,7 +12,7 @@
   <triggers class="vector">
     <jenkins.triggers.ReverseBuildTrigger>
       <spec/>
-      <upstreamProjects>continuous-upgrade_provision-job,continuous-upgrade_upgrade-job</upstreamProjects>
+      <upstreamProjects>continuous-upgrade_cicd-upgrade-job</upstreamProjects>
       <threshold>
         <name>SUCCESS</name>
         <ordinal>0</ordinal>
@@ -24,51 +24,46 @@
   <builders>
     <hudson.tasks.Shell>
       <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+
 script=&quot;$( mktemp )&quot;
 cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-
 sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases update -y atomic-openshift-utils
-cd /data/src/github.com/openshift/aos-cd-jobs/
-rpm -qa atomic-openshift
+cd /root/aos-cd-jobs/
 sudo python sjb/hack/determine_install_upgrade_version.py &quot;\$( rpm -qa atomic-openshift )&quot; &gt; AOS_VARS
 source AOS_VARS
 ansible-playbook  -vv                    \
                   --become               \
                   --become-user root     \
-                  --connection local     \
-                  --inventory sjb/inventory/ \
-                   &quot;/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${ATOMIC_OPENSHIFT_UPGRADE_RELEASE_MINOR_VERSION=6}/upgrade.yml&quot;     \
-                  -e etcd_data_dir=&quot;/tmp/etcd&quot; \
-                  -e openshift_pkg_version=&quot;-\${ATOMIC_OPENSHIFT_UPGRADE_RELEASE_VERSION}&quot; \
-                  -e deployment_type=&quot;openshift-enterprise&quot; \
-                  -e oreg_url='registry.ops.openshift.com/openshift3/ose-\${component}:\${version}' \
-                  -e openshift_docker_insecure_registries=&quot;brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888&quot; \
-                  -e openshift_docker_additional_registries=&quot;brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888,registry.ops.openshift.com&quot;
+                  --inventory /root/cicd-byo-inventory \
+                   &quot;/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_\${ATOMIC_OPENSHIFT_UPGRADE_RELEASE_MINOR_VERSION}/upgrade.yml&quot; \
+                  -e openshift_pkg_version=&quot;-\${ATOMIC_OPENSHIFT_UPGRADE_RELEASE_VERSION}&quot; 
 
 SCRIPT
 chmod +x &quot;${script}&quot;
-scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config &quot;${script}&quot; openshiftdevel:&quot;${script}&quot;
-ssh -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &quot;bash -l -c \&quot;${script}\&quot;&quot;
-scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -r openshiftdevel:/usr/share/ansible_junit &quot;${WORKSPACE}&quot;
+eval &quot;$(ssh-agent -s)&quot;
+ssh-add ~jenkins/.ssh/cicd_cluster_key
+ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com &quot;ansible all -i /root/cicd-byo-inventory -m ping&quot;
+scp -o StrictHostKeyChecking=no   &quot;${script}&quot; root@master1.cicd.openshift.com:&quot;${script}&quot;
+ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com &quot;bash -l -c \&quot;${script}\&quot;&quot;
 
+scp -o StrictHostKeyChecking=no -r root@master1.cicd.openshift.com:/usr/share/ansible_junit &quot;${WORKSPACE}&quot;
 script=&quot;$( mktemp )&quot;
 cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-
-rm -rf &quot;${ANSIBLE_JUNIT_DIR}/*&quot;
-
+rm -rf &quot;\${ANSIBLE_JUNIT_DIR}&quot;/*
 SCRIPT
 chmod +x &quot;${script}&quot;
-scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config &quot;${script}&quot; openshiftdevel:&quot;${script}&quot;
-ssh -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &quot;bash -l -c \&quot;${script}\&quot;&quot;</command>
+scp -o StrictHostKeyChecking=no &quot;${script}&quot; root@master1.cicd.openshift.com:&quot;${script}&quot;
+ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com &quot;bash -l -c \&quot;${script}\&quot;&quot;</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
     <hudson.tasks.Mailer>
-      <recipients>jhadvig@redhat.com skuznets@redhat.com</recipients>
+      <recipients>jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>

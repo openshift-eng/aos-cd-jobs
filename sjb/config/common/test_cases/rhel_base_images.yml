@@ -1,0 +1,54 @@
+---
+parent: 'common/test_cases/s2i.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "build base rhel images"
+      timeout: 3600
+      script: |-
+        # inside temporary directory create docker build context for the new base image
+        contextdir=$(mktemp -d)
+
+        # copy the necessary files
+        mkdir $contextdir/{certs,repos,vars,keys}
+        cp /var/lib/yum/*.pem $contextdir/certs
+        cp /etc/yum/vars/* $contextdir/vars
+        cp /etc/yum.repos.d/* $contextdir/repos
+        cp /etc/pki/rpm-gpg/* $contextdir/keys
+
+        # Remove repositories we won't be needing and which require RH certs
+        rm -rf $contextdir/repos/redhat-rhui*
+
+        # remove google chrome repo
+        rm -rf $contextdir/repos/*chrome*.repo
+
+        # remove local openshift epel mirror - we will only temporarily mount this via imagebuilder during image builds
+        rm -rf $contextdir/repos/local_epel.repo 
+
+        # create Dockerfile
+        cat <<EOF > $contextdir/Dockerfile
+        FROM registry.access.redhat.com/rhel7.3:latest
+
+        RUN yum remove -y subscription-manager
+
+        ADD vars/* /etc/yum/vars/
+        ADD repos/* /etc/yum.repos.d/
+        ADD certs/* /var/lib/yum/
+        ADD keys/* /etc/pki/rpm-gpg/
+
+        RUN yum update -y && yum clean all
+
+        EOF
+
+        docker build --rm -t registry.access.redhat.com/rhel7.3 $contextdir
+
+        # make sure the new rhel7.3 image has valid certs
+        docker run registry.access.redhat.com/rhel7.3 yum install -y tar
+
+        docker tag registry.access.redhat.com/rhel7.3 registry.access.redhat.com/rhel7
+
+        # TODO: remove this rhel7.2 tag once the jenkins repo doesn't reference it anymore
+        docker tag registry.access.redhat.com/rhel7.3 rhel7.2
+
+        # cleaning
+        rm -rf $contextdir

@@ -23,7 +23,7 @@ Example: jenkins-plugin-rpm-update openshift-sync 3.6
 
 Requirements
 -----
-brew and rhscl must be installed and working.
+brew and rhpkg must be installed and working.
 You must have a kerberos ticket
 
 Known Bugs

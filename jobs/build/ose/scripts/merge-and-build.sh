@@ -4,41 +4,38 @@
 
 set -o xtrace
 
-# Checks the master and stage branch of the repo for the Version in the specified spec filename.
-# Calculates a higher version string which can be used with tito.
-function get_post_stage_version {
-    SPEC_FILE="$1"
-    if [ -z "$SPEC_FILE" ]; then
+set -o errexit
+set -o nounset
+set -o pipefail
+
+function get_version_fields {
+    COUNT="$1"
+
+    if [ "$COUNT" == "0" ]; then
+        echo "Invalid number of Version fields specified: $COUNT"
         return 1
     fi
-    current_branch=$(git rev-parse --abbrev-ref --symbolic-full-name HEAD)
-    {
-        # Determine which version of the spec had the most recent build / highest Z in v X.Y.Z. The
-        # weird 'rev' use is a means of grabbing only the last element of the version (so the logic will work
-        # on X.Y.Z or X.Y.Z.ZZ .
-        git checkout master
-        MASTER_VERSION_PATCH="$(grep Version: ${SPEC_FILE} | awk '{print $2}' | rev | cut -d . -f 1 | rev)"
-        git checkout stage
-        STAGE_VERSION_PATCH="$(grep Version: ${SPEC_FILE} | awk '{print $2}' | rev | cut -d . -f 1 | rev)"
 
-        if [ "$MASTER_VERSION_PATCH" -lt "$STAGE_VERSION_PATCH" ]; then
-            echo "stage branch $SPEC_FILE is ahead of master branch $SPEC_FILE"
-            LATEST_VERSION_PATCH=$(($STAGE_VERSION_PATCH + 1))
-        else
-            if [ "${BUILD_MODE}" == "online:stg" ]; then
-                echo "This should never happen. You will need to recut ose/stage from ose/master."
-                echo "online:int builds should not occur while stagecut is in progress."
-                exit 1
-            fi
-            echo "master branch $SPEC_FILE is ahead of stage branch $SPEC_FILE"
-            LATEST_VERSION_PATCH=$(($MASTER_VERSION_PATCH + 1))
-        fi
+    V="$(grep Version: origin.spec | awk '{print $2}')"
+    # e.g. "3.6.126" => "3 6 126" => wc + awk gives number of independent fields
+    export CURRENT_COUNT="$(echo ${V} | tr . ' ' | wc | awk '{print $2}')"
 
-    } >&2   # Redirect any stdout to stderr to avoid corrupting stdout to caller
+    # If there are more fields than we expect OR we would need to add more than one field,
+    # something has gone wrong.
+    if [ "$CURRENT_COUNT" -gt "$COUNT" -o "$(($CURRENT_COUNT + 1))" -lt "$COUNT" ]; then
+        echo "Unexpected number of fields in current version: $CURRENT_COUNT ; expected less-than-or-equal to $COUNT"
+        return 1
+    fi
 
-    # Cut off the patch version of the version and append the newly calculated patch version
-    echo -n "$(grep Version: ${SPEC_FILE} | awk '{print $2}' | rev | cut -d . -f 1 --complement | rev).$LATEST_VERSION_PATCH"
-    git checkout -q "$current_branch"
+    if [ "$CURRENT_COUNT" -lt "$COUNT" ]; then
+        echo -n "${V}.0"
+    else
+        # Extract the value of the last field
+        MINOREST_FIELD="$(echo -n ${V} | rev | cut -d . -f 1 | rev)"
+        NEW_MINOREST_FIELD=$(($MINOREST_FIELD + 1))
+        # Cut off the minorest version of the version and append the newly calculated patch version
+        echo -n "$(echo ${V} | rev | cut -d . -f 1 --complement | rev).$NEW_MINOREST_FIELD"
+    fi
 }
 
 echo
@@ -50,9 +47,6 @@ kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-
 # Path for merge-and-build script
 MB_PATH=$(readlink -f $0)
 
-set -o errexit
-set -o nounset
-set -o pipefail
 
 if [ "$#" -ne 2 ]; then
   echo "Please pass in MAJOR and MINOR version"
@@ -156,12 +150,13 @@ cd ose
 # https://github.com/openshift/ose/commit/02b57ed38d94ba1d28b9bc8bd8abcb6590013b7c
 git config merge.ours.driver true
 
-# Set to empty string to use tito's normal version progression
-export TITO_USE_VERSION=""
+# The number of fields which should be present in the openshift.spec Version field
+SPEC_VERSION_COUNT=0
 
 if [ "${BUILD_MODE}" == "enterprise" ]; then
 
   git checkout -q enterprise-${OSE_VERSION}
+  SPEC_VERSION_COUNT=5
 
 else
 
@@ -174,12 +169,15 @@ else
   if [ "${BUILD_MODE}" == "online:stg" ] ; then
     CURRENT_BRANCH="stage"
     UPSTREAM_BRANCH="upstream/stage"
+    SPEC_VERSION_COUNT=4
   elif [ "${BUILD_MODE}" == "enterprise:pre-release" ] ; then
     CURRENT_BRANCH="enterprise-${OSE_VERSION}"
     UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
+    SPEC_VERSION_COUNT=5
   else # Otherwise, online:int
     CURRENT_BRANCH="master"
     UPSTREAM_BRANCH="upstream/master"
+    SPEC_VERSION_COUNT=3 # No need to change
   fi
 
   echo "Building from branch: ${CURRENT_BRANCH}"
@@ -192,9 +190,13 @@ else
   echo "=========="
   echo "Merge origin into ose stuff"
   echo "=========="
-  git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" ${UPSTREAM_BRANCH}
+  git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" "${UPSTREAM_BRANCH}"
 
 fi
+
+export TITO_USE_VERSION="--use-version $(get_version_fields $SPEC_VERSION_COUNT)"
+echo "set: $TITO_USE_VERSION"
+exit 0
 
 echo
 echo "=========="
@@ -217,9 +219,8 @@ echo
 echo "=========="
 echo "Tito Tagging: ose"
 echo "=========="
-tito tag --accept-auto-changelog ${TITO_USE_VERSION}      # TITO_USE_VERSION may be empty in some codepaths
-export VERSION="v$(grep Version: origin.spec | awk '{print $2}')"
-echo ${VERSION}
+tito tag --accept-auto-changelog ${TITO_USE_VERSION}
+export VERSION="$(grep Version: origin.spec | awk '{print $2}')"  # should match version arrived at by TITO_USE_VERSOIN
 git push
 git push --tags
 
@@ -263,7 +264,7 @@ if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below
     export TITO_USE_VERSION=""
 else
     # For 3.6 onward, match the OCP version
-    export TITO_USE_VERSION="--use-version=${VERSION#v}"
+    export TITO_USE_VERSION="--use-version=${VERSION}"
 fi
 
 tito tag --accept-auto-changelog ${TITO_USE_VERSION}
@@ -298,7 +299,7 @@ echo
 echo "=========="
 echo "Update Dockerfiles to new version"
 echo "=========="
-ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version ${VERSION}
+ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version "v${VERSION}"
 
 echo
 echo "=========="
@@ -341,10 +342,10 @@ echo "=========="
 echo "Publish the oc binary"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-    sh -s "$OSE_VERSION" "${VERSION#v}" \
+    sh -s "$OSE_VERSION" "${VERSION}" \
     < "$WORKSPACE/build-scripts/rcm-guest/publish-oc-binary.sh"
 
-for x in "${VERSION#v}/"{linux/oc.tar.gz,macosx/oc.tar.gz,windows/oc.zip}; do
+for x in "${VERSION}/"{linux/oc.tar.gz,macosx/oc.tar.gz,windows/oc.zip}; do
     curl --silent --show-error --head \
         "https://mirror.openshift.com/pub/openshift-v3/clients/$x" \
         | awk '$2!="200"{print > "/dev/stderr"; exit 1}{exit}'

@@ -100,11 +100,6 @@ node('buildvm-devops') {
 			}
 			stage ('Install Docker') {
 				sh 'oct prepare docker --repo "rhel7next*"'
-				docker_rpm = installedNVR('docker')
-				container_selinux_rpm = installedNVR('container-selinux')
-				container_storage_setup_rpm = installedNVR('container-storage-setup')
-				skopeo_rpm = installedNVR('skopeo')
-				echo "Installed: ${docker_rpm} ${container_selinux_rpm} ${container_storage_setup_rpm} ${skopeo_rpm}"
 			}
 			stage ('Install Other RHEL7Next Dependencies') {
 				runScript './install-rhel7next-dependencies.sh'

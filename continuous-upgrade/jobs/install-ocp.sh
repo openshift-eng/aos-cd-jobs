@@ -16,9 +16,10 @@ sslverify = 0
 EOR
 sudo cp ./openshift-int.repo /etc/yum.repos.d
 
+cd /data/src/github.com/openshift/aos-cd-jobs/
+git pull origin master
 /data/src/github.com/openshift/aos-cd-jobs/continuous-upgrade/actions/install_junit.sh
 sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases install -y atomic-openshift-utils
-cd /data/src/github.com/openshift/aos-cd-jobs/
 ansible-playbook  -vv          \
           --become           \
           --become-user root \

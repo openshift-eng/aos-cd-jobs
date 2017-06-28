@@ -9,6 +9,7 @@ sudo yum install -y python-pip
 sudo pip install junit_xml
 sudo chmod o+rw /etc/environment
 echo "ANSIBLE_JUNIT_DIR=$( pwd )/ansible_junit" >> /etc/environment
+export ANSIBLE_JUNIT_DIR="$( pwd )/ansible_junit"
 echo "${ANSIBLE_JUNIT_DIR}"
 sudo mkdir -p "${ANSIBLE_JUNIT_DIR}"
 sudo mkdir -p /usr/share/ansible/plugins/callback

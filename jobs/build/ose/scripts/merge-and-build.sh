@@ -195,8 +195,6 @@ else
 fi
 
 export TITO_USE_VERSION="--use-version $(get_version_fields $SPEC_VERSION_COUNT)"
-echo "set: $TITO_USE_VERSION"
-exit 0
 
 echo
 echo "=========="

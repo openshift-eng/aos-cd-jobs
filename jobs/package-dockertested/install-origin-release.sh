@@ -24,7 +24,6 @@ ansible-playbook -vv --become               \
                  -e deployment_type=origin  \
                  -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                  -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
-                 -e openshift_disable_check=docker_image_availability,package_update    \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
 sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig

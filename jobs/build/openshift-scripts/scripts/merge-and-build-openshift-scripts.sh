@@ -72,6 +72,11 @@ else
       brew tag-pkg libra-rhel-7-candidate ${TAG}.git.0.${COMMIT}.el7
     fi
 
+    # tag-pkg seems to work async even though we are not specifying the --nowait argument. 
+    # We have seen the push which follows push the old build instead of the new, so
+    # using a sleep below to allow brew to get into a consistent state.
+    sleep 20
+
     echo
     echo "=========="
     echo "Build and Push libra repos"

@@ -48,7 +48,7 @@ ${venv}/bin/pip install --process-dependency-links \
 source ${venv}/bin/activate
 oct configure ansible-client verbosity 2
 oct configure aws-client keypair_name libra
-oct configure aws-client private_key_path /home/jenkins/.ssh/libra.pem
+oct configure aws-client private_key_path /home/jenkins/.ssh/devenv.pem
 """
     }
     stage('provision') {

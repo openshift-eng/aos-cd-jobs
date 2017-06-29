@@ -1,0 +1,44 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  parameters:
+  - name: "PULL_REFS"
+    description: "Set by plank. Allows batch merges."
+    default_value: ""
+  - name: "PULL_BASE_REF"
+    description: "Set by plank. The base branch that is tested."
+    default_value: ""
+  - name: "buildId"
+    description: "Set by plank to correlate ProwJobs with Jenkins jobs."
+    default_value: ""
+  actions:
+    - type: "forward_parameters"
+      parameters:
+        - PULL_REFS
+        - PULL_BASE_REF
+    - type: "script"
+      title: "switch origin to origin-prow"
+      repository: "origin"
+      script: |-
+        git remote set-url origin https://github.com/origin-prow/origin
+        git fetch origin
+        git checkout master
+        git reset --hard origin/master
+        wget https://gist.githubusercontent.com/kargakis/d67aafb8700f500b5c2e316a10dc65c7/raw/3bf4032dc3ac2866e61c85a2798f877059f9c00f/merge_pull_refs.py
+        chmod +x merge_pull_refs.py
+        ./merge_pull_refs.py . "${PULL_BASE_REF}" "${PULL_REFS}"
+    - type: "script"
+      title: "verify commit history"
+      repository: "origin"
+      script: |-
+        # run commitchecker outside release container as it needs
+        # access to git; also explicitly force godeps verification
+        branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
+        if [[ "${branch}" == "master" ]]; then
+          RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+        fi
+    - type: "script"
+      title: "build Origin"
+      repository: "origin"
+      script: |-
+        make

@@ -9,7 +9,7 @@
               - cicd-download-artifacts.sh
     publishers:
       - email:
-          recipients: jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com
+          recipients: jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com sdodson@redhat.com
           notify-every-unstable-build: true
       - junit:
           results: ansible_junit/*.xml

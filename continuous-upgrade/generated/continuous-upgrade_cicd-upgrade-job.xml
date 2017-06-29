@@ -63,7 +63,7 @@ ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com &quot;bas
   </builders>
   <publishers>
     <hudson.tasks.Mailer>
-      <recipients>jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com</recipients>
+      <recipients>jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com sdodson@redhat.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>

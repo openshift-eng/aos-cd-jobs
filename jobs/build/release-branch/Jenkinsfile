@@ -24,8 +24,7 @@ node('buildvm-devops') {
   final new_branch = 'release-1.6'
   final new_tag = 'v1.7.0-alpha.0'
   final venv = "${env.WORKSPACE}/env"
-  final gopath = '/home/ec2-user/go'
-  final origin_dir = "${gopath}/src/github.com/openshift/origin"
+  final origin_dir = '$GOPATH/src/github.com/openshift/origin'
   final approvers = ['bbarcaro@redhat.com']
   final input_msg = """\
 The build/release-branch job is finished and is waiting for approval to push
@@ -55,30 +54,17 @@ oct configure aws-client private_key_path /home/jenkins/.ssh/libra.pem
     stage('provision') {
       sh """\
 source ${venv}/bin/activate
-oct provision remote all-in-one --os rhel --stage bare --name bbarcaro-test
+oct provision remote all-in-one --os rhel --stage base --name bbarcaro-test
 """
-    }
-    stage('dependencies') {
-      sh """\
-source ${venv}/bin/activate
-oct prepare dependencies
-oct prepare golang --version 1.7.5 --repourl \
-  https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/
-oct prepare docker --repo "rhel7next*"
-ssh root@openshiftdevel -- usermod -aG docker ec2-user
-"""
-      ssh("GOPATH=${gopath} go get github.com/openshift/imagebuilder/cmd/imagebuilder")
     }
     stage('clone') {
       ssh("""\
-git clone https://github.com/openshift/origin.git ${origin_dir}
 cd ${origin_dir}
+git checkout master
+git pull
 git checkout -b ${new_branch}
 git tag ${new_tag}
 """)
-    }
-    stage('base image') {
-      ssh("cd ${origin_dir} && env SHELLOPTS=xtrace hack/build-base-images.sh")
     }
     stage('release') {
       ssh("cd ${origin_dir} && make release")

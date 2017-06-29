@@ -46,6 +46,9 @@ sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --grou
 echo "====Pushing efs-provisoner===="
 sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group efs
 
+echo "====Pushing etc..===="
+sudo env "PATH=$PATH" ose_images.sh push_images --branch rhscl-3.0-rh-nodejs6-rhel-7 --package rh-nodejs6-docker
+
 echo "====Docker statistics===="
 # Print out a report for the Jenkins job
 sudo docker info

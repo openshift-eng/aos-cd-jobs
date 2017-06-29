@@ -16,10 +16,11 @@ sslverify = 0
 EOR
 sudo cp ./openshift-int.repo /etc/yum.repos.d
 
+sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases install -y atomic-openshift-utils
 cd /data/src/github.com/openshift/aos-cd-jobs/
 git pull origin master
 /data/src/github.com/openshift/aos-cd-jobs/continuous-upgrade/actions/install_junit.sh
-sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases install -y atomic-openshift-utils
+sudo yum-config-manager --disable rhel-7-server-ose-3\*,li
 ansible-playbook  -vv          \
           --become           \
           --become-user root \
@@ -31,7 +32,7 @@ ansible-playbook  -vv          \
           -e oreg_url='registry.ops.openshift.com/openshift3/ose-\${component}:\${version}' \
           -e openshift_docker_insecure_registries="brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888" \
           -e openshift_docker_additional_registries="brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888,registry.ops.openshift.com"
-
+sudo yum-config-manager --enable rhel-7-server-ose-3\*,li
 SCRIPT
 chmod +x "${script}"
 scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config "${script}" openshiftdevel:"${script}"

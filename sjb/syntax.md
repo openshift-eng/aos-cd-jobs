@@ -1,12 +1,61 @@
 # `sjb` YAML Syntax Reference
 
-A job configuration using `sjb` will take one of two forms: a stand-alone job
-or one that inherits from another. A standalone job can declare options; a job
-with a parent can extend or override any option from the parent.
+A job configuration using `sjb` will take one of three forms: a stand-alone job,
+one that inherits from another or one that triggers other jobs. A standalone
+job can declare options; a job with a parent can extend or override any option
+from the parent.
 
 Parent-child relationships can nest -- to generate a job, the topmost parent
 configuration is loaded, then iteratively extended and overridden by children
 configurations until the bottommost configuration has been evaluated.
+
+## `children`
+
+`children` is a list which, if present, will configure the job to have child
+jobs in a multi-job build. If this field is present, the only other acceptable
+configuration fields are `timer`, `email`, and `merge` or `test`. The syntax
+is:
+
+```yaml
+children: [] # a list of job names (YAML filenames without extension under sjb/config/test_cases)
+```
+
+## `timer`
+
+`timer` is an optional field that holds a `cron` entry and will configure the
+job to trigger on this timer. Normal Jenkins `cron` syntax is expected. The
+syntax is:
+
+```yaml
+timer: "" # cron entry, e.g. 'H H * * *'
+```
+
+## `email`
+
+`email` is an optional list of e-mail addresses for who to contact when the job
+fails. The syntax is:
+
+```yaml
+email: [] # list of e-mail addresses
+```
+
+## `merge` and `test`
+
+`merge` and `test` are optional fields that mark the job as one that uses the
+`test-pull-requests` utility for signalling that a test succeeded or merging
+a pull request given a test success. If `test-pull-requests` is configured to
+run a job for a `[test]` tag, the `test` field should be present in the job
+configuration. Likewise with `[merge]` and the `merge` field. The syntax is:
+
+```yaml
+merge: "" # repo name under github.com/openshift
+```
+
+```yaml
+test: "" # repo name under github.com/openshift
+```
+
+Note: one of `merge` or `test` can be specified, but not both.
 
 ## `parameters`
 

@@ -5,4 +5,4 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-sudo yum --disablerepo=\* --enablerepo=rhel7next\* install -y skopeo container-storage-setup
+sudo yum --disablerepo=\* --enablerepo=rhel7next\* install -y skopeo container-storage-setup atomic

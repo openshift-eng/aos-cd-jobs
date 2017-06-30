@@ -89,7 +89,7 @@ controlled Groovy scripts and libraries.
 The generator understands a small set of `action`s, each of which is underpinned by a Python module under
 [`sjb/actions/`](sjb/actions). A configuration YAML file is read in by [`sjb/generate.py`](sjb/generate.py) and used to generate a
 set of input variables to the [Jinja job template XML](sjb/templates/test_case.xml). Jobs can depend on a parent to reuse
-configuration.
+configuration. Documentation on the YAML syntax can be found at [`syntax.md`(./sjb/syntax.md).
 
 A typical workflow for a developer making changes to the job would look like:
 

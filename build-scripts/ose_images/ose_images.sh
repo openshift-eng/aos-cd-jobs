@@ -135,6 +135,7 @@ add_group_to_list() {
         add_to_list openshift-enterprise-sti-builder-docker
         add_to_list openshift-enterprise-docker-builder-docker
         add_to_list logging-deployment-docker
+        add_to_list logging-curator-docker
         add_to_list metrics-deployer-docker
         if [ ${MAJOR_RELEASE} != "3.3" ] && [ ${MAJOR_RELEASE} != "3.4" ]  && [ ${MAJOR_RELEASE} != "3.5" ] ; then
           add_to_list logging-auth-proxy-docker  

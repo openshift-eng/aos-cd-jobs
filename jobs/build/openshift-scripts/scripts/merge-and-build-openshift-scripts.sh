@@ -79,7 +79,7 @@ else
         SPEC_VERSION_COUNT=6
     fi
 
-    export TITO_USE_VERSION="--use-version $(get_version_fields $SPEC_VERSION_COUNT)"
+    export TITO_USE_VERSION="--use-version=$(get_version_fields ${SPEC_VERSION_COUNT})"
 
     #There have been changes, so rebuild
     echo

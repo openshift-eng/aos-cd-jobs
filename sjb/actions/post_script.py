@@ -11,8 +11,8 @@ class PostScriptAction(Action):
     run with the repository as the working directory.
     """
 
-    def __init__(self, repository, script, title):
-        self.action = ScriptAction(repository, script, title)
+    def __init__(self, repository, script, title, timeout):
+        self.action = ScriptAction(repository, script, title, timeout)
 
     def generate_post_build_steps(self):
         return self.action.generate_build_steps()

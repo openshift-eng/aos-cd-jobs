@@ -7,38 +7,40 @@ def set_workspace() {
     }
 }
 
-node('buildvm-devops') {
+// Expose properties for a parameterized build
+properties(
+        [
+                disableConcurrentBuilds(),
+                [$class: 'ParametersDefinitionProperty',
+                 parameterDefinitions:
+                         [
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'buildvm-devops', description: 'Jenkins agent node', name: 'TARGET_NODE'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force rebuild even if no changes are detected?', name: 'FORCE_REBUILD'],
+                                 [$class: 'hudson.model.ChoiceParameterDefinition',
+                                    choices: "online:int\nonline:stg\nrelease",
+                                    description: '''online:int      online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts-int/ <br>
+                                                    online:stg      online/stage -> https://mirror.openshift.com/enterprise/online-openshift-scripts-stg/ <br>
+                                                    release         online/online-XXXX -> ??? (not yet implemented)<br>
+                                                    ''',
+                                    name: 'BUILD_MODE'],
+                         ]
+                ],
+                [$class: 'PipelineTriggersJobProperty',
+                 triggers: [[
+                                    $class: 'TimerTrigger',
+                                    spec  : 'H 11 * * *'
+                            ]]
+                ]
+        ]
+)
 
-    // Expose properties for a parameterized build
-    properties(
-            [
-                    disableConcurrentBuilds(),
-                    [$class: 'ParametersDefinitionProperty',
-                     parameterDefinitions:
-                             [
-                                     [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                                     [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                                     [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force rebuild even if no changes are detected?', name: 'FORCE_REBUILD'],
-                                     [$class: 'hudson.model.ChoiceParameterDefinition',
-                                        choices: "online:int\nonline:stg\nrelease",
-                                        description: '''online:int      online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts-int/ <br>
-                                                        online:stg      online/stage -> https://mirror.openshift.com/enterprise/online-openshift-scripts-stg/ <br>
-                                                        release         online/online-XXXX -> ??? (not yet implemented)<br>
-                                                        ''',
-                                        name: 'BUILD_MODE'],
-                             ]
-                    ],
-                    [$class: 'PipelineTriggersJobProperty',
-                     triggers: [[
-                                        $class: 'TimerTrigger',
-                                        spec  : 'H 11 * * *'
-                                ]]
-                    ]
-            ]
-    )
-    
-    // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo "MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], FORCE_REBUILD:${FORCE_REBUILD}, BUILD_MODE:${BUILD_MODE}"
+// Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
+echo "${TARGET_NODE}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], FORCE_REBUILD:${FORCE_REBUILD}, BUILD_MODE:${BUILD_MODE}"
+
+
+node(TARGET_NODE) {
 
     set_workspace()
     stage('Merge and build') {

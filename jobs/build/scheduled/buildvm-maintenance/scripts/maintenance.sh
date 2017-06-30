@@ -33,22 +33,32 @@ echo "====Cleaning up older docker images===="
         done
 } | sort | awk '{ print $2 }' | uniq | head -n -100 | xargs --no-run-if-empty sudo docker rmi -f
 
-set -e
+FINAL_EXIT=0
 
 echo "====Pushing rhel-extras===="
 sudo env "PATH=$PATH" ose_images.sh push_images --branch extras-rhel-7.3 --group rhel-extras
+FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors
 
 echo "====Pushing logging and metrics images===="
 sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.4-rhel-7 --group logging --group metrics --nolatest
+FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors
+
 sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.5-rhel-7 --group logging --group metrics --nolatest
+FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors
+
 sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group logging --group metrics
+FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors
 
 echo "====Pushing efs-provisoner===="
 sudo env "PATH=$PATH" ose_images.sh push_images --branch rhaos-3.6-rhel-7 --group efs
+FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors
 
 echo "====Pushing etc..===="
 sudo env "PATH=$PATH" ose_images.sh push_images --branch rhscl-3.0-rh-nodejs6-rhel-7 --package rh-nodejs6-docker
+FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors
 
 echo "====Docker statistics===="
 # Print out a report for the Jenkins job
 sudo docker info
+
+exit $FINAL_EXIT

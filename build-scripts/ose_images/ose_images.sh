@@ -146,7 +146,7 @@ add_group_to_list() {
           add_to_list metrics-hawkular-metrics-docker
           add_to_list metrics-hawkular-openshift-agent-docker
           add_to_list metrics-heapster-docker
-          add_to_list openshift-jenkins-docker  
+          #add_to_list openshift-jenkins-docker  
           add_to_list openshift-jenkins-2-docker 
           add_to_list jenkins-slave-base-rhel7-docker 
           add_to_list jenkins-slave-maven-rhel7-docker 

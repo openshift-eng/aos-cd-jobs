@@ -5,7 +5,7 @@ extensions:
     - type: "script"
       title: "run integration tests"
       repository: "origin"
-      timeout: 3600
+      timeout: 7200
       script: |-
         OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
         OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test -o check -o build -k

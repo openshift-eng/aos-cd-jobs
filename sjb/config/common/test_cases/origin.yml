@@ -26,7 +26,7 @@ generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
   avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
   docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
-  filesystem.info: 'sudo df -h && sudo vgs && sudo lvs'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
   pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
 system_journals:
   - docker.service

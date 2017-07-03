@@ -78,7 +78,7 @@ in AWS EC2 for the job. The syntax is:
 ```yaml
 provision:
   os: ""       # operating system. only 'rhel' is supported
-  stage: ""    # image stage. one of ['bare', 'base', 'build', 'install']
+  stage: ""    # image stage. one of ['bare', 'base', 'build', 'install', 'fork']
   provider: "" # cloud provider. only 'aws' is supported
 ```
 
@@ -142,7 +142,7 @@ actions:
   - type: "script"
     timeout: 0 # in seconds [optional]
     title: ""      # a human-readable title for the step
-    repository: "" # the repository to `cd` into [optional]
+    repository: "" # the repository under github.com/openshift to `cd` into [optional]
     script: ""     # inline shell script to run, no character escaping necessary 
 ```
 

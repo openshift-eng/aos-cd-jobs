@@ -92,6 +92,15 @@ rectory to run."
         rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/data/
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/data/'
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/data/'
+    - type: "host_script"
+      title: "determine the instance prefix"
+      script: |-
+        # we need a short but unique identifier, so we take the first 7 of SHA
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
+        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX:-}" >> INSTANCE_PREFIX
+        # hack around forwarding this to the other machine
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'INSTANCE_PREFIX=${INSTANCE_PREFIX:-}' >> /etc/environment"
     - type: "script"
       title: "provision test cluster"
       repository: "release"
@@ -102,11 +111,6 @@ rectory to run."
           docker pull "${OPENSHIFT_ANSIBLE_IMAGE}"
           docker tag "${OPENSHIFT_ANSIBLE_IMAGE}" "openshift/origin-gce:latest"
         fi
-
-        # we need a short but unique identifier, so we take the first 7 of SHA
-        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
-        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
-        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX}" >> /etc/environment
 
         ../../bin/local.sh ansible-playbook -e "provision_gce_docker_storage_driver=${DOCKER_STORAGE_DRIVER}" -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
@@ -145,6 +149,43 @@ rectory to run."
         fi
         make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"
   post_actions:
+    - type: "host_script"
+      title: "gather artifacts from test cluster"
+      timeout: 900
+      script: |-
+        base_artifact_dir="$(pwd)/artifacts"
+        source ./INSTANCE_PREFIX
+        for instance in $( gcloud compute instances list --regexp ".*${INSTANCE_PREFIX}.*" --uri ); do
+            info="$( mktemp )"
+            gcloud compute instances describe "${instance}" --format json > "${info}"
+            name="$( jq '.name' --raw-output "${info}" | tail -c 5 )"
+            if jq '.tags.items | contains(["ocp-master"])' --exit-status "${info}"; then
+                artifact_dir="${base_artifact_dir}/masters/${name}"
+                mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master.service"
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit etcd.service          --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/etcd.service"
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-node.service   --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-node.service"
+            elif jq '.tags.items | contains(["ocp-node"])' --exit-status "${info}"; then
+                artifact_dir="${base_artifact_dir}/nodes/${name}"
+                mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-node.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-node.service"
+            else
+                artifact_dir="${base_artifact_dir}/unknown/${name}"
+                mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
+            fi
+
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit openvswitch.service  --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/openvswitch.service"
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/ovs-vswitchd.service"
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/ovsdb-server.service"
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit docker.service       --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/docker.service"
+
+            gcloud compute ssh "${instance}" -- "sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a" 2>&1 > "${artifact_dir}/generated/docker.info"
+            gcloud compute ssh "${instance}" -- sudo yum history info origin                                                         2>&1 > "${artifact_dir}/generated/origin_package_history.log"
+            gcloud compute ssh "${instance}" -- "sudo df -h && sudo pvs && sudo vgs && sudo lvs"                                     2>&1 > "${artifact_dir}/generated/filesystem.info"
+            gcloud compute ssh "${instance}" -- sudo yum list installed                                                              2>&1 > "${artifact_dir}/generated/installed_packages.log"
+            gcloud compute ssh "${instance}" -- sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC                                      2>&1 > "${artifact_dir}/generated/avc_denials.log" || true
+            gcloud compute ssh "${instance}" -- sudo journalctl _PID=1 --no-pager --all --lines=all                                  2>&1 > "${artifact_dir}/generated/pid1.journal"
+        done
     - type: "script"
       title: "deprovision test cluster"
       repository: "release"

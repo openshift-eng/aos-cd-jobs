@@ -6,7 +6,12 @@ def set_workspace() {
 }
 
 def ssh(cmd) {
-  sh "ssh openshiftdevel -- bash -x <<'EOF'\n${cmd}\nEOF"
+  sh "ssh openshiftdevel -- bash -x <<'EOF'\nset -euo pipefail\n${cmd}\nEOF\n"
+}
+
+def devenv(path, timeout = 14400) {
+  sh "scp ${path} openshiftdevel:/tmp/script.sh"
+  sh "timeout ${timeout}s ssh -t openshiftdevel -- bash -xl /tmp/script.sh"
 }
 
 def mail_failure(err, approvers) {
@@ -21,10 +26,10 @@ Jenkins job: ${env.BUILD_URL}
 
 node('buildvm-devops') {
   // TODO figure these out automatically
-  final new_branch = 'release-1.6'
-  final new_tag = 'v1.7.0-alpha.0'
+  final new_branch = 'release-3.6'
+  final new_tag = 'v3.7.0-alpha.0'
   final venv = "${env.WORKSPACE}/env"
-  final origin_dir = '$GOPATH/src/github.com/openshift/origin'
+  final src_dir = '$GOPATH/src/github.com/openshift'
   final approvers = ['bbarcaro@redhat.com']
   final input_msg = """\
 The build/release-branch job is finished and is waiting for approval to push
@@ -35,6 +40,7 @@ official repository.
 """
   try {
     set_workspace()
+    dir('aos-cd-jobs') { checkout scm }
     stage('oct') {
       if(!fileExists("${venv}")) {
         sh """\
@@ -52,26 +58,48 @@ oct configure aws-client private_key_path /home/jenkins/.ssh/devenv.pem
 """
     }
     stage('provision') {
+      // TODO discrete ssh config file
       sh """\
 source ${venv}/bin/activate
-oct provision remote all-in-one --os rhel --stage base --name bbarcaro-test
+oct provision remote all-in-one \
+  --os rhel --stage base --name aos-cd-jobs-release-branch
 """
     }
     stage('clone') {
       ssh("""\
-cd ${origin_dir}
-git checkout master
-git pull
+for x in openshift-ansible aos-cd-jobs origin; do
+  cd "${src_dir}/\${x}"
+  git checkout master
+  git pull
+done
 git checkout -b ${new_branch}
 git tag ${new_tag}
 """)
     }
-    stage('release') {
-      ssh("cd ${origin_dir} && make release")
+    stage('determine version') {
+      ssh("""\
+cd ${src_dir}/origin
+git log -1 --pretty=%h > "${src_dir}/aos-cd-jobs/ORIGIN_COMMIT"
+source hack/lib/init.sh
+os::build::rpm::format_nvra > "${src_dir}/aos-cd-jobs/ORIGIN_BUILT_VERSION"
+""")
     }
-    stage('test') {
-      ssh("cd ${origin_dir} && JUNIT_REPORT=true make test-extended SUITE=conformance")
+    stage('build openshift-ansible') {
+      devenv('aos-cd-jobs/00_openshift_ansible.sh')
     }
+    stage('atomic-openshift-utils') {
+      devenv('aos-cd-jobs/01_atomic_openshift_utils.sh', 600)
+    }
+    stage('ansible plugins') { devenv('aos-cd-jobs/02_ansible_plugins.sh') }
+    stage('build release') { devenv('aos-cd-jobs/03_build_release.sh', 5000) }
+    stage('install') { devenv('aos-cd-jobs/04_install.sh', 1800) }
+    stage('upgrade openshift-ansible') {
+      devenv('aos-cd-jobs/05_upgrade_openshift_ansible.sh', 3600)
+    }
+    stage('upgrade origin') {
+      devenv('aos-cd-jobs/06_upgrade_origin.sh', 1800)
+    }
+    stage('test') { devenv('aos-cd-jobs/07_test.sh') }
     stage('wait for approval') {
       mail(
         from: "aos-cd@redhat.com", to: approvers,
@@ -79,7 +107,9 @@ git tag ${new_tag}
         body: "${input_msg}\n\nJenkins job: ${env.BUILD_URL}")
       input message: input_msg
     }
-    stage('push images') { ssh("cd ${origin_dir} && hack/push-release.sh") }
+    stage('push images') {
+      ssh("cd ${src_dir}/origin/ && hack/push-release.sh")
+    }
   } catch(err) {
     mail_failure(err, approvers)
     throw err

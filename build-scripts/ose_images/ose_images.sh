@@ -152,6 +152,12 @@ add_group_to_list() {
           add_to_list jenkins-slave-maven-rhel7-docker 
           add_to_list jenkins-slave-nodejs-rhel7-docker
           add_to_list registry-console-docker
+          # Enable the asb images once they are proved to be building
+          #add_to_list openshift-enterprise-mediawiki-docker
+          #add_to_list openshift-enterprise-apb-base-docker
+          #add_to_list openshift-enterprise-asb-docker
+          #add_to_list openshift-enterprise-mediawiki
+          #add_to_list openshift-enterprise-postgresql
         fi
         add_to_list openshift-enterprise-openvswitch-docker
       fi
@@ -165,6 +171,13 @@ add_group_to_list() {
     installer)
       add_to_list playbook2image-docker
       add_to_list aos3-installation-docker
+    ;;
+    asb)
+          add_to_list openshift-enterprise-mediawiki-docker
+          add_to_list openshift-enterprise-apb-base-docker
+          add_to_list openshift-enterprise-asb-docker
+          add_to_list openshift-enterprise-mediawiki
+          add_to_list openshift-enterprise-postgresql
     ;;
     rhel-extras)
       add_to_list etcd-docker
@@ -289,14 +302,18 @@ setup_dockerfile() {
   fi
   mkdir -p "${container}" &>/dev/null
   pushd ${container} >/dev/null
-  wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/rpms/${container}/plain/Dockerfile?h=${branch} &>/dev/null
+  export ctype="${dict_image_type[${container}]}"
+  if [ "$ctype" == "" ]; then
+    ctype="rpms"
+  fi
+  wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile?h=${branch} &>/dev/null
   test_file="$(head -n 1 Dockerfile | awk '{print $1}')"
   if [ "${test_file}" == "" ] ; then
     rm -f Dockerfile
-    wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/rpms/${container}/plain/Dockerfile.product?h=${branch} &>/dev/null
+    wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile.product?h=${branch} &>/dev/null
   elif [ "${test_file}" == "Dockerfile.product" ] || [ "${test_file}" == "Dockerfile.rhel7" ] ; then
     rm -f Dockerfile
-    wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/rpms/${container}/plain/${test_file}?h=${branch} &>/dev/null
+    wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/${ctype}/${container}/plain/${test_file}?h=${branch} &>/dev/null
   fi
   popd >/dev/null
 }

@@ -1,0 +1,16 @@
+---
+parameters: []
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync_repos:
+    - name: "source-to-image"
+actions:
+  - type: "script"
+    title: "build and install s2i"
+    timeout: 300
+    repository: "source-to-image"
+    script: |-
+      make build
+      sudo cp /data/src/github.com/openshift/source-to-image/_output/local/bin/linux/amd64/s2i /usr/bin

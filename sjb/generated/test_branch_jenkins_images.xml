@@ -152,9 +152,6 @@ docker run registry.access.redhat.com/rhel7.3 yum install -y tar
 
 docker tag registry.access.redhat.com/rhel7.3 registry.access.redhat.com/rhel7
 
-# TODO: remove this rhel7.2 tag once the jenkins repo doesn&#39;t reference it anymore
-docker tag registry.access.redhat.com/rhel7.3 rhel7.2
-
 # cleaning
 rm -rf \$contextdir
 SCRIPT

@@ -47,8 +47,5 @@ extensions:
 
         docker tag registry.access.redhat.com/rhel7.3 registry.access.redhat.com/rhel7
 
-        # TODO: remove this rhel7.2 tag once the jenkins repo doesn't reference it anymore
-        docker tag registry.access.redhat.com/rhel7.3 rhel7.2
-
         # cleaning
         rm -rf $contextdir

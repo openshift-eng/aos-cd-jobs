@@ -117,9 +117,11 @@ rm -rf origin-web-console
 git clone git@github.com:openshift/origin-web-console.git
 cd origin-web-console/
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
-  git checkout stage
+  WEB_CONSOLE_BRANCH="stage"
+  git checkout "${WEB_CONSOLE_BRANCH}"
 else
-  git checkout enterprise-${OSE_VERSION}
+  WEB_CONSOLE_BRANCH="enterprise-${OSE_VERSION}"
+  git checkout "${WEB_CONSOLE_BRANCH}"
   if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
     # We will be re-generating the dist directory, so ignore it for the merge
     echo 'dist/** merge=ours' >> .gitattributes
@@ -203,7 +205,7 @@ echo
 echo "=========="
 echo "Merge in origin-web-console stuff"
 echo "=========="
-VC_COMMIT="$(GIT_REF=enterprise-${OSE_VERSION} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
+VC_COMMIT="$(GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null | grep "Vendoring origin-web-console" | awk '{print $4}')"
 git add pkg/assets/bindata.go
 git add pkg/assets/java/bindata.go
 set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.

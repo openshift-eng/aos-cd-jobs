@@ -8,6 +8,7 @@ master:
   - "aos-ci-jenkins/OS_3.5_NOT_containerized_e2e_tests"
   - "aos-ci-jenkins/OS_3.5_containerized"
   - "aos-ci-jenkins/OS_3.5_containerized_e2e_tests"
+  - "fedora/25/atomic"
 stage:
   - "aos-ci-jenkins/OS_3.6_NOT_containerized"
   - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"
@@ -17,6 +18,7 @@ stage:
   - "aos-ci-jenkins/OS_3.5_NOT_containerized_e2e_tests"
   - "aos-ci-jenkins/OS_3.5_containerized"
   - "aos-ci-jenkins/OS_3.5_containerized_e2e_tests"
+  - "fedora/25/atomic"
 release-1.6:
   - "aos-ci-jenkins/OS_3.6_NOT_containerized"
   - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"

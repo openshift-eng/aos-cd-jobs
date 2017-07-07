@@ -183,6 +183,13 @@ if "test" in job_config:
 if action != None:
     print("[INFO] Marking this as a {} job for the {} repo".format(action, target_repo))
 
+DEFAULT_DESCRIPTION = "<div style=\"font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;\">" + \
+    "WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. " + \
+    "CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. " + \
+    "MAKE CHANGES TO THE JOB DEFINITIONS IN THE " + \
+    "<a href=\"https://github.com/openshift/aos-cd-jobs/tree/master/sjb\">openshift/aos-cd-jobs</a> REPOSITORY INSTEAD." + \
+    "</div>"
+
 output_path = abspath(join(dirname(__file__), "generated", "{}.xml".format(job_name)))
 with open(output_path, "w") as output_file:
     output_file.write(env.get_template('test_case.xml').render(
@@ -192,6 +199,7 @@ with open(output_path, "w") as output_file:
         action=action,
         target_repo=target_repo,
         timer=job_config.get("timer", None),
-        email=job_config.get("email", None)
+        email=job_config.get("email", None),
+        description=job_config.get("description", DEFAULT_DESCRIPTION)
     ))
 print("[INFO] Wrote job definition to {}".format(output_path))

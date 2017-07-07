@@ -9,6 +9,15 @@ Parent-child relationships can nest -- to generate a job, the topmost parent
 configuration is loaded, then iteratively extended and overridden by children
 configurations until the bottommost configuration has been evaluated.
 
+## `description`
+
+`description` is an optional string field that will override the default job
+description. The syntax is:
+
+```yaml
+description: ""
+```
+
 ## `children`
 
 `children` is a list which, if present, will configure the job to have child

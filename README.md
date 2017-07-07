@@ -105,6 +105,12 @@ sjb/push-update.sh sjb/generated/YOUR_TEST_JOB.xml
 ````
 Cleanup of these jobs post-test is still manual.
 
+If changes are being made to the files under `sjb/` in this repository, it is not enough to copy a job configuration and run it to
+test the changes. Instead, it will be necessary to mark the copied job as syncing a pull request for `aos-cd-jobs` using the `type`
+field on the repository as per [the spec](./sjb/syntax.md#sync_repos). Then, when running your copied job, configure it at run-time
+to merge in your pull request by entering in your pull request number in the appropriate parameter field in the Jenkins UI when
+starting the job.
+
 Note: the `sjb/push-update{,-automatic}.sh` scripts expect `$USERNAME` and `$PASSWORD` to be set as envars when they are run.
 These are the credentials with which you log in to the Jenkins master at [ci.openshift](http://ci.openshift.redhat.com/) and are
 used for basic auth against the server on push actions.

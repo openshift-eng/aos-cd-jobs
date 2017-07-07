@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <com.tikal.jenkins.plugins.multijob.MultiJobProject plugin="jenkins-multijob-plugin@1.21">
   <actions/>
-  <description>&lt;div style=&quot;font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;&quot;&gt;WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. MAKE CHANGES TO THE JOB DEFINITIONS IN THE &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs/tree/master/sjb&#34;&gt;openshift/aos-cd-jobs&lt;/a&gt; REPOSITORY INSTEAD.&lt;/div&gt;</description>
+  <description>{{ description | escape }}</description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">

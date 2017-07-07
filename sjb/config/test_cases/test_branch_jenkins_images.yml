@@ -7,7 +7,7 @@ extensions:
     - type: "script"
       title: "build the jenkins images"
       repository: "jenkins"
-      timeout: 7200
+      timeout: 10800
       script: |-
         make build TARGET=rhel7
         make build TARGET=centos7

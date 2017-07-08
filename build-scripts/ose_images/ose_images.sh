@@ -146,7 +146,7 @@ add_group_to_list() {
           add_to_list metrics-hawkular-metrics-docker
           add_to_list metrics-hawkular-openshift-agent-docker
           add_to_list metrics-heapster-docker
-          add_group_to_list "jenkins"
+          # add_group_to_list "jenkins"
           add_to_list registry-console-docker
           # Enable the asb images once they are proved to be building
           #add_to_list openshift-enterprise-mediawiki-docker

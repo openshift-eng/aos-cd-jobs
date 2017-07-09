@@ -77,7 +77,8 @@ online:int                {origin,origin-web-console,openshift-ansible}/master -
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
                   ]
-            ]
+            ],
+            disableConcurrentBuilds()
         ]
 )
 

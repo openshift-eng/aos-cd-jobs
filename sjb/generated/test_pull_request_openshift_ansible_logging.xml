@@ -33,6 +33,21 @@
           <description>The pull-request in the &lt;a href=&quot;https://github.com/openshift/openshift-ansible&quot;&gt;openshift-ansible&lt;/a&gt; repository to test.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_NUMBER</name>
+          <description>The pull-request in the &lt;a href=&quot;https://github.com/openshift/openshift-ansible&quot;&gt;openshift-ansible&lt;/a&gt; repository to test. This is compatible with prow.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_REFS</name>
+          <description>The pull-request(s) in the &lt;a href=&quot;https://github.com/openshift/openshift-ansible&quot;&gt;openshift-ansible&lt;/a&gt; repository to test. This is compatible with prow and can be used for batch testing.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>buildId</name>
+          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob and bubble statuses up to the correct pull request.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
@@ -95,8 +110,37 @@ oct sync remote openshift-ansible --branch &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANC
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC OPENSHIFT-ANSIBLE PULL REQUEST ${OPENSHIFT_ANSIBLE_PULL_ID} ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC OPENSHIFT-ANSIBLE PULL REQUEST ${OPENSHIFT_ANSIBLE_PULL_ID} [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-oct sync remote openshift-ansible --refspec &#34;pull/${OPENSHIFT_ANSIBLE_PULL_ID}/head&#34; --branch &#34;pull-${OPENSHIFT_ANSIBLE_PULL_ID}&#34; --merge-into &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34; </command>
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC OPENSHIFT-ANSIBLE PULL REQUEST ${PULL_NUMBER:-}${OPENSHIFT_ANSIBLE_PULL_ID:-} ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC OPENSHIFT-ANSIBLE PULL REQUEST ${PULL_NUMBER:-}${OPENSHIFT_ANSIBLE_PULL_ID:-} [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+cat &lt;&lt; SCRIPT &gt; unravel-pull-refs.py
+#!/usr/bin/env python
+from __future__ import print_function
+import sys
+
+# PULL_REFS is expected to be in the form of:
+#
+# base_branch:commit_sha_of_base_branch,pull_request_no:commit_sha_of_pull_request_no,...
+#
+# For example:
+#
+# master:97d901d,4:bcb00a1
+#
+# And for multiple pull requests that have been batched:
+#
+# master:97d901d,4:bcb00a1,6:ddk2tka
+print( &#34;\n&#34;.join([r.split(&#39;:&#39;)[0] for r in sys.argv[1].split(&#39;,&#39;)][1:]) )
+SCRIPT
+chmod +x unravel-pull-refs.py
+
+if [[ -n &#34;${PULL_REFS:-}&#34; ]]; then
+  for ref in $(./unravel-pull-refs.py $PULL_REFS); do
+      oct sync remote openshift-ansible --refspec &#34;pull/$ref/head&#34; --branch &#34;pull-$ref&#34; --merge-into &#34;${PULL_REFS%%:*}&#34;
+   done
+elif [[ -n &#34;${OPENSHIFT_ANSIBLE_PULL_ID:-}&#34; ]]; then
+  oct sync remote openshift-ansible --refspec &#34;pull/${OPENSHIFT_ANSIBLE_PULL_ID}/head&#34; --branch &#34;pull-${OPENSHIFT_ANSIBLE_PULL_ID}&#34; --merge-into &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34;
+else
+  echo &#34;[ERROR] Either \$PULL_REFS or ${OPENSHIFT_ANSIBLE_PULL_ID:-} and \$OPENSHIFT_ANSIBLE_TARGET_BRANCH must be set&#34;
+  exit 1
+fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

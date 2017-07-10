@@ -53,11 +53,18 @@ rectory to run."
     - type: "host_script"
       title: "move RPMs to GCS repo"
       script: |-
-        if [[ -n "${ORIGIN_PULL_ID-}" ]]; then
-          location_base="origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/${BUILD_NUMBER}"
+        pull_id="${ORIGIN_PULL_ID:-}"
+        target_branch="${ORIGIN_TARGET_BRANCH:-}"
+        if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
+          pull_id=${PULL_NUMBER}
+          target_branch="${PULL_REFS%%:*}"
+        fi
+        # pull_id will be 0 in case of a batch merge
+        if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
+          location_base="origin-ci-test/pr-logs/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}"
           location="${location_base}/artifacts/rpms"
         else
-          location_root="origin-ci-test/branch-logs/origin/${ORIGIN_TARGET_BRANCH}/builds"
+          location_root="origin-ci-test/branch-logs/origin/${target_branch}/builds"
           location_base="${location_root}/${BUILD_NUMBER}"
           location="${location_base}/artifacts/rpms"
           base_location_url="https://storage.googleapis.com/${location_base}"
@@ -72,9 +79,10 @@ rectory to run."
         mkdir -p artifacts/rpms
         rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
         gsutil -m cp -r artifacts/rpms "gs://${location}"
-        if [[ -n "${ORIGIN_PULL_ID:-}" ]]; then
+        # pull_id will be 0 in case of a batch merge
+        if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
           # if we've built this PR before, remove older rpm artifact directories
-          out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/${ORIGIN_PULL_ID}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -2 )"
+          out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/${pull_id}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -2 )"
           if [[ -n "${out}" ]]; then
             echo "${out}" | xargs -L 1 gsutil rm -rf
           fi

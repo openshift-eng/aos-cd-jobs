@@ -49,6 +49,6 @@ workflow-support:2.14
 kubernetes:0.11;jenkins-version-override
 
 openshift-login:0.12
-openshift-pipeline:latest
-openshift-sync:latest
+openshift-pipeline:1.0.47
+openshift-sync:0.1.23
 

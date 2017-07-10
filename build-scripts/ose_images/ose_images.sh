@@ -146,7 +146,7 @@ add_group_to_list() {
           add_to_list metrics-hawkular-metrics-docker
           add_to_list metrics-hawkular-openshift-agent-docker
           add_to_list metrics-heapster-docker
-          # add_group_to_list "jenkins"
+          add_group_to_list "jenkins"
           add_to_list registry-console-docker
           # Enable the asb images once they are proved to be building
           #add_to_list openshift-enterprise-mediawiki-docker
@@ -195,7 +195,7 @@ add_group_to_list() {
       add_to_list logging-kibana-docker
     ;;
     jenkins | jenkins-all )
-      # add_to_list openshift-jenkins-docker
+      add_to_list openshift-jenkins-docker
       if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] ; then
         add_to_list openshift-jenkins-2-docker
       fi

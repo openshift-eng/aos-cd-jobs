@@ -1,4 +1,4 @@
-scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -r openshiftdevel:/usr/share/ansible_junit "${WORKSPACE}"
+scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -r openshiftdevel:/tmp/ansible_junit "${WORKSPACE}"
 
 script="$( mktemp )"
 cat <<SCRIPT >"${script}"

@@ -1,6 +1,12 @@
 ---
 parent: 'test_cases/test_branch_jenkins_images.yml'
 overrides:
+  email:
+    - bparees@redhat.com
+    - cewong@redhat.com
+    - gmontero@redhat.com
+    - cdaley@redhat.com
+    - jminter@redhat.com
   sync_repos:
     - name: "jenkins"
 extensions:

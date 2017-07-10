@@ -2,55 +2,158 @@
 
 usage() {
   echo >&2
-  echo "Usage `basename $0` <jenkins-plugin> [release]" >&2
+  echo "Usage `basename $0` <jenkins-major-version> <aos-release> <path-to-plugins-list>" >&2
+  echo "  Where path-to-plugins-list is a line delimited list of jenkins plugins to prepare." >&2
+  echo "    Example entries:   workflow-aggregator:2.1" >&2
+  echo "      or use latest:   workflow-aggregator" >&2
+
   echo >&2
-  echo "Example: `basename $0` openshift-sync 3.6" >&2
+  echo "Example: `basename $0` 2 3.6 /some/path/jenkins-2-plugins.txt" >&2
   echo >&2
   popd &>/dev/null
   exit 1
 }
 
 # Make sure they passed something in for us
-if [ "$#" -lt 1 ] ; then
+if [ "$#" -lt 3 ] ; then
   usage
 fi
 
-# VARIABLES
-PLUGIN_NAME="$1"
-if [ "$#" -eq 2 ] ; then
-  RHAOS_RELEASE="$2"
-else
-  RHAOS_RELEASE="3.6"
-fi
+set -o xtrace
 
+JENKINS_VERSION="$1"
+RHAOS_RELEASE="$2"
+PLUGIN_LISTING="$(realpath $3)"
+PLUGINS_RPM_VERSION="1.$(date +%s%3N)"  # Ever increasing millis since epoch
 
-# Setup
 workingdir=$(mktemp -d /tmp/jenkins-plugin-XXXXXX)
-cd ${workingdir}
-mkdir testdir
-mkdir -p ${workingdir}/build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+pushd "${workingdir}"
 topdir="${workingdir}/build"
-request_file="/tmp/rcm-requests-$(date +%Y-%m-%d)"
+mkdir -p ${topdir}/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+mkdir -p ${workingdir}/{extracts}
+hpis_dir="${topdir}/SOURCES"
+extracts_dir="${workingdir}/extracts"
+spec_file="${topdir}/SPECS/jenkins-${JENKINS_VERSION}-plugins.spec"
 
-# Get hpi and find version
-wget -q https://updates.jenkins-ci.org/latest/${PLUGIN_NAME}.hpi
-if [ "$?" != "0" ] ; then
-  echo
-  echo "ERROR:"
-  echo "  There is no jenkins plugin ${PLUGIN_NAME}"
-  echo
-  exit 1
-fi
+# Create the start of the spec file
 
-cd testdir
-unzip ../${PLUGIN_NAME}.hpi > /dev/null
-cat META-INF/MANIFEST.MF | tr -d '\r' | tr '\n' '|' | sed -e 's#| ##g' | tr '|' '\n' > META-INF/MANIFEST.MF.format
-PLUGIN_VERSION="$(grep Plugin-Version: META-INF/MANIFEST.MF.format | awk '{print $2}')"
-PLUGIN_JENKINS_VERSION="$(grep Jenkins-Version: META-INF/MANIFEST.MF.format | awk '{print $2}')"
-PLUGIN_URL="$(grep Url: META-INF/MANIFEST.MF.format | awk '{print $2}')"
-PLUGIN_DEPS="$(grep '^Plugin-Dependencies: ' META-INF/MANIFEST.MF.format | sed -e 's#^Plugin-Dependencies: ##')"
-PLUGIN_SUMMARY="$(grep Long-Name: META-INF/MANIFEST.MF.format |cut -d' ' -f2-)"
-PLUGIN_DESCRIPTION="$(grep Specification-Title: META-INF/MANIFEST.MF.format |cut -d' ' -f2-)"
+cat <<EOF > ${spec_file}.head
+Summary:    Collection of plugins for OpenShift jenkins-${JENKINS_VERSION} runtime
+Name:       jenkins-${JENKINS_VERSION}-plugins
+Version:    ${PLUGINS_RPM_VERSION}
+Release:    1%{?dist}
+License:    ASL 2.0
+URL:        https://updates.jenkins-ci.org
+Requires:   jenkins >= ${JENKINS_VERSION}.0
+EOF
+
+cat <<EOF > ${spec_file}.tail
+
+
+%description
+Collection of plugins for OpenShift jenkins-${JENKINS_VERSION} runtime.
+
+%prep
+
+
+%build
+
+
+%install
+rm -rf %{buildroot}
+mkdir -p %{buildroot}/%{_libdir}/jenkins/
+EOF
+
+NN=0
+
+add_plugin() {
+    plugin_line="$1"
+
+    # Some dependencies are of the form: "subversion:2.5;resolution:=optional"
+    if [[ "$plugin_line" == *"resolution:=optional"*  ]]; then
+        echo "Skipping optional dependency: ${plugin_line}"
+        return 0
+    fi
+
+    # Remove anything after the colon
+    plugin_line=${plugin_line%\;.*}
+
+    plugin=$(echo "${plugin_line}:" | cut -d : -f 1)
+    echo "Processing plugin: $plugin"
+    plugin_version=$(echo "${plugin_line}:" | cut -d : -f 2)
+    if [ -z "${plugin_version}" -o "${plugin_version}" == "latest" ]; then
+        plugin_url="https://updates.jenkins-ci.org/latest/${plugin}.hpi"
+    else
+        plugin_url="https://updates.jenkins-ci.org/download/plugins/${plugin}/${plugin_version}/${plugin}.hpi"
+    fi
+    hpi_file="${hpis_dir}/${plugin}.hpi"
+
+    if [ -f "${hpi_file}" ]; then
+        echo "Skipping already existing plugin: $hpi_file"
+        return 0
+    fi
+
+    echo "Downloading plugin: ${plugin_url}"
+    wget -O "${hpi_file}" "${plugin_url}"
+    if [ "$?" != "0" ]; then
+        echo "Error downloading ${plugin}; exiting"
+        exit 1
+    fi
+
+    extract="${workingdir}/extracts/${plugin}"
+    mkdir -p ${extract}
+    unzip "${hpi_file}" -d ${extract}
+
+    pushd "${extract}"
+        cat META-INF/MANIFEST.MF | tr -d '\r' | tr '\n' '|' | sed -e 's#| ##g' | tr '|' '\n' > META-INF/MANIFEST.MF.format
+        PLUGIN_VERSION="$(grep Plugin-Version: META-INF/MANIFEST.MF.format | awk '{print $2}')"
+        PLUGIN_JENKINS_VERSION="$(grep Jenkins-Version: META-INF/MANIFEST.MF.format | awk '{print $2}')"
+        PLUGIN_URL="$(grep Url: META-INF/MANIFEST.MF.format | awk '{print $2}')"
+        PLUGIN_DEPS="$(grep '^Plugin-Dependencies: ' META-INF/MANIFEST.MF.format | sed -e 's#^Plugin-Dependencies: ##')"
+        PLUGIN_SUMMARY="$(grep Long-Name: META-INF/MANIFEST.MF.format |cut -d' ' -f2-)"
+        PLUGIN_DESCRIPTION="$(grep Specification-Title: META-INF/MANIFEST.MF.format |cut -d' ' -f2-)"
+    popd
+
+    echo "Source${NN}: ${plugin_url}" >> ${spec_file}.head
+    echo "cp %{SOURCE${NN}} %{buildroot}/%{_libdir}/jenkins/" >> ${spec_file}.tail
+    NN=$(($NN + 1))
+
+    PLUGIN_DEPS=$(echo "${PLUGIN_DEPS}" | tr "," " ")  # Space delimit dependencies
+
+    for plugin_entry in ${PLUGIN_DEPS}; do
+        add_plugin "${plugin_entry}"
+    done
+
+}
+
+for plugin_line in $(cat "${PLUGIN_LISTING}"); do
+    add_plugin "${plugin_line}"
+done
+
+cat ${spec_file}.head ${spec_file}.tail > ${spec_file}
+rm ${spec_file}.head ${spec_file}.tail
+
+echo >> ${spec_file}
+echo "%files" >> ${spec_file}
+
+for hpi in $(ls ${hpis_dir}); do
+    echo "%{_libdir}/jenkins/$(basename $hpi)" >> ${spec_file}
+done
+
+echo >> ${spec_file}.tail
+echo "%changelog" >> ${spec_file}
+
+pushd "${topdir}/SPECS"
+NEW_SRPM=`rpmbuild -bs --define "_topdir ${topdir}" ${spec_file} | grep Wrote: | awk '{print $2}'`
+popd
+
+popd
+# rm -rf "${workingdir}"
+
+exit 0
+
+
+
 
 echo
 echo "Working on:"
@@ -128,7 +231,7 @@ do
     echo "  ${PLUGIN_NAME}:: Requires:   jenkins-plugin-${plugin}"
     sed -i "s/^Requires:.*jenkins .*/&\nRequires:   jenkins-plugin-${plugin}/" jenkins-plugin-${PLUGIN_NAME}.spec
     echo "    ${PLUGIN_NAME}: verifying that we have dependency updated"
-    jenkins-plugin-rpm-update ${plugin}
+    update-jenkins-plugins-rpm.sh ${plugin}
   fi
 done
 # Update Version, Jenkins Release, and Changelog

@@ -18,8 +18,7 @@ from actions.multi_action import MultiAction
 from actions.multi_sync import MultiSyncAction
 from actions.oct_install import OCTInstallAction
 from actions.parameter import ParameterAction
-from actions.post_host_script import PostHostScriptAction
-from actions.post_script import PostScriptAction
+from actions.post_action import PostAction
 from actions.provision import ProvisionAction
 from actions.pull_request_sync import PullRequestSyncAction
 from actions.repo_sync import SyncAction
@@ -109,14 +108,20 @@ if job_type == "test":
     if len(sync_actions) > 0:
         actions.append(MultiSyncAction(sync_actions))
 
+
+    def parse_action(action):
+        if action["type"] == "script":
+            return ScriptAction(action.get("repository", None), action["script"], action.get("title", None), action.get("timeout", None))
+        elif action["type"] == "host_script":
+            return HostScriptAction(action["script"], action.get("title", None))
+        elif action["type"] == "forward_parameters":
+            return ForwardParametersAction(action.get("parameters", []))
+        else:
+            raise TypeError("Action type {} unknown".format(action["type"]))
+
     # now, the job can define actions to take
     for action in job_config.get("actions", []):
-        if action["type"] == "script":
-            actions.append(ScriptAction(action.get("repository", None), action["script"], action.get("title", None), action.get("timeout", None)))
-        elif action["type"] == "host_script":
-            actions.append(HostScriptAction(action["script"], action.get("title", None)))
-        elif action["type"] == "forward_parameters":
-            actions.append(ForwardParametersAction(action.get("parameters", [])))
+        actions.append(parse_action(action))
 
     # next, the job needs to retrieve artifacts
     if "artifacts" in job_config:
@@ -131,10 +136,7 @@ if job_type == "test":
         actions.append(SystemdJournalAction(job_config["system_journals"]))
 
     for post_action in job_config.get("post_actions", []):
-        if post_action["type"] == "script":
-            actions.append(PostScriptAction(post_action.get("repository", None), post_action["script"], post_action.get("title", None), action.get("timeout", None)))
-        elif post_action["type"] == "host_script":
-            actions.append(PostHostScriptAction(post_action["script"], post_action.get("title", None)))
+        actions.append(PostAction(parse_action(post_action)))
 
     # finally, the job will deprovision cloud resources
     actions.append(DeprovisionAction())

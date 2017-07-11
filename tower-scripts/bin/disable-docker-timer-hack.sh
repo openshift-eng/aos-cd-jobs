@@ -31,11 +31,8 @@ autokeys_loader opssh -c "${CLUSTER_NAME}" --v3 -O StrictHostKeyChecking=no 'sed
 # Load that change
 autokeys_loader opssh -c "${CLUSTER_NAME}" --v3 -O StrictHostKeyChecking=no 'systemctl daemon-reload'
 
-# Continuously disable the timer. This for clusters which are going from docker versions less than
-# 1.12 to 1.12 during the upgrade
-while true; do
-    autokeys_loader opssh -c "${CLUSTER_NAME}" --v3 -O StrictHostKeyChecking=no "systemctl stop docker-cleanup.timer"
-    sleep 60
-done
+# Disable the timer. Hopefully, whatever version of docker you might upgrade to will have this problem fixed by
+# having docker-cleanup.timer use "bindTo" instead of "requires".
+autokeys_loader opssh -c "${CLUSTER_NAME}" --v3 -O StrictHostKeyChecking=no "systemctl stop docker-cleanup.timer"
 
 

@@ -1,0 +1,19 @@
+---
+parent: 'common/test_cases/origin_installed_release.yml'
+extensions:
+  sync_repos:
+    - name: "jenkins-openshift-login-plugin"
+  actions:
+    - type: "script"
+      title: "build the jenkins login plugin and test image"
+      repository: "jenkins-openshift-login-plugin"
+      script: |-
+        export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+        mvn package
+        cd PR-Testing
+        ./build-jenkins-login-plugin-snapshot-image.sh
+    - type: "script"
+      title: "test the jenkins login plugin test image against origin"
+      repository: "origin"
+      script: |-
+        KUBECONFIG=/etc/origin/master/admin.kubeconfig USE_SNAPSHOT_JENKINS_LOGIN_IMAGE=1 TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="jenkins-plugin test exec DSL"

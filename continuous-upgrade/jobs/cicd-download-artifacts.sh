@@ -1,4 +1,4 @@
-scp -o StrictHostKeyChecking=no -r root@master1.cicd.openshift.com:/usr/share/ansible_junit "${WORKSPACE}"
+scp -o StrictHostKeyChecking=no -r root@master1.cicd.openshift.com:/tmp/ansible_junit "${WORKSPACE}"
 script="$( mktemp )"
 cat <<SCRIPT >"${script}"
 #!/bin/bash

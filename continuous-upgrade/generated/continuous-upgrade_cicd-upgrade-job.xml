@@ -49,7 +49,7 @@ ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com &quot;ans
 scp -o StrictHostKeyChecking=no   &quot;${script}&quot; root@master1.cicd.openshift.com:&quot;${script}&quot;
 ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com &quot;bash -l -c \&quot;${script}\&quot;&quot;
 
-scp -o StrictHostKeyChecking=no -r root@master1.cicd.openshift.com:/usr/share/ansible_junit &quot;${WORKSPACE}&quot;
+scp -o StrictHostKeyChecking=no -r root@master1.cicd.openshift.com:/tmp/ansible_junit &quot;${WORKSPACE}&quot;
 script=&quot;$( mktemp )&quot;
 cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
 #!/bin/bash

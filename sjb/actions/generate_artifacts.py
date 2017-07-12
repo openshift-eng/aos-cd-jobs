@@ -6,7 +6,8 @@ from actions.named_shell_task import render_task
 from .interface import Action
 
 _GENERATE_ARTIFACTS_TITLE = "GENERATE ARTIFACTS FROM THE REMOTE HOST"
-_GENERATE_ARTIFACTS_ACTION_TEMPLATE = Template("""ARTIFACT_DIR="$( pwd )/artifacts/generated"
+_GENERATE_ARTIFACTS_ACTION_TEMPLATE = Template("""trap 'exit 0' EXIT
+ARTIFACT_DIR="$( pwd )/artifacts/generated"
 rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for name, action in artifacts.iteritems() %}

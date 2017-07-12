@@ -12,11 +12,13 @@ actions:
     timeout: 300
     repository: "aos-cd-jobs"
     script: |-
+      trap 'exit 0' EXIT
       sjb/gcs/started.py
   - type: "host_script"
     title: "upload GCS starting metadata"
     timeout: 300
     script: |-
+      trap 'exit 0' EXIT
       mkdir -p gcs/
       scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
 
@@ -51,11 +53,13 @@ post_actions:
     timeout: 300
     repository: "aos-cd-jobs"
     script: |-
+      trap 'exit 0' EXIT
       sjb/gcs/finished.py
   - type: "host_script"
     title: "assemble GCS output"
     timeout: 300
     script: |-
+      trap 'exit 0' EXIT
       mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
       scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
       cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt

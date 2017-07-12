@@ -6,7 +6,8 @@ from actions.named_shell_task import render_task
 from .interface import Action
 
 _FETCH_SYSTEMD_JOURNAL_TITLE = "FETCH SYSTEMD JOURNALS FROM THE REMOTE HOST"
-_FETCH_SYSTEMD_JOURNAL_ACTION_TEMPLATE = Template("""ARTIFACT_DIR="$( pwd )/artifacts/journals"
+_FETCH_SYSTEMD_JOURNAL_ACTION_TEMPLATE = Template("""trap 'exit 0' EXIT
+ARTIFACT_DIR="$( pwd )/artifacts/journals"
 rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for unit in units %}

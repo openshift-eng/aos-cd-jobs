@@ -6,7 +6,8 @@ from actions.named_shell_task import render_task
 from .interface import Action
 
 _DOWNLOAD_ARTIFACTS_TITLE = "DOWNLOAD ARTIFACTS FROM THE REMOTE HOST"
-_DOWNLOAD_ARTIFACTS_ACTION_TEMPLATE = Template("""ARTIFACT_DIR="$( pwd )/artifacts"
+_DOWNLOAD_ARTIFACTS_ACTION_TEMPLATE = Template("""trap 'exit 0' EXIT
+ARTIFACT_DIR="$( pwd )/artifacts"
 rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for artifact in artifacts %}

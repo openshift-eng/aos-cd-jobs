@@ -51,15 +51,20 @@ def print_version_vars(install_version, upgrade_version):
 	print (used_pkg_name + "_UPGRADE_RELEASE_VERSION=" + upgrade_version)
 	print (used_pkg_name + "_UPGRADE_RELEASE_MINOR_VERSION=" + get_minor_version(upgrade_version))
 
-def determine_install_version(pkg_name, pkg_version):
+def determine_search_versions(pkg_name, pkg_version):
 	parsed_version = pkg_version.split('.')
 	major = parsed_version[0]
 	minor = parsed_version[1]
-	# Cause of the origin version schema change we had to manually change the version just for this 
-	# case where we should look for 1.5.x versions if the built version is origin-3.6.x 
-	if pkg_name == "origin" and major == "3" and minor == "6":
-		major = "1"
-	search_version = '.'.join([major, str(int(minor) - 1)])
+	search_install_version = schema_change_check(pkg_name, major, str(int(minor) - 1))
+	search_upgrade_version = schema_change_check(pkg_name, major, minor)
+	return search_install_version, search_upgrade_version
+
+# Cause of the origin version schema change we had to manually change the version just for this
+# case where we should look for 1.5.x versions if the built version is origin-3.6.x
+def schema_change_check(pkg_name, search_major_version, search_minor_version):
+	if pkg_name == "origin" and search_major_version == "3" and int(search_minor_version) <= 5:
+		search_major_version = "1"
+	search_version = ".".join([search_major_version, search_minor_version])
 	return search_version
 
 def sort_pkgs(available_pkgs):
@@ -85,18 +90,21 @@ if __name__ == "__main__":
 	pkg_name, pkg_version, pkg_release, pkg_epoch, pkg_arch = rpmutils.splitFilename(args.input_pkg)
 
 	# If dependency target branch is specified for a release or an enterprise release use that version so proper install
-	# and upgrade version are set.
+	# and upgrade version are set. The major version of the searched version is taken from the package version from the 
+	# input and the minor version is from the debendency branch version.
 	#
-	# example: OPENSHIFT_ANSIBLE_TARGET_BRANCH - release-1.5
-	#          ORIGIN_TARGET_BRANCH            - master
+	# example: OPENSHFIT_ANSIBLE INPUT PKG VERSION  - openshift-ansible-3.6.142-1.git.0.90b5f60.el7
+	#          OPENSHIFT_ANSIBLE_TARGET_BRANCH      - release-1.5
 	#
-	#          ORIGIN_INSTALL_VERSION=1.4.1-1.el7
-	#          ORIGIN_INSTALL_MINOR_VERSION=4
-	#          ORIGIN_UPGRADE_RELEASE_VERSION=1.5.1-1.el7
-	#          ORIGIN_UPGRADE_RELEASE_MINOR_VERSION=5
+	#          OPENSHIFT_ANSIBLE_INSTALL_VERSION=3.4.115-1.git.0.94b720b.el7
+	#          OPENSHIFT_ANSIBLE_INSTALL_MINOR_VERSION=4
+	#          OPENSHIFT_ANSIBLE_UPGRADE_RELEASE_VERSION=3.5.96-1.git.0.88536f9.el7
+	#          OPENSHIFT_ANSIBLE_UPGRADE_RELEASE_MINOR_VERSION=5
 	#
 	if args.dependency_branch.startswith("release") or args.dependency_branch.startswith("enterprise"):
-		pkg_version = args.dependency_branch.split("-")[1]
+		pkg_major_version = pkg_version.split(".")[0]
+		dependency_minor_version = args.dependency_branch.split("-")[1].split(".")[1]
+		pkg_version = ".".join([pkg_major_version, dependency_minor_version])
 	else:
 		major, minor, rest = pkg_version.split('.', 2)
 		pkg_version = '.'.join([major, minor])
@@ -117,14 +125,13 @@ if __name__ == "__main__":
 
 	generic_holder = yb.doPackageLists('all', patterns=[pkg_name], showdups=True)
 	available_pkgs = rpmutils.unique(generic_holder.available + generic_holder.installed)
-
 	available_pkgs = remove_duplicate_pkgs(available_pkgs)
 	available_pkgs = sort_pkgs(available_pkgs)
 
-	search_install_version = determine_install_version(pkg_name, pkg_version)
-
+	search_install_version, search_upgrade_version = determine_search_versions(pkg_name, pkg_version)
 	matching_install_pkgs = get_matching_versions(pkg_name, available_pkgs, search_install_version)
-	matching_upgrade_pkgs = get_matching_versions(pkg_name, available_pkgs, pkg_version)
+	matching_upgrade_pkgs = get_matching_versions(pkg_name, available_pkgs, search_upgrade_version)
+
 	install_version = get_last_version(matching_install_pkgs)
 	upgrade_version = get_last_version(matching_upgrade_pkgs)
 

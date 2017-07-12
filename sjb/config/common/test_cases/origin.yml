@@ -8,6 +8,29 @@ sync_repos:
   - name: "origin"
 actions:
   - type: "script"
+    title: "record the starting metadata"
+    timeout: 300
+    repository: "aos-cd-jobs"
+    script: |-
+      sjb/gcs/started.py
+  - type: "host_script"
+    title: "upload GCS starting metadata"
+    timeout: 300
+    script: |-
+      mkdir -p gcs/
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
+
+      pull_id="${ORIGIN_PULL_ID:-}"
+      target_branch="${ORIGIN_TARGET_BRANCH:-}"
+      if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
+        pull_id=${PULL_NUMBER}
+        target_branch="${PULL_REFS%%:*}"
+      fi
+      # pull_id will be 0 in case of a batch merge
+      if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
+        gsutil cp gcs/started.json "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/started.json"
+      fi
+  - type: "script"
     title: "use a ramdisk for etcd"
     timeout: 300
     script: |-
@@ -19,7 +42,43 @@ actions:
       restorecon -R /tmp
       echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
       SUDO
-post_actions: []
+post_actions:
+  - type: "forward_parameters"
+    parameters:
+      - BUILD_URL
+  - type: "script"
+    title: "record the ending metadata"
+    timeout: 300
+    repository: "aos-cd-jobs"
+    script: |-
+      sjb/gcs/finished.py
+  - type: "host_script"
+    title: "assemble GCS output"
+    timeout: 300
+    script: |-
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+      i=0
+      for report in $( find artifacts/ -type f -name \*.xml ); do
+        name="$( printf 'junit_%02d.xml' "$i" )"
+        cp "${report}" "gcs/artifacts/${name}"
+        i="$(( i += 1))"
+      done
+      cp artifacts/generated/* gcs/artifacts/generated/
+      cp artifacts/journals/* gcs/artifacts/journals/
+      cp -r artifacts/scripts/* gcs/artifacts/scripts/
+
+      pull_id="${ORIGIN_PULL_ID:-}"
+      target_branch="${ORIGIN_TARGET_BRANCH:-}"
+      if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
+        pull_id=${PULL_NUMBER}
+        target_branch="${PULL_REFS%%:*}"
+      fi
+      # pull_id will be 0 in case of a batch merge
+      if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
+        gsutil cp -r gcs/* "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/"
+      fi
 artifacts:
   - "/data/src/github.com/openshift/origin/_output/scripts"
 generated_artifacts:

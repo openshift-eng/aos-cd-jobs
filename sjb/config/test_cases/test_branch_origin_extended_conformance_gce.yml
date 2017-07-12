@@ -161,6 +161,7 @@ rectory to run."
       title: "gather artifacts from test cluster"
       timeout: 900
       script: |-
+        trap 'exit 0' EXIT
         base_artifact_dir="$(pwd)/artifacts"
         source ./INSTANCE_PREFIX
         for instance in $( gcloud compute instances list --regexp ".*${INSTANCE_PREFIX}.*" --uri ); do

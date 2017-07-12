@@ -4,6 +4,7 @@ import sys
 from xml.dom.minidom import parse
 
 from jinja2 import Environment, FileSystemLoader
+from os import getenv
 from os.path import abspath, basename, dirname, join, splitext, exists
 from yaml import dump, load
 
@@ -27,6 +28,9 @@ from actions.systemd_journal import SystemdJournalAction
 
 config_base_dir = abspath(join(dirname(__file__), 'config'))
 
+def debug(info):
+    if getenv("DEBUG", "") in ["Yes", "yes", "True", "true", "1"]:
+        print(info)
 
 def load_configuration(config_path):
     """
@@ -70,7 +74,7 @@ job_type = sys.argv[2]
 job_name = splitext(basename(job_config_path))[0]
 print("[INFO] Generating configuration for {} job {}".format(job_type, job_name))
 job_config = load_configuration(job_config_path)
-print("[INFO] Using configuration:\n{}".format(
+debug("[INFO] Using configuration:\n{}".format(
     dump(job_config, default_flow_style=False, explicit_start=True))
 )
 
@@ -139,10 +143,10 @@ elif job_type == "suite":
     for child in job_config["children"]:
         child_config_path = abspath(join(dirname(__file__), "generated", "{}.xml".format(child)))
         if not exists(child_config_path):
-            print("[WARNING] Skipping child {}, configuration file not found.".format(child))
+            debug("[WARNING] Skipping child {}, configuration file not found.".format(child))
             continue
 
-        print("[INFO] Checking child {} for parameters".format(child))
+        debug("[INFO] Checking child {} for parameters".format(child))
         child_config = parse(child_config_path)
 
         for parameter_definition in child_config.getElementsByTagName("hudson.model.StringParameterDefinition"):
@@ -163,7 +167,7 @@ elif job_type == "suite":
             ))
             registered_names.append(parameter_name)
 
-    print("[INFO] Added the following parameters for child jobs:\n{}".format(", ".join(registered_names)))
+    debug("[INFO] Added the following parameters for child jobs:\n{}".format(", ".join(registered_names)))
     actions.append(ChildJobAction(job_config["children"]))
 
 generator = MultiAction(actions)
@@ -181,7 +185,7 @@ if "test" in job_config:
     target_repo = job_config["test"]
 
 if action != None:
-    print("[INFO] Marking this as a {} job for the {} repo".format(action, target_repo))
+    debug("[INFO] Marking this as a {} job for the {} repo".format(action, target_repo))
 
 DEFAULT_DESCRIPTION = "<div style=\"font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;\">" + \
     "WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. " + \
@@ -202,4 +206,4 @@ with open(output_path, "w") as output_file:
         email=job_config.get("email", None),
         description=job_config.get("description", DEFAULT_DESCRIPTION)
     ))
-print("[INFO] Wrote job definition to {}".format(output_path))
+debug("[INFO] Wrote job definition to {}".format(output_path))

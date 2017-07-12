@@ -1,0 +1,19 @@
+---
+parent: 'common/test_cases/origin_installed_release.yml'
+extensions:
+  sync_repos:
+    - name: "jenkins-client-plugin"
+  actions:
+    - type: "script"
+      title: "build the jenkins client plugin and test image"
+      repository: "jenkins-client-plugin"
+      script: |-
+        export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
+        mvn package
+        cd PR-Testing
+        ./build-jenkins-client-plugin-snapshot-image.sh
+    - type: "script"
+      title: "test the jenkins client plugin test image against origin"
+      repository: "origin"
+      script: |-
+        KUBECONFIG=/etc/origin/master/admin.kubeconfig USE_SNAPSHOT_JENKINS_CLIENT_IMAGE=1 TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="jenkins-client-plugin"

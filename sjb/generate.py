@@ -4,6 +4,7 @@ import sys
 from xml.dom.minidom import parse
 
 from jinja2 import Environment, FileSystemLoader
+from os import getenv
 from os.path import abspath, basename, dirname, join, splitext, exists
 from yaml import dump, load
 
@@ -17,8 +18,7 @@ from actions.multi_action import MultiAction
 from actions.multi_sync import MultiSyncAction
 from actions.oct_install import OCTInstallAction
 from actions.parameter import ParameterAction
-from actions.post_host_script import PostHostScriptAction
-from actions.post_script import PostScriptAction
+from actions.post_action import PostAction
 from actions.provision import ProvisionAction
 from actions.pull_request_sync import PullRequestSyncAction
 from actions.repo_sync import SyncAction
@@ -27,6 +27,9 @@ from actions.systemd_journal import SystemdJournalAction
 
 config_base_dir = abspath(join(dirname(__file__), 'config'))
 
+def debug(info):
+    if getenv("DEBUG", "") in ["Yes", "yes", "True", "true", "1"]:
+        print(info)
 
 def load_configuration(config_path):
     """
@@ -70,7 +73,7 @@ job_type = sys.argv[2]
 job_name = splitext(basename(job_config_path))[0]
 print("[INFO] Generating configuration for {} job {}".format(job_type, job_name))
 job_config = load_configuration(job_config_path)
-print("[INFO] Using configuration:\n{}".format(
+debug("[INFO] Using configuration:\n{}".format(
     dump(job_config, default_flow_style=False, explicit_start=True))
 )
 
@@ -105,14 +108,20 @@ if job_type == "test":
     if len(sync_actions) > 0:
         actions.append(MultiSyncAction(sync_actions))
 
+
+    def parse_action(action):
+        if action["type"] == "script":
+            return ScriptAction(action.get("repository", None), action["script"], action.get("title", None), action.get("timeout", None))
+        elif action["type"] == "host_script":
+            return HostScriptAction(action["script"], action.get("title", None))
+        elif action["type"] == "forward_parameters":
+            return ForwardParametersAction(action.get("parameters", []))
+        else:
+            raise TypeError("Action type {} unknown".format(action["type"]))
+
     # now, the job can define actions to take
     for action in job_config.get("actions", []):
-        if action["type"] == "script":
-            actions.append(ScriptAction(action.get("repository", None), action["script"], action.get("title", None), action.get("timeout", None)))
-        elif action["type"] == "host_script":
-            actions.append(HostScriptAction(action["script"], action.get("title", None)))
-        elif action["type"] == "forward_parameters":
-            actions.append(ForwardParametersAction(action.get("parameters", [])))
+        actions.append(parse_action(action))
 
     # next, the job needs to retrieve artifacts
     if "artifacts" in job_config:
@@ -127,10 +136,7 @@ if job_type == "test":
         actions.append(SystemdJournalAction(job_config["system_journals"]))
 
     for post_action in job_config.get("post_actions", []):
-        if post_action["type"] == "script":
-            actions.append(PostScriptAction(post_action.get("repository", None), post_action["script"], post_action.get("title", None), action.get("timeout", None)))
-        elif post_action["type"] == "host_script":
-            actions.append(PostHostScriptAction(post_action["script"], post_action.get("title", None)))
+        actions.append(PostAction(parse_action(post_action)))
 
     # finally, the job will deprovision cloud resources
     actions.append(DeprovisionAction())
@@ -139,10 +145,10 @@ elif job_type == "suite":
     for child in job_config["children"]:
         child_config_path = abspath(join(dirname(__file__), "generated", "{}.xml".format(child)))
         if not exists(child_config_path):
-            print("[WARNING] Skipping child {}, configuration file not found.".format(child))
+            debug("[WARNING] Skipping child {}, configuration file not found.".format(child))
             continue
 
-        print("[INFO] Checking child {} for parameters".format(child))
+        debug("[INFO] Checking child {} for parameters".format(child))
         child_config = parse(child_config_path)
 
         for parameter_definition in child_config.getElementsByTagName("hudson.model.StringParameterDefinition"):
@@ -163,7 +169,7 @@ elif job_type == "suite":
             ))
             registered_names.append(parameter_name)
 
-    print("[INFO] Added the following parameters for child jobs:\n{}".format(", ".join(registered_names)))
+    debug("[INFO] Added the following parameters for child jobs:\n{}".format(", ".join(registered_names)))
     actions.append(ChildJobAction(job_config["children"]))
 
 generator = MultiAction(actions)
@@ -181,7 +187,7 @@ if "test" in job_config:
     target_repo = job_config["test"]
 
 if action != None:
-    print("[INFO] Marking this as a {} job for the {} repo".format(action, target_repo))
+    debug("[INFO] Marking this as a {} job for the {} repo".format(action, target_repo))
 
 DEFAULT_DESCRIPTION = "<div style=\"font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;\">" + \
     "WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. " + \
@@ -202,4 +208,4 @@ with open(output_path, "w") as output_file:
         email=job_config.get("email", None),
         description=job_config.get("description", DEFAULT_DESCRIPTION)
     ))
-print("[INFO] Wrote job definition to {}".format(output_path))
+debug("[INFO] Wrote job definition to {}".format(output_path))

@@ -83,43 +83,62 @@ class DetermineSearchVersionTestCase(unittest.TestCase):
 
 	def test_origin_with_standard_versioning_schema(self):
 		""" when the origin version is higher then the first version of the new origin versioning schema - origin-3.6 """
-		self.assertEqual(determine_install_version("origin", "3.7.0"), "3.6")
+		self.assertEqual(determine_search_versions("origin", "3.7.0"), ("3.6", "3.7"))
 
 	def test_origin_with_short_standard_versioning_schema(self):
 		""" when the origin version is in short format and higher then the first version of the new origin versioning schema - origin-3.6 """
-		self.assertEqual(determine_install_version("origin", "3.7"), "3.6")
+		self.assertEqual(determine_search_versions("origin", "3.7"), ("3.6", "3.7"))
 
 	def test_origin_with_standard_to_legacy_versioning_schema(self):
 		""" when the origin version is the first from the new origin versioning schema - origin-3.6 """
-		self.assertEqual(determine_install_version("origin", "3.6.0"), "1.5")
+		self.assertEqual(determine_search_versions("origin", "3.6.0"), ("1.5", "3.6"))
 
 	def test_origin_with_short_standard_to_legacy_versioning_schema(self):
 		""" when the origin version is in short format and first from the new origin versioning schema - origin-3.6 """
-		self.assertEqual(determine_install_version("origin", "3.6"), "1.5")
+		self.assertEqual(determine_search_versions("origin", "3.6"), ("1.5", "3.6"))
 
 	def test_origin_with_legacy_schema(self):
 		""" when the origin version is in the old versioning schema """
-		self.assertEqual(determine_install_version("origin", "1.5.0"), "1.4")
+		self.assertEqual(determine_search_versions("origin", "1.5.0"), ("1.4", "1.5"))
 
 	def test_origin_with_short_legacy_schema(self):
 		""" when the origin version is in short and old versioning schema """
-		self.assertEqual(determine_install_version("origin", "1.5"), "1.4")
+		self.assertEqual(determine_search_versions("origin", "1.5"), ("1.4", "1.5"))
 
 	def test_openshift_ansible_with_standard_versioning_schema(self):
 		""" when openshift-ansible, which doesnt have different versioning schema, is in 3.7 version  """
-		self.assertEqual(determine_install_version("openshift-ansible", "3.7.0"), "3.6")
+		self.assertEqual(determine_search_versions("openshift-ansible", "3.7.0"), ("3.6", "3.7"))
 
 	def test_openshift_ansible_with_standard_to_legacy_versioning_schema(self):
 		""" when openshift-ansible, which doesnt have different versioning schema is in 3.6 version """
-		self.assertEqual(determine_install_version("openshift-ansible", "3.6.0"), "3.5")
+		self.assertEqual(determine_search_versions("openshift-ansible", "3.6.0"), ("3.5", "3.6"))
 
 	def test_openshift_ansible_with_short_standard_to_legacy_versioning_schema(self):
 		""" when openshift-ansible, which doesnt have different versioning schema, is in short format and in 3.6 version """
-		self.assertEqual(determine_install_version("openshift-ansible", "3.6"), "3.5")
+		self.assertEqual(determine_search_versions("openshift-ansible", "3.6"), ("3.5", "3.6"))
 
 	def test_openshift_ansible_with_legacy_versioning_schema(self):
 		""" when openshift-ansible, which doesnt have different versioning schema is in 3.4 version """
-		self.assertEqual(determine_install_version("openshift-ansible", "3.5.0"), "3.4")
+		self.assertEqual(determine_search_versions("openshift-ansible", "3.5.0"), ("3.4", "3.5"))
+
+class SchemaChangeCheckTestCase(unittest.TestCase):
+	"Test for `determine_install_upgrade_version.py`"
+
+	def test_origin_package_with_new_schema(self):
+		""" when origin package is in 3.6 version """
+		self.assertEqual(schema_change_check("origin", "3", "6"), "3.6")
+
+	def test_origin_package_with_old_schema(self):
+		""" when origin package is in 1.5 version """
+		self.assertEqual(schema_change_check("origin", "3", "5"), "1.5")
+
+	def test_non_origin_package_with_new_schema(self):
+		""" when origin package is in 3.6 version """
+		self.assertEqual(schema_change_check("openshift-ansible", "3", "6"), "3.6")
+
+	def test_non_origin_package_with_old_schema(self):
+		""" when origin package is in 3.5 version """
+		self.assertEqual(schema_change_check("openshift-ansible", "3", "5"), "3.5")
 
 class GetLastVersionTestCase(unittest.TestCase):
 	"Test for `determine_install_upgrade_version.py`"

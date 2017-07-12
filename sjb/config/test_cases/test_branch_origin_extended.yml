@@ -22,5 +22,5 @@ extensions:
             SUITE="${BASH_REMATCH[1]}"
             FOCUS="${BASH_REMATCH[2]}"
         fi
-        OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
         OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"

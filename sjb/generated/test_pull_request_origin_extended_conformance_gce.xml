@@ -267,7 +267,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_DOCKER_ARGS=&#34;-e OS_VERSION_FILE= &#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local/releases/rpms:_output/local/bin&#34; hack/env make build-rpms BUILD_TESTS=1
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS=&#34;-e OS_VERSION_FILE= &#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local/releases/rpms:_output/local/bin&#34; hack/env make build-rpms BUILD_TESTS=1
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -347,6 +347,8 @@ cd cluster/test-deploy/data/
 if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34; ]]; then
   docker pull &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34;
   docker tag &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34; &#34;openshift/origin-gce:latest&#34;
+else
+  docker pull openshift/origin-gce:latest
 fi
 
 ../../bin/local.sh ansible-playbook -e &#34;provision_gce_docker_storage_driver=\${DOCKER_STORAGE_DRIVER}&#34; -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/launch.yaml
@@ -377,7 +379,7 @@ export TEST_EXTENDED_ARGS=&#39;-provider=gce -gce-zone=us-central1-a -gce-projec
 
 function gather() {
   set +e
-  OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
+  OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
   export PATH=\$(pwd)/_output/local/bin/linux/amd64:\$PATH
   oc get nodes --template &#39;{{ range .items }}{{ .metadata.name }}{{ &#34;\n&#34; }}{{ end }}&#39; | xargs -L 1 -I X bash -c &#39;oc get --raw /api/v1/nodes/X/proxy/metrics &gt; /tmp/artifacts/X.metrics&#39; &#39;&#39;
   oc get --raw /metrics &gt; /tmp/artifacts/master.metrics
@@ -392,7 +394,7 @@ if [[ -z &#34;\${FOCUS:-}&#34; &amp;&amp; &#34;\${SUITE}&#34; =~ ^(.*)\((.*)\)\$
   SUITE=&#34;\${BASH_REMATCH[1]}&#34;
   FOCUS=&#34;\${BASH_REMATCH[2]}&#34;
 fi
-OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
 OPENSHIFT_SKIP_BUILD=&#39;true&#39; make test-extended SUITE=&#34;\${SUITE}&#34; FOCUS=&#34;\${FOCUS:-}&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

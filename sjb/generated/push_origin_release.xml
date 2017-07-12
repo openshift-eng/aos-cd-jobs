@@ -158,7 +158,7 @@ if [[ &#34;\${ORIGIN_TARGET_BRANCH}&#34; == release-1.[4-5] ]]; then
   hack/extract-release.sh
 else
   # Catch-all for master and future release branches.
-  hack/env make release
+  OS_BUILD_ENV_PULL_IMAGE=true hack/env make release
 fi
 # docker seems to have a bunch of memory leaks, so let&#39;s
 # give it a new address space before testing starts

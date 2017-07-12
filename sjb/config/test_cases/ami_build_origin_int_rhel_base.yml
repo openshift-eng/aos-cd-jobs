@@ -38,6 +38,12 @@ actions:
       sudo mkdir -p /etc/systemd/system.conf.d/
       sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
       sudo systemctl daemon-reexec
+  - type: "script"
+    title: "pre-pull infrastructure images"
+    script: |-
+      docker pull openshift/origin-release:golang-1.7
+      docker pull openshift/origin-release:golang-1.8
+      docker pull openshift/origin-gce:latest
   - type: "host_script"
     title: "package the AMI"
     script: |-
@@ -74,12 +80,12 @@ actions:
     title: "run check and verify tasks"
     repository: "origin"
     script: |-
-      OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
   - type: "script"
     title: "run integration tests"
     repository: "origin"
     script: |-
-      OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
       OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test -o check -o build -k
   - type: "script"
     title: "run extended conformance tests"

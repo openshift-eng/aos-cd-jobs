@@ -226,7 +226,7 @@ if [[ &#34;\${ORIGIN_TARGET_BRANCH}&#34; == release-1.[4-5] ]]; then
   hack/extract-release.sh
 else
   # Catch-all for master and future release branches.
-  hack/env make release
+  OS_BUILD_ENV_PULL_IMAGE=true hack/env make release
 fi
 # docker seems to have a bunch of memory leaks, so let&#39;s
 # give it a new address space before testing starts
@@ -259,7 +259,7 @@ if [[ -z &#34;\${FOCUS:-}&#34; &amp;&amp; &#34;\${SUITE}&#34; =~ ^(.*)\((.*)\)\$
     SUITE=&#34;\${BASH_REMATCH[1]}&#34;
     FOCUS=&#34;\${BASH_REMATCH[2]}&#34;
 fi
-OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
 OPENSHIFT_SKIP_BUILD=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=&#34;\${SUITE}&#34; FOCUS=&#34;\${FOCUS:-}&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

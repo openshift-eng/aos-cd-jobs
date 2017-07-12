@@ -171,7 +171,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 hack/build-base-images.sh
-OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS=&#39;linux/amd64&#39; hack/build-rpm-release.sh
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS=&#39;linux/amd64&#39; hack/build-rpm-release.sh
 sudo systemctl restart docker
 hack/build-images.sh
 sed -i &#39;s|go/src|data/src|&#39; _output/local/releases/rpms/origin-local-release.repo
@@ -328,7 +328,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
 OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
 SCRIPT
 chmod +x &#34;${script}&#34;

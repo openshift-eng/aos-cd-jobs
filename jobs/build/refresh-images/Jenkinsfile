@@ -28,7 +28,8 @@ node('buildvm-devops') {
 
     // Expose properties for a parameterized build
     properties(
-            [[$class              : 'ParametersDefinitionProperty',
+            [   [$class : 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720']],
+                [$class              : 'ParametersDefinitionProperty',
               parameterDefinitions:
                       [
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
@@ -50,6 +51,8 @@ node('buildvm-devops') {
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO} MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
 
+    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR} (${OSE_GROUP})"
+    
     if ( MOCK.toBoolean() ) {
         error( "Ran in mock mode" )
     }

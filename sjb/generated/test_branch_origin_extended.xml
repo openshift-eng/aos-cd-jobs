@@ -201,7 +201,8 @@ if [[ -z &#34;\${FOCUS:-}&#34; &amp;&amp; &#34;\${SUITE}&#34; =~ ^(.*)\((.*)\)\$
     SUITE=&#34;\${BASH_REMATCH[1]}&#34;
     FOCUS=&#34;\${BASH_REMATCH[2]}&#34;
 fi
-JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=&#34;\${SUITE}&#34; FOCUS=&#34;\${FOCUS:-}&#34;
+OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+OPENSHIFT_SKIP_BUILD=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=&#34;\${SUITE}&#34; FOCUS=&#34;\${FOCUS:-}&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

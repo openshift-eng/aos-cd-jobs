@@ -22,6 +22,16 @@ function on_exit() {
     fi
 }
 
+function is_running(){  
+  # Output to prevent ssh timeouts. Appears to timeout
+  # After about an hour of inactivity. 
+  while true; do
+    echo 
+    echo "...."
+    sleep 600
+  done
+}
+
 trap on_exit EXIT
 
 function print_usage() {
@@ -212,7 +222,7 @@ oo_environment="$(grep -Po '(?<=^g_environment: ).*' "${CLUSTER_SETUP_TEMPLATE_F
 # CREATE CLUSTER
 ################################################
 if [ "${OPERATION}" == "install" ]; then
-
+  is_running & 
   get_latest_openshift_ansible ${oo_environment}
 
   # Deploy all the things
@@ -256,6 +266,7 @@ elif [ "${OPERATION}" == "delete" ]; then
 ################################################
 elif [ "${OPERATION}" == "upgrade" ]; then
   echo Doing upgrade
+  is_running & 
 
   ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
 
@@ -288,6 +299,7 @@ elif [ "${OPERATION}" == "perf1" ]; then
         exit 1
     fi
 
+    is_running & 
     echo "Running performance test 1"
     MASTER="$(get_master_name)"
 

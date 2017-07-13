@@ -27,7 +27,7 @@ function is_running(){
   # After about an hour of inactivity. 
   while true; do
     echo 
-    echo "...."
+    echo ".... $(date) ...."
     sleep 600
   done
 }

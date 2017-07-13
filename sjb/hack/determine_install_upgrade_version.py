@@ -1,3 +1,4 @@
+from __future__ import print_function
 import yum
 import sys
 import os.path
@@ -31,7 +32,7 @@ def get_matching_versions(input_pkg_name, available_pkgs, search_version):
 	elif pre_release_pkgs:
 		return pre_release_pkgs
 	else:
-		print("[ERROR] Can not determine install and upgrade version for the `" + input_pkg_name + "` package", sys.stderr)
+		print("[ERROR] Can not determine install and upgrade version for the `" + input_pkg_name + "` package", file=sys.stderr)
 		sys.exit(1)
 
 # Get only last version from version list
@@ -110,7 +111,7 @@ if __name__ == "__main__":
 		pkg_version = '.'.join([major, minor])
 
 	if any(char.isalpha() for char in pkg_version):
-		print ("[ERROR] Incorrect package nevra format: " + args.input_pkg, sys.stderr)
+		print ("[ERROR] Incorrect package nevra format: " + args.input_pkg, file=sys.stderr)
 		sys.exit(2)
 
 	yb = yum.YumBase()

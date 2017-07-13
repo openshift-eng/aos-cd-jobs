@@ -79,6 +79,46 @@ oct sync remote jenkins-openshift-login-plugin --branch &#34;${JENKINS_OPENSHIFT
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JENKINS_OPENSHIFT_LOGIN_PLUGIN_TARGET_BRANCH=${JENKINS_OPENSHIFT_LOGIN_PLUGIN_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
+</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RECORD THE STARTING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RECORD THE STARTING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+trap &#39;exit 0&#39; EXIT
+sjb/gcs/started.py
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: UPLOAD GCS STARTING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPLOAD GCS STARTING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+trap &#39;exit 0&#39; EXIT
+mkdir -p gcs/
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
+
+pull_id=&#34;${ORIGIN_PULL_ID:-}&#34;
+target_branch=&#34;${ORIGIN_TARGET_BRANCH:-}&#34;
+if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+  pull_id=${PULL_NUMBER}
+  target_branch=&#34;${PULL_REFS%%:*}&#34;
+fi
+# pull_id will be 0 in case of a batch merge
+if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
+  gsutil cp gcs/started.json &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/started.json&#34;
+fi</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: USE A RAMDISK FOR ETCD ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: USE A RAMDISK FOR ETCD [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
@@ -250,6 +290,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DOWNLOAD ARTIFACTS FROM THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DOWNLOAD ARTIFACTS FROM THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+trap &#39;exit 0&#39; EXIT
 ARTIFACT_DIR=&#34;$( pwd )/artifacts&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
@@ -262,6 +303,7 @@ tree &#34;${ARTIFACT_DIR}&#34; </command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: GENERATE ARTIFACTS FROM THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: GENERATE ARTIFACTS FROM THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+trap &#39;exit 0&#39; EXIT
 ARTIFACT_DIR=&#34;$( pwd )/artifacts/generated&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
@@ -275,6 +317,7 @@ tree &#34;${ARTIFACT_DIR}&#34; </command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FETCH SYSTEMD JOURNALS FROM THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FETCH SYSTEMD JOURNALS FROM THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+trap &#39;exit 0&#39; EXIT
 ARTIFACT_DIR=&#34;$( pwd )/artifacts/journals&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
@@ -286,6 +329,56 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journa
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovsdb-server.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit etcd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/etcd.service&#34;
 tree &#34;${ARTIFACT_DIR}&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_URL=${BUILD_URL:-}&#39; &gt;&gt; /etc/environment&#34;
+</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RECORD THE ENDING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RECORD THE ENDING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+trap &#39;exit 0&#39; EXIT
+sjb/gcs/finished.py
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ASSEMBLE GCS OUTPUT ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ASSEMBLE GCS OUTPUT [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+trap &#39;exit 0&#39; EXIT
+mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
+cat &#34;/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log&#34; &gt; gcs/build-log.txt
+i=0
+for report in $( find artifacts/ -type f -name \*.xml ); do
+  name=&#34;$( printf &#39;junit_%02d.xml&#39; &#34;$i&#34; )&#34;
+  cp &#34;${report}&#34; &#34;gcs/artifacts/${name}&#34;
+  i=&#34;$(( i += 1))&#34;
+done
+cp artifacts/generated/* gcs/artifacts/generated/
+cp artifacts/journals/* gcs/artifacts/journals/
+cp -r artifacts/scripts/* gcs/artifacts/scripts/
+
+pull_id=&#34;${ORIGIN_PULL_ID:-}&#34;
+target_branch=&#34;${ORIGIN_TARGET_BRANCH:-}&#34;
+if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+  pull_id=${PULL_NUMBER}
+  target_branch=&#34;${PULL_REFS%%:*}&#34;
+fi
+# pull_id will be 0 in case of a batch merge
+if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
+  gsutil cp -r gcs/* &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/&#34;
+fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

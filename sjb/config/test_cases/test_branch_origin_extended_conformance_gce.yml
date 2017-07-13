@@ -174,21 +174,23 @@ rectory to run."
                 mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
                 gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master.service"
                 gcloud compute ssh "${instance}" -- sudo journalctl --unit etcd.service          --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/etcd.service"
-                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-node.service   --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-node.service"
+
+                gcloud compute ssh "${instance}" -- oc get --raw /metrics 2>&1 > "${artifact_dir}/generated/master-metrics.log"
             elif jq '.tags.items | contains(["ocp-node"])' --exit-status "${info}"; then
                 artifact_dir="${base_artifact_dir}/nodes/${name}"
                 mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
-                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-node.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-node.service"
             else
                 artifact_dir="${base_artifact_dir}/unknown/${name}"
                 mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
             fi
 
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-node.service  --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-node.service"
             gcloud compute ssh "${instance}" -- sudo journalctl --unit openvswitch.service  --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/openvswitch.service"
             gcloud compute ssh "${instance}" -- sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/ovs-vswitchd.service"
             gcloud compute ssh "${instance}" -- sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/ovsdb-server.service"
             gcloud compute ssh "${instance}" -- sudo journalctl --unit docker.service       --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/docker.service"
 
+            gcloud compute ssh "${instance}" -- oc get --raw /metrics --server=https://\$( uname --nodename ):10250                  2>&1 > "${artifact_dir}/generated/node-metrics.log"
             gcloud compute ssh "${instance}" -- "sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a" 2>&1 > "${artifact_dir}/generated/docker.info"
             gcloud compute ssh "${instance}" -- sudo yum history info origin                                                         2>&1 > "${artifact_dir}/generated/origin_package_history.log"
             gcloud compute ssh "${instance}" -- "sudo df -h && sudo pvs && sudo vgs && sudo lvs"                                     2>&1 > "${artifact_dir}/generated/filesystem.info"

@@ -141,7 +141,7 @@ add_group_to_list() {
           add_to_list logging-auth-proxy-docker  
           add_to_list logging-elasticsearch-docker
           add_to_list logging-fluentd-docker
-          add_to_list logging-kibana-docker
+          #add_to_list logging-kibana-docker
           add_to_list metrics-cassandra-docker
           add_to_list metrics-hawkular-metrics-docker
           add_to_list metrics-hawkular-openshift-agent-docker

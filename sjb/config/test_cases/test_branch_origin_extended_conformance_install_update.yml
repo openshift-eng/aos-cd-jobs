@@ -175,7 +175,8 @@ extensions:
       title: "run extended tests"
       repository: "origin"
       script: |-
-        KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
+        OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
   generated_artifacts:
     origin_package_history.log: "sudo yum history info origin"
     openshift_ansible_package_history.log: "sudo yum history info openshift-ansible"

@@ -492,7 +492,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
+OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

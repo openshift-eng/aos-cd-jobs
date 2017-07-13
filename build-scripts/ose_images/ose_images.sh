@@ -973,21 +973,21 @@ start_push_image() {
     for current_tag in ${tag_list} ; do
       case ${current_tag} in
         default )
-          # Full name - <name>:<version>-<release>
+          # Full name - <name>:<version>-<release>   (where version is something like "v3.6.140")
           push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
           # Name and Version - <name>:<version>
           if ! [ "${NOVERSIONONLY}" == "TRUE" ] ; then
             push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log
           fi
-          # Latest - <name>:latest
+          # Latest - <name>:latest 
           if ! [ "${NOTLATEST}" == "TRUE" ] ; then
             push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "latest" | tee -a ${workingdir}/logs/push.image.log
           fi
         ;;
         single-v )
           if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
-            version_trim="v${MAJOR_RELEASE}"
+            version_trim="v${MAJOR_RELEASE}"    # ex. "v3.6"
             push_image "${BREW_IMAGE_NAME}" "${BREW_IMAGE_ID}" "${package_name}" "${version_trim}" | tee -a ${workingdir}/logs/push.image.log
           fi
         ;;

@@ -175,7 +175,7 @@ rectory to run."
                 gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master.service"
                 gcloud compute ssh "${instance}" -- sudo journalctl --unit etcd.service          --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/etcd.service"
 
-                gcloud compute ssh "${instance}" -- oc get --raw /metrics 2>&1 > "${artifact_dir}/generated/master-metrics.log"
+                gcloud compute ssh "${instance}" -- oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2>&1 > "${artifact_dir}/generated/master-metrics.log"
             elif jq '.tags.items | contains(["ocp-node"])' --exit-status "${info}"; then
                 artifact_dir="${base_artifact_dir}/nodes/${name}"
                 mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"

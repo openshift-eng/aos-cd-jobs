@@ -91,7 +91,7 @@ generated_artifacts:
   docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
   filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
   pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
-  master-metrics.log: 'oc get --raw /metrics'
-  node-metrics.log: 'oc get --raw /metrics --server=https://\$( uname --nodename ):10250'
+  master-metrics.log: 'oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig'
+  node-metrics.log: 'oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig'
 system_journals:
   - docker.service

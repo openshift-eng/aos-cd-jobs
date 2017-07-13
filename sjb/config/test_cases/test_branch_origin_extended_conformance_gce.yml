@@ -155,7 +155,8 @@ rectory to run."
           SUITE="${BASH_REMATCH[1]}"
           FOCUS="${BASH_REMATCH[2]}"
         fi
-        make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"
+        OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        OPENSHIFT_SKIP_BUILD='true' make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"
   post_actions:
     - type: "host_script"
       title: "gather artifacts from test cluster"

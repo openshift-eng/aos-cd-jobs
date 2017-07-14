@@ -444,6 +444,7 @@ ARTIFACT_DIR=&#34;$( pwd )/artifacts/journals&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit docker.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/docker.service&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit dnsmasq.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/dnsmasq.service&#34;
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -526,6 +527,7 @@ for instance in $( gcloud compute instances list --regexp &#34;.*${INSTANCE_PREF
     gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/ovs-vswitchd.service&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/ovsdb-server.service&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit docker.service       --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/docker.service&#34;  || true
+    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit dnsmasq.service      --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/dnsmasq.service&#34;  || true
 
     gcloud compute ssh &#34;${instance}&#34; -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                  2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/node-metrics.log&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a&#34; 2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/docker.info&#34;  || true

@@ -284,7 +284,15 @@ setup_dist_git() {
     echo "  ** setup_dist_git **"
     echo " container:  ${container} branch: ${branch} "
   fi
-  rhpkg ${USER_USERNAME} clone "${container}" &>${workingdir}/logs/${container}.output
+
+  # Determine if this is an apbs/ Docker repo (e.g. "apbs/openshift-enterprise-mediawiki")
+  # Anything other than "rpms" requires the type specified in the clone command.
+  export ctype_prefix="${dict_image_type[${container}]}"
+  if [ "$ctype_prefix" != "" ]; then
+    ctype_prefix="$ctype_prefix/"
+  fi
+
+  rhpkg ${USER_USERNAME} clone "${ctype_prefix}${container}" &>${workingdir}/logs/${container}.output
   if [ -d ${container} ] ; then
     pushd ${container} >${workingdir}/logs/${container}.output
     rhpkg switch-branch "${branch}" &>${workingdir}/logs/${container}.output

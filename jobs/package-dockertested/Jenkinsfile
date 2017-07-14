@@ -9,7 +9,7 @@ def runScript(script) {
     sh "scp -F ${ssh_config} ${script} openshiftdevel:/tmp/${script}"
     sh "ssh -F ${ssh_config} -t openshiftdevel \"bash -l -c /tmp/${script}\""
 }
-node('buildvm-devops') {
+node('openshift-build-1') {
 	properties ([[
 		$class: 'ParametersDefinitionProperty',
 		parameterDefinitions: [[

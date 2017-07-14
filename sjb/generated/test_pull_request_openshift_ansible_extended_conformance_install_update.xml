@@ -255,6 +255,10 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 tito_tmp_dir=&#34;tito&#34;
 mkdir -p &#34;\${tito_tmp_dir}&#34;
+if [[ \${ORIGIN_TARGET_BRANCH} == release-1.* ]]
+then
+  git checkout -b \${ORIGIN_TARGET_BRANCH} origin/\${ORIGIN_TARGET_BRANCH}
+fi
 tito tag --offline --accept-auto-changelog
 tito build --output=&#34;\${tito_tmp_dir}&#34; --rpm --test --offline --quiet
 createrepo &#34;\${tito_tmp_dir}/noarch&#34;

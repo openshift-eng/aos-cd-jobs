@@ -95,3 +95,4 @@ generated_artifacts:
   node-metrics.log: 'oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig'
 system_journals:
   - docker.service
+  - dnsmasq.service

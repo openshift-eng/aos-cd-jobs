@@ -319,7 +319,7 @@ export TEST_EXTENDED_ARGS=&#39;-provider=gce -gce-zone=us-central1-a -gce-projec
 
 function gather() {
   set +e
-  hack/build-go.sh cmd/oc
+  OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
   export PATH=\$(pwd)/_output/local/bin/linux/amd64:\$PATH
   oc get nodes --template &#39;{{ range .items }}{{ .metadata.name }}{{ &#34;\n&#34; }}{{ end }}&#39; | xargs -L 1 -I X bash -c &#39;oc get --raw /api/v1/nodes/X/proxy/metrics &gt; /tmp/artifacts/X.metrics&#39; &#39;&#39;
   oc get --raw /metrics &gt; /tmp/artifacts/master.metrics

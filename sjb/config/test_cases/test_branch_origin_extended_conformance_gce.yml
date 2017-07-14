@@ -140,7 +140,7 @@ rectory to run."
 
         function gather() {
           set +e
-          hack/build-go.sh cmd/oc
+          OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
           export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
           oc get nodes --template '{{ range .items }}{{ .metadata.name }}{{ "\n" }}{{ end }}' | xargs -L 1 -I X bash -c 'oc get --raw /api/v1/nodes/X/proxy/metrics > /tmp/artifacts/X.metrics' ''
           oc get --raw /metrics > /tmp/artifacts/master.metrics

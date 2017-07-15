@@ -242,7 +242,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 export OS_BUILD_IMAGE_ARGS=&#39;&#39;
 hack/build-base-images.sh
-OS_ONLY_BUILD_PLATFORMS=&#34;linux/amd64&#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local&#34; hack/env make release
+OS_BUILD_ENV_PULL_IMAGE=true OS_ONLY_BUILD_PLATFORMS=&#34;linux/amd64&#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local&#34; hack/env make release
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -275,7 +275,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_EXCLUDE=&#39;_output/local/go&#39; hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -o build -j -k
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_EXCLUDE=&#39;_output/local/go&#39; hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -o build -j -k
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -289,7 +289,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
 OPENSHIFT_SKIP_BUILD=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test -o check -o build -k
 SCRIPT
 chmod +x &#34;${script}&#34;

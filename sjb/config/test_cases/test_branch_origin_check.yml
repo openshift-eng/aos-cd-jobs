@@ -17,4 +17,4 @@ extensions:
       title: "run check and verify tasks"
       repository: "origin"
       script: |-
-        OS_BUILD_ENV_PRESERVE=_output/scripts hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k

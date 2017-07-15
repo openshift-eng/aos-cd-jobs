@@ -49,7 +49,7 @@ rectory to run."
       repository: "origin"
       timeout: 2400
       script: |-
-        OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1
     - type: "host_script"
       title: "move RPMs to GCS repo"
       script: |-
@@ -118,6 +118,8 @@ rectory to run."
         if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE}" ]]; then
           docker pull "${OPENSHIFT_ANSIBLE_IMAGE}"
           docker tag "${OPENSHIFT_ANSIBLE_IMAGE}" "openshift/origin-gce:latest"
+        else
+          docker pull openshift/origin-gce:latest
         fi
 
         ../../bin/local.sh ansible-playbook -e "provision_gce_docker_storage_driver=${DOCKER_STORAGE_DRIVER}" -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
@@ -140,7 +142,7 @@ rectory to run."
 
         function gather() {
           set +e
-          OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
+          OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
           export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
           oc get nodes --template '{{ range .items }}{{ .metadata.name }}{{ "\n" }}{{ end }}' | xargs -L 1 -I X bash -c 'oc get --raw /api/v1/nodes/X/proxy/metrics > /tmp/artifacts/X.metrics' ''
           oc get --raw /metrics > /tmp/artifacts/master.metrics
@@ -155,7 +157,7 @@ rectory to run."
           SUITE="${BASH_REMATCH[1]}"
           FOCUS="${BASH_REMATCH[2]}"
         fi
-        OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
         OPENSHIFT_SKIP_BUILD='true' make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"
   post_actions:
     - type: "host_script"

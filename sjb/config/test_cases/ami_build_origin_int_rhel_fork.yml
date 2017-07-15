@@ -144,7 +144,7 @@ actions:
     script: |-
       export OS_BUILD_IMAGE_ARGS=''
       hack/build-base-images.sh
-      OS_ONLY_BUILD_PLATFORMS="linux/amd64" OS_BUILD_ENV_PRESERVE="_output/local" hack/env make release
+      OS_BUILD_ENV_PULL_IMAGE=true OS_ONLY_BUILD_PLATFORMS="linux/amd64" OS_BUILD_ENV_PRESERVE="_output/local" hack/env make release
   - type: "script"
     title: "verify commit history"
     repository: "origin"
@@ -159,12 +159,12 @@ actions:
     title: "run check and verify tasks"
     repository: "origin"
     script: |-
-      OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
   - type: "script"
     title: "run integration tests"
     repository: "origin"
     script: |-
-      OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test hack/env make build-integration-test
       OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test -o check -o build -k
   - type: "host_script"
     title: "release the AMI"

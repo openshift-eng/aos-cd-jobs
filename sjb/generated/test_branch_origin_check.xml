@@ -165,7 +165,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_PRESERVE=_output/scripts hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -j -k
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts hack/env TEST_KUBE=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make check -j -k
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

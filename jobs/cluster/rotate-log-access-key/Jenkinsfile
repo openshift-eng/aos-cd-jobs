@@ -57,15 +57,15 @@ node('buildvm-devops') {
     )
 
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo '''Parameters:
-BASTION_HOST:[${BASTION_HOST}],
-BASTION_USER:[${BASTION_USER}],
-BASTION_CREDENTIALS:[${BASTION_CREDENTIALS}],
-SECRETS_REPO:[${SECRETS_REPO}],
-OSE_CREDENTIALS:[${OSE_CREDENTIALS}],
-KEY_FILE:[${KEY_FILE}],
-MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}]
-'''
+    echo """Parameters:
+BASTION_HOST: ${BASTION_HOST}
+BASTION_USER: ${BASTION_USER}
+BASTION_CREDENTIALS: ${BASTION_CREDENTIALS}
+SECRETS_REPO: ${SECRETS_REPO}
+OSE_CREDENTIALS: ${OSE_CREDENTIALS}
+KEY_FILE: ${KEY_FILE}
+MAIL_LIST_FAILURE: ${MAIL_LIST_FAILURE}
+"""
 
     try {
 

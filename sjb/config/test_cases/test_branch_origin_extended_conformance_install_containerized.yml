@@ -12,6 +12,8 @@ extensions:
         hack/build-base-images.sh
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
         sudo systemctl restart docker
+        git describe --abbrev=0 >> "ORIGIN_TAG"
+        cat ORIGIN_TAG > _output/local/releases/.commit
         hack/build-images.sh
         sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
         sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
@@ -58,6 +60,7 @@ extensions:
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
         git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+        git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
     - type: "script"
       title: "install origin"
@@ -76,9 +79,9 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e deployment_type=origin  \
-                         -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )"                      \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
-                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
     - type: "script"
       title: "expose the kubeconfig"
@@ -88,15 +91,24 @@ extensions:
     - type: "script"
       title: "ensure built version of origin is installed"
       timeout: 600
-      repository: "origin"
+      repository: "aos-cd-jobs"
       script: |-
-        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        rpm -V "${origin_package}"
+        docker_image_tag="$( cat ./ORIGIN_TAG )"
+        docker_repository="${OS_IMAGE_PREFIX:-"openshift/origin"}"
+        docker inspect "${docker_repository}:${docker_image_tag}"
     - type: "script"
       title: "run extended tests"
       repository: "origin"
       script: |-
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        # configure dnsmasq to forward requests to openhsift's DNS
+        cat <<HEREDOC > ci-dnsmasq.conf
+        server=/local/127.0.0.1#8053
+        server=/17.30.172.in-addr.arpa/127.0.0.1#8053
+        HEREDOC
+        sudo cp ci-dnsmasq.conf /etc/dnsmasq.d/ci-dnsmasq.conf
+        sudo systemctl restart dnsmasq
+        sudo systemctl status dnsmasq
         OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
   system_journals:
     - origin-master.service

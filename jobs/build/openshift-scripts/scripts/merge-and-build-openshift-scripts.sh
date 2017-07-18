@@ -74,8 +74,13 @@ else
         git checkout -q stage
         SPEC_VERSION_COUNT=5
     elif [ "${BUILD_MODE}" == "release" ] ; then
-        exit 1  # TODO: release_version to build needs to be a parameter to this script
-        git checkout -q "online-${RELEASE_VERSION}"
+        # Incoming into this script is $BRANCH which will be something like "online-3.2.0" . Let's extract version.
+        RELEASE_VERSION=$(echo "${BRANCH}" | cut -d '-' -f 2)
+        if [ -z "$RELEASE_VERSION" ]; then
+            echo "Unable to split version from BRANCH: ${BRANCH}"
+            exit 1
+        fi
+        git checkout -q "${BRANCH}"
         SPEC_VERSION_COUNT=6
     fi
 
@@ -113,8 +118,7 @@ else
     elif [ "${BUILD_MODE}" == "online:int" ] ; then
         brew tag-pkg libra-rhel-7-candidate ${TAG}.git.0.${COMMIT}.el7
     else
-        echo "Work needs to be done for release BUILD_MODE"  # TODO
-        exit 1
+        brew tag-pkg libra-rhel-7 ${TAG}.git.0.${COMMIT}.el7
     fi
 
     # tag-pkg seems to work async even though we are not specifying the --nowait argument. 
@@ -127,12 +131,13 @@ else
     echo "Build and Push libra repos"
     echo "=========="
     if [ "${BUILD_MODE}" == "online:stg" ] ; then
-        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh stage"
+        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh stg"
     elif [ "${BUILD_MODE}" == "online:int" ] ; then
-        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh candidate"
+        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh int"
+    elif [ "${BUILD_MODE}" == "release" ] ; then
+        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh release"
     else
-        echo "Work needs to be done for release BUILD_MODE"  # TODO
-        exit 1
+        echo "Unknown BUILD_MODE: ${BUILD_MODE}"
     fi
 
     echo

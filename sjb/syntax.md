@@ -29,6 +29,44 @@ is:
 children: [] # a list of job names (YAML filenames without extension under sjb/config/test_cases)
 ```
 
+## `parent`
+
+`parent` is an optional string field that takes already existing
+job configuration and includes it into the current job configuration.
+The syntax is:
+
+```yaml
+parent: "" # path to a job configuration with respect to sjb/config directory
+```
+
+It is used together with `extensions` and `overrides` keyword that specifies
+a list of configuration options (see example at the bottom).
+
+A configuration option can _either_ be found in `extensions:` _or_ in
+`overrides` but not in both.
+
+## `extensions`
+
+`extensions` is a dictionary used together with `parent` field that extends
+a dictionary of parent's configuration options.
+The syntax is:
+
+```yaml
+parent: ""
+extensions: {} # a dictionary of configuration options
+```
+
+## `overrides`
+
+`overrides` is a dictionary used together with `parent` field that replaces
+a dictionary of parent's configuration options.
+The syntax is:
+
+```yaml
+parent: ""
+overrides: {} # a dictionary of configuration options
+```
+
 ## `timer`
 
 `timer` is an optional field that holds a `cron` entry and will configure the
@@ -138,7 +176,7 @@ actions:
   - type: "host_script"
     timeout: 0 # in seconds [optional]
     title: ""  # a human-readable title for the step
-    script: "" # inline shell script to run, no character escaping necessary 
+    script: "" # inline shell script to run, no character escaping necessary
 ```
 
 ### `type: "script"`
@@ -152,7 +190,7 @@ actions:
     timeout: 0 # in seconds [optional]
     title: ""      # a human-readable title for the step
     repository: "" # the repository under github.com/openshift to `cd` into [optional]
-    script: ""     # inline shell script to run, no character escaping necessary 
+    script: ""     # inline shell script to run, no character escaping necessary
 ```
 
 ## `post_actions`

@@ -9,6 +9,12 @@
   - rhtools  (required for sign_unsigned.py)
   - rh-signing-tools  (required for sign_unsigned.py)
   - npm (needed for origin-web-console asset compilation)
+- Mounts in fstab
+  - ntap-bos-c01-eng01-nfs01a.storage.bos.redhat.com:/devops_engarchive2_nfs /mnt/engarchive2 nfs tcp,ro,nfsvers=3 0 0
+  - ntap-bos-c01-eng01-nfs01b.storage.bos.redhat.com:/devops_engineering_nfs/devarchive/redhat /mnt/redhat nfs tcp,ro,nfsvers=3 0 0
+- Enabling RPM signing
+  - RPM signing is limited by hostname. Presently, only openshift-build-1.lab.eng.rdu.redhat.com as ocp-build kerberos id has this authority. The hostname is tied to the MAC of the server.
+  - The system must be plugged into a lab Ethernet port. Port 16W306A was joined to the engineering network for this purpose.
 - Setup "jenkins" user
   - Create user
   - Ensure user has at least 100GB in home directory (Jenkins server will run as jenkins user and workspace will reside here).

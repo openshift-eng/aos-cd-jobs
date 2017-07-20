@@ -34,17 +34,42 @@ for repo in $@; do
                 fi
             
                 git checkout -b "stage-${LAST_SPRINT_NUMBER}"
-                git push origin "stage-${LAST_SPRINT_NUMBER}"
+                if [ ! -z "${TEST_MODE}" ]; then
+                    git push origin "stage-${LAST_SPRINT_NUMBER}"
+                else
+                    echo "In test mode; would have run: git push origin stage-${LAST_SPRINT_NUMBER}"
+                fi
                 git checkout stage
             fi
-            
-            git reset --hard master
-            git push origin stage --force
+
+            if [ -z "${SOURCE_VERSION}" ]; then
+                # By default, master is pushed into master
+                git reset --hard master
+            else
+                if [ ! -z "$(git ls-remote git@github.com:openshift/ose.git release-${SOURCE_VERSION})" ]; then
+                    git reset --hard "release-${SOURCE_VERSION}"
+                elif [ ! -z "$(git ls-remote git@github.com:openshift/ose.git enterprise-${SOURCE_VERSION})" ]; then
+                    git reset --hard "enterprise-${SOURCE_VERSION}"
+                else
+                    echo "Unable to find source version (${SOURCE_VERSION}) branch in repository for git repo: $repo"
+                    exit 1
+                fi
+            fi
+
+            if [ ! -z "${TEST_MODE}" ]; then
+                git push origin stage --force
+            else
+                echo "In test mode; would have run: git push origin stage --force"
+            fi
 
         else
             echo "Stage branch did not yet exist; creating it..."
             git checkout -b stage
-            git push origin stage
+            if [ ! -z "${TEST_MODE}" ]; then
+                git push origin stage
+            else
+                echo "In test mode; would have run: git push origin stage"
+            fi
         fi
 
     popd

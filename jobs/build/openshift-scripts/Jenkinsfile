@@ -42,7 +42,7 @@ properties(
 echo "${TARGET_NODE}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], FORCE_REBUILD:${FORCE_REBUILD}, BUILD_MODE:${BUILD_MODE}"
 
 if ( MOCK.toBoolean() ) {
-    error( "Ran in mock mode" )
+    error( "Ran in mock mode to pick up any new parameters" )
 }
 
 if ( BUILD_MODE == "release" && BRANCH == "" ) {

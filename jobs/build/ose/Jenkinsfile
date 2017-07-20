@@ -103,10 +103,6 @@ node(TARGET_NODE) {
     stage('Merge and build') {
         try {
 
-            if ( BUILD_MODE != "enterprise" && "${OSE_MAJOR}.${OSE_MINOR}" != OSE_MASTER ) {
-                error("Unable to build older version ${OSE_MAJOR}.${OSE_MINOR} in online or pre-release mode: ${BUILD_MODE}. Only ${OSE_MASTER} can be built in this mode.")
-            }
-
             checkout scm
 
             env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"

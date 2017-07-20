@@ -77,11 +77,16 @@ enterprise:pre-release    {origin,origin-web-console,openshift-ansible}/release-
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
+                          [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                   ]
             ],
             disableConcurrentBuilds()
         ]
 )
+
+if ( MOCK.toBoolean() ) {
+    error( "Ran in mock mode to pick up any new parameters" )
+}
 
 // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
 echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], BUILD_MODE:${BUILD_MODE}, EARLY_LATEST_HACK:${EARLY_LATEST_HACK}"

@@ -63,10 +63,6 @@ OSE_VERSION="${MAJOR}.${MINOR}"
 PUSH_EXTRA=""
 
 if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-  if [ "$BUILD_MODE" != "enterprise" ]; then
-    echo "Unable to build old version ($OSE_VERSION) in online mode when master contains: $OSE_MASTER"
-    exit 1
-  fi
   PUSH_EXTRA="--nolatest"
 fi
 
@@ -107,6 +103,17 @@ if [ "${OSE_VERSION}" == "3.2" ] ; then
   echo "Exiting ..."
   exit 1
 fi # End check if we are version 3.2
+
+# Do a check to see if OSE_MASTER is incorrect.
+if [ ! -z "$(git ls-remote --heads git@github.com:openshift/origin.git release-${OSE_MASTER})" \
+    -o \
+     ! -z "$(git ls-remote --heads git@github.com:openshift/openshift-ansible.git release-${OSE_MASTER})" \
+   ]; then
+    echo "A release branch exists for the version claimed in OSE_MASTER=${OSE_MASTER}"
+    echo "Something is wrong. A new release branch was probably just cut and you need"
+    echo "to update OSE_MASTER in the Jenkinsfile."
+    exit 1
+fi
 
 echo
 echo "=========="
@@ -180,8 +187,23 @@ else
     UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
     SPEC_VERSION_COUNT=5
   else # Otherwise, online:int
-    CURRENT_BRANCH="master"
-    UPSTREAM_BRANCH="upstream/master"
+    # In general, online:int builds should be pulling from upstream/master. However,
+    # we may cut an origin release branch and want to use that branch for a time during
+    # online:int builds instead of master. We detect this window by checking the
+    # version of master versus the version passed in to the online:int build.
+    if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+        CURRENT_BRANCH="enterprise-${OSE_VERSION}"
+        UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
+    else
+
+        # Perform a sanity check to ensure that OSE_MASTER version is accurate.
+        # If we can checkout upstream/release-${OSE_MASTER}, then it is no
+        # longer master and we should warn and die.
+        if git checkout -q "
+
+        CURRENT_BRANCH="master"
+        UPSTREAM_BRANCH="upstream/master"
+    fi
     SPEC_VERSION_COUNT=3 # No need to change
   fi
 

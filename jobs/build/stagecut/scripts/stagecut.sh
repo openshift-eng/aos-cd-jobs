@@ -34,7 +34,7 @@ for repo in $@; do
                 fi
             
                 git checkout -b "stage-${LAST_SPRINT_NUMBER}"
-                if [ ! -z "${TEST_MODE}" ]; then
+                if [ "${TEST_MODE}" != "true" ]; then
                     git push origin "stage-${LAST_SPRINT_NUMBER}"
                 else
                     echo "In test mode; would have run: git push origin stage-${LAST_SPRINT_NUMBER}"
@@ -56,7 +56,7 @@ for repo in $@; do
                 fi
             fi
 
-            if [ ! -z "${TEST_MODE}" ]; then
+            if [ "${TEST_MODE}" != "true" ]; then
                 git push origin stage --force
             else
                 echo "In test mode; would have run: git push origin stage --force"
@@ -65,7 +65,7 @@ for repo in $@; do
         else
             echo "Stage branch did not yet exist; creating it..."
             git checkout -b stage
-            if [ ! -z "${TEST_MODE}" ]; then
+            if [ "${TEST_MODE}" != "true" ]; then
                 git push origin stage
             else
                 echo "In test mode; would have run: git push origin stage"

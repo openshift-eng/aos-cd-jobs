@@ -11,7 +11,7 @@ stage:
   - "aos-ci-jenkins/OS_3.6_containerized"
   - "aos-ci-jenkins/OS_3.6_containerized_e2e_tests"
   - "fedora/25/atomic"
-release-1.6:
+release-3.6:
   - "aos-ci-jenkins/OS_3.6_NOT_containerized"
   - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"
   - "aos-ci-jenkins/OS_3.6_containerized"

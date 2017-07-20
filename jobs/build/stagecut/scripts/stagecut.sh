@@ -46,9 +46,9 @@ for repo in $@; do
                 # By default, master is pushed into master
                 git reset --hard master
             else
-                if [ ! -z "$(git ls-remote git@github.com:openshift/ose.git release-${SOURCE_VERSION})" ]; then
+                if [ ! -z "$(git ls-remote ${repo} release-${SOURCE_VERSION})" ]; then
                     git reset --hard "origin/release-${SOURCE_VERSION}"
-                elif [ ! -z "$(git ls-remote git@github.com:openshift/ose.git enterprise-${SOURCE_VERSION})" ]; then
+                elif [ ! -z "$(git ls-remote ${repo} enterprise-${SOURCE_VERSION})" ]; then
                     git reset --hard "origin/enterprise-${SOURCE_VERSION}"
                 else
                     echo "Unable to find source version (${SOURCE_VERSION}) branch in repository for git repo: $repo"

@@ -79,7 +79,7 @@ MAIL_LIST_FAILURE: ${MAIL_LIST_FAILURE}
                         credentialsId: OSE_CREDENTIALS
                     ]
                 ],
-                branches: [[ name: '*/master' ]]
+                branches: [[ name: '*/rotating_keys' ]]
             )
         }
 
@@ -102,7 +102,7 @@ MAIL_LIST_FAILURE: ${MAIL_LIST_FAILURE}
                 sh """
 git add ${KEY_FILE}
 git commit -m "New SSH key to gather cluster logs"
-git push origin HEAD:master
+git push origin HEAD:rotating_keys
 """
             }
         }

@@ -195,12 +195,6 @@ else
         CURRENT_BRANCH="enterprise-${OSE_VERSION}"
         UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
     else
-
-        # Perform a sanity check to ensure that OSE_MASTER version is accurate.
-        # If we can checkout upstream/release-${OSE_MASTER}, then it is no
-        # longer master and we should warn and die.
-        if git checkout -q "
-
         CURRENT_BRANCH="master"
         UPSTREAM_BRANCH="upstream/master"
     fi

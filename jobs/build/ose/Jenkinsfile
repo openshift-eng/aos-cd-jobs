@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 // Update OSE_MASTER when the version in ose/master changes
-def OSE_MASTER = "3.6"
+def OSE_MASTER = "3.7"
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## This script must run with an ssh key for openshift-bot loaded.
-
+export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 set -o xtrace
 
 set -o errexit
@@ -227,7 +227,7 @@ git add pkg/assets/java/bindata.go
 set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
   git commit -m "Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
-else  
+else
   git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
 fi
 set -e
@@ -278,7 +278,7 @@ echo
 echo "=========="
 echo "Tito Tagging: openshift-ansible"
 echo "=========="
-if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below 
+if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below
     # Use tito's normal progression for older releases
     export TITO_USE_VERSION=""
 else
@@ -327,8 +327,8 @@ echo "=========="
 ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo
 
 if [ "$EARLY_LATEST_HACK" == "true" ]; then
-    # Hack to keep from breaking openshift-ansible CI during daylight builds. They need the latest puddle to exist 
-    # before images are pushed to registry-ops in order for their current CI implementation to work. 
+    # Hack to keep from breaking openshift-ansible CI during daylight builds. They need the latest puddle to exist
+    # before images are pushed to registry-ops in order for their current CI implementation to work.
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf"
 fi
 

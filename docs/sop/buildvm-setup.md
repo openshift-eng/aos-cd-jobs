@@ -52,7 +52,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/nohup /usr/bin/java -Xmx2048m -jar /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar -master https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/ -name buildvm-devops.usersys.redhat.com -executors 10 -labels "buildvm-devops" -fsroot /home/jenkins -mode exclusive -disableSslVerification -disableClientsUniqueId
+ExecStart=/usr/bin/nohup /usr/bin/java -Xmx2048m -jar /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar -master https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/ -name buildvm-devops.usersys.redhat.com -executors 10 -labels "openshift-build openshift-build-1" -fsroot /home/jenkins -mode exclusive -disableSslVerification -disableClientsUniqueId
 Restart=on-failure
 User=jenkins
 Group=jenkins

@@ -27,7 +27,7 @@ ${OSE_MAJOR}.${OSE_MINOR}, Type:${PUDDLE_TYPE}, Purpose:${PUDDLE_PURPOSE}
 """);
 }
 
-node('buildvm-devops') {
+node('openshift-build-1') {
 
     // Expose properties for a parameterized build
     properties(

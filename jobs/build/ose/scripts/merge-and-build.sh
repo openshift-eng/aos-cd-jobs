@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ## This script must run with an ssh key for openshift-bot loaded.
-export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+export PS4='${LINENO}: '
 set -o xtrace
 
 set -o errexit

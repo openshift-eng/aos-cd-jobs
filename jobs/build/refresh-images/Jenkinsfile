@@ -24,7 +24,7 @@ ${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO}
 """);
 }
 
-node('buildvm-devops') {
+node('openshift-build-1') {
 
     // Expose properties for a parameterized build
     properties(

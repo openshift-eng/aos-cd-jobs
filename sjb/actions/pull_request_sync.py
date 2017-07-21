@@ -77,7 +77,7 @@ class PullRequestSyncAction(Action):
 
     def __init__(self, repository):
         self.repository = repository
-        self.parent_sync = SyncAction(repository)
+        self.parent_sync = SyncAction(repository, dependency_repository=repository)
 
     def generate_parameters(self):
         return self.parent_sync.generate_parameters() + [

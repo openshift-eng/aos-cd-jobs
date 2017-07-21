@@ -99,11 +99,37 @@ if job_type == "test":
 
     # next, repositories will be synced to the remote VM
     sync_actions = []
+    repo_names=[repository["name"] for repository in job_config.get("sync_repos", [])]
+
+    repo_dependencies = {
+        "origin": ["openshift-ansible"],
+        "origin-aggregated-logging": ["openshift-ansible"],
+        "openshift-ansible": ["origin", "origin-aggregated-logging"]
+    }
+
+    is_pull_request = False
+    for repo in job_config.get("sync_repos", []):
+        if repo.get("type") == "pull_request":
+            is_pull_request = True
+
+    # Determine the name of dependency repository that will serve as prefix to 'XXX_TARGET_BRANCH'
+    # variable, so we can set the matching branch for input repository.
+    # Otherwise set the dependency repository to input repository name.
+    def get_parent_repo(dependent_repo_name):
+        if dependent_repo_name in repo_dependencies:
+            for parent in repo_dependencies[dependent_repo_name]:
+                if parent in repo_names:
+                    return parent
+
+        return dependent_repo_name
+
     for repository in job_config.get("sync_repos", []):
         if repository.get("type", None) == "pull_request":
             sync_actions.append(PullRequestSyncAction(repository["name"]))
         else:
-            sync_actions.append(SyncAction(repository["name"]))
+            # if test is a PR, point to dependency repository to the PR's repository branch
+            dependency_repository = get_parent_repo(repository["name"]) if is_pull_request else repository["name"]
+            sync_actions.append(SyncAction(repository["name"], dependency_repository))
 
     if len(sync_actions) > 0:
         actions.append(MultiSyncAction(sync_actions))

@@ -219,7 +219,9 @@ cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conforman
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --merge_pull_request &quot;${OPENSHIFT_ANSIBLE_PULL_ID}&quot; --repo openshift-ansible --config ~/test_pull_requests/openshift-ansible.json
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --merge_pull_request &quot;${OPENSHIFT_ANSIBLE_PULL_ID}&quot; --repo openshift-ansible --config ~/test_pull_requests/openshift-ansible.json
+fi
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

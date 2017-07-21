@@ -274,7 +274,9 @@ cat /var/lib/jenkins/jobs/test_pull_request_origin_extended_networking_minimal/b
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${ORIGIN_PULL_ID}&quot; --repo origin --config ~/test_pull_requests/origin.json || true
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --mark_test_success &quot;${ORIGIN_PULL_ID}&quot; --repo origin --config ~/test_pull_requests/origin.json || true
+fi
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

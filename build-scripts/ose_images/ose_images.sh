@@ -331,12 +331,28 @@ setup_git_repo() {
     echo " git_path: ${git_path} "
     echo " git_branch: ${git_branch} "
   fi
-  set -e
+  set -e # enable hard error fail, we do not want this to go ahead if *anything* goes wrong
+  # repo may be entered as github.com/reponame#branch
+  # so we can secify the branch manually
+  # cut out the base repo URL and the branch name, if exists
+  url = $(echo "${git_repo}#" | cut -d "#" -f 1)
+  branch_override = $(echo "${git_repo}#" | cut -d "#" -f 2)
   pushd "${workingdir}" >/dev/null
-  git clone -q ${git_repo} 2>/dev/null  
-  git checkout ${git_branch} 2>/dev/null
+  git clone -q ${git_repo} 2>/dev/null
+  repo_name = $(echo "${git_path}/" | cut -d "/" -f 1)
+  # get the name of the repo so we can cd into that directory for branch checkout
+  pushd "${repo_name}" >/dev/null
+  # if there was a branch override use that instead
+  if [ ! -z "${branch_override}"] ; then  
+    git checkout ${branch_override} 2>/dev/null
+  else
+    git checkout ${git_branch} 2>/dev/null
+  fi
+  # we are in the repo dir but below needs to be in workingdir
+  # more messy path cutting would've been required. popd is quicker
+  popd 
   pushd "${git_path}" >/dev/null
-  set +e
+  set +e # back to ignoring errors
   
   # If we are running in online:stg mode, we want to update dist-git with 
   # content from the stage branch, not from master.

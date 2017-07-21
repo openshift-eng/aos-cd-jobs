@@ -50,5 +50,5 @@ kubernetes:0.11;jenkins-version-override
 
 openshift-login:0.12
 openshift-pipeline:1.0.47
-openshift-sync:0.1.23
+openshift-sync:0.1.24
 

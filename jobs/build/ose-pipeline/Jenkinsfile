@@ -63,7 +63,7 @@ def version(f) {
     matcher ? matcher[0][1] : null
 }
 
-node('buildvm-devops') {
+node('openshift-build-1') {
     properties([[
         $class: 'ParametersDefinitionProperty',
         parameterDefinitions: [

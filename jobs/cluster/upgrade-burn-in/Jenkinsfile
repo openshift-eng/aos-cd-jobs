@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-node('buildvm-devops') {
+node('openshift-build-1') {
     
     stage( 'Burn-in operation' ) {
         sshagent(['cicd_cluster_key']) {

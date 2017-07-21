@@ -17,9 +17,8 @@
 set -o xtrace
 
 ## LOCAL VARIABLES ##
-MASTER_RELEASE="3.6"    # Update version_trim_list when this changes
-MASTER_BRANCHED_RELEASE="3.6"
-MAJOR_RELEASE="3.6"
+MASTER_RELEASE="3.7"    # Update version_trim_list when this changes
+MAJOR_RELEASE="${MASTER_RELEASE}"  # This is a default if --branch is not specified
 
 MAJOR_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
 MAJOR_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
@@ -332,11 +331,12 @@ setup_git_repo() {
     echo " git_path: ${git_path} "
     echo " git_branch: ${git_branch} "
   fi
+  set -e
   pushd "${workingdir}" >/dev/null
-  git clone -q ${git_repo} 2>/dev/null
-  pushd "${git_path}" >/dev/null
-  
+  git clone -q ${git_repo} 2>/dev/null  
   git checkout ${git_branch} 2>/dev/null
+  pushd "${git_path}" >/dev/null
+  set +e
   
   # If we are running in online:stg mode, we want to update dist-git with 
   # content from the stage branch, not from master.
@@ -1374,7 +1374,11 @@ do
       else
         if [ "${container}" == "aos3-installation-docker" ] ; then
           MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
-          export git_branch="release-1.${MINOR_RELEASE}"
+          if [ "${MINOR_RELEASE}" -ge "6"] ; then
+            export git_branch="release-${MAJOR_RELEASE}"
+          else
+            export git_branch="release-1.${MINOR_RELEASE}"
+          fi
         else
           export git_branch="enterprise-${MAJOR_RELEASE}"
         fi

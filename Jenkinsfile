@@ -11,7 +11,7 @@ def set_workspace() {
   }
 }
 
-node('buildvm-devops') {
+node('openshift-build-1') {
   try {
     timeout(time: 30, unit: 'MINUTES') {
       deleteDir()

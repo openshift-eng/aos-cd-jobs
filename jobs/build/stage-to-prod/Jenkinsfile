@@ -24,7 +24,7 @@ Jenkins job: ${env.BUILD_URL}
 """);
 }
 
-node('buildvm-devops') {
+node('openshift-build-1') {
 
     // Expose properties for a parameterized build
     properties(

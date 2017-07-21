@@ -4,7 +4,7 @@ usage() {
   echo >&2
   echo "Usage `basename $0` <lowest-supported-jenkins-version> <aos-release> <path-to-hpis-dir> " >&2
   echo >&2
-  echo "Example: `basename $0` 1.651.2 3.6 ./working/hpis" >&2
+  echo "Example: `basename $0` 1.651.2  3.6  ./working/hpis" >&2
   echo >&2
   exit 1
 }
@@ -24,7 +24,7 @@ rhaos_release="$2"
 hpis_dir=$(realpath "$3")
 
 request_file="/tmp/rcm-requests-$(date +%Y-%m-%d)"
-rm "${request_file}"   # If there happens to have been another run today
+rm "${request_file}" 2> /dev/null  # If there happens to have been another run today
 
 for hpi in "${hpis_dir}"/*.hpi ; do
 

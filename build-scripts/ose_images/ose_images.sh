@@ -339,7 +339,7 @@ setup_git_repo() {
   branch_override=$(echo "${git_repo}#" | cut -d "#" -f 2)
   pushd "${workingdir}" >/dev/null
   git clone -q ${git_base_url} 2>/dev/null
-  repo_name = $(echo "${git_path}/" | cut -d "/" -f 1)
+  repo_name=$(echo "${git_path}/" | cut -d "/" -f 1)
   # get the name of the repo so we can cd into that directory for branch checkout
   pushd "${repo_name}" >/dev/null
   # if there was a branch override use that instead

@@ -9,6 +9,8 @@
   - rhtools  (required for sign_unsigned.py)
   - rh-signing-tools  (required for sign_unsigned.py)
   - npm (needed for origin-web-console asset compilation)
+  - pip (`yum install python-pip`)
+  - virtualenv (`pip install virtualenv`)
 - Mounts in fstab
   - ntap-bos-c01-eng01-nfs01a.storage.bos.redhat.com:/devops_engarchive2_nfs /mnt/engarchive2 nfs tcp,ro,nfsvers=3 0 0
   - ntap-bos-c01-eng01-nfs01b.storage.bos.redhat.com:/devops_engineering_nfs/devarchive/redhat /mnt/redhat nfs tcp,ro,nfsvers=3 0 0

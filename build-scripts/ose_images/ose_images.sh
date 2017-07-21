@@ -14,6 +14,7 @@
 ## COMMON VARIABLES ##
 #source ose.conf
 
+PS4='${LINENO}: '
 set -o xtrace
 
 ## LOCAL VARIABLES ##
@@ -343,7 +344,7 @@ setup_git_repo() {
   # get the name of the repo so we can cd into that directory for branch checkout
   pushd "${repo_name}" >/dev/null
   # if there was a branch override use that instead
-  if [ ! -z "${branch_override}"] ; then  
+  if [ ! -z "${branch_override}" ] ; then  
     git checkout ${branch_override} 2>/dev/null
   else
     git checkout ${git_branch} 2>/dev/null
@@ -1390,7 +1391,7 @@ do
       else
         if [ "${container}" == "aos3-installation-docker" ] ; then
           MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
-          if [ "${MINOR_RELEASE}" -ge "6"] ; then
+          if [ "${MINOR_RELEASE}" -ge "6" ] ; then
             export git_branch="release-${MAJOR_RELEASE}"
           else
             export git_branch="release-1.${MINOR_RELEASE}"

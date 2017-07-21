@@ -13,7 +13,7 @@ Jenkins job: ${env.BUILD_URL}
 """);
 }
 
-node('buildvm-devops') {
+node('openshift-build-1') {
 
     properties(
             [[$class              : 'ParametersDefinitionProperty',

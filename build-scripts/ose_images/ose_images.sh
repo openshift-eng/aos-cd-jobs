@@ -335,8 +335,8 @@ setup_git_repo() {
   # repo may be entered as github.com/reponame#branch
   # so we can secify the branch manually
   # cut out the base repo URL and the branch name, if exists
-  url = $(echo "${git_repo}#" | cut -d "#" -f 1)
-  branch_override = $(echo "${git_repo}#" | cut -d "#" -f 2)
+  url=$(echo "${git_repo}#" | cut -d "#" -f 1)
+  branch_override=$(echo "${git_repo}#" | cut -d "#" -f 2)
   pushd "${workingdir}" >/dev/null
   git clone -q ${git_repo} 2>/dev/null
   repo_name = $(echo "${git_path}/" | cut -d "/" -f 1)

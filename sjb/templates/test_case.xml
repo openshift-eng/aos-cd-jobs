@@ -90,7 +90,9 @@ approve.sh {{ target_repo }} &quot;${{ '{' }}{{ target_repo | replace('-', '_') 
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json || true
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json || true
+fi
           </command>
         </hudson.tasks.Shell>
       </buildSteps>
@@ -105,7 +107,9 @@ test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | replace(
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --merge_pull_request &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --merge_pull_request &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json
+fi
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

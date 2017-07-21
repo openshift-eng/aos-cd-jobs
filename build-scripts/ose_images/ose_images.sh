@@ -360,7 +360,7 @@ setup_git_repo() {
     # See if this repo has a stage branch
     git checkout "stage"
     if [ "$?" == "0" ]; then
-        git_branch = "stage"
+        git_branch="stage"
     fi
   fi
     

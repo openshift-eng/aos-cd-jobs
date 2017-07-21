@@ -206,7 +206,9 @@ oct deprovision</command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${STI_WILDFLY_PULL_ID}&quot; --repo sti-wildfly --config ~/test_pull_requests/sti-wildfly.json || true
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --mark_test_success &quot;${STI_WILDFLY_PULL_ID}&quot; --repo sti-wildfly --config ~/test_pull_requests/sti-wildfly.json || true
+fi
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

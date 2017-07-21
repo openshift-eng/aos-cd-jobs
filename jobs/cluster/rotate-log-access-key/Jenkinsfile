@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-node('buildvm-devops') {
+node('openshift-build-1') {
 
     properties([
             [   $class: 'ParametersDefinitionProperty',

@@ -339,7 +339,9 @@ oct deprovision</command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${ORIGIN_WEB_CONSOLE_PULL_ID}&quot; --repo origin-web-console --config ~/test_pull_requests/origin-web-console.json || true
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --mark_test_success &quot;${ORIGIN_WEB_CONSOLE_PULL_ID}&quot; --repo origin-web-console --config ~/test_pull_requests/origin-web-console.json || true
+fi
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

@@ -456,7 +456,9 @@ oct deprovision</command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-test_pull_requests --mark_test_success &quot;${JENKINS_PLUGIN_PULL_ID}&quot; --repo jenkins-plugin --config ~/test_pull_requests/jenkins-plugin.json || true
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --mark_test_success &quot;${JENKINS_PLUGIN_PULL_ID}&quot; --repo jenkins-plugin --config ~/test_pull_requests/jenkins-plugin.json || true
+fi
           </command>
         </hudson.tasks.Shell>
       </buildSteps>

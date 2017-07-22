@@ -326,12 +326,13 @@ setup_dockerfile() {
 }
 
 setup_git_repo() {
+
   if [ "${VERBOSE}" == "TRUE" ] ; then
     echo "  ** setup_git_repo **"
     echo " git_repo: ${git_repo} "
     echo " git_path: ${git_path} "
-    echo " git_branch: ${git_branch} "
   fi
+
   set -e # enable hard error fail, we do not want this to go ahead if *anything* goes wrong
   # repo may be entered as github.com/reponame#branch
   # so we can secify the branch manually
@@ -351,9 +352,11 @@ setup_git_repo() {
   cd "${repo_name}" 
   # if there was a branch named in the git_repo, use it
   if [ ! -z "${branch_override}" ] ; then  
-    git checkout ${branch_override} 2>/dev/null
+    git checkout "${branch_override}"
   else
-    git checkout ${git_branch} 2>/dev/null
+    # Otherwise, switch to master. Don't assume we are there already, since this
+    # repo can be used multiple times with multiple branches.
+    git checkout "master"
   fi
   # we are in the repo dir git_path is relative to the workingdir, so move up one dir
   cd ..
@@ -367,7 +370,7 @@ setup_git_repo() {
     # See if this repo has a stage branch
     git checkout "stage"
     if [ "$?" == "0" ]; then
-        git_branch="stage"
+        echo "Running in stage branch of: ${git_repo}"
     fi
   fi
     
@@ -1392,20 +1395,6 @@ do
       build_container
     ;;
     compare_git | git_compare )
-      if [ "${MASTER_RELEASE}" == "${MAJOR_RELEASE}" ] ; then
-        export git_branch="master"
-      else
-        if [ "${container}" == "aos3-installation-docker" ] ; then
-          MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
-          if [ "${MINOR_RELEASE}" -ge "6" ] ; then
-            export git_branch="release-${MAJOR_RELEASE}"
-          else
-            export git_branch="release-1.${MINOR_RELEASE}"
-          fi
-        else
-          export git_branch="enterprise-${MAJOR_RELEASE}"
-        fi
-      fi
       export git_repo=$(echo "${dict_git_compare[${container}]}" | awk '{print $1}')
       export git_path=$(echo "${dict_git_compare[${container}]}" | awk '{print $2}')
       export git_dockerfile=$(echo "${dict_git_compare[${container}]}" | awk '{print $3}')
@@ -1422,16 +1411,6 @@ do
       fi
     ;;
     compare_nodocker | compare_auto )
-      if [ "${MASTER_RELEASE}" == "${MAJOR_RELEASE}" ] ; then
-        export git_branch="master"
-      else
-        if [ "${container}" == "aos3-installation-docker" ] ; then
-          MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
-          export git_branch="release-1.${MINOR_RELEASE}"
-        else
-          export git_branch="enterprise-${MAJOR_RELEASE}"
-        fi
-      fi
       export git_repo=$(echo "${dict_git_compare[${container}]}" | awk '{print $1}')
       export git_path=$(echo "${dict_git_compare[${container}]}" | awk '{print $2}')
       export git_dockerfile=$(echo "${dict_git_compare[${container}]}" | awk '{print $3}')
@@ -1455,16 +1434,6 @@ do
       docker_update
     ;;
     update_compare )
-      if [ "${MASTER_RELEASE}" == "${MAJOR_RELEASE}" ] ; then
-        export git_branch="master"
-      else
-        if [ "${container}" == "aos3-installation-docker" ] ; then
-          MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
-          export git_branch="release-1.${MINOR_RELEASE}"
-        else
-          export git_branch="enterprise-${MAJOR_RELEASE}"
-        fi
-      fi
       if [ "${REALLYFORCE}" == "TRUE" ] ; then
         export FORCE="TRUE"
       fi

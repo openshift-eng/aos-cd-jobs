@@ -339,19 +339,25 @@ setup_git_repo() {
   git_base_url=$(echo "${git_repo}#" | cut -d "#" -f 1)
   branch_override=$(echo "${git_repo}#" | cut -d "#" -f 2)
   pushd "${workingdir}" >/dev/null
-  git clone -q ${git_base_url} 2>/dev/null
-  repo_name=$(echo "${git_path}/" | cut -d "/" -f 1)
+
   # get the name of the repo so we can cd into that directory for branch checkout
-  pushd "${repo_name}" >/dev/null
-  # if there was a branch override use that instead
+  repo_name=$(echo "${git_path}/" | cut -d "/" -f 1)
+  
+  # Clone the repo if it has not been cloned already
+  if [ ! -d "${repo_name}" ]; then
+    git clone -q ${git_base_url} 
+  fi
+  
+  cd "${repo_name}" 
+  # if there was a branch named in the git_repo, use it
   if [ ! -z "${branch_override}" ] ; then  
     git checkout ${branch_override} 2>/dev/null
   else
     git checkout ${git_branch} 2>/dev/null
   fi
-  # we are in the repo dir but below needs to be in workingdir
-  # more messy path cutting would've been required. popd is quicker
-  popd 
+  # we are in the repo dir git_path is relative to the workingdir, so move up one dir
+  cd ..
+  
   pushd "${git_path}" >/dev/null
   set +e # back to ignoring errors
   

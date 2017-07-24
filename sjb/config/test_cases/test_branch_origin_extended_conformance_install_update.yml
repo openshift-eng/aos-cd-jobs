@@ -23,6 +23,10 @@ extensions:
       script: |-
         tito_tmp_dir="tito"
         mkdir -p "${tito_tmp_dir}"
+        if [[ ${ORIGIN_TARGET_BRANCH} == release-1.* ]]
+        then
+          git checkout -b ${ORIGIN_TARGET_BRANCH} origin/${ORIGIN_TARGET_BRANCH}
+        fi
         tito tag --offline --accept-auto-changelog
         tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
         createrepo "${tito_tmp_dir}/noarch"

@@ -20,6 +20,8 @@ extensions:
         else
           # Catch-all for master and future release branches.
           OS_BUILD_ENV_PULL_IMAGE=true hack/env make release
+          sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+          sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
         fi
         # docker seems to have a bunch of memory leaks, so let's
         # give it a new address space before testing starts

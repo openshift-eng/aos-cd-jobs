@@ -130,15 +130,9 @@ else
     echo "=========="
     echo "Build and Push libra repos"
     echo "=========="
-    if [ "${BUILD_MODE}" == "online:stg" ] ; then
-        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh stg"
-    elif [ "${BUILD_MODE}" == "online:int" ] ; then
-        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh int"
-    elif [ "${BUILD_MODE}" == "release" ] ; then
-        ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/libra-repo-to-mirrors.sh release"
-    else
-        echo "Unknown BUILD_MODE: ${BUILD_MODE}"
-    fi
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+      sh -s "${BUILD_MODE}" \
+      < "${WORKSPACE}/build-scripts/rcm-guest/libra-repo-to-mirrors.sh"
 
     echo
     echo "=========="

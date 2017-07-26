@@ -14,7 +14,19 @@ NODES="$@"
 MASTER_SERVICES="atomic-openshift-master-api atomic-openshift-master-controllers"
 NODE_SERVICES="docker atomic-openshift-node"
 
-BASEDIR=$(mktemp -p /var/tmp -d gather-logs.XXXXXXXX)
+# Prepare working environment
+TMPDIR="${HOME}/aos-cd/tmp"
+BASEDIR="logs-${CLUSTERNAME}-$(date +%Y%m%d%H%M)"
+WORKDIR="${TMPDIR}/${BASEDIR}"
+mkdir -p $WORKDIR
+LOGFILE="${WORKDIR}/gather-logs.debug"
+
+# Clean up before exit
+on_exit() {
+    rm -rf "${WORKDIR}"
+}
+trap on_exit EXIT
+
 ALL_CLUSTER_NODES=$(ossh --list | grep "^${CLUSTERNAME}")
 
 # Translate an OpenShift node name to its inventory hostname, e.g.
@@ -59,6 +71,7 @@ do_node() {
     invnode=$(inventory_name $node)
     if [ -z $invnode ]; then
 	# unknown node / not part of this cluster
+	>&2 echo "WARNING: unknown node '$node', ignoring"
 	return
     fi
     for service in $NODE_SERVICES; do
@@ -70,16 +83,14 @@ do_node() {
 
 ######################
 # Begin Script
-pushd "$BASEDIR" > /dev/null
+pushd $WORKDIR > /dev/null
     {
 	do_masters
 	for node in $NODES; do
 	    do_node $node
 	done
-    } > "$BASEDIR/gather-logs.debug" 2>&1
-
-    tar zcf - *
+    } > $LOGFILE
 
 popd > /dev/null
 
-rm -rf "${BASEDIR}"
+tar zcf - -C $TMPDIR $BASEDIR

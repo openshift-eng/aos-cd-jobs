@@ -395,6 +395,7 @@ check_builds() {
     # 13461148 buildContainer (noarch): free -> open (x86-036.build.eng.bos.redhat.com)
 
     taskid=`cat ${line} | grep -i "Created task:" | head -n 1 | awk '{print $3}'`
+    echo "Brew task URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${taskid}"
 
     ### Example taskinfo output ###
     # Task: 13464674
@@ -413,6 +414,7 @@ check_builds() {
     until [ $n -ge 5 ]
     do
         state=$(brew taskinfo "${taskid}" | grep -i '^State:') && break
+        echo "Brew task URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${taskid}"
         n=$[$n+1]
         sleep 60
     done
@@ -426,31 +428,32 @@ check_builds() {
 
     if [ "$state" == "open" -o "$state" == "free" ]; then # free state means brew is waiting for a free builder
         echo "brew build for $package is still running..."
-    elif [ "$state" == "closed" ]; then
-        echo "==== ${package} IMAGE COMPLETED ===="
-        echo "::${package}::" >> ${workingdir}/logs/finished
-        echo "::${package}::" >> ${workingdir}/logs/success
-        sed -i "/::${package}::/d" ${workingdir}/logs/working
-        mv ${line} ${package}.watchlog done/
     else
-        # Examples of other states: "failure", "canceled", "internal-timeout"
-        echo "=== ${package} IMAGE BUILD FAILED due to state: $state ==="
-        echo "::${package}::" >> ${workingdir}/logs/finished
-        sed -i "/::${package}::/d" ${workingdir}/logs/working
-        if grep -q -e "already exists" ${line} ; then
-            grep -e "already exists" ${line} | cut -d':' -f4-
-            echo "Package with same NVR has already been built"
-            echo "::${package}::" >> ${workingdir}/logs/prebuilt
-        else
-            echo "::${package}::" >> ${workingdir}/logs/buildfailed
-            echo "Failed logs"
-            ls -1 ${workingdir}/logs/done/${package}.*
-            cp -f ${workingdir}/logs/done/${package}.* ${workingdir}/logs/failed-logs/
-        fi
-        mv ${line} ${package}.watchlog done/
+      if [ "$state" == "closed" ]; then
+          echo "==== ${package} IMAGE COMPLETED ===="
+          echo "::${package}::" >> ${workingdir}/logs/finished
+          echo "::${package}::" >> ${workingdir}/logs/success
+          sed -i "/::${package}::/d" ${workingdir}/logs/working
+      else
+          # Examples of other states: "failure", "canceled", "internal-timeout"
+          echo "=== ${package} IMAGE BUILD FAILED due to state: $state ==="
+          echo "::${package}::" >> ${workingdir}/logs/finished
+          sed -i "/::${package}::/d" ${workingdir}/logs/working
+          if grep -q -e "already exists" ${line} ; then
+              grep -e "already exists" ${line} | cut -d':' -f4-
+              echo "Package with same NVR has already been built"
+              echo "::${package}::" >> ${workingdir}/logs/prebuilt
+          else
+              echo "::${package}::" >> ${workingdir}/logs/buildfailed
+              echo "Failed logs"
+              ls -1 ${package}.*
+              cp -f ${package}.* ${workingdir}/logs/failed-logs/
+          fi
+      fi
+      mv ${line} ${package}.watchlog done/
     fi
-
   done
+  
   popd >/dev/null
 }
 
@@ -465,6 +468,26 @@ wait_for_all_builds() {
     check_builds
     buildcheck=`ls -1 ${workingdir}/logs/*buildlog 2>/dev/null`
   done
+  
+  echo "=== PREBUILT PACKAGES ==="
+  cat ${workingdir}/logs/prebuilt
+  echo
+  echo "=== FAILED PACKAGES ==="
+  cat ${workingdir}/logs/buildfailed
+  echo
+  buildfailed=`ls -1 ${workingdir}/logs/failed-logs/ > /dev/null`
+  if [ "{$buildfailed}" -ne "" ] ; then
+    echo "=== FULL FAILED LOGS ==="
+    ls -1 ${workingdir}/logs/failed-logs/ | while read line
+    do
+      echo ${line}
+      cat ${line}
+      echo
+    done
+    
+    echo "Failed build occured. Exiting."
+    hard_exit
+  fi
 }
 
 check_build_dependencies() {
@@ -1555,6 +1578,7 @@ case "$action" in
     echo "Prebuilt       : ${PREBUILT_TOTAL}"
     echo "Good Builds : ${SUCCESS_TOTAL}"
     echo "Fail Builds : ${BUILD_FAIL}"
+
     cat ${workingdir}/logs/buildfailed | cut -d':' -f3
     if [ "${BUILD_FAIL}" != "0" ] ; then
       exit 1

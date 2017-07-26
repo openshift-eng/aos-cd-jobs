@@ -1,5 +1,9 @@
 ---
 parent: 'common/test_cases/origin_built_installed_release.yml'
+overrides:
+  sync_repos:
+    - name: "origin"
+      type: "pull_request"
 extensions:
   actions:
     - type: "script"

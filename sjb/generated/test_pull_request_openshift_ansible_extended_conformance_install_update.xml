@@ -101,7 +101,7 @@ oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;base&#34; --pro
       <description>&lt;div&gt;
 Using the &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs/tree/${AOS_CD_JOBS_TARGET_BRANCH}&#34;&gt;aos-cd-jobs ${AOS_CD_JOBS_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
 Using PR &lt;a href=&#34;https://github.com/openshift/openshift-ansible/pull/${OPENSHIFT_ANSIBLE_PULL_ID}&#34;&gt;${OPENSHIFT_ANSIBLE_PULL_ID}&lt;/a&gt; merged into the &lt;a href=&#34;https://github.com/openshift/openshift-ansible/tree/${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34;&gt;openshift-ansible ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
-Using the &lt;a href=&#34;https://github.com/openshift/origin/tree/${ORIGIN_TARGET_BRANCH}&#34;&gt;origin ${ORIGIN_TARGET_BRANCH}&lt;/a&gt; branch.
+Using the &lt;a href=&#34;https://github.com/openshift/origin/tree/${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34;&gt;origin ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&lt;/a&gt; branch.
 &lt;/div&gt;</description>
     </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
         <hudson.tasks.Shell>
@@ -151,7 +151,7 @@ fi</command>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC ORIGIN REPOSITORY ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC ORIGIN REPOSITORY [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-oct sync remote origin --branch &#34;${ORIGIN_TARGET_BRANCH}&#34; </command>
+oct sync remote origin --branch &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

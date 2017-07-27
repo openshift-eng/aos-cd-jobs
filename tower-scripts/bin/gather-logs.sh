@@ -36,7 +36,7 @@ inventory_name() {
 
     # Allow direct specification of the node's inventory name
     # (i.e. no translation needed)
-    if (echo $ALL_CLUSTER_NODES | grep -wo "^$node_name"); then
+    if (echo "${ALL_CLUSTER_NODES}" | grep -Eo "^$node_name\s"); then
 	return
     fi
 
@@ -44,8 +44,8 @@ inventory_name() {
     # ip-172-31-69-53.us-east-2.compute.internal -> 172.31.69.53
     node_ip=$(echo $node_name | cut -d\. -f1 | sed -e 's/-/./g' -e 's/ip.//')
 
-    # find the node's inventory name using its IP
-    echo $ALL_CLUSTER_NODES | grep $node_ip | awk '{print $1}'
+    # find the node's inventory name from its IP
+    echo "${ALL_CLUSTER_NODES}" | grep $node_ip | awk '{print $1}'
 }
 
 # Collect information from masters

@@ -12,20 +12,22 @@ _TARGET_BRANCH_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringPara
         </hudson.model.StringParameterDefinition>""")
 
 _SYNC_TITLE_TEMPLATE = Template("SYNC {{ repository | upper }} REPOSITORY")
-_SYNC_ACTION_TEMPLATE = Template("""oct sync remote {{ repository }} --branch "${{ '{' }}{{ repository | replace('-', '_') | upper }}_TARGET_BRANCH}" """)
+_SYNC_ACTION_TEMPLATE = Template("""oct sync remote {{ repository }} --branch "${{ '{' }}{{ dependency_repository | replace('-', '_') | upper }}_TARGET_BRANCH}" """)
 
-_SYNC_DESCRIPTION_TEMPLATE = Template("""Using the <a href="https://github.com/openshift/{{ repository }}/tree/${{ '{' }}{{ repository | replace('-', '_') | upper }}_TARGET_BRANCH}">{{ repository }} ${{ '{' }}{{ repository | replace('-', '_') | upper }}_TARGET_BRANCH}</a> branch.""")
+_SYNC_DESCRIPTION_TEMPLATE = Template("""Using the <a href="https://github.com/openshift/{{ repository }}/tree/${{ '{' }}{{ dependency_repository | replace('-', '_') | upper }}_TARGET_BRANCH}">{{ repository }} ${{ '{' }}{{ dependency_repository | replace('-', '_') | upper }}_TARGET_BRANCH}</a> branch.""")
 
 
 class SyncAction(Action):
     """
     A SyncAction generates a build step that
     synchronizes a repository on the remote
-    host.
+    host and checkout a matching branch based
+    on the dependency repository
     """
 
-    def __init__(self, repository):
+    def __init__(self, repository, dependency_repository):
         self.repository = repository
+        self.dependency_repository = dependency_repository
 
     def generate_parameters(self):
         return [_TARGET_BRANCH_PARAMETER_TEMPLATE.render(repository=self.repository)]
@@ -33,8 +35,8 @@ class SyncAction(Action):
     def generate_build_steps(self):
         return [render_task(
             title=_SYNC_TITLE_TEMPLATE.render(repository=self.repository),
-            command=_SYNC_ACTION_TEMPLATE.render(repository=self.repository)
+            command=_SYNC_ACTION_TEMPLATE.render(repository=self.repository, dependency_repository=self.dependency_repository)
         )]
 
     def description(self):
-        return _SYNC_DESCRIPTION_TEMPLATE.render(repository=self.repository)
+        return _SYNC_DESCRIPTION_TEMPLATE.render(repository=self.repository, dependency_repository=self.dependency_repository)

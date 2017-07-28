@@ -1,0 +1,6 @@
+---
+parent: 'test_cases/test_branch_origin_end_to_end.yml'
+overrides:
+  sync_repos:
+    - name: "origin"
+      type: "pull_request"

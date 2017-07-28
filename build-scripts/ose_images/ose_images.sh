@@ -268,6 +268,10 @@ add_group_to_list() {
     efs)
       add_to_list efs-provisioner-docker
     ;;
+    egress)
+      add_to_list openshift-enterprise-egress-router-docker
+      add_to_list ose-egress-http-proxy-docker     
+    ;;
   esac
 }
 

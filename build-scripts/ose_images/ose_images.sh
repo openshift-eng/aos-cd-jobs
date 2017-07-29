@@ -152,6 +152,7 @@ add_group_to_list() {
           add_to_list openshift-enterprise-service-catalog-docker
           add_to_list openshift-enterprise-federation-docker
           add_to_list openshift-enterprise-cluster-capacity-docker
+          add_to_list container-engine-docker
           add_to_list ose-egress-http-proxy-docker
         fi
         add_to_list openshift-enterprise-openvswitch-docker
@@ -177,7 +178,6 @@ add_group_to_list() {
     rhel-extras)
       add_to_list etcd-docker
       add_to_list etcd3-docker
-      add_to_list container-engine-docker
     ;;
     logging)
       add_to_list logging-auth-proxy-docker

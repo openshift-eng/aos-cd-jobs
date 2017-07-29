@@ -153,6 +153,7 @@ add_group_to_list() {
           add_to_list openshift-enterprise-federation-docker
           add_to_list openshift-enterprise-cluster-capacity-docker
           add_to_list container-engine-docker
+          add_to_list ose-egress-http-proxy-docker
         fi
         add_to_list openshift-enterprise-openvswitch-docker
       fi
@@ -267,6 +268,10 @@ add_group_to_list() {
     ;;
     efs)
       add_to_list efs-provisioner-docker
+    ;;
+    egress)
+      add_to_list openshift-enterprise-egress-router-docker
+      add_to_list ose-egress-http-proxy-docker     
     ;;
   esac
 }
@@ -471,7 +476,7 @@ wait_for_all_builds() {
   cat ${workingdir}/logs/buildfailed
   echo
   buildfailed=`ls -1 ${workingdir}/logs/failed-logs/ > /dev/null`
-  if [ "{$buildfailed}" -ne "" ] ; then
+  if [ "${buildfailed}" -ne "" ] ; then
     echo "=== FULL FAILED LOGS ==="
     ls -1 ${workingdir}/logs/failed-logs/ | while read line
     do

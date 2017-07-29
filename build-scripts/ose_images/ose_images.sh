@@ -152,6 +152,7 @@ add_group_to_list() {
           add_to_list openshift-enterprise-service-catalog-docker
           add_to_list openshift-enterprise-federation-docker
           add_to_list openshift-enterprise-cluster-capacity-docker
+          add_to_list ose-egress-http-proxy-docker
         fi
         add_to_list openshift-enterprise-openvswitch-docker
       fi

@@ -29,12 +29,14 @@ properties(
                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                          ]
                 ],
+            /*
                 [$class: 'PipelineTriggersJobProperty',
                  triggers: [[
                                     $class: 'TimerTrigger',
                                     spec  : 'H 11 * * *'
                             ]]
                 ]
+                */
         ]
 )
 
@@ -62,7 +64,7 @@ node(TARGET_NODE) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
-                    subject: "Error building openshift-scripts",
+                    subject: "Error building openshift-online",
                     body: """Encoutered an error while running merge-and-build-openshift-scripts.sh: ${err}
 
 

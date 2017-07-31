@@ -215,7 +215,7 @@ else
 
 fi
 
-VOUT=$(get_version_fields $SPEC_VERSION_COUNT)"
+VOUT="$(get_version_fields $SPEC_VERSION_COUNT)"
 if [ "$?" != "0" ]; then
   echo "Error determining version fields: $VOUT"  
 fi

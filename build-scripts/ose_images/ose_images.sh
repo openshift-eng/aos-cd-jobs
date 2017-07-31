@@ -475,7 +475,7 @@ wait_for_all_builds() {
   echo "=== FAILED PACKAGES ==="
   cat ${workingdir}/logs/buildfailed
   echo
-  buildfailed=`ls -1 ${workingdir}/logs/failed-logs/ > /dev/null`
+  buildfailed=`ls -1 ${workingdir}/logs/failed-logs/`
   if [ "${buildfailed}" -ne "" ] ; then
     echo "=== FULL FAILED LOGS ==="
     ls -1 ${workingdir}/logs/failed-logs/ | while read line

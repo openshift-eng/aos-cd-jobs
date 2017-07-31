@@ -19,10 +19,11 @@ properties(
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                                  [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force rebuild even if no changes are detected?', name: 'FORCE_REBUILD'],
                                  [$class: 'hudson.model.ChoiceParameterDefinition',
-                                    choices: "online:int\nonline:stg\nrelease",
+                                    choices: "online:int\nonline:stg\npre-release\nrelease",
                                     description: '''online:int      online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts-int/ <br>
                                                     online:stg      online/stage -> https://mirror.openshift.com/enterprise/online-openshift-scripts-stg/ <br>
-                                                    release         online/online-XXXX -> ??? (not yet implemented)<br>
+                                                    pre-release     online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>
+                                                    release         online/online-X.Y.Z -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>
                                                     ''',
                                     name: 'BUILD_MODE'],
                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '3.5.0', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],

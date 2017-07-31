@@ -64,6 +64,7 @@ if [ -z "$RELEASE_VERSION" ]; then
     exit 1
 fi
 
+# Incoming into this script is $RELEASE_VERSION which will be something like "3.2.0".
 # Gather the first two fields; "3.2.0" -> "3.2"
 MAJOR_MINOR_VERSION="$(echo "${RELEASE_VERSION}." | cut -d . -f 1-2)"
 
@@ -82,9 +83,10 @@ else
     elif [ "${BUILD_MODE}" == "online:stg" ] ; then
         git checkout -q stage
         SPEC_VERSION_COUNT=5
+    elif [ "${BUILD_MODE}" == "pre-release" ] ; then
+        # pre-release assumes content is coming from master branch
+        SPEC_VERSION_COUNT=6
     elif [ "${BUILD_MODE}" == "release" ] ; then
-        # Incoming into this script is $RELEASE_VERSION which will be something like "3.2.0"
-        # which must pair with branch online-3.2.0. Let's extract version.
         git checkout -q "online-${RELEASE_VERSION}"
         SPEC_VERSION_COUNT=6
     fi

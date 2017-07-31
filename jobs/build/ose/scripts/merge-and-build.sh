@@ -215,7 +215,12 @@ else
 
 fi
 
-export TITO_USE_VERSION="--use-version $(get_version_fields $SPEC_VERSION_COUNT)"
+VOUT=$(get_version_fields $SPEC_VERSION_COUNT)"
+if [ "$?" != "0" ]; then
+  echo "Error determining version fields: $VOUT"  
+fi
+
+export TITO_USE_VERSION="--use-version $VOUT"
 
 echo
 echo "=========="

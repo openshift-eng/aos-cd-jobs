@@ -30,7 +30,11 @@ actions:
       fi
       # pull_id will be 0 in case of a batch merge
       if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
-        gsutil cp gcs/started.json "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/started.json"
+        destination_bucket="gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}"
+        gsutil cp gcs/started.json "${destination_bucket}/started.json"
+
+        echo "${destination_bucket}" > "${BUILD_NUMBER}.txt"
+        gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
       fi
   - type: "script"
     title: "use a ramdisk for etcd"

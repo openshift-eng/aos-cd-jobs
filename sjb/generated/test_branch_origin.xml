@@ -314,7 +314,7 @@ cat /var/lib/jenkins/jobs/ami_build_origin_int_rhel_build/builds/${AMI_BUILD_ORI
       <caseSensitive>true</caseSensitive>
     </hudson.tasks.ArtifactArchiver>
     <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
-      <testResults>.config/origin-ci-tool/logs/junit/*.xml,**/*.xml</testResults>
+      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</testResults>
       <keepLongStdio>true</keepLongStdio>
       <healthScaleFactor>1.0</healthScaleFactor>
       <allowEmptyResults>true</allowEmptyResults>

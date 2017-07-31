@@ -1,4 +1,6 @@
 
+error( "3.6 build intentionally disabled for now" )
+
 properties( 
         [
                 [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '60']],

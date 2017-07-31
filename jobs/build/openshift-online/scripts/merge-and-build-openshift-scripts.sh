@@ -91,6 +91,10 @@ else
         SPEC_VERSION_COUNT=6
     fi
 
+    # Feeds into ose.conf in order to target correct Dockerfiles
+    ONLINE_DOCKERFILE_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    export ONLINE_DOCKERFILE_BRANCH
+
     VOUT="$(get_version_fields ${SPEC_VERSION_COUNT})"
     if [ "$?" != "0" ]; then
       echo "Error determining version fields: $VOUT"

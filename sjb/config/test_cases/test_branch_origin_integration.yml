@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release.yml'
+parent: 'common/test_cases/origin.yml'
 extensions:
   actions:
     - type: "script"
@@ -7,6 +7,4 @@ extensions:
       repository: "origin"
       timeout: 7200
       script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/integration.test:_output/local/bin/linux/amd64/end-to-end.test hack/env make build-integration-test
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/etcdhelper hack/env make build WHAT=tools/etcdhelper
-        OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test -o check -o build -k
+        OS_BUILD_ENV_PULL_IMAGE=true JUNIT_REPORT='true' hack/env make test-tools test-integration

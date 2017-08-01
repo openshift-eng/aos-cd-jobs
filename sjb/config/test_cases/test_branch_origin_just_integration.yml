@@ -7,6 +7,4 @@ extensions:
       repository: "origin"
       timeout: 7200
       script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/etcdhelper hack/env make build WHAT=tools/etcdhelper
-        OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-tools
-        hack/env make test-integration
+        JUNIT_REPORT='true' hack/env make test-tools test-integration

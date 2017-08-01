@@ -74,17 +74,12 @@ extensions:
       repository: "origin"
       timeout: 5000
       script: |-
-        if [[ ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} == "master" ]]
-        then
-          hack/build-base-images.sh
-          OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
-          sudo systemctl restart docker
-          hack/build-images.sh
-          sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
-          sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
-        else
-          echo "OPENSHIFT_ANSIBLE_TARGET_BRANCH points to ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} branch, skipping build of Origin release."
-        fi
+        hack/build-base-images.sh
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+        sudo systemctl restart docker
+        hack/build-images.sh
+        sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+        sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
     - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"

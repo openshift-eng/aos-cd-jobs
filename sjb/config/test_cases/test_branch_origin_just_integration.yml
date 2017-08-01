@@ -7,4 +7,4 @@ extensions:
       repository: "origin"
       timeout: 7200
       script: |-
-        JUNIT_REPORT='true' hack/env make test-tools test-integration
+        OS_BUILD_ENV_PULL_IMAGE=true JUNIT_REPORT='true' hack/env make test-tools test-integration

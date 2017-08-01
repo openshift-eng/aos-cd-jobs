@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy
 
+error( "Disabled until we know the correct build cadence" )
+
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
     if(env.WORKSPACE == null) {
@@ -29,12 +31,12 @@ properties(
                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                          ]
                 ],
-                [$class: 'PipelineTriggersJobProperty',
+                /*[$class: 'PipelineTriggersJobProperty',
                  triggers: [[
                                     $class: 'TimerTrigger',
                                     spec  : 'H 11 * * *'
                             ]]
-                ]
+                ]*/
         ]
 )
 

@@ -70,22 +70,19 @@ except:
 product = "OSO"
 if test_mode:
     product = "OSO-test"
-    
-msg = {
-    "owner": "Continuous Delivery",
-    "email": "jupierce@redhat.com",
-    "CI_TYPE": "component-build-done",
-    "destination": "/topic/CI",
-    "product": product,
-    "cluster name": cluster_name,
-    "description": "OSO cluster upgraded",
-    "version": oc_version,
-    "short_version": oc_short_version,
-    "oc_version": oc_version,
-    "online_version": online_version,
-    "docker_version": docker_version,
-    "api_url": "https://api." + cluster_name + ".openshift.com",
-    "console_url": "https://console." + cluster_name + ".openshift.com/console",
-}
 
-print json.dumps(msg)
+msg = ("owner = 'Continuous Delivery'\
+    email = 'jupierce@redhat.com'\
+    CI_TYPE = 'component-build-done'\
+    destination = '/topic/CI'\
+    product = "+ product +"\
+    cluster name = "+ cluster_name +"\
+    description = 'OSO cluster upgraded'\
+    version = "+ oc_version +"\
+    short_version = "+ oc_short_version +"\
+    oc_version = "+ oc_version +"\
+    online_version = "+ online_version +"\
+    docker_version = "+ docker_version +"\
+    api_url = 'https://api."+ cluster_name +".openshift.com'\
+    console_url = 'https://console."+ cluster_name +".openshift.com/console'")
+print msg

@@ -5,6 +5,8 @@ GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"
 
+VALID_ARGUMENTS=(docker_version openshift_ansible_build)
+
 # TMPTMP is a directory specific to each invocation. It will be
 # deleted when the script terminates.
 TMPTMP=$(mktemp -d -p "${TMPDIR}")
@@ -25,6 +27,22 @@ function on_exit() {
 
 trap on_exit EXIT
 
+function parse_and_set_vars() {
+  local var=$(echo $1 | awk -F= '{print $1}')
+
+  # Check to see if arg is valid
+  # Note: This is ugly.
+  if [[ ! " ${VALID_ARGUMENTS[*]} " == *" ${var}"* ]]; then
+    echo "The arg: \"${var}\" is invalid.  Exiting..."
+    exit 1
+   fi
+
+  local value=$(echo $1 | awk -F= '{print $2}')
+
+  eval $var=\$value
+  export $var
+}
+
 function print_usage() {
   echo
   echo "Usage: $(basename $0) -c CLUSTERNAME -o OPERATION"
@@ -32,14 +50,11 @@ function print_usage() {
   echo "  -h               display this help and exit"
   echo "  -c CLUSTERNAME   specify the CLUSTERNAME to perform the upgrade on"
   echo "  -o OPERATION     specify the upgrade OPERATION to perform"
+  echo "  -a ARG           specify the ARG"
   echo
   echo "Examples:"
   echo
-  echo "    $(basename $0) -i $(basename $0) -c prod-cluster -o upgrade"
-  echo
-  echo "  Log Gathering Operations:"
-  echo "  Output will be a tarball of cluster logs. Do not pipe to stdout."
-  echo "    $(basename $0) <clusterid> logs"
+  echo "    $(basename $0) -c prod-cluster -o upgrade < -a argument >"
   echo
 
 }
@@ -53,7 +68,7 @@ cd $START_DIR
 unset CLUSTERNAME
 unset OPERATION
 
-while getopts hc:i:o: opt; do
+while getopts hc:i:o:a: opt; do
     case $opt in
         h)
             print_usage
@@ -64,6 +79,9 @@ while getopts hc:i:o: opt; do
             ;;
         o)
             export OPERATION=$OPTARG
+            ;;
+        a)
+            parse_and_set_vars $OPTARG
             ;;
         *)
             print_usage
@@ -154,12 +172,15 @@ function pre-check() {
   pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms" > /dev/null
     /usr/bin/ansible-playbook get_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${oo_environment} -e cli_download_dir=${AOS_TMPDIR} &> /dev/null
   popd > /dev/null
+  OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
+
 
   MASTER="$(get_master_name)"
   /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder unexclude" > /dev/null
   OPENSHIFT_VERSION=$(/usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/repoquery --quiet --pkgnarrow=repos --queryformat='%{version}-%{release}' atomic-openshift")
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder exclude" > /dev/null
 
-  OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
   echo
   echo Openshift Ansible RPM Version: ${OS_RPM_VERSION}
   echo Openshift RPM Version: ${OPENSHIFT_VERSION}
@@ -169,14 +190,10 @@ function pre-check() {
   exit 0
 }
 
-
-function gather_logs() {
 ################################################
 # CLUSTER LOG GATHERING
-# PLEASE DO NOT ADD STDOUT OPERATIONS BEFORE HERE
 ################################################
-# Gather the logs for the specified cluster
-# OPERATION=logs
+function gather_logs() {
   ./gather-logs.sh ${CLUSTERNAME}
   exit 0
 }
@@ -230,7 +247,6 @@ function update_ops_git_repos () {
   fi
   set -e
 }
-
 
 function setup_cluster_vars() {
   set +x  # Mask sensitive data
@@ -299,6 +315,30 @@ function delete_cluster() {
 }
 
 ################################################
+# OPERATION: Upgrade
+#  This is legacy, and should be removed when it's time to move to the cluster operation
+################################################
+function legacy_upgrade_cluster() {
+  echo Doing upgrade
+  is_running &
+
+  ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
+
+  # Get the latest openshift-ansible rpms
+  get_latest_openshift_ansible ${oo_environment}
+
+  # Run the upgrade, including post_byo steps and config loop
+  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
+    /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
+
+    # Kill all background jobs on normal exit or signal
+
+    export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
+    export SKIP_GIT_VALIDATION=TRUE
+    /usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
+}
+
+################################################
 # OPERATION: GENERAL OPERATIONS CLUSTER
 ################################################
 function cluster_operation() {
@@ -324,7 +364,6 @@ function cluster_operation() {
 
   # Run the upgrade, including post_byo steps and config loop
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
-    #/usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
     /usr/local/bin/autokeys_loader ./cicd_operations.sh -i ./cicd-to-productization-inventory.py -c ${CLUSTERNAME} -o ${UPGRADE_OPERATION}
   popd
 }
@@ -333,7 +372,6 @@ function cluster_operation() {
 # OPERATION: PERFORMANCE TEST1
 ################################################
 function perf1() {
-#OPERATION = "perf1"
   if [[ "${CLUSTERNAME}" != "free-int" && "${CLUSTERNAME}" != "dev-preview-int" ]]; then
       echo "Cannot run performance test on cluster: ${CLUSTERNAME}"
       exit 1
@@ -363,8 +401,8 @@ case "$OPERATION" in
     delete_cluster
     ;;
 
-  upgrade)
-    cluster_operation upgrade
+  legacy-upgrade)
+    legacy_upgrade_cluster
     ;;
 
   status)
@@ -383,80 +421,8 @@ case "$OPERATION" in
     perf1
     ;;
 
-  enable-statuspage)
-    cluster_operation enable-statuspage
-    ;;
-
-  disable-statuspage)
-    cluster_operation disable-statuspage
-    ;;
-
-  enable-zabbix-maint)
-    cluster_operation enable-zabbix-maint
-    ;;
-
-  disable-zabbix-maint)
-    cluster_operation disable-zabbix-maint
-    ;;
-
-  enable-config-loop)
-    cluster_operation enable-config-loop
-    ;;
-
-  disable-config-loop)
-    cluster_operation disable-config-loop
-    ;;
-
-  update-yum-extra-repos)
-    cluster_operation update-yum-extra-repos
-    ;;
-
-  update-inventory)
-    cluster_operation update-inventory
-    ;;
-
-  upgrade-control-plane)
-    cluster_operation upgrade-control-plane
-    ;;
-
-  upgrade-nodes)
-    cluster_operation upgrade-nodes
-    ;;
-
-  generate-byo-inventory)
-    cluster_operation generate-byo-inventory
-    ;;
-
-  upgrade-logging)
-    cluster_operation upgrade-logging
-    ;;
-
-  upgrade-metrics)
-    cluster_operation upgrade-metrics
-    ;;
-
-  commit-config-loop)
-    cluster_operation commit-config-loop
-    ;;
-
-  run-config-loop)
-    cluster_operation run-config-loop
-    ;;
-
   *)
-   enable-statuspage
-   #enable-zabbix-maint
-   disable-config-loop
-   update-inventory
-   update-yum-extra-repos
-   upgrade
-   upgrade-logging
-   upgrade-metrics
-   #commit-config-loop
-   enable-config-loop
-   #run-config-loop
-   #disable-zabbix-maint
-   disable-statuspage
+    cluster_operation ${OPERATION}
    ;;
 
 esac

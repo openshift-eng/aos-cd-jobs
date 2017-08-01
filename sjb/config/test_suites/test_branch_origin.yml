@@ -1,6 +1,7 @@
 ---
 children:
   - "test_branch_origin_check"
+  - "test_branch_origin_cross"
   - "test_branch_origin_integration"
   # - "test_branch_origin_extended_conformance_install"
   - "test_branch_origin_extended_conformance_install_update"

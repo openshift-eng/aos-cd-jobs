@@ -23,6 +23,7 @@ function on_exit() {
             echo "Unable to terminate background tasks"
         fi
     fi
+    kill -- -$$
 }
 
 trap on_exit EXIT
@@ -271,7 +272,7 @@ function setup_cluster_vars() {
 ################################################
 function install_cluster() {
 #OPERATION = install
-  is_running & disown
+  is_running &
   setup_cluster_vars
   get_latest_openshift_ansible ${oo_environment}
 
@@ -318,7 +319,7 @@ function delete_cluster() {
 ################################################
 function legacy_upgrade_cluster() {
   echo Doing upgrade
-  is_running & disown
+  is_running &
 
   ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
 
@@ -354,7 +355,7 @@ function cluster_operation() {
   setup_cluster_vars
 
   # Do long running operations
-  is_running & disown
+  is_running &
 
   # Hack to ensure docker doesn't die during upgrades
   DOCKER_TIMER_OPERATIONS=(upgrade upgrade-control-plane upgrade-nodes)
@@ -383,7 +384,7 @@ function perf1() {
       exit 1
   fi
 
-  is_running & disown
+  is_running &
   echo "Running performance test 1"
   MASTER="$(get_master_name)"
 

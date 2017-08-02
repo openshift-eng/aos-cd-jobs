@@ -230,8 +230,6 @@ function build_ci_msg() {
 # online-first install/upgrade. Similar to logs operation, don't
 # output any stdout before this point.
 function cluster_status() {
-#OPERATION = status
-
   /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
   exit 0
 }
@@ -273,7 +271,7 @@ function setup_cluster_vars() {
 ################################################
 function install_cluster() {
 #OPERATION = install
-  is_running &
+  is_running & disown
   setup_cluster_vars
   get_latest_openshift_ansible ${oo_environment}
 
@@ -320,7 +318,7 @@ function delete_cluster() {
 ################################################
 function legacy_upgrade_cluster() {
   echo Doing upgrade
-  is_running &
+  is_running & disown
 
   ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
 
@@ -356,7 +354,7 @@ function cluster_operation() {
   setup_cluster_vars
 
   # Do long running operations
-  is_running &
+  is_running & disown
 
   # Hack to ensure docker doesn't die during upgrades
   DOCKER_TIMER_OPERATIONS=(upgrade upgrade-control-plane upgrade-nodes)
@@ -385,7 +383,7 @@ function perf1() {
       exit 1
   fi
 
-  is_running &
+  is_running & disown
   echo "Running performance test 1"
   MASTER="$(get_master_name)"
 

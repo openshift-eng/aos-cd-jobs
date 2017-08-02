@@ -128,12 +128,20 @@ else
     # We have seen the push which follows push the old build instead of the new, so
     # using a sleep below to allow brew to get into a consistent state.
     sleep 20
+    
+    
+    echo
+    echo "=========="
+    echo "Signing RPMs"
+    echo "=========="
+    "${WORKSPACE}/build-scripts/sign_rpms.sh" "libra-rhel-7-candidate" "openshifthosted"
+    
 
     echo
     echo "=========="
     echo "Building Puddle"
     echo "=========="
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift_online-${MAJOR_MINOR_VERSION}.conf -n -s --label=building"
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift_online-${MAJOR_MINOR_VERSION}_signed.conf -n -s --label=building"
 
     echo
     echo "=========="
@@ -163,7 +171,7 @@ else
     echo "=========="
     echo "Create latest puddle"
     echo "=========="
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift_online-${MAJOR_MINOR_VERSION}.conf"
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift_online-${MAJOR_MINOR_VERSION}_signed.conf"
 
     echo
     echo "=========="

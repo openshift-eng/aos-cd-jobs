@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-START_DIR=${BASH_SOURCE[0]}
+START_DIR=$(dirname "${BASH_SOURCE[0]}")
 GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"

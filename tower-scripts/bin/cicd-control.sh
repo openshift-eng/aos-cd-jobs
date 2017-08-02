@@ -364,7 +364,7 @@ function cluster_operation() {
 
   # Run the upgrade, including post_byo steps and config loop
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
-    /usr/local/bin/autokeys_loader ./cicd_operations.sh -i ./cicd-to-productization-inventory.py -c ${CLUSTERNAME} -o ${UPGRADE_OPERATION}
+    /usr/local/bin/autokeys_loader ./cicd_operations.sh -c ${CLUSTERNAME} -o ${UPGRADE_OPERATION}
   popd
 }
 

@@ -1,8 +1,11 @@
 #!/bin/bash -e
 
+START_DIR=$(dirname "$0")
 GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"
+
+VALID_ARGUMENTS=(docker_version openshift_ansible_build)
 
 # TMPTMP is a directory specific to each invocation. It will be
 # deleted when the script terminates.
@@ -22,175 +25,93 @@ function on_exit() {
     fi
 }
 
-function is_running(){  
-  # Output to prevent ssh timeouts. Appears to timeout
-  # After about an hour of inactivity. 
-  while true; do
-    echo 
-    echo ".... $(date) ...."
-    sleep 600
-  done
-}
-
 trap on_exit EXIT
+
+function parse_and_set_vars() {
+  local var=$(echo $1 | awk -F= '{print $1}')
+
+  # Check to see if arg is valid
+  # Note: This is ugly.
+  if [[ ! " ${VALID_ARGUMENTS[*]} " == *" ${var}"* ]]; then
+    echo "The arg: \"${var}\" is invalid.  Exiting..."
+    exit 1
+   fi
+
+  local value=$(echo $1 | awk -F= '{print $2}')
+
+  eval $var=\$value
+  export $var
+}
 
 function print_usage() {
   echo
-  echo "Usage: $(basename $0) <clusterid> <operation> [options]"
+  echo "Usage: $(basename $0) -c CLUSTERNAME -o OPERATION"
+  echo
+  echo "  -h               display this help and exit"
+  echo "  -c CLUSTERNAME   specify the CLUSTERNAME to perform the upgrade on"
+  echo "  -o OPERATION     specify the upgrade OPERATION to perform"
+  echo "  -a ARG           specify the ARG"
+  echo
   echo "Examples:"
   echo
-  echo "  Cluster Operations:"
-  echo "    $(basename $0) testcluster install"
-  echo "    $(basename $0) testcluster delete"
-  echo "    $(basename $0) testcluster upgrade"
-  echo "    $(basename $0) testcluster status"
+  echo "    $(basename $0) -c prod-cluster -o upgrade < -a argument >"
   echo
-  echo "  Log Gathering Operations:"
-  echo "  Output will be a tarball of cluster logs. Do not pipe to stdout."
-  echo "    $(basename $0) <clusterid> logs"
-  echo
+
 }
 
-function get_latest_openshift_ansible()  {
-  AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
-  mkdir -p "${AOS_TMPDIR}"
+# Let's cd into where the script is.
+cd $START_DIR
 
-  pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
-    /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=$1 -e cli_download_dir=${AOS_TMPDIR}
-  popd
+# Let's unset CLUSTERNAME and OPERATION
+#  to be sure it's not set elsewhere
 
-  export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"
-}
+unset CLUSTERNAME
+unset OPERATION
 
-# Outputs the name of one a master for a cluster
-function get_master_name() {
+while getopts hc:i:o:a: opt; do
+    case $opt in
+        h)
+            print_usage
+            exit 0
+            ;;
+        c)
+            export CLUSTERNAME=$OPTARG
+            ;;
+        o)
+            export OPERATION=$OPTARG
+            ;;
+        a)
+            parse_and_set_vars $OPTARG
+            ;;
+        *)
+            print_usage
+            exit 1
+            ;;
+    esac
+done
+shift "$((OPTIND-1))"   # Discard the options and sentinel --
 
-    if [ "${CLUSTERNAME}" == "test-key" ]; then
-        echo "test-key-master-mock"
-        return 0
-    fi
-
-    # Find an appropriate master
-    MASTER="$(ossh --list | grep ${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
-
-    if [[ "${MASTER}" != "${CLUSTERNAME}"-* ]]; then
-        echo "Unable to find master for the specified cluster"
-        exit 1
-    fi
-
-    echo "${MASTER}"
-}
-
-if [ "$#" -lt 2 ]
-then
+# Let's make sure $CLUSTERNAME and $OPERATION are set
+if [ -z "${CLUSTERNAME+x}" ]; then
+  echo "No cluster was specified.  Exiting..."
   print_usage
   exit 1
 fi
 
-# Let's cd into where the script is.
-cd "$(dirname "$0")"
-
-export CLUSTERNAME=$1
-export OPERATION=$2
-shift 2
-ARGS="$@"
-
-################################################
-# CLUSTER LOG GATHERING
-# PLEASE DO NOT ADD STDOUT OPERATIONS BEFORE HERE
-################################################
-if [ "${OPERATION}" == "logs" ]; then
-  # Gather the logs for the specified cluster
-  ./gather-logs.sh ${CLUSTERNAME}
-  exit 0
-fi
-
-if [ "${OPERATION}" == "build-ci-msg" ]; then
-    MASTER="$(get_master_name)"
-
-    if [ "${CLUSTERNAME}" == "test-key" ]; then
-        python - "${CLUSTERNAME}" < build-ci-msg.py
-        exit 0
-    fi
-
-    # Streams the python script to the cluster master. Script outputs a json document.
-    # Grep is to eliminate ossh verbose output -- grabbing only the json doc.
-    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep '^{.*'
-    exit 0
-fi
-
-################################################
-# OPERATION: STATUS
-################################################
-# Stdout from 'status' invocation is sent out verbatim after an
-# online-first install/upgrade. Similar to logs operation, don't
-# output any stdout before this point.
-if [ "${OPERATION}" == "status" ]; then
-
-  if [ "${CLUSTERNAME}" == "test-key" ]; then
-    echo "This output represents the current status of the test-key cluster"
-    echo "This is the second line"
-    echo "This is the third and final"
-    exit 0
-  fi
-
-  /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
-  exit 0
-
-################################################
-# OPERATION: SMOKETEST
-################################################
-elif [ "${OPERATION}" == "smoketest" ]; then
-  echo "Performing smoketest on cluster: ${CLUSTERNAME}..."
-  echo
-
-  if [ "${CLUSTERNAME}" == "test-key" ]; then
-    echo "This output represents the current smoketest of the test-key cluster"
-    exit 0
-  fi
-
-  # 'exec' will exit this script and turn controll over to the script being called
-  exec /usr/local/bin/autokeys_loader ./aos-cd-cluster-smoke-test.sh ${CLUSTERNAME}
-fi
-
-
-opts=`getopt -o ha: --long help,openshift-ansible: -n 'cicd-control' -- "$@"`
-eval set -- "$opts"
-OPENSHIFT_ANSIBLE_VERSION="latest"
-help=0
-
-while true; do
-  case "$1" in
-    -h | --help )    help=1; shift ;;
-    -a | --openshift-ansible ) OPENSHIFT_ANSIBLE_VERSION="$2"; shift; shift ;;
-    -- ) shift; break ;;
-    * ) break ;;
-  esac
-done
-
-if [[ "$help" == "1" ]]; then
-    print_usage
-    exit 0
-fi
-
-# update git repos
-# This needs review.
-# This isn't very portable. This requires that the git dirs are already
-# in place to do updates
-set +e
-# Prevent output from this operation unless it actually fails; just to keep logs cleaner
-CLONE_RESULT=$(/usr/local/bin/autokeys_loader /usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
-if [ "$?" != "0" ]; then
-  echo "Error updating git repos"
-  echo "$CLONE_RESULTS"
+if [ -z "${OPERATION+x}" ]; then
+  echo "No operation was specified.  Exiting..."
+  print_usage
   exit 1
 fi
-set -e
+
+echo "Running $(basename $0) on:"
+echo "CLUSTER: ${CLUSTERNAME}"
+echo "OPERATION: ${OPERATION}"
+echo
 
 # Allow for "test-key" to do some testing.
-# For now, all we will do is echo out the $CLUSTERNAME and $OPERATION variables
-# and then exit successfully.
-if  [ "${CLUSTERNAME}" == "test-key" ]; then
+# Let's get test-key stuff out of the way first
+if [ "${CLUSTERNAME}" == "test-key" ]; then
 
   get_latest_openshift_ansible "int"
   echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"
@@ -200,29 +121,160 @@ if  [ "${CLUSTERNAME}" == "test-key" ]; then
   exit 0
 fi
 
-set +x  # Mask sensitive data
-source "$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh"
-set -x
+function is_running(){
+  # Output to prevent ssh timeouts. Appears to timeout
+  # After about an hour of inactivity.
+  while true; do
+    echo
+    echo ".... $(date) ...."
+    sleep 600
+  done
+}
 
-CLUSTER_SETUP_TEMPLATE_FILE="$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml"
-if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then
-  echo "Unable to find ${CLUSTERNAME}'s cluster setup template file. Exiting..."
-  exit 10
-fi
+function get_latest_openshift_ansible()  {
+  AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
+  mkdir -p "${AOS_TMPDIR}"
 
-# Update cluster setup changes to the releases directory
-echo "Update cluster setup changes..."
-/usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} "$GIT_ROOT/openshift-ansible-ops/playbooks/release/bin"
+  pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
+    /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${1} -e cli_download_dir=${AOS_TMPDIR}
+  popd
 
-# Get the version and env from the template file
-oo_version="$(grep -Po '(?<=^g_install_version: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}" | /usr/bin/cut -c 1-3)"
-oo_environment="$(grep -Po '(?<=^g_environment: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}")"
+  export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"
+}
+
+function get_master_name() {
+# Outputs the name of one a master for a cluster
+
+  # Find an appropriate master
+  MASTER="$(ossh --list | grep ${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
+
+  if [[ "${MASTER}" != "${CLUSTERNAME}"-* ]]; then
+      echo "Unable to find master for the specified cluster"
+      exit 1
+  fi
+
+  echo "${MASTER}"
+}
 
 ################################################
-# CREATE CLUSTER
+# CLUSTER PRE CHECK
 ################################################
-if [ "${OPERATION}" == "install" ]; then
-  is_running & 
+function pre-check() {
+
+  # Set some cluster vars
+  setup_cluster_vars
+
+  # Get the version of RPMS that will be used
+  AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
+  mkdir -p "${AOS_TMPDIR}"
+
+  # get the latest openshift-ansible rpms
+  pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms" > /dev/null
+    /usr/bin/ansible-playbook get_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${oo_environment} -e cli_download_dir=${AOS_TMPDIR} &> /dev/null
+  popd > /dev/null
+  OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
+
+
+  MASTER="$(get_master_name)"
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder unexclude" > /dev/null
+  OPENSHIFT_VERSION=$(/usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/repoquery --quiet --pkgnarrow=repos --queryformat='%{version}-%{release}' atomic-openshift")
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder exclude" > /dev/null
+
+  echo
+  echo Openshift Ansible RPM Version: ${OS_RPM_VERSION}
+  echo Openshift RPM Version: ${OPENSHIFT_VERSION}
+  echo
+
+  /usr/bin/rm -rf ${AOS_TMPDIR}
+  exit 0
+}
+
+################################################
+# CLUSTER LOG GATHERING
+################################################
+function gather_logs() {
+  ./gather-logs.sh ${CLUSTERNAME}
+  exit 0
+}
+
+function build_ci_msg() {
+#if OPERATION = build-ci-msg
+  MASTER="$(get_master_name)"
+
+  # Streams the python script to the cluster master. Script outputs a json document.
+  # Grep is to eliminate ossh verbose output -- grabbing only the json doc.
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep '^{.*'
+  exit 0
+}
+
+################################################
+# OPERATION: STATUS
+################################################
+# Stdout from 'status' invocation is sent out verbatim after an
+# online-first install/upgrade. Similar to logs operation, don't
+# output any stdout before this point.
+function cluster_status() {
+#OPERATION = status
+
+  /usr/local/bin/autokeys_loader ./aos-cd-cluster-status.sh ${CLUSTERNAME}
+  exit 0
+}
+
+################################################
+# OPERATION: SMOKETEST
+################################################
+function smoketest() {
+#OPERATION = smoketest
+  echo "Performing smoketest on cluster: ${CLUSTERNAME}..."
+  echo
+
+  # 'exec' will exit this script and turn controll over to the script being called
+  exec /usr/local/bin/autokeys_loader ./aos-cd-cluster-smoke-test.sh ${CLUSTERNAME}
+}
+
+
+function update_ops_git_repos () {
+# TODO: This requires that the git dirs are already in place to do updates
+# Prevent output from this operation unless it actually fails; just to keep logs cleaner
+  set +e
+  cd $START_DIR
+  CLONE_RESULT=$(/usr/local/bin/autokeys_loader /usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
+  if [ "$?" != "0" ]; then
+    echo "Error updating git repos"
+    echo "$CLONE_RESULTS"
+    exit 1
+  fi
+  set -e
+}
+
+function setup_cluster_vars() {
+  set +x  # Mask sensitive data
+  source "$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh"
+  #set -x
+
+  CLUSTER_SETUP_TEMPLATE_FILE="$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_aws_cluster_setup.yml"
+
+  if [ ! -f ${CLUSTER_SETUP_TEMPLATE_FILE} ]; then
+    echo "Unable to find ${CLUSTERNAME}'s cluster setup template file. Exiting..."
+    exit 10
+  fi
+
+  # Update cluster setup changes to the releases directory
+  /usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} "$GIT_ROOT/openshift-ansible-ops/playbooks/release/bin"
+
+  # Get the version and env from the template file
+  oo_version="$(grep -Po '(?<=^g_install_version: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}" | /usr/bin/cut -c 1-3)"
+  oo_environment="$(grep -Po '(?<=^g_environment: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}")"
+}
+
+################################################
+# OPERATION: INSTALL
+################################################
+function install_cluster() {
+#OPERATION = install
+  is_running &
+  setup_cluster_vars
   get_latest_openshift_ansible ${oo_environment}
 
   # Deploy all the things
@@ -236,21 +288,21 @@ if [ "${OPERATION}" == "install" ]; then
   echo
   echo "Deployment is complete. OpenShift Console can be found at https://${MASTER_DNS_NAME}"
   echo
+}
 
 ################################################
-# DELETE CLUSTER
+# OPERATION: DELETE CLUSTER
 ################################################
-elif [ "${OPERATION}" == "delete" ]; then
-
+function delete_cluster() {
   # another layer of protection for delete clusters
-  if [[ "${CLUSTERNAME}" != "dev-preview-int" ]] && [[ "${CLUSTERNAME}" != "cicd" ]]; then
+  if [[ "${CLUSTERNAME}" != "free-int" ]] && [[ "${CLUSTERNAME}" != "cicd" ]]; then
     echo "INVALID CLUSTER, NOT DELTETING CLUSTER: '${CLUSTERNAME}'. Exiting...."
     exit 10
   fi
 
   # This updates the OPs inventory
-  echo "Updating the OPs inventory..."
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
+  echo "Updating the OPs inventory..."
   echo
 
   pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/release/decommission"
@@ -260,13 +312,15 @@ elif [ "${OPERATION}" == "delete" ]; then
   # This updates the OPs inventory
   echo "Updating the OPs inventory..."
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
+}
 
 ################################################
-# UPGRADE CLUSTER
+# OPERATION: Upgrade
+#  This is legacy, and should be removed when it's time to move to the cluster operation
 ################################################
-elif [ "${OPERATION}" == "upgrade" ]; then
+function legacy_upgrade_cluster() {
   echo Doing upgrade
-  is_running & 
+  is_running &
 
   ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
 
@@ -282,28 +336,52 @@ elif [ "${OPERATION}" == "upgrade" ]; then
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
+}
+
+################################################
+# OPERATION: GENERAL OPERATIONS CLUSTER
+################################################
+function cluster_operation() {
+
+  if [ -z "${1+x}" ]; then
+    echo "No UPGRADE OPTION was specified.  Exiting..."
+    exit 1
+  fi
+
+  UPGRADE_OPERATION=$1
+
+  echo "Doing upgrade operation: ${UPGRADE_OPERATION}"
+
+  # Do long running operations
+  is_running &
+  ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
+
+  # setup cluster vars
+  setup_cluster_vars
+
+  # Get the latest openshift-ansible rpms
+  get_latest_openshift_ansible ${oo_environment}
+
+  # Run the upgrade, including post_byo steps and config loop
+  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
+    /usr/local/bin/autokeys_loader ./cicd_operations.sh -c ${CLUSTERNAME} -o ${UPGRADE_OPERATION}
   popd
+}
 
 ################################################
-# PERFORMANCE TEST1
+# OPERATION: PERFORMANCE TEST1
 ################################################
-elif [ "${OPERATION}" == "perf1" ]; then
+function perf1() {
+  if [[ "${CLUSTERNAME}" != "free-int" && "${CLUSTERNAME}" != "dev-preview-int" ]]; then
+      echo "Cannot run performance test on cluster: ${CLUSTERNAME}"
+      exit 1
+  fi
 
-    if [[ "${CLUSTERNAME}" == "test-key" ]]; then
-        echo "Mock run for: ${CLUSTERNAME}"
-        exit 0
-    fi
+  is_running &
+  echo "Running performance test 1"
+  MASTER="$(get_master_name)"
 
-    if [[ "${CLUSTERNAME}" != "free-int" && "${CLUSTERNAME}" != "dev-preview-int" ]]; then
-        echo "Cannot run performance test on cluster: ${CLUSTERNAME}"
-        exit 1
-    fi
-
-    is_running & 
-    echo "Running performance test 1"
-    MASTER="$(get_master_name)"
-
-    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "sh" <<EOF
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "sh" <<EOF
 yum install -y python-ceph python-boto3 python-flask
 rm -rf perf1
 mkdir -p perf1
@@ -312,11 +390,39 @@ git clone -b svt-cicd https://github.com/openshift/svt
 cd svt/openshift_performance/ci/scripts
 ./conc_builds_cicd.sh
 EOF
+}
 
-################################################
-# UNKNOWN OPERATION
-################################################
-else
-  echo Error. Unrecognized operation. Exiting...
-fi
+case "$OPERATION" in
+  install)
+    install_cluster
+    ;;
 
+  delete)
+    delete_cluster
+    ;;
+
+  legacy-upgrade)
+    legacy_upgrade_cluster
+    ;;
+
+  status)
+    cluster_status
+    ;;
+
+  smoketest)
+    smoketest
+    ;;
+
+  pre-check)
+    pre-check
+    ;;
+
+  perf1)
+    perf1
+    ;;
+
+  *)
+    cluster_operation ${OPERATION}
+   ;;
+
+esac

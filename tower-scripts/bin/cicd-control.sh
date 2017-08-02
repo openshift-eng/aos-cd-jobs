@@ -349,7 +349,7 @@ function cluster_operation() {
 
   CLUSTER_OPERATION=$1
 
-  echo "Doing upgrade operation: ${UPGRADE_OPERATION}"
+  echo "Doing upgrade operation: ${CLUSTER_OPERATION}"
 
   # setup cluster vars
   setup_cluster_vars

@@ -63,7 +63,7 @@ node('openshift-build-1') {
             sshagent([CLUSTER_NAME]) {
 
                 echo "Initial cluster state:"
-                #sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com status"
+                //sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com status"
                 echo "\n\n"
 
                 if ( OPERATION == "reinstall" ) {

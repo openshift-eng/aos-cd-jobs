@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-START_DIR=$(dirname "$0")
+START_DIR=${BASH_SOURCE[0]}
 GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"
@@ -28,19 +28,20 @@ function on_exit() {
 trap on_exit EXIT
 
 function parse_and_set_vars() {
-  local var=$(echo $1 | awk -F= '{print $1}')
+  var=$(echo $1 | awk -F= '{print $1}')
 
   # Check to see if arg is valid
   # Note: This is ugly.
-  if [[ ! " ${VALID_ARGUMENTS[*]} " == *" ${var}"* ]]; then
+  if [[ ! " ${VALID_ARGUMENTS[*]} " == *" ${var} "* ]]; then
     echo "The arg: \"${var}\" is invalid.  Exiting..."
     exit 1
-   fi
+  fi
 
-  local value=$(echo $1 | awk -F= '{print $2}')
+  export $1
+  #value=$(echo $1 | awk -F= '{print $2}')
 
-  eval $var=\$value
-  export $var
+  #eval $var=\$value
+  #export $var
 }
 
 function print_usage() {
@@ -129,6 +130,20 @@ function is_running(){
     echo ".... $(date) ...."
     sleep 600
   done
+}
+
+function update_ops_git_repos () {
+# TODO: This requires that the git dirs are already in place to do updates
+# Prevent output from this operation unless it actually fails; just to keep logs cleaner
+  set +e
+  cd $START_DIR
+  CLONE_RESULT=$(/usr/local/bin/autokeys_loader /usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
+  if [ "$?" != "0" ]; then
+    echo "Error updating git repos"
+    echo "$CLONE_RESULTS"
+    exit 1
+  fi
+  set -e
 }
 
 function get_latest_openshift_ansible()  {
@@ -233,21 +248,6 @@ function smoketest() {
   exec /usr/local/bin/autokeys_loader ./aos-cd-cluster-smoke-test.sh ${CLUSTERNAME}
 }
 
-
-function update_ops_git_repos () {
-# TODO: This requires that the git dirs are already in place to do updates
-# Prevent output from this operation unless it actually fails; just to keep logs cleaner
-  set +e
-  cd $START_DIR
-  CLONE_RESULT=$(/usr/local/bin/autokeys_loader /usr/bin/ansible-playbook ./clone_ops_git_repos.yml)
-  if [ "$?" != "0" ]; then
-    echo "Error updating git repos"
-    echo "$CLONE_RESULTS"
-    exit 1
-  fi
-  set -e
-}
-
 function setup_cluster_vars() {
   set +x  # Mask sensitive data
   source "$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh"
@@ -344,27 +344,35 @@ function legacy_upgrade_cluster() {
 function cluster_operation() {
 
   if [ -z "${1+x}" ]; then
-    echo "No UPGRADE OPTION was specified.  Exiting..."
+    echo "No CLUSTER OPERATION was specified.  Exiting..."
     exit 1
   fi
 
-  UPGRADE_OPERATION=$1
+  CLUSTER_OPERATION=$1
 
   echo "Doing upgrade operation: ${UPGRADE_OPERATION}"
-
-  # Do long running operations
-  is_running &
-  ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
 
   # setup cluster vars
   setup_cluster_vars
 
+  # Do long running operations
+  is_running &
+
+  # Hack to ensure docker doesn't die during upgrades
+  DOCKER_TIMER_OPERATIONS=(upgrade upgrade-control-plane upgrade-nodes)
+  if [[ " ${DOCKER_TIMER_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
+    ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
+  fi
+
   # Get the latest openshift-ansible rpms
-  get_latest_openshift_ansible ${oo_environment}
+  LATEST_ANSIBLE_OPERATIONS=(install upgrade upgrade-control-plane upgrade-nodes)
+  if [[ " ${LATEST_ANSIBLE_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
+    get_latest_openshift_ansible ${oo_environment}
+  fi
 
   # Run the upgrade, including post_byo steps and config loop
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
-    /usr/local/bin/autokeys_loader ./cicd_operations.sh -c ${CLUSTERNAME} -o ${UPGRADE_OPERATION}
+    /usr/local/bin/autokeys_loader ./cicd_operations.sh -c ${CLUSTERNAME} -o ${CLUSTER_OPERATION}
   popd
 }
 
@@ -392,16 +400,20 @@ cd svt/openshift_performance/ci/scripts
 EOF
 }
 
+
 case "$OPERATION" in
   install)
+    update_ops_git_repos
     install_cluster
     ;;
 
   delete)
+    update_ops_git_repos
     delete_cluster
     ;;
 
   legacy-upgrade)
+    update_ops_git_repos
     legacy_upgrade_cluster
     ;;
 
@@ -414,6 +426,7 @@ case "$OPERATION" in
     ;;
 
   pre-check)
+    update_ops_git_repos
     pre-check
     ;;
 
@@ -422,6 +435,7 @@ case "$OPERATION" in
     ;;
 
   *)
+    update_ops_git_repos
     cluster_operation ${OPERATION}
    ;;
 

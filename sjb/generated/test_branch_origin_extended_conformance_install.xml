@@ -272,6 +272,10 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+rm -f /etc/yum.repos.d/origin_ci_tool_tmp.repo
+if [[ -s /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo ]]; then
+  echo &#34;exclude=origin*&#34; | sudo tee -a /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \

@@ -141,6 +141,10 @@ extensions:
       repository: "aos-cd-jobs"
       timeout: 1800
       script: |-
+        rm -f /etc/yum.repos.d/origin_ci_tool_tmp.repo
+        if [[ -s /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo ]]; then
+          echo "exclude=origin*" | sudo tee -a /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
+        fi
         pkg_name=$( cat ./PKG_NAME )
         source ORIGIN_VARS
         upgrade_playbook="/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${ORIGIN_UPGRADE_RELEASE_MINOR_VERSION}/upgrade.yml"

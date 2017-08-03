@@ -364,7 +364,7 @@ function cluster_operation() {
   fi
 
   # Get the latest openshift-ansible rpms
-  LATEST_ANSIBLE_OPERATIONS=(install upgrade upgrade-control-plane upgrade-nodes)
+  LATEST_ANSIBLE_OPERATIONS=(install upgrade upgrade-control-plane upgrade-nodes upgrade-metrics upgrade-logging)
   if [[ " ${LATEST_ANSIBLE_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
     get_latest_openshift_ansible ${oo_environment}
   fi

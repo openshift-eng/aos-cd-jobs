@@ -141,7 +141,7 @@ extensions:
       repository: "aos-cd-jobs"
       timeout: 1800
       script: |-
-        rm -f /etc/yum.repos.d/origin_ci_tool_tmp.repo
+        sudo rm -f /etc/yum.repos.d/origin_ci_tool_tmp.repo
         if [[ -s /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo ]]; then
           echo "exclude=origin*" | sudo tee -a /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
         fi

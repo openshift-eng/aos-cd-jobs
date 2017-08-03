@@ -16,7 +16,13 @@ node('openshift-build-1') {
         sshagent([CLUSTER_NAME]) {
             msg = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com build-ci-msg").trim()
             echo "Sending CI Message:\n${msg}"
-            sendCIMessage messageContent: '', messageProperties: msg, messageType: 'ComponentBuildDone', providerName: 'CI Publish'
+            //Convert JSON to Java Properties to avoid automatic string escaping
+            def props = readJSON text: msg
+            def msgcontent = ""
+            props.each { key, value ->
+              msgcontent += "$key=$value\n"
+            }
+            sendCIMessage messageContent: '', messageProperties: msgcontent, messageType: 'ComponentBuildDone', providerName: 'CI Publish'
         }
 
     }

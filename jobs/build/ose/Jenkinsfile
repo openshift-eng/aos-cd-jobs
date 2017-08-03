@@ -93,12 +93,26 @@ echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_
 
 node(TARGET_NODE) {
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
-    
+
+    // Login to legacy registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
         sh 'sudo docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
-    }      
-    
+    }
+
+    // Login to new registry.ops to enable pushes
+    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
+                      usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+        sh 'oc login -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'
+
+        // Writing the file out is all to avoid displaying the token in the Jenkins console
+        writeFile file:"docker_login.sh", text:'''#!/bin/bash
+        sudo docker login -u $USERNAME -p $(oc whoami -t) registry.reg-aws.openshift.com:443
+        '''
+        sh 'chmod +x docker_login.sh'
+        sh './docker_login.sh'
+    }
+
     set_workspace()
     stage('Merge and build') {
         try {

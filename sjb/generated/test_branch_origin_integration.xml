@@ -112,13 +112,17 @@ if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
   pull_id=${PULL_NUMBER}
   target_branch=&#34;${PULL_REFS%%:*}&#34;
 fi
-# pull_id will be 0 in case of a batch merge
+# pull_id will be 0 in case of a batch merge or post-submit
 if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
   destination_bucket=&#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}&#34;
   gsutil cp gcs/started.json &#34;${destination_bucket}/started.json&#34;
 
   echo &#34;${destination_bucket}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
   gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
+elif [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; == &#34;0&#34; &amp;&amp; &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
+  # this is a post-submit since the pull_refs has no info other than the branch
+  destination_bucket=&#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
+  gsutil cp gcs/started.json &#34;${destination_bucket}/started.json&#34;
 fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -150,7 +154,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_PULL_IMAGE=true JUNIT_REPORT=&#39;true&#39; hack/env make test-tools test-integration
+OS_BUILD_ENV_PULL_IMAGE=true hack/env JUNIT_REPORT=&#39;true&#39; make test-tools test-integration
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -245,9 +249,13 @@ if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
   pull_id=${PULL_NUMBER}
   target_branch=&#34;${PULL_REFS%%:*}&#34;
 fi
-# pull_id will be 0 in case of a batch merge
+# pull_id will be 0 in case of a batch merge or post-submit
 if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
-  gsutil cp -r gcs/* &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/&#34;
+  gsutil -m cp -r gcs/* &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/&#34;
+elif [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; == &#34;0&#34; &amp;&amp; &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
+  # this is a post-submit since the pull_refs has no info other than the branch
+  destination_bucket=&#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
+  gsutil -m cp -r gcs/* &#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/&#34;
 fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

@@ -30,14 +30,6 @@ properties(
                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                          ]
                 ],
-            /*
-                [$class: 'PipelineTriggersJobProperty',
-                 triggers: [[
-                                    $class: 'TimerTrigger',
-                                    spec  : 'H 11 * * *'
-                            ]]
-                ]
-                */
         ]
 )
 

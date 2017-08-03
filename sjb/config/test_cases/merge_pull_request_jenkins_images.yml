@@ -1,6 +1,7 @@
 ---
 parent: 'test_cases/push_jenkins_images.yml'
 overrides:
+  email: []
   sync_repos:
     - name: "jenkins"
       type: "pull_request"

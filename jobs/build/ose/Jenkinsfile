@@ -43,7 +43,8 @@ def mail_success(version) {
         body: """\
 OpenShift Version: v${version}
 
-Puddle: ${mirrorURL}/${puddleName}
+Puddle: http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0,3)}/${puddleName}
+  - Mirror: ${mirrorURL}/${puddleName}
   - Images have been built for this puddle
   - Images have been pushed to registry.ops
 

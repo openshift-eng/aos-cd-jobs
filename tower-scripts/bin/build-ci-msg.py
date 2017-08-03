@@ -71,21 +71,20 @@ product = "OSO"
 if test_mode:
     product = "OSO-test"
 
-msg = """
-    owner="Continuous Delivery"
-    email="jupierce@redhat.com"
-    CI_TYPE="component-build-done"
-    destination="/topic/CI"
-    product=%s
-    cluster name=%s
-    description="OSO cluster upgraded"
-    version=%s
-    short_version=%s
-    oc_version=%s
-    online_version=%s
-    docker_version=%s
-    api_url="https://api.%s.openshift.com"
-    console_url="https://console.%s.openshift.com/console"
+msg = """owner="Continuous Delivery"
+email="jupierce@redhat.com"
+CI_TYPE="component-build-done"
+destination="/topic/CI"
+product=%s
+cluster name=%s
+description="OSO cluster upgraded"
+version=%s
+short_version=%s
+oc_version=%s
+online_version=%s
+docker_version=%s
+api_url="https://api.%s.openshift.com"
+console_url="https://console.%s.openshift.com/console"
 """ % (product, cluster_name, oc_version, oc_short_version, oc_version, online_version, docker_version, cluster_name, cluster_name)
 
 print msg

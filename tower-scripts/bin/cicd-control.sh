@@ -106,22 +106,10 @@ if [ -z "${OPERATION+x}" ]; then
   exit 1
 fi
 
-echo "Running $(basename $0) on:"
-echo "CLUSTER: ${CLUSTERNAME}"
-echo "OPERATION: ${OPERATION}"
-echo
-
-# Allow for "test-key" to do some testing.
-# Let's get test-key stuff out of the way first
-if [ "${CLUSTERNAME}" == "test-key" ]; then
-
-  get_latest_openshift_ansible "int"
-  echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"
-  echo "Operation requested on mock cluster '${CLUSTERNAME}'. The operation is: '${OPERATION}' with options: ${ARGS}"
-  echo "  OPENSHIFT_ANSIBLE_VERSION=${OPENSHIFT_ANSIBLE_VERSION}"
-
-  exit 0
-fi
+echo "Running $(basename $0) on:" >&2
+echo "CLUSTER: ${CLUSTERNAME}" >&2
+echo "OPERATION: ${OPERATION}" >&2
+echo >&2
 
 function is_running(){
   # Output to prevent ssh timeouts. Appears to timeout
@@ -215,12 +203,10 @@ function gather_logs() {
 }
 
 function build_ci_msg() {
-#if OPERATION = build-ci-msg
   MASTER="$(get_master_name)"
-
   # Streams the python script to the cluster master. Script outputs a json document.
-  # Grep is to eliminate ossh verbose output -- grabbing only the json doc.
-  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep '^{.*'
+  # Grep is to eliminate ossh verbose output -- grabbing only the key value pairs.
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep grep '.\+=.\+'
   exit 0
 }
 
@@ -399,6 +385,17 @@ cd svt/openshift_performance/ci/scripts
 EOF
 }
 
+# Allow for "test-key" to do some testing.
+# Let's get test-key stuff out of the way first
+if [ "${CLUSTERNAME}" == "test-key" ]; then
+  get_latest_openshift_ansible "int"
+  echo "OPENSHIFT_ANSIBLE_INSTALL_DIR = [${OPENSHIFT_ANSIBLE_INSTALL_DIR}]"
+  echo "Operation requested on mock cluster '${CLUSTERNAME}'. The operation is: '${OPERATION}' with options: ${ARGS}"
+  echo "  OPENSHIFT_ANSIBLE_VERSION=${OPENSHIFT_ANSIBLE_VERSION}"
+
+  exit 0
+fi
+
 
 case "$OPERATION" in
   install)
@@ -427,6 +424,10 @@ case "$OPERATION" in
   pre-check)
     update_ops_git_repos
     pre-check
+    ;;
+
+  build-ci-msg)
+    build_ci_msg
     ;;
 
   perf1)

@@ -206,7 +206,7 @@ function build_ci_msg() {
   MASTER="$(get_master_name)"
   # Streams the python script to the cluster master. Script outputs a json document.
   # Grep is to eliminate ossh verbose output -- grabbing only the key value pairs.
-  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep grep '.\+=.\+'
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/python - ${CLUSTERNAME}" < build-ci-msg.py | grep '.\+=.\+'
   exit 0
 }
 

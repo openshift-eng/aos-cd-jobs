@@ -44,7 +44,7 @@ def get_minor_version(pkg_version_release):
 	return pkg_version_release.split('.', 2)[1]
 
 # Print install, upgrade and upgrade_release versions of desired package to STDOUT.
-# The upgrade version will be printed only in case there is more then one version of packages previous minor release. 
+# The upgrade version will be printed only in case there is more then one version of packages previous minor release.
 def print_version_vars(install_version, upgrade_version):
 	used_pkg_name = pkg_name.upper().replace("-", "_")
 	print (used_pkg_name + "_INSTALL_VERSION=" + install_version)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
 	pkg_name, pkg_version, pkg_release, pkg_epoch, pkg_arch = rpmutils.splitFilename(args.input_pkg)
 
 	# If dependency target branch is specified for a release or an enterprise release use that version so proper install
-	# and upgrade version are set. The major version of the searched version is taken from the package version from the 
+	# and upgrade version are set. The major version of the searched version is taken from the package version from the
 	# input and the minor version is from the debendency branch version.
 	#
 	# example: OPENSHFIT_ANSIBLE INPUT PKG VERSION  - openshift-ansible-3.6.142-1.git.0.90b5f60.el7
@@ -116,12 +116,9 @@ if __name__ == "__main__":
 
 	yb = yum.YumBase()
 	# Have to redirect redirect the yum configuration to /dev/null cause we dont want to have any additional output
-	# that configuration prints. eg: `Loaded plugins: amazon-id, rhui-lb`  
+	# that configuration prints. eg: `Loaded plugins: amazon-id, rhui-lb`
 	old_stdout = sys.stdout
 	sys.stdout = open(os.devnull, 'w')
-	# Need make sure that all the packages are listed, cause if excluders are enabled for some reason,
-	# listing of origin or docker pkgs will be disabled, based on the enabled excluder.
-	yb.conf.disable_excludes = ["all"]
 	sys.stdout = old_stdout
 
 	generic_holder = yb.doPackageLists('all', patterns=[pkg_name], showdups=True)

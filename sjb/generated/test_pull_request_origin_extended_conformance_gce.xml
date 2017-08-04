@@ -244,14 +244,14 @@ if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
   pull_id=${PULL_NUMBER}
   target_branch=&#34;${PULL_REFS%%:*}&#34;
 fi
-# pull_id will be 0 in case of a batch merge or post-submit
+# pull_id will be 0 in case of a batch merge
 if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
   destination_bucket=&#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}&#34;
   gsutil cp gcs/started.json &#34;${destination_bucket}/started.json&#34;
 
   echo &#34;${destination_bucket}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
   gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
-elif [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; == &#34;0&#34; &amp;&amp; &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
+elif [[ &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
   # this is a post-submit since the pull_refs has no info other than the branch
   destination_bucket=&#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
   gsutil cp gcs/started.json &#34;${destination_bucket}/started.json&#34;
@@ -526,10 +526,10 @@ if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
   pull_id=${PULL_NUMBER}
   target_branch=&#34;${PULL_REFS%%:*}&#34;
 fi
-# pull_id will be 0 in case of a batch merge or post-submit
+# pull_id will be 0 in case of a batch merge
 if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
   gsutil -m cp -r gcs/* &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/&#34;
-elif [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; == &#34;0&#34; &amp;&amp; &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
+elif [[ &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
   # this is a post-submit since the pull_refs has no info other than the branch
   destination_bucket=&#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
   gsutil -m cp -r gcs/* &#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/&#34;

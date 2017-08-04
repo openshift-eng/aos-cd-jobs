@@ -10,19 +10,25 @@ def set_workspace() {
     }
 }
 
-def version(f) {
-    def matcher = readFile(f) =~ /Version:\s*([.0-9]+)/
+// Matchers are not serializable, so use @NonCPS
+@NonCPS
+def version_parse(spec_content) {
+    def matcher = spec_content =~ /Version:\s*([.0-9]+)/
     if ( ! matcher ) {
         error( "Unable to extract RPM spec Version" )
     }
     def ver = matcher[0][1]
     // Extract "Release" field as well, but do not include %{?dist} type variables
-    matcher = readFile(f) =~ /Release:\s*([.a-zA-Z0-9+-]+)/
+    matcher = spec_content =~ /Release:\s*([.a-zA-Z0-9+-]+)/
     if ( ! matcher ) {
         error( "Unable to extract RPM spec Release" )
     }
     def rel = matcher[0][1]
     return ver + "-" + rel
+}
+
+def version(spec_file) {
+    return version_parse(readFile(spec_file))
 }
 
 def mail_success(version) {

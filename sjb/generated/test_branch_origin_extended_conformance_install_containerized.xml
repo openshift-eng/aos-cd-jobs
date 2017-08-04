@@ -181,6 +181,8 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 hack/build-base-images.sh
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS=&#39;linux/amd64&#39; hack/build-rpm-release.sh
 sudo systemctl restart docker
+git describe --abbrev=0 &gt;&gt; &#34;ORIGIN_TAG&#34;
+cat ORIGIN_TAG &gt; _output/local/releases/.commit
 hack/build-images.sh
 sed -i &#39;s|go/src|data/src|&#39; _output/local/releases/rpms/origin-local-release.repo
 sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
@@ -262,6 +264,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
+git describe --abbrev=0 &gt;&gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -289,9 +292,9 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e containerized=true      \
                  -e deployment_type=origin  \
-                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_COMMIT )&#34;                      \
-                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
-                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
+                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;                      \
+                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
+                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_TAG )&#34; \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -320,9 +323,10 @@ script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
-rpm -V &#34;\${origin_package}&#34;
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+docker_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;
+docker_repository=&#34;\${OS_IMAGE_PREFIX:-&#34;openshift/origin&#34;}&#34;
+docker inspect &#34;\${docker_repository}:\${docker_image_tag}&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -337,6 +341,14 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+# configure dnsmasq to forward requests to openhsift&#39;s DNS
+cat &lt;&lt;HEREDOC &gt; ci-dnsmasq.conf
+server=/local/127.0.0.1#8053
+server=/17.30.172.in-addr.arpa/127.0.0.1#8053
+HEREDOC
+sudo cp ci-dnsmasq.conf /etc/dnsmasq.d/ci-dnsmasq.conf
+sudo systemctl restart dnsmasq
+sudo systemctl status dnsmasq
 OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
 SCRIPT
 chmod +x &#34;${script}&#34;

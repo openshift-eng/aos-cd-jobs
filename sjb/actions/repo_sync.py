@@ -11,6 +11,18 @@ _TARGET_BRANCH_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringPara
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
+_POST_PULL_REFS_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinition>
+          <name>PULL_REFS</name>
+          <description>Used by prow. If this is not a pull request, it should at least contain the branch:hash of the HEAD being tested.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>""")
+
+_POST_BUILD_ID_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinition>
+          <name>buildId</name>
+          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>""")
+
 _SYNC_TITLE_TEMPLATE = Template("SYNC {{ repository | upper }} REPOSITORY")
 _SYNC_ACTION_TEMPLATE = Template("""oct sync remote {{ repository }} --branch "${{ '{' }}{{ dependency_repository | replace('-', '_') | upper }}_TARGET_BRANCH}" """)
 
@@ -30,7 +42,11 @@ class SyncAction(Action):
         self.dependency_repository = dependency_repository
 
     def generate_parameters(self):
-        return [_TARGET_BRANCH_PARAMETER_TEMPLATE.render(repository=self.repository)]
+        return [
+            _TARGET_BRANCH_PARAMETER_TEMPLATE.render(repository=self.repository),
+            _POST_PULL_REFS_PARAMETER_TEMPLATE.render(),
+            _POST_BUILD_ID_PARAMETER_TEMPLATE.render(),
+        ]
 
     def generate_build_steps(self):
         return [render_task(

@@ -11,22 +11,32 @@ def set_workspace() {
 }
 
 def version(f) {
-    def matcher = readFile(f) =~ /Version:\s+([.0-9]+)/
-    matcher ? matcher[0][1] : null
+    def matcher = readFile(f) =~ /Version:\s*([.0-9]+)/
+    if ( ! matcher ) {
+        error( "Unable to extract RPM spec Version" )
+    }
+    def ver = matcher[0][1]
+    // Extract "Release" field as well, but do not include %{?dist} type variables
+    matcher = readFile(f) =~ /Release:\s*([.a-zA-Z0-9+-]+)/
+    if ( ! matcher ) {
+        error( "Unable to extract RPM spec Release" )
+    }
+    def rel = matcher[0][1]
+    return ver + "-" + rel
 }
 
 def mail_success(version) {
 
-    def target = "Enterprise"
+    def target = "(Release Candidate)"
     def mirrorURL = "https://mirror.openshift.com/enterprise/enterprise-${version.substring(0,3)}"
 
     if ( BUILD_MODE == "online:int" ) {
-        target = "Online-int"
+        target = "(Integration Testing)"
         mirrorURL = "https://mirror.openshift.com/enterprise/online-int"
     }
 
     if ( BUILD_MODE == "online:stg" ) {
-        target = "Online-stg"
+        target = "(Stage Testing)"
         mirrorURL = "https://mirror.openshift.com/enterprise/online-stg"
     }
 
@@ -39,7 +49,7 @@ def mail_success(version) {
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
         replyTo: 'smunilla@redhat.com',
-        subject: "[aos-devel] New Puddle for OpenShift ${target}: ${version}",
+        subject: "[aos-devel] New build for OpenShift ${target}: ${version}",
         body: """\
 OpenShift Version: v${version}
 
@@ -47,6 +57,7 @@ Puddle: http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/Atomi
   - Mirror: ${mirrorURL}/${puddleName}
   - Images have been built for this puddle
   - Images have been pushed to registry.ops
+  - Images have been pushed to registry.reg-aws.openshift.com:443/online
 
 Brew:
   - Openshift: ${oseBrewURL}

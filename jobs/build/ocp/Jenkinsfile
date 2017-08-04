@@ -32,6 +32,8 @@ echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_
 
 node(TARGET_NODE) {
 
+    checkout scm
+        
     def commonlib = load( "pipeline-scripts/common.groovy")
     commonlib.initialize()
 
@@ -41,7 +43,6 @@ node(TARGET_NODE) {
             def buildlib = load( "pipeline-scripts/build.groovy")
             buildlib.initialize()
             currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
-            checkout scm
 
             echo "${buildlib.get_ose_master_version()}-${buildlib.get_ose_master_release_prefix()}"
 

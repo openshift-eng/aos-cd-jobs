@@ -3,6 +3,7 @@ import yum
 import sys
 import os.path
 import argparse
+import logging
 import rpmUtils.miscutils as rpmutils
 
 # Remove duplicate packages from different repositories
@@ -115,11 +116,9 @@ if __name__ == "__main__":
 		sys.exit(2)
 
 	yb = yum.YumBase()
-	# Have to redirect redirect the yum configuration to /dev/null cause we dont want to have any additional output
-	# that configuration prints. eg: `Loaded plugins: amazon-id, rhui-lb`
-	old_stdout = sys.stdout
-	sys.stdout = open(os.devnull, 'w')
-	sys.stdout = old_stdout
+	# Turn the yum logger onto critical messages only so we approximate --quiet
+	# flag in the CLI and get no garbage output like `Loaded plugins: amazon-id, rhui-lb`
+	logging.getLogger("yum.verbose.YumPlugins").setLevel(logging.CRITICAL)
 
 	generic_holder = yb.doPackageLists('all', patterns=[pkg_name], showdups=True)
 	available_pkgs = rpmutils.unique(generic_holder.available + generic_holder.installed)

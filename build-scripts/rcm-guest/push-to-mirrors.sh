@@ -3,7 +3,6 @@
 # Push the latest puddle to the mirrors
 #
 
-set -e
 set -o xtrace
 
 ############
@@ -23,7 +22,6 @@ if [ "${MYUID}" == "55003" ] ; then
 else
   BOT_USER=""
 fi
-
 
 usage() {
   echo >&2
@@ -62,9 +60,7 @@ LASTDIR=$(readlink ${PUDDLEDIR})
 echo "Pushing puddle: $LASTDIR"
 
 # Copy all files from the last latest into a directory for the new puddle (jmp: in order to prevent as much transfer as possible by rysnc for things which weren't rebuilt?)
-set +e
 ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO} ; cp -r --link latest/ $LASTDIR"
-set -e
 
 # Copy the local puddle to the new, remote location.
 rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "ssh ${BOT_USER} -o StrictHostKeyChecking=no" ${PUDDLEDIR}/ use-mirror-upload.ops.rhcloud.com:/srv/enterprise/${REPO}/${LASTDIR}/

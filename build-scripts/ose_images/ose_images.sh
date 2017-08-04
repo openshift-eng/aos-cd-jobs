@@ -477,8 +477,8 @@ wait_for_all_builds() {
     echo "=== FULL FAILED LOGS ==="
     ls -1 ${workingdir}/logs/failed-logs/ | while read line
     do
-      echo ${line}
-      cat ${line}
+      echo "${workingdir}/logs/failed-logs/${line}"
+      cat "${workingdir}/logs/failed-logs/${line}"
       echo
     done
     

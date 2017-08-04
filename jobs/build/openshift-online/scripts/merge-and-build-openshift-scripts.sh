@@ -129,19 +129,25 @@ else
     # using a sleep below to allow brew to get into a consistent state.
     sleep 20
     
-    
     echo
     echo "=========="
     echo "Signing RPMs"
     echo "=========="
     "${WORKSPACE}/build-scripts/sign_rpms.sh" "libra-rhel-7" "openshifthosted"
     
-
+    pushd "${WORKSPACE}"
+    COMMIT_SHA="$(git rev-parse HEAD)"
+    popd
+    PUDDLE_CONF_BASE="https://raw.githubusercontent.com/openshift/aos-cd-jobs/${COMMIT_SHA}/build-scripts/puddle-conf"
+    PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift_online-${MAJOR_MINOR_VERSION}_signed.conf"
+    
     echo
     echo "=========="
     echo "Building Puddle"
     echo "=========="
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift_online-${MAJOR_MINOR_VERSION}_signed.conf -n -s --label=building"
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+        sh -s "${PUDDLE_CONF}" -b -d -n -s --label=building \
+        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
     echo
     echo "=========="
@@ -171,13 +177,17 @@ else
     echo "=========="
     echo "Create latest puddle"
     echo "=========="
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift_online-${MAJOR_MINOR_VERSION}_signed.conf"
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+        sh -s "${PUDDLE_CONF}" -b -d -n \
+        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
     echo
     echo "=========="
     echo "Build and Push repos"
     echo "=========="
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "/mnt/rcm-guest/puddles/RHAOS/scripts/push-openshift-online-to-mirrors.sh ${MAJOR_MINOR_VERSION} ${BUILD_MODE}"
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+      sh -s "${MAJOR_MINOR_VERSION}" "${BUILD_MODE}" \
+      < "${WORKSPACE}/build-scripts/rcm-guest/push-openshift-online-to-mirrors.sh"
 
 fi
 

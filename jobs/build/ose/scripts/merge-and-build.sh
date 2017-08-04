@@ -307,12 +307,20 @@ echo
 echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/openshift-ansible-brew.url"
 brew watch-task ${TASK_NUMBER}
 
+pushd "${WORKSPACE}"
+COMMIT_SHA="$(git rev-parse HEAD)"
+popd
+PUDDLE_CONF_BASE="https://raw.githubusercontent.com/openshift/aos-cd-jobs/${COMMIT_SHA}/build-scripts/puddle-conf"
+PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift-${OSE_VERSION}.conf"
 
 echo
 echo "=========="
 echo "Building Puddle"
 echo "=========="
-ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf -n -s --label=building"
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+    sh -s "${PUDDLE_CONF}" -b -d -n -s --label=building \
+    < "${WORKSPACE}/build-scripts/rcm-guest/call_call_puddle.sh"
+
 
 echo
 echo "=========="
@@ -335,7 +343,9 @@ ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhe
 if [ "$EARLY_LATEST_HACK" == "true" ]; then
     # Hack to keep from breaking openshift-ansible CI during daylight builds. They need the latest puddle to exist
     # before images are pushed to registry-ops in order for their current CI implementation to work.
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf"
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+        sh -s "${PUDDLE_CONF}" -b -d -n \
+        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 fi
 
 echo
@@ -355,7 +365,9 @@ echo "=========="
 echo "Create latest puddle"
 echo "=========="
 if [ "$EARLY_LATEST_HACK" != "true" ]; then
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com "puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${OSE_VERSION}.conf"
+    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+        sh -s "${PUDDLE_CONF}" -b -d -n \
+        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 fi
 
 # Record the name of the puddle which was created
@@ -367,13 +379,18 @@ echo
 echo "=========="
 echo "Sync latest puddle to mirrors"
 echo "=========="
+PUDDLE_REPO=""
 case "${BUILD_MODE}" in
-online:int ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION} online-int" ;;
-online:stg ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION} online-stg" ;;
-enterprise ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}" ;;
-enterprise:pre-release ) ssh ocp-build@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}" ;;
+online:int ) PUDDLE_REPO="online-int" ;;
+online:stg ) PUDDLE_REPO="online-stg" ;;
+enterprise ) PUDDLE_REPO="" ;;
+enterprise:pre-release ) PUDDLE_REPO="" ;;
 * ) echo "BUILD_MODE:${BUILD_MODE} did not match anything we know about, not pushing"
 esac
+
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+  sh -s "simple" "${OSE_VERSION}" "${PUDDLE_REPO}" \
+  < "${WORKSPACE}/build-scripts/rcm-guest/push-to-mirrors.sh"
 
 
 echo

@@ -268,66 +268,6 @@ chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 7200 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: CREATE DIRECTORY FOR DOCKER CONFIG ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CREATE DIRECTORY FOR DOCKER CONFIG [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${HOME}&#34;
-mkdir -p /tmp/.docker
-chmod a+rwx /tmp/.docker
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: COPY DOCKER CREDENTIALS TO INSTANCE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: COPY DOCKER CREDENTIALS TO INSTANCE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PUSH THE JENKINS IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PUSH THE JENKINS IMAGES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/jenkins&#34;
-sudo chmod a+rw /tmp/.docker/config.json
-export DOCKER_CONFIG=/tmp/.docker
-
-docker tag registry.access.redhat.com/openshift3/jenkins-1-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-1-rhel7
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-1-rhel7
-docker tag openshift/jenkins-1-centos7 docker.io/openshift/jenkins-1-centos7
-docker push docker.io/openshift/jenkins-1-centos7
-
-docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
-docker tag openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7
-docker push docker.io/openshift/jenkins-2-centos7
-
-docker tag registry.access.redhat.com/openshift3/jenkins-slave-base-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
-docker tag openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7
-docker push docker.io/openshift/jenkins-slave-base-centos7
-
-docker tag registry.access.redhat.com/openshift3/jenkins-slave-maven-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
-docker tag openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7
-docker push docker.io/openshift/jenkins-slave-maven-centos7
-
-docker tag registry.access.redhat.com/openshift3/jenkins-slave-nodejs-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
-docker tag openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7
-docker push docker.io/openshift/jenkins-slave-nodejs-centos7
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 7200 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
   </builders>
   <publishers>
     <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">

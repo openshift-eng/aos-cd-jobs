@@ -319,7 +319,7 @@ echo "Building Puddle"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
     sh -s "${PUDDLE_CONF}" -b -d -n -s --label=building \
-    < "${WORKSPACE}/build-scripts/rcm-guest/call_call_puddle.sh"
+    < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
 
 echo

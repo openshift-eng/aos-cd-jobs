@@ -29,11 +29,20 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
 )
 
 TEST = TEST.toBoolean()
+BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
 BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 
 node(TARGET_NODE) {
 
     checkout scm
+    AOS_CD_JOBS_COMMIT_SHA = sh(
+            returnStdout: true,
+            script: "git rev-parse HEAD",
+    ).trim()
+
+    PUDDLE_CONF_BASE="https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
+    PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}.conf"
+
     def commonlib = load( "pipeline-scripts/commonlib.groovy")
     commonlib.initialize()
 
@@ -46,7 +55,7 @@ node(TARGET_NODE) {
 
             stage( "ose repo" ) {
                 master_spec = buildlib.initialize_ose()
-                dir ( env.OSE_DIR ) {
+                dir( OSE_DIR ) {
                     // Enable fake merge driver used in our .gitattributes
                     sh "git config merge.ours.driver true"
                     // Use fake merge driver on specific packages
@@ -58,13 +67,17 @@ node(TARGET_NODE) {
             stage( "origin-web-console repo" ) {
                 sh "go get github.com/jteeuwen/go-bindata"
                 buildlib.initialize_origin_web_console()
-                dir ( env.WEB_CONSOLE_DIR ) {
+                dir( WEB_CONSOLE_DIR ) {
                     // Enable fake merge driver used in our .gitattributes
                     sh "git config merge.ours.driver true"
                     // Use fake merge driver on specific directories
                     // We will be re-generating the dist directory, so ignore it for the merge
                     sh "echo 'dist/** merge=ours' >> .gitattributes"
                 }
+            }
+
+            stage( "openshift-ansible repo" ) {
+                buildlib.initialize_openshift_ansible()
             }
 
             stage( "analyze" ) {
@@ -75,11 +88,18 @@ node(TARGET_NODE) {
                     IS_SOURCE_IN_MASTER = ( BUILD_VERSION == master_spec.major_minor )
 
                     if ( IS_SOURCE_IN_MASTER ) {
-                        OSE_SOURCE_BRANCH = "master"
-                        UPSTREAM_SOURCE_BRANCH = "upstream/master"
                         if ( BUILD_MODE == "release" ) {
                             error( "You cannot build a release while it resides in master; cut an enterprise branch" )
                         }
+                    } else {
+                        if ( BUILD_MODE != "release" && BUILD_MODE != "pre-release" ) {
+                            error( "Invlaid build mode for a releaes that does not reside in master: ${BUILD_MODE}" )
+                        }
+                    }
+
+                    if ( IS_SOURCE_IN_MASTER ) {
+                        OSE_SOURCE_BRANCH = "master"
+                        UPSTREAM_SOURCE_BRANCH = "upstream/master"
                     } else {
                         OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
                         if ( BUILD_MODE == "release" ) {
@@ -111,22 +131,23 @@ node(TARGET_NODE) {
                             rel_fields << 0    // Ensure there are enough fields in the array
                         }
 
-                        if ( rel_fields != 4 ) { // Did we start with > 4? That's too weird to continue
+                        if ( rel_fields.size() != 4 ) { // Did we start with > 4? That's too weird to continue
                             error( "Unexpected number of fields in release: ${spec.release}" )
                         }
 
                         if ( BUILD_MODE == "online:int" ) {
-                            rel_fields[1]++  // Bump the INT version
-                            rel_fields[2] = rel_fields[3] = 0  // If we are bumping the INT field, everything else is reset to zero
+                            rel_fields[1] = rel_fields[1].toInteger() + 1  // Bump the INT version
+                            rel_fields[2] = 0  // If we are bumping the INT field, everything else is reset to zero
+                            rel_fields[3] = 0
                         }
 
                         if ( BUILD_MODE == "online:stg" ) {
-                            rel_fields[2]++  // Bump the STG version
+                            rel_fields[2] = rel_fields[2].toInteger() + 1  // Bump the STG version
                             rel_fields[3] = 0  // If we are bumping the STG field, everything else is reset to zero
                         }
 
                     } else if ( BUILD_MODE == "release" || BUILD_MODE == "pre-release" ) {
-                        rel_fields =  [ rel_fields[0]+1 ]  // Only keep the first field, and increment it
+                        rel_fields =  [ rel_fields[0].toInteger() + 1 ]  // Only keep the first field, and increment it
                     } else {
                         error( "Unknown BUILD_MODE: ${BUILD_MODE}" )
                     }
@@ -150,7 +171,7 @@ node(TARGET_NODE) {
                         if ( IS_SOURCE_IN_MASTER ) {
                             sh """
                                 # Pull content of master into enterprise branch
-                                git merge master --no-commit --no-ff"
+                                git merge master --no-commit --no-ff
                                 # Use grunt to rebuild everything in the dist directory
                                 ./hack/install-deps.sh
                                 grunt build
@@ -201,7 +222,7 @@ node(TARGET_NODE) {
                 }
             }
 
-            stage( "tag" ) {
+            stage( "ose tag" ) {
                 dir( OSE_DIR ) {
                     sh "tito tag --accept-auto-changelog --use-version=${spec.version} --use-release=${NEW_RELEASE} --debug"
                     if ( ! TEST ) {
@@ -210,6 +231,79 @@ node(TARGET_NODE) {
                     }
                 }
             }
+
+            stage( "openshift-ansible prep" ) {
+                dir( OPENSHIFT_ANSIBLE_DIR ) {
+                    if ( BUILD_MODE == "online:stg" ) {
+                        sh "git checkout -b stage origin/stage"
+                    } else {
+                        if ( ! IS_SOURCE_IN_MASTER ) {
+                            // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
+                            if ( BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6 ) {
+                                sh "git checkout -b release-1.${BUILD_VERSION_MINOR} origin/stage"
+                            } else {
+                                sh "git checkout -b release-${BUILD_VERSION} origin/stage"
+                            }
+                        } else {
+                           sh "git checkout master"
+                        }
+                    }
+                }
+            }
+
+            stage( "openshift-ansible tag" ) {
+                dir(OPENSHIFT_ANSIBLE_DIR) {
+                    if ( BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6 ) {
+                        // Use legacy versioning if < 3.6
+                        sh "tito tag --accept-auto-changelog"
+                    } else {
+                        // If >= 3.6, keep openshift-ansible in sync with OCP version
+                        sh "tito tag --accept-auto-changelog --use-version=${spec.version} --use-release=${NEW_RELEASE} --debug"
+                    }
+
+                    if ( ! TEST ) {
+                        sh "git push"
+                        sh "git push --tags"
+                    }
+                }
+            }
+
+            if ( TEST ) {
+                error( "This is as far as the test process can proceed without triggering builds" )
+            }
+
+            stage( "rpm builds" ) {
+                dir( OSE_DIR ) {
+                    OSE_TASK_ID = sh(   returnStdout: true,
+                            script: "tito release --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                    )
+                    OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OSE_TASK_ID}"
+                    echo "ose rpm brew task: ${OSE_BREW_URL}"
+                }
+                dir( OPENSHIFT_ANSIBLE_DIR ) {
+                    OA_TASK_ID = sh(   returnStdout: true,
+                            script: "tito release --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                    )
+                    OA_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OA_TASK_ID}"
+                    echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
+                }
+                sh "brew watch-task ${OSE_TASK_ID}"
+                sh "brew watch-task ${OA_TASK_ID}"
+            }
+
+            stage( "puddle: ose 'building'" ) {
+                buildlib.invoke_on_rcm_guest(
+                        "call_puddle.sh",
+                        PUDDLE_CONF,    // The puddle configuration file to use
+                        "-b",   // do not fail if we are missing dependencies
+                        "-d",   // print debug information
+                        "-n",   // do not send an email for this puddle
+                        "-s",   // do not create a "latest" link since this puddle is for building images
+                        "--label=building"   // create a symlink named "building" for the puddle
+                )
+            }
+
+
 
         }
     } catch ( err ) {

@@ -1,0 +1,120 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  sync_repos:
+    - name: "release"
+  parameters:
+    - name: "DOCKER_STORAGE_DRIVER"
+      description: >
+        The storage driver to use when configuring the cluster. 'overlay2' and 'devicemapper' are allowed.
+      default_value: "overlay2"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      description: >
+        The image to install the cluster with. If set, defaults to the value defined by the
+        <a href='https://github.com/openshift/release/blob/master/cluster/bin/local.sh'><code>cluster/bin/local.sh</code></a>
+        script.
+  actions:
+    - type: "forward_parameters"
+      parameters:
+        - OPENSHIFT_ANSIBLE_IMAGE
+        - JOB_NAME
+        - BUILD_NUMBER
+        - DOCKER_STORAGE_DRIVER
+    - type: "script"
+      title: "build origin RPMs"
+      repository: "origin"
+      timeout: 2400
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1
+    - type: "host_script"
+      title: "move RPMs to GCS repo"
+      script: |-
+        pull_id="${ORIGIN_PULL_ID:-}"
+        target_branch="${ORIGIN_TARGET_BRANCH:-}"
+        if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
+          pull_id=${PULL_NUMBER}
+          target_branch="${PULL_REFS%%:*}"
+        fi
+        # pull_id will be 0 in case of a batch merge
+        if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
+          location_base="origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}"
+          location="${location_base}/artifacts/rpms"
+        else
+          location_root="origin-ci-test/branch-logs/origin/${target_branch}/builds"
+          location_base="${location_root}/${BUILD_NUMBER}"
+          location="${location_base}/artifacts/rpms"
+          base_location_url="https://storage.googleapis.com/${location_base}"
+        fi
+        location_url="https://storage.googleapis.com/${location}"
+        echo "${JOB_NAME}/${BUILD_NUMBER}" > .build
+        if gsutil ls "gs://${location_base}" &>/dev/null; then
+          gsutil rm -rf "gs://${location_base}"
+        fi
+        gsutil cp .build "gs://${location_base}/.build"
+
+        mkdir -p artifacts/rpms
+        rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
+        gsutil -m cp -r artifacts/rpms "gs://${location}"
+        # pull_id will be 0 in case of a batch merge
+        if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
+          # if we've built this PR before, remove older rpm artifact directories
+          out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -2 )"
+          if [[ -n "${out}" ]]; then
+            echo "${out}" | xargs -L 1 gsutil rm -rf
+          fi
+        else
+          # update the pointer to this location
+          echo "${base_location_url}" > .latest
+          gsutil cp .latest "gs://${location_root}/.latest"
+        fi
+
+        # hack around forwarding this to the other machine
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
+    - type: "host_script"
+      title: "move secrets to remote host"
+      script: |-
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/data/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/data/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/data/'
+    - type: "host_script"
+      title: "determine the instance prefix"
+      script: |-
+        # we need a short but unique identifier, so we take the first 7 of SHA
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
+        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX:-}" >> INSTANCE_PREFIX
+        # hack around forwarding this to the other machine
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'INSTANCE_PREFIX=${INSTANCE_PREFIX:-}' >> /etc/environment"
+    - type: "script"
+      title: "provision test cluster"
+      repository: "release"
+      timeout: 2800
+      script: |-
+        cd cluster/test-deploy/data/
+        if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE}" ]]; then
+          docker pull "${OPENSHIFT_ANSIBLE_IMAGE}"
+          docker tag "${OPENSHIFT_ANSIBLE_IMAGE}" "openshift/origin-gce:latest"
+        else
+          docker pull openshift/origin-gce:latest
+        fi
+
+        ../../bin/local.sh ansible-playbook -e "provision_gce_docker_storage_driver=${DOCKER_STORAGE_DRIVER}" -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
+        cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
+    - type: "script"
+      title: "hold for user action"
+      repository: "origin"
+      timeout: 7230
+      script: |-
+        date
+        echo "Waiting for two hours before tearing down cluster"
+        sleep 7200
+  post_actions:
+    - type: "script"
+      title: "deprovision test cluster"
+      repository: "release"
+      timeout: 900
+      script: |-
+        cd cluster/test-deploy/data
+        ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
+  artifacts:
+    - "/tmp/artifacts"

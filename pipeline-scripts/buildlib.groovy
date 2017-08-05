@@ -28,9 +28,7 @@ def initialize() {
 
     echo "Initializing ocp-build kerberos credentials"
     sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
-}
 
-def initialize_go_dir() {
     GOPATH = "${env.WORKSPACE}/go"
     env.GOPATH = GOPATH
     sh "rm -rf ${GOPATH}"  // Remove any cruft
@@ -39,8 +37,7 @@ def initialize_go_dir() {
 }
 
 def initialize_openshift_dir() {
-    this.initialize_go_dir()
-    OPENSHIFT_DIR = "${GOPATH}/src/github.com/openshift/"
+    OPENSHIFT_DIR = "${GOPATH}/src/github.com/openshift"
     env.OPENSHIFT_DIR = OPENSHIFT_DIR
     sh "mkdir -p ${OPENSHIFT_DIR}"
     echo "Initialized env.OPENSHIFT_DIR: ${env.OPENSHIFT_DIR}"
@@ -65,6 +62,17 @@ def initialize_origin_web_console_dir() {
     env.WEB_CONSOLE_DIR = WEB_CONSOLE_DIR
     echo "Initialized env.WEB_CONSOLE_DIR: ${env.WEB_CONSOLE_DIR}"
 }
+
+def initialize_openshift_ansible() {
+    this.initialize_openshift_dir()
+    dir( OPENSHIFT_DIR ) {
+        sh "git clone ${GITHUB_BASE}/openshift-ansible.git"
+    }
+    OPENSHIFT_ANSIBLE_DIR = "${OPENSHIFT_DIR}/openshift-ansible"
+    env.OPENSHIFT_ANSIBLE_DIR = OPENSHIFT_ANSIBLE_DIR
+    echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
+}
+
 
 // Matcher is not serializable; use NonCPS
 @NonCPS
@@ -182,6 +190,36 @@ def initialize_ose() {
 
 def initialize_origin_web_console() {
     this.initialize_origin_web_console_dir()
+}
+
+/**
+ * Flattens a list of arguments into a string appropriate
+ * for a bash script's arguments. Each argument will be
+ * wrapped in '', so do not attempt to pass bash variables.
+ * @param args The list of arguments to transform
+ * @return A string containing the arguments
+ */
+@NonCPS
+def args_to_string(Object... args) {
+    def s = ""
+    for ( def a : args ) {
+        s += "'${a}' "
+    }
+    return s
+}
+
+/**
+ * We need to execute some scripts directly from the rcm-guest host. To perform
+ * those operations, we stream the script into stdin of an SSH bash invocation.
+ * @param git_script_filename  The file in build-scripts/rcm-guest to execute
+ * @param args A list of arguments to pass to script
+ * @return Returns the stdout of the operation
+ */
+def invoke_on_rcm_guest(git_script_filename, Object... args ) {
+    return sh(
+            returnStdout: true,
+            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
+    ).trim()
 }
 
 return this

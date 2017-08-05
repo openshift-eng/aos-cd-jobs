@@ -28,9 +28,10 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
         ]
 )
 
-TEST = TEST.toBoolean()
+IS_TEST_MODE = TEST.toBoolean()
 BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
 BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
+
 
 node(TARGET_NODE) {
 
@@ -180,7 +181,7 @@ node(TARGET_NODE) {
                                 git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
                             """
 
-                            if ( ! TEST ) {
+                            if ( ! IS_TEST_MODE ) {
                                 sh "git push"
                             }
 
@@ -225,7 +226,7 @@ node(TARGET_NODE) {
             stage( "ose tag" ) {
                 dir( OSE_DIR ) {
                     sh "tito tag --accept-auto-changelog --use-version=${spec.version} --use-release=${NEW_RELEASE} --debug"
-                    if ( ! TEST ) {
+                    if ( ! IS_TEST_MODE ) {
                         sh "git push"
                         sh "git push --tags"
                     }
@@ -261,14 +262,14 @@ node(TARGET_NODE) {
                         sh "tito tag --accept-auto-changelog --use-version=${spec.version} --use-release=${NEW_RELEASE} --debug"
                     }
 
-                    if ( ! TEST ) {
+                    if ( ! IS_TEST_MODE ) {
                         sh "git push"
                         sh "git push --tags"
                     }
                 }
             }
 
-            if ( TEST ) {
+            if ( IS_TEST_MODE ) {
                 error( "This is as far as the test process can proceed without triggering builds" )
             }
 

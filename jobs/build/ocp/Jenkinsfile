@@ -28,9 +28,10 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
         ]
 )
 
-TEST = TEST.toBoolean()
+IS_TEST_MODE = TEST.toBoolean()
 BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
 BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
+
 
 node(TARGET_NODE) {
 
@@ -115,45 +116,47 @@ node(TARGET_NODE) {
                     echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
 
                     spec = buildlib.read_spec_info("origin.spec")
-                    rel_fields = spec.release.tokenize('.')
+                    rel_fields = spec.release.split(/[.+]/) // split on either . or +
 
                     if ( BUILD_MODE == "online:int" || BUILD_MODE == "online:stg") {
                         /**
                          * In non-release candidates, we need the following fields
-                         *      REL.INT.STG.BUMP
+                         *      REL.INT.STG
                          * REL = 0    means pre-release,  1 means release
                          * INT = fields used to differentiate online:int builds
                          * STG = fields used to differentiate online:stg builds
-                         * BUMP = fields used to differentiate multiple builds of an image in brew (bumped during image builds)
                          */
 
-                        while ( rel_fields.size() < 4 ) {
+                        while ( rel_fields.size() < 3 ) {
                             rel_fields << 0    // Ensure there are enough fields in the array
                         }
 
-                        if ( rel_fields.size() != 4 ) { // Did we start with > 4? That's too weird to continue
+                        if ( rel_fields[0].toInteger() != 0 ) {
+                            // It's technically possible to do this, but why?
+                            error( "Do not build released products in ${BUILD_MODE}; just build in release or pre-release mode" )
+                        }
+
+                        if ( rel_fields.size() != 3 ) { // Did we start with > 3? That's too weird to continue
                             error( "Unexpected number of fields in release: ${spec.release}" )
                         }
 
                         if ( BUILD_MODE == "online:int" ) {
                             rel_fields[1] = rel_fields[1].toInteger() + 1  // Bump the INT version
-                            rel_fields[2] = 0  // If we are bumping the INT field, everything else is reset to zero
-                            rel_fields[3] = 0
+                            rel_fields[2] = 0  // If we are bumping the INT field, everything following is reset to zero
                         }
 
                         if ( BUILD_MODE == "online:stg" ) {
                             rel_fields[2] = rel_fields[2].toInteger() + 1  // Bump the STG version
-                            rel_fields[3] = 0  // If we are bumping the STG field, everything else is reset to zero
                         }
 
+                        NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
+
                     } else if ( BUILD_MODE == "release" || BUILD_MODE == "pre-release" ) {
-                        rel_fields =  [ rel_fields[0].toInteger() + 1 ]  // Only keep the first field, and increment it
+                        NEW_RELEASE = "${rel_fields[0].toInteger() + 1}"  // Only keep the first field, and increment it
                     } else {
                         error( "Unknown BUILD_MODE: ${BUILD_MODE}" )
                     }
 
-                    // put the fields back together to create the new release name
-                    env.NEW_RELEASE = NEW_RELEASE = rel_fields.join('.')
                     currentBuild.displayName = "#${currentBuild.number} - ${spec.version}-${NEW_RELEASE} (${BUILD_MODE})"
 
                 }
@@ -180,7 +183,7 @@ node(TARGET_NODE) {
                                 git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
                             """
 
-                            if ( ! TEST ) {
+                            if ( ! IS_TEST_MODE ) {
                                 sh "git push"
                             }
 
@@ -224,8 +227,10 @@ node(TARGET_NODE) {
 
             stage( "ose tag" ) {
                 dir( OSE_DIR ) {
-                    sh "tito tag --accept-auto-changelog --use-version=${spec.version} --use-release=${NEW_RELEASE} --debug"
-                    if ( ! TEST ) {
+                    // Set the new release value in the file and tell tito to keep the version & release in the spec.
+                    buildlib.set_rpm_spec_release_prefix( "origin.spec", NEW_RELEASE )
+                    sh "tito tag --accept-auto-changelog --keep-version --debug"
+                    if ( ! IS_TEST_MODE ) {
                         sh "git push"
                         sh "git push --tags"
                     }
@@ -258,17 +263,19 @@ node(TARGET_NODE) {
                         sh "tito tag --accept-auto-changelog"
                     } else {
                         // If >= 3.6, keep openshift-ansible in sync with OCP version
-                        sh "tito tag --accept-auto-changelog --use-version=${spec.version} --use-release=${NEW_RELEASE} --debug"
+                        buildlib.set_rpm_spec_version( "openshift-ansible.spec", spec.version )
+                        buildlib.set_rpm_spec_release_prefix( "openshift-ansible.spec", NEW_RELEASE )
+                        sh "tito tag --accept-auto-changelog --keep-version --debug"
                     }
 
-                    if ( ! TEST ) {
+                    if ( ! IS_TEST_MODE ) {
                         sh "git push"
                         sh "git push --tags"
                     }
                 }
             }
 
-            if ( TEST ) {
+            if ( IS_TEST_MODE ) {
                 error( "This is as far as the test process can proceed without triggering builds" )
             }
 

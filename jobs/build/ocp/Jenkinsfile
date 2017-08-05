@@ -8,42 +8,208 @@ properties(
           parameterDefinitions:
                   [
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'git@github.com:jupierce', description: 'Github base for repos', name: 'GITHUB_BASE'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.7', description: 'OCP Version to build', name: 'BUILD_VERSION'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable intra-day build hack for CL team CI?', name: 'EARLY_LATEST_HACK'],
-                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "enterprise\nenterprise:pre-release\nonline:int\nonline:stg", description:
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "release\npre-release\nonline:int\nonline:stg", description:
 '''
-enterprise                {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
-enterprise:pre-release    {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
+release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
+pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
-                          [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
+                          [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+                          [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
                   ]
             ],
             disableConcurrentBuilds()
         ]
 )
 
-// Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], BUILD_MODE:${BUILD_MODE}, EARLY_LATEST_HACK:${EARLY_LATEST_HACK}"
+TEST = TEST.toBoolean()
+BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 
 node(TARGET_NODE) {
 
-    def commonlib = load( "pipeline-scripts/common.groovy")
+    checkout scm
+    def commonlib = load( "pipeline-scripts/commonlib.groovy")
     commonlib.initialize()
 
     try {
         sshagent(['openshift-bot']) { // buildlib operations and merge-and-build must run with the permissions of openshift-bot to succeed
 
-            def buildlib = load( "pipeline-scripts/build.groovy")
+            def buildlib = load( "pipeline-scripts/buildlib.groovy")
             buildlib.initialize()
-            currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
-            checkout scm
+            currentBuild.displayName = "#${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
-            echo "${buildlib.get_ose_master_version()}-${buildlib.get_ose_master_release_prefix()}"
+            stage( "ose repo" ) {
+                master_spec = buildlib.initialize_ose()
+                dir ( env.OSE_DIR ) {
+                    // Enable fake merge driver used in our .gitattributes
+                    sh "git config merge.ours.driver true"
+                    // Use fake merge driver on specific packages
+                    sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
+                    sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
+                }
+            }
+
+            stage( "origin-web-console repo" ) {
+                sh "go get github.com/jteeuwen/go-bindata"
+                buildlib.initialize_origin_web_console()
+                dir ( env.WEB_CONSOLE_DIR ) {
+                    // Enable fake merge driver used in our .gitattributes
+                    sh "git config merge.ours.driver true"
+                    // Use fake merge driver on specific directories
+                    // We will be re-generating the dist directory, so ignore it for the merge
+                    sh "echo 'dist/** merge=ours' >> .gitattributes"
+                }
+            }
+
+            stage( "analyze" ) {
+
+                dir ( env.OSE_DIR ) {
+
+                    // If the target version resides in ose#master
+                    IS_SOURCE_IN_MASTER = ( BUILD_VERSION == master_spec.major_minor )
+
+                    if ( IS_SOURCE_IN_MASTER ) {
+                        OSE_SOURCE_BRANCH = "master"
+                        UPSTREAM_SOURCE_BRANCH = "upstream/master"
+                        if ( BUILD_MODE == "release" ) {
+                            error( "You cannot build a release while it resides in master; cut an enterprise branch" )
+                        }
+                    } else {
+                        OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
+                        if ( BUILD_MODE == "release" ) {
+                            // When building in release mode, no longer pull from upstream
+                            UPSTREAM_SOURCE_BRANCH = null
+                        } else {
+                            UPSTREAM_SOURCE_BRANCH = "upstream/release-${BUILD_VERSION}"
+                        }
+                        // Create the non-master source branch and have it track the origin ose repo
+                        sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
+                    }
+
+                    echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
+
+                    spec = buildlib.read_spec_info("origin.spec")
+                    rel_fields = spec.release.tokenize('.')
+
+                    if ( BUILD_MODE == "online:int" || BUILD_MODE == "online:stg") {
+                        /**
+                         * In non-release candidates, we need the following fields
+                         *      REL.INT.STG.BUMP
+                         * REL = 0    means pre-release,  1 means release
+                         * INT = fields used to differentiate online:int builds
+                         * STG = fields used to differentiate online:stg builds
+                         * BUMP = fields used to differentiate multiple builds of an image in brew (bumped during image builds)
+                         */
+
+                        while ( rel_fields.size() < 4 ) {
+                            rel_fields << 0    // Ensure there are enough fields in the array
+                        }
+
+                        if ( rel_fields != 4 ) { // Did we start with > 4? That's too weird to continue
+                            error( "Unexpected number of fields in release: ${spec.release}" )
+                        }
+
+                        if ( BUILD_MODE == "online:int" ) {
+                            rel_fields[1]++  // Bump the INT version
+                            rel_fields[2] = rel_fields[3] = 0  // If we are bumping the INT field, everything else is reset to zero
+                        }
+
+                        if ( BUILD_MODE == "online:stg" ) {
+                            rel_fields[2]++  // Bump the STG version
+                            rel_fields[3] = 0  // If we are bumping the STG field, everything else is reset to zero
+                        }
+
+                    } else if ( BUILD_MODE == "release" || BUILD_MODE == "pre-release" ) {
+                        rel_fields =  [ rel_fields[0]+1 ]  // Only keep the first field, and increment it
+                    } else {
+                        error( "Unknown BUILD_MODE: ${BUILD_MODE}" )
+                    }
+
+                    // put the fields back together to create the new release name
+                    env.NEW_RELEASE = NEW_RELEASE = rel_fields.join('.')
+                    currentBuild.displayName = "#${currentBuild.number} - ${spec.version}-${NEW_RELEASE} (${BUILD_MODE})"
+
+                }
+            }
+
+            stage( "prep web-console" ) {
+                dir( WEB_CONSOLE_DIR ) {
+                    // Unless building for stage, origin-web-console#entperise-X.Y should be used
+                    if ( BUILD_MODE == "online:stg" ) {
+                        WEB_CONSOLE_BRANCH = "stage"
+                        sh "git checkout -b stage origin/stage"
+                    } else {
+                        WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
+                        sh "git checkout -b ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
+                        if ( IS_SOURCE_IN_MASTER ) {
+                            sh """
+                                # Pull content of master into enterprise branch
+                                git merge master --no-commit --no-ff"
+                                # Use grunt to rebuild everything in the dist directory
+                                ./hack/install-deps.sh
+                                grunt build
+
+                                git add dist
+                                git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
+                            """
+
+                            if ( ! TEST ) {
+                                sh "git push"
+                            }
+
+                            // Clean up any unstaged changes (e.g. .gitattributes)
+                            sh "git reset --hard HEAD"
+                        }
+                    }
+                }
+            }
+
+            stage( "merge origin" ) {
+                dir( OSE_DIR ) {
+                    if ( UPSTREAM_SOURCE_BRANCH != null ) {
+                        // Merge upstream origin code into the ose branch
+                        sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
+                    } else {
+                        echo "No origin upstream in this build"
+                    }
+                }
+            }
+
+            stage( "merge web-console" ) {
+                dir( OSE_DIR ) {
+
+                    // Vendor a particular branch of the web console into our ose branch and capture the SHA we vendored in
+                    // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
+                    // we already setup?
+                    // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
+                    VC_COMMIT = sh(
+                            returnStdout: true,
+                            script: "GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
+                    ).trim()
+
+                    // Vendoring the console will rebuild this assets, so add them to the ose commit
+                    sh """
+                        git add pkg/assets/bindata.go
+                        git add pkg/assets/java/bindata.go
+                    """
+                }
+            }
+
+            stage( "tag" ) {
+                dir( OSE_DIR ) {
+                    sh "tito tag --accept-auto-changelog --use-version=${spec.version} --use-release=${NEW_RELEASE} --debug"
+                    if ( ! TEST ) {
+                        sh "git push"
+                        sh "git push --tags"
+                    }
+                }
+            }
 
         }
     } catch ( err ) {

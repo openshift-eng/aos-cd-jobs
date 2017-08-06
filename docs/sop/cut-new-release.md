@@ -14,6 +14,8 @@ These instructoins assume we are moving from release X.A to X.B and that origin#
 
 - Add a X.B .tito/releasers.conf to ose#master and openshift-ansible#master
 
+- Create a new puddle configuration files for X.B (e.g. atomic_openshift-X.B.conf)
+
 TODO: describe RCM process. Product listings?
 
 TODO: process to populate new dist-git branches with content from old?

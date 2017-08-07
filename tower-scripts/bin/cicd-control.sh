@@ -23,7 +23,7 @@ function on_exit() {
             echo "Unable to terminate background tasks"
         fi
     fi
-    kill -- -$$
+    kill -- -$$ || true
 }
 
 trap on_exit EXIT

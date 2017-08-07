@@ -2,6 +2,8 @@
 parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   timer: 'H H * * *'
+  sync_repos:
+  - name: "origin"
   email:
     - mkhan@redhat.com
     - jliggitt@redhat.com

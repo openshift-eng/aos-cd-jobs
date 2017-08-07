@@ -1,10 +1,16 @@
+- Enable RPM repos:
+  - Most packages will need this: https://gitlab.cee.redhat.com/platform-eng-core-services/internal-repos/raw/master/rhel/rhel-7.repo
+  - For puddle, rhpkg, rhtools, rh-signing-tools: http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo
+  - For tito and npm, install EPEL: 
+    - wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
+    - rpm -ivh epel-release-7-10.noarch.rpm
 - yum install
   - go
   - docker
   - git
   - puddle
-  - rhpkg  
-  - brew
+  - rhpkg
+  - brew (yum install koji)
   - tito
   - rhtools  (required for sign_unsigned.py)
   - rh-signing-tools  (required for sign_unsigned.py)
@@ -22,13 +28,19 @@
   - The system must be plugged into a lab Ethernet port. Port 16W306A was joined to the engineering network for this purpose.
 - Setup "jenkins" user
   - Create user
+    - If user home must be in anywhere non-default (such as on an NFS share) advanced steps will be required:
+      - \# Assuming a mount at /mnt/nfs
+      - mkdir /mnt/nfs/home
+      - semanage fcontext -a -e /home /mnt/nfs/home/jenkins # Tell SELinux this path is allowed
+      - restorecon /mnt/nfs/home
+      - useradd -m -d /mnt/nfs/home/jenkins jenkins
   - Ensure user has at least 100GB in home directory (Jenkins server will run as jenkins user and workspace will reside here).
   - Add `jenkins    ALL=(ALL)    NOPASSWD: ALL` to the bottom of /etc/sudoers (https://serverfault.com/questions/160581/how-to-setup-passwordless-sudo-on-linux)
   - Create "docker" group and add "jenkins" user to enable docker daemon operations without sudo.
 - Configure git
-  - `git config user.name "Jenkins CD Merge Bot"`
-  - `git config user.email smunilla@redhat.com`  (or current build point-of-contact)
-  - `git config push.default simple`
+  - `git config --global user.name "Jenkins CD Merge Bot"`
+  - `git config --global user.email smunilla@redhat.com`  (or current build point-of-contact)
+  - `git config --global push.default simple`
 - Configure docker 
   - You should use a production configuration of devicemapper/thinpool for docker with at least 150GB of storage in the VG
   - Edit /etc/sysconfig/docker and set the following: `INSECURE_REGISTRY='--insecure-registry brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888 --insecure-registry rcm-img-docker01.build.eng.bos.redhat.com:5001 --insecure-registry registry.access.stage.redhat.com'`
@@ -37,8 +49,8 @@
 - In a temporary directory
   - git clone https://github.com/openshift/origin-web-console.git
   - cd origin-web-console
-  - ./hack/install_deps.sh  (necessary for pre-processing origin-web-console files)
-  - npm install -g grunt-cli bower
+  - ./hack/install-deps.sh  (necessary for pre-processing origin-web-console files)
+  - sudo npm install -g grunt-cli bower
 - Establish known hosts (and accept fingerprints):
   - ssh to github.com
   - ssh to rcm-guest.app.eng.bos.redhat.com
@@ -49,6 +61,7 @@
 - Setup host as a Jenkins agent 
   - Copy /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar off old buildvm and into place on new buildvm.
   - Populate /etc/systemd/system/swarm.service (ensure that -name parameter is unique and -labels are the desired ones):
+
 ```
 [Unit]
 After=network-online.target
@@ -63,12 +76,13 @@ Group=jenkins
 [Install]
 WantedBy=multi-user.target
 ```
- - Reload systemctl daemon (`sudo systemctl daemon-reload`)
-  - Set swarm to autostart (`sudo systemctl enable swarm`)
 
+- Reload systemctl daemon (`sudo systemctl daemon-reload`)
+  - Set swarm to autostart (`sudo systemctl enable swarm`)
 - Create the following repos on buildvm
+
 ```
-[root@buildvm-devops-new ~]# cat /etc/yum.repos.d/dockertested.repo 
+# /etc/yum.repos.d/dockertested.repo 
 [dockertested]
 name=Latest tested version of Docker
 baseurl=https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/
@@ -82,7 +96,7 @@ sslclientkey=/var/lib/yum/client-key.pem
 
 
 
-[root@buildvm-devops-new ~]# cat /etc/yum.repos.d/rhel7next.repo 
+# /etc/yum.repos.d/rhel7next.repo 
 [rhel7next]
 name=Prerelease version of Enterprise Linux 7.x
 baseurl=https://mirror.openshift.com/enterprise/rhel/rhel7next/os/

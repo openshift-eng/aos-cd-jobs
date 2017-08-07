@@ -132,10 +132,6 @@ node(TARGET_NODE) {
                             rel_fields << "0"    // Ensure there are enough fields in the array
                         }
 
-                        if ( rel_fields != 3 ) { // why would there have been more than 3 to begin with? Time for a human.
-                            error( "Unexpected number of fields in release; exiting" )
-                        }
-
                         if ( rel_fields[0].toInteger() != 0 ) {
                             // It's technically possible to do this, but why?
                             error( "Do not build released products in ${BUILD_MODE}; just build in release or pre-release mode" )
@@ -234,6 +230,7 @@ node(TARGET_NODE) {
                 dir( OSE_DIR ) {
                     // Set the new release value in the file and tell tito to keep the version & release in the spec.
                     buildlib.set_rpm_spec_release_prefix( "origin.spec", NEW_RELEASE )
+                    // Note that I did not use --use-release because it did not maintain variables like %{?dist}
                     sh "tito tag --accept-auto-changelog --keep-version --debug"
                     if ( ! IS_TEST_MODE ) {
                         sh "git push"
@@ -265,12 +262,13 @@ node(TARGET_NODE) {
                 dir(OPENSHIFT_ANSIBLE_DIR) {
                     if ( BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6 ) {
                         // Use legacy versioning if < 3.6
-                        sh "tito tag --accept-auto-changelog"
+                        sh "tito tag --debug --accept-auto-changelog"
                     } else {
                         // If >= 3.6, keep openshift-ansible in sync with OCP version
                         buildlib.set_rpm_spec_version( "openshift-ansible.spec", spec.version )
                         buildlib.set_rpm_spec_release_prefix( "openshift-ansible.spec", NEW_RELEASE )
-                        sh "tito tag --accept-auto-changelog --keep-version --debug"
+                        // Note that I did not use --use-release because it did not maintain variables like %{?dist}
+                        sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
                     }
 
                     if ( ! IS_TEST_MODE ) {
@@ -285,27 +283,41 @@ node(TARGET_NODE) {
             }
 
             stage( "rpm builds" ) {
+
+                // Allow both brew builds to run at the same time
+
                 dir( OSE_DIR ) {
                     OSE_TASK_ID = sh(   returnStdout: true,
-                            script: "tito release --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                            script: "tito release --debug --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
                     OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OSE_TASK_ID}"
                     echo "ose rpm brew task: ${OSE_BREW_URL}"
                 }
                 dir( OPENSHIFT_ANSIBLE_DIR ) {
                     OA_TASK_ID = sh(   returnStdout: true,
-                            script: "tito release --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                            script: "tito release --debug --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
                     OA_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OA_TASK_ID}"
                     echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
                 }
-                sh "brew watch-task ${OSE_TASK_ID}"
-                sh "brew watch-task ${OA_TASK_ID}"
+
+                // Watch the tasks to make sure they succeed. If one fails, make sure the user knows which one by providing the correct brew URL
+                try {
+                    sh "brew watch-task ${OSE_TASK_ID}"
+                } catch ( ose_err ) {
+                    echo "Error in ose build task: ${OSE_BREW_URL}"
+                    throw ose_err
+                }
+                try {
+                    sh "brew watch-task ${OA_TASK_ID}"
+                } catch ( oa_err ) {
+                    echo "Error in openshift-ansible build task: ${OA_BREW_URL}"
+                    throw oa_err
+                }
             }
 
             stage( "puddle: ose 'building'" ) {
-                buildlib.invoke_on_rcm_guest(
-                        "call_puddle.sh",
+                buildlib.build_puddle(
                         PUDDLE_CONF,    // The puddle configuration file to use
                         "-b",   // do not fail if we are missing dependencies
                         "-d",   // print debug information
@@ -315,10 +327,66 @@ node(TARGET_NODE) {
                 )
             }
 
+            stage( "compare dist-git" ) {
+                sh "ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
+            }
 
+            stage( "update dist-git" ) {
+                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_RELEASE}-0' --version "v${VERSION}""
+            }
+
+            stage( "build images" ) {
+                // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
+                sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo"
+            }
+
+            if ( EARLY_LATEST_HACK.asBoolean() ) {
+                // Hack to keep from breaking openshift-ansible CI during US Eastern daylight builds. They need the latest puddle to exist
+                // before images are pushed to registry-ops in order for their current CI implementation to work.
+                OCP_PUDDLE = buildlib.build_puddle(
+                        PUDDLE_CONF,
+                        "-b", // do not fail if we are missing dependencies
+                        "-d", // prin debug information
+                        "-n" // do not send an email for the puddle
+                )
+            }
+
+            stage( "push images" ) {
+                dir( "${WORKSPACE}/build-scripts/ose_images" ) {
+                    TAG_LATEST = IS_SOURCE_IN_MASTER?"":"--nolatest"
+                    sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
+                    sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --push_reg registry.reg-aws.openshift.com:443/online"
+                }
+            }
+
+            if ( ! EARLY_LATEST_HACK.asBoolean() ) {
+                // If we have not done so already, create the "latest" puddle
+                OCP_PUDDLE = buildlib.build_puddle(
+                        PUDDLE_CONF,
+                        "-b", // do not fail if we are missing dependencies
+                        "-d", // prin debug information
+                        "-n" // do not send an email for the puddle
+                )
+            }
+
+            echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
+
+            // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
+            buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", BUILD_VERSION, BUILD_MODE )
+
+            buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, VERSION )
+
+            // TODO: capture changelog for inclusion in the success email
+
+            echo "Finished building OCP ${VERSION}-${NEW_RELEASE}"
+
+            // TODO: re-enable success email
+            // TODO: Add "special notes" to success email (e.g. 'such and such image was disabled for this build"
+            // TODO: Enable silent building
 
         }
     } catch ( err ) {
+        // TODO: re-enable failure email
         /*
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",

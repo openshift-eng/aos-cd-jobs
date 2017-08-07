@@ -575,8 +575,16 @@ update_dockerfile() {
       sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}
     fi
     if [ "${bump_release}" == "TRUE" ] ; then
+      # Example release line: release="2"
       old_release_version=$(grep release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
-      let new_release_version=$old_release_version+1
+      if [[ "${old_release_version}" == *"-"* ]]; then  # Does release have a dash?
+        # If the release=X.Y-Z, bump the Z
+        nr_start=$(echo ${old_release_version} | cut -d "-" -f 1)
+        nr_end=$(echo ${old_release_version} | cut -d "-" -f 2)
+        new_release="${nr_start}-$(($nr_end+1))"
+      else
+          let new_release_version=$old_release_version+1
+      fi
       sed -i -e "s/release=\".*\"/release=\"${new_release_version}\"/" ${line}
       if [ "${VERBOSE}" == "TRUE" ] ; then
         echo "old_release_version: ${old_release_version} new_release_version: ${new_release_version} file: ${line}"

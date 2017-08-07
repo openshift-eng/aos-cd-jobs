@@ -565,6 +565,7 @@ start_build_image() {
 
 update_dockerfile() {
   pushd "${workingdir}/${container}" >/dev/null
+
   find . -name ".osbs*" -prune -o -name "Dockerfile*" -type f -print | while read line
   do
     if [ "${update_version}" == "TRUE" ] ; then
@@ -578,10 +579,17 @@ update_dockerfile() {
       # Example release line: release="2"
       old_release_version=$(grep release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
       if [[ "${old_release_version}" == *"-"* ]]; then  # Does release have a dash?
+        # The new build pipline initializes the Dockerfile to have release=REL#.INT#.STG#-0
         # If the release=X.Y-Z, bump the Z
         nr_start=$(echo ${old_release_version} | cut -d "-" -f 1)
         nr_end=$(echo ${old_release_version} | cut -d "-" -f 2)
         new_release="${nr_start}-$(($nr_end+1))"
+
+        # For any build using this method, we want a tag without the dash. This is
+        # what OCP will actually pull when it needs to pull an image associated with
+        # its current version.
+        echo "${nr_start}" > additional-tags
+        git add additional-tags
       else
           let new_release_version=$old_release_version+1
       fi

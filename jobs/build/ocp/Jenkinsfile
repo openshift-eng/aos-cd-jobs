@@ -21,8 +21,9 @@ pre-release               {origin,origin-web-console,openshift-ansible}/release-
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
-                          [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
-                          [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
+                          [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],
                   ]
             ],
             disableConcurrentBuilds()
@@ -235,6 +236,7 @@ node(TARGET_NODE) {
                         sh "git push"
                         sh "git push --tags"
                     }
+                    OSE_CHANGELOG = buildlib.read_changelog( "openshift-ansible.spec" )
                 }
             }
 
@@ -274,6 +276,7 @@ node(TARGET_NODE) {
                         sh "git push"
                         sh "git push --tags"
                     }
+                    OA_CHANGELOG = buildlib.read_changelog( "openshift-ansible.spec" )
                 }
             }
 
@@ -375,12 +378,9 @@ node(TARGET_NODE) {
 
             buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, VERSION )
 
-            // TODO: capture changelog for inclusion in the success email
-
             echo "Finished building OCP ${VERSION}-${NEW_RELEASE}"
 
             // TODO: re-enable success email
-            // TODO: Add "special notes" to success email (e.g. 'such and such image was disabled for this build"
             // TODO: Enable silent building
 
         }

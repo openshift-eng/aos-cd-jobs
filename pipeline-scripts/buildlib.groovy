@@ -73,6 +73,34 @@ def initialize_openshift_ansible() {
     echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
 }
 
+/**
+ * Returns up to 100 lines of passed in spec content
+ * @param spec_filename The spec filename to read
+ * @return A string containing up to 100 lines of the spec's %changelog
+ */
+def read_changelog( spec_filename ) {
+    def spec_content = readFile( spec_filename )
+    def pos = spec_content.indexOf( "%changelog" )
+    if ( pos > -1 ) {
+        spec_content = spec_content.substring( pos + 10 ).trim()
+    }
+    lines = spec_content.split("\\r?\\n");
+
+    def result = ""
+    int i = 0
+    for ( i = 0; i < 100 && i < lines.length; i++ ) {
+        if ( lines[i].startsWith("%") ) { // changelog section has finished?
+            break
+        }
+        result += "${lines[i]}\n"
+    }
+
+    if ( i == 100 ) {
+        result += "....Truncated....\n"
+    }
+
+    return result
+}
 
 // Matcher is not serializable; use NonCPS
 @NonCPS
@@ -218,7 +246,7 @@ def args_to_string(Object... args) {
 def invoke_on_rcm_guest(git_script_filename, Object... args ) {
     return sh(
             returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
+            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
     ).trim()
 }
 
@@ -230,17 +258,20 @@ def invoke_on_rcm_guest(git_script_filename, Object... args ) {
 // Matcher is not serializable; use NonCPS. Do not call CPS function (e.g. readFile from NonCPS methods; they just won't work)
 @NonCPS
 def extract_puddle_name(puddle_output ) {
-    // Try to match a line like: /creating /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/3.6/2017-08-03.2
-    def matcher = puddle_output =~ /creating \/mnt\/rcm-guest\/puddles\/([\/a-zA-Z.0-9-]+)/
+    // Try to match a line like:
+    // mash done in /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/3.5/2017-08-07.1/mash/rhaos-3.5-rhel-7-candidate
+    def matcher = puddle_output =~ /mash done in \/mnt\/rcm-guest\/puddles\/([\/a-zA-Z.0-9-]+)/
     split = matcher[0][1].tokenize("/")
-    return split[ split.size() -1 ]
+    return split[ split.size() - 3 ]  // look three back and we should find puddle name
 }
 
 def build_puddle(conf_url, Object...args) {
+    echo "Building puddle: ${conf_url} with arguments: ${args}"
+
     // Ideally, we would call invoke_on_rcm_guest, but jenkins makes it absurd to invoke with conf_url as one of the arguments because the spread operator is not enabled.
     def puddle_output = sh(
             returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com -s ${conf_url} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
+            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${conf_url} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
     ).trim()
 
     echo "Puddle output:\n${puddle_output}"

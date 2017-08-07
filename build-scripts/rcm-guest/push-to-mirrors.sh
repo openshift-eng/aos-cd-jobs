@@ -8,16 +8,25 @@ set -o xtrace
 ############
 # VARIABLES
 ############
-TYPE="${1}"
-VERSION="${2}"
+PUDDLE_TYPE="${1}"
+MAJOR_MINOR="${2}"
+BUILD_MODE="${3}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
-if [ "$#" -ge 3 ] ; then
-  REPO="${3}"
+
+if [ "$BUILD_MODE" == "release" -o "$BUILD_MODE" == "pre-release" -o "BUILD_MODE" == "" ]; then
+    REPO="enterprise-${MAJOR_MINOR}"
+elif [ "$BUILD_MODE" == "online:int" -o "$BUILD_MODE" == "online-int" ]; then  # Maintaining hyphen variant for build/ose job
+    REPO="online-int"
+elif [ "$BUILD_MODE" == "online:stg" -o "$BUILD_MODE" == "online-stg" ]; then
+    REPO="online-stg"
+elif [ "$BUILD_MODE" == "online:prod" -o "$BUILD_MODE" == "online-prod" ]; then
+    REPO="online-prod"
 else
-  REPO="enterprise-${VERSION}"
+    echo "Unknown BUILD_MODE: ${BUILD_MODE}"
+    exit 1
 fi
-MYUID="$(id -u)"
-if [ "${MYUID}" == "55003" ] ; then
+
+if [ "$(whoami)" == "ocp-build" ] ; then
   BOT_USER="-l jenkins_aos_cd_bot"
 else
   BOT_USER=""
@@ -25,17 +34,17 @@ fi
 
 usage() {
   echo >&2
-  echo "Usage `basename $0` [type] [version] <repo>" >&2
+  echo "Usage `basename $0` [type] [version] <build_mode>" >&2
   echo >&2
   echo "type: simple errata" >&2
   echo "  type of puddle we are pushing" >&2
   echo "version: 3.2 3.3 etc.." >&2
   echo "  What version we are pulling from" >&2
   echo "  For enterprise repos, which release we are pushing to" >&2
-  echo "repo: enterprise online-{int,stg,prod}" >&2
+  echo "build_mode: release|pre-release|online:int|online:stg" >&2
   echo "  Where to push the puddle to" >&2
-  echo "  If it is enteprise, then it will go to enterprise-<version>" >&2
-  echo "  Default: enterprise" >&2
+  echo "  If it is release or pre-release, then it will go to enterprise-<version>" >&2
+  echo "  Default: release" >&2
   echo >&2
   popd &>/dev/null
   exit 1
@@ -46,12 +55,12 @@ if [ "$#" -lt 2 ] ; then
   usage
 fi
 
-if [ "${TYPE}" == "simple" ] ; then
+if [ "${PUDDLE_TYPE}" == "simple" ] ; then
 	# PUDDLEDIR is a symlink to the most recently created puddle.
-	PUDDLEDIR="${BASEDIR}/AtomicOpenShift/${VERSION}/latest"
+	PUDDLEDIR="${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/latest"
 else
 	# PUDDLEDIR is a symlink to the most recently created puddle.
-	PUDDLEDIR="${BASEDIR}/AtomicOpenShift-errata/${VERSION}/latest"
+	PUDDLEDIR="${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/latest"
 fi
 
 # dereference the symlink to the actual directory basename: e.g. "2017-06-09.4"
@@ -68,14 +77,14 @@ rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e 
 # Replace latest link with new puddle content
 ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO} ; ln -sfn $LASTDIR latest"
 
-if [ "${TYPE}" == "simple" ] ; then
-	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO}/latest ; ln -s mash/rhaos-${VERSION}-rhel-7-candidate RH7-RHAOS-${VERSION}"
+if [ "${PUDDLE_TYPE}" == "simple" ] ; then
+	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO}/latest ; ln -s mash/rhaos-${MAJOR_MINOR}-rhel-7-candidate RH7-RHAOS-${MAJOR_MINOR}"
 else
-	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO}/latest ; ln -s RH7-RHAOS-${VERSION}/* ."
+	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO}/latest ; ln -s RH7-RHAOS-${MAJOR_MINOR}/* ."
 fi
 
 # Symlink all builds into "all" builds directory
-ALL_DIR="/srv/enterprise/all/${VERSION}"
+ALL_DIR="/srv/enterprise/all/${MAJOR_MINOR}"
 # Make directory if it hasn't been used (e.g. new release)
 ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "mkdir -p ${ALL_DIR}"
 # Symlink new build into all directory. Replace any existing latest directory to point to the last build.

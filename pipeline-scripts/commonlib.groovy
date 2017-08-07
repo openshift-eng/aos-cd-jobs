@@ -16,4 +16,21 @@ def initialize() {
 
 }
 
+/**
+ * Jenkins doesn't seems to whitelist .asList(),
+ * so this is an awful workaround.
+ * @param array An array
+ * @return Returns a list containing the elements of the array
+ */
+@NonCPS
+def array_to_list(array) {
+    l = []
+    for ( def e : array ) {
+        l << e
+    }
+    return l
+}
+
+
+
 return this

@@ -89,8 +89,8 @@ def extract_rpm_version( spec_content ) {
  * @param filename The filename of the .spec to alter
  * @param new_ver The new version to set
  */
-@NonCPS
 def set_rpm_spec_version( filename, new_ver ) {
+    echo "Setting Version in ${filename}: ${new_ver}"
     content = readFile( filename )
     content = content.replaceFirst( /(Version:\s*)([.0-9]+)/, "\$1${new_ver}" ) // \$1 is a backref to "Version:    "
     writeFile( file: filename, text: content )
@@ -112,8 +112,8 @@ def extract_rpm_release_prefix(spec_content ) {
  * @param filename The filename of the .spec to alter
  * @param new_rel The new release prefix to set
  */
-@NonCPS
 def set_rpm_spec_release_prefix( filename, new_rel ) {
+    echo "Setting Release prefix in ${filename}: ${new_rel}"
     content = readFile( filename )
     content = content.replaceFirst( /(Release:\s*)([.a-zA-Z0-9+-]+)/, "\$1${new_rel}" ) // \$1 is a backref to "Release:    "
     writeFile( file: filename, text: content )
@@ -220,6 +220,33 @@ def invoke_on_rcm_guest(git_script_filename, Object... args ) {
             returnStdout: true,
             script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
     ).trim()
+}
+
+/**
+ * Extract the puddle name from the puddle output
+ * @param puddle_output The captured output of the puddle process
+ * @return The puddle directory name (e.g. "2017-08-03.2" )
+ */
+// Matcher is not serializable; use NonCPS. Do not call CPS function (e.g. readFile from NonCPS methods; they just won't work)
+@NonCPS
+def extract_puddle_name(puddle_output ) {
+    // Try to match a line like: /creating /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/3.6/2017-08-03.2
+    def matcher = puddle_output =~ /creating \/mnt\/rcm-guest\/puddles\/([\/a-zA-Z.0-9-]+)/
+    split = matcher[0][1].tokenize("/")
+    return split[ split.size() -1 ]
+}
+
+def build_puddle(conf_url, Object...args) {
+    // Ideally, we would call invoke_on_rcm_guest, but jenkins makes it absurd to invoke with conf_url as one of the arguments because the spread operator is not enabled.
+    def puddle_output = sh(
+            returnStdout: true,
+            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com -s ${conf_url} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
+    ).trim()
+
+    echo "Puddle output:\n${puddle_output}"
+    def puddle_dir = this.extract_puddle_name( puddle_output )
+    echo "Detected puddle directory: ${puddle_dir}"
+    return puddle_dir
 }
 
 return this

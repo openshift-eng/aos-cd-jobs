@@ -307,6 +307,12 @@ echo
 echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/openshift-ansible-brew.url"
 brew watch-task ${TASK_NUMBER}
 
+echo
+echo "=========="
+echo "Signing RPMs"
+echo "=========="
+"${WORKSPACE}/build-scripts/sign_rpms.sh" "rhaos-${OSE_VERSION}-rhel-7" "openshifthosted"
+
 pushd "${WORKSPACE}"
 COMMIT_SHA="$(git rev-parse HEAD)"
 popd

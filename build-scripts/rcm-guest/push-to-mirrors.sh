@@ -43,8 +43,8 @@ usage() {
   echo "  For enterprise repos, which release we are pushing to" >&2
   echo "build_mode: release|pre-release|online:int|online:stg" >&2
   echo "  Where to push the puddle to" >&2
-  echo "  If it is enteprise, then it will go to enterprise-<version>" >&2
-  echo "  Default: enterprise" >&2
+  echo "  If it is release or pre-release, then it will go to enterprise-<version>" >&2
+  echo "  Default: release" >&2
   echo >&2
   popd &>/dev/null
   exit 1

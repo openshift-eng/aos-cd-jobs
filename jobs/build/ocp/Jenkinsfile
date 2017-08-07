@@ -57,13 +57,6 @@ node(TARGET_NODE) {
 
             stage( "ose repo" ) {
                 master_spec = buildlib.initialize_ose()
-                dir( OSE_DIR ) {
-                    // Enable fake merge driver used in our .gitattributes
-                    sh "git config merge.ours.driver true"
-                    // Use fake merge driver on specific packages
-                    sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
-                    sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
-                }
             }
 
             stage( "origin-web-console repo" ) {
@@ -197,6 +190,12 @@ node(TARGET_NODE) {
 
             stage( "merge origin" ) {
                 dir( OSE_DIR ) {
+                    // Enable fake merge driver used in our .gitattributes
+                    sh "git config merge.ours.driver true"
+                    // Use fake merge driver on specific packages
+                    sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
+                    sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
+
                     if ( UPSTREAM_SOURCE_BRANCH != null ) {
                         // Merge upstream origin code into the ose branch
                         sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
@@ -247,9 +246,9 @@ node(TARGET_NODE) {
                         if ( ! IS_SOURCE_IN_MASTER ) {
                             // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
                             if ( BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6 ) {
-                                sh "git checkout -b release-1.${BUILD_VERSION_MINOR} origin/stage"
+                                sh "git checkout -b release-1.${BUILD_VERSION_MINOR} origin/release-1.${BUILD_VERSION_MINOR}"
                             } else {
-                                sh "git checkout -b release-${BUILD_VERSION} origin/stage"
+                                sh "git checkout -b release-${BUILD_VERSION} origin/release-${BUILD_VERSION}"
                             }
                         } else {
                            sh "git checkout master"

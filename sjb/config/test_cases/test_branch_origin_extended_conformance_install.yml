@@ -63,8 +63,7 @@ extensions:
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-
-        sudo rm -f /etc/yum.repos.d/origin_ci_tool_tmp.repo
-        if [[ -s /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo ]]; then
+        if [[ $( cat ./ORIGIN_PKG_VERSION ) == -3.6* ]]; then
           echo "exclude=origin*" | sudo tee -a /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
         fi
         ansible-playbook -vv --become               \

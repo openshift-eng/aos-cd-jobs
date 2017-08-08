@@ -100,7 +100,6 @@ MAIL_LIST_FAILURE: ${MAIL_LIST_FAILURE}
         stage('Push new key to shared secrets repo') {
             sshagent([OSE_CREDENTIALS]) {
                 sh """
-chmod 400 ${KEY_FILE}
 git add ${KEY_FILE}
 git commit -m "New SSH key to gather cluster logs"
 git push origin HEAD:rotating_keys

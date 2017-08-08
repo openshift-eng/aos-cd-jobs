@@ -11,8 +11,8 @@ shift
 NODES="$@"
 
 # List of services whose journal will be added to the download
-MASTER_SERVICES="atomic-openshift-master-api atomic-openshift-master-controllers"
-NODE_SERVICES="docker atomic-openshift-node"
+MASTER_SERVICES="atomic-openshift-master-api atomic-openshift-master-controllers etcd"
+NODE_SERVICES="docker atomic-openshift-node dnsmasq openvswitch ovs-vswitchd ovsdb-server"
 
 # Prepare working environment
 TMPDIR="${HOME}/aos-cd/tmp"
@@ -28,6 +28,15 @@ on_exit() {
 trap on_exit EXIT
 
 ALL_CLUSTER_NODES=$(ossh --list | grep "^${CLUSTERNAME}")
+PRIMARY_MASTER=$(ansible "oo_clusterid_${CLUSTERNAME}:&oo_version_3:&oo_master_primary" --list-hosts | tail -1 | sed 's/ //g')
+
+info() {
+    >&2 echo "INFO: $1"
+}
+
+warn() {
+    >&2 echo "WARNING: $1"
+}
 
 # Translate an OpenShift node name to its inventory hostname, e.g.
 # ip-172-31-69-53.us-east-2.compute.internal -> free-stg-node-infra-70a4e
@@ -36,11 +45,13 @@ inventory_name() {
 
     # Allow direct specification of the node's inventory name
     # (i.e. no translation needed)
+    # NOTE/TODO: specifying nodes via their inventory name prevents collection
+    # of data that depends on the node name (e.g. node metrics).
     if (echo "${ALL_CLUSTER_NODES}" | grep -Eo "^$node_name\s"); then
 	return
     fi
 
-    # extract ip from the node name, e.g
+    # extract IP from the node name, e.g
     # ip-172-31-69-53.us-east-2.compute.internal -> 172.31.69.53
     node_ip=$(echo $node_name | cut -d\. -f1 | sed -e 's/-/./g' -e 's/ip.//')
 
@@ -50,35 +61,48 @@ inventory_name() {
 
 # Collect information from masters
 do_masters() {
+    info "collecting information from masters"
+
+    mkdir -p masters/reports
+
     for service in $MASTER_SERVICES; do
-        outdir="journal/masters/$service"
-        mkdir -p "$outdir"
-        autokeys_loader opssh -c "$CLUSTERNAME" --v3 -t master --outdir "$outdir" 'journalctl --no-pager --since "2 days ago" _SYSTEMD_UNIT='"$service"'.service'
+        info "gathering logs for '$service'"
+        autokeys_loader opssh -c "$CLUSTERNAME" --v3 -t master --outdir masters/journal 'journalctl --no-pager --since "2 days ago" _SYSTEMD_UNIT='"$service"'.service'
     done
 
-    primary_master=$(ansible "oo_clusterid_${CLUSTERNAME}:&oo_version_3:&oo_master_primary" --list-hosts | tail -1 | sed 's/ //g')
-    mkdir -p "reports"
-    # TODO: make namespace configurable
     # TODO: return logs from failed deployments
-    autokeys_loader ossh "root@${primary_master}" -c "oc get pods --all-namespaces" > reports/pods.txt
-    autokeys_loader ossh "root@${primary_master}" -c "oc get events --all-namespaces" > reports/events.txt
+    info "gathering node list and metrics"
+    autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc get node" > masters/reports/nodes.txt
+    autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc get --raw /metrics" > masters/reports/metrics.txt
 }
 
 # Collect information from one node
 do_node() {
     node=$1
 
+    # NOTE/TODO: specifying nodes via their inventory name prevents collection
+    # of data that depends on the node name (e.g. node metrics).
     invnode=$(inventory_name $node)
     if [ -z $invnode ]; then
 	# unknown node / not part of this cluster
-	>&2 echo "WARNING: unknown node '$node', ignoring"
+	warn "unknown node '$node', ignoring"
 	return
     fi
+
+    info "collecting information from node '$node'"
+    outdir="nodes/$node"
+    mkdir -p "${outdir}/journal"
+
+    # Gather logs from node services
     for service in $NODE_SERVICES; do
-        outdir="journal/nodes/$node"
-        mkdir -p "$outdir"
-        autokeys_loader ossh root@$invnode -c "journalctl --since '2 days ago' -u ${service}.service" > $outdir/$service
+        info "gathering logs for '$service'"
+        autokeys_loader ossh root@$invnode -c "journalctl --since '2 days ago' -u ${service}.service" > $outdir/journal/$service
     done
+    # Gather metrics for the node
+    # NOTE/TODO: this fails if the node was specified via its ansible inventory name
+    info "gathering node info and metrics"
+    autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc get --raw /api/v1/nodes/${node}/proxy/metrics" > $outdir/metrics.txt
+    autokeys_loader ossh "root@${PRIMARY_MASTER}" -c "oc describe node ${node}" > $outdir/describe.txt
 }
 
 ######################

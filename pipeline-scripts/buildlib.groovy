@@ -265,13 +265,18 @@ def extract_puddle_name(puddle_output ) {
     return split[ split.size() - 3 ]  // look three back and we should find puddle name
 }
 
-def build_puddle(conf_url, Object...args) {
+def build_puddle(conf_url, keys, Object...args) {
     echo "Building puddle: ${conf_url} with arguments: ${args}"
+    if( keys != null ){
+      echo "Using only signed RPMs with keys: ${keys}"
+    }
+    
+    key_opt = (keys != null)?"--keys {$keys}":""
 
     // Ideally, we would call invoke_on_rcm_guest, but jenkins makes it absurd to invoke with conf_url as one of the arguments because the spread operator is not enabled.
     def puddle_output = sh(
             returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${conf_url} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
+            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s --conf ${conf_url} ${key_opt} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
     ).trim()
 
     echo "Puddle output:\n${puddle_output}"

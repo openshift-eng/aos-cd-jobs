@@ -22,7 +22,7 @@ if [ "$BUILD_MODE" == "online:int" ]; then
 	REPO="online-openshift-scripts-int"
 elif [ "$BUILD_MODE" == "online:stg" ]; then
 	REPO="online-openshift-scripts-stg"
-elif [ "$BUILD_MODE" == "release" -o "$BUILD_MODE" == "pre-release" ]; then
+elif [ "$BUILD_MODE" == "release" ] || [ "$BUILD_MODE" == "pre-release" ]; then
 	REPO="online-openshift-scripts-${VERSION}"
 else
 	echo "Unknown build mode: $BUILD_MODE"
@@ -78,4 +78,3 @@ $MIRROR_SSH sh -s <<-EOF
 	ln -sfn "${LASTDIR}" "latest"  # replace the old "latest" symlink with one pointing to the newly copied puddle
 	/usr/local/bin/push.enterprise.sh "${REPO}" -v
 EOF
-

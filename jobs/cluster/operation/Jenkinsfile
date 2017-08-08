@@ -52,7 +52,7 @@ node('buildvm-devops') {
     // Clusters that can be deleted & installed
     disposableCluster = [ 'test-key', 'cicd', 'free-int'].contains( CLUSTER_NAME )
 
-    if ( OPERATION != "upgrade" && !disposableCluster ) {
+    if (( OPERATION == "install" || OPERATION == "delete")  && !disposableCluster ) {
         error( "This script is not permitted to perform that operation" )
     }
 

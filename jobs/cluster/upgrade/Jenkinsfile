@@ -5,7 +5,7 @@ def mail_success(list,detail) {
         to: "${list}",
         from: "aos-cd@redhat.com",
         replyTo: 'jupierce@redhat.com',
-        subject: "[aos-devel] Cluster ${OPERATION} complete: ${CLUSTER_NAME}",
+        subject: "[aos-devel] Cluster upgrade complete: ${CLUSTER_NAME}",
         body: """\
 ${detail}
 
@@ -61,8 +61,8 @@ node('openshift-build-1') {
                 deploylib.run( "disable-config-loop" )
                 deploylib.run( "update-ops-inventory" )
                 deploylib.run( "update-yum-extra-repos" )
-                deploylib.run( "upgrade-control-plane" )
-                deploylib.run( "upgrade-nodes" )
+                deploylib.run( "upgrade-control-plane", [ "docker_version" : DOCKER_VERSION.trim() ] )
+                deploylib.run( "upgrade-nodes", [ "docker_version" : DOCKER_VERSION.trim() ] )
 
                 // deploylib.run( "upgrade-logging" )
 
@@ -86,7 +86,7 @@ node('openshift-build-1') {
                 // run smoketest job here, try{}catch to determine if it failed and  include details of job in success email
             }
 
-            minorUpdate = [ 'test-key', 'cicd' ].contains( CLUSTER_NAME ) || OPERATION == "delete" || MODE == "quiet"
+            minorUpdate = [ 'test-key', 'cicd' ].contains( CLUSTER_NAME ) || MODE == "quiet"
 
             if ( MODE != "silent" ) {
                 // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
@@ -114,7 +114,7 @@ node('openshift-build-1') {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",
-                subject: "Error during ${OPERATION} on cluster ${CLUSTER_NAME}",
+                subject: "Error during upgrade on cluster ${CLUSTER_NAME}",
                 body: """Encountered an error: ${err}
 
 Jenkins job: ${env.BUILD_URL}

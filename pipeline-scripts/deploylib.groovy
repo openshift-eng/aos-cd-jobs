@@ -40,7 +40,7 @@ def run( operation_name, args = [:], capture_stdout=false ) {
         } catch ( error ) {
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
-                    subject: "RESUMABLE Error during ${OPERATION} on cluster ${CLUSTER_NAME}",
+                    subject: "RESUMABLE Error during ${operation_name} on cluster ${CLUSTER_NAME}",
                     body: """Encountered an error: ${err}
 
 Input URL: ${env.BUILD_URL}/input

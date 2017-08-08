@@ -54,7 +54,7 @@ node(TARGET_NODE) {
 
             def buildlib = load( "pipeline-scripts/buildlib.groovy")
             buildlib.initialize()
-            currentBuild.displayName = "#${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
+            echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
             stage( "ose repo" ) {
                 master_spec = buildlib.initialize_ose()
@@ -236,7 +236,7 @@ node(TARGET_NODE) {
                         sh "git push"
                         sh "git push --tags"
                     }
-                    OSE_CHANGELOG = buildlib.read_changelog( "openshift-ansible.spec" )
+                    OSE_CHANGELOG = buildlib.read_changelog( "origin.spec" )
                 }
             }
 
@@ -334,7 +334,7 @@ node(TARGET_NODE) {
             }
 
             stage( "update dist-git" ) {
-                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_RELEASE}-0' --version "v${VERSION}""
+                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_RELEASE}-1' --version "v${spec.version}""
             }
 
             stage( "build images" ) {

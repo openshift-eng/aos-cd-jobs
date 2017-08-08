@@ -574,6 +574,16 @@ update_dockerfile() {
     fi
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}
+
+      if [[ "${release_version}" == *"-"* ]]; then  # Does new release have a dash?
+        nr_start=$(echo ${release_version} | cut -d "-" -f 1)
+        # For any build using this method, we want a tag without the dash. This is
+        # what OCP will actually pull when it needs to pull an image associated with
+        # its current version.
+        echo "${nr_start}" > additional-tags
+        git add additional-tags
+      fi
+
     fi
     if [ "${bump_release}" == "TRUE" ] ; then
       # Example release line: release="2"

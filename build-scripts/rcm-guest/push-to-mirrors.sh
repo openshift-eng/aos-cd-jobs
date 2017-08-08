@@ -4,6 +4,7 @@
 #
 
 set -o xtrace
+set -e
 
 ############
 # VARIABLES
@@ -13,13 +14,13 @@ MAJOR_MINOR="${2}"
 BUILD_MODE="${3}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
 
-if [ "$BUILD_MODE" == "release" -o "$BUILD_MODE" == "pre-release" -o "$BUILD_MODE" == "" ]; then
+if [ "$BUILD_MODE" == "release" ] || [ "$BUILD_MODE" == "pre-release" ] || [ "$BUILD_MODE" == "" ]; then
     REPO="enterprise-${MAJOR_MINOR}"
-elif [ "$BUILD_MODE" == "online:int" -o "$BUILD_MODE" == "online-int" ]; then  # Maintaining hyphen variant for build/ose job
+elif [ "$BUILD_MODE" == "online:int" ] || [ "$BUILD_MODE" == "online-int" ]; then  # Maintaining hyphen variant for build/ose job
     REPO="online-int"
-elif [ "$BUILD_MODE" == "online:stg" -o "$BUILD_MODE" == "online-stg" ]; then
+elif [ "$BUILD_MODE" == "online:stg" ] || [ "$BUILD_MODE" == "online-stg" ]; then
     REPO="online-stg"
-elif [ "$BUILD_MODE" == "online:prod" -o "$BUILD_MODE" == "online-prod" ]; then
+elif [ "$BUILD_MODE" == "online:prod" ] || [ "$BUILD_MODE" == "online-prod" ]; then
     REPO="online-prod"
 else
     echo "Unknown BUILD_MODE: ${BUILD_MODE}"
@@ -68,28 +69,45 @@ LASTDIR=$(readlink ${PUDDLEDIR})
 
 echo "Pushing puddle: $LASTDIR"
 
-# Copy all files from the last latest into a directory for the new puddle (jmp: in order to prevent as much transfer as possible by rysnc for things which weren't rebuilt?)
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO} ; cp -r --link latest/ $LASTDIR"
+MIRROR_SSH_SERVER="use-mirror-upload.ops.rhcloud.com"
+MIRROR_SSH_BASE="ssh ${BOT_USER} -o StrictHostKeychecking=no"
+MIRROR_SSH="${MIRROR_SSH_BASE} ${MIRROR_SSH_SERVER}"
+MIRROR_PATH="/srv/enterprise/${REPO}"
+ALL_DIR="/srv/enterprise/all/${MAJOR_MINOR}"
+
+$MIRROR_SSH sh -s <<-EOF
+  set -e
+  set -o xtrace
+  # In case this repo has never been used before, create it.
+	mkdir -p "${MIRROR_PATH}"
+	pushd "${MIRROR_PATH}"
+  # Copy all files from the last latest into a directory for the new puddle 
+  # (jmp: in order to prevent as much transfer as possible by rysnc for things which weren't rebuilt?)
+  cp -r --link latest/ $LASTDIR
+EOF
 
 # Copy the local puddle to the new, remote location.
-rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "ssh ${BOT_USER} -o StrictHostKeyChecking=no" ${PUDDLEDIR}/ use-mirror-upload.ops.rhcloud.com:/srv/enterprise/${REPO}/${LASTDIR}/
+rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "${MIRROR_SSH_BASE}" ${PUDDLEDIR}/ ${MIRROR_SSH_SERVER}:${MIRROR_PATH}/${LASTDIR}/
 
-# Replace latest link with new puddle content
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO} ; ln -sfn $LASTDIR latest"
-
-if [ "${PUDDLE_TYPE}" == "simple" ] ; then
-	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO}/latest ; ln -s mash/rhaos-${MAJOR_MINOR}-rhel-7-candidate RH7-RHAOS-${MAJOR_MINOR}"
-else
-	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd /srv/enterprise/${REPO}/latest ; ln -s RH7-RHAOS-${MAJOR_MINOR}/* ."
-fi
-
-# Symlink all builds into "all" builds directory
-ALL_DIR="/srv/enterprise/all/${MAJOR_MINOR}"
-# Make directory if it hasn't been used (e.g. new release)
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "mkdir -p ${ALL_DIR}"
-# Symlink new build into all directory. Replace any existing latest directory to point to the last build.
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com "cd ${ALL_DIR} ; ln -s /srv/enterprise/${REPO}/$LASTDIR ; ln -sfn /srv/enterprise/${REPO}/$LASTDIR latest"
-
-# Synchronize the changes to the mirrors
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.enterprise.sh ${REPO} -v
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.enterprise.sh all -v
+$MIRROR_SSH sh -s <<-EOF
+  set -e
+  set -o xtrace
+	pushd "/srv/enterprise/${REPO}"
+  # Replace latest link with new puddle content
+  ln -sfn $LASTDIR latest
+  if [ "${PUDDLE_TYPE}" == "simple" ] ; then
+  	ln -s mash/rhaos-${MAJOR_MINOR}-rhel-7-candidate RH7-RHAOS-${MAJOR_MINOR}
+  else
+  	ln -s RH7-RHAOS-${MAJOR_MINOR}/* .
+  fi
+  # Symlink all builds into "all" builds directory
+  mkdir -p ${ALL_DIR}
+  pushd "${ALL_DIR}"
+  # Symlink new build into all directory. 
+  # Replace any existing latest directory to point to the last build.
+  ln -s /srv/enterprise/${REPO}/$LASTDIR
+  ln -sfn /srv/enterprise/${REPO}/$LASTDIR latest
+  # Synchronize the changes to the mirrors
+  /usr/local/bin/push.enterprise.sh ${REPO} -v
+  /usr/local/bin/push.enterprise.sh all -v
+EOF

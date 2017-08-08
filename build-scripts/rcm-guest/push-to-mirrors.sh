@@ -13,7 +13,7 @@ MAJOR_MINOR="${2}"
 BUILD_MODE="${3}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
 
-if [ "$BUILD_MODE" == "release" -o "$BUILD_MODE" == "pre-release" -o "BUILD_MODE" == "" ]; then
+if [ "$BUILD_MODE" == "release" -o "$BUILD_MODE" == "pre-release" -o "$BUILD_MODE" == "" ]; then
     REPO="enterprise-${MAJOR_MINOR}"
 elif [ "$BUILD_MODE" == "online:int" -o "$BUILD_MODE" == "online-int" ]; then  # Maintaining hyphen variant for build/ose job
     REPO="online-int"

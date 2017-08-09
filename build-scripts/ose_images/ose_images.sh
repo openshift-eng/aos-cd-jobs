@@ -1350,6 +1350,11 @@ else
   exit 42
 fi
 
+if [ "$?" != "0" ]; then
+    echo "Error parsing ose.conf"
+    exit 1
+fi
+
 # Setup groups
 for group_input in ${group_list}
 do

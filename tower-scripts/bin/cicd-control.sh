@@ -11,19 +11,26 @@ VALID_ARGUMENTS=(docker_version openshift_ansible_build)
 # deleted when the script terminates.
 TMPTMP=$(mktemp -d -p "${TMPDIR}")
 
+# Kills a process and all its children
+killtree() {
+    local parent=$1 child
+    for child in $(ps -o ppid= -o pid= | awk "\$1==$parent {print \$2}"); do
+        killtree $child
+    done
+    if kill $parent ; then
+        echo "Killed background task: $parent"
+    fi
+}
+
 function on_exit() {
     rm -rf "${TMPTMP}"
-
-    # JOBS is primarily designed to kill the autokey_loader process if it was launched
+    # Kill anny jobs spawned by this process and any children those jobs create.
     JOBS="$(jobs -p)"
     if [[ ! -z "$JOBS" ]]; then
-        if kill $JOBS; then
-            echo "Background tasks terminated"
-        else
-            echo "Unable to terminate background tasks"
-        fi
+        for pid in $JOBS; do
+            killtree $pid
+        done
     fi
-    kill -- -$$ || true
 }
 
 trap on_exit EXIT
@@ -115,8 +122,8 @@ function is_running(){
   # Output to prevent ssh timeouts. Appears to timeout
   # After about an hour of inactivity.
   while true; do
-    echo
-    echo ".... $(date) ...."
+    echo >&2
+    echo ".... cicd-control still running: $(date) ...." >&2
     sleep 600
   done
 }
@@ -259,12 +266,14 @@ function setup_cluster_vars() {
 function install_cluster() {
 #OPERATION = install
   is_running &
+
   setup_cluster_vars
   get_latest_openshift_ansible ${oo_environment}
 
   # Deploy all the things
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
     /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
+
     export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
     export SKIP_GIT_VALIDATION=TRUE
     /usr/local/bin/autokeys_loader ./aws_cluster_setup.sh ${CLUSTERNAME}
@@ -299,6 +308,7 @@ function delete_cluster() {
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
 }
 
+
 ################################################
 # OPERATION: Upgrade
 #  This is legacy, and should be removed when it's time to move to the cluster operation
@@ -308,6 +318,7 @@ function legacy_upgrade_cluster() {
   is_running &
 
   ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
+
 
   # Get the latest openshift-ansible rpms
   get_latest_openshift_ansible ${oo_environment}
@@ -371,6 +382,7 @@ function perf1() {
   fi
 
   is_running &
+
   echo "Running performance test 1"
   MASTER="$(get_master_name)"
 

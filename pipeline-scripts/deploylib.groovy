@@ -37,17 +37,17 @@ def run( operation_name, args = [:], capture_stdout=false ) {
                     script: cmd
             )
             return true // finish waitUntil
-        } catch ( error ) {
+        } catch ( rerr ) {
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
                     subject: "RESUMABLE Error during ${operation_name} on cluster ${CLUSTER_NAME}",
-                    body: """Encountered an error: ${err}
+                    body: """Encountered an error: ${rerr}
 
-Input URL: ${env.BUILD_URL}/input
+Input URL: ${env.BUILD_URL}input
 
 Jenkins job: ${env.BUILD_URL}
 """);
-            def resp = input    message: 'On ${CLUSTER_NAME}: Error during ${operation_name} with args: ${args}',
+            def resp = input    message: "On ${CLUSTER_NAME}: Error during ${operation_name} with args: ${args}",
                                 parameters: [
                                                 [$class: 'hudson.model.ChoiceParameterDefinition',
                                                  choices: "RETRY\nSKIP\nABORT",

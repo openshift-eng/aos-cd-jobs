@@ -59,8 +59,6 @@ node('openshift-build-1') {
 
                 deploylib.run( "enable-zabbix-maint" )
                 deploylib.run( "disable-config-loop" )
-                deploylib.run( "update-ops-inventory" )
-                deploylib.run( "update-yum-extra-repos" )
                 deploylib.run( "upgrade-control-plane", [ "docker_version" : DOCKER_VERSION.trim() ] )
                 deploylib.run( "upgrade-nodes", [ "docker_version" : DOCKER_VERSION.trim() ] )
 

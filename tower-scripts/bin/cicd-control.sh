@@ -45,6 +45,7 @@ function parse_and_set_vars() {
     exit 1
   fi
 
+  echo "Setting cicd-control environment variable: $1" >&2
   export $1
   #value=$(echo $1 | awk -F= '{print $2}')
 

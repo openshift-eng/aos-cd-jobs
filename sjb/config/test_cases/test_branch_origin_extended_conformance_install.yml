@@ -64,7 +64,7 @@ extensions:
       repository: "aos-cd-jobs"
       script: |-
         if [[ $( cat ./ORIGIN_PKG_VERSION ) == -3.6* ]]; then
-          echo "exclude=origin*" | sudo tee -a /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
+          sudo sed -i "/exclude=origin*/d" /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
         fi
         ansible-playbook -vv --become               \
                          --become-user root         \

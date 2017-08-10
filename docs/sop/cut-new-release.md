@@ -16,6 +16,14 @@ These instructoins assume we are moving from release X.A to X.B and that origin#
 
 - Create a new puddle configuration files for X.B (e.g. atomic_openshift-X.B.conf)
 
+- Copy dist-git data from last version branches into new version branches:
+  ```
+  ose_images.sh dist_git_copy --branch rhaos-3.6-rhel-7 --target_branch rhaos-3.7-rhel-7 --group base
+  # --branch:  Older, source branch to pull from
+  # --target_branch: Branch to copy to
+  # Using --package for single package is also valid
+  ```
+
 TODO: describe RCM process. Product listings?
 
 TODO: process to populate new dist-git branches with content from old?

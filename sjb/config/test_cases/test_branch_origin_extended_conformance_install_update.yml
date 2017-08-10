@@ -87,6 +87,7 @@ extensions:
       script: |-
         if [[ $( cat ORIGIN_BUILT_VERSION ) == origin-3.7* ]]; then
           sudo sed -i "/exclude=origin*/d" /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
+          sudo yum clean all && sudo yum makecache
         fi
         pkg_name=$( cat ./PKG_NAME )
         if [[ "${pkg_name}" == "origin" ]]; then

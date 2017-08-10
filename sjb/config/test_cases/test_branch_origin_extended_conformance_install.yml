@@ -66,6 +66,7 @@ extensions:
         if [[ $( cat ./ORIGIN_PKG_VERSION ) == -3.6* ]]; then
           sudo sed -i "/exclude=origin*/d" /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
           sudo yum clean all && sudo yum makecache
+          sudo yum list --showduplicates origin
         fi
         ansible-playbook -vv --become               \
                          --become-user root         \

@@ -1,0 +1,42 @@
+---
+environment:
+  masters: 
+    - 172.31.56.85
+    - 172.31.53.112
+    - 172.31.62.48
+  nodes: 
+    - 172.31.56.85
+    - 172.31.53.112
+    - 172.31.62.48
+    - 172.31.48.64
+    - 172.31.56.112
+    - 172.31.49.95
+    - 172.31.54.53
+    - 172.31.63.146
+    - 172.31.48.44
+  etcds: 
+    - 172.31.56.85
+    - 172.31.53.112
+    - 172.31.62.48
+  routers: 
+    - 
+  authtype: htpasswd
+  port: 443
+  htpasswd: /etc/origin/master/htpasswd
+  kubeconfig: /etc/origin/master/admin.kubeconfig
+  subdomain:
+exection:
+  templates: 
+    - django-psql-example
+    - nodejs-mongodb-example
+    - cakephp-mysql-example
+    - dancer-mysql-example
+    - rails-postgresql-example
+    - eap64-mysql-s2i
+  userprefix: user
+schedule:
+  minute: 1
+  hour: 2
+  day: 10
+  week: 20
+  month: 40

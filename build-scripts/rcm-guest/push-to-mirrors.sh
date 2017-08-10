@@ -78,9 +78,11 @@ ALL_DIR="/srv/enterprise/all/${MAJOR_MINOR}"
 $MIRROR_SSH sh -s <<-EOF
   set -e
   set -o xtrace
+  
   # In case this repo has never been used before, create it.
-	mkdir -p "${MIRROR_PATH}"
-	pushd "${MIRROR_PATH}"
+  mkdir -p "${MIRROR_PATH}"
+  cd "${MIRROR_PATH}"
+  
   # Copy all files from the last latest into a directory for the new puddle 
   # (jmp: in order to prevent as much transfer as possible by rysnc for things which weren't rebuilt?)
   cp -r --link latest/ $LASTDIR
@@ -92,21 +94,28 @@ rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e 
 $MIRROR_SSH sh -s <<-EOF
   set -e
   set -o xtrace
-	pushd "/srv/enterprise/${REPO}"
+  cd "/srv/enterprise/${REPO}"
   # Replace latest link with new puddle content
   ln -sfn $LASTDIR latest
+  
+  cd "/srv/enterprise/${REPO}/latest"
+  # Some folks use this legacy location for their yum repo configuration
+  # e.g. https://euw-mirror1.ops.rhcloud.com/enterprise/enterprise-3.3/latest/RH7-RHAOS-3.3/x86_64/os
   if [ "${PUDDLE_TYPE}" == "simple" ] ; then
   	ln -s mash/rhaos-${MAJOR_MINOR}-rhel-7-candidate RH7-RHAOS-${MAJOR_MINOR}
   else
   	ln -s RH7-RHAOS-${MAJOR_MINOR}/* .
   fi
-  # Symlink all builds into "all" builds directory
-  mkdir -p ${ALL_DIR}
-  pushd "${ALL_DIR}"
+
+  # All builds should be tracked in this repository. 
+  mkdir -p ${ALL_DIR} 
+  cd "${ALL_DIR}"
+  
   # Symlink new build into all directory. 
-  # Replace any existing latest directory to point to the last build.
   ln -s /srv/enterprise/${REPO}/$LASTDIR
+  # Replace any existing latest directory to point to the last build.
   ln -sfn /srv/enterprise/${REPO}/$LASTDIR latest
+
   # Synchronize the changes to the mirrors
   /usr/local/bin/push.enterprise.sh ${REPO} -v
   /usr/local/bin/push.enterprise.sh all -v

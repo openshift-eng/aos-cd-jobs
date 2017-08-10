@@ -1,0 +1,8 @@
+- job:
+    name: continuous-upgrade_dump-load-logs-job
+    project-type: freestyle
+    defaults: global
+    builders:
+      - shell: |
+         tail -n 250 /root/svt/reliability/logs/reliability.log
+

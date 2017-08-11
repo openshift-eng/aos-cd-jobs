@@ -371,7 +371,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 if [[ \$( cat ./ORIGIN_PKG_VERSION ) == -3.6* ]]; then
-  sudo sed -i &#34;/exclude=origin*/d&#34; /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
+  sudo sed -i &#34;/exclude/d&#34; /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
   sudo yum clean all &amp;&amp; sudo yum makecache
   sudo yum list --showduplicates origin
 fi

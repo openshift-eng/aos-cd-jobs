@@ -242,11 +242,6 @@ cd &#34;\${GOPATH}/src/github.com/openshift/jenkins&#34;
 sudo chmod a+rw /tmp/.docker/config.json
 export DOCKER_CONFIG=/tmp/.docker
 
-docker tag registry.access.redhat.com/openshift3/jenkins-1-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-1-rhel7
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-1-rhel7
-docker tag openshift/jenkins-1-centos7 docker.io/openshift/jenkins-1-centos7
-docker push docker.io/openshift/jenkins-1-centos7
-
 docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
 docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
 docker tag openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7

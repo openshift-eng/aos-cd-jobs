@@ -175,6 +175,8 @@ rectory to run."
                 artifact_dir="${base_artifact_dir}/masters/${name}"
                 mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
                 gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master.service" || true
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master-api.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master-api.service" || true
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master-controllers.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master-controllers.service" || true
                 gcloud compute ssh "${instance}" -- sudo journalctl --unit etcd.service          --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/etcd.service"  || true
 
                 gcloud compute ssh "${instance}" -- oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2>&1 > "${artifact_dir}/generated/master-metrics.log"  || true

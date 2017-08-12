@@ -223,7 +223,7 @@ EOF
 
 # create Dockerfile
 cat &lt;&lt;EOF &gt; \$contextdir/Dockerfile
-FROM brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/openshift3/ose:latest
+FROM registry.access.redhat.com/rhel7.3:latest
 
 RUN yum remove -y subscription-manager
 
@@ -236,14 +236,12 @@ RUN yum update -y &amp;&amp; yum clean all
 
 EOF
 
-docker build --rm -t registry.access.redhat.com/openshift3/ose \$contextdir
+docker build --rm -t registry.access.redhat.com/rhel7.3 \$contextdir
 
-# make sure the new image has valid certs
-docker run registry.access.redhat.com/openshift3/ose yum install -y tar
+# make sure the new rhel7.3 image has valid certs
+docker run registry.access.redhat.com/rhel7.3 yum install -y tar
 
-# remove these once no one is referencing them anymore.
-docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7.3
-docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7
+docker tag registry.access.redhat.com/rhel7.3 registry.access.redhat.com/rhel7
 
 # cleaning
 rm -rf \$contextdir

@@ -85,11 +85,6 @@ extensions:
       repository: "aos-cd-jobs"
       timeout: 1800
       script: |-
-        if [[ $( cat ORIGIN_BUILT_VERSION ) == origin-3.7* ]]; then
-          sudo sed -i "/exclude/d" /etc/yum.repos.d/centos-paas-sig-openshift-origin36-rpms.repo
-          sudo yum clean all && sudo yum makecache
-          sudo yum list --showduplicates origin
-        fi
         pkg_name=$( cat ./PKG_NAME )
         if [[ "${pkg_name}" == "origin" ]]; then
             deployment_type="origin"

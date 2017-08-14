@@ -51,7 +51,7 @@ extensions:
         ADD keys/* /etc/pki/rpm-gpg/
 
         RUN yum update -y && yum clean all
-
+        ENTRYPOINT []
         EOF
 
         docker build --rm -t registry.access.redhat.com/openshift3/ose $contextdir

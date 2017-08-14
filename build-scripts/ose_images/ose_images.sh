@@ -650,6 +650,22 @@ merge_to_newest_dist_git() {
   popd >/dev/null
 }
 
+overwrite_dist_git_branch(){
+  pushd "${workingdir}/${container}" >/dev/null
+  echo "${branch}"
+  source_branch_files=$(mktemp -d)
+  rhpkg switch-branch "${branch}"
+  cp -r ./ "${source_branch_files}"
+  ls -al "${source_branch_files}"
+  rhpkg switch-branch "${TARGET_DIST_GIT_BRANCH}"
+  #remove everything except .git
+  find . -path ./.git -prune -o -exec rm -rf {} \; 2> /dev/null
+  rsync -av --exclude='.git' "${source_branch_files}/" ./
+  git add .
+  rhpkg commit -p -m "Overwriting with contents of ${branch} branch" >/dev/null 2>&1
+  popd >/dev/null
+}
+
 show_git_diffs() {
   pushd "${workingdir}/${container}" >/dev/null
   if ! [ "${git_style}" == "dockerfile_only" ] ; then
@@ -1211,6 +1227,20 @@ push_images() {
   popd >/dev/null
 }
 
+dist_git_copy() {
+  pushd "${workingdir}" >/dev/null
+  echo "Source Branch: ${branch}"
+  echo "Target Branch: ${TARGET_DIST_GIT_BRANCH}"
+  echo "Doing dist_git_copy: ${container}"
+  if [ -z "${TARGET_DIST_GIT_BRANCH}" ]; then
+      echo "Must provide --source_branch for dist_git_copy"
+      hard_exit
+  fi
+  setup_dist_git
+  overwrite_dist_git_branch
+  popd >/dev/null
+}
+
 test_function() {
   echo -e "container: ${container}\tdocker names: ${dict_image_name[${container}]}"
   if [ "${VERBOSE}" == "TRUE" ] ; then
@@ -1227,7 +1257,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test)
+    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy)
       export action="${key}"
       ;;
     list)
@@ -1265,6 +1295,10 @@ case $key in
     --branch)
       DIST_GIT_BRANCH="$2"
       export MAJOR_RELEASE=`echo ${DIST_GIT_BRANCH}| cut -d'-' -f2`
+      shift
+      ;;
+    --target_branch)
+      TARGET_DIST_GIT_BRANCH="$2"
       shift
       ;;
     --repo)
@@ -1569,6 +1603,9 @@ do
     ;;
     test | list )
       test_function
+    ;;
+    dist_git_copy )
+      dist_git_copy
     ;;
     * )
       usage

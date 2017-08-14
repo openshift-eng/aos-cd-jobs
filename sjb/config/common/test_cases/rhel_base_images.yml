@@ -41,7 +41,7 @@ extensions:
 
         # create Dockerfile
         cat <<EOF > $contextdir/Dockerfile
-        FROM brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/openshift3/ose:latest
+        FROM registry.access.redhat.com/openshift3/ose:latest
 
         RUN yum remove -y subscription-manager
 

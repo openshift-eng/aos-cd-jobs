@@ -393,7 +393,7 @@ node(TARGET_NODE) {
             }
 
             stage( "update dist-git" ) {
-                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_RELEASE}-1' --version 'v${spec.version}'"
+                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_RELEASE}.0' --version 'v${spec.version}'"
             }
 
             stage( "build images" ) {

@@ -666,6 +666,25 @@ overwrite_dist_git_branch(){
   popd >/dev/null
 }
 
+inject_files_to_dist_git() {
+  pushd "${workingdir}/${container}" >/dev/null
+  echo "${branch}"
+  rhpkg switch-branch "${branch}"
+  if [[ -f ${DIST_GIT_INJECT_PATH} ]]; then
+    cp "${DIST_GIT_INJECT_PATH}" ./
+  elif [[ -d ${DIST_GIT_INJECT_PATH} ]]; then
+    cp -r "${DIST_GIT_INJECT_PATH}/*" ./
+  else
+    echo "${DIST_GIT_INJECT_PATH} is not a valid file or directory!"
+    hard_exit
+  fi
+    #statements
+  ls -al ./
+  git add .
+  rhpkg commit -p -m "Adding ${DIST_GIT_INJECT_PATH} to root of branch" >/dev/null 2>&1
+  popd >/dev/null
+}
+
 show_git_diffs() {
   pushd "${workingdir}/${container}" >/dev/null
   if ! [ "${git_style}" == "dockerfile_only" ] ; then
@@ -1241,6 +1260,20 @@ dist_git_copy() {
   popd >/dev/null
 }
 
+dist_git_inject() {
+  pushd "${workingdir}" >/dev/null
+  echo "Path to inject: ${DIST_GIT_INJECT_PATH}"
+  echo "Target Branch: ${branch}"
+  echo "Doing dist_git_inject: ${container}"
+  if [ -z "${DIST_GIT_INJECT_PATH}" ]; then
+      echo "Must provide --source_branch for dist_git_copy"
+      hard_exit
+  fi
+  setup_dist_git
+  inject_files_to_dist_git
+  popd >/dev/null
+}
+
 test_function() {
   echo -e "container: ${container}\tdocker names: ${dict_image_name[${container}]}"
   if [ "${VERBOSE}" == "TRUE" ] ; then
@@ -1257,7 +1290,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy)
+    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy | dist_git_inject)
       export action="${key}"
       ;;
     list)
@@ -1299,6 +1332,10 @@ case $key in
       ;;
     --target_branch)
       TARGET_DIST_GIT_BRANCH="$2"
+      shift
+      ;;
+    --inject_path)
+      DIST_GIT_INJECT_PATH="$2"
       shift
       ;;
     --repo)
@@ -1606,6 +1643,9 @@ do
     ;;
     dist_git_copy )
       dist_git_copy
+    ;;
+    dist_git_inject )
+      dist_git_inject
     ;;
     * )
       usage

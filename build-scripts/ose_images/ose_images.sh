@@ -575,8 +575,8 @@ update_dockerfile() {
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}
 
-      if [[ "${release_version}" == *"-"* ]]; then  # Does new release have a dash?
-        nr_start=$(echo ${release_version} | cut -d "-" -f 1)
+      if [[ "${release_version}" == *"."* ]]; then  # Use newer dot notation?
+        nr_start=$(echo ${release_version} | rev | cut -d "." -f2- | rev)
         # For any build using this method, we want a tag without the dash. This is
         # what OCP will actually pull when it needs to pull an image associated with
         # its current version.
@@ -588,12 +588,12 @@ update_dockerfile() {
     if [ "${bump_release}" == "TRUE" ] ; then
       # Example release line: release="2"
       old_release_version=$(grep release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
-      if [[ "${old_release_version}" == *"-"* ]]; then  # Does release have a dash?
+      if [[ "${old_release_version}" == *"."* ]]; then  # Use newer dot notation?
         # The new build pipline initializes the Dockerfile to have release=REL#.INT#.STG#-0
         # If the release=X.Y-Z, bump the Z
-        nr_start=$(echo ${old_release_version} | cut -d "-" -f 1)
-        nr_end=$(echo ${old_release_version} | cut -d "-" -f 2)
-        new_release="${nr_start}-$(($nr_end+1))"
+        nr_start=$(echo ${old_release_version} | rev | cut -d "." -f2- | rev)
+        nr_end=$(echo ${old_release_version} | rev | cut -d . -f 1 | rev)
+        new_release="${nr_start}.$(($nr_end+1))"
 
         # For any build using this method, we want a tag without the dash. This is
         # what OCP will actually pull when it needs to pull an image associated with

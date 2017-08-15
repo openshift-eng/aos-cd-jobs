@@ -442,17 +442,14 @@ node(TARGET_NODE) {
 
             mail_success( spec.version )
         }
-    } catch ( err ) {
-        // TODO: re-enable failure email
-        /*
+    } catch ( err ) {  
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",
-                subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
-                body: """Encoutered an error while running merge-and-build.sh: ${err}
-
+                subject: "Error building OSE: ${BUILD_VERSION}",
+                body: """Encoutered an error while running OCP pipline: ${err}
+    
     Jenkins job: ${env.BUILD_URL}
     """);
-    */
         throw err
     }
 

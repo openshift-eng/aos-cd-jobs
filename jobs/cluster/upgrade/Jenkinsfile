@@ -53,27 +53,29 @@ node('openshift-build-1') {
                 echo "Cluster status BEFORE upgrade:"
                 deploylib.run("status")
             }
-
-            stage( "upgrade" ) {
+            
+            stage( "enable maintenance" ) {
                 // deploylib.run( "enable-statuspage" )
-
                 deploylib.run( "enable-zabbix-maint" )
                 deploylib.run( "disable-config-loop" )
-                deploylib.run( "update-ops-inventory" )
-                deploylib.run( "update-yum-extra-repos" )
+            }
+
+            stage( "upgrade" ) {
                 deploylib.run( "upgrade-control-plane", [ "docker_version" : DOCKER_VERSION.trim() ] )
                 deploylib.run( "upgrade-nodes", [ "docker_version" : DOCKER_VERSION.trim() ] )
-
                 // deploylib.run( "upgrade-logging" )
-
                 deploylib.run( "upgrade-metrics" )
+            }
+
+            stage( "config-loop" ) {
                 deploylib.run( "commit-config-loop" )
                 deploylib.run( "enable-config-loop" )
                 deploylib.run( "run-config-loop" )
+            }
+            
+            stage( "disable maintenance" ) {
                 deploylib.run( "disable-zabbix-maint" )
-
                 //deploylib.run( "disable-statuspage" )
-
             }
 
             stage( "post-upgrade status" ) {

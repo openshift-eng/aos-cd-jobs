@@ -67,7 +67,7 @@ do_masters() {
 
     for service in $MASTER_SERVICES; do
         info "gathering logs for '$service'"
-        autokeys_loader opssh -c "$CLUSTERNAME" --v3 -t master --outdir masters/journal 'journalctl --no-pager --since "2 days ago" _SYSTEMD_UNIT='"$service"'.service'
+        autokeys_loader opssh -c "$CLUSTERNAME" --v3 -t master --outdir masters/journal/$service "journalctl --no-pager --since '2 days ago' -u $service.service"
     done
 
     # TODO: return logs from failed deployments

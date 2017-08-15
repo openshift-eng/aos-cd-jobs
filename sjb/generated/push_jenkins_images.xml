@@ -154,7 +154,7 @@ EOF
 
 # create Dockerfile
 cat &lt;&lt;EOF &gt; \$contextdir/Dockerfile
-FROM registry.access.redhat.com/rhel7.3:latest
+FROM registry.access.redhat.com/openshift3/ose:latest
 
 RUN yum remove -y subscription-manager
 
@@ -164,15 +164,17 @@ ADD certs/* /var/lib/yum/
 ADD keys/* /etc/pki/rpm-gpg/
 
 RUN yum update -y &amp;&amp; yum clean all
-
+ENTRYPOINT []
 EOF
 
-docker build --rm -t registry.access.redhat.com/rhel7.3 \$contextdir
+docker build --rm -t registry.access.redhat.com/openshift3/ose \$contextdir
 
-# make sure the new rhel7.3 image has valid certs
-docker run registry.access.redhat.com/rhel7.3 yum install -y tar
+# make sure the new image has valid certs
+docker run registry.access.redhat.com/openshift3/ose yum install -y tar
 
-docker tag registry.access.redhat.com/rhel7.3 registry.access.redhat.com/rhel7
+# remove these once no one is referencing them anymore.
+docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7.3
+docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7
 
 # cleaning
 rm -rf \$contextdir
@@ -241,11 +243,6 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/jenkins&#34;
 sudo chmod a+rw /tmp/.docker/config.json
 export DOCKER_CONFIG=/tmp/.docker
-
-docker tag registry.access.redhat.com/openshift3/jenkins-1-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-1-rhel7
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-1-rhel7
-docker tag openshift/jenkins-1-centos7 docker.io/openshift/jenkins-1-centos7
-docker push docker.io/openshift/jenkins-1-centos7
 
 docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
 docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7

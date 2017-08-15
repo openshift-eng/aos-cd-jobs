@@ -20,9 +20,10 @@ set -o xtrace
 ## LOCAL VARIABLES ##
 MASTER_RELEASE="3.7"    # Update version_trim_list when this changes
 MAJOR_RELEASE="${MASTER_RELEASE}"  # This is a default if --branch is not specified
+MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
 
-MAJOR_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
-MAJOR_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
+RELEASE_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
+RELEASE_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
 
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
@@ -188,7 +189,9 @@ add_group_to_list() {
       add_to_list logging-kibana-docker
     ;;
     jenkins | jenkins-all )
-      add_to_list openshift-jenkins-docker
+      if [[ "${RELEASE_MAJOR}" == 3 && "${RELEASE_MINOR}" -lt 7 ]]; then
+        add_to_list openshift-jenkins-docker
+      fi
       if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] ; then
         add_to_list openshift-jenkins-2-docker
       fi
@@ -575,8 +578,8 @@ update_dockerfile() {
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}
 
-      if [[ "${release_version}" == *"-"* ]]; then  # Does new release have a dash?
-        nr_start=$(echo ${release_version} | cut -d "-" -f 1)
+      if [[ "${release_version}" == *"."* ]]; then  # Use newer dot notation?
+        nr_start=$(echo ${release_version} | rev | cut -d "." -f2- | rev)
         # For any build using this method, we want a tag without the dash. This is
         # what OCP will actually pull when it needs to pull an image associated with
         # its current version.
@@ -588,12 +591,12 @@ update_dockerfile() {
     if [ "${bump_release}" == "TRUE" ] ; then
       # Example release line: release="2"
       old_release_version=$(grep release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
-      if [[ "${old_release_version}" == *"-"* ]]; then  # Does release have a dash?
+      if [[ "${old_release_version}" == *"."* ]]; then  # Use newer dot notation?
         # The new build pipline initializes the Dockerfile to have release=REL#.INT#.STG#-0
         # If the release=X.Y-Z, bump the Z
-        nr_start=$(echo ${old_release_version} | cut -d "-" -f 1)
-        nr_end=$(echo ${old_release_version} | cut -d "-" -f 2)
-        new_release="${nr_start}-$(($nr_end+1))"
+        nr_start=$(echo ${old_release_version} | rev | cut -d "." -f2- | rev)
+        nr_end=$(echo ${old_release_version} | rev | cut -d . -f 1 | rev)
+        new_release="${nr_start}.$(($nr_end+1))"
 
         # For any build using this method, we want a tag without the dash. This is
         # what OCP will actually pull when it needs to pull an image associated with
@@ -647,6 +650,41 @@ merge_to_newest_dist_git() {
     echo " Pushing to dist-git ..."
     rhpkg commit -p -m "Update ose yum repo and/or additional-tags" >/dev/null 2>&1
   fi
+  popd >/dev/null
+}
+
+overwrite_dist_git_branch(){
+  pushd "${workingdir}/${container}" >/dev/null
+  echo "${branch}"
+  source_branch_files=$(mktemp -d)
+  rhpkg switch-branch "${branch}"
+  cp -r ./ "${source_branch_files}"
+  ls -al "${source_branch_files}"
+  rhpkg switch-branch "${TARGET_DIST_GIT_BRANCH}"
+  #remove everything except .git
+  find . -path ./.git -prune -o -exec rm -rf {} \; 2> /dev/null
+  rsync -av --exclude='.git' "${source_branch_files}/" ./
+  git add .
+  rhpkg commit -p -m "Overwriting with contents of ${branch} branch" >/dev/null 2>&1
+  popd >/dev/null
+}
+
+inject_files_to_dist_git() {
+  pushd "${workingdir}/${container}" >/dev/null
+  echo "${branch}"
+  rhpkg switch-branch "${branch}"
+  if [[ -f ${DIST_GIT_INJECT_PATH} ]]; then
+    cp "${DIST_GIT_INJECT_PATH}" ./
+  elif [[ -d ${DIST_GIT_INJECT_PATH} ]]; then
+    cp -r "${DIST_GIT_INJECT_PATH}/*" ./
+  else
+    echo "${DIST_GIT_INJECT_PATH} is not a valid file or directory!"
+    hard_exit
+  fi
+    #statements
+  ls -al ./
+  git add .
+  rhpkg commit -p -m "Adding ${DIST_GIT_INJECT_PATH} to root of branch" >/dev/null 2>&1
   popd >/dev/null
 }
 
@@ -1211,6 +1249,34 @@ push_images() {
   popd >/dev/null
 }
 
+dist_git_copy() {
+  pushd "${workingdir}" >/dev/null
+  echo "Source Branch: ${branch}"
+  echo "Target Branch: ${TARGET_DIST_GIT_BRANCH}"
+  echo "Doing dist_git_copy: ${container}"
+  if [ -z "${TARGET_DIST_GIT_BRANCH}" ]; then
+      echo "Must provide --source_branch for dist_git_copy"
+      hard_exit
+  fi
+  setup_dist_git
+  overwrite_dist_git_branch
+  popd >/dev/null
+}
+
+dist_git_inject() {
+  pushd "${workingdir}" >/dev/null
+  echo "Path to inject: ${DIST_GIT_INJECT_PATH}"
+  echo "Target Branch: ${branch}"
+  echo "Doing dist_git_inject: ${container}"
+  if [ -z "${DIST_GIT_INJECT_PATH}" ]; then
+      echo "Must provide --source_branch for dist_git_copy"
+      hard_exit
+  fi
+  setup_dist_git
+  inject_files_to_dist_git
+  popd >/dev/null
+}
+
 test_function() {
   echo -e "container: ${container}\tdocker names: ${dict_image_name[${container}]}"
   if [ "${VERBOSE}" == "TRUE" ] ; then
@@ -1227,7 +1293,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test)
+    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy | dist_git_inject)
       export action="${key}"
       ;;
     list)
@@ -1265,6 +1331,17 @@ case $key in
     --branch)
       DIST_GIT_BRANCH="$2"
       export MAJOR_RELEASE=`echo ${DIST_GIT_BRANCH}| cut -d'-' -f2`
+      export MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
+      export RELEASE_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
+      export RELEASE_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
+      shift
+      ;;
+    --target_branch)
+      TARGET_DIST_GIT_BRANCH="$2"
+      shift
+      ;;
+    --inject_path)
+      DIST_GIT_INJECT_PATH="$2"
       shift
       ;;
     --repo)
@@ -1348,6 +1425,11 @@ else
   echo "Expecting it to be ${SCRIPT_HOME}/ose.conf or /etc/ose.conf"
   echo "Exiting ..."
   exit 42
+fi
+
+if [ "$?" != "0" ]; then
+    echo "Error parsing ose.conf"
+    exit 1
 fi
 
 # Setup groups
@@ -1564,6 +1646,12 @@ do
     ;;
     test | list )
       test_function
+    ;;
+    dist_git_copy )
+      dist_git_copy
+    ;;
+    dist_git_inject )
+      dist_git_inject
     ;;
     * )
       usage

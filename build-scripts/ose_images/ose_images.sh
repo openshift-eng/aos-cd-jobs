@@ -20,9 +20,10 @@ set -o xtrace
 ## LOCAL VARIABLES ##
 MASTER_RELEASE="3.7"    # Update version_trim_list when this changes
 MAJOR_RELEASE="${MASTER_RELEASE}"  # This is a default if --branch is not specified
+MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
 
-MAJOR_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
-MAJOR_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
+RELEASE_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
+RELEASE_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
 
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
@@ -188,7 +189,9 @@ add_group_to_list() {
       add_to_list logging-kibana-docker
     ;;
     jenkins | jenkins-all )
-      add_to_list openshift-jenkins-docker
+      if [[ "${RELEASE_MAJOR}" == 3 && "${RELEASE_MINOR}" -lt 7 ]]; then
+        add_to_list openshift-jenkins-docker
+      fi
       if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] ; then
         add_to_list openshift-jenkins-2-docker
       fi
@@ -1328,6 +1331,9 @@ case $key in
     --branch)
       DIST_GIT_BRANCH="$2"
       export MAJOR_RELEASE=`echo ${DIST_GIT_BRANCH}| cut -d'-' -f2`
+      export MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
+      export RELEASE_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
+      export RELEASE_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
       shift
       ;;
     --target_branch)

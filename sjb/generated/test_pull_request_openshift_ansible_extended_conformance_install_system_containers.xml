@@ -272,6 +272,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 hack/build-base-images.sh
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS=&#39;linux/amd64&#39; hack/build-rpm-release.sh
 sudo systemctl restart docker
@@ -293,6 +298,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 tito_tmp_dir=&#34;tito&#34;
 mkdir -p &#34;\${tito_tmp_dir}&#34;
 tito tag --offline --accept-auto-changelog
@@ -318,6 +328,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 last_tag=&#34;\$( git describe --tags --abbrev=0 --exact-match HEAD )&#34;
 last_commit=&#34;\$( git log -n 1 --pretty=%h )&#34;
 sudo yum install -y &#34;atomic-openshift-utils\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
@@ -335,6 +350,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 sudo chmod o+rw /etc/environment
 echo &#34;ANSIBLE_JUNIT_DIR=\$( pwd )/_output/scripts/ansible_junit&#34; &gt;&gt; /etc/environment
 sudo mkdir -p /usr/share/ansible/plugins/callback
@@ -356,6 +376,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
 git describe --abbrev=0 &gt;&gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
@@ -373,6 +398,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
@@ -412,6 +442,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig
 SCRIPT
@@ -427,6 +462,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 docker_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;
 docker_repository=&#34;\${OS_IMAGE_PREFIX:-&#34;openshift/origin&#34;}&#34;
 [[ &#34;\$(sudo atomic containers list -n --no-trunc -f runtime=runc -f image=\${docker_repository}:\${docker_image_tag} --json | jq &#39;.[0].running&#39;)&#34; == &#34;true&#34; ]]
@@ -443,6 +483,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
+    echo &#34;[INFO] System containers are not supported, skipping.&#34;
+    exit 0
+fi
+
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
 # configure dnsmasq to forward requests to openhsift&#39;s DNS
 cat &lt;&lt;HEREDOC &gt; ci-dnsmasq.conf

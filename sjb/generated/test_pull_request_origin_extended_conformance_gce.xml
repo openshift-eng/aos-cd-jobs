@@ -549,6 +549,8 @@ for instance in $( gcloud compute instances list --regexp &#34;.*${INSTANCE_PREF
         artifact_dir=&#34;${base_artifact_dir}/masters/${name}&#34;
         mkdir -p &#34;${artifact_dir}&#34; &#34;${artifact_dir}/generated&#34; &#34;${artifact_dir}/journals&#34;
         gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit origin-master.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/origin-master.service&#34; || true
+        gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit origin-master-api.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/origin-master-api.service&#34; || true
+        gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit origin-master-controllers.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/origin-master-controllers.service&#34; || true
         gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit etcd.service          --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/etcd.service&#34;  || true
 
         gcloud compute ssh &#34;${instance}&#34; -- oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/master-metrics.log&#34;  || true

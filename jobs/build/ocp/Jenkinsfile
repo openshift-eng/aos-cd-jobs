@@ -446,7 +446,7 @@ node(TARGET_NODE) {
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",
                 subject: "Error building OSE: ${BUILD_VERSION}",
-                body: """Encoutered an error while running OCP pipline: ${err}
+                body: """Encountered an error while running OCP pipeline: ${err}
     
     Jenkins job: ${env.BUILD_URL}
     """);

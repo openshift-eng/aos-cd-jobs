@@ -1,0 +1,12 @@
+- job:
+    name: continuous-upgrade_cicd-start-load-job
+    project-type: freestyle
+    defaults: global
+    builders:
+      - shell:
+          !include-raw:
+              - cicd-start-load.sh
+    publishers:
+      - email:
+          recipients: jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com
+          notify-every-unstable-build: true

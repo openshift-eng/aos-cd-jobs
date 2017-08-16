@@ -163,7 +163,6 @@ add_group_to_list() {
       fi
     ;;
     installer)
-      add_to_list playbook2image-docker
       add_to_list aos3-installation-docker
     ;;
     asb)
@@ -658,9 +657,18 @@ overwrite_dist_git_branch(){
   echo "${branch}"
   source_branch_files=$(mktemp -d)
   rhpkg switch-branch "${branch}"
+  if [ "$?" -ne "0" ]; then
+    echo "Unable to switch to ${branch} branch."
+    exit 1
+  fi
+  
   cp -r ./ "${source_branch_files}"
   ls -al "${source_branch_files}"
   rhpkg switch-branch "${TARGET_DIST_GIT_BRANCH}"
+  if [ "$?" -ne "0" ]; then
+    echo "Unable to switch to ${TARGET_DIST_GIT_BRANCH} branch."
+    exit 1
+  fi
   #remove everything except .git
   find . -path ./.git -prune -o -exec rm -rf {} \; 2> /dev/null
   rsync -av --exclude='.git' "${source_branch_files}/" ./
@@ -1263,6 +1271,44 @@ dist_git_copy() {
   popd >/dev/null
 }
 
+dist_git_branch_check() {
+  pushd "${workingdir}" >/dev/null
+  setup_dist_git
+  pushd "${workingdir}/${container}" >/dev/null
+  rhpkg switch-branch "${branch}"
+  if [ "$?" -ne "0" ]; then
+    echo "${container}" >> "${workingdir}/missing_branch.log"
+  fi
+  popd >/dev/null
+  popd >/dev/null
+}
+
+dist_git_migrate() {
+  pushd "${workingdir}" >/dev/null
+  setup_dist_git
+  pushd "${workingdir}/${container}" >/dev/null
+  from_branch=$(echo "${branch}" | cut -d "-" -f2)
+  to_branch=$(echo "${TARGET_DIST_GIT_BRANCH}" | cut -d "-" -f2)
+  rhpkg switch-branch "${TARGET_DIST_GIT_BRANCH}"
+  if [ "$?" -ne "0" ]; then
+    echo "${container} has no ${TARGET_DIST_GIT_BRANCH} branch!"
+    exit 1
+  fi
+  
+  # update repo enable
+  echo "Updating repo enable entries..."
+  sed -i -e "s/yum-config-manager\s*--enable\s*rhel-7-server-ose-${from_branch}-rpms/yum-config-manager --enable rhel-7-server-ose-${to_branch}-rpms/g" ./Dockerfile
+  cat ./Dockerfile
+  git diff --exit-code
+  if [ "$?" -ne "0" ]; then
+    echo "Changes have been made. Commiting back to dist-git."
+    rhpkg commit -p -m "Migrating from ${branch} to ${TARGET_DIST_GIT_BRANCH}"
+  fi
+  
+  popd >/dev/null
+  popd >/dev/null
+}
+
 dist_git_inject() {
   pushd "${workingdir}" >/dev/null
   echo "Path to inject: ${DIST_GIT_INJECT_PATH}"
@@ -1293,7 +1339,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy | dist_git_inject)
+    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy | dist_git_inject | dist_git_branch_check | dist_git_migrate)
       export action="${key}"
       ;;
     list)
@@ -1653,13 +1699,32 @@ do
     dist_git_inject )
       dist_git_inject
     ;;
+    dist_git_branch_check )
+      dist_git_branch_check
+    ;;
+    dist_git_migrate )
+      dist_git_migrate
+    ;;
     * )
       usage
       exit 2
     ;;
   esac
 done
+
+# Do post work for above Actions
+case "$action" in
+  dist_git_branch_check )
+    if [ -f "${workingdir}/missing_branch.log" ]; then
+      echo "dist-git repos missing branch ${branch}:"
+      cat "${workingdir}/missing_branch.log"
+    else
+      echo "No repos found missing branch ${branch}"
+    fi
+  ;;
+esac
 }
+
 
 # Do the work
 do_work_each_package

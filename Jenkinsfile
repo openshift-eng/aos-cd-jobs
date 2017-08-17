@@ -7,7 +7,7 @@ properties(
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
   if(env.WORKSPACE == null) {
-    env.WORKSPACE = pwd()
+    env.WORKSPACE = WORKSPACE = pwd()
   }
 }
 

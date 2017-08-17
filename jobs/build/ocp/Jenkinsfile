@@ -401,7 +401,7 @@ node(TARGET_NODE) {
                 sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo"
             }
 
-            if ( EARLY_LATEST_HACK.asBoolean() ) {
+            if ( EARLY_LATEST_HACK.toBoolean() ) {
                 // Hack to keep from breaking openshift-ansible CI during US Eastern daylight builds. They need the latest puddle to exist
                 // before images are pushed to registry-ops in order for their current CI implementation to work.
                 OCP_PUDDLE = buildlib.build_puddle(
@@ -420,7 +420,7 @@ node(TARGET_NODE) {
                 }
             }
 
-            if ( ! EARLY_LATEST_HACK.asBoolean() ) {
+            if ( ! EARLY_LATEST_HACK.toBoolean() ) {
                 // If we have not done so already, create the "latest" puddle
                 OCP_PUDDLE = buildlib.build_puddle(
                         PUDDLE_CONF,

@@ -312,14 +312,17 @@ setup_dockerfile() {
   if [ "$ctype" == "" ]; then
     ctype="rpms"
   fi
-  wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile?h=${branch} &>/dev/null
-  test_file="$(head -n 1 Dockerfile | awk '{print $1}')"
-  if [ "${test_file}" == "" ] ; then
-    rm -f Dockerfile
-    wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile.product?h=${branch} &>/dev/null
-  elif [ "${test_file}" == "Dockerfile.product" ] || [ "${test_file}" == "Dockerfile.rhel7" ] ; then
-    rm -f Dockerfile
-    wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/${ctype}/${container}/plain/${test_file}?h=${branch} &>/dev/null
+  
+  wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile?h=${branch}
+  if [ "$?" != "0" ]; then
+    wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile?h=${branch}
+    if [ "$?" != "0" ]; then
+        wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/${ctype}/${container}.git/plain/Dockerfile?h=${branch}
+        if [ "$?" != "0" ]; then
+            echo "Unable to download Dockerfile"
+            exit 1
+        fi
+    fi
   fi
   popd >/dev/null
 }

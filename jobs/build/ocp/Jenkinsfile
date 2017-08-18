@@ -435,12 +435,13 @@ node(TARGET_NODE) {
             // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
             buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", BUILD_VERSION, BUILD_MODE )
 
-            buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, VERSION )
+            NEW_FULL_VERSION="${spec.version}-${NEW_RELEASE}"     
+            
+            buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION )
 
-            echo "Finished building OCP ${VERSION}-${NEW_RELEASE}"
-
-
-            mail_success( spec.version )
+            echo "Finished building OCP ${NEW_FULL_VERSION}"
+            
+            mail_success( NEW_FULL_VERSION )
         }
     } catch ( err ) {  
         mail(to: "${MAIL_LIST_FAILURE}",

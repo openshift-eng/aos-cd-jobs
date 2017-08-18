@@ -48,10 +48,11 @@ node('openshift-build-1') {
         stage( 'operation' ) {
             sshagent([CLUSTER_NAME]) {
                 if ( OPERATION == "reinstall" ) {
-                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com delete"
-                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com install"
+                    sh "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com delete"
+                    sh "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com install"
                 } else {
-                    sh "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com ${OPERATION}"
+                    // Use of -t necessary for Jenkins job termination to ripple down to cicd-control.sh
+                    sh "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com ${OPERATION}"
                 }
             }
         }

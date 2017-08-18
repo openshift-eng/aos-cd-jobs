@@ -31,7 +31,8 @@ def run( operation_name, args = [:], capture_stdout=false ) {
     output = ""
     waitUntil {
         try {
-            cmd = "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com ${operation_name} ${this.map_to_string(args)}"
+            // -t is necessary for cicd-control.sh to be terminated by Jenkins job terminating ssh early: https://superuser.com/questions/20679/why-does-my-remote-process-still-run-after-killing-an-ssh-session
+            cmd = "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com ${operation_name} ${this.map_to_string(args)}"
             output = sh(
                     returnStdout: capture_stdout,
                     script: cmd

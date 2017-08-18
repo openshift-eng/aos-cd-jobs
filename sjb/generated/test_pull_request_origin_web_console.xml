@@ -225,7 +225,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
-oc cluster up --version=latest --public-hostname=localhost
+oc cluster up --version=latest --public-hostname=localhost --loglevel=5 --server-loglevel=5
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

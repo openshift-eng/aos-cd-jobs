@@ -10,7 +10,7 @@ extensions:
       repository: "origin"
       script: |-
         sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
-        oc cluster up --version=latest --public-hostname=localhost
+        oc cluster up --version=latest --public-hostname=localhost --loglevel=5 --server-loglevel=5
     - type: "script"
       title: "run web console tests"
       repository: "origin-web-console"

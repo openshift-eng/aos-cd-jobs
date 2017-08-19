@@ -76,7 +76,11 @@ Brew:
 
 Jenkins job: ${env.BUILD_URL}
 
+===Atomic OpenShift changelog snippet===
 ${OSE_CHANGELOG}
+
+===OpenShift Ansible changelog snippet===
+${OA_CHANGELOG}
 """);
 }
 

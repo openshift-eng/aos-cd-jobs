@@ -357,6 +357,9 @@ function cluster_operation() {
   # Do long running operations
   is_running &
 
+  # For now, let's skip statuspage operations
+  export SKIP_STATUS_PAGE="true"
+
   # Hack to ensure docker doesn't die during upgrades
   DOCKER_TIMER_OPERATIONS=(upgrade upgrade-control-plane upgrade-nodes)
   if [[ " ${DOCKER_TIMER_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then

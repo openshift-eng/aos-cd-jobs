@@ -268,9 +268,28 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+# is logging using master or a release branch?
+pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
+curbranch=\$( git branch | awk &#39;/^[*]/ {print \$2}&#39; )
+popd
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
-( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+if [ &#34;\${curbranch}&#34; = master ] ; then
+   git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
+   ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+else
+   pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
+   # get repo ver from branch name
+   repover=\$( echo &#34;\${curbranch}&#34; | sed &#39;s/release-//&#39; )
+   # get version from tag
+   commitver=\$( git describe --tags --abbrev=0 )
+   # pkg ver is commitver with leading &#34;-&#34; instead of &#34;v&#34;
+   pkgver=\$( echo &#34;\${commitver}&#34; | sed &#39;s/^v/-/&#39; )
+   sudo yum -y install centos-release-openshift-origin\${repover}
+   echo &#34;\${commitver}&#34; &gt; \${jobs_repo}/ORIGIN_COMMIT
+   echo &#34;\${pkgver}&#34; &gt; \${jobs_repo}/ORIGIN_PKG_VERSION
+   # disable local origin repo
+   sudo sed -i &#34;s/enabled.*=.*1/enabled=0/&#34; /etc/yum.repos.d/origin-local-release.repo
+fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -63,13 +63,20 @@ extensions:
         elif [[ "${curbranch}" =~ ^release-* ]] ; then
            pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
            # get repo ver from branch name
-           repover=$( echo "${curbranch}" | sed 's/release-//' )
+           repover=$( echo "${curbranch}" | sed -e 's/release-//' -e 's/[.]//' )
            # get version from tag
            closest_tag=$( git describe --tags --abbrev=0 )
            # pkg ver is closest_tag with leading "-" instead of "v"
            pkgver=$( echo "${closest_tag}" | sed 's/^v/-/' )
-           rpm -q centos-release-openshift-origin${repover} > /dev/null 2>&1 || \
-               sudo yum -y install centos-release-openshift-origin${repover}
+           # disable all of the centos repos except for the one for the
+           # version being tested - this assumes a devenv environment where
+           # all of the repos are installed
+           for repo in $( sudo yum repolist | awk '/^centos-paas-sig-openshift-origin/ {print $1}' ) ; do
+              case $repo in
+                 centos-paas-sig-openshift-origin${repover}-rpms) sudo yum-config-manager --enable $repo > /dev/null ;;
+                 *) sudo yum-config-manager --disable $repo > /dev/null ;;
+              esac
+           done
            echo "${closest_tag}" > ${jobs_repo}/ORIGIN_COMMIT
            echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
            # disable local origin repo

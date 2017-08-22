@@ -113,8 +113,13 @@ extensions:
       timeout: 600
       repository: "origin"
       script: |-
-        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        rpm -V "${origin_package}"
+        pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
+        popd
+        if [[ "${curbranch}" == master ]] ; then
+           origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+           rpm -V "${origin_package}"
+        fi
     - type: "script"
       title: "install origin-aggregated-logging"
       repository: "aos-cd-jobs"

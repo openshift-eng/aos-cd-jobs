@@ -1,3 +1,4 @@
 ---
 children:
   - "test_pull_request_origin_aggregated_logging_ansible"
+  - "test_pull_request_origin_aggregated_logging_ansible_json_file"

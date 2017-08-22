@@ -75,7 +75,8 @@ def sort_pkgs(available_pkgs):
 	# installation and upgrade considerations.
 	exceptional_pkg = {}
 	for pkg in available_pkgs:
-		if (pkg.name == "origin" and pkg.version == "3.6.0" and pkg.release == "0.0.alpha.0.1"):
+		if (pkg.name == "origin" and pkg.version == "3.6.0" and pkg.release == "0.0.alpha.0.1") or \
+		   (pkg.name == "atomic-openshift-utils" and pkg.version == "3.6.173.0.7" and pkg.release == "1.git.0.f6f19ed.el7"):
 			available_pkgs.remove(pkg)
 			break
 

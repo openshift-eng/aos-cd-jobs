@@ -13,7 +13,6 @@ properties(
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.7', description: 'OCP Version to build', name: 'BUILD_VERSION'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable intra-day build hack for CL team CI?', name: 'EARLY_LATEST_HACK'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "release\npre-release\nonline:int\nonline:stg", description:
 '''
 release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
@@ -56,11 +55,31 @@ def mail_success( version ) {
         inject_notes = "\n***Special notes associated with this build****\n${SPECIAL_NOTES.trim()}\n***********************************************\n"
     }
 
+    //IMG_SUCCESSES
+    //IMG_FAILURES
+
+    img_fail_msg = ""
+    img_success_msg = """
+===Successful Image Builds===
+${IMG_SUCCESSES.join('\n')}\n
+    """
+
+    if(IMG_FAILURES.size() == 0) {
+      mail_subject = "[aos-devel] New build for OpenShift ${target}: ${version}"
+    }
+    else {
+      mail_subject = "[aos-devel] Partial build for OpenShift ${target}: ${version}"
+      img_fail_msg = """
+===Failed Image Builds===
+${IMG_FAILURES.join('\n')}\n
+      """
+    }
+
     mail(
             to: "${MAIL_LIST_SUCCESS}",
             from: "aos-cd@redhat.com",
             replyTo: 'smunilla@redhat.com',
-            subject: "[aos-devel] New build for OpenShift ${target}: ${version}",
+            subject: "${mail_subject}",
             body: """\
 OpenShift Version: v${version}
 ${inject_notes}
@@ -75,6 +94,9 @@ Brew:
   - OpenShift Ansible: ${OA_BREW_URL}
 
 Jenkins job: ${env.BUILD_URL}
+
+${img_fail_msg}
+${img_success_msg}
 
 ===Atomic OpenShift changelog snippet===
 ${OSE_CHANGELOG}
@@ -427,21 +449,64 @@ node(TARGET_NODE) {
             }
 
             stage( "build images" ) {
-                // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
-                sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
+                dir( temp=true ) {
+                  // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
+                  PUDDLE_REPO = "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo"
+                  def build_result = sh (
+                    script: "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --workingdir ${pwd()} --group base --repo ${PUDDLE_REPO}"
+                    returnStatus: true
+                  ) > 0
+                  def failed_list_file = "${pwd()}/logs/failed_image_list"
+                  IMG_FAILURES = []
+                  if(fileExists(failed_list_file)) {
+                    def failed_image_list = readFile(failed_list_file)
+                    IMG_FAILURES = failed_image_list.split("\\r?\\n");
+                  }
+
+                  def success_list_file = "${pwd()}/logs/success_image_list"
+                  IMG_SUCCESSES = []
+                  if(fileExists(success_list_file)){
+                    def success_image_list = readFile(success_list_file)
+                    IMG_SUCCESSES = success_image_list.split("\\r?\\n");
+                  }
+
+                  acceptable_to_fail = [
+                    "logging-deployment-docker",
+                    "logging-curator-docker",
+                    "logging-auth-proxy-docker",
+                    "logging-elasticsearch-docker",
+                    "logging-fluentd-docker",
+                    "logging-kibana-docker"
+                  ]
+
+                  if( ! build_result ){
+
+                    if(IMG_FAILURES.size() == 0 && IMG_SUCCESSES.size() == 0){
+                      error("ose_images.sh threw a fatal error while building images.")
+                    }
+                    if(IMG_FAILURES.size() > 0){
+                      fails = []
+                      for(String img: IMG_FAILURES){
+                        if(!acceptable_to_fail.contains(img)){
+                          fails.add(img)
+                        }
+                      }
+                      if(fails.size() > 0){
+                        msg = "The following images failed and one or more was required.\n"
+                        msg = msg + IMG_FAILURES.join("\n")
+                        error(msg)
+                      }
+                    }
+                  }
+              }
             }
 
-            if ( EARLY_LATEST_HACK.toBoolean() ) {
-                // Hack to keep from breaking openshift-ansible CI during US Eastern daylight builds. They need the latest puddle to exist
-                // before images are pushed to registry-ops in order for their current CI implementation to work.
-                OCP_PUDDLE = buildlib.build_puddle(
-                        PUDDLE_CONF,    // The puddle configuration file to use
-                        PUDDLE_SIGN_KEYS, // openshifthosted key
-                        "-b",   // do not fail if we are missing dependencies
-                        "-d",   // print debug information
-                        "-n"
-                )
-            }
+            buildlib.puddle_status(
+                    "AtomicOpenShift",    // Build Type
+                    "${BUILD_VERSION}", // current build version
+                    "BUILDING",   // status.txt value
+                    true,   // symlink latest
+            )
 
             stage( "push images" ) {
                 dir( "${env.WORKSPACE}/build-scripts/ose_images" ) {
@@ -451,16 +516,12 @@ node(TARGET_NODE) {
                 }
             }
 
-            if ( ! EARLY_LATEST_HACK.toBoolean() ) {
-                // If we have not done so already, create the "latest" puddle
-                OCP_PUDDLE = buildlib.build_puddle(
-                        PUDDLE_CONF,    // The puddle configuration file to use
-                        PUDDLE_SIGN_KEYS, // openshifthosted key
-                        "-b",   // do not fail if we are missing dependencies
-                        "-d",   // print debug information
-                        "-n"
-                )
-            }
+            buildlib.puddle_status(
+                    "AtomicOpenShift",    // Build Type
+                    "${BUILD_VERSION}", // current build version
+                    "COMPLETE",   // status.txt value
+                    false,   // symlink latest
+            )
 
             echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
 
@@ -478,15 +539,15 @@ node(TARGET_NODE) {
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
-            
+
             mail_success( NEW_FULL_VERSION )
         }
-    } catch ( err ) {  
+    } catch ( err ) {
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",
                 subject: "Error building OSE: ${BUILD_VERSION}",
                 body: """Encountered an error while running OCP pipeline: ${err}
-    
+
     Jenkins job: ${env.BUILD_URL}
     """);
         throw err

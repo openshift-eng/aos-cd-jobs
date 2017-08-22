@@ -486,9 +486,6 @@ wait_for_all_builds() {
       cat "${workingdir}/logs/failed-logs/${line}"
       echo
     done
-
-    echo "Failed build occured. Exiting."
-    hard_exit
   fi
 }
 
@@ -1397,6 +1394,10 @@ case $key in
       export RELEASE_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
       shift
       ;;
+    --workingdir)
+      workingdir="$2"
+      shift
+      ;;
     --target_branch)
       TARGET_DIST_GIT_BRANCH="$2"
       shift
@@ -1540,7 +1541,12 @@ fi
 
 # Setup directory
 if ! [ "${action}" == "test" ] && ! [ "${action}" == "list" ] ; then
-  workingdir=$(mktemp -d /var/tmp/ose_images-XXXXXX)
+
+  if [ -z ${workingdir} ]; then
+    workingdir=$(mktemp -d /var/tmp/ose_images-XXXXXX)
+  else
+    mkdir -p "${workingdir}"
+  fi
   pushd "${workingdir}" &>/dev/null
   mkdir -p logs/done
   mkdir -p logs/failed-logs
@@ -1795,7 +1801,8 @@ case "$action" in
     echo "Good Builds : ${SUCCESS_TOTAL}"
     echo "Fail Builds : ${BUILD_FAIL}"
 
-    cat ${workingdir}/logs/buildfailed | cut -d':' -f3
+    cat ${workingdir}/logs/buildfailed | cut -d':' -f3 > "${workingdir}/logs/failed_image_list"
+    cat ${workingdir}/logs/success | cut -d':' -f3 > "${workingdir}/logs/success_image_list"
     if [ "${BUILD_FAIL}" != "0" ] ; then
       exit 1
     fi

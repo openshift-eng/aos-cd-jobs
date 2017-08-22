@@ -285,4 +285,17 @@ def build_puddle(conf_url, keys, Object...args) {
     return puddle_dir
 }
 
+def puddle_status(build, version, status, latest) {
+
+    latest_opt = (latest == true)?"--link-latest":""
+
+    // Ideally, we would call invoke_on_rcm_guest, but jenkins makes it absurd to invoke with conf_url as one of the arguments because the spread operator is not enabled.
+    def puddle_output = sh(
+            returnStdout: true,
+            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s -- --build ${build} --version ${version} --status ${status} ${latest_opt} < ${env.WORKSPACE}/build-scripts/rcm-guest/puddle_status.sh",
+    ).trim()
+
+    echo "Puddle status output:\n${puddle_output}"
+}
+
 return this

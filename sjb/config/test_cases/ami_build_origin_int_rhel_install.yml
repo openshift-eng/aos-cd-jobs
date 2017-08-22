@@ -85,6 +85,8 @@ actions:
       oct package ami --mark-ready
 system_journals:
   - origin-master.service
+  - origin-master-api.service
+  - origin-master-controllers.service
   - origin-node.service
   - openvswitch.service
   - ovs-vswitchd.service

@@ -93,7 +93,7 @@ actions:
       elif [[ "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.2.1" || "${TARGET_ORIGIN_BRANCH}" == "release-1.2.1" ||
               "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.3" || "${TARGET_ORIGIN_BRANCH}" == "release-1.3" ]]; then
         oct prepare docker --version=1.10.3 --repo=oso-rhui-rhel-server-*
-          
+
       elif [[ "${TARGET_ORIGIN_BRANCH}" =~ enterprise-3.[4-5] || "${TARGET_ORIGIN_BRANCH}" =~ release-1.[4-5] ]]; then
         oct prepare docker --version=1.12.6 --repo=oso-rhui-rhel-server-* -u https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/
 
@@ -213,4 +213,6 @@ generated_artifacts:
 system_journals:
   - docker.service
   - origin-master.service
+  - origin-master-api.service
+  - origin-master-controllers.service
   - origin-node.service

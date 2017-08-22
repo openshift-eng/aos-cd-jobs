@@ -177,6 +177,8 @@ extensions:
     openshift_ansible_package_history.log: "sudo yum history info openshift-ansible"
   system_journals:
     - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
     - origin-node.service
     - openvswitch.service
     - ovs-vswitchd.service

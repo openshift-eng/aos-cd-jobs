@@ -98,6 +98,8 @@ extensions:
         OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
   system_journals:
     - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
     - origin-node.service
     - openvswitch.service
     - ovs-vswitchd.service

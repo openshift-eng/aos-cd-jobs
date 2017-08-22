@@ -116,4 +116,6 @@ generated_artifacts:
 system_journals:
   - docker.service
   - origin-master.service
+  - origin-master-api.service
+  - origin-master-controllers.service
   - origin-node.service

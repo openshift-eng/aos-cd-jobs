@@ -525,6 +525,8 @@ mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit docker.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/docker.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit dnsmasq.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/dnsmasq.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master.service&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master-api.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master-api.service&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master-controllers.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master-controllers.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-node.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-node.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit openvswitch.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/openvswitch.service&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovs-vswitchd.service&#34;

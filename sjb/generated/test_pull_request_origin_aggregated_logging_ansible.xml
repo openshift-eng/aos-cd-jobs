@@ -414,8 +414,13 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
-rpm -V &#34;\${origin_package}&#34;
+pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
+curbranch=\$( git rev-parse --abbrev-ref HEAD )
+popd
+if [[ &#34;\${curbranch}&#34; == master ]] ; then
+   origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
+   rpm -V &#34;\${origin_package}&#34;
+fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

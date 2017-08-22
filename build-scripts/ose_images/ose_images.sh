@@ -575,17 +575,19 @@ update_dockerfile() {
   do
     if [ "${update_version}" == "TRUE" ] ; then
       sed -i -e "s/version=\".*\"/version=\"${version_version}\"/" ${line}
-      sed -i -e "s/FROM \(.*\):v.*/FROM \1:${version_version}/" ${line}
+      sed -i -e "s/FROM \(.*\):v.*/FROM \1:${version_version}-${release_version}/" ${line}
     fi
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}
 
       if [[ "${release_version}" == *"."* ]]; then  # Use newer dot notation?
         nr_start=$(echo ${release_version} | rev | cut -d "." -f2- | rev)
-        # For any build using this method, we want a tag without the dash. This is
-        # what OCP will actually pull when it needs to pull an image associated with
-        # its current version.
-        echo "${nr_start}" > additional-tags
+        # For any build using this method, we want a tag without the last field (e.g. "3.7.0-0.100.5" instead of
+        # "3.7.0-0.100.5.8"). The shorter tag is what OCP will actually use when it needs to pull an image
+        # associated with its current version. The last field in the release is used for refreshing images and
+        # is not necessary outside of pulp.
+        echo "v${version_version}-${nr_start}" > additional-tags  # e.g. "v3.7.0-0.100.2" . This is the key tag OCP will use
+        echo "v${MAJOR_RELEASE}" >> additional-tags  # e.g. "v3.7" . For users/images where exact matches aren't critical
         git add additional-tags
       fi
 
@@ -600,10 +602,12 @@ update_dockerfile() {
         nr_end=$(echo ${old_release_version} | rev | cut -d . -f 1 | rev)
         new_release="${nr_start}.$(($nr_end+1))"
 
-        # For any build using this method, we want a tag without the dash. This is
-        # what OCP will actually pull when it needs to pull an image associated with
-        # its current version.
-        echo "${nr_start}" > additional-tags
+        # For any build using this method, we want a tag without the last field (e.g. "3.7.0-0.100.5" instead of
+        # "3.7.0-0.100.5.8"). The shorter tag is what OCP will actually use when it needs to pull an image
+        # associated with its current version. The last field in the release is used for refreshing images and
+        # is not necessary outside of pulp.
+        echo "v${version_version}-${nr_start}" > additional-tags  # e.g. "v3.7.0-0.100.2" . This is the key tag OCP will use
+        echo "v${MAJOR_RELEASE}" >> additional-tags  # e.g. "v3.7" . For users/images where exact matches aren't critical
         git add additional-tags
       else
           let new_release_version=$old_release_version+1
@@ -1112,9 +1116,18 @@ start_push_image() {
     for current_tag in ${tag_list} ; do
       case ${current_tag} in
         default )
-          # Full name - <name>:<version>-<release>   (where version is something like "v3.6.140")
+          # Full name - <name>:<version>-<release>   (e.g. something like "v3.6.140-1" or "v3.7.0-0.100.4.0")
           push_image "${brew_image_url}" "${brew_image_sha}" "${image_path}" "${version_version}-${release_version}" | tee -a ${workingdir}/logs/push.image.log
           echo | tee -a ${workingdir}/logs/push.image.log
+
+          # If using new dot notation, strip off last release field and push. See update_docker_file for details.
+          if [[ "${release_version}" == *"."* ]]; then  # Using newer dot notation?
+            nr_start=$(echo ${release_version} | rev | cut -d "." -f2- | rev)  # Strip off the last field of the release string
+            # Push with last release field stripped off since it is a "bump" field we use for refreshing images.
+            push_image "${brew_image_url}" "${brew_image_sha}" "${image_path}" "${version_version}-${nr_start}" | tee -a ${workingdir}/logs/push.image.log
+            echo | tee -a ${workingdir}/logs/push.image.log
+          fi
+
           # Name and Version - <name>:<version>
           if ! [ "${NOVERSIONONLY}" == "TRUE" ] ; then
             push_image "${brew_image_url}" "${brew_image_sha}" "${image_path}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log

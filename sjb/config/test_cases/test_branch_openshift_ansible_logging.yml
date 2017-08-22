@@ -54,25 +54,28 @@ extensions:
       script: |-
         # is logging using master or a release branch?
         pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
-        curbranch=$( git branch | awk '/^[*]/ {print $2}' )
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
         popd
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        if [ "${curbranch}" = master ] ; then
+        if [[ "${curbranch}" == master ]] ; then
            git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
            ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
-        else
+        elif [[ "${curbranch}" =~ ^release-* ]] ; then
            pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
            # get repo ver from branch name
            repover=$( echo "${curbranch}" | sed 's/release-//' )
            # get version from tag
-           commitver=$( git describe --tags --abbrev=0 )
-           # pkg ver is commitver with leading "-" instead of "v"
-           pkgver=$( echo "${commitver}" | sed 's/^v/-/' )
-           sudo yum -y install centos-release-openshift-origin${repover}
-           echo "${commitver}" > ${jobs_repo}/ORIGIN_COMMIT
+           closest_tag=$( git describe --tags --abbrev=0 )
+           # pkg ver is closest_tag with leading "-" instead of "v"
+           pkgver=$( echo "${closest_tag}" | sed 's/^v/-/' )
+           rpm -q centos-release-openshift-origin${repover} > /dev/null 2>&1 || \
+               sudo yum -y install centos-release-openshift-origin${repover}
+           echo "${closest_tag}" > ${jobs_repo}/ORIGIN_COMMIT
            echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
            # disable local origin repo
-           sudo sed -i "s/enabled.*=.*1/enabled=0/" /etc/yum.repos.d/origin-local-release.repo
+           sudo yum-config-manager --disable origin-local-release
+        else
+           echo Error: unknown base branch $curbranch: please resubmit PR on master or a release-x.y branch
         fi
     - type: "script"
       title: "install origin"

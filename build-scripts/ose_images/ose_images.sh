@@ -596,8 +596,8 @@ update_dockerfile() {
       # Example release line: release="2"
       old_release_version=$(grep release= ${line} | cut -d'=' -f2 | cut -d'"' -f2 )
       if [[ "${old_release_version}" == *"."* ]]; then  # Use newer dot notation?
-        # The new build pipline initializes the Dockerfile to have release=REL#.INT#.STG#-0
-        # If the release=X.Y-Z, bump the Z
+        # The new build pipline initializes the Dockerfile to have release=REL.INT.STG.0
+        # If the release=X.Y.Z.B, bump the B
         nr_start=$(echo ${old_release_version} | rev | cut -d "." -f2- | rev)
         nr_end=$(echo ${old_release_version} | rev | cut -d . -f 1 | rev)
         new_release="${nr_start}.$(($nr_end+1))"
@@ -1129,10 +1129,9 @@ start_push_image() {
           fi
 
           # Name and Version - <name>:<version>
-          if ! [ "${NOVERSIONONLY}" == "TRUE" ] ; then
-            push_image "${brew_image_url}" "${brew_image_sha}" "${image_path}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log
-          fi
-          # Latest - <name>:latest 
+          push_image "${brew_image_url}" "${brew_image_sha}" "${image_path}" "${version_version}" | tee -a ${workingdir}/logs/push.image.log
+
+          # Latest - <name>:latest
           if ! [ "${NOTLATEST}" == "TRUE" ] ; then
             push_image "${brew_image_url}" "${brew_image_sha}" "${image_path}" "latest" | tee -a ${workingdir}/logs/push.image.log
           fi

@@ -52,9 +52,38 @@ extensions:
       title: "determine the release commit for origin images and version for rpms"
       repository: "origin"
       script: |-
+        # is logging using master or a release branch?
+        pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
+        popd
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
-        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+        if [[ "${curbranch}" == master ]] ; then
+           git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+           ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+        elif [[ "${curbranch}" =~ ^release-* ]] ; then
+           pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
+           # get repo ver from branch name
+           repover=$( echo "${curbranch}" | sed -e 's/release-//' -e 's/[.]//' )
+           # get version from tag
+           closest_tag=$( git describe --tags --abbrev=0 )
+           # pkg ver is closest_tag with leading "-" instead of "v"
+           pkgver=$( echo "${closest_tag}" | sed 's/^v/-/' )
+           # disable all of the centos repos except for the one for the
+           # version being tested - this assumes a devenv environment where
+           # all of the repos are installed
+           for repo in $( sudo yum repolist | awk '/^centos-paas-sig-openshift-origin/ {print $1}' ) ; do
+              case $repo in
+                 centos-paas-sig-openshift-origin${repover}-rpms) sudo yum-config-manager --enable $repo > /dev/null ;;
+                 *) sudo yum-config-manager --disable $repo > /dev/null ;;
+              esac
+           done
+           echo "${closest_tag}" > ${jobs_repo}/ORIGIN_COMMIT
+           echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
+           # disable local origin repo
+           sudo yum-config-manager --disable origin-local-release
+        else
+           echo Error: unknown base branch $curbranch: please resubmit PR on master or a release-x.y branch
+        fi
     - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
@@ -84,8 +113,13 @@ extensions:
       timeout: 600
       repository: "origin"
       script: |-
-        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        rpm -V "${origin_package}"
+        pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
+        popd
+        if [[ "${curbranch}" == master ]] ; then
+           origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+           rpm -V "${origin_package}"
+        fi
     - type: "script"
       title: "install origin-aggregated-logging"
       repository: "aos-cd-jobs"

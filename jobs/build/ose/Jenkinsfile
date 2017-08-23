@@ -131,6 +131,11 @@ node(TARGET_NODE) {
         sh './docker_login.sh'
     }
 
+
+    if ( OSE_MINOR.toInteger() > 6 ) {
+        error( "This pipeline is only designed for versions <= 3.6" )
+    }
+
     set_workspace()
     stage('Merge and build') {
         try {

@@ -168,7 +168,8 @@ node(TARGET_NODE) {
                     spec = buildlib.read_spec_info("origin.spec")
                     rel_fields = spec.release.tokenize(".")
 
-                    if ( BUILD_MODE == "online:int" || BUILD_MODE == "online:stg") {
+
+                    if ( BUILD_MODE == "online:int" || BUILD_MODE == "online:stg" ) {
                         /**
                          * In non-release candidates, we need the following fields
                          *      REL.INT.STG
@@ -182,7 +183,8 @@ node(TARGET_NODE) {
                         }
 
                         if ( rel_fields[0].toInteger() != 0 ) {
-                            // It's technically possible to do this, but why?
+                            // Don't build release candidate images this way since they can't wind up
+                            // in registry.access with a tag OCP can pull.
                             error( "Do not build released products in ${BUILD_MODE}; just build in release or pre-release mode" )
                         }
 
@@ -199,15 +201,42 @@ node(TARGET_NODE) {
                             rel_fields[2] = rel_fields[2].toInteger() + 1  // Bump the STG version
                         }
 
+                        NEW_VERSION = spec.version   // Keep the existing spec's version
                         NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
 
+                        // Add a bumpable field for ose_images.sh to increment for image refreshes (i.e. REL.INT.STG.BUMP)
+                        NEW_DOCKERFILE_RELEASE = "${NEW_RELEASE}.0"
+
                     } else if ( BUILD_MODE == "release" || BUILD_MODE == "pre-release" ) {
-                        NEW_RELEASE = "${rel_fields[0].toInteger() + 1}"  // Only keep the first field, and increment it
+
+                        /**
+                         * Once someone sets the origin.spec Release to 1, we are building release candidates.
+                         * If a release candidate is released, its associated images will show up in registry.access
+                         * with the tags X.Y.Z-R  and  X.Y.Z. The "R" cannot be used since the fields is bumped by
+                         * refresh-images when building images with signed RPMs. That is, if OCP tried to load images
+                         * with the X.Y.Z-R' its RPM was built with, the R != R' (since R' < R) and the image
+                         * would not be found.
+                         * For release candidates, therefore, we must only use X.Y.Z to differentiate builds.
+                         *
+                         * Note that this problem does not affect online:int & online:stg builds since we control the
+                         * tags in the registries. We have refresh-images bump a harmless field in the release and then
+                         * craft a tag in the registry [version]-[release] which does not include that bumped field.
+                         */
+                        if ( rel_fields[0].toInteger() != 1 ) {
+                            error( "You need to set the spec Release field to 1 in order to build in this mode" )
+                        }
+
+                        // Undertake to increment the last field in the version (e.g. 3.7.0 -> 3.7.1)
+                        ver_fields = spec.version.tokenize(".")
+                        ver_fields[ver_fields.size()-1] = "${ver_fields[ver_fields.size()-1].toInteger() + 1}"
+                        NEW_VERSION = ver_fields.join(".")
+                        NEW_DOCKERFILE_RELEASE = NEW_RELEASE = "1"
+
                     } else {
                         error( "Unknown BUILD_MODE: ${BUILD_MODE}" )
                     }
 
-                    currentBuild.displayName = "#${currentBuild.number} - ${spec.version}-${NEW_RELEASE} (${BUILD_MODE})"
+                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE})"
 
                 }
             }
@@ -321,7 +350,7 @@ node(TARGET_NODE) {
                         sh "tito tag --debug --accept-auto-changelog"
                     } else {
                         // If >= 3.6, keep openshift-ansible in sync with OCP version
-                        buildlib.set_rpm_spec_version( "openshift-ansible.spec", spec.version )
+                        buildlib.set_rpm_spec_version( "openshift-ansible.spec", NEW_VERSION )
                         buildlib.set_rpm_spec_release_prefix( "openshift-ansible.spec", NEW_RELEASE )
                         // Note that I did not use --use-release because it did not maintain variables like %{?dist}
                         sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
@@ -397,7 +426,7 @@ node(TARGET_NODE) {
             }
 
             stage( "update dist-git" ) {
-                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_RELEASE}.0' --version 'v${spec.version}'"
+                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_DOCKERFILE_RELEASE}' --version 'v${NEW_VERSION}'"
             }
 
             stage( "build images" ) {
@@ -439,9 +468,15 @@ node(TARGET_NODE) {
             // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
             buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", BUILD_VERSION, BUILD_MODE )
 
-            NEW_FULL_VERSION="${spec.version}-${NEW_RELEASE}"     
-            
-            buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION )
+            NEW_FULL_VERSION="${NEW_VERSION}-${NEW_RELEASE}"
+
+            if ( NEW_RELEASE != "1" ) {
+                // If this is not a release candidate, push binary in a directory qualified with release field information
+                buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION )
+            } else {
+                // If this is a release candidate, the directory binary directory should not contain release information
+                buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_VERSION )
+            }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             

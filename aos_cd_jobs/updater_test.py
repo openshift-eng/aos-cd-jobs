@@ -46,12 +46,26 @@ class TestUpdateMethods(TestCase):
         update_branches(repo)
         create_mock.assert_has_calls((call(repo, 'job0'), call(repo, 'job1')))
 
+    @patch('aos_cd_jobs.updater.list_jobs', lambda *_: ('job0',))
+    @patch('aos_cd_jobs.updater.create_remote_branch')
+    def test_update_branches_remote(self, create_mock):
+        repo = Mock()
+        repo.working_dir = '/tmp/aos-cd-jobs'
+        repo.branches = []
+        repo.remotes = MagicMock()
+        repo.remotes['origin'].refs = {'job0': Mock()}
+        update_branches(repo)
+        repo.create_head.assert_has_calls((call('job0', 'origin/job0'),))
+        create_mock.assert_has_calls((call(repo, 'job0'),))
+
     @patch('aos_cd_jobs.updater.create_remote_branch', lambda *_: None)
     @patch('aos_cd_jobs.updater.list_jobs')
     def test_update_branches_new(self, list_jobs_mock):
         list_jobs_mock.return_value = ['job0']
         repo = Mock()
         repo.branches = []
+        repo.remotes = MagicMock()
+        repo.remotes['origin'].refs = []
         update_branches(repo)
         repo.create_head.assert_called_once_with('job0', 'master')
 
@@ -70,7 +84,7 @@ class TestUpdateMethods(TestCase):
         repo = Mock()
         name = 'job0'
         publish_branch(repo, name)
-        repo.remotes.origin.push.assert_called_once_with(name, force=True)
+        repo.remotes.origin.push.assert_called_once_with(name)
 
 
 if __name__ == '__main__':

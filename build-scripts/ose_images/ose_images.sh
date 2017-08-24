@@ -136,7 +136,7 @@ add_group_to_list() {
         add_to_list logging-curator-docker
         add_to_list metrics-deployer-docker
         if [ ${MAJOR_RELEASE} != "3.3" ] && [ ${MAJOR_RELEASE} != "3.4" ]  && [ ${MAJOR_RELEASE} != "3.5" ] ; then
-          # add_to_list logging-auth-proxy-docker  
+          # add_to_list logging-auth-proxy-docker
           # add_to_list logging-elasticsearch-docker
           # add_to_list logging-fluentd-docker
           # add_to_list logging-kibana-docker
@@ -181,7 +181,7 @@ add_group_to_list() {
       if [ ${MAJOR_RELEASE} == "3.1" ] || [ ${MAJOR_RELEASE} == "3.2" ] ; then
         add_to_list logging-deployment-docker
       else
-        add_to_list logging-curator-docker       
+        add_to_list logging-curator-docker
       fi
       add_to_list logging-elasticsearch-docker
       add_to_list logging-fluentd-docker
@@ -270,7 +270,7 @@ add_group_to_list() {
     ;;
     egress)
       add_to_list openshift-enterprise-egress-router-docker
-      add_to_list ose-egress-http-proxy-docker     
+      add_to_list ose-egress-http-proxy-docker
     ;;
   esac
 }
@@ -312,8 +312,8 @@ setup_dockerfile() {
   if [ "$ctype" == "" ]; then
     ctype="rpms"
   fi
-  
-  wget -q -O Dockerfile http://dist-git.app.eng.bos.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile?h=${branch}
+
+  wget -q -O Dockerfile http://dist-git.host.prod.eng.bos.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile?h=${branch}
   if [ "$?" != "0" ]; then
     wget -q -O Dockerfile http://pkgs.devel.redhat.com/cgit/${ctype}/${container}/plain/Dockerfile?h=${branch}
     if [ "$?" != "0" ]; then
@@ -345,15 +345,15 @@ setup_git_repo() {
 
   # get the name of the repo so we can cd into that directory for branch checkout
   repo_name=$(echo "${git_path}/" | cut -d "/" -f 1)
-  
+
   # Clone the repo if it has not been cloned already
   if [ ! -d "${repo_name}" ]; then
-    git clone -q ${git_base_url} 
+    git clone -q ${git_base_url}
   fi
-  
-  cd "${repo_name}" 
+
+  cd "${repo_name}"
   # if there was a branch named in the git_repo, use it
-  if [ ! -z "${branch_override}" ] ; then  
+  if [ ! -z "${branch_override}" ] ; then
     git checkout "${branch_override}"
   else
     # Otherwise, switch to master. Don't assume we are there already, since this
@@ -362,11 +362,11 @@ setup_git_repo() {
   fi
   # we are in the repo dir git_path is relative to the workingdir, so move up one dir
   cd ..
-  
+
   pushd "${git_path}" >/dev/null
   set +e # back to ignoring errors
-  
-  # If we are running in online:stg mode, we want to update dist-git with 
+
+  # If we are running in online:stg mode, we want to update dist-git with
   # content from the stage branch, not from master.
   if [ "${git_branch}" == "master" -a "${BUILD_MODE}" == "online:stg" ]; then
     # See if this repo has a stage branch
@@ -375,7 +375,7 @@ setup_git_repo() {
         echo "Running in stage branch of: ${git_repo}"
     fi
   fi
-    
+
   popd >/dev/null
   popd >/dev/null
 
@@ -455,7 +455,7 @@ check_builds() {
       mv ${line} ${package}.watchlog done/
     fi
   done
-  
+
   popd >/dev/null
 }
 
@@ -470,7 +470,7 @@ wait_for_all_builds() {
     check_builds
     buildcheck=`ls -1 ${workingdir}/logs/*buildlog 2>/dev/null`
   done
-  
+
   echo "=== PREBUILT PACKAGES ==="
   cat ${workingdir}/logs/prebuilt
   echo
@@ -486,7 +486,7 @@ wait_for_all_builds() {
       cat "${workingdir}/logs/failed-logs/${line}"
       echo
     done
-    
+
     echo "Failed build occured. Exiting."
     hard_exit
   fi
@@ -668,7 +668,7 @@ overwrite_dist_git_branch(){
     echo "Unable to switch to ${branch} branch."
     exit 1
   fi
-  
+
   cp -r ./ "${source_branch_files}"
   ls -al "${source_branch_files}"
   rhpkg switch-branch "${TARGET_DIST_GIT_BRANCH}"
@@ -1309,7 +1309,7 @@ dist_git_migrate() {
     echo "${container} has no ${TARGET_DIST_GIT_BRANCH} branch!"
     exit 1
   fi
-  
+
   # update repo enable
   echo "Updating repo enable entries..."
   sed -i -e "s/yum-config-manager\s*--enable\s*rhel-7-server-ose-${from_branch}-rpms/yum-config-manager --enable rhel-7-server-ose-${to_branch}-rpms/g" ./Dockerfile
@@ -1319,7 +1319,7 @@ dist_git_migrate() {
     echo "Changes have been made. Commiting back to dist-git."
     rhpkg commit -p -m "Migrating from ${branch} to ${TARGET_DIST_GIT_BRANCH}"
   fi
-  
+
   popd >/dev/null
   popd >/dev/null
 }

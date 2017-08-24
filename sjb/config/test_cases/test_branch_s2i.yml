@@ -1,0 +1,16 @@
+---
+parent: 'common/test_cases/s2i.yml'
+extensions:
+  sync_repos:
+    - name: "source-to-image"
+  actions:
+    - type: "script"
+      title: "test s2i"
+      repository: "source-to-image"
+      timeout: 7200
+      script: |-
+        hack/verify-gofmt.sh
+        hack/build-test-images.sh
+        hack/test-go.sh
+        hack/test-integration.sh
+        hack/test-stirunimage.sh

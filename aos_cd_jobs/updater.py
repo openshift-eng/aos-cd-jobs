@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from os import listdir, remove, rename, walk
+from os import chdir, listdir, remove, rename, walk
 from os.path import isdir, join, relpath
 from shutil import rmtree
 
@@ -8,7 +8,10 @@ from aos_cd_jobs.common import JOBS_DIRECTORY, initialize_repo
 def update_branches(repo):
     for job in list_jobs(repo):
         if job not in repo.branches:
-            repo.create_head(job, 'master')
+            if job in repo.remotes['origin'].branches:
+                repo.create_head(job, 'origin/{}'.format(job))
+            else:
+                repo.create_head(job, 'master')
         create_remote_branch(repo, job)
 
 def list_jobs(repo):
@@ -52,8 +55,9 @@ def create_job_file_tree(repo, branch):
     rmtree(join(repo.working_dir, JOBS_DIRECTORY))
 
 def publish_branch(repo, name):
-    repo.remotes.origin.push(name, force=True)
+    repo.remotes.origin.push(name)
 
 if __name__ == '__main__':
     repo = initialize_repo()
+    chdir(repo.working_dir)
     update_branches(repo)

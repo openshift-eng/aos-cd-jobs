@@ -375,6 +375,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
+sudo systemctl restart docker
 cd cluster/test-deploy/data/
 if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34; ]]; then
   docker pull &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34;

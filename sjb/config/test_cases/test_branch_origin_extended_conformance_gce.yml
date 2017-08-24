@@ -114,6 +114,7 @@ rectory to run."
       repository: "release"
       timeout: 2800
       script: |-
+        sudo systemctl restart docker
         cd cluster/test-deploy/data/
         if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE}" ]]; then
           docker pull "${OPENSHIFT_ANSIBLE_IMAGE}"

@@ -165,7 +165,7 @@ rm -rf \$contextdir/repos/local_epel.repo
 # Add the online-int repo which has the latest jenkins rpms
 cat &lt;&lt;EOF &gt; \$contextdir/repos/rhel-7-server-ose-onlineint-rpms.repo
 [rhel-7-server-ose-onlineint-rpms]
-baseurl = https://mirror.openshift.com/enterprise/online-int/latest/RH7-RHAOS-3.6/x86_64/os/
+baseurl = https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/
 failovermethod = priority
 gpgcheck = 0
 gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release, file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-beta, https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted

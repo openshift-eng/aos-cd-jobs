@@ -7,7 +7,7 @@ from subprocess import check_output
 from os import getenv, listdir
 from os.path import join
 
-timestamp = int((datetime.now() - datetime(1970,1,1)).total_seconds())
+timestamp = int((datetime.utcnow() - datetime(1970,1,1)).total_seconds())
 node_name = check_output(["uname", "--nodename"]).strip()
 jenkins_node_name = "ci.openshift"  # today only one master schedules jobs
 

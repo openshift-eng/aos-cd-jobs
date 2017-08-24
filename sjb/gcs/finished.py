@@ -7,7 +7,7 @@ from urllib import urlopen
 
 from os import getenv
 
-timestamp = int((datetime.now() - datetime(1970, 1, 1)).total_seconds())
+timestamp = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
 with open("/data/started.json") as started_file:
     started_data = load(started_file)
 

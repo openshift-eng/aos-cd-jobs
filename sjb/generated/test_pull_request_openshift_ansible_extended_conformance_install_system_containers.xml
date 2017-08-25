@@ -498,7 +498,7 @@ sudo cp ci-dnsmasq.conf /etc/dnsmasq.d/ci-dnsmasq.conf
 sudo systemctl restart dnsmasq
 sudo systemctl status dnsmasq
 # run the tests with fingers crossed
-OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; SUITE=conformance make test-extended TEST_EXTENDED_ARGS=&#34;-ginkgo.skip=should\sanswer\sendpoint\sand\swildcard\squeries\sfor\sthe\scluster|should\sprovide\sDNS\sfor\spods\sfor\sHostname\sand\sSubdomain\sAnnotation|should\sprovide\sDNS\sfor\sservices|should\sprovide\sDNS\sfor\sthe\scluster|should\sexpose\sthe\sprofiling\sendpoints&#34;
+#OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; SUITE=conformance make test-extended TEST_EXTENDED_ARGS=&#34;-ginkgo.skip=should\sanswer\sendpoint\sand\swildcard\squeries\sfor\sthe\scluster|should\sprovide\sDNS\sfor\spods\sfor\sHostname\sand\sSubdomain\sAnnotation|should\sprovide\sDNS\sfor\sservices|should\sprovide\sDNS\sfor\sthe\scluster|should\sexpose\sthe\sprofiling\sendpoints&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

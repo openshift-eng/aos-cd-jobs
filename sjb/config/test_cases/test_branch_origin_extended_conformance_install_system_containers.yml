@@ -22,6 +22,8 @@ extensions:
         hack/build-images.sh
         sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
         sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+        # free docker volumes (otherwise it can lead to node disk pressure)
+        docker volume rm $(docker volume ls -q | grep origin-build)
     - type: "script"
       title: "build an openshift-ansible release"
       repository: "openshift-ansible"

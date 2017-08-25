@@ -110,7 +110,7 @@ else
     echo "=========="
     tito tag --accept-auto-changelog "${TITO_USE_VERSION}"
     export VERSION="$(grep Version: openshift-scripts.spec | awk '{print $2}')"
-    
+
     git push
     git push --tags
 
@@ -128,26 +128,26 @@ else
     # We have seen the push which follows push the old build instead of the new, so
     # using a sleep below to allow brew to get into a consistent state.
     sleep 20
-    
+
     echo
     echo "=========="
     echo "Signing RPMs"
     echo "=========="
     "${WORKSPACE}/build-scripts/sign_rpms.sh" "libra-rhel-7-candidate" "openshifthosted"
-    
+
     pushd "${WORKSPACE}"
     COMMIT_SHA="$(git rev-parse HEAD)"
     popd
     PUDDLE_CONF_BASE="https://raw.githubusercontent.com/openshift/aos-cd-jobs/${COMMIT_SHA}/build-scripts/puddle-conf"
     PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift_online-${MAJOR_MINOR_VERSION}.conf"
     PUDDLE_SIG_KEY="b906ba72"
-    
+
     echo
     echo "=========="
     echo "Building Puddle"
     echo "=========="
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n -s --label=building \
+        sh -s -- --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n -s --label=building \
         < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
     echo
@@ -182,7 +182,7 @@ else
     echo "Create latest puddle"
     echo "=========="
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n \
+        sh -s -- --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n \
         < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
     echo

@@ -1,0 +1,153 @@
+---
+parent: 'common/test_cases/origin_built_release.yml'
+overrides:
+  sync_repos:
+    - name: "origin-aggregated-logging"
+    - name: "openshift-ansible"
+extensions:
+  actions:
+    - type: "script"
+      title: "build an origin-aggregated-logging release"
+      repository: "origin-aggregated-logging"
+      script: |-
+        hack/build-images.sh
+    - type: "script"
+      title: "build an openshift-ansible release"
+      repository: "openshift-ansible"
+      script: |-
+        tito_tmp_dir="tito"
+        rm -rf "${tito_tmp_dir}"
+        mkdir -p "${tito_tmp_dir}"
+        tito tag --offline --accept-auto-changelog
+        tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
+        createrepo "${tito_tmp_dir}/noarch"
+        cat << EOR > ./openshift-ansible-local-release.repo
+        [openshift-ansible-local-release]
+        baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
+        gpgcheck = 0
+        name = OpenShift Ansible Release from Local Source
+        EOR
+        sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+    - type: "script"
+      title: "install the openshift-ansible release"
+      repository: "openshift-ansible"
+      script: |-
+        last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
+        last_commit="$( git log -n 1 --pretty=%h )"
+        sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+        rpm -V "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+    - type: "script"
+      title: "install Ansible plugins"
+      repository: "origin"
+      script: |-
+        sudo chmod o+rw /etc/environment
+        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
+        sudo mkdir -p /usr/share/ansible/plugins/callback
+        for plugin in 'default_with_output_lists' 'generate_junit'; do
+           wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+           sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
+        done
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+    - type: "script"
+      title: "determine the release commit for origin images and version for rpms"
+      repository: "origin"
+      script: |-
+        # is logging using master or a release branch?
+        pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
+        popd
+        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
+        if [[ "${curbranch}" == master ]] ; then
+           git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+           ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+        elif [[ "${curbranch}" =~ ^release-* ]] ; then
+           pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
+           # get repo ver from branch name
+           repover=$( echo "${curbranch}" | sed -e 's/release-//' -e 's/[.]//' )
+           # get version from tag
+           closest_tag=$( git describe --tags --abbrev=0 )
+           # pkg ver is closest_tag with leading "-" instead of "v"
+           pkgver=$( echo "${closest_tag}" | sed 's/^v/-/' )
+           # disable all of the centos repos except for the one for the
+           # version being tested - this assumes a devenv environment where
+           # all of the repos are installed
+           for repo in $( sudo yum repolist | awk '/^centos-paas-sig-openshift-origin/ {print $1}' ) ; do
+              case $repo in
+                 centos-paas-sig-openshift-origin${repover}-rpms) sudo yum-config-manager --enable $repo > /dev/null ;;
+                 *) sudo yum-config-manager --disable $repo > /dev/null ;;
+              esac
+           done
+           echo "${closest_tag}" > ${jobs_repo}/ORIGIN_COMMIT
+           echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
+           # disable local origin repo
+           sudo yum-config-manager --disable origin-local-release
+        else
+           echo Error: unknown base branch $curbranch: please resubmit PR on master or a release-x.y branch
+        fi
+    - type: "script"
+      title: "install origin"
+      repository: "aos-cd-jobs"
+      script: |-
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e deployment_type=origin  \
+                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e deployment_type=origin  \
+                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+    - type: "script"
+      title: "expose the kubeconfig"
+      script: |-
+        sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
+        sudo chmod a+rw /etc/origin/master/admin.kubeconfig
+    - type: "script"
+      title: "ensure built version of origin is installed"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
+        popd
+        if [[ "${curbranch}" == master ]] ; then
+           origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+           rpm -V "${origin_package}"
+        fi
+    - type: "script"
+      title: "install origin-aggregated-logging"
+      repository: "aos-cd-jobs"
+      script: |-
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e deployment_type=origin  \
+                         -e openshift_logging_image_prefix="openshift/origin-" \
+                         -e openshift_hosted_logging_hostname="kibana.127.0.0.1.nip.io"           \
+                         -e openshift_logging_master_public_url="https://localhost:8443"          \
+                         -e openshift_master_logging_public_url="https://kibana.127.0.0.1.nip.io" \
+                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
+                         --skip-tags=update_master_config
+    - type: "script"
+      title: "run logging tests"
+      repository: "origin-aggregated-logging"
+      script: |-
+        KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true SKIP_TEARDOWN=true JUNIT_REPORT=true make test
+  system_journals:
+    - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
+    - origin-node.service
+    - openvswitch.service
+    - ovs-vswitchd.service
+    - ovsdb-server.service
+    - etcd.service
+  artifacts:
+    - "/data/src/github.com/openshift/origin-aggregated-logging/_output/scripts"

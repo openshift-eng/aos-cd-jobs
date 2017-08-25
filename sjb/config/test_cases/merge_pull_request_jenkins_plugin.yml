@@ -1,0 +1,7 @@
+---
+parent: 'test_cases/test_branch_jenkins_plugin.yml'
+overrides:
+  sync_repos:
+    - name: "jenkins-plugin"
+      type: "pull_request"
+  merge: "jenkins-plugin"

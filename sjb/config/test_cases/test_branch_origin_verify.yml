@@ -1,0 +1,23 @@
+---
+parent: 'common/test_cases/origin.yml'
+overrides:
+  email:
+    - deads@redhat.com
+extensions:
+  actions:
+    - type: "script"
+      title: "verify generation and help scripts"
+      repository: "origin"
+      timeout: 3600
+      script: |-
+        # run make verify outside release container as it needs
+        # access to git; also explicitly force godeps verification
+        branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
+        if [[ "${branch}" == "master" ]]; then
+          RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+        fi
+    - type: "script"
+      title: "run verify tasks"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts hack/env JUNIT_REPORT='true' make verify -k

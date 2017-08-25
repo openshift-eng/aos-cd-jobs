@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+  <actions/>
+  <description>&lt;!-- Managed by Jenkins Job Builder --&gt;</description>
+  <keepDependencies>false</keepDependencies>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <concurrentBuild>false</concurrentBuild>
+  <canRoam>true</canRoam>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <triggers class="vector">
+    <jenkins.triggers.ReverseBuildTrigger>
+      <spec/>
+      <upstreamProjects>continuous-upgrade_provision-job,continuous-upgrade_upgrade-job</upstreamProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </jenkins.triggers.ReverseBuildTrigger>
+  </triggers>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+script=&quot;$( mktemp )&quot;
+cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+
+sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases update -y atomic-openshift-utils
+cd /data/src/github.com/openshift/aos-cd-jobs/
+rpm -qa atomic-openshift
+sudo python sjb/hack/determine_install_upgrade_version.py &quot;\$( rpm -qa atomic-openshift )&quot; &gt; AOS_VARS
+source AOS_VARS
+ansible-playbook  -vv                    \
+                  --become               \
+                  --become-user root     \
+                  --connection local     \
+                  --inventory sjb/inventory/ \
+                   &quot;/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${ATOMIC_OPENSHIFT_UPGRADE_RELEASE_MINOR_VERSION=6}/upgrade.yml&quot;     \
+                  -e etcd_data_dir=&quot;/tmp/etcd&quot; \
+                  -e openshift_pkg_version=&quot;-\${ATOMIC_OPENSHIFT_UPGRADE_RELEASE_VERSION}&quot; \
+                  -e deployment_type=&quot;openshift-enterprise&quot; \
+                  -e oreg_url='registry.ops.openshift.com/openshift3/ose-\${component}:\${version}' \
+                  -e openshift_docker_insecure_registries=&quot;brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888&quot; \
+                  -e openshift_docker_additional_registries=&quot;brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888,registry.ops.openshift.com&quot;
+
+SCRIPT
+chmod +x &quot;${script}&quot;
+scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config &quot;${script}&quot; openshiftdevel:&quot;${script}&quot;
+ssh -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &quot;bash -l -c \&quot;${script}\&quot;&quot;
+scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -r openshiftdevel:/tmp/ansible_junit &quot;${WORKSPACE}&quot;
+
+script=&quot;$( mktemp )&quot;
+cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+
+rm -rf &quot;${ANSIBLE_JUNIT_DIR}/*&quot;
+
+SCRIPT
+chmod +x &quot;${script}&quot;
+scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config &quot;${script}&quot; openshiftdevel:&quot;${script}&quot;
+ssh -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &quot;bash -l -c \&quot;${script}\&quot;&quot;</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.Mailer>
+      <recipients>jhadvig@redhat.com skuznets@redhat.com</recipients>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
+    <hudson.tasks.junit.JUnitResultArchiver>
+      <testResults>ansible_junit/*.xml</testResults>
+      <keepLongStdio>true</keepLongStdio>
+      <healthScaleFactor>1.0</healthScaleFactor>
+      <testDataPublishers/>
+    </hudson.tasks.junit.JUnitResultArchiver>
+  </publishers>
+  <buildWrappers/>
+</project>

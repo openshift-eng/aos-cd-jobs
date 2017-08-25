@@ -1,0 +1,20 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "verify commit history"
+      repository: "origin"
+      timeout: 7200
+      script: |-
+        # run commitchecker outside release container as it needs
+        # access to git; also explicitly force godeps verification
+        branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
+        if [[ "${branch}" == "master" ]]; then
+          RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+        fi
+    - type: "script"
+      title: "run check and verify tasks"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k

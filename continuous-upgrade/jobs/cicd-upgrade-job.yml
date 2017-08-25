@@ -1,0 +1,20 @@
+- job:
+    name: continuous-upgrade_cicd-upgrade-job
+    project-type: freestyle
+    defaults: global
+    builders:
+      - shell:
+          !include-raw:
+              - cicd-upgrade-ocp.sh
+              - cicd-download-artifacts.sh
+    publishers:
+      - email:
+          recipients: jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com sdodson@redhat.com
+          notify-every-unstable-build: true
+      - junit:
+          results: ansible_junit/*.xml
+    triggers:
+      - reverse:
+            jobs:
+                - 'continuous-upgrade_cicd-upgrade-job'
+            result: 'success'

@@ -1,0 +1,67 @@
+---
+parent: 'common/test_cases/s2i.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "build base rhel images"
+      timeout: 3600
+      script: |-
+        # inside temporary directory create docker build context for the new base image
+        contextdir=$(mktemp -d)
+
+        # copy the necessary files
+        mkdir $contextdir/{certs,repos,vars,keys}
+        cp /var/lib/yum/*.pem $contextdir/certs
+        cp /etc/yum/vars/* $contextdir/vars
+        cp /etc/yum.repos.d/* $contextdir/repos
+        cp /etc/pki/rpm-gpg/* $contextdir/keys
+
+        # Remove repositories we won't be needing and which require RH certs
+        rm -rf $contextdir/repos/redhat-rhui*
+
+        # remove google chrome repo
+        rm -rf $contextdir/repos/*chrome*.repo
+
+        # remove local openshift epel mirror - we will only temporarily mount this via imagebuilder during image builds
+        rm -rf $contextdir/repos/local_epel.repo 
+
+        # Add the online-int repo which has the latest jenkins rpms
+        cat <<EOF > $contextdir/repos/rhel-7-server-ose-onlineint-rpms.repo
+        [rhel-7-server-ose-onlineint-rpms]
+        baseurl = https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/
+        failovermethod = priority
+        gpgcheck = 0
+        gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release, file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-beta, https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted
+        name = A repository of dependencies for Atomic OpenShift Online-Int
+        sslclientcert = /var/lib/yum/client-cert.pem
+        sslclientkey = /var/lib/yum/client-key.pem
+        sslverify = 0
+
+        EOF
+
+        # create Dockerfile
+        cat <<EOF > $contextdir/Dockerfile
+        FROM registry.access.redhat.com/openshift3/ose:latest
+
+        RUN yum remove -y subscription-manager
+
+        ADD vars/* /etc/yum/vars/
+        ADD repos/* /etc/yum.repos.d/
+        ADD certs/* /var/lib/yum/
+        ADD keys/* /etc/pki/rpm-gpg/
+
+        RUN yum update -y && yum clean all
+        ENTRYPOINT []
+        EOF
+
+        docker build --rm -t registry.access.redhat.com/openshift3/ose $contextdir
+
+        # make sure the new image has valid certs
+        docker run registry.access.redhat.com/openshift3/ose yum install -y tar
+
+        # remove these once no one is referencing them anymore.
+        docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7.3
+        docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7
+
+        # cleaning
+        rm -rf $contextdir

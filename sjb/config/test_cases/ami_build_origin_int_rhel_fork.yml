@@ -1,0 +1,218 @@
+---
+parameters:
+- name: "TRELLO_URL"
+  description: "The resulting AMI will be tagged with the specified Trello card and a comment will be added to the card."
+  default_value: "<none>"
+- name: "ORIGIN_FORK_ID"
+  description: "The name of the Github user or organization to use for the fork of the Origin repo."
+  default_value: "openshift"
+- name: "ORIGIN_REPO"
+  description: "The name of the Origin repo."
+  default_value: "origin"
+- name: "ORIGIN_BRANCH"
+  description: "Branch to use for the Origin fork. This should be the branch of a PR that needs to be tested."
+  default_value: "master"
+- name: "TARGET_ORIGIN_BRANCH"
+  description: "The target branch for merging ORIGIN_BRANCH into."
+  default_value: "master"
+- name: "RUN_EXTENDED"
+  description: "Run the extended tests. Note that the AMI will be tagged as qe=ready even if these tests fail."
+  default_value: "false"
+provision:
+  os: "rhel"
+  stage: "bare"
+  provider: "aws"
+actions:
+  - type: "host_script"
+    title: "install CI user account"
+    script: |-
+      oct prepare user
+      sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
+  - type: "host_script"
+    title: "install base dependencies"
+    script: |-
+      oct prepare dependencies
+  - type: "host_script"
+    title: "install golang"
+    script: |-
+      # In the current RHEL RPMs, Go 1.4 obsoletes itself and `yum` ends up installing 1.6, so
+      # we need to exclude go-1.6. Furthermore, on 1.4, a lot of basic tools were not part of
+      # Go core, so we need to install them explicitly.
+      cat << SCRIPT > install-go-14.sh
+      #!/bin/bash
+      set -o errexit -o nounset -o pipefail -o xtrace
+      yum install -y golang-1.4.2 golang-src-1.4.2 golang-pkg-bin-linux-amd64-1.4.2 --exclude go\*1.6\*
+      # We need to disable the repository with Golang in it so further `yum update` steps don't
+      # give us some new version of Go. We don't use this repo for anything else at the moment,
+      # so this is a reasonable step.
+      yum-config-manager --disable oso-rhui-rhel-server-releases-optional
+      export GOPATH=/data
+      set +e
+      go get golang.org/x/tools/cmd/vet
+      set -e
+      pushd /data/src/golang.org/x/tools >/dev/null
+      if git checkout 108746816ddf01ad0c2dbea08a1baef08bc47313; then
+        go install golang.org/x/tools/cmd/vet
+      fi
+      popd >/dev/null
+      go get golang.org/x/tools/cmd/cover
+      SCRIPT
+
+      if [[ "${TARGET_ORIGIN_BRANCH}" =~ enterprise-3.[1-2] || "${TARGET_ORIGIN_BRANCH}" =~ release-1.[1-2] ]]; then
+        chmod +x install-go-14.sh
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config install-go-14.sh openshiftdevel:install-go-14.sh
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c install-go-14.sh"
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.4"
+
+      elif [[ "${TARGET_ORIGIN_BRANCH}" =~ enterprise-3.[3-4] || "${TARGET_ORIGIN_BRANCH}" =~ release-1.[3-4] ]]; then
+        oct prepare golang --version=1.6
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.6"
+
+      elif [[ "${TARGET_ORIGIN_BRANCH}" =~ enterprise-3.5 || "${TARGET_ORIGIN_BRANCH}" =~ release-1.5 ]]; then
+        oct prepare golang --version=1.7.5 -u https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.7"
+
+      elif [[ "${TARGET_ORIGIN_BRANCH}" == "master" ]]; then
+        oct prepare golang --version=1.7.5 -u https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.7"
+
+      else
+        echo "[FATAL] No Golang version is known for \`${TARGET_ORIGIN_BRANCH}\`.
+              Contact Steve Kuznetsov <skuznets@redhat.com> for assistance."
+        exit 1
+      fi
+  - type: "host_script"
+    title: "install docker"
+    script: |-
+      if [[ "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.1" || "${TARGET_ORIGIN_BRANCH}" == "release-1.1" ]]; then
+        oct prepare docker --version=1.8.2
+
+      elif [[ "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.2" || "${TARGET_ORIGIN_BRANCH}" == "release-1.2" ]]; then
+        oct prepare docker --version=1.9.1 --repo=oso-rhui-rhel-server-*
+
+      elif [[ "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.2.1" || "${TARGET_ORIGIN_BRANCH}" == "release-1.2.1" ||
+              "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.3" || "${TARGET_ORIGIN_BRANCH}" == "release-1.3" ]]; then
+        oct prepare docker --version=1.10.3 --repo=oso-rhui-rhel-server-*
+
+      elif [[ "${TARGET_ORIGIN_BRANCH}" =~ enterprise-3.[4-5] || "${TARGET_ORIGIN_BRANCH}" =~ release-1.[4-5] ]]; then
+        oct prepare docker --version=1.12.6 --repo=oso-rhui-rhel-server-* -u https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/
+
+      elif [[ "${TARGET_ORIGIN_BRANCH}" == "master" ]]; then
+        oct prepare docker --version=1.12.6 --repo=oso-rhui-rhel-server-* -u https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/
+
+      else
+        echo "[FATAL] No Docker version is known for \`${TARGET_ORIGIN_BRANCH}\`.
+              Contact Steve Kuznetsov <skuznets@redhat.com> for assistance."
+        exit 1
+      fi
+  - type: "host_script"
+    title: "prepare repositories"
+    script: |-
+      oct prepare repositories
+      # Replace origin repo with the specified fork
+      oct sync remote origin --new-remote fork "https://github.com/${ORIGIN_FORK_ID}/${ORIGIN_REPO}"
+      oct sync remote origin --remote fork --branch "${ORIGIN_BRANCH}" --merge-into "${TARGET_ORIGIN_BRANCH}"
+  - type: "script"
+    title: "install system accounting rules"
+    script: |-
+      cat <<CONF >origin-ami-accounting.conf
+      [Manager]
+      DefaultCPUAccounting=yes
+      DefaultMemoryAccounting=yes
+      CONF
+      sudo mkdir -p /etc/systemd/system.conf.d/
+      sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
+      sudo systemctl daemon-reexec
+  - type: "host_script"
+    title: "package the AMI"
+    script: |-
+      oct package ami --stage=fork
+  - type: "script"
+    title: "use a ramdisk for etcd"
+    script: |-
+      sudo su root <<SUDO
+      mkdir -p /tmp
+      mount -t tmpfs -o size=4096m tmpfs /tmp
+      mkdir -p /tmp/etcd
+      chmod a+rwx /tmp/etcd
+      restorecon -R /tmp
+      echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
+      SUDO
+  - type: "script"
+    title: "build an origin release"
+    repository: "origin"
+    script: |-
+      export OS_BUILD_IMAGE_ARGS=''
+      hack/build-base-images.sh
+      OS_BUILD_ENV_PULL_IMAGE=true OS_ONLY_BUILD_PLATFORMS="linux/amd64" OS_BUILD_ENV_PRESERVE="_output/local" hack/env make release
+  - type: "script"
+    title: "verify commit history"
+    repository: "origin"
+    script: |-
+      # run commitchecker outside release container as it needs
+      # access to git; also explicitly force godeps verification
+      branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
+      if [[ "${branch}" == "master" ]]; then
+        RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+      fi
+  - type: "script"
+    title: "run check and verify tasks"
+    repository: "origin"
+    script: |-
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+  - type: "script"
+    title: "run integration tests"
+    repository: "origin"
+    script: |-
+      # docker takes up all the memory and kills our containers if we dont restart it
+      sudo systemctl restart docker
+      OS_BUILD_ENV_PULL_IMAGE=true hack/env JUNIT_REPORT='true' make test-tools test-integration
+      sudo systemctl restart docker
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/end-to-end.test hack/env make build-router-e2e-test
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/etcdhelper hack/env make build WHAT=tools/etcdhelper
+      OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-end-to-end -o build
+  - type: "host_script"
+    title: "release the AMI"
+    script: |-
+      trello_tag=""
+      if [[ -n "$TRELLO_URL" && "$TRELLO_URL" != "<none>" ]]; then
+        trello_tag="--tag trello=$TRELLO_URL"
+      fi
+      oct package ami --mark-ready --tag qe=ready $trello_tag
+  - type: "host_script"
+    title: "make a Trello comment"
+    script: |-
+      if [[ "$TRELLO_URL" == "<none>" || -z "$TRELLO_URL" ]]; then
+        exit 0
+      fi
+      AMI_ID=$(ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel curl -s http://169.254.169.254/latest/meta-data/ami-id)
+      if ! trello comment "A fork AMI (id: $AMI_ID) has been created for this card" --card-url $TRELLO_URL; then
+        echo "Commenting on Trello failed..."
+      fi
+  - type: "host_script"
+    title: "run extended conformance suites"
+    script: |-
+      cat << EXTENDED > run_extended.sh
+      #!/bin/bash
+      JUNIT_REPORT='true' make test-extended SUITE=conformance
+      JUNIT_REPORT='true' make test-extended SUITE=networking-minimal
+      EXTENDED
+
+      if [[ "$RUN_EXTENDED" == "true" ]]; then
+        chmod +x run_extended.sh
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config run_extended.sh openshiftdevel:run_extended.sh
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c run_extended.sh"
+      fi
+artifacts:
+  - "/data/src/github/openshift/origin/_output/scripts"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+system_journals:
+  - docker.service
+  - origin-master.service
+  - origin-master-api.service
+  - origin-master-controllers.service
+  - origin-node.service

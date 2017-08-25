@@ -1,0 +1,64 @@
+---
+parameters:
+- name: "buildId"
+  description: "The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob"
+  default_value: ""
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+actions:
+  - type: "host_script"
+    title: "bring source code up to date"
+    script: |-
+      for repo in aos-cd-jobs origin origin-web-console openshift-ansible origin-aggregated-logging; do
+        oct sync remote "${repo}"
+      done
+  - type: "script"
+    title: "build an origin release"
+    repository: "origin"
+    script: |-
+      hack/build-base-images.sh
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+      sudo systemctl restart docker
+      hack/build-images.sh
+      sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+      sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+  - type: "script"
+    title: "build an openshift-ansible release"
+    repository: "openshift-ansible"
+    script: |-
+      tito_tmp_dir="tito"
+      mkdir -p "${tito_tmp_dir}"
+      tito tag --offline --accept-auto-changelog
+      tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
+      createrepo "${tito_tmp_dir}/noarch"
+      cat << EOR > ./openshift-ansible-local-release.repo
+      [openshift-ansible-local-release]
+      baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
+      gpgcheck = 0
+      name = OpenShift Ansible Release from Local Source
+      EOR
+      sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+  - type: "script"
+    title: "build an origin-aggregated-logging release"
+    repository: "origin-aggregated-logging"
+    script: |-
+      hack/build-images.sh
+  - type: "host_script"
+    title: "package the AMI"
+    script: |-
+      oct package ami --stage=next
+  - type: "host_script"
+    title: "release the AMI"
+    script: |-
+      oct package ami --mark-ready
+artifacts:
+  - "/data/src/github/openshift/origin/_output/scripts"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+system_journals:
+  - docker.service

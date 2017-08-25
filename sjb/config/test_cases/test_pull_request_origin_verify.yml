@@ -1,0 +1,7 @@
+---
+parent: 'test_cases/test_branch_origin_verify.yml'
+overrides:
+  email: []
+  sync_repos:
+    - name: "origin"
+      type: "pull_request"

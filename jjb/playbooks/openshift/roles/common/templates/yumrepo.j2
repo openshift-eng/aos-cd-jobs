@@ -1,0 +1,6 @@
+[{{ project }}-repo]
+name={{ project }} repo
+baseurl="http://{{ groups['repo_host'][0] }}/{{ project }}/{{ arch }}"
+enabled=1
+gpgcheck=0
+#exclude=XXX

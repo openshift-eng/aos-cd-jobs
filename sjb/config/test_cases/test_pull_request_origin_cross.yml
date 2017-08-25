@@ -1,0 +1,13 @@
+---
+parent: 'common/test_cases/origin.yml'
+overrides:
+  sync_repos:
+    - name: "origin"
+      type: "pull_request"
+extensions:
+  actions:
+    - type: "script"
+      title: "run build-cross"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true hack/env make build-cross

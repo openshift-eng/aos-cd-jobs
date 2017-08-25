@@ -1,0 +1,22 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "run build-cross"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/releases hack/env make build-cross
+    - type: "host_script"
+      title: "move release zips to GCS repo"
+      script: |-
+        target_branch="${ORIGIN_TARGET_BRANCH:-}"
+        location_root="origin-ci-test/branch-logs/origin/${target_branch}/builds"
+        location_base="${location_root}/${BUILD_NUMBER}"
+        location="${location_base}/artifacts/zips"
+        base_location_url="https://storage.googleapis.com/${location_base}"
+        location_url="https://storage.googleapis.com/${location}"
+
+        mkdir -p artifacts/zips
+        rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/ ./artifacts/zips || true
+        gsutil -m cp -r artifacts/zips "gs://${location}"

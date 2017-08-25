@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+  <actions/>
+  <description>&lt;!-- Managed by Jenkins Job Builder --&gt;</description>
+  <keepDependencies>false</keepDependencies>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <concurrentBuild>false</concurrentBuild>
+  <canRoam>true</canRoam>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <triggers class="vector">
+    <jenkins.triggers.ReverseBuildTrigger>
+      <spec/>
+      <upstreamProjects>continuous-upgrade_terminate-job</upstreamProjects>
+      <threshold>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </threshold>
+    </jenkins.triggers.ReverseBuildTrigger>
+  </triggers>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+echo $HOME
+latest=$( readlink $HOME/origin-ci-tool/latest )
+touch $latest
+cp $latest/bin/activate $WORKSPACE/activate
+cat &gt;&gt; $WORKSPACE/activate &lt;&lt;EOF
+export OCT_CONFIG_HOME=$WORKSPACE/.config
+EOF
+
+source $WORKSPACE/activate
+mkdir -p $OCT_CONFIG_HOME
+rm -rf $OCT_CONFIG_HOME/origin-ci-tool
+oct configure ansible-client verbosity 2
+oct configure aws-client 'keypair_name' 'libra'
+oct configure aws-client 'private_key_path' '/var/lib/jenkins/.ssh/devenv.pem'
+oct provision remote all-in-one --os &quot;rhel&quot; --stage &quot;base&quot; --provider &quot;aws&quot; --discrete-ssh-config --name &quot;$JOB_NAME&quot;_&quot;$BUILD_NUMBER&quot;
+rm -rf ~/continuous-upgrade
+mkdir -p ~/continuous-upgrade
+cp -fr ./.config/origin-ci-tool ~/continuous-upgrade/
+tree ~/continuous-upgrade/
+cat ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config
+
+script=&quot;$( mktemp )&quot;
+cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+
+cat &lt;&lt; EOR &gt; ./openshift-int.repo
+[openshift-int]
+baseurl = https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/
+enabled = 1
+gpgcheck = 0
+gpgkey = https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted
+name = OpenShift Enterprise int Builds
+sslclientcert = /var/lib/yum/client-cert.pem
+sslclientkey = /var/lib/yum/client-key.pem
+sslverify = 0
+EOR
+sudo cp ./openshift-int.repo /etc/yum.repos.d
+
+sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases install -y atomic-openshift-utils
+cd /data/src/github.com/openshift/aos-cd-jobs/
+git pull origin master
+/data/src/github.com/openshift/aos-cd-jobs/continuous-upgrade/actions/install_junit.sh
+sudo yum-config-manager --disable rhel-7-server-ose-3\*,li
+ansible-playbook  -vv          \
+          --become           \
+          --become-user root \
+          --connection local \
+          --inventory sjb/inventory/ \
+          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
+          -e etcd_data_dir=&quot;/tmp/etcd&quot;                                  \
+          -e deployment_type=&quot;openshift-enterprise&quot;                     \
+          -e oreg_url='registry.ops.openshift.com/openshift3/ose-\${component}:\${version}' \
+          -e openshift_docker_insecure_registries=&quot;brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888&quot; \
+          -e openshift_docker_additional_registries=&quot;brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888,registry.ops.openshift.com&quot;
+sudo yum-config-manager --enable rhel-7-server-ose-3\*,li
+SCRIPT
+chmod +x &quot;${script}&quot;
+scp -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config &quot;${script}&quot; openshiftdevel:&quot;${script}&quot;
+ssh -F ~/continuous-upgrade/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &quot;bash -l -c \&quot;${script}\&quot;&quot;</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.Mailer>
+      <recipients>jhadvig@redhat.com skuznets@redhat.com</recipients>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
+  </publishers>
+  <buildWrappers/>
+</project>

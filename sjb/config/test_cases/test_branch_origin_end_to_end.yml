@@ -1,0 +1,12 @@
+---
+parent: 'common/test_cases/origin_release.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "run end-to-end tests"
+      repository: "origin"
+      timeout: 7200
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/end-to-end.test hack/env make build-router-e2e-test
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/etcdhelper hack/env make build WHAT=tools/etcdhelper
+        OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-end-to-end -o build

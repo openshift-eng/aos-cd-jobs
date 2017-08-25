@@ -1,0 +1,9 @@
+---
+- name: enable openshift-future repo
+  template:
+    src: openshift-future-repo.j2
+    dest: "/etc/yum.repos.d/openshift-future.repo"
+    mode: 0644
+    owner: root
+    group: root
+

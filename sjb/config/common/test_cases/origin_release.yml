@@ -1,0 +1,28 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "build an origin release"
+      repository: "origin"
+      timeout: 7200
+      script: |-
+        ORIGIN_TARGET_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name HEAD)
+        export OS_BUILD_IMAGE_ARGS=''
+        export OS_ONLY_BUILD_PLATFORMS="linux/amd64"
+        export OS_BUILD_ENV_PRESERVE="_output/local"
+        hack/build-base-images.sh
+        # TODO: Remove once we stop developing on these release branches.
+        if [[ "${ORIGIN_TARGET_BRANCH}" == release-1.[4-5] ]]; then
+          hack/build-release.sh
+          hack/build-images.sh
+          hack/extract-release.sh
+        else
+          # Catch-all for master and future release branches.
+          OS_BUILD_ENV_PULL_IMAGE=true hack/env make release
+          sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+          sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+        fi
+        # docker seems to have a bunch of memory leaks, so let's
+        # give it a new address space before testing starts
+        sudo systemctl restart docker.service

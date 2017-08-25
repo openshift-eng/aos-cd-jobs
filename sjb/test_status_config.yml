@@ -1,0 +1,43 @@
+---
+master:
+  - "aos-ci-jenkins/OS_3.6_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.6_containerized"
+  - "aos-ci-jenkins/OS_3.6_containerized_e2e_tests"
+stage:
+  - "aos-ci-jenkins/OS_3.6_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.6_containerized"
+  - "aos-ci-jenkins/OS_3.6_containerized_e2e_tests"
+release-3.6:
+  - "aos-ci-jenkins/OS_3.6_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.6_containerized"
+  - "aos-ci-jenkins/OS_3.6_containerized_e2e_tests"
+release-1.5:
+  - "aos-ci-jenkins/OS_3.5_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.5_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.5_containerized"
+  - "aos-ci-jenkins/OS_3.5_containerized_e2e_tests"
+release-1.4:
+  - "aos-ci-jenkins/OS_3.4_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.4_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.4_containerized"
+  - "aos-ci-jenkins/OS_3.4_containerized_e2e_tests"
+release-1.3:
+  - "aos-ci-jenkins/OS_3.3_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.3_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.3_containerized"
+  - "aos-ci-jenkins/OS_3.3_containerized_e2e_tests"
+release-1.2:
+  - "aos-ci-jenkins/OS_3.2_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.2_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.2_containerized"
+  - "aos-ci-jenkins/OS_3.2_containerized_e2e_tests"
+release-1.1:
+  - "aos-ci-jenkins/OS_3.1_NOT_containerized"
+  - "aos-ci-jenkins/OS_3.1_NOT_containerized_e2e_tests"
+  - "aos-ci-jenkins/OS_3.1_containerized"
+  - "aos-ci-jenkins/OS_3.1_containerized_e2e_tests"
+common_status:
+  - "continuous-integration/travis-ci/pr"

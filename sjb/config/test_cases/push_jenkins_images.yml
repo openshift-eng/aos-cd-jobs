@@ -1,0 +1,50 @@
+---
+parent: 'test_cases/test_branch_jenkins_images.yml'
+overrides:
+  email:
+    - bparees@redhat.com
+    - cewong@redhat.com
+    - gmontero@redhat.com
+    - cdaley@redhat.com
+    - jminter@redhat.com
+  sync_repos:
+    - name: "jenkins"
+extensions:
+  actions:
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "Copy docker credentials to instance"
+      timeout: 60
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "script"
+      title: "push the jenkins images"
+      repository: "jenkins"
+      timeout: 7200
+      script: |-      
+        sudo chmod a+rw /tmp/.docker/config.json
+        export DOCKER_CONFIG=/tmp/.docker
+
+        docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
+        docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
+        docker tag openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7
+        docker push docker.io/openshift/jenkins-2-centos7
+
+        docker tag registry.access.redhat.com/openshift3/jenkins-slave-base-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
+        docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
+        docker tag openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7
+        docker push docker.io/openshift/jenkins-slave-base-centos7
+
+        docker tag registry.access.redhat.com/openshift3/jenkins-slave-maven-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
+        docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
+        docker tag openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7
+        docker push docker.io/openshift/jenkins-slave-maven-centos7
+
+        docker tag registry.access.redhat.com/openshift3/jenkins-slave-nodejs-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
+        docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
+        docker tag openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7
+        docker push docker.io/openshift/jenkins-slave-nodejs-centos7

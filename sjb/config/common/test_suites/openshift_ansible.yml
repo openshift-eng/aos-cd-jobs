@@ -1,0 +1,7 @@
+---
+children:
+  - "test_pull_request_openshift_ansible_tox"
+  - "test_pull_request_openshift_ansible_logging"
+  - "test_pull_request_openshift_ansible_extended_conformance_install_with_status_check"
+  - "test_pull_request_openshift_ansible_extended_conformance_install_update"
+  - "test_pull_request_openshift_ansible_extended_conformance_install_system_containers"

@@ -1,0 +1,98 @@
+- defaults:
+    name: openshift-defaults
+    description: |
+        Maintainer: <a href="mailto:jhadvig@redhat.com">Jakub Hadvig</a><br/>
+        Secondary Maintainer: <a href="mailto:skuznets@redhat.com">Steve Kuznetsov</a><br/>
+        Code Location: http://github.com/openshift/aos-cd-jobs<br/><br/>
+        Managed by Jenkins Job Builder. Do not edit via the web interface.
+    properties:
+      - build-discarder:
+          num-to-keep: 50
+          artifact-num-to-keep: 15
+      - inject:
+          properties-content: |
+            lp_sha1={lpsha1}
+
+## Wrapper/Build Environment to cleanup the workspace, timestamps, color console
+- wrapper:
+    name: openshift-wrappers
+    wrappers:
+      - ansicolor
+      - workspace-cleanup
+      - timestamps
+      - inject:
+          properties-content: |
+              ANSIBLE_SSH_CONTROL_PATH=%(directory)s/%%h-%%r
+              ANSIBLE_HOST_KEY_CHECKING=False
+
+## Added for creds to reference openshift-enterprise tenant in openstack
+- wrapper:
+    name: openshift-cred-wrappers
+    wrappers:
+        - credentials-binding:
+          - file:
+              credential-id: b83f057b-6dde-402e-8cc6-c995d2b48e69
+              variable: OS_OSE_TENANT
+
+- scm:
+    name: paas-sig-ci-scm
+    scm:
+        - git:
+            url: 'git://github.com/openshift/aos-cd-jobs.git'
+            branches:
+                - origin/jjb
+            basedir: aos-cd-jobs
+            skip-tag: true
+        - git:
+            url: 'git://github.com/CentOS-PaaS-SIG/duffy-ansible-module.git'
+            branches:
+                - origin/master
+            basedir: duffy-ansible-module
+            skip-tag: true
+        - git:
+            url: 'git://github.com/CentOS-PaaS-SIG/linch-pin.git'
+            branches:
+                - ${lp_sha1}
+            basedir: linch-pin
+            skip-tag: true
+
+- publisher:
+    name: openshift-email
+    publishers:
+      - email-ext:
+          recipients: jhadvig@redhat.com, skuznets@redhat.com, jupierce@redhat.com
+          reply-to: $DEFAULT_REPLYTO
+          content-type: default
+          subject: $DEFAULT_SUBJECT aos-cd
+          body: $DEFAULT_CONTENT
+          attach-build-log: true
+          always: false
+          unstable: false
+          first-failure: true
+          not-built: false
+          aborted: true
+          regression: true
+          failure: false
+          improvement: false
+          still-failing: false
+          success: false
+          fixed: true
+          still-unstable: false
+          pre-build: false
+          matrix-trigger: only-configurations
+          send-to:
+            - requester
+            - recipients
+
+## Teardown Resources
+- publisher:
+    name: teardown-resources
+    publishers:
+        - postbuildscript:
+            builders:
+              - shell: |
+                  #!/bin/bash
+                  set -xeuo pipefail
+
+                  ansible-playbook $WORKSPACE/paas-ci/playbooks/openshift/teardown_nodes.yml
+            script-only-if-succeeded: false

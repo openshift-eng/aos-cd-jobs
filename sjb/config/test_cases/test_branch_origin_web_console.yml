@@ -1,0 +1,28 @@
+---
+parent: 'common/test_cases/origin_built_release.yml'
+overrides:
+  sync_repos:
+    - name: "origin-web-console"
+extensions:
+  actions:
+    - type: "script"
+      title: "start openshift server"
+      repository: "origin"
+      script: |-
+        sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
+        oc cluster up --version=latest --public-hostname=localhost --loglevel=5 --server-loglevel=5
+    - type: "script"
+      title: "run web console tests"
+      repository: "origin-web-console"
+      script: |-
+        export PATH=$PATH:$(pwd)/node_modules/.bin
+        make test
+  post_actions:
+    - type: "script"
+      title: "grab container logs"
+      repository: "origin"
+      script: |-
+        trap 'exit 0' EXIT
+        ( source hack/lib/init.sh; os::cleanup::dump_container_logs )
+  artifacts:
+    - "/data/src/github.com/openshift/origin-web-console/test/tmp/screenshots/"

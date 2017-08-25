@@ -1,0 +1,86 @@
+#!/usr/bin/ansible-playbook
+---
+- hosts: localhost
+  gather_facts: no
+  connection: local
+
+  tasks:
+
+# Create local work environment
+  - name: Create local work directory
+    file:
+      path: /home/opsmedic/aos-cd
+      state: directory
+      owner: opsmedic
+      group: opsmedic
+      mode: 0770
+
+  - name: Create local work directory
+    file:
+      path: /home/opsmedic/aos-cd/git
+      state: directory
+      owner: opsmedic
+      group: opsmedic
+      mode: 0770
+
+  - name: include git modules
+    include_role:
+      name: tools_roles/lib_git
+
+  - name: clone the openshift-ansible-private
+    git_clone:
+      repo: use-tower1.ops.rhcloud.com:/srv/git/openshift-ansible-private
+      dest: /home/opsmedic/aos-cd/git/openshift-ansible-private
+      branch: prod
+
+  - name: fetch the openshift-ansible-private
+    git_fetch:
+      path: /home/opsmedic/aos-cd/git/openshift-ansible-private
+      remote: origin
+
+  - name: rebase the openshift-ansible-private
+    git_rebase:
+      path: /home/opsmedic/aos-cd/git/openshift-ansible-private
+      branch: prod
+      rebase_branch: origin/prod
+
+  - name: load github credentials
+    include_vars:
+      file: /home/opsmedic/aos-cd/git/openshift-ansible-private/private_vars/global/github_bot.yml
+      
+  - name: clone the openshift-tools
+    git_clone:
+      repo: https://github.com/openshift/openshift-tools
+      dest: /home/opsmedic/aos-cd/git/openshift-tools
+      branch: prod
+
+  - name: fetch the openshift-tools
+    git_fetch:
+      path: /home/opsmedic/aos-cd/git/openshift-tools
+      remote: origin
+
+  - name: rebase the openshift-tools
+    git_rebase:
+      path: /home/opsmedic/aos-cd/git/openshift-tools
+      branch: prod
+      rebase_branch: origin/prod
+
+  - name: clone the openshift-ansible-ops
+    git_clone:
+      repo: "git@github.com:openshift/openshift-ansible-ops.git"
+      dest: /home/opsmedic/aos-cd/git/openshift-ansible-ops
+      branch: prod
+      ssh_key: "{{ g_user_github_bot_private_ssh_key }}"
+
+  - name: fetch openshift-ansible-ops
+    git_fetch:
+      path: /home/opsmedic/aos-cd/git/openshift-ansible-ops
+      remote: origin
+      ssh_key: "{{ g_user_github_bot_private_ssh_key }}"
+
+  - name: rebase the openshift-ansible-ops
+    git_rebase:
+      path: /home/opsmedic/aos-cd/git/openshift-ansible-ops
+      branch: prod
+      rebase_branch: origin/prod
+      ssh_key: "{{ g_user_github_bot_private_ssh_key }}"

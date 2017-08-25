@@ -1,0 +1,186 @@
+---
+parent: 'common/test_cases/origin.yml'
+extensions:
+  sync_repos:
+    - name: "openshift-ansible"
+    - name: "aos-cd-jobs"
+  actions:
+    - type: "forward_parameters"
+      parameters:
+        - ORIGIN_TARGET_BRANCH
+        - OPENSHIFT_ANSIBLE_TARGET_BRANCH
+    - type: "script"
+      title: "determine the release commit for origin images"
+      repository: "origin"
+      script: |-
+        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
+        git log -1 --pretty=%h > "${jobs_repo}/ORIGIN_COMMIT"
+        source hack/lib/init.sh
+        os::build::rpm::format_nvra > "${jobs_repo}/ORIGIN_BUILT_VERSION"
+    - type: "script"
+      title: "build an openshift-ansible release"
+      repository: "openshift-ansible"
+      script: |-
+        tito_tmp_dir="tito"
+        mkdir -p "${tito_tmp_dir}"
+        tito tag --offline --accept-auto-changelog
+        tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
+        createrepo "${tito_tmp_dir}/noarch"
+        cat << EOR > ./openshift-ansible-local-release.repo
+        [openshift-ansible-local-release]
+        baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
+        gpgcheck = 0
+        name = OpenShift Ansible Release from Local Source
+        EOR
+        sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+        basename "${tito_tmp_dir}"/noarch/atomic-openshift-utils*.rpm .rpm > /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_ANSIBLE_BUILT_VERSION
+    - type: "script"
+      title: "install ansible atomic-openshift-utils"
+      repository: "aos-cd-jobs"
+      timeout: 600
+      script: |-
+        pkg_name="origin"
+        echo $pkg_name > PKG_NAME
+        echo "openshift-ansible openshift-ansible-callback-plugins openshift-ansible-docs openshift-ansible-filter-plugins openshift-ansible-lookup-plugins openshift-ansible-playbooks openshift-ansible-roles" > OPENSHIFT_ANSIBLE_PKGS
+        sudo python sjb/hack/determine_install_upgrade_version.py $( cat OPENSHIFT_ANSIBLE_BUILT_VERSION ) --dependency_branch ${ORIGIN_TARGET_BRANCH} > OPENSHIFT_ANSIBLE_VARS
+        source OPENSHIFT_ANSIBLE_VARS
+        versioned_packages_to_install=""
+        if [[ ${ATOMIC_OPENSHIFT_UTILS_INSTALL_MINOR_VERSION} -le 4 ]]
+        then
+          sudo yum erase -y ansible
+          versioned_packages_to_install="ansible-2.2.0.0"
+        fi
+        packages_to_install=( $( cat ./OPENSHIFT_ANSIBLE_PKGS ) )
+        for pkg in "${packages_to_install[@]}"
+        do
+          versioned_packages_to_install+=" ${pkg}-${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION}"
+        done
+        echo "=== Installing atomic-openshift-utils-${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION} packages ==="
+        sudo yum install -y ${versioned_packages_to_install}
+    - type: "script"
+      title: "install Ansible plugins"
+      repository: "origin"
+      script: |-
+        sudo chmod o+rw /etc/environment
+        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
+        sudo mkdir -p /usr/share/ansible/plugins/callback
+        for plugin in 'default_with_output_lists' 'generate_junit'; do
+           wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+           sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
+        done
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+    - type: "script"
+      title: "build an origin release"
+      repository: "origin"
+      timeout: 5000
+      script: |-
+        hack/build-base-images.sh
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+        sudo systemctl restart docker
+        hack/build-images.sh
+        sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+        sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+    - type: "script"
+      title: "install origin"
+      repository: "aos-cd-jobs"
+      timeout: 1800
+      script: |-
+        pkg_name=$( cat ./PKG_NAME )
+        if [[ "${pkg_name}" == "origin" ]]; then
+            deployment_type="origin"
+        elif [[ "${pkg_name}" == "atomic-openshift" ]]; then
+            deployment_type="openshift-enterprise"
+        else
+            echo "Can't determine deployment type"
+            exit 1
+        fi
+        echo "${deployment_type}" > DEPLOYMENT_TYPE
+        sudo python sjb/hack/determine_install_upgrade_version.py $( cat ORIGIN_BUILT_VERSION ) --dependency_branch ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} > ORIGIN_VARS
+        source ORIGIN_VARS
+        source OPENSHIFT_ANSIBLE_VARS
+        echo "=== Installing ${pkg_name}-${ORIGIN_INSTALL_VERSION} ==="
+        ansible-playbook  -vv                \
+                          --become           \
+                          --become-user root \
+                          --connection local \
+                          --inventory sjb/inventory/ \
+                          /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml \
+                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
+        ansible-playbook  -vv                \
+                          --become           \
+                          --become-user root \
+                          --connection local \
+                          --inventory sjb/inventory/ \
+                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
+                          -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
+                          -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
+                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
+    - type: "script"
+      title: "upgrade openshift-ansible to release"
+      repository: "aos-cd-jobs"
+      script: |-
+        source ORIGIN_VARS
+        source OPENSHIFT_ANSIBLE_VARS
+        versioned_packages_to_upgrade=""
+        packages_to_upgrade=( $( cat ./OPENSHIFT_ANSIBLE_PKGS ) )
+        for pkg in "${packages_to_upgrade[@]}"
+        do
+          versioned_packages_to_upgrade+=" ${pkg}-${ATOMIC_OPENSHIFT_UTILS_UPGRADE_RELEASE_VERSION}"
+        done
+        sudo yum upgrade -y ${versioned_packages_to_upgrade}
+    - type: "script"
+      title: "verify the installed openshift-ansible release"
+      repository: "openshift-ansible"
+      timeout: 3600
+      script: |-
+        last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
+        last_commit="$( git log -n 1 --pretty=%h )"
+        rpm -V "${last_tag}.git.0.${last_commit}.el7"
+    - type: "script"
+      title: "update origin to release"
+      repository: "aos-cd-jobs"
+      timeout: 1800
+      script: |-
+        pkg_name=$( cat ./PKG_NAME )
+        source ORIGIN_VARS
+        upgrade_playbook="/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/upgrades/v3_${ORIGIN_UPGRADE_RELEASE_MINOR_VERSION}/upgrade.yml"
+        ansible-playbook  -vv                    \
+                          --become               \
+                          --become-user root     \
+                          --connection local     \
+                          --inventory sjb/inventory/ \
+                           "${upgrade_playbook}"     \
+                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
+                          -e openshift_pkg_version="-${ORIGIN_UPGRADE_RELEASE_VERSION}" \
+                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE) \
+                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
+    - type: "script"
+      title: "expose the kubeconfig"
+      script: |-
+        sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
+        sudo chmod a+rw /etc/origin/master/admin.kubeconfig
+    - type: "script"
+      title: "ensure built version of origin is installed"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        rpm -V "${origin_package}"
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
+  generated_artifacts:
+    origin_package_history.log: "sudo yum history info origin"
+    openshift_ansible_package_history.log: "sudo yum history info openshift-ansible"
+  system_journals:
+    - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
+    - origin-node.service
+    - openvswitch.service
+    - ovs-vswitchd.service
+    - ovsdb-server.service
+    - etcd.service

@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<com.tikal.jenkins.plugins.multijob.MultiJobProject plugin="jenkins-multijob-plugin@1.21">
+  <actions/>
+  <description>{{ description | escape }}</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+      <autoRebuild>true</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>7</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+{%- if parameters %}
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+{%- for parameter in parameters %}
+{{ parameter }}
+{%- endfor %}
+{%- if action == "merge" %}
+        <hudson.model.StringParameterDefinition>
+          <name>MERGE_SEVERITY</name>
+          <description>How important this pull request is.</description>
+          <defaultValue>none</defaultValue>
+        </hudson.model.StringParameterDefinition>
+{%- endif %}
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+{%- endif %}
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>0</maxConcurrentTotal>
+      <categories class="java.util.concurrent.CopyOnWriteArrayList"/>
+      <throttleEnabled>false</throttleEnabled>
+      <throttleOption>project</throttleOption>
+      <limitOneJobWithMatchingParams>false</limitOneJobWithMatchingParams>
+      <paramsToUseForLimit></paramsToUseForLimit>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <authToken>origin1</authToken>
+{%- if timer %}
+  <triggers>
+    <hudson.triggers.TimerTrigger>
+      <spec>{{ timer }}</spec>
+    </hudson.triggers.TimerTrigger>
+  </triggers>
+{%- else %}
+  <triggers/>
+{%- endif %}
+  <concurrentBuild>true</concurrentBuild>
+  <builders>
+{%- if action == "merge" %}
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+approve.sh {{ target_repo }} &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_TARGET_BRANCH}&quot; &quot;${MERGE_SEVERITY}&quot;
+          </command>
+        </hudson.tasks.Shell>
+{%- endif %}
+{%- for build_step in build_steps %}
+{{ build_step }}
+{%- endfor %}
+  </builders>
+  <publishers>
+{%- if post_build_steps %}
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
+      <buildSteps>
+{%- for post_build_step in post_build_steps %}
+{{ post_build_step }}
+{%- endfor %}
+      </buildSteps>
+      <scriptOnlyIfSuccess>false</scriptOnlyIfSuccess>
+      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
+      <markBuildUnstable>false</markBuildUnstable>
+    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
+{%- endif %}
+{%- if action == "test" %}
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
+      <buildSteps>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json || true
+fi
+          </command>
+        </hudson.tasks.Shell>
+      </buildSteps>
+      <scriptOnlyIfSuccess>true</scriptOnlyIfSuccess>
+      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
+      <markBuildUnstable>false</markBuildUnstable>
+    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
+{%- endif %}
+{%- if action == "merge" %}
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
+      <buildSteps>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
+  test_pull_requests --merge_pull_request &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json
+fi
+          </command>
+        </hudson.tasks.Shell>
+      </buildSteps>
+      <scriptOnlyIfSuccess>true</scriptOnlyIfSuccess>
+      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
+      <markBuildUnstable>false</markBuildUnstable>
+    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
+{%- endif %}
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</artifacts>
+      <allowEmptyArchive>true</allowEmptyArchive>
+      <onlyIfSuccessful>false</onlyIfSuccessful>
+      <fingerprint>false</fingerprint>
+      <defaultExcludes>true</defaultExcludes>
+      <caseSensitive>true</caseSensitive>
+    </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
+      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</testResults>
+      <keepLongStdio>true</keepLongStdio>
+      <healthScaleFactor>1.0</healthScaleFactor>
+      <allowEmptyResults>true</allowEmptyResults>
+    </hudson.tasks.junit.JUnitResultArchiver>
+    <hudson.plugins.s3.S3BucketPublisher plugin="s3@0.10.11-SNAPSHOT">
+      <profileName>Jenkins-AWS</profileName>
+      <entries>
+        <hudson.plugins.s3.Entry>
+          <bucket>aos-ci/jenkinsorigin</bucket>
+          <sourceFile>artifacts/**, .config/origin-ci-tool/**</sourceFile>
+          <excludedFile></excludedFile>
+          <storageClass>STANDARD</storageClass>
+          <selectedRegion>us-east-1</selectedRegion>
+          <noUploadOnFailure>false</noUploadOnFailure>
+          <uploadFromSlave>false</uploadFromSlave>
+          <managedArtifacts>true</managedArtifacts>
+          <useServerSideEncryption>false</useServerSideEncryption>
+          <flatten>false</flatten>
+          <gzipFiles>false</gzipFiles>
+          <showDirectlyInBrowser>false</showDirectlyInBrowser>
+          <keepForever>false</keepForever>
+        </hudson.plugins.s3.Entry>
+      </entries>
+      <dontWaitForConcurrentBuildCompletion>true</dontWaitForConcurrentBuildCompletion>
+      <consoleLogLevel>
+        <name>WARNING</name>
+        <value>900</value>
+        <resourceBundleName>sun.util.logging.resources.logging</resourceBundleName>
+      </consoleLogLevel>
+      <pluginFailureResultConstraint>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </pluginFailureResultConstraint>
+      <userMetadata/>
+    </hudson.plugins.s3.S3BucketPublisher>
+{%- if email %}
+    <hudson.tasks.Mailer plugin="mailer@1.16">
+      <recipients>{{ email | join(' ') }}</recipients>
+      <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
+      <sendToIndividuals>false</sendToIndividuals>
+    </hudson.tasks.Mailer>
+{%- endif %}
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.32">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+    <hudson.plugins.ansicolor.AnsiColorBuildWrapper plugin="ansicolor@0.4.2">
+      <colorMapName>xterm</colorMapName>
+    </hudson.plugins.ansicolor.AnsiColorBuildWrapper>
+  </buildWrappers>
+  <pollSubjobs>false</pollSubjobs>
+</com.tikal.jenkins.plugins.multijob.MultiJobProject>

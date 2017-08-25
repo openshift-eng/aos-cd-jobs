@@ -1,0 +1,44 @@
+---
+parent: 'common/test_cases/origin_built_release.yml'
+overrides:
+  sync_repos:
+    - name: "origin-aggregated-logging"
+extensions:
+  actions:
+    - type: "script"
+      title: "install Ansible plugins"
+      repository: "origin"
+      script: |-
+        sudo chmod o+rw /etc/environment
+        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
+        sudo mkdir -p /usr/share/ansible/plugins/callback
+        for plugin in 'default_with_output_lists' 'generate_junit'; do
+           wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+           sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
+        done
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+    - type: "script"
+      title: "run logging tests"
+      repository: "origin-aggregated-logging"
+      script: |-
+        export O_A_L_DIR="$( realpath ./ )"
+        export OS_ROOT="$( realpath ./../origin )"
+        export PATH="${PATH}:${OS_ROOT}/_output/local/bin/linux/amd64/"
+        export ENABLE_OPS_CLUSTER=true
+        export USE_LOCAL_SOURCE=true
+        export VERBOSE=1
+        pushd hack/testing
+        ./logging.sh
+        popd
+  system_journals:
+    - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
+    - origin-node.service
+    - openvswitch.service
+    - ovs-vswitchd.service
+    - ovsdb-server.service
+    - etcd.service
+  artifacts:
+    - "/data/src/github.com/openshift/origin-aggregated-logging/_output/scripts"
+    - "/tmp/origin-aggregated-logging"

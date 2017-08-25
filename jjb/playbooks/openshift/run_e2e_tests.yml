@@ -1,0 +1,6 @@
+---
+- hosts: masters
+  become: '{{ sudo | default("no") }}'
+  remote_user: '{{ user | default("root") }}'
+  roles:
+    - e2e

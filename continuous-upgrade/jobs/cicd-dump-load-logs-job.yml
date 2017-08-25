@@ -1,0 +1,17 @@
+- job:
+    name: continuous-upgrade_dump-load-logs-job
+    project-type: freestyle
+    defaults: global
+    builders:
+      - shell: |
+         tail -n 150 /root/svt/reliability/logs/reliability.log
+
+    publishers:
+      - email:
+          recipients: jhadvig@redhat.com skuznets@redhat.com jupierce@redhat.com
+          notify-every-unstable-build: true
+    triggers:
+      - reverse:
+            jobs:
+                - 'continuous-upgrade_cicd-start-load-job'
+            result: 'failure'

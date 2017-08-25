@@ -1,0 +1,110 @@
+---
+parameters: []
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync_repos:
+  - name: "origin"
+actions:
+  - type: "script"
+    title: "record the starting metadata"
+    timeout: 300
+    repository: "aos-cd-jobs"
+    script: |-
+      trap 'exit 0' EXIT
+      sjb/gcs/started.py
+  - type: "host_script"
+    title: "upload GCS starting metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
+
+      pull_id="${ORIGIN_PULL_ID:-}"
+      target_branch="${ORIGIN_TARGET_BRANCH:-}"
+      if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
+        pull_id=${PULL_NUMBER}
+        target_branch="${PULL_REFS%%:*}"
+      fi
+      # pull_id will be 0 in case of a batch merge
+      if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
+        destination_bucket="gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}"
+        gsutil cp gcs/started.json "${destination_bucket}/started.json"
+
+        echo "${destination_bucket}" > "${BUILD_NUMBER}.txt"
+        gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
+      elif [[ "${PULL_REFS:-}" =~ ^[^:]+:[^:]+$ ]]; then
+        # this is a post-submit since the pull_refs has no info other than the branch
+        destination_bucket="gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
+        gsutil cp gcs/started.json "${destination_bucket}/started.json"
+      fi
+  - type: "script"
+    title: "use a ramdisk for etcd"
+    timeout: 300
+    script: |-
+      sudo su root <<SUDO
+      mkdir -p /tmp
+      mount -t tmpfs -o size=4096m tmpfs /tmp
+      mkdir -p /tmp/etcd
+      chmod a+rwx /tmp/etcd
+      restorecon -R /tmp
+      echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
+      SUDO
+post_actions:
+  - type: "forward_parameters"
+    parameters:
+      - BUILD_URL
+  - type: "script"
+    title: "record the ending metadata"
+    timeout: 300
+    repository: "aos-cd-jobs"
+    script: |-
+      trap 'exit 0' EXIT
+      sjb/gcs/finished.py
+  - type: "host_script"
+    title: "assemble GCS output"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+      i=0
+      for report in $( find artifacts/ -type f -name \*.xml ); do
+        name="$( printf 'junit_%02d.xml' "$i" )"
+        cp "${report}" "gcs/artifacts/${name}"
+        i="$(( i += 1))"
+      done
+      cp artifacts/generated/* gcs/artifacts/generated/
+      cp artifacts/journals/* gcs/artifacts/journals/
+      cp -r artifacts/scripts/* gcs/artifacts/scripts/
+
+      pull_id="${ORIGIN_PULL_ID:-}"
+      target_branch="${ORIGIN_TARGET_BRANCH:-}"
+      if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
+        pull_id=${PULL_NUMBER}
+        target_branch="${PULL_REFS%%:*}"
+      fi
+      # pull_id will be 0 in case of a batch merge
+      if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
+        gsutil -m cp -r gcs/* "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/"
+      elif [[ "${PULL_REFS:-}" =~ ^[^:]+:[^:]+$ ]]; then
+        # this is a post-submit since the pull_refs has no info other than the branch
+        destination_bucket="gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
+        gsutil -m cp -r gcs/* "gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/"
+      fi
+artifacts:
+  - "/data/src/github.com/openshift/origin/_output/scripts"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+  pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
+  master-metrics.log: 'oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig'
+  node-metrics.log: 'oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig'
+system_journals:
+  - docker.service
+  - dnsmasq.service

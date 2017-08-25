@@ -1,0 +1,20 @@
+---
+parent: 'common/test_cases/rhel_base_images.yml'
+extensions:
+  sync_repos:
+    - name: "jenkins"
+  actions:
+    - type: "script"
+      title: "build the jenkins images"
+      repository: "jenkins"
+      timeout: 10800
+      script: |-
+        make build TARGET=rhel7
+        make build TARGET=centos7
+    - type: "script"
+      title: "test the jenkins images"
+      repository: "jenkins"
+      timeout: 7200
+      script: |-
+        make test TARGET=rhel7 TAG_ON_SUCCESS=true
+        make test TARGET=centos7 TAG_ON_SUCCESS=true

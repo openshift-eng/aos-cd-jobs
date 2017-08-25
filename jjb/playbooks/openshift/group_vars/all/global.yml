@@ -1,0 +1,24 @@
+---
+# project - name and version
+# options:
+#   project: origin
+#   project: openshift-ansible
+project: origin
+
+# Version to setup of project
+version: 1.4.0-rc1
+
+# version to setup of origin
+origin_version: 1.4.0-rc1
+
+# bleeding edge version
+bleeding_edge: false
+
+# version of openshift-ansible
+oa_version: 3.4
+
+# building repo from source
+repo_from_source: false
+
+# Packages to include for master node
+openshift_origin_common_pkgs: 'docker* kompose openvswitch* python-click python-httplib2 python-keyczar python-openvswitch python-paramiko sshpass'

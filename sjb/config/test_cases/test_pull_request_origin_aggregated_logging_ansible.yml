@@ -1,0 +1,7 @@
+---
+parent: 'test_cases/test_branch_openshift_ansible_logging.yml'
+overrides:
+  sync_repos:
+    - name: "openshift-ansible"
+    - name: "origin-aggregated-logging"
+      type: "pull_request"

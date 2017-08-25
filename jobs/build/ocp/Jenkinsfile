@@ -400,7 +400,7 @@ node(TARGET_NODE) {
 
             stage( "signing rpms" ) {
                 if ( SIGN_RPMS ) {
-                    sh "${env.WORKSPACE}/build-scripts/sign_rpms.sh rhaos-${BUILD_VERSION}-rhel-7 openshifthosted"
+                    sh "${env.WORKSPACE}/build-scripts/sign_rpms.sh rhaos-${BUILD_VERSION}-rhel-7-candidate openshifthosted"
                 } else {
                     echo "RPM signing has been skipped..."
                 }

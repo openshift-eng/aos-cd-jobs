@@ -133,7 +133,7 @@ else
     echo "=========="
     echo "Signing RPMs"
     echo "=========="
-    "${WORKSPACE}/build-scripts/sign_rpms.sh" "libra-rhel-7" "openshifthosted"
+    "${WORKSPACE}/build-scripts/sign_rpms.sh" "libra-rhel-7-candidate" "openshifthosted"
     
     pushd "${WORKSPACE}"
     COMMIT_SHA="$(git rev-parse HEAD)"

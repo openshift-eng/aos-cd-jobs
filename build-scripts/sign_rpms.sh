@@ -15,7 +15,7 @@ echo ${BASE_TAG}
 
 signdir=$(mktemp -d)
 
-builds=$(brew list-tagged --latest --quiet ${TAG} | awk '{print $1}')
+builds=$(brew list-tagged --latest --inherit --quiet ${TAG} | awk '{print $1}')
 echo $builds
 
 sign_script_path="/mnt/redhat/scripts/rel-eng/utility/sign_unsigned.py"

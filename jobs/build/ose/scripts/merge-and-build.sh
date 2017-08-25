@@ -311,7 +311,7 @@ echo
 echo "=========="
 echo "Signing RPMs"
 echo "=========="
-"${WORKSPACE}/build-scripts/sign_rpms.sh" "rhaos-${OSE_VERSION}-rhel-7" "openshifthosted"
+"${WORKSPACE}/build-scripts/sign_rpms.sh" "rhaos-${OSE_VERSION}-rhel-7-candidate" "openshifthosted"
 
 pushd "${WORKSPACE}"
 COMMIT_SHA="$(git rev-parse HEAD)"

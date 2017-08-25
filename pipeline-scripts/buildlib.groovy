@@ -271,7 +271,7 @@ def build_puddle(conf_url, keys, Object...args) {
       echo "Using only signed RPMs with keys: ${keys}"
     }
 
-    key_opt = (keys != null)?"--keys {$keys}":""
+    key_opt = (keys != null)?"--keys ${keys}":""
 
     // Ideally, we would call invoke_on_rcm_guest, but jenkins makes it absurd to invoke with conf_url as one of the arguments because the spread operator is not enabled.
     def puddle_output = sh(

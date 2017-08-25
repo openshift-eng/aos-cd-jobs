@@ -139,14 +139,15 @@ else
     COMMIT_SHA="$(git rev-parse HEAD)"
     popd
     PUDDLE_CONF_BASE="https://raw.githubusercontent.com/openshift/aos-cd-jobs/${COMMIT_SHA}/build-scripts/puddle-conf"
-    PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift_online-${MAJOR_MINOR_VERSION}_signed.conf"
+    PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift_online-${MAJOR_MINOR_VERSION}.conf"
+    PUDDLE_SIG_KEY="b906ba72"
     
     echo
     echo "=========="
     echo "Building Puddle"
     echo "=========="
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s "${PUDDLE_CONF}" -b -d -n -s --label=building \
+        sh -s --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n -s --label=building \
         < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
     echo
@@ -181,7 +182,7 @@ else
     echo "Create latest puddle"
     echo "=========="
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s "${PUDDLE_CONF}" -b -d -n \
+        sh -s --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n \
         < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
     echo

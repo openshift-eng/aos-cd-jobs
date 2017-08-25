@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from os import chdir
 from os.path import join, exists
 
 from aos_cd_jobs.common import JOBS_DIRECTORY, initialize_repo
@@ -34,4 +35,5 @@ def prune_remote_refs(repo):
 
 if __name__ == '__main__':
     repo = initialize_repo()
+    chdir(repo.working_dir)
     prune_remote_refs(repo)

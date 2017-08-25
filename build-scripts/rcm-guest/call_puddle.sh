@@ -23,7 +23,7 @@ EOF
 CONF_FILE_URL=
 SIGNED_KEYS=
 
-while [[ "$#" -ge 1 ]]; 
+while [[ "$#" -ge 1 ]];
 do
     case "${1}" in
       --conf)
@@ -55,11 +55,14 @@ fi
 
 CONF_TEMPLATE=$(mktemp)
 curl -o "${CONF_TEMPLATE}" "${CONF_FILE_URL}"
-CONF_FILE=$(mktemp)
+
 if [ -n "${SIGNED_KEYS}" ]; then
+  CONF_FILE=$(mktemp)
   echo "$(grep "(keys[ \t]*=[ \t]*)\|(signed[ \t]*=[ \t]*)" --invert-match "${CONF_TEMPLATE}")" > "${CONF_FILE}"
   echo "signed = yes" >> "${CONF_FILE}"
   echo "keys = ${SIGNED_KEYS}" >> "${CONF_FILE}"
+else
+  CONF_FILE="${CONF_TEMPLATE}"
 fi
 
 cat "${CONF_FILE}"

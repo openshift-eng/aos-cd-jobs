@@ -94,12 +94,8 @@ node(TARGET_NODE) {
     ).trim()
 
     PUDDLE_CONF_BASE="https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
-    if ( SIGN_RPMS ) {
-        PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}_signed.conf"
-
-    } else {
-        PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}.conf"
-    }
+    PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}.conf"
+    PUDDLE_SIGN_KEYS = SIGN_RPMS?"b906ba72":null
 
     def commonlib = load( "pipeline-scripts/commonlib.groovy")
     commonlib.initialize()
@@ -411,14 +407,15 @@ node(TARGET_NODE) {
             }
 
             stage( "puddle: ose 'building'" ) {
-                buildlib.build_puddle(
-                        PUDDLE_CONF,    // The puddle configuration file to use
-                        "-b",   // do not fail if we are missing dependencies
-                        "-d",   // print debug information
-                        "-n",   // do not send an email for this puddle
-                        "-s",   // do not create a "latest" link since this puddle is for building images
-                        "--label=building"   // create a symlink named "building" for the puddle
-                )
+              buildlib.build_puddle(
+                      PUDDLE_CONF,    // The puddle configuration file to use
+                      PUDDLE_SIGN_KEYS, // openshifthosted key
+                      "-b",   // do not fail if we are missing dependencies
+                      "-d",   // print debug information
+                      "-n",   // do not send an email for this puddle
+                      "-s",   // do not create a "latest" link since this puddle is for building images
+                      "--label=building"   // create a symlink named "building" for the puddle
+              )
             }
 
             stage( "compare dist-git" ) {
@@ -438,10 +435,11 @@ node(TARGET_NODE) {
                 // Hack to keep from breaking openshift-ansible CI during US Eastern daylight builds. They need the latest puddle to exist
                 // before images are pushed to registry-ops in order for their current CI implementation to work.
                 OCP_PUDDLE = buildlib.build_puddle(
-                        PUDDLE_CONF,
-                        "-b", // do not fail if we are missing dependencies
-                        "-d", // prin debug information
-                        "-n" // do not send an email for the puddle
+                        PUDDLE_CONF,    // The puddle configuration file to use
+                        PUDDLE_SIGN_KEYS, // openshifthosted key
+                        "-b",   // do not fail if we are missing dependencies
+                        "-d",   // print debug information
+                        "-n"
                 )
             }
 
@@ -456,10 +454,11 @@ node(TARGET_NODE) {
             if ( ! EARLY_LATEST_HACK.toBoolean() ) {
                 // If we have not done so already, create the "latest" puddle
                 OCP_PUDDLE = buildlib.build_puddle(
-                        PUDDLE_CONF,
-                        "-b", // do not fail if we are missing dependencies
-                        "-d", // prin debug information
-                        "-n" // do not send an email for the puddle
+                        PUDDLE_CONF,    // The puddle configuration file to use
+                        PUDDLE_SIGN_KEYS, // openshifthosted key
+                        "-b",   // do not fail if we are missing dependencies
+                        "-d",   // print debug information
+                        "-n"
                 )
             }
 

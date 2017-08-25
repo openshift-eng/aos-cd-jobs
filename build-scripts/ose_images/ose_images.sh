@@ -1579,6 +1579,21 @@ else
   export parent=""
 fi
 
+
+# Openshift ansible CI triggers off a change to to the openshift3/ose image in registry.ops
+# to perform its testing. When it triggers, it expects there to be a "latest" puddle with
+# the exact version of OCP within the image available.
+# Directly after image pushing, we create this latest puddle. However, to minimize the time
+# between the image landing the the puddle being created, make sure ose is the *last*
+# image we push.
+if [ "$action" == "push_images" -o "$action" == "push" ]; then
+    if [[ "${packagelist}" == *"::openshift-enterprise-docker::"* ]]; then
+        # Remove ::openshift-enterprise-docker:: from the list and add it to the end
+        export packagelist="${packagelist//::openshift-enterprise-docker::} ::openshift-enterprise-docker::"
+    fi
+fi
+
+
 # Function to do the work for each item in the list
 do_work_each_package() {
 for unique_package in ${packagelist}

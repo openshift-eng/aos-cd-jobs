@@ -8,7 +8,7 @@ from aos_cd_jobs.common import JOBS_DIRECTORY, initialize_repo
 def update_branches(repo):
     for job in list_jobs(repo):
         if job not in repo.branches:
-            if job in repo.remotes['origin'].branches:
+            if job in repo.remotes['origin'].refs:
                 repo.create_head(job, 'origin/{}'.format(job))
             else:
                 repo.create_head(job, 'master')

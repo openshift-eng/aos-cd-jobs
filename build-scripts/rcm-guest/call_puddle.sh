@@ -61,6 +61,7 @@ if [ -n "${SIGNED_KEYS}" ]; then
   echo "$(grep "(keys[ \t]*=[ \t]*)\|(signed[ \t]*=[ \t]*)" --invert-match "${CONF_TEMPLATE}")" > "${CONF_FILE}"
   echo "signed = yes" >> "${CONF_FILE}"
   echo "keys = ${SIGNED_KEYS}" >> "${CONF_FILE}"
+  rm "${CONF_TEMPLATE}"
 else
   CONF_FILE="${CONF_TEMPLATE}"
 fi
@@ -69,5 +70,4 @@ cat "${CONF_FILE}"
 
 puddle "${CONF_FILE}" "$@"
 
-rm "${CONF_TEMPLATE}"
 rm "${CONF_FILE}"

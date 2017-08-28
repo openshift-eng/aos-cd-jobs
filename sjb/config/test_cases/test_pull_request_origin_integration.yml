@@ -4,3 +4,4 @@ overrides:
   sync_repos:
     - name: "origin"
       type: "pull_request"
+  junit_analysis: False

@@ -86,6 +86,15 @@ fails. The syntax is:
 email: [] # list of e-mail addresses
 ```
 
+## `junit_analysis`
+
+`junit_analysis` is an optional flag to enable or disable the "Publish
+JUnit test result report" post-build step. It defaults to `True`
+
+```yaml
+junit_analysis: False # JUnit analysis is disabled
+```
+
 ## `merge` and `test`
 
 `merge` and `test` are optional fields that mark the job as one that uses the

@@ -126,12 +126,14 @@ fi
       <defaultExcludes>true</defaultExcludes>
       <caseSensitive>true</caseSensitive>
     </hudson.tasks.ArtifactArchiver>
+{%- if junit_analysis %}
     <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
       <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</testResults>
       <keepLongStdio>true</keepLongStdio>
       <healthScaleFactor>1.0</healthScaleFactor>
       <allowEmptyResults>true</allowEmptyResults>
     </hudson.tasks.junit.JUnitResultArchiver>
+{%- endif %}
     <hudson.plugins.s3.S3BucketPublisher plugin="s3@0.10.11-SNAPSHOT">
       <profileName>Jenkins-AWS</profileName>
       <entries>

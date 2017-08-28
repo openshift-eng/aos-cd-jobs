@@ -232,6 +232,7 @@ with open(output_path, "w") as output_file:
         target_repo=target_repo,
         timer=job_config.get("timer", None),
         email=job_config.get("email", None),
+        junit_analysis=job_config.get("junit_analysis", True),
         description=job_config.get("description", DEFAULT_DESCRIPTION)
     ))
 debug("[INFO] Wrote job definition to {}".format(output_path))

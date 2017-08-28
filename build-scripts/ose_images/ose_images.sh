@@ -29,7 +29,7 @@ DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
 SCRATCH_OPTION=""
-BUILD_REPO="http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo"
+BUILD_REPO="https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
 COMMIT_MESSAGE=""
 PULL_REGISTRY=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
 PUSH_REGISTRY=registry-push.ops.openshift.com
@@ -515,12 +515,12 @@ check_build_dependencies() {
 
 build_image() {
     rhpkg ${USER_USERNAME} container-build ${SCRATCH_OPTION} --repo ${BUILD_REPO} >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-errata-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-errata-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-signed-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
-    #rhpkg container-build --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-signed-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-errata-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-errata-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-signed-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-signed-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     echo -n "  Waiting for build to start ."
     sleep 10
     taskid=`cat ${workingdir}/logs/${container}.buildlog | grep -i "Created task:" | head -n 1 | awk '{print $3}'`

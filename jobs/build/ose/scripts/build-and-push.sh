@@ -65,7 +65,7 @@ echo
 echo "=========="
 echo "Build Images"
 echo "=========="
-ose_images.sh build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo
+ose_images.sh build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo
    if [ "$?" != "0" ]; then exit 1 ; fi
 
 echo

@@ -12,7 +12,7 @@ brew watch-task "${task_number}"
 # RPMs are now built, on to the images
 ssh "${rcm_username}@rcm-guest.app.eng.bos.redhat.com" "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${ose_version}.conf -n -s --label=building"
 ose_images.sh update_docker --branch "rhaos-${ose_version}-rhel-7" --group base --force --release 1 --version "${VERSION}"
-ose_images.sh build_container --branch "rhaos-${ose_version}-rhel-7" --group base --repo http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo
+ose_images.sh build_container --branch "rhaos-${ose_version}-rhel-7" --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo
 sudo ose_images.sh push_images --branch "rhaos-${ose_version}-rhel-7" --group base   # Requires docker permissions
 ssh "${rcm_username}@rcm-guest.app.eng.bos.redhat.com" "puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/atomic_openshift-${ose_version}.conf"
 # Script needs access to vagrant key

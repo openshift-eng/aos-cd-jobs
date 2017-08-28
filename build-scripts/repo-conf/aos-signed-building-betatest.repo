@@ -1,0 +1,110 @@
+[rhel-server-rhscl-7-rpms]
+name = Red Hat Software Collections
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/rhscl/1/os/
+enabled = 0
+gpgcheck = 1
+
+[rhel-7-server-rpms]
+name = Red Hat Enterprise Linux 7
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os/
+enabled = 1
+gpgcheck = 1
+
+[rhel-7-server-extras-rpms]
+name = Red Hat Enterprise Linux 7 Extras
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/extras/os/
+enabled = 0
+gpgcheck = 1
+
+[rhel-7-fast-datapath-rpms]
+name = Red Hat Enterprise Linux 7 Fast Datapath
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/fast-datapath/os/
+enabled = 0
+gpgcheck = 1
+
+[rhel-7-fast-datapath-htb-rpms]
+name = Red Hat Enterprise Linux 7 Fast HTB Datapath
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/htb/rhel/server/7/x86_64/fast-datapath/os/
+enabled = 0
+gpgcheck = 1
+
+[rhel-7-server-optional-rpms]
+name = Red Hat Enterprise Linux 7 Optional
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/optional/os/
+enabled = 1
+gpgcheck = 1
+
+[rhel-7-server-rh-common-rpms]
+name = Red Hat Enterprise Linux 7 RH-Common
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/rh-common/os/
+enabled = 0
+gpgcheck = 1
+
+# For 3.4 logging-auth-proxy-docker
+[rhel-7-server-ose-released]
+name = latest rhel-7 ose that has been released
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/ose/3.3/os/
+enabled = 0
+gpgcheck = 1
+
+[RH7-RHAOS-3.1]
+name=RH7-RHAOS-3.1
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.1/building/RH7-RHAOS-3.1/x86_64/os/
+gpgcheck=1
+enabled=0
+
+[rhel-7-server-ose-3.1-rpms]
+name=rhel-7-server-ose-3.1-rpms
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.1/building/RH7-RHAOS-3.1/x86_64/os/
+gpgcheck=1
+enabled=0
+
+[RH7-RHAOS-3.2]
+name=RH7-RHAOS-3.2
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.2/building/RH7-RHAOS-3.2/x86_64/os
+gpgcheck=1
+enabled=0
+
+[rhel-7-server-ose-3.2-rpms]
+name=rhel-7-server-ose-3.2-rpms
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.2/building/RH7-RHAOS-3.2/x86_64/os
+gpgcheck=1
+enabled=0
+
+[rhel-7-server-ose-3.3-rpms]
+name=rhel-7-server-ose-3.3-rpms
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.3/building/RH7-RHAOS-3.3/x86_64/os
+gpgcheck=1
+enabled=0
+
+[rhel-7-server-ose-3.4-rpms]
+name=rhel-7-server-ose-3.4-rpms
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.4/building/RH7-RHAOS-3.4/x86_64/os
+gpgcheck=1
+enabled=0
+
+[rhel-7-server-ose-3.5-rpms]
+name=rhel-7-server-ose-3.5-rpms
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.5/building/RH7-RHAOS-3.5/x86_64/os
+gpgcheck=1
+enabled=0
+
+[rhel-7-server-ose-3.6-rpms]
+name=rhel-7-server-ose-3.6-rpms
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.6/building/RH7-RHAOS-3.6/x86_64/os
+gpgcheck=1
+enabled=0
+
+[rhel-7-server-ose-3.7-rpms]
+name=rhel-7-server-ose-3.7-rpms
+baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/3.7/building/RH7-RHAOS-3.7/x86_64/os
+gpgcheck=1
+enabled=0
+
+#For ansible 2.3, openshift-enterprise-apb-base-docker
+[abp-rhel-7.4-server-extras-rpms]
+name = Red Hat Enterprise Linux 7.4 Extras
+baseurl = http://download.devel.redhat.com/rel-eng/EXTRAS-7.4-RHEL-7-Snapshot-5.0/compose/Server/x86_64/os/
+enabled = 0
+gpgcheck = 1
+

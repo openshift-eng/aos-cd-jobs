@@ -1,4 +1,12 @@
 #!/usr/bin/env groovy
+final REPO_PREFIX = 'https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/'
+final REPOS = [
+    REPO_PREFIX + 'aos-unsigned-building.repo',
+    REPO_PREFIX + 'aos-unsigned-errata-building.repo',
+    REPO_PREFIX + 'aos-signed-building.repo',
+    REPO_PREFIX + 'aos-signed-building-betatest.repo'
+]
+final DEFAULT_REPO = REPOS[0]
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
@@ -35,7 +43,7 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", defaultValue: '4', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base\nmetrics\nlogging\njenkins\nmisc\nasb\negress\ninstaller\nefs\nall", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo\nhttp://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-errata-building.repo\nhttp://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-signed-building.repo", defaultValue: 'http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/aos-unsigned-building.repo', description: 'Which repo to use', name: 'OSE_REPO'],
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: REPOS.join('\n'), defaultValue: DEFAULT_REPO, description: 'Which repo to use', name: 'OSE_REPO'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],

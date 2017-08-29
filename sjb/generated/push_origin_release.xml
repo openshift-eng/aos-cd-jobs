@@ -218,12 +218,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-export DOCKER_CONFIG=/tmp/.docker
-sudo chmod a+rw &#34;\${DOCKER_CONFIG}/config.json&#34;
-export OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34;
-OS_PUSH_TAG=&#34;\$( git describe --abbrev=0 )&#34;; export OS_PUSH_TAG
-hack/push-release.sh
-sudo rm -rf &#34;\${DOCKER_CONFIG}&#34;
+sudo chmod a+rw /tmp/.docker/config.json
+DOCKER_CONFIG=/tmp/.docker OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34; hack/push-release.sh
+sudo rm -rf /tmp/.docker
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -15,6 +15,9 @@ extensions:
       title: "push the release"
       repository: "origin"
       script: |-
-        sudo chmod a+rw /tmp/.docker/config.json
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
-        sudo rm -rf /tmp/.docker
+        export DOCKER_CONFIG=/tmp/.docker
+        sudo chmod a+rw "${DOCKER_CONFIG}/config.json"
+        export OS_PUSH_BASE_REGISTRY="docker.io/"
+        OS_PUSH_TAG="$( git describe --abbrev=0 )"; export OS_PUSH_TAG
+        hack/push-release.sh
+        sudo rm -rf "${DOCKER_CONFIG}"

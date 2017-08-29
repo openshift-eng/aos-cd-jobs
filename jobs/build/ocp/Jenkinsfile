@@ -76,8 +76,16 @@ Brew:
 
 Jenkins job: ${env.BUILD_URL}
 
+
+Are your Atomic OpenShift changes in this build? Check here:
+https://github.com/openshift/ose/commits/v${NEW_VERSION}-${NEW_RELEASE}/
+
 ===Atomic OpenShift changelog snippet===
 ${OSE_CHANGELOG}
+
+
+Are your OpenShift Ansible changes in this build? Check here:
+https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_VERSION}-${NEW_RELEASE}/
 
 ===OpenShift Ansible changelog snippet===
 ${OA_CHANGELOG}
@@ -478,15 +486,15 @@ node(TARGET_NODE) {
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
-            
+
             mail_success( NEW_FULL_VERSION )
         }
-    } catch ( err ) {  
+    } catch ( err ) {
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",
                 subject: "Error building OSE: ${BUILD_VERSION}",
                 body: """Encountered an error while running OCP pipeline: ${err}
-    
+
     Jenkins job: ${env.BUILD_URL}
     """);
         throw err

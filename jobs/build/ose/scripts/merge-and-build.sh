@@ -347,13 +347,14 @@ echo "Build Images"
 echo "=========="
 ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo
 
-if [ "$EARLY_LATEST_HACK" == "true" ]; then
-    # Hack to keep from breaking openshift-ansible CI during daylight builds. They need the latest puddle to exist
-    # before images are pushed to registry-ops in order for their current CI implementation to work.
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s -- --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n \
-        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
-fi
+
+echo
+echo "=========="
+echo "Update Puddle Status"
+echo "=========="
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+    sh -s -- --build AtomicOpenShift --version "${OSE_VERSION}" --status BUILDING --link-latest \
+    < "${WORKSPACE}/build-scripts/rcm-guest/puddle_status.sh"
 
 echo
 echo "=========="
@@ -369,13 +370,11 @@ set -e
 
 echo
 echo "=========="
-echo "Create latest puddle"
+echo "Update Puddle Status"
 echo "=========="
-if [ "$EARLY_LATEST_HACK" != "true" ]; then
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s -- --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n \
-        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
-fi
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+    sh -s -- --build AtomicOpenShift --version "${OSE_VERSION}" --status COMPLETE \
+    < "${WORKSPACE}/build-scripts/rcm-guest/puddle_status.sh"
 
 # Record the name of the puddle which was created
 PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/latest")

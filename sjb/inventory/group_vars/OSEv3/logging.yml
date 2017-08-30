@@ -1,8 +1,8 @@
 ---
 openshift_logging_use_mux: false
-openshift_logging_use_mux_client: false
-openshift_logging_mux_allow_external: false
 openshift_logging_use_ops: true
 openshift_logging_es_log_appenders:
   - "console"
 openshift_logging_fluentd_journal_read_from_head: false
+openshift_logging_es_memory_limit: "4Gi"
+openshift_logging_es_ops_memory_limit: "4Gi"

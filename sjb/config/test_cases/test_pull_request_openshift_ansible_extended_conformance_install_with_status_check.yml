@@ -1,6 +1,7 @@
 ---
 parent: 'test_cases/test_pull_request_openshift_ansible_extended_conformance_install.yml'
 overrides:
+  junit_analysis: True
   sync_repos:
     - name: "aos-cd-jobs"
     - name: "openshift-ansible"

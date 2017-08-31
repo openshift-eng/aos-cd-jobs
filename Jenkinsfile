@@ -45,6 +45,7 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific version to use. (i.e. v3.6.173)', name: 'VERSION_OVERRIDE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'rhel7:7-released', description: 'Image to use when FROM rhel; blank will not change', name: 'RHEL'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: REPOS.join('\n'), defaultValue: DEFAULT_REPO, description: 'Which repo to use', name: 'OSE_REPO'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
@@ -73,9 +74,14 @@ node('openshift-build-1') {
             checkout scm
             env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
 
+            rhel_arg = ""
+            if ( RHEL != "" ) {
+                rhel_arg = "--rhel ${RHEL}"
+            }
+            
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
                 sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
-                sh "ose_images.sh --user ocp-build update_docker --version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
+                sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} --version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
                 sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
                 sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
             }

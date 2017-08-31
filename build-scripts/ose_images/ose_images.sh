@@ -575,7 +575,7 @@ update_dockerfile() {
   do
     if [ "${update_version}" == "TRUE" ] ; then
       sed -i -e "s/version=\".*\"/version=\"${version_version}\"/" ${line}
-      sed -i -e "s/FROM \(.*\):v.*/FROM \1:${version_version}-${release_version}/" ${line}
+      sed -i -e "s/FROM \(.*\):.*/FROM \1:${version_version}-${release_version}/" ${line}
     fi
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}

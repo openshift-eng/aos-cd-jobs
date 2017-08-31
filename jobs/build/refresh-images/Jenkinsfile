@@ -42,7 +42,9 @@ node('openshift-build-1') {
                       [
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", defaultValue: '4', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base\nmetrics\nlogging\njenkins\nmisc\nasb\negress\ninstaller\nefs\nall", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific version to use. (i.e. v3.6.173)', name: 'VERSION_OVERRIDE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: REPOS.join('\n'), defaultValue: DEFAULT_REPO, description: 'Which repo to use', name: 'OSE_REPO'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
@@ -50,21 +52,21 @@ node('openshift-build-1') {
                       ]
              ]]
     )
-    
+
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
                     usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
         sh 'sudo docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
-    }      
-    
+    }
+
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO} MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
 
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR} (${OSE_GROUP})"
-    
+
     if ( MOCK.toBoolean() ) {
         error( "Ran in mock mode" )
     }
-    
+
     set_workspace()
     stage('Refresh Images') {
         try {
@@ -73,7 +75,7 @@ node('openshift-build-1') {
 
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
                 sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
-                sh "ose_images.sh --user ocp-build update_docker --bump_release --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
+                sh "ose_images.sh --user ocp-build update_docker --version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
                 sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
                 sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
             }

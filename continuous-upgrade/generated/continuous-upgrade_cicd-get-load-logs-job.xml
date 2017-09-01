@@ -11,7 +11,18 @@
   <scm class="hudson.scm.NullSCM"/>
   <builders>
     <hudson.tasks.Shell>
-      <command>tail -n 250 /root/svt/reliability/logs/reliability.log
+      <command>set -o errexit -o nounset -o pipefail -o xtrace
+script=&quot;$( mktemp )&quot;
+cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+tail -n 250 /root/svt/reliability/logs/reliability.log
+SCRIPT
+chmod +x &quot;${script}&quot;
+eval &quot;$(ssh-agent -s)&quot;
+ssh-add ~jenkins/.ssh/cicd_cluster_key
+scp -o StrictHostKeyChecking=no   &quot;${script}&quot; root@master1.cicd.openshift.com:&quot;${script}&quot;
+ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com &quot;bash -l -c \&quot;${script}\&quot;&quot;
 </command>
     </hudson.tasks.Shell>
   </builders>

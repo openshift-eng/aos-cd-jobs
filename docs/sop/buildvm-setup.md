@@ -12,6 +12,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - JENKINS_HTTPS_PORT="8443"
     - JENKINS_PORT="-1"
     - JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Djava.net.preferIPv4Stack=true"
+  - Create a client certificate keystore from the private keystore: keytool -keystore <truststore file> -alias <alias> -import -file <certfilename>.cert  (https://stackoverflow.com/questions/8980364/how-do-i-find-out-what-keystore-my-jvm-is-using) . You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/agent.keystore").
   - sudo chkconfig jenkins on
   - sudo service jenkins start
   - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)

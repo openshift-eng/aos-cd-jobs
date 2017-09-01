@@ -57,7 +57,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e deployment_type=origin  \
-                         -e openshift_docker_use_crio=True   \
+                         -e openshift_use_crio=True   \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \

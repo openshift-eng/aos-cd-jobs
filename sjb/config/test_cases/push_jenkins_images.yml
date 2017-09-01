@@ -7,6 +7,9 @@ overrides:
     - gmontero@redhat.com
     - cdaley@redhat.com
     - jminter@redhat.com
+    - miminar@redhat.com
+    - obulatov@redhat.com
+    - agladkov@redhat.com
   sync_repos:
     - name: "jenkins"
 extensions:

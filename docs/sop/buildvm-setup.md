@@ -17,6 +17,11 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - sudo service jenkins start
   - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
   - Setup smtp mail server in Jenkins configuration
+  - Install plugins
+    - Common ones jenkins suggests on first login
+    - SSH Agent Plugin
+    - Role Based Authentication
+    - Pipeline Utility Steps
 
 
 - Enable RPM repos:

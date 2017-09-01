@@ -4,7 +4,18 @@
     defaults: global
     builders:
       - shell: |
+         set -o errexit -o nounset -o pipefail -o xtrace
+         script="$( mktemp )"
+         cat <<SCRIPT >"${script}"
+         #!/bin/bash
+         set -o errexit -o nounset -o pipefail -o xtrace
          tail -n 150 /root/svt/reliability/logs/reliability.log
+         SCRIPT
+         chmod +x "${script}"
+         eval "$(ssh-agent -s)"
+         ssh-add ~jenkins/.ssh/cicd_cluster_key
+         scp -o StrictHostKeyChecking=no   "${script}" root@master1.cicd.openshift.com:"${script}"
+         ssh -A -o StrictHostKeyChecking=no -tt root@master1.cicd.openshift.com "bash -l -c \"${script}\""
 
     publishers:
       - email:

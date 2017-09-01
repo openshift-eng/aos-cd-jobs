@@ -1,7 +1,7 @@
 ---
 parent: 'common/test_cases/origin_installed_release.yml'
 overrides:
-  junit_analysis: False
+  junit_analysis: True
   timer: 'H H * * *'
   email:
     - bparees@redhat.com

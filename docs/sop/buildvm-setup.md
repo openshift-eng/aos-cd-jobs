@@ -1,3 +1,23 @@
+If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/JENKINS/Installing+Jenkins+on+Red+Hat+distributions):
+  - sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
+  - sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
+  - sudo yum install jenkins
+  - iptables -I INPUT -p tcp -m tcp --dport 8443 -j ACCEPT
+  - services iptables save
+  - create a certificate for the server: keytool -genkeypair -keysize 2048 -keyalg RSA -alias jenkins -keystore keystore (https://wiki.jenkins.io/display/JENKINS/Starting+and+Accessing+Jenkins)
+  - configure /etc/sysconfig/jenkins
+    - JENKINS_HTTPS_LISTEN_ADDRESS="0.0.0.0"
+    - JENKINS_HTTPS_KEYSTORE_PASSWORD="...set during keystore creation..."
+    - JENKINS_HTTPS_KEYSTORE="/home/jenkins/keystore"
+    - JENKINS_HTTPS_PORT="8443"
+    - JENKINS_PORT="-1"
+    - JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Djava.net.preferIPv4Stack=true"
+  - sudo chkconfig jenkins on
+  - sudo service jenkins start
+  - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
+  - Setup smtp mail server in Jenkins configuration
+
+
 - Enable RPM repos:
   - Most packages will need this: https://gitlab.cee.redhat.com/platform-eng-core-services/internal-repos/raw/master/rhel/rhel-7.repo
   - For puddle, rhpkg, rhtools, rh-signing-tools: http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo

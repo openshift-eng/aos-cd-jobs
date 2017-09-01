@@ -197,7 +197,7 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
-                 -e openshift_docker_use_crio=True   \
+                 -e openshift_use_crio=True   \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \

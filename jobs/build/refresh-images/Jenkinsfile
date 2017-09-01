@@ -62,7 +62,7 @@ node('openshift-build-1') {
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO} MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
 
-    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR} (${OSE_GROUP})"
+    currentBuild.displayName = "#${currentBuild.number} - ${VERSION_OVERRIDE}-${RELEASE_OVERRIDE} (${OSE_GROUP})"
 
     if ( MOCK.toBoolean() ) {
         error( "Ran in mock mode" )

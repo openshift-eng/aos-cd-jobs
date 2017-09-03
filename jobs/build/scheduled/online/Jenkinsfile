@@ -1,6 +1,6 @@
 
 properties( [
-    [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360']],
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
     disableConcurrentBuilds(),
     [$class: 'HudsonNotificationProperty', enabled: false],
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],

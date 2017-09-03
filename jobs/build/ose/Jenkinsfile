@@ -78,7 +78,7 @@ ${changelogs}
 // Expose properties for a parameterized build
 properties(
         [
-            [$class : 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720']],
+            buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
             [$class : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [

@@ -2,9 +2,6 @@
 properties( [
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
     disableConcurrentBuilds(),
-    [$class: 'HudsonNotificationProperty', enabled: false],
-    [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
-    [$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 0, maxConcurrentTotal: 0, paramsToUseForLimit: '', throttleEnabled: false, throttleOption: 'project'],
     pipelineTriggers([[$class: 'TimerTrigger', spec: 'H 11 * * *']])] )
 
 description = ""

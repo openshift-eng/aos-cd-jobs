@@ -91,3 +91,4 @@ extensions:
     - ovs-vswitchd.service
     - ovsdb-server.service
     - etcd.service
+    - cri-o.service

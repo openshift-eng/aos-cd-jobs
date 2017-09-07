@@ -1,5 +1,7 @@
 These instructoins assume we are moving from release X.A to X.B and that origin#master contains X.A's deisred content.
 
+- Have RCM create a new "Release" in the Errata Tool so that Advisories can be created for it. 
+
 - Have RCM start creating new tags for 3.7 and new dist-git branches for 3.7
 
 - origin will create a new branch release-X.A and begin including changes for X.B in origin#master

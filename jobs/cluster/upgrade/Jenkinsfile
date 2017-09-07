@@ -13,22 +13,31 @@ Jenkins job: ${env.BUILD_URL}
 """);
 }
 
-node('openshift-build-1') {
+@Library('aos_cd_ops') _
 
-    properties(
-            [[$class              : 'ParametersDefinitionProperty',
-              parameterDefinitions:
-                      [
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com, devtools-saas@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Success for minor cluster operation', name: 'MAIL_LIST_SUCCESS_MINOR'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "test-key\ncicd\nfree-int\nfree-stg\nstarter-us-east-1\nstarter-us-east-2\nstarter-us-west-1\nstarter-us-west-2", name: 'CLUSTER_NAME', description: 'The name of the cluster to affect'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Docker version (e.g. 1.12.6-30.git97ba2c0.el7)', name: 'DOCKER_VERSION'],
-                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
-                      ]
-             ]]
-    )
+// Ask the shared library which clusters this job should act on
+cluster_choice = aos_cd_ops_data.getClusterList("${env.JOB_BASE_NAME}").join("\n")  // Jenkins expects choice parameter to be linefeed delimited
+
+properties(
+        [[$class              : 'ParametersDefinitionProperty',
+          parameterDefinitions:
+                  [
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com, devtools-saas@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Success for minor cluster operation', name: 'MAIL_LIST_SUCCESS_MINOR'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The specification of the cluster to affect'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Docker version (e.g. 1.12.6-30.git97ba2c0.el7)', name: 'DOCKER_VERSION'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+                  ]
+         ]]
+)
+
+// clusters specifications are of the form env:cluster_name
+CLUSTER_ENV = CLUSTER_SPEC.split(":", 2)[0]
+CLUSTER_NAME = CLUSTER_SPEC.split(":", 2)[1]
+
+node('openshift-build-1') {
 
     checkout scm
 
@@ -39,7 +48,8 @@ node('openshift-build-1') {
 
     try {
 
-        sshagent([CLUSTER_NAME]) {
+        // ssh key is named after the environment it can impact
+        sshagent([CLUSTER_ENV]) {
 
             stage( "pre-check" ) {
                 deploylib.run("pre-check")

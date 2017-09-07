@@ -1,0 +1,161 @@
+---
+parameters:
+- name: "OSE_PULL_ID"
+  description: ""
+  default_value: "<none>"
+- name: "BRANCH"
+  description: ""
+  default_value: "master"
+- name: "EXTENDED_TESTS"
+  description: ""
+  default_value: "<none>"
+- name: "MERGE_SEVERITY"
+  description: ""
+  default_value: ""
+- name: "MERGE"
+  description: ""
+  default_value: ""
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+actions:
+  - type: "host_script"
+    title: "clone ose"
+    timeout: 300
+    script: |-
+      if $MERGE; then
+        approve.sh 'ose' "${BRANCH}" "${MERGE_SEVERITY}"
+      fi
+      rm -rf *
+      git clone git@github.com:openshift/ose.git
+      # Ari addition
+      pushd ose
+        git checkout $BRANCH
+      popd
+      # Ari addition
+      if [ -n "$OSE_PULL_ID" ]; then
+        set +x
+        echo "*****Locally merging pull request in $BRANCH: https://github.com/openshift/ose/pull/$OSE_PULL_ID"
+        set -x
+        if [[ "${BRANCH}" == "master" ]]; then
+          echo "Checking that commits to ${BRANCH} conform to naming conventions..."
+          git clone git@github.com:openshift/aos-cd-jobs
+          pushd aos-cd-jobs
+            AOS_CD_JOBS=`pwd`
+          popd
+          pushd ose
+            git remote add upstream https://github.com/openshift/origin
+            git fetch upstream
+            CURRENT_HEAD=$(git merge-base ${BRANCH} upstream/master)
+            git fetch origin pull/${OSE_PULL_ID}/head:commit-check
+            git checkout commit-check
+            git log --oneline --reverse ${CURRENT_HEAD}..HEAD --pretty='pick %h %s' > CARRIES_FILE
+            ${AOS_CD_JOBS}/jobs/build/ose/scripts/sanity_check.py CARRIES_FILE
+            if [[ "$?" != "0" ]]; then
+                echo "For more information, read https://github.com/openshift/aos-cd-jobs/blob/master/docs/proposals/ose-rebase.md#naming-requirements"
+                exit 1
+            fi
+            rm CARRIES_FILE
+          popd
+        fi
+        test_pull_requests --local_merge_pull_request $OSE_PULL_ID --repo ose --config ~/.test_pull_requests_ose.json
+      fi
+      # mv ose origin
+      # pushd origin
+      # Already taken care of by sjb
+      # vagrant origin-init --stage os --os rhel7 --instance-type m4.xlarge ose_${JOB_NAME}_${BUILD_NUMBER}
+  - type: "host_script"
+    title: "install go"
+    script: |-
+      # In the current RHEL RPMs, Go 1.4 obsoletes itself and `yum` ends up installing 1.6, so
+      # we need to exclude go-1.6. Furthermore, on 1.4, a lot of basic tools were not part of
+      # Go core, so we need to install them explicitly.
+      cat << SCRIPT > install-go-14.sh
+      #!/bin/bash
+      set -o errexit -o nounset -o pipefail -o xtrace
+      yum install -y golang-1.4.2 golang-src-1.4.2 golang-pkg-bin-linux-amd64-1.4.2 --exclude go\*1.6\*
+      # We need to disable the repository with Golang in it so further `yum update` steps don't
+      # give us some new version of Go. We don't use this repo for anything else at the moment,
+      # so this is a reasonable step.
+      yum-config-manager --disable oso-rhui-rhel-server-releases-optional
+      export GOPATH=/data
+      set +e
+      go get golang.org/x/tools/cmd/vet
+      set -e
+      pushd /data/src/golang.org/x/tools >/dev/null
+      if git checkout 108746816ddf01ad0c2dbea08a1baef08bc47313; then
+        go install golang.org/x/tools/cmd/vet
+      fi
+      popd >/dev/null
+      go get golang.org/x/tools/cmd/cover
+      SCRIPT
+      if [[ "${BRANCH}" =~ enterprise-3.[1-2] ]]; then
+        chmod +x install-go-14.sh
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config install-go-14.sh openshiftdevel:install-go-14.sh
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c install-go-14.sh"
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.4"
+      elif [[ "${BRANCH}" =~ enterprise-3.[3-5] ]]; then
+        oct prepare golang --version=1.6.3 --repo=oso-rhui-rhel-server-releases-optional
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.6"
+      elif [[ "${BRANCH}" =~ enterprise-3.6 ]]; then
+        oct prepare golang --version=1.7.5 -u https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.7"
+      elif [[ "${BRANCH}" == "master" || "${BRANCH}" == "fake-master" ]]; then
+        oct prepare golang --version=1.8.3 -u https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/
+        export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.8"
+      else
+        echo "[FATAL] No Golang version is known for \`${BRANCH}\`.
+              Contact Steve Kuznetsov <skuznets@redhat.com> for assistance."
+        exit 1
+      fi
+  - type: "host_script"
+    title: "install docker"
+    script: |-
+      if [[ "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.1" ]]; then
+        oct prepare docker --version=1.8.2 --repo=oso-rhui-rhel-server-*
+      elif [[ "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.2" ]]; then
+        oct prepare docker --version=1.9.1 --repo=oso-rhui-rhel-server-*
+      elif [[ "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.2.1" || "${TARGET_ORIGIN_BRANCH}" == "enterprise-3.3" ]]; then
+        oct prepare docker --version=1.10.3 --repo=oso-rhui-rhel-server-*
+      elif [[ "${TARGET_ORIGIN_BRANCH}" =~ enterprise-3.[4-5] ]]; then
+        oct prepare docker --version=1.12.6 --repo=oso-rhui-rhel-server-* -u https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/
+      elif [[ "${TARGET_ORIGIN_BRANCH}" == "master" ]]; then
+        oct prepare docker --version=1.12.6 --repo=oso-rhui-rhel-server-* -u https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/
+      else
+        echo "[FATAL] No Docker version is known for \`${TARGET_ORIGIN_BRANCH}\`.
+              Contact Steve Kuznetsov <skuznets@redhat.com> for assistance."
+        exit 1
+      fi
+  - type: "host_script"
+    title: "sync ose repository"
+    script: |-
+      oct sync local ose
+  - type: "script"
+    title: "build an ose release"
+    timeout: 5000
+    script: |-
+      cd "\${GOPATH}/src/github.com/openshift/ose"
+      hack/build-base-images.sh
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+      sudo systemctl restart docker
+      hack/build-images.sh
+      sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+      sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+  - type: "script"
+    title: "use a ramdisk for etcd"
+    script: |-
+      sudo su root <<SUDO
+      mkdir /tmp || true
+      mount -t tmpfs -o size=4096m tmpfs /tmp
+      SUDO
+post_actions:
+  - type: "host_script"
+    title: "test pull request"
+    script: |-
+      if $MERGE
+      then
+        test_pull_requests --merge_pull_request $OSE_PULL_ID --repo ose --config ~/.test_pull_requests_ose.json
+      else
+        test_pull_requests --mark_test_success $OSE_PULL_ID --repo ose --config ~/.test_pull_requests_ose.json || true
+      fi

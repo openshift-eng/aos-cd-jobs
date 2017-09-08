@@ -33,6 +33,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - rpm -ivh epel-release-7-10.noarch.rpm
 - yum install
   - go
+  - atomic
   - docker
   - git
   - puddle
@@ -50,6 +51,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
 - Mounts in fstab
   - ntap-bos-c01-eng01-nfs01a.storage.bos.redhat.com:/devops_engarchive2_nfs /mnt/engarchive2 nfs tcp,ro,nfsvers=3 0 0
   - ntap-bos-c01-eng01-nfs01b.storage.bos.redhat.com:/devops_engineering_nfs/devarchive/redhat /mnt/redhat nfs tcp,ro,nfsvers=3 0 0
+- Installing atomic scan dependency: atomic install registry.access.redhat.com/rhel7/openscap
 - Enabling RPM signing
   - RPM signing is limited by hostname. Presently, only openshift-build-1.lab.eng.rdu.redhat.com as ocp-build kerberos id has this authority. The hostname is tied to the MAC of the server.
   - The system must be plugged into a lab Ethernet port. Port 16W306A was joined to the engineering network for this purpose.

@@ -1,24 +1,34 @@
 #!/usr/bin/env groovy
 
+@Library('aos_cd_ops') _
+
+// Ask the shared library which clusters this job should act on
+cluster_choice = aos_cd_ops_data.getClusterList("${env.BRANCH_NAME}").join("\n")  // Jenkins expects choice parameter to be linefeed delimited
+
+properties(
+        [[$class              : 'ParametersDefinitionProperty',
+          parameterDefinitions:
+                  [
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The cluster specification to inspect'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+                  ]
+         ]]
+)
+
+
 node('openshift-build-1') {
 
-    properties(
-            [[$class              : 'ParametersDefinitionProperty',
-              parameterDefinitions:
-                      [
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "test-key\ncicd\ndev-preview-int\ndev-preview-stg\npreview\nfree-int\nfree-stg\nstarter-us-east-1\nstarter-us-east-2\nstarter-us-west-2", name: 'CLUSTER_NAME', description: 'The name of the cluster to inspect'],
-                      ]
-             ]]
-    )
+    checkout scm
 
-    stage( 'Send CI Msg' ) {
+    def deploylib = load( "pipeline-scripts/deploylib.groovy")
+    deploylib.initialize(CLUSTER_SPEC)
 
-        sshagent([CLUSTER_NAME]) {
-            msg = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com build-ci-msg").trim()
+    sshagent([CLUSTER_ENV]) {
+        stage("send ci msg") {
+            msg = deploylib.run(OPERATION, null, true)
             echo "Sending CI Message:\n${msg}"
             sendCIMessage messageContent: '', messageProperties: msg, messageType: 'ComponentBuildDone', providerName: 'CI Publish'
         }
-
     }
 
 }

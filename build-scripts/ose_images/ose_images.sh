@@ -586,7 +586,7 @@ update_dockerfile() {
         # "3.7.0-0.100.5.8"). The shorter tag is what OCP will actually use when it needs to pull an image
         # associated with its current version. The last field in the release is used for refreshing images and
         # is not necessary outside of pulp.
-        echo "v${version_version}-${nr_start}" > additional-tags  # e.g. "v3.7.0-0.100.2" . This is the key tag OCP will use
+        echo "${version_version}-${nr_start}" > additional-tags  # e.g. "v3.7.0-0.100.2" . This is the key tag OCP will use
         echo "v${MAJOR_RELEASE}" >> additional-tags  # e.g. "v3.7" . For users/images where exact matches aren't critical
         git add additional-tags
       fi

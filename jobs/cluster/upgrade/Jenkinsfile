@@ -16,7 +16,7 @@ Jenkins job: ${env.BUILD_URL}
 @Library('aos_cd_ops') _
 
 // Ask the shared library which clusters this job should act on
-cluster_choice = aos_cd_ops_data.getClusterList("${env.JOB_BASE_NAME}").join("\n")  // Jenkins expects choice parameter to be linefeed delimited
+cluster_choice = aos_cd_ops_data.getClusterList("${env.JOB_NAME}").join("\n")  // Jenkins expects choice parameter to be linefeed delimited
 
 properties(
         [[$class              : 'ParametersDefinitionProperty',

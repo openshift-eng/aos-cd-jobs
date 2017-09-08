@@ -7,7 +7,7 @@ def initialize() {
 }
 
 /**
- * Iterates through a map and flattens it into key1=value1 key2=value2...
+ * Iterates through a map and flattens it into -e key1=value1 -e key2=value2...
  * Appropriate for passing in as tower operation
  * @param map The map to process
  * @return A string of flattened key value properties
@@ -20,7 +20,7 @@ def map_to_string(map) {
         return s
     }
 
-    map.each{ k, v -> s += "${k}=${v} " }
+    map.each{ k, v -> s += "-e ${k}=${v} " }
     return s
 }
 
@@ -32,7 +32,7 @@ def run( operation_name, args = [:], capture_stdout=false ) {
     waitUntil {
         try {
             // -t is necessary for cicd-control.sh to be terminated by Jenkins job terminating ssh early: https://superuser.com/questions/20679/why-does-my-remote-process-still-run-after-killing-an-ssh-session
-            cmd = "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com ${operation_name} ${this.map_to_string(args)}"
+            cmd = "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com -- -c ${CLUSTER_NAME} -o ${operation_name} ${this.map_to_string(args)}"
             output = sh(
                     returnStdout: capture_stdout,
                     script: cmd

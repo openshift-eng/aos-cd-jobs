@@ -22,6 +22,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - SSH Agent Plugin
     - Role Based Authentication
     - Pipeline Utility Steps
+    - Extra Columns Plugin (to disable projects)
 
 
 - Enable RPM repos:

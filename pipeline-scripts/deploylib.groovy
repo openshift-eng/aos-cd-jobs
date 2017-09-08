@@ -3,7 +3,12 @@ def commonlib = load("pipeline-scripts/commonlib.groovy")
 
 commonlib.initialize()
 
-def initialize() {
+def initialize(cluster_spec) {
+    // clusters specifications are of the form group:env:cluster_name
+    parts = cluster_spec.split(":")
+    CLUSTER_GROUP = parts[0] // e.g. starter vs dedicated
+    CLUSTER_ENV = parts[1] // e.g. int vs stg
+    CLUSTER_NAME = parts[2]
 }
 
 /**
@@ -32,7 +37,7 @@ def run( operation_name, args = [:], capture_stdout=false ) {
     waitUntil {
         try {
             // -t is necessary for cicd-control.sh to be terminated by Jenkins job terminating ssh early: https://superuser.com/questions/20679/why-does-my-remote-process-still-run-after-killing-an-ssh-session
-            cmd = "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com -- -c ${CLUSTER_NAME} -o ${operation_name} ${this.map_to_string(args)}"
+            cmd = "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com -- -g ${CLUSTER_GROUP} -c ${CLUSTER_NAME} -o ${operation_name} ${this.map_to_string(args)}"
             output = sh(
                     returnStdout: capture_stdout,
                     script: cmd

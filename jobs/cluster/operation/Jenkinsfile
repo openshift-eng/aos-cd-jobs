@@ -30,10 +30,6 @@ properties(
          ]]
 )
 
-// clusters specifications are of the form env:cluster_name
-CLUSTER_ENV = CLUSTER_SPEC.split(":", 2)[0]
-CLUSTER_NAME = CLUSTER_SPEC.split(":", 2)[1]
-
 node('openshift-build-1') {
 
     if ( MOCK.toBoolean() ) {
@@ -43,7 +39,7 @@ node('openshift-build-1') {
     checkout scm
 
     def deploylib = load( "pipeline-scripts/deploylib.groovy")
-    deploylib.initialize()
+    deploylib.initialize(CLUSTER_SPEC)
 
     currentBuild.displayName = "#${currentBuild.number} - ${OPERATION} ${CLUSTER_NAME}"
 

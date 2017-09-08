@@ -106,6 +106,8 @@ if ( MOCK.toBoolean() ) {
     error( "Ran in mock mode to pick up any new parameters" )
 }
 
+prev_build = "not defined yet"
+
 // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
 echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], BUILD_MODE:${BUILD_MODE}, EARLY_LATEST_HACK:${EARLY_LATEST_HACK}"
 
@@ -148,6 +150,9 @@ node(TARGET_NODE) {
                 env.OSE_MASTER = "${OSE_MASTER}"
                 env.BUILD_MODE = "${BUILD_MODE}"
                 env.EARLY_LATEST_HACK = "${EARLY_LATEST_HACK}"
+
+                prev_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-3.6-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+
                 sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
             }
 
@@ -159,10 +164,22 @@ node(TARGET_NODE) {
             mail_success(thisBuildVersion)
 
         } catch ( err ) {
+
+            ATTN=""
+            try {
+                new_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-3.6-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+                if ( new_build != prev_build ) {
+                    // Untag anything tagged by this build if an error occured at any point
+                    sh "brew --user=ocp-build untag-build rhaos-3.6-rhel-7-candidate ${new_build}"
+                }
+            } catch ( err2 ) {
+                ATTN=" - UNABLE TO UNTAG!"
+            }
+
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
-                    subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}",
+                    subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}${ATTN}",
                     body: """Encoutered an error while running merge-and-build.sh: ${err}
 
 Jenkins job: ${env.BUILD_URL}

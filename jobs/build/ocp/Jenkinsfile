@@ -92,6 +92,8 @@ ${OA_CHANGELOG}
 """);
 }
 
+// Will be used to track which atomic-openshift build was tagged before we ran.
+PREV_BUILD="not yet acquired"
 
 node(TARGET_NODE) {
 
@@ -110,6 +112,8 @@ node(TARGET_NODE) {
 
     try {
         sshagent([SSH_KEY_ID]) { // To work on real repos, buildlib operations must run with the permissions of openshift-bot
+
+            PREV_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-3.6-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
 
             def buildlib = load( "pipeline-scripts/buildlib.groovy")
             buildlib.initialize()
@@ -490,9 +494,21 @@ node(TARGET_NODE) {
             mail_success( NEW_FULL_VERSION )
         }
     } catch ( err ) {
+
+        ATTN=""
+        try {
+            NEW_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-3.6-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+            if ( PREV_BUILD != NEW_BUILD ) {
+                // Untag anything tagged by this build if an error occured at any point
+                sh "brew --user=ocp-build untag-build rhaos-3.6-rhel-7-candidate ${NEW_BUILD}"
+            }
+        } catch ( err2 ) {
+            ATTN=" - UNABLE TO UNTAG!"
+        }
+
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: "aos-cd@redhat.com",
-                subject: "Error building OSE: ${BUILD_VERSION}",
+                subject: "Error building OSE: ${BUILD_VERSION}${ATTN}",
                 body: """Encountered an error while running OCP pipeline: ${err}
 
     Jenkins job: ${env.BUILD_URL}

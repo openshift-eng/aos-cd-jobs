@@ -12,4 +12,4 @@ extensions:
       repository: "origin"
       script: |-
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
-        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="\[builds\]"
+        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="\[builds\]|\[Feature:Builds\]"

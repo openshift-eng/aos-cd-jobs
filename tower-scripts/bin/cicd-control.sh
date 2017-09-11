@@ -5,7 +5,7 @@ GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"
 
-VALID_ARGUMENTS=(docker_version openshift_ansible_build)
+VALID_ARGUMENTS=(cicd_docker_version cicd_openshift_ansible_build cicd_openshift_version)
 
 # TMPTMP is a directory specific to each invocation. It will be
 # deleted when the script terminates.
@@ -47,10 +47,12 @@ function parse_and_set_vars() {
 
   echo "Setting cicd-control environment variable: $1" >&2
   export $1
-  #value=$(echo $1 | awk -F= '{print $2}')
 
-  #eval $var=\$value
-  #export $var
+  # if the value is a blank string, let's unset it. not worth it!
+  key=$(echo $1 | awk -F= '{print $1}')
+  if [ "${key}" == "" ]; then
+    unset ${key}
+  fi
 }
 
 function print_usage() {
@@ -60,11 +62,12 @@ function print_usage() {
   echo "  -h               display this help and exit"
   echo "  -c CLUSTERNAME   specify the CLUSTERNAME to perform the upgrade on"
   echo "  -o OPERATION     specify the upgrade OPERATION to perform"
-  echo "  -a ARG           specify the ARG"
+  echo "  -e ARG           specify the extra ARG; this is the form key=value"
+  echo "  -d DEPLOYMENT    specify the cluster deployment type: dedicated|online  Default: online"
   echo
   echo "Examples:"
   echo
-  echo "    $(basename $0) -c prod-cluster -o upgrade < -a argument >"
+  echo "    $(basename $0) -c prod-cluster -o upgrade < -e argument >"
   echo
 
 }
@@ -77,8 +80,9 @@ cd $START_DIR
 
 unset CLUSTERNAME
 unset OPERATION
+unset DEPLOYMENT
 
-while getopts hc:i:o:a: opt; do
+while getopts hc:i:o:e:d: opt; do
     case $opt in
         h)
             print_usage
@@ -90,8 +94,11 @@ while getopts hc:i:o:a: opt; do
         o)
             export OPERATION=$OPTARG
             ;;
-        a)
+        e)
             parse_and_set_vars $OPTARG
+            ;;
+        d)
+            export DEPLOYMENT=$OPTARG
             ;;
         *)
             print_usage
@@ -114,9 +121,14 @@ if [ -z "${OPERATION+x}" ]; then
   exit 1
 fi
 
+if [ -d "${DEPLOYMENT+x}" ]; then
+  export DEPLOYMENT=online
+fi
+
 echo "Running $(basename $0) on:" >&2
 echo "CLUSTER: ${CLUSTERNAME}" >&2
 echo "OPERATION: ${OPERATION}" >&2
+echo "DEPLOYMENT: ${DEPLOYMENT}" >&2
 echo >&2
 
 function is_running(){
@@ -242,6 +254,22 @@ function smoketest() {
 }
 
 function setup_cluster_vars() {
+
+  oo_environment="$(/usr/bin/ohi -c ${CLUSTERNAME} --get-cluster-var oo_environment)"
+  if [ "$?" -ne 0 ]; then
+    echo "There was a problem setting the environment for the cluster.  Exiting..."
+    exit 1
+  fi
+
+}
+
+################################################
+# OPERATION: INSTALL
+################################################
+function install_cluster() {
+#OPERATION = install
+  is_running &
+
   set +x  # Mask sensitive data
   source "$GIT_ROOT/openshift-ansible-private/private_roles/aos-cicd/files/${CLUSTERNAME}/${CLUSTERNAME}_vars.sh"
   #set -x
@@ -256,19 +284,10 @@ function setup_cluster_vars() {
   # Update cluster setup changes to the releases directory
   /usr/bin/cp ${CLUSTER_SETUP_TEMPLATE_FILE} "$GIT_ROOT/openshift-ansible-ops/playbooks/release/bin"
 
-  # Get the version and env from the template file
-  oo_version="$(grep -Po '(?<=^g_install_version: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}" | /usr/bin/cut -c 1-3)"
   oo_environment="$(grep -Po '(?<=^g_environment: ).*' "${CLUSTER_SETUP_TEMPLATE_FILE}")"
-}
 
-################################################
-# OPERATION: INSTALL
-################################################
-function install_cluster() {
-#OPERATION = install
-  is_running &
+  #setup_cluster_vars
 
-  setup_cluster_vars
   get_latest_openshift_ansible ${oo_environment}
 
   # Deploy all the things
@@ -309,32 +328,6 @@ function delete_cluster() {
   /usr/share/ansible/inventory/multi_inventory.py --refresh-cache --cluster=${CLUSTERNAME} >/dev/null
 }
 
-
-################################################
-# OPERATION: Upgrade
-#  This is legacy, and should be removed when it's time to move to the cluster operation
-################################################
-function legacy_upgrade_cluster() {
-  echo Doing upgrade
-  is_running &
-
-  ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
-
-
-  # Get the latest openshift-ansible rpms
-  get_latest_openshift_ansible ${oo_environment}
-
-  # Run the upgrade, including post_byo steps and config loop
-  pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
-    /usr/local/bin/autokeys_loader ./refresh_aws_tmp_credentials.py --refresh &> /dev/null &
-
-    # Kill all background jobs on normal exit or signal
-
-    export AWS_DEFAULT_PROFILE=$AWS_ACCOUNT_NAME
-    export SKIP_GIT_VALIDATION=TRUE
-    /usr/local/bin/autokeys_loader ./aws_online_cluster_upgrade.sh ./ops-to-productization-inventory.py ${CLUSTERNAME}
-}
-
 ################################################
 # OPERATION: GENERAL OPERATIONS CLUSTER
 ################################################
@@ -355,22 +348,20 @@ function cluster_operation() {
   # Do long running operations
   is_running &
 
-  # For now, let's skip statuspage operations
-  export SKIP_STATUS_PAGE="true"
+  # For online deployments, skip statuspage, get the lastest openshift-ansible
+  if [ "${DEPLOYMENT}" == "online" ]; then
+    # For now, let's skip statuspage operations
+    export SKIP_STATUS_PAGE="true"
 
-  # Hack to ensure docker doesn't die during upgrades
-  DOCKER_TIMER_OPERATIONS=(upgrade upgrade-control-plane upgrade-nodes)
-  if [[ " ${DOCKER_TIMER_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
-    ./disable-docker-timer-hack.sh "${CLUSTERNAME}" > /dev/null &
+    # Get the latest openshift-ansible rpms
+    LATEST_ANSIBLE_OPERATIONS=(install upgrade upgrade-control-plane upgrade-nodes upgrade-metrics upgrade-logging)
+
+    if [[ " ${LATEST_ANSIBLE_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
+      get_latest_openshift_ansible ${oo_environment}
+    fi
   fi
 
-  # Get the latest openshift-ansible rpms
-  LATEST_ANSIBLE_OPERATIONS=(install upgrade upgrade-control-plane upgrade-nodes upgrade-metrics upgrade-logging)
-  if [[ " ${LATEST_ANSIBLE_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
-    get_latest_openshift_ansible ${oo_environment}
-  fi
-
-  # Run the upgrade, including post_byo steps and config loop
+  # Run the operation
   pushd ~/aos-cd/git/openshift-ansible-ops/playbooks/release/bin
     /usr/local/bin/autokeys_loader ./cicd_operations.sh -c ${CLUSTERNAME} -o ${CLUSTER_OPERATION}
   popd

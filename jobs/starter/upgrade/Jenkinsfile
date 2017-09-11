@@ -29,6 +29,7 @@ properties(
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OpenShift version (e.g. 3.7.0)', name: 'OPENSHIFT_VERSION'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Docker version (e.g. 1.12.6-30.git97ba2c0.el7)', name: 'DOCKER_VERSION'],
+                          [$class: 'hudson.model.TextParameterDefinition', defaultValue: '', description: 'Additional options (key=value linefeed delimited)', name: 'ADDITIONAL_OPTS'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                   ]
          ]]
@@ -39,7 +40,7 @@ node('openshift-build-1') {
     checkout scm
 
     def deploylib = load( "pipeline-scripts/deploylib.groovy")
-    deploylib.initialize(CLUSTER_SPEC)
+    deploylib.initialize(CLUSTER_SPEC, ADDITIONAL_OPTS)
 
     currentBuild.displayName = "#${currentBuild.number} - ${CLUSTER_NAME}"
 

@@ -49,6 +49,7 @@ usage() {
   echo "Actions:" >&2
   echo "  build build_container :: Build containers in OSBS" >&2
   echo "  push push_images :: Push images to qe-registry" >&2
+  echo "  scan_images      :: Scan images with openscap" >&2
   echo "  compare_git      :: Compare dist-git Dockerfile and other files with those in git" >&2
   echo "  compare_auto     :: Auto compare dist-git files with those in git. Sends Dockerfile diff in email" >&2
   echo "  compare_nodocker :: Compare dist-git files with those in git.  Show but do not change Dockerfile changes" >&2
@@ -1177,6 +1178,14 @@ start_push_image() {
   popd >/dev/null
 }
 
+get_image_url() {
+  dockerfile=$1
+  name=$(grep " name=" "${dockerfile}" | cut -d'"' -f2)
+  version=$(grep version= "${dockerfile}" | cut -d'"' -f2)
+  release=$(grep release= "${dockerfile}" | cut -d'"' -f2)
+  echo "${PULL_REGISTRY}/${name}:${version}-${release}"
+}
+
 check_dependents() {
   if ! [ "${dependent_list_new}" == "" ] ; then
     dependent_list_working="${dependent_list_new}"
@@ -1354,7 +1363,7 @@ while [[ "$#" -ge 1 ]]
 do
 key="$1"
 case $key in
-    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy | dist_git_inject | dist_git_branch_check | dist_git_migrate)
+    compare_git | git_compare | compare_nodocker | compare_auto | merge_to_newest | update_docker | docker_update | build_container | build | make_yaml | push_images | push | update_compare | update_errata | test | dist_git_copy | dist_git_inject | dist_git_branch_check | dist_git_migrate | scan_images)
       export action="${key}"
       ;;
     list)
@@ -1720,6 +1729,21 @@ do
         echo "  Skipping ${container} - Image for building only"
       fi
     ;;
+    scan_images )
+      set -e
+      echo "=== ${container} ==="
+      if [ ! "${dict_image_name[${container}]}" ] ; then
+        echo "  Skipping ${container} - Image for building only"
+        continue
+      fi
+      setup_dockerfile
+      image=$(get_image_url "${workingdir}/${container}/Dockerfile")
+      if ! retry docker pull "${image}"; then
+        echo >&2 "OH NO!!! There was a problem pulling the image."
+        hard_exit
+      fi
+      echo "${image}" > "${workingdir}/images_to_scan.txt"
+    ;;
     test | list )
       test_function
     ;;
@@ -1810,6 +1834,12 @@ case "$action" in
     echo "Good Pushes: ${BUILD_SUCCESS}"
     echo "Fail Pushes: ${BUILD_FAIL}"
     cat ${workingdir}/logs/buildfailed | cut -d':' -f3-4
+  ;;
+  scan_images )
+    popd > /dev/null
+    sudo atomic scan --scanner openscap \
+      $(< "${workingdir}/images_to_scan.txt") \
+      > scan.txt
   ;;
   compare_nodocker | compare_auto )
     if [ -s ${workingdir}/logs/mailfile ] ; then

@@ -35,7 +35,7 @@ def initialize(cluster_spec, opts_string="") {
     CLUSTER_GROUP = parts[0] // e.g. starter vs dedicated
     CLUSTER_ENV = parts[1] // e.g. int vs stg
     CLUSTER_NAME = parts[2]
-    SHARED_OPERATION_OPTS = lines_to_map(opts)
+    SHARED_OPERATION_OPTS = lines_to_map(opts_string)
 }
 
 /**

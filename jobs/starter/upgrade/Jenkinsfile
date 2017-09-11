@@ -27,6 +27,7 @@ properties(
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The specification of the cluster to affect'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OpenShift version (e.g. 3.7.0)', name: 'OPENSHIFT_VERSION'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Docker version (e.g. 1.12.6-30.git97ba2c0.el7)', name: 'DOCKER_VERSION'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                   ]
@@ -67,8 +68,8 @@ node('openshift-build-1') {
             }
 
             stage( "upgrade" ) {
-                deploylib.run( "upgrade-control-plane", [ "docker_version" : DOCKER_VERSION.trim() ] )
-                deploylib.run( "upgrade-nodes", [ "docker_version" : DOCKER_VERSION.trim() ] )
+                deploylib.run( "upgrade-control-plane", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
+                deploylib.run( "upgrade-nodes", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
                 // deploylib.run( "upgrade-logging" )
                 deploylib.run( "upgrade-metrics" )
             }

@@ -60,6 +60,7 @@ grouping. A quick synopsis of these indexed jobs is as follows:
 | `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](https://github.com/openshift/online) team. |
 | `build/ose-pipeline`       | R&D to replace build/ose shell scripts with Jenkins pipeline syntax. |
 | `build/refresh-images`     |             |
+| `build/scan-images`        | Scans the images for CVEs using openscap. |
 | `cluster/sprint-control`   | R&D task to drive full Spring cadence when human intervention is no longer required. |
 | `cluster/operation`        | Deletes/upgrades/installs specific Redhat clusters. |
 | `package-dockertested`     | Tests new Brew builds of Docker and tags them into a [mirror repo](https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/Packages/) for use by the CI systems. |

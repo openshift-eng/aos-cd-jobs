@@ -17,7 +17,7 @@ def update_branches(repo):
 def list_jobs(repo):
     jobs = []
     jobs_directory = join(repo.working_dir, JOBS_DIRECTORY)
-    for (dirpath, _, filenames) in walk(jobs_directory):
+    for (dirpath, _, filenames) in walk(jobs_directory, followlinks=True):
         if 'Jenkinsfile' in filenames:
             jobs.append(relpath(dirpath, jobs_directory))
     return jobs

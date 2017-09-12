@@ -50,7 +50,7 @@ node('openshift-build-1') {
         sshagent([CLUSTER_ENV]) {
 
             stage( "pre-check" ) {
-                deploylib.run("pre-check")
+                deploylib.run("pre-check", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ])
             }
 
             if ( MODE != "automatic" ) {
@@ -71,7 +71,7 @@ node('openshift-build-1') {
             stage( "upgrade" ) {
                 deploylib.run( "upgrade-control-plane", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
                 deploylib.run( "upgrade-nodes", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
-                // deploylib.run( "upgrade-logging" )
+                deploylib.run( "upgrade-logging" )
                 deploylib.run( "upgrade-metrics" )
             }
 

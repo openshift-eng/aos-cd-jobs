@@ -56,12 +56,20 @@ if [ "$#" -lt 2 ] ; then
   usage
 fi
 
+
+
 if [ "${PUDDLE_TYPE}" == "simple" ] ; then
-	# PUDDLEDIR is a symlink to the most recently created puddle.
-	PUDDLEDIR="${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/latest"
+  # This directory is initially created by puddle as 755.
+  # Setting it to 775 allows other trusted users to run puddle/write into this directory once the directory has been established.
+  chmod 775 "${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/"
+  # PUDDLEDIR is a symlink to the most recently created puddle.
+  PUDDLEDIR="${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/latest"
 else
-	# PUDDLEDIR is a symlink to the most recently created puddle.
-	PUDDLEDIR="${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/latest"
+  # This directory is initially created by puddle as 755.
+  # Setting it to 775 allows other trusted users to run puddle/write into this directory once the directory has been established.
+  chmod 775 "${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/"
+  # PUDDLEDIR is a symlink to the most recently created puddle.
+  PUDDLEDIR="${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/latest"
 fi
 
 # dereference the symlink to the actual directory basename: e.g. "2017-06-09.4"
@@ -78,12 +86,12 @@ ALL_DIR="/srv/enterprise/all/${MAJOR_MINOR}"
 $MIRROR_SSH sh -s <<-EOF
   set -e
   set -o xtrace
-  
+
   # In case this repo has never been used before, create it.
   mkdir -p "${MIRROR_PATH}"
   cd "${MIRROR_PATH}"
-  
-  # Copy all files from the last latest into a directory for the new puddle 
+
+  # Copy all files from the last latest into a directory for the new puddle
   # (jmp: in order to prevent as much transfer as possible by rysnc for things which weren't rebuilt?)
   cp -r --link latest/ $LASTDIR
 EOF
@@ -97,7 +105,7 @@ $MIRROR_SSH sh -s <<-EOF
   cd "/srv/enterprise/${REPO}"
   # Replace latest link with new puddle content
   ln -sfn $LASTDIR latest
-  
+
   cd "/srv/enterprise/${REPO}/latest"
   # Some folks use this legacy location for their yum repo configuration
   # e.g. https://euw-mirror1.ops.rhcloud.com/enterprise/enterprise-3.3/latest/RH7-RHAOS-3.3/x86_64/os
@@ -107,11 +115,11 @@ $MIRROR_SSH sh -s <<-EOF
   	ln -s RH7-RHAOS-${MAJOR_MINOR}/* .
   fi
 
-  # All builds should be tracked in this repository. 
-  mkdir -p ${ALL_DIR} 
+  # All builds should be tracked in this repository.
+  mkdir -p ${ALL_DIR}
   cd "${ALL_DIR}"
-  
-  # Symlink new build into all directory. 
+
+  # Symlink new build into all directory.
   ln -s /srv/enterprise/${REPO}/$LASTDIR
   # Replace any existing latest directory to point to the last build.
   ln -sfn /srv/enterprise/${REPO}/$LASTDIR latest

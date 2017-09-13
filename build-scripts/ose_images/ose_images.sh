@@ -1747,7 +1747,7 @@ do
         echo >&2 "OH NO!!! There was a problem pulling the image."
         hard_exit
       fi
-      echo "${image}" > "${workingdir}/images_to_scan.txt"
+      echo "${image}" >> "${workingdir}/images_to_scan.txt"
     ;;
     test | list )
       test_function

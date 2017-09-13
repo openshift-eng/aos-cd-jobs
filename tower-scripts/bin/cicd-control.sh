@@ -121,7 +121,7 @@ if [ -z "${OPERATION+x}" ]; then
   exit 1
 fi
 
-if [ -d "${DEPLOYMENT+x}" ]; then
+if [ -z "${DEPLOYMENT+x}" ]; then
   export DEPLOYMENT=online
 fi
 
@@ -188,29 +188,64 @@ function pre-check() {
   # Set some cluster vars
   setup_cluster_vars
 
-  # Get the version of RPMS that will be used
-  AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
-  mkdir -p "${AOS_TMPDIR}"
+  # ONLINE PRE CHECK
+  if [ "${DEPLOYMENT}" == "online" ]; then
+    # Get the version of RPMS that will be used
+    AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
+    mkdir -p "${AOS_TMPDIR}"
 
-  # get the latest openshift-ansible rpms
-  pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms" > /dev/null
-    /usr/bin/ansible-playbook get_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${oo_environment} -e cli_download_dir=${AOS_TMPDIR} &> /dev/null
-  popd > /dev/null
-  OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
+    # get the latest openshift-ansible rpms
+    pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms" > /dev/null
+      /usr/bin/ansible-playbook get_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${oo_environment} -e cli_download_dir=${AOS_TMPDIR} &> /dev/null
+    popd > /dev/null
+    OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
 
+    MASTER="$(get_master_name)"
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder unexclude" > /dev/null
+    OPENSHIFT_VERSION=$(/usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/repoquery --quiet --pkgnarrow=repos --queryformat='%{version}-%{release}' atomic-openshift")
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder exclude" > /dev/null
 
-  MASTER="$(get_master_name)"
-  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null
-  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder unexclude" > /dev/null
-  OPENSHIFT_VERSION=$(/usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/repoquery --quiet --pkgnarrow=repos --queryformat='%{version}-%{release}' atomic-openshift")
-  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder exclude" > /dev/null
+    echo
+    echo Openshift Ansible RPM Version: ${OS_RPM_VERSION}
+    echo Openshift RPM Version: ${OPENSHIFT_VERSION}
+    echo
 
-  echo
-  echo Openshift Ansible RPM Version: ${OS_RPM_VERSION}
-  echo Openshift RPM Version: ${OPENSHIFT_VERSION}
-  echo
+    /usr/bin/rm -rf ${AOS_TMPDIR}
 
-  /usr/bin/rm -rf ${AOS_TMPDIR}
+  # DEDICATED PRE CHECK
+  elif [ "${DEPLOYMENT}" == "dedicated" ]; then
+    # Make sure the $cicd_openshift_version is available
+    if [ -z "${cicd_openshift_version+x}" ]; then
+        echo "\$cicd_openshift_version not found.  Exiting..."
+        exit 1
+    fi
+
+    oo_version_short=$(echo ${cicd_openshift_version} | /usr/bin/cut -c 1-3)
+    VENDORED_OPENSHIFT_ANSIBLE_VERSION=$(/usr/bin/basename $(/usr/bin/readlink -f ../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version_short}))
+
+    echo "Openshift RPM Versions Available to the cluster:"
+
+    MASTER="$(get_master_name)"
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder unexclude" > /dev/null
+    OPENSHIFT_VERSIONS_FOUND=$(/usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/repoquery --show-duplicates --quiet --pkgnarrow=repos --queryformat='Repository: %-30{repoid}  Package: %{name}-%{version}-%{release}' atomic-openshift-${cicd_openshift_version}")
+    /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder exclude" > /dev/null
+
+    if [ "${OPENSHIFT_VERSIONS_FOUND}" == "" ]; then
+        echo "Unable to find requested version of Openshift.  Please Investigate..."
+        exit 1
+    else
+      echo
+      echo
+      echo Openshift Ansible Vendored Version: ${VENDORED_OPENSHIFT_ANSIBLE_VERSION}
+      echo Openshift RPMs Found:
+      echo "$OPENSHIFT_VERSIONS_FOUND"
+      echo
+    fi
+
+  fi
+
   exit 0
 }
 

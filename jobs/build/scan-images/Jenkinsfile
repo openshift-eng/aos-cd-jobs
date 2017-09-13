@@ -35,14 +35,14 @@ cat scan.txt
         script: 'grep -xq \'The following issues were found:\' scan.txt')
       if(ret == 0) {
         mail(
-          from: MAIL_FROM, to: MAILING_LIST_CVE,
+          from: MAIL_FROM, to: MAILING_LIST_CVE.join(', '),
           subject: 'jobs/build/scan-images: cve(s) found',
           body: readFile('scan.txt'))
       }
     }
   } catch(err) {
     mail(
-      from: MAIL_FROM, to: MAILING_LIST_ERR,
+      from: MAIL_FROM, to: MAILING_LIST_ERR.join(', '),
       subject: 'jobs/build/scan-image: error',
       body: "${err}")
     throw err

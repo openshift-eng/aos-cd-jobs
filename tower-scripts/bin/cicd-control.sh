@@ -224,8 +224,6 @@ function pre-check() {
     oo_version_short=$(echo ${cicd_openshift_version} | /usr/bin/cut -c 1-3)
     VENDORED_OPENSHIFT_ANSIBLE_VERSION=$(/usr/bin/basename $(/usr/bin/readlink -f ../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version_short}))
 
-    echo "Openshift RPM Versions Available to the cluster:"
-
     MASTER="$(get_master_name)"
     /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null
     /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/sbin/atomic-openshift-excluder unexclude" > /dev/null
@@ -239,8 +237,11 @@ function pre-check() {
       echo
       echo
       echo Openshift Ansible Vendored Version: ${VENDORED_OPENSHIFT_ANSIBLE_VERSION}
+      echo
       echo Openshift RPMs Found:
+      echo "========================================"
       echo "$OPENSHIFT_VERSIONS_FOUND"
+      echo "========================================"
       echo
     fi
 

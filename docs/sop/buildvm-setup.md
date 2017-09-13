@@ -86,7 +86,8 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - ssh to pkgs.devel.redhat.com
 - Credentials
   - Copy /home/jenkins/.ssh/id_rsa from existing buildvm into place on new buildvm. This is necessary to ssh as ocp-build to rcm-guest. Ideally, this credential will be pulled into Jenkins credential store soon.
-
+- Copy https://github.com/openshift/li/blob/master/misc/client-key.pem to /var/lib/yum/client-key.pem
+- Copy https://github.com/openshift/li/blob/master/misc/client-cert.pem to /var/lib/yum/client-cert.pem
 - Setup host as a Jenkins agent 
   - Copy /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar off old buildvm and into place on new buildvm.
   - Populate /etc/systemd/system/swarm.service (ensure that -name parameter is unique and -labels are the desired ones):

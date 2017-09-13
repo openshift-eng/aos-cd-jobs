@@ -61,13 +61,13 @@ fi
 if [ "${PUDDLE_TYPE}" == "simple" ] ; then
   # This directory is initially created by puddle as 755.
   # Setting it to 775 allows other trusted users to run puddle/write into this directory once the directory has been established.
-  chmod 775 "${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/"
+  chmod 775 "${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/" || true
   # PUDDLEDIR is a symlink to the most recently created puddle.
   PUDDLEDIR="${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/latest"
 else
   # This directory is initially created by puddle as 755.
   # Setting it to 775 allows other trusted users to run puddle/write into this directory once the directory has been established.
-  chmod 775 "${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/"
+  chmod 775 "${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/" || true
   # PUDDLEDIR is a symlink to the most recently created puddle.
   PUDDLEDIR="${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/latest"
 fi

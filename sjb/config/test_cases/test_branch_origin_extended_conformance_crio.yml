@@ -46,11 +46,21 @@ extensions:
         git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
     - type: "script"
+      title: "copy openshift images from docker storage to CRI-O storage"
+      timeout: 10800
+      script: |-
+        for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep "openshift\/origin"); do
+          sudo skopeo copy docker-daemon:$i containers-storage:\[overlay2@/var/lib/containers/storage+/var/run/containers/storage:overlay2.override_kernel_check=1\]$i
+        done
+    - type: "script"
       title: "install origin"
       timeout: 7200
       repository: "aos-cd-jobs"
       script: |-
         local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
+        # debug for Dan
+        sudo setenforce 0
+        sudo semodule -DB
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
@@ -83,18 +93,17 @@ extensions:
         origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
         rpm -V "${origin_package}"
     - type: "script"
-      title: "copy openshift images from docker storage to CRI-O storage"
-      timeout: 10800
-      script: |-
-        for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep "openshift\/origin"); do
-          sudo skopeo copy docker-daemon:$i containers-storage:\[overlay2@/var/lib/containers/storage+/var/run/containers/storage:overlay2.override_kernel_check=1\]$i
-        done
-    - type: "script"
       title: "run extended tests"
       repository: "origin"
       script: |-
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
         OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=conformance
+  artifacts:
+    - /var/log/pods
+  generated_artifacts:
+    dmesg.log: "dmesg"
+    avc_selinux_denials.log: 'sudo ausearch -m avc -ts recent'
+    master_config_yaml.log: 'sudo cat /etc/origin/master/master-config.yaml'
   system_journals:
     - origin-master.service
     - origin-master-api.service

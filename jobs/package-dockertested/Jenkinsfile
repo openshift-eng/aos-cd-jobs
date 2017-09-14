@@ -77,9 +77,13 @@ node('openshift-build-1') {
 			echo "${env.OCT_CONFIG_HOME}"
 			echo "${env.ANSIBLE_SSH_CONTROL_PATH_DIR}"
 			echo "${env.ANSIBLE_SSH_CONTROL_PATH}"
+			sh "which python"
+			sh "which python2"
+			sh "which pip"
+			sh "pip --version"
 		}
 		stage ('Install dependencies in the virtualenv') {
-			sh "pip install --ignore-installed --upgrade pip"
+			sh "python -m pip install --ignore-installed --upgrade pip"
 			sh 'pip install --ignore-installed boto boto3'
 		}
 		stage ('Install the origin-ci-tool') {

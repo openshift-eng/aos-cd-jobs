@@ -70,6 +70,14 @@ node('openshift-build-1') {
 		"ANSIBLE_SSH_CONTROL_PATH_DIR=${env.HOME}/.ansible/cp",
 		"ANSIBLE_SSH_CONTROL_PATH=%(directory)s/%%h-%%p-%%r"
 	]) {
+		stage ('Debug variables') {
+			echo "${env.VIRTUAL_ENV}"
+			echo "${env.PATH}"
+			echo "${env.PYTHON_HOME}"
+			echo "${env.OCT_CONFIG_HOME}"
+			echo "${env.ANSIBLE_SSH_CONTROL_PATH_DIR}"
+			echo "${env.ANSIBLE_SSH_CONTROL_PATH}"
+		}
 		stage ('Install dependencies in the virtualenv') {
 			sh "pip install --ignore-installed --upgrade pip"
 			sh 'pip install --ignore-installed boto boto3'

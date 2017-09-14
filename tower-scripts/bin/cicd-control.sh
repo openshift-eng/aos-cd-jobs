@@ -45,14 +45,12 @@ function parse_and_set_vars() {
     exit 1
   fi
 
-  echo "Setting cicd-control environment variable: $1" >&2
-  export $1
-
-  # if the value is a blank string, let's unset it. not worth it!
-  key=$(echo $1 | awk -F= '{print $1}')
-  if [ "${key}" == "" ]; then
-    unset ${key}
+  value=$(echo $1 | awk -F= '{print $2}')
+  if [ ! -z ${value} ]; then
+    echo "Setting cicd-control environment variable: $1" >&2
+    export $1
   fi
+
 }
 
 function print_usage() {
@@ -237,11 +235,8 @@ function pre-check() {
       echo
       echo
       echo Openshift Ansible Vendored Version: ${VENDORED_OPENSHIFT_ANSIBLE_VERSION}
-      echo
       echo Openshift RPMs Found:
-      echo "========================================"
       echo "$OPENSHIFT_VERSIONS_FOUND"
-      echo "========================================"
       echo
     fi
 

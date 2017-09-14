@@ -261,7 +261,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-for i in \$(docker images --filter &#39;reference=openshift/origin-*&#39; --format &#39;{{.Repository}}:{{.Tag}}&#39;); do
+for i in \$(docker images --format &#39;{{.Repository}}:{{.Tag}}&#39; | grep &#34;openshift\/origin&#34;); do
   sudo skopeo copy docker-daemon:\$i containers-storage:\$i
 done
 SCRIPT

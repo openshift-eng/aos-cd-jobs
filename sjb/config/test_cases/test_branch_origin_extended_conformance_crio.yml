@@ -86,7 +86,7 @@ extensions:
       title: "copy openshift images from docker storage to CRI-O storage"
       timeout: 10800
       script: |-
-        for i in $(docker images --filter 'reference=openshift/origin-*' --format '{{.Repository}}:{{.Tag}}'); do
+        for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep "openshift\/origin"); do
           sudo skopeo copy docker-daemon:$i containers-storage:$i
         done
     - type: "script"

@@ -87,7 +87,7 @@ extensions:
       timeout: 10800
       script: |-
         for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep "openshift\/origin"); do
-          sudo skopeo copy docker-daemon:$i containers-storage:$i
+          sudo skopeo copy docker-daemon:$i containers-storage:\[overlay2@/var/lib/containers/storage+/var/run/containers/storage:overlay2.override_kernel_check=1\]$i
         done
     - type: "script"
       title: "run extended tests"

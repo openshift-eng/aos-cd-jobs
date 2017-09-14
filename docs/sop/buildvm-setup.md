@@ -11,7 +11,8 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - JENKINS_HTTPS_KEYSTORE="/home/jenkins/keystore"
     - JENKINS_HTTPS_PORT="8443"
     - JENKINS_PORT="-1"
-    - JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Djava.net.preferIPv4Stack=true"
+    - JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Djava.net.preferIPv4Stack=true -Djenkins.branch.WorkspaceLocatorImpl.PATH_MAX=0"
+      - The PATH_MAX value ensures the branch plugin does not create extremely long paths which interefere with virtualenv
   - Create a client certificate keystore from the private keystore: keytool -keystore <truststore file> -alias <alias> -import -file <certfilename>.cert  (https://stackoverflow.com/questions/8980364/how-do-i-find-out-what-keystore-my-jvm-is-using) . You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/agent.keystore").
   - sudo chkconfig jenkins on
   - sudo service jenkins start
@@ -45,6 +46,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - npm (needed for origin-web-console asset compilation)
   - pip (`yum install python-pip`)
   - virtualenv (`pip install virtualenv`)
+  - python-devel
 - Install oc client compatible with Ops registry (https://console.reg-aws.openshift.com/console/)
   - wget https://mirror.openshift.com/pub/openshift-v3/clients/3.6.170/linux/oc.tar.gz
   - extract 'oc' binary in /usr/bin

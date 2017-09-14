@@ -46,6 +46,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - npm (needed for origin-web-console asset compilation)
   - pip (`yum install python-pip`)
   - virtualenv (`pip install virtualenv`)
+  - python-devel
 - Install oc client compatible with Ops registry (https://console.reg-aws.openshift.com/console/)
   - wget https://mirror.openshift.com/pub/openshift-v3/clients/3.6.170/linux/oc.tar.gz
   - extract 'oc' binary in /usr/bin

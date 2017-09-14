@@ -96,16 +96,18 @@ node('openshift-build-1') {
 
             stage( "smoketest" ) {
                 warn = null
-                smoketest = build job: 'starter%2Fsmoketest', propagate: false,
-                                  parameters: [
-                                      [$class: 'StringParameterValue', name: 'CLUSTER_SPEC', value: CLUSTER_SPEC],
-                                      [$class: 'BooleanParameterValue', name: 'MAIL_RESULTS', value: false],
-                                  ]
+                if ( "${env.BRANCH_NAME}".contains( "starter" ) {
+                    smoketest = build job: 'starter%2Fsmoketest', propagate: false,
+                                      parameters: [
+                                          [$class: 'StringParameterValue', name: 'CLUSTER_SPEC', value: CLUSTER_SPEC],
+                                          [$class: 'BooleanParameterValue', name: 'MAIL_RESULTS', value: false],
+                                      ]
 
-                POST_STATUS += "\nSmoke test results: ${smoketest.result}\n"
+                    POST_STATUS += "\nSmoke test results: ${smoketest.result}\n"
 
-                if ( smoketest.resultIsWorseOrEqualTo( "UNSTABLE" ) ) {
-                    warn = smoketest.absoluteUrl
+                    if ( smoketest.resultIsWorseOrEqualTo( "UNSTABLE" ) ) {
+                        warn = smoketest.absoluteUrl
+                    }
                 }
             }
 

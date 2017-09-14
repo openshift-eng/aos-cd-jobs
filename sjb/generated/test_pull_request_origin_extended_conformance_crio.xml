@@ -359,7 +359,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 for i in \$(docker images --format &#39;{{.Repository}}:{{.Tag}}&#39; | grep &#34;openshift\/origin&#34;); do
-  sudo skopeo copy docker-daemon:\$i containers-storage:\$i
+  sudo skopeo copy docker-daemon:\$i containers-storage:\[overlay2@/var/lib/containers/storage+/var/run/containers/storage:overlay2.override_kernel_check=1\]\$i
 done
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -77,7 +77,9 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - Edit /etc/sysconfig/docker and set the following: `INSECURE_REGISTRY='--insecure-registry brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888 --insecure-registry rcm-img-docker01.build.eng.bos.redhat.com:5001 --insecure-registry registry.access.stage.redhat.com'`
 - Configure tito
   - Populate ~/.titorc with `RHPKG_USER=ocp-build`
-- Copy /home/jenkins/.aws/credentials from existing buildvm to target (needed for oct & dockertested job).
+- oct dependencies
+  - Copy /home/jenkins/.aws/credentials from existing buildvm to target (needed for oct & dockertested job).
+  - Copy libra.pem (from shared-secrets repo) to /home/jenkins/.ssh/devenv.pem . 
 - In a temporary directory
   - git clone https://github.com/openshift/origin-web-console.git
   - cd origin-web-console

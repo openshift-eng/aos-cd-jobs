@@ -20,6 +20,11 @@ extensions:
         sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
         rpm -V "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
     - type: "script"
+      title: "install skopeo"
+      timeout: 3600
+      script: |-
+        sudo yum install -y skopeo
+    - type: "script"
       title: "install Ansible plugins"
       timeout: 600
       repository: "origin"
@@ -77,6 +82,13 @@ extensions:
       script: |-
         origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
         rpm -V "${origin_package}"
+    - type: "script"
+      title: "copy openshift images from docker storage to CRI-O storage"
+      timeout: 10800
+      script: |-
+        for i in $(docker images --filter 'reference=openshift/origin-*' --format '{{.Repository}}:{{.Tag}}'); do
+          sudo skopeo copy docker-daemon:$i containers-storage:$i
+        done
     - type: "script"
       title: "run extended tests"
       repository: "origin"

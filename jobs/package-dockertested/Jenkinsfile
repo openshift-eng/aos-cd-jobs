@@ -79,11 +79,11 @@ node('openshift-build-1') {
 			echo "${env.ANSIBLE_SSH_CONTROL_PATH}"
 		}
 		stage ('Install dependencies in the virtualenv') {
-			sh "pip install --ignore-installed --upgrade pip"
-			sh 'pip install --ignore-installed boto boto3'
+			sh "pip install --user --ignore-installed --upgrade pip"
+			sh 'pip install --user --ignore-installed boto boto3'
 		}
 		stage ('Install the origin-ci-tool') {
-			sh 'pip install git+https://github.com/openshift/origin-ci-tool.git --process-dependency-links'
+			sh 'pip install --user git+https://github.com/openshift/origin-ci-tool.git --process-dependency-links'
 		}
 		stage ('Configure the origin-ci-tool') {
 			sh 'oct configure ansible-client verbosity 2'

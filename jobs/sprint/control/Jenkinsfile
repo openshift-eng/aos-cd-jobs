@@ -17,7 +17,7 @@ properties(
           parameterDefinitions:
                   [
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-announce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the notification email?', name: 'SPECIAL_NOTES'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],

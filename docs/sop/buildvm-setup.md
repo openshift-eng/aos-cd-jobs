@@ -47,6 +47,11 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - pip (`yum install python-pip`)
   - virtualenv (`pip install virtualenv`)
   - python-devel
+- Install depdendencies for sprint_tools
+  - yum install yum install gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison iconv-devel ruby-devel libxml2 libxml2-devel libxslt libxslt-devel
+  - gem install bundler
+  - yum install ImageMagick-devel ImageMagick
+  - Run "bundler install" in sprint_tools clone
 - Install oc client compatible with Ops registry (https://console.reg-aws.openshift.com/console/)
   - wget https://mirror.openshift.com/pub/openshift-v3/clients/3.6.170/linux/oc.tar.gz
   - extract 'oc' binary in /usr/bin

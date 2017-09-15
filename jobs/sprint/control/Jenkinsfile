@@ -65,7 +65,7 @@ node(TARGET_NODE) {
 
         REOPEN_BODY = readFile( "emails/open_master" )
 
-        sshagent([SSH_KEY_ID]) {
+        sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
             tmpd = pwd tmp: true
             dir(tmpd) {

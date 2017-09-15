@@ -4,7 +4,8 @@ Brief:
 This marks the time at which a Sprint a "stage" branch is cut from master in order curate a stable build for
 deployment onto public / production clusters. Consider whether all merges into master also need to merge into
 "stage".
-PRs must be labeled as kind/bug.
+
+PRs must be labeled as kind/bug in order to merge.
 
 Details:
 https://docs.google.com/a/redhat.com/document/d/1e7NL7ShgSM7Xtzft3BkcF9H-qsvz1VWPukG2a51VA74/edit?usp=sharing

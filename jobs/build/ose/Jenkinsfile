@@ -151,7 +151,7 @@ node(TARGET_NODE) {
                 env.BUILD_MODE = "${BUILD_MODE}"
                 env.EARLY_LATEST_HACK = "${EARLY_LATEST_HACK}"
 
-                prev_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-3.6-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+                prev_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
 
                 sh "./scripts/merge-and-build.sh ${OSE_MAJOR} ${OSE_MINOR}"
             }
@@ -167,11 +167,11 @@ node(TARGET_NODE) {
 
             ATTN=""
             try {
-                new_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-3.6-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+                new_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
                 echo "Comparing new_build (" + new_build + ") and prev_build (" + prev_build + ")" 
                 if ( new_build != prev_build ) {
                     // Untag anything tagged by this build if an error occured at any point
-                    sh "brew --user=ocp-build untag-build rhaos-3.6-rhel-7-candidate ${new_build}"
+                    sh "brew --user=ocp-build untag-build rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate ${new_build}"
                 }
             } catch ( err2 ) {
                 ATTN=" - UNABLE TO UNTAG!"

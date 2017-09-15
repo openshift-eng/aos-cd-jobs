@@ -168,6 +168,7 @@ node(TARGET_NODE) {
             ATTN=""
             try {
                 new_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-3.6-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+                echo "Comparing new_build (" + new_build + ") and prev_build (" + prev_build + ")" 
                 if ( new_build != prev_build ) {
                     // Untag anything tagged by this build if an error occured at any point
                     sh "brew --user=ocp-build untag-build rhaos-3.6-rhel-7-candidate ${new_build}"

@@ -67,8 +67,8 @@ ${inject_notes}
 Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0,3)}/${OCP_PUDDLE}
   - Mirror: ${mirrorURL}/${OCP_PUDDLE}
   - Images have been built for this puddle
-  - Images have been pushed to registry.reg-aws.openshift.com:443
-  - Images have been pushed to registry.ops
+  - Images have been pushed to registry.reg-aws.openshift.com:443     (request credentials from sedgar@redhat.com to pull)
+  - Images have been pushed to registry.ops.openshift.com     (soon to be decomissioned)
 
 Brew:
   - Openshift: ${OSE_BREW_URL}

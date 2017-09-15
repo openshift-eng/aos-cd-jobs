@@ -23,14 +23,17 @@ properties(
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is DevCut START?', name: 'TEST_DEV_CUT'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is StageCut START?', name: 'TEST_STAGE_CUT'],
-                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is StageCut END?', name: 'TEST_LIFT_STAGE_CUT'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is master open?', name: 'TEST_OPEN_MASTER'],
                   ]
             ],
             disableConcurrentBuilds()
         ]
 )
 
-IS_TEST_MODE = TEST.toBoolean()
+TEST_DEV_CUT = TEST_DEV_CUT.toBoolean()
+TEST_STAGE_CUT = TEST_STAGE_CUT.toBoolean()
+TEST_OPEN_MASTER = TEST_OPEN_MASTER.toBoolean()
+
 
 def mail_success( phase, body ) {
 
@@ -76,15 +79,15 @@ node(TARGET_NODE) {
                     DAYS_LEFT_IN_SPRINT = sh(returnStdout: true, script: "./trello days_left_in_sprint").trim()
                 }
 
-                if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT ) {
+                if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
                     mail_success("Start of DevCut", DEV_CUT_BODY)
                 }
 
-                if ( DAYS_LEFT_IN_SPRINT == STAGE_CUT_DAYS_LEFT ) {
+                if ( DAYS_LEFT_IN_SPRINT == STAGE_CUT_DAYS_LEFT || TEST_STAGE_CUT ) {
                     mail_success("Start of StageCut", STAGE_CUT_BODY)
                 }
 
-                if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT ) {
+                if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
                     mail_success("Master Open", REOPEN_BODY)
                 }
 

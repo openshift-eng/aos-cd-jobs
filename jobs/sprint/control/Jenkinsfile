@@ -45,7 +45,7 @@ def mail_success( phase, body ) {
             to: "${MAIL_LIST_SUCCESS}",
             from: "aos-cd@redhat.com",
             replyTo: 'jupierce@redhat.com',
-            subject: "[aos-announce] Sprint Phase: ${phase} (Sprint " + SPRINT_ID + ")",
+            subject: "[aos-announce] Sprint Phase: ${phase} (Sprint ${SPRINT_ID})",
             body: "${body}");
 }
 
@@ -83,6 +83,8 @@ node(TARGET_NODE) {
                     DAYS_LEFT_IN_SPRINT = sh(returnStdout: true, script: "./trello days_left_in_sprint").trim()
                 }
 
+                echo "Detected ${DAYS_LEFT_IN_SPRINT} days left in sprint"
+                    
                 if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
                     mail_success("Start of DevCut", DEV_CUT_BODY)
                 }

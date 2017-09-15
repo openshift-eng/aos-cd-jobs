@@ -110,7 +110,7 @@ node('openshift-build-1') {
 				sh 'oct prepare dependencies'
 			}
 			stage ('Install Golang') {
-				sh 'oct prepare golang --version 1.7.5 --repourl https://cbs.centos.org/repos/paas7-openshift-origin36-candidate/x86_64/os/'
+				sh 'oct prepare golang --version 1.8.3 --repourl https://cbs.centos.org/repos/paas7-openshift-origin37-candidate/x86_64/os/'
 			}
 			stage ('Install Docker') {
 				sh 'oct prepare docker --repo "rhel7next*"'

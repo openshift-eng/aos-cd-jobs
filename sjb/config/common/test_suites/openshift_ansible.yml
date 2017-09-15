@@ -5,3 +5,4 @@ children:
   - "test_pull_request_openshift_ansible_extended_conformance_install"
   - "test_pull_request_openshift_ansible_extended_conformance_install_update"
   - "test_pull_request_openshift_ansible_extended_conformance_install_system_containers"
+  - "test_pull_request_openshift_ansible_extended_conformance_install_containerized"

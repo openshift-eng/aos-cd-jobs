@@ -126,7 +126,7 @@ approve.sh openshift-ansible &quot;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&quot; &quo
           <applyConditionOnlyIfNoSCMChanges>false</applyConditionOnlyIfNoSCMChanges>
         </com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
         <com.tikal.jenkins.plugins.multijob.PhaseJobsConfig>
-          <jobName>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check</jobName>
+          <jobName>test_pull_request_openshift_ansible_extended_conformance_install</jobName>
           <currParams>true</currParams>
           <exposedSCM>false</exposedSCM>
           <disableJob>false</disableJob>
@@ -199,12 +199,12 @@ approve.sh openshift-ansible &quot;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&quot; &quo
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
     </hudson.plugins.copyartifact.CopyArtifact>
     <hudson.plugins.copyartifact.CopyArtifact plugin="copyartifact@1.38">
-      <project>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check</project>
+      <project>test_pull_request_openshift_ansible_extended_conformance_install</project>
       <filter>**</filter>
-      <target>test_pull_request_openshift_ansible_extended_conformance_install_with_status_check/</target>
+      <target>test_pull_request_openshift_ansible_extended_conformance_install/</target>
       <excludes></excludes>
       <selector class="hudson.plugins.copyartifact.SpecificBuildSelector">
-        <buildNumber>${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_WITH_STATUS_CHECK_BUILD_NUMBER}</buildNumber>
+        <buildNumber>${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_BUILD_NUMBER}</buildNumber>
       </selector>
       <optional>true</optional>
       <doNotFingerprintArtifacts>true</doNotFingerprintArtifacts>
@@ -235,7 +235,7 @@ approve.sh openshift-ansible &quot;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&quot; &quo
       <command># record the log from the downstream job here for FCM parsing
 cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_tox/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_TOX_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_logging/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_LOGGING_BUILD_NUMBER}/log
-cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install_with_status_check/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_WITH_STATUS_CHECK_BUILD_NUMBER}/log
+cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install_update/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_UPDATE_BUILD_NUMBER}/log
 cat /var/lib/jenkins/jobs/test_pull_request_openshift_ansible_extended_conformance_install_system_containers/builds/${TEST_PULL_REQUEST_OPENSHIFT_ANSIBLE_EXTENDED_CONFORMANCE_INSTALL_SYSTEM_CONTAINERS_BUILD_NUMBER}/log
       </command>

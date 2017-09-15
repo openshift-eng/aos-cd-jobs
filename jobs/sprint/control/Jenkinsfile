@@ -69,6 +69,10 @@ node(TARGET_NODE) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
             tmpd = pwd tmp: true
             dir(tmpd) {
+                // Jenkins will reuse temp directories if the job does not make it to deleteDir() :(
+                sh "rm -rf sprint_tools"  
+                sh "rm -rf trello_config"  
+                    
                 // Setup sprint tools (requires openshift-bot credentials)
                 sh "git clone --depth 1 git@github.com:openshift/sprint_tools.git"
                 sh "git clone --depth 1 git@github.com:openshift/trello_config.git"

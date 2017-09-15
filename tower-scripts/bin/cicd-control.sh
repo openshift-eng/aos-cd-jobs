@@ -243,8 +243,11 @@ function pre-check() {
   fi
 
   echo
-  echo "Getting filesystem usage for '/' and '/var'"
+  echo "Getting filesystem usage for '/' and '/var':"
+  echo "================================================================"
   /usr/local/bin/autokeys_loader opssh -c ${CLUSTERNAME} -t master -i  '/usr/bin/df -h  / /var'
+  echo
+  echo
 
   exit 0
 }

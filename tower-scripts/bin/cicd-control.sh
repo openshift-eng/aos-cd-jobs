@@ -196,7 +196,7 @@ function pre-check() {
     pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms" > /dev/null
       /usr/bin/ansible-playbook get_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${oo_environment} -e cli_download_dir=${AOS_TMPDIR} &> /dev/null
     popd > /dev/null
-    OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
+    OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}-%{RELEASE}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
 
     MASTER="$(get_master_name)"
     /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null

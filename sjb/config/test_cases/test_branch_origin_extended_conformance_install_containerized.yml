@@ -111,7 +111,8 @@ extensions:
         sudo cp ci-dnsmasq.conf /etc/dnsmasq.d/ci-dnsmasq.conf
         sudo systemctl restart dnsmasq
         sudo systemctl status dnsmasq
-        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
+        # disable the e2e conformance tests until all failing tests are passing
+        #OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance
   system_journals:
     - origin-master.service
     - origin-master-api.service

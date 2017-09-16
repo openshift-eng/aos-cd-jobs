@@ -43,7 +43,8 @@ properties([
 )
 
 node('openshift-build-1') {
-
+    checkout scm
+        
     def deploylib = load( "pipeline-scripts/deploylib.groovy" )
     deploylib.initialize(CLUSTER_SPEC)
 

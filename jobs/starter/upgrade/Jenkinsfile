@@ -97,7 +97,7 @@ node('openshift-build-1') {
             stage( "smoketest" ) {
                 warn = null
                 if ( "${env.BRANCH_NAME}".contains( "starter" ) ) {
-                    smoketest = build job: 'starter%2Fsmoketest', propagate: false,
+                    smoketest = build job: 'starter%2Fsmoke-test', propagate: false,
                                       parameters: [
                                           [$class: 'StringParameterValue', name: 'CLUSTER_SPEC', value: CLUSTER_SPEC],
                                           [$class: 'BooleanParameterValue', name: 'MAIL_RESULTS', value: false],

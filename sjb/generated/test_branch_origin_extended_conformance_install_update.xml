@@ -336,6 +336,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 pkg_name=\$( cat ./PKG_NAME )
 if [[ &#34;\${pkg_name}&#34; == &#34;origin&#34; ]]; then
     deployment_type=&#34;origin&#34;

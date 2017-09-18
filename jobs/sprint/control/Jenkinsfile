@@ -80,7 +80,7 @@ node(TARGET_NODE) {
 
                 dir("sprint_tools") {
                     SPRINT_ID = sh(returnStdout: true, script: "./trello sprint_identifier").trim()
-                    DAYS_LEFT_IN_SPRINT = sh(returnStdout: true, script: "./trello days_left_in_sprint").trim()
+                    DAYS_LEFT_IN_SPRINT = sh(returnStdout: true, script: "./trello days_left_in_sprint").trim().toInteger()
                 }
 
                 echo "Detected ${DAYS_LEFT_IN_SPRINT} days left in sprint"

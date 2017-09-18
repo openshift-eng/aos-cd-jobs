@@ -87,6 +87,9 @@ extensions:
       repository: "aos-cd-jobs"
       timeout: 1800
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         pkg_name=$( cat ./PKG_NAME )
         if [[ "${pkg_name}" == "origin" ]]; then
             deployment_type="origin"

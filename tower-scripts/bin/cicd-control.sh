@@ -153,6 +153,12 @@ function update_ops_git_repos () {
   set -e
 }
 
+function update-online-roles() {
+  /usr/bin/ssh-agent bash -c 'ssh-add /home/opsmedic/aos-cd/git/openshift-ansible-private/private_roles/aos-cicd/files/github_ops_bot_ssh_key.rsa; /usr/bin/gogitit sync -m ./gogitit_online.yml'
+
+  export OPENSHIFT_ONLINE_ROLES=/home/opsmedic/aos-cd/vendored/gogitit-online/roles
+}
+
 function get_latest_openshift_ansible()  {
   AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
   mkdir -p "${AOS_TMPDIR}"
@@ -396,6 +402,10 @@ function cluster_operation() {
 
     if [[ " ${LATEST_ANSIBLE_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
       get_latest_openshift_ansible ${oo_environment}
+    fi
+
+    if [ "${CLUSTER_OPERATION}" == online-* ]; then
+      update-online-roles
     fi
   fi
 

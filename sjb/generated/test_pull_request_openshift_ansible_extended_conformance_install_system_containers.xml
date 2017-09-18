@@ -272,6 +272,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -298,6 +301,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -328,6 +334,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -350,6 +359,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -376,6 +388,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -398,6 +413,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -428,6 +446,8 @@ ansible-playbook -vv --become               \
                  -e openshift_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;                      \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_TAG )&#34; \
+                 -e openshift_node_port_range=&#39;30000-32000&#39;                          \
+                 -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;   \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -442,6 +462,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -462,6 +485,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
@@ -483,6 +509,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]]; then
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0

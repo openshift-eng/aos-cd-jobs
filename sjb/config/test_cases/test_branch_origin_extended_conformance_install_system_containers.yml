@@ -9,6 +9,9 @@ extensions:
       title: "build an origin release"
       repository: "origin"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -26,6 +29,9 @@ extensions:
       title: "build an openshift-ansible release"
       repository: "openshift-ansible"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -48,6 +54,9 @@ extensions:
       repository: "openshift-ansible"
       timeout: 3600
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -61,6 +70,9 @@ extensions:
       title: "install Ansible plugins"
       repository: "origin"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -78,6 +90,9 @@ extensions:
       title: "determine the release commit for origin images and version for rpms"
       repository: "origin"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -91,6 +106,9 @@ extensions:
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -121,10 +139,15 @@ extensions:
                          -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e openshift_node_port_range='30000-32000'                          \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
     - type: "script"
       title: "expose the kubeconfig"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -137,6 +160,9 @@ extensions:
       timeout: 600
       repository: "aos-cd-jobs"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0
@@ -149,6 +175,9 @@ extensions:
       title: "run extended tests"
       repository: "origin"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
         if [[ "${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}" == "release-1.5" ]]; then
             echo "[INFO] System containers are not supported, skipping."
             exit 0

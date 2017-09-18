@@ -394,6 +394,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
 pkg_name=\$( cat ./PKG_NAME )
 if [[ &#34;\${pkg_name}&#34; == &#34;origin&#34; ]]; then
     deployment_type=&#34;origin&#34;
@@ -423,7 +426,9 @@ ansible-playbook  -vv                \
                   /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_INSTALL_VERSION}&#34;         \
                   -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34;                           \
-                  -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)
+                  -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)                  \
+                  -e openshift_node_port_range=&#39;30000-32000&#39;                    \
+                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -486,7 +491,9 @@ ansible-playbook  -vv                    \
                    &#34;\${upgrade_playbook}&#34;     \
                   -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_UPGRADE_RELEASE_VERSION}&#34; \
-                  -e deployment_type=\$( cat ./DEPLOYMENT_TYPE) \
+                  -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)                  \
+                  -e openshift_node_port_range=&#39;30000-32000&#39;                    \
+                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39; \
                   -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

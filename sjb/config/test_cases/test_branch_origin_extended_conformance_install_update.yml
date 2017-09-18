@@ -116,7 +116,9 @@ extensions:
                           /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
                           -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
-                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
+                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
+                          -e openshift_node_port_range='30000-32000'                    \
+                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'
     - type: "script"
       title: "upgrade openshift-ansible to release"
       repository: "aos-cd-jobs"
@@ -154,7 +156,9 @@ extensions:
                            "${upgrade_playbook}"     \
                           -e etcd_data_dir="${ETCD_DATA_DIR}" \
                           -e openshift_pkg_version="-${ORIGIN_UPGRADE_RELEASE_VERSION}" \
-                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE) \
+                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
+                          -e openshift_node_port_range='30000-32000'                    \
+                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \
                           -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
     - type: "script"
       title: "expose the kubeconfig"

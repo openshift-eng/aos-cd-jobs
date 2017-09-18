@@ -139,6 +139,8 @@ extensions:
                          -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e openshift_node_port_range='30000-32000'                          \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
     - type: "script"
       title: "expose the kubeconfig"

@@ -5,7 +5,7 @@ def mail_success(list) {
         to: "${list}",
         from: "aos-cd@redhat.com",
         replyTo: 'jupierce@redhat.com',
-        subject: "[aos-devel] Cluster ${OPERATION} complete: ${CLUSTER_NAME}",
+        subject: "[aos-cicd] Cluster ${OPERATION} complete: ${CLUSTER_NAME}",
         body: """\
 Jenkins job: ${env.BUILD_URL}
 """);
@@ -25,7 +25,7 @@ properties(
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The specification of the cluster to affect'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "build-ci-msg\ncommit-config-loop\ndelete\ndisable-config-loop\ndisable-statuspage\ndisable-zabbix-maint\nenable-config-loop\nenable-statuspage\nenable-zabbix-maint\ngenerate-byo-inventory\ninstall\nlegacy-upgrade\nonline-deployer\nperf1\nperf2\nperf3\npre-check\nrun-config-loop\nsmoketest\nstatus\nupdate-inventory\nupdate-yum-extra-repos\nupgrade\nupgrade-control-plane\nupgrade-logging\nupgrade-metrics\nupgrade-nodes\n", name: 'OPERATION', description: 'Operation to perform'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: '', description: 'Additional options (key=value linefeed delimited)', name: 'ADDITIONAL_OPTS'],
-                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-cicd emails. Select silent to prevent any success email.'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                   ]
          ]]

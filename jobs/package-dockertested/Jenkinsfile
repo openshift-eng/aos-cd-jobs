@@ -158,7 +158,7 @@ node('openshift-build-1') {
 				}
 				stage ('Send out an e-mail about new versions') {
 					mail (
-						to: 'aos-devel@redhat.com',
+						to: 'aos-cicd@redhat.com',
 						cc: 'skuznets@redhat.com',
 						subject: "${docker_rpm} and dependencies pushed to dockertested repository",
 						body: """The latest job[1] marked the following RPMs as successful:

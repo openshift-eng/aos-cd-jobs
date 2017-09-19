@@ -27,7 +27,7 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'mifiedle@redhat.com, jupierce@redhat.com, vlaad@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The name of the cluster specification to target'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "perf1\nperf2\nperf3", name: 'OPERATION', description: 'Test to perform'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-cicd emails. Select silent to prevent any success email.'],
                               [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                       ]
              ]]

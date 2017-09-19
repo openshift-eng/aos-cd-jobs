@@ -3,13 +3,23 @@ def commonlib = load("pipeline-scripts/commonlib.groovy")
 
 commonlib.initialize()
 
+def initialize() {
+    this.registry_login()
+    this.path_setup()
+    this.kinit()
+}
+
+// Initialize $PATH and $GOPATH
 def path_setup() {
     echo "Adding git managed script directories to PATH"
-    // ose-images.sh
+    // ose_images.sh
     env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
-    // jenkins-plugins RPM build scripts
-    env.PATH = "${pwd()}/hacks/update-jenkins-plugins:${env.PATH}"
 
+    GOPATH = "${env.WORKSPACE}/go"
+    env.GOPATH = GOPATH
+    sh "rm -rf ${GOPATH}"  // Remove any cruft
+    sh "mkdir -p ${GOPATH}"
+    echo "Initialized env.GOPATH: ${env.GOPATH}"
 }
 
 def kinit() {
@@ -36,18 +46,6 @@ def registry_login() {
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'
     }
-}
-
-def initialize() {
-    this.registry_login()
-    this.path_setup()
-    this.kinit()
-
-    GOPATH = "${env.WORKSPACE}/go"
-    env.GOPATH = GOPATH
-    sh "rm -rf ${GOPATH}"  // Remove any cruft
-    sh "mkdir -p ${GOPATH}"
-    echo "Initialized env.GOPATH: ${env.GOPATH}"
 }
 
 def initialize_openshift_dir() {

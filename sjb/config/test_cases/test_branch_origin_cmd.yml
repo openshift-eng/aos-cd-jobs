@@ -8,4 +8,4 @@ extensions:
       title: "run test-cmd"
       repository: "origin"
       script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts hack/env JUNIT_REPORT='true' make test-cmd -k
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts OS_BUILD_ENV_TMP_VOLUME='/tmp' hack/env JUNIT_REPORT='true' make test-cmd -k

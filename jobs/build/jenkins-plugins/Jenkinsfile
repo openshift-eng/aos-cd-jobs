@@ -88,20 +88,17 @@ node(TARGET_NODE) {
     checkout scm
 
     def buildlib = load( "pipeline-scripts/buildlib.groovy")
-    buildlib.initialize()  // Sets up credentials for dist-git access
+    buildlib.kinit()       // Sets up credentials for dist-git access
+    buildlib.path_setup()  // Put scripts in env.PATH
 
     try {
         stage ("prepare workspace") {
 
-            scripts_dir = "${env.WORKSPACE}/hacks/update-jenkins-plugins"
             // Temporary file to write the plugin list to
             tmpdir = pwd tmp:true
             plugin_file = "${tmpdir}/jenkins-plugins.txt"
             // Note that collect-jenkins-plugins.sh has a hardcoded output dir:
-            plugin_dir = "${scripts_dir}/working/hpis"
-
-            echo "Adding the plugin scripts directory (${scripts_dir}) to PATH"
-            env.PATH = "${scripts_dir}:${env.PATH}"
+            plugin_dir = "${env.WORKSPACE}/hacks/update-jenkins-plugins/working/hpis"
 
             writeFile file: plugin_file, text: PLUGIN_LIST
         }

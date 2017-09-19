@@ -27,7 +27,7 @@ properties([
                 ],
                 [
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'aos-devel@redhat.com',
+                    defaultValue: 'aos-cicd@redhat.com',
                     description: 'Success Mailing List',
                     name: 'MAIL_LIST_SUCCESS'
                 ],

@@ -10,7 +10,7 @@ def mail_success(list,detail,warn) {
         to: "${list}",
         from: "aos-cd@redhat.com",
         replyTo: 'jupierce@redhat.com',
-        subject: "[aos-devel] Cluster upgrade complete: ${CLUSTER_NAME}",
+        subject: "[aos-cicd] Cluster upgrade complete: ${CLUSTER_NAME}",
         body: body
     );
 }
@@ -24,11 +24,11 @@ properties(
         [[$class              : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com, devtools-saas@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com, devtools-saas@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Success for minor cluster operation', name: 'MAIL_LIST_SUCCESS_MINOR'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The specification of the cluster to affect'],
-                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-devel emails. Select silent to prevent any success email.'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-cicd emails. Select silent to prevent any success email.'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OpenShift version (e.g. 3.6.173.0.37-1.git.0.fd828e7.el7)', name: 'OPENSHIFT_VERSION'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Docker version (e.g. 1.12.6-48.git0fdc778.el7)', name: 'DOCKER_VERSION'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: '', description: 'Additional options (key=value linefeed delimited)', name: 'ADDITIONAL_OPTS'],

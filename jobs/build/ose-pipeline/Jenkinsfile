@@ -13,7 +13,7 @@ def try_wrapper(failure_func, f) {
 def mail_success(version) {
     mail(
         to: 'jupierce@redhat.com',
-        subject: "[aos-devel] New AtomicOpenShift Puddle for OSE: ${version}",
+        subject: "[aos-cicd] New AtomicOpenShift Puddle for OSE: ${version}",
         body: """\
 v${version}
 Images have been built for this puddle

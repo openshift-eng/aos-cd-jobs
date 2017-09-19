@@ -7,8 +7,7 @@ properties(
                     name: 'JENKINS_VERSION',
                     description: 'Minimum required Jenkins version',
                     $class: 'hudson.model.StringParameterDefinition'
-                    // Probably better it this was a choice, but might not be
-                    // flexible enough
+                    defaultValue: '2.43'
                 ],
                 [
                     name: 'OCP_RELEASE',
@@ -26,13 +25,13 @@ properties(
                     name: 'MAIL_LIST_SUCCESS',
                     description: 'Success Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,cwong@redhat.com,bparees@redhat.com,pep@redhat.com'
+                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com,pep@redhat.com'
                 ],
                 [
                     name: 'MAIL_LIST_FAILURE',
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,cwong@redhat.com,bparees@redhat.com,pep@redhat.com'
+                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com,pep@redhat.com'
                 ],
                 [
                     name: 'TARGET_NODE',
@@ -56,11 +55,11 @@ def mail_success() {
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
         replyTo: 'jupierce@redhat.com',
-        subject: "jenkins plugins RPM updated in dist-git",
+        subject: "jenkins plugins RPM for OCP ${OCP_RELEASE} updated in dist-git",
         body: """The Jenkins plugins RPM for OCP ${OCP_RELEASE} has been updated in dist-git:
 ${distgit_link}
 
-Jenkins version: ${JENKINS_VERSION}
+Minimum Jenkins version: ${JENKINS_VERSION}
 
 Plugin list:
 ${PLUGIN_LIST}
@@ -87,9 +86,8 @@ node(TARGET_NODE) {
 
     checkout scm
 
-    def buildlib = load( "pipeline-scripts/buildlib.groovy")
+    def buildlib = load( "pipeline-scripts/buildlib.groovy" )
     buildlib.kinit()       // Sets up credentials for dist-git access
-    buildlib.path_setup()  // Put scripts in env.PATH
 
     try {
         stage ("prepare workspace") {
@@ -97,18 +95,27 @@ node(TARGET_NODE) {
             // Temporary file to write the plugin list to
             tmpdir = pwd tmp:true
             plugin_file = "${tmpdir}/jenkins-plugins.txt"
+            scripts_dir = "${env.WORKSPACE}/hacks/update-jenkins-plugins"
             // Note that collect-jenkins-plugins.sh has a hardcoded output dir:
-            plugin_dir = "${env.WORKSPACE}/hacks/update-jenkins-plugins/working/hpis"
+            plugin_dir = "${scripts_dir}/working/hpis"
 
             writeFile file: plugin_file, text: PLUGIN_LIST
         }
 
         stage ("collect plugins") {
-            sh "collect-jenkins-plugins.sh ${JENKINS_VERSION} ${plugin_file}"
+            withEnv(["PATH+SCRIPTS=${scripts_dir}"]) {
+                sh "collect-jenkins-plugins.sh ${JENKINS_VERSION} ${plugin_file}"
+            }
         }
 
         stage ("update dist-git") {
-            sh "update-dist-git.sh ${JENKINS_VERSION} ${OCP_RELEASE} ${plugin_dir}"
+            withEnv(["PATH+SCRIPTS=${scripts_dir}"]) {
+                sh "update-dist-git.sh ${JENKINS_VERSION} ${OCP_RELEASE} ${plugin_dir}"
+            }
+        }
+
+        stage ("cleanup") {
+            sh "rm -rf ${plugin_dir} ${plugin_file}"
         }
 
         mail_success()

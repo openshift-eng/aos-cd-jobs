@@ -39,6 +39,12 @@ properties(
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: 'openshift-build-1'
                 ],
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition', 
+                    defaultValue: false,
+                    description: 'Mock run to pickup new Jenkins parameters?', 
+                    name: 'MOCK'
+                ],            
             ]
         ],
         disableConcurrentBuilds()

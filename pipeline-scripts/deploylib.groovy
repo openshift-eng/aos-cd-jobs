@@ -56,7 +56,7 @@ def map_to_string(map) {
     return s
 }
 
-def run( operation_name, opts = [:], capture_stdout=false ) {
+def run( operation_name, opts = [:], capture_stdout=false, interactive_retry=true ) {
 
     if ( opts == null ) {
         opts = [:]
@@ -78,6 +78,11 @@ def run( operation_name, opts = [:], capture_stdout=false ) {
             )
             return true // finish waitUntil
         } catch ( rerr ) {
+
+            if ( ! interactive_retry ) {
+                throw rerr
+            }
+
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
                     subject: "RESUMABLE Error during ${operation_name} on cluster ${CLUSTER_NAME}",

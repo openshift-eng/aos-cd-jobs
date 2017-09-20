@@ -3,7 +3,7 @@
 def mail_success(list,detail,warn) {
     body = "Cluster ${CLUSTER_NAME} upgrade details:\n"
     if ( warn ) {
-        body += "\nWARNING: post-upgrade smoke test was not successful: ${warn}\n"
+        body += "\nWARNING: post-upgrade smoke test was not successful:\n${warn}\n"
     }
     body += "\n${detail}\n\nJenkins job: ${env.BUILD_URL}\n"
     mail(

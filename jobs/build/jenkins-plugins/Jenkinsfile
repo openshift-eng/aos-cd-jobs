@@ -7,7 +7,7 @@ properties(
                     name: 'JENKINS_VERSION',
                     description: 'Minimum required Jenkins version',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: '2.43'
+                    defaultValue: '2.42'
                 ],
                 [
                     name: 'OCP_RELEASE',

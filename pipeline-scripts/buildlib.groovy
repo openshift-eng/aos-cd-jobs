@@ -4,6 +4,30 @@ def commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
 
 def initialize() {
+    this.registry_login()
+    this.path_setup()
+    this.kinit()
+}
+
+// Initialize $PATH and $GOPATH
+def path_setup() {
+    echo "Adding git managed script directories to PATH"
+    // ose_images.sh
+    env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
+
+    GOPATH = "${env.WORKSPACE}/go"
+    env.GOPATH = GOPATH
+    sh "rm -rf ${GOPATH}"  // Remove any cruft
+    sh "mkdir -p ${GOPATH}"
+    echo "Initialized env.GOPATH: ${env.GOPATH}"
+}
+
+def kinit() {
+    echo "Initializing ocp-build kerberos credentials"
+    sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
+}
+
+def registry_login() {
     // Login to legacy registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
@@ -22,18 +46,6 @@ def initialize() {
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'
     }
-
-    echo "Adding git managed ose_images.sh directory to PATH"
-    env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
-
-    echo "Initializing ocp-build kerberos credentials"
-    sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
-
-    GOPATH = "${env.WORKSPACE}/go"
-    env.GOPATH = GOPATH
-    sh "rm -rf ${GOPATH}"  // Remove any cruft
-    sh "mkdir -p ${GOPATH}"
-    echo "Initialized env.GOPATH: ${env.GOPATH}"
 }
 
 def initialize_openshift_dir() {

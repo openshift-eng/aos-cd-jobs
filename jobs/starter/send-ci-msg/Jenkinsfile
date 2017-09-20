@@ -25,7 +25,7 @@ node('openshift-build-1') {
 
     sshagent([CLUSTER_ENV]) {
         stage("send ci msg") {
-            msg = deploylib.run(OPERATION, null, true)
+            msg = deploylib.run("build-ci-msg", null, true)
             echo "Sending CI Message:\n${msg}"
             sendCIMessage messageContent: '', messageProperties: msg, messageType: 'ComponentBuildDone', providerName: 'CI Publish'
         }

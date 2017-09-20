@@ -2,12 +2,12 @@
 
 usage() {
     echo >&2
-    echo "Usage `basename $0` <lowest-supported-jenkins-version> <openshift-release-version> <path-to-plugins-list>" >&2
+    echo "Usage `basename $0` <lowest-supported-jenkins-version> <path-to-plugins-list>" >&2
     echo "  Where path-to-plugins-list is a line delimited list of jenkins plugins to prepare." >&2
     echo "    Example entries:   workflow-aggregator:2.1" >&2
     echo "      or use latest:   workflow-aggregator:latest" >&2
     echo >&2
-    echo " Example: ./collect-jenkins-plugins.sh  1.651.2  3.6  plugins.txt" >&2
+    echo " Example: ./collect-jenkins-plugins.sh  1.651.2  plugins.txt" >&2
     exit 1
 }
 
@@ -63,15 +63,14 @@ testvercomp () {
 
 
 # Make sure they passed something in for us
-if [ "$#" -lt 3 ] ; then
+if [ "$#" -lt 2 ] ; then
   usage
 fi
 
 # set -o xtrace
 
 JENKINS_VERSION="$1"
-RHAOS_RELEASE="$2"
-PLUGIN_LISTING="$(realpath $3)"
+PLUGIN_LISTING="$(realpath $2)"
 
 
 workingdir=$(dirname $(realpath $0))/working

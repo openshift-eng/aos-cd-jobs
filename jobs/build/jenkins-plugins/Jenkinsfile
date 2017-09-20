@@ -6,7 +6,7 @@ properties(
                 [
                     name: 'JENKINS_VERSION',
                     description: 'Minimum required Jenkins version',
-                    $class: 'hudson.model.StringParameterDefinition'
+                    $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: '2.43'
                 ],
                 [

@@ -37,6 +37,12 @@ properties([
                     description: 'Failure Mailing List',
                     name: 'MAIL_LIST_FAILURE'
                 ],
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition', 
+                    defaultValue: false,
+                    description: 'Mock run to pickup new Jenkins parameters?', 
+                    name: 'MOCK'
+                ],
             ]
         ],
     ]

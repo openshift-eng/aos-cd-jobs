@@ -86,9 +86,6 @@ ${smoketest}
                 body: """Encountered an error: ${err}
 
 Jenkins job: ${env.BUILD_URL}
-
-Smoke test output:
-${smoketest}
 """);
         }
 

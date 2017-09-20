@@ -58,7 +58,7 @@ node('openshift-build-1') {
 
         stage( 'smoketest' ) {
             sshagent([CLUSTER_ENV]) {
-                smoketest = deploylib.run("smoketest", null, true)
+                smoketest = deploylib.run("smoketest", null, true, false)
                 echo smoketest
             }
         }

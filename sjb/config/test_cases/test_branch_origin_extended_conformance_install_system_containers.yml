@@ -16,7 +16,7 @@ extensions:
             echo "[INFO] System containers are not supported, skipping."
             exit 0
         fi
-
+        git checkout ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
         hack/build-base-images.sh
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
         sudo systemctl restart docker

@@ -35,7 +35,7 @@ rectory to run."
         <a style="display: block" href='https://github.com/kubernetes/kubernetes/issues/40953'><code>kubernetes</code> issue 40953</a></br>
         <a style="display: block" href='https://github.com/openshift/origin/issues/12072'><code>origin</code> issue 12072</a></br>
         </div>
-      default_value: '|should provide DNS for services|should support subPath|should work with TCP \(when fully idled\)|should test kubelet managed /etc/hosts file|\[networking\]\[router\]|Downward API volume should update annotations on modification|should run a deployment to completion and then scale to zero|Basic StatefulSet functionality Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed|Probing container should \*not\* be restarted with a /healthz http liveness probe'
+      default_value: '|should provide DNS for services|should support subPath|should work with TCP \(when fully idled\)|should test kubelet managed /etc/hosts file|\[networking\]\[router\]|\[Area:Networking\]\[Feature:Router\]|Downward API volume should update annotations on modification|should run a deployment to completion and then scale to zero|Basic StatefulSet functionality Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed|Probing container should \*not\* be restarted with a /healthz http liveness probe'
   actions:
     - type: "forward_parameters"
       parameters:

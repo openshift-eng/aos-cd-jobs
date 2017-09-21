@@ -214,6 +214,10 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ -n &#34;\${PULL_REFS:-}&#34; ]]; then
+  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;\${PULL_REFS%%:*}&#34;
+fi
+git checkout \${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
 hack/build-base-images.sh
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS=&#39;linux/amd64&#39; hack/build-rpm-release.sh
 sudo systemctl restart docker

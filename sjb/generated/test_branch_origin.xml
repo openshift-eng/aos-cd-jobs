@@ -79,7 +79,7 @@ See also:
 &lt;a style=&#34;display: block&#34; href=&#39;https://github.com/kubernetes/kubernetes/issues/40953&#39;&gt;&lt;code&gt;kubernetes&lt;/code&gt; issue 40953&lt;/a&gt;&lt;/br&gt;
 &lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/12072&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 12072&lt;/a&gt;&lt;/br&gt;
 &lt;/div&gt;</description>
-          <defaultValue>|should provide DNS for services|should support subPath|should work with TCP \(when fully idled\)|should test kubelet managed /etc/hosts file|\[networking\]\[router\]|Downward API volume should update annotations on modification|should run a deployment to completion and then scale to zero|Basic StatefulSet functionality Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed|Probing container should \*not\* be restarted with a /healthz http liveness probe</defaultValue>
+          <defaultValue>|should provide DNS for services|should support subPath|should work with TCP \(when fully idled\)|should test kubelet managed /etc/hosts file|\[networking\]\[router\]|\[Area:Networking\]\[Feature:Router\]|Downward API volume should update annotations on modification|should run a deployment to completion and then scale to zero|Basic StatefulSet functionality Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed|Probing container should \*not\* be restarted with a /healthz http liveness probe</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>RELEASE_TARGET_BRANCH</name>

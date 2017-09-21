@@ -1,15 +1,13 @@
 ---
-parent: 'common/test_cases/origin_release.yml'
+parent: 'test_cases/test_branch_origin_extended_conformance_gce.yml'
 overrides:
-  junit_analysis: False
   sync_repos:
     - name: "origin"
       type: "pull_request"
+    - name: "release"
 extensions:
-  actions:
-    - type: "script"
-      title: "run extended tests"
-      repository: "origin"
-      script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
-        OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-extended SUITE=conformance-k8s
+  parameters:
+    - name: "SUITE"
+      description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
+rectory to run."
+      default_value: "conformance-k8s"

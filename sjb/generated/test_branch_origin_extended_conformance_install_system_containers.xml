@@ -221,7 +221,7 @@ if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
 fi
-
+git checkout \${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
 hack/build-base-images.sh
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS=&#39;linux/amd64&#39; hack/build-rpm-release.sh
 sudo systemctl restart docker

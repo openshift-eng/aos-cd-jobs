@@ -65,7 +65,7 @@ node('openshift-build-1') {
             }
 
             stage( "enable maintenance" ) {
-                // deploylib.run( "enable-statuspage" )
+                // deploylib.run( "enable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
                 deploylib.run( "enable-zabbix-maint" )
                 deploylib.run( "disable-config-loop" )
             }
@@ -85,7 +85,7 @@ node('openshift-build-1') {
 
             stage( "disable maintenance" ) {
                 deploylib.run( "disable-zabbix-maint" )
-                //deploylib.run( "disable-statuspage" )
+                //deploylib.run( "disable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
             }
 
             stage( "post-upgrade status" ) {

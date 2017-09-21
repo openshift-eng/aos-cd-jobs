@@ -10,6 +10,10 @@ extensions:
       title: "build an origin-aggregated-logging release"
       repository: "origin-aggregated-logging"
       script: |-
+        if [[ -n "${PULL_REFS:-}" ]]; then
+          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+        fi
+        git checkout ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
         hack/build-images.sh
     - type: "script"
       title: "build an openshift-ansible release"

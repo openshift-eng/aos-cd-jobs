@@ -19,11 +19,6 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>SUITE</name>
-          <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
-          <defaultValue>conformance</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>FOCUS</name>
           <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
           <defaultValue></defaultValue>
@@ -55,6 +50,11 @@ See also:
 &lt;a style=&#34;display: block&#34; href=&#39;https://github.com/openshift/origin/issues/12072&#39;&gt;&lt;code&gt;origin&lt;/code&gt; issue 12072&lt;/a&gt;&lt;/br&gt;
 &lt;/div&gt;</description>
           <defaultValue>|should provide DNS for services|should support subPath|should work with TCP \(when fully idled\)|should test kubelet managed /etc/hosts file|\[networking\]\[router\]|\[Area:Networking\]\[Feature:Router\]|Downward API volume should update annotations on modification|should run a deployment to completion and then scale to zero|Basic StatefulSet functionality Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed|Probing container should \*not\* be restarted with a /healthz http liveness probe</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>SUITE</name>
+          <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
+          <defaultValue>conformance</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>ORIGIN_TARGET_BRANCH</name>
@@ -399,6 +399,10 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ -z &#34;\${SUITE-}&#34; &amp;&amp; -z &#34;\${FOCUS-}&#34; ]]; then
+  echo &#34;No suite or focus, skipping test step&#34;
+  exit 0
+fi
 mkdir -p /tmp/artifacts/junit
 export KUBECONFIG=/tmp/cluster-admin.kubeconfig
 export PARALLEL_NODES=25

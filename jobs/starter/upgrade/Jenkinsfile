@@ -24,7 +24,7 @@ properties(
         [[$class              : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com, devtools-saas@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-cicd-devops@redhat.com, aos-qe@redhat.com, devtools-saas@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Success for minor cluster operation', name: 'MAIL_LIST_SUCCESS_MINOR'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The specification of the cluster to affect'],

@@ -447,6 +447,10 @@ ansible-playbook -vv --become               \
                  -e openshift_hosted_logging_hostname=&#34;kibana.127.0.0.1.nip.io&#34;           \
                  -e openshift_logging_master_public_url=&#34;https://localhost:8443&#34;          \
                  -e openshift_master_logging_public_url=&#34;https://kibana.127.0.0.1.nip.io&#34; \
+                 -e openshift_logging_use_mux=True                                        \
+                 -e openshift_logging_mux_allow_external=True                             \
+                 -e openshift_logging_es_allow_external=True                              \
+                 -e openshift_logging_es_ops_allow_external=True                          \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
                  --skip-tags=update_master_config
 SCRIPT

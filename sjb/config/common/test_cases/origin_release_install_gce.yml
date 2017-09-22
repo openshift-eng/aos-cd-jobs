@@ -126,7 +126,7 @@ extensions:
     - type: "script"
       title: "run extended tests"
       repository: "origin"
-      timeout: 4000
+      timeout: 6000
       script: |-
         if [[ -z "${SUITE-}" && -z "${FOCUS-}" ]]; then
           echo "No suite or focus, skipping test step"

@@ -105,6 +105,7 @@ generated_artifacts:
   pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
   master-metrics.log: 'oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig'
   node-metrics.log: 'oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig'
+  master-config.yaml: 'sudo cat /etc/origin/master/master-config.yaml'
 system_journals:
   - docker.service
   - dnsmasq.service

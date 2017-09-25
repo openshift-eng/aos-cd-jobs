@@ -37,7 +37,7 @@ node('openshift-build-1') {
             }
 
             stage("legacy maint") {
-                // sh "./scripts/maintenance.sh"
+                sh "./scripts/maintenance.sh"
             }
         }
 

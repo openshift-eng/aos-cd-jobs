@@ -3,7 +3,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
   - sudo yum install jenkins
   - iptables -I INPUT -p tcp -m tcp --dport 8443 -j ACCEPT
-  - services iptables save
+  - iptables-save
   - create a certificate for the server: keytool -genkeypair -keysize 2048 -keyalg RSA -alias jenkins -keystore keystore (https://wiki.jenkins.io/display/JENKINS/Starting+and+Accessing+Jenkins)
   - configure /etc/sysconfig/jenkins
     - JENKINS_HTTPS_LISTEN_ADDRESS="0.0.0.0"

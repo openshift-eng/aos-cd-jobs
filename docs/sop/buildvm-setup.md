@@ -1,3 +1,4 @@
+# Jenkins Master Setup
 If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/JENKINS/Installing+Jenkins+on+Red+Hat+distributions):
   - sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
   - sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
@@ -13,7 +14,10 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - JENKINS_PORT="-1"
     - JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Djava.net.preferIPv4Stack=true -Djenkins.branch.WorkspaceLocatorImpl.PATH_MAX=0"
       - The PATH_MAX value ensures the branch plugin does not create extremely long paths which interefere with virtualenv
-  - Create a client certificate keystore from the private keystore: keytool -keystore <truststore file> -alias <alias> -import -file <certfilename>.cert  (https://stackoverflow.com/questions/8980364/how-do-i-find-out-what-keystore-my-jvm-is-using) . You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/agent.keystore").
+  - Create a client certificate and import it into Java keystore:
+    - keytool -export -alias jenkins -file client.crt -keystore keystore   (https://www.sslshopper.com/article-most-common-java-keytool-keystore-commands.html )
+    - keytool -import -trustcacerts -alias jenkins -file client.crt -keystore client.keystore
+    - You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/client.keystore").
   - sudo chkconfig jenkins on
   - sudo service jenkins start
   - Setup smtp mail server in Jenkins configuration
@@ -26,7 +30,27 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - Extra Columns Plugin (to disable projects)
     - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
 
+# Jenkins Agent Setup
+- Copy slave.jar into place onto agent at /home/jenkins/slave.jar (e.g. wget --no-check-certificate https://buildvm.openshift.eng.bos.redhat.com:8443/jnlpJars/slave.jar )
+- Use the Jenkins UI to add a new node. It will create a command line to execute and a secret. This should be used to populate /etc/systemd/system/jenkins-agent.service:
+```
+[Unit]
+After=network-online.target
+Wants=network-online.target
 
+[Service]
+ExecStart=/bin/java -Djavax.net.ssl.trustStore=/home/jenkins/client.keystore -jar /home/jenkins/slave.jar -jnlpUrl  https://..../slave-agent.jnlp -secret 25dd40...........04c1a6e
+Restart=on-failure
+User=jenkins
+Group=jenkins
+
+[Install]
+WantedBy=multi-user.target
+```
+- chkconfig jenkins-agent on
+- systemctl start jenkins-agent
+
+# Core System Setup
 - Enable RPM repos:
   - Most packages will need this: https://gitlab.cee.redhat.com/platform-eng-core-services/internal-repos/raw/master/rhel/rhel-7.repo
   - For puddle, rhpkg, rhtools, rh-signing-tools: http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo

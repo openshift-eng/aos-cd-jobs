@@ -16,14 +16,15 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - Create a client certificate keystore from the private keystore: keytool -keystore <truststore file> -alias <alias> -import -file <certfilename>.cert  (https://stackoverflow.com/questions/8980364/how-do-i-find-out-what-keystore-my-jvm-is-using) . You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/agent.keystore").
   - sudo chkconfig jenkins on
   - sudo service jenkins start
-  - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
   - Setup smtp mail server in Jenkins configuration
   - Install plugins
+    - UpdateSites Manager plugin
     - Common ones jenkins suggests on first login
     - SSH Agent Plugin
     - Role Based Authentication
     - Pipeline Utility Steps
     - Extra Columns Plugin (to disable projects)
+    - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
 
 
 - Enable RPM repos:

@@ -297,4 +297,13 @@ def build_puddle(conf_url, keys, Object...args) {
     return puddle_dir
 }
 
+def with_virtualenv(path, f) {
+    final env = [
+        "VIRTUAL_ENV=${path}",
+        "PATH=${path}/bin:${env.PATH}",
+        "PYTHON_HOME=",
+    ]
+    return withEnv(env, f)
+}
+
 return this

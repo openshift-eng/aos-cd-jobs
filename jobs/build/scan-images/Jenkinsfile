@@ -17,19 +17,33 @@ properties([[
 
 node('openshift-build-1') {
   try {
-    stage('clone') { dir('aos-cd-jobs') { checkout scm } }
+    def buildlib = null
+    stage('clone') {
+      dir('aos-cd-jobs') {
+        checkout scm
+        buildlib = load('pipeline-scripts/buildlib.groovy')
+      }
+      dir('oit') { git 'https://github.com/openshift/enterprise-images.git' }
+    }
+    stage('venv') {
+      if(!fileExists('env')) { sh 'virtualenv env' }
+      sh 'env/bin/pip install -r oit/oit/requirements.txt'
+    }
     stage('update') {
       // Pull scanner image to update CVE definitions.
       sh 'sudo docker pull registry.access.redhat.com/rhel7/openscap'
     }
     stage('scan') {
-      sh """\
-aos-cd-jobs/build-scripts/ose_images/ose_images.sh scan_images \
-  --user ocp-build \
-  --branch 'rhaos-${BUILD_VERSION}-rhel-7' \
-  --group base
-cat scan.txt
+      buildlib.with_virtualenv("${pwd()}/env") {
+        sh """\
+set -o pipefail
+sudo python oit/oit/oit.py \
+  --metadata-dir oit/ \
+  --group 'openshift-${BUILD_VERSION}' \
+  distgits:scan-for-cves \
+  | tee scan.txt
 """
+      }
       final ret = sh(
         returnStatus: true,
         script: 'grep -xq \'The following issues were found:\' scan.txt')
@@ -41,6 +55,7 @@ cat scan.txt
       }
     }
   } catch(err) {
+    sh '[ -f tmp/debug.log ] && cat tmp/debug.log'
     mail(
       from: MAIL_FROM, to: MAILING_LIST_ERR.join(', '),
       subject: 'jobs/build/scan-image: error',

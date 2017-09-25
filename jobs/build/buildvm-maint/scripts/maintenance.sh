@@ -35,6 +35,10 @@ echo "====Cleaning up older docker images===="
 
 FINAL_EXIT=0
 
+echo "====Cloning oit===="
+rm -rf enterprise-images
+git clone
+
 echo "====Pushing rhel-extras===="
 sudo env "PATH=$PATH" ose_images.sh push_images --branch extras-rhel-7.3 --group rhel-extras
 FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors

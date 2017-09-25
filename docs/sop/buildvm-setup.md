@@ -1,9 +1,10 @@
+# Jenkins Master Setup
 If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/JENKINS/Installing+Jenkins+on+Red+Hat+distributions):
   - sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
   - sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
   - sudo yum install jenkins
   - iptables -I INPUT -p tcp -m tcp --dport 8443 -j ACCEPT
-  - services iptables save
+  - iptables-save
   - create a certificate for the server: keytool -genkeypair -keysize 2048 -keyalg RSA -alias jenkins -keystore keystore (https://wiki.jenkins.io/display/JENKINS/Starting+and+Accessing+Jenkins)
   - configure /etc/sysconfig/jenkins
     - JENKINS_HTTPS_LISTEN_ADDRESS="0.0.0.0"
@@ -13,19 +14,43 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - JENKINS_PORT="-1"
     - JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Djava.net.preferIPv4Stack=true -Djenkins.branch.WorkspaceLocatorImpl.PATH_MAX=0"
       - The PATH_MAX value ensures the branch plugin does not create extremely long paths which interefere with virtualenv
-  - Create a client certificate keystore from the private keystore: keytool -keystore <truststore file> -alias <alias> -import -file <certfilename>.cert  (https://stackoverflow.com/questions/8980364/how-do-i-find-out-what-keystore-my-jvm-is-using) . You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/agent.keystore").
+  - Create a client certificate and import it into Java keystore:
+    - keytool -export -alias jenkins -file client.crt -keystore keystore   (https://www.sslshopper.com/article-most-common-java-keytool-keystore-commands.html )
+    - keytool -import -trustcacerts -alias jenkins -file client.crt -keystore client.keystore
+    - You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/client.keystore").
   - sudo chkconfig jenkins on
   - sudo service jenkins start
-  - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
   - Setup smtp mail server in Jenkins configuration
   - Install plugins
+    - UpdateSites Manager plugin
     - Common ones jenkins suggests on first login
     - SSH Agent Plugin
     - Role Based Authentication
     - Pipeline Utility Steps
     - Extra Columns Plugin (to disable projects)
+    - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
 
+# Jenkins Agent Setup
+- Copy slave.jar into place onto agent at /home/jenkins/slave.jar (e.g. wget --no-check-certificate https://buildvm.openshift.eng.bos.redhat.com:8443/jnlpJars/slave.jar )
+- Use the Jenkins UI to add a new node. It will create a command line to execute and a secret. This should be used to populate /etc/systemd/system/jenkins-agent.service:
+```
+[Unit]
+After=network-online.target
+Wants=network-online.target
 
+[Service]
+ExecStart=/bin/java -Djavax.net.ssl.trustStore=/home/jenkins/client.keystore -jar /home/jenkins/slave.jar -jnlpUrl  https://..../slave-agent.jnlp -secret 25dd40...........04c1a6e
+Restart=on-failure
+User=jenkins
+Group=jenkins
+
+[Install]
+WantedBy=multi-user.target
+```
+- chkconfig jenkins-agent on
+- systemctl start jenkins-agent
+
+# Core System Setup
 - Enable RPM repos:
   - Most packages will need this: https://gitlab.cee.redhat.com/platform-eng-core-services/internal-repos/raw/master/rhel/rhel-7.repo
   - For puddle, rhpkg, rhtools, rh-signing-tools: http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo
@@ -48,9 +73,13 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - virtualenv (`pip install virtualenv`)
   - python-devel
 - Install depdendencies for sprint_tools
-  - yum install yum install gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison iconv-devel ruby-devel libxml2 libxml2-devel libxslt libxslt-devel
+  - Copy https://github.com/openshift/li/blob/master/misc/client-key.pem to /var/lib/yum/client-key.pem
+  - Copy https://github.com/openshift/li/blob/master/misc/client-cert.pem to /var/lib/yum/client-cert.pem
+  - yum install ruby
+  - yum install gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison iconv-devel ruby-devel libxml2 libxml2-devel libxslt libxslt-devel
   - gem install bundler
   - yum install ImageMagick-devel ImageMagick
+  - git clone https://github.com/openshift/sprint_tools.git
   - Run "bundler install" in sprint_tools clone
 - Install oc client compatible with Ops registry (https://console.reg-aws.openshift.com/console/)
   - wget https://mirror.openshift.com/pub/openshift-v3/clients/3.6.170/linux/oc.tar.gz
@@ -58,6 +87,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
 - Mounts in fstab
   - ntap-bos-c01-eng01-nfs01a.storage.bos.redhat.com:/devops_engarchive2_nfs /mnt/engarchive2 nfs tcp,ro,nfsvers=3 0 0
   - ntap-bos-c01-eng01-nfs01b.storage.bos.redhat.com:/devops_engineering_nfs/devarchive/redhat /mnt/redhat nfs tcp,ro,nfsvers=3 0 0
+- /mnt/brew should be a symlink to /mnt/redhat/brewroot
 - Installing atomic scan dependency: atomic install registry.access.redhat.com/rhel7/openscap
 - Enabling RPM signing
   - RPM signing is limited by hostname. Presently, only openshift-build-1.lab.eng.rdu.redhat.com as ocp-build kerberos id has this authority. The hostname is tied to the MAC of the server.
@@ -96,29 +126,12 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - ssh to pkgs.devel.redhat.com
 - Credentials
   - Copy /home/jenkins/.ssh/id_rsa from existing buildvm into place on new buildvm. This is necessary to ssh as ocp-build to rcm-guest. Ideally, this credential will be pulled into Jenkins credential store soon.
-- Copy https://github.com/openshift/li/blob/master/misc/client-key.pem to /var/lib/yum/client-key.pem
-- Copy https://github.com/openshift/li/blob/master/misc/client-cert.pem to /var/lib/yum/client-cert.pem
-- Setup host as a Jenkins agent 
-  - Copy /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar off old buildvm and into place on new buildvm.
-  - Populate /etc/systemd/system/swarm.service (ensure that -name parameter is unique and -labels are the desired ones):
-
-```
-[Unit]
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=/usr/bin/nohup /usr/bin/java -Xmx2048m -jar /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar -master https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/ -name buildvm-devops.usersys.redhat.com -executors 10 -labels "openshift-build openshift-build-1" -fsroot /home/jenkins -mode exclusive -disableSslVerification -disableClientsUniqueId
-Restart=on-failure
-User=jenkins
-Group=jenkins
-
-[Install]
-WantedBy=multi-user.target
-```
-
-- Reload systemctl daemon (`sudo systemctl daemon-reload`)
-  - Set swarm to autostart (`sudo systemctl enable swarm`)
+  - chmod 600 /home/jenkins/.ssh/id_rsa
+- Setup chronyd time sycnrhonization on the server/agent
+  - Set the following servers in /etc/chrony.conf
+    - server clock.util.phx2.redhat.com iburst
+    - server clock02.util.phx2.redhat.com iburst
+- Install Red Hat certificates (required for rhpkg to submit builds): https://mojo.redhat.com/groups/release-engineering/blog/2017/02/07/tmlcochs-rcm-knowledge-sharing-5-installation-of-red-hat-ca-certs
 - Create the following repos on buildvm
 
 ```

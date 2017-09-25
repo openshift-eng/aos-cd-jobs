@@ -87,6 +87,7 @@ WantedBy=multi-user.target
 - Mounts in fstab
   - ntap-bos-c01-eng01-nfs01a.storage.bos.redhat.com:/devops_engarchive2_nfs /mnt/engarchive2 nfs tcp,ro,nfsvers=3 0 0
   - ntap-bos-c01-eng01-nfs01b.storage.bos.redhat.com:/devops_engineering_nfs/devarchive/redhat /mnt/redhat nfs tcp,ro,nfsvers=3 0 0
+- /mnt/brew should be a symlink to /mnt/redhat/brewroot
 - Installing atomic scan dependency: atomic install registry.access.redhat.com/rhel7/openscap
 - Enabling RPM signing
   - RPM signing is limited by hostname. Presently, only openshift-build-1.lab.eng.rdu.redhat.com as ocp-build kerberos id has this authority. The hostname is tied to the MAC of the server.
@@ -126,7 +127,10 @@ WantedBy=multi-user.target
 - Credentials
   - Copy /home/jenkins/.ssh/id_rsa from existing buildvm into place on new buildvm. This is necessary to ssh as ocp-build to rcm-guest. Ideally, this credential will be pulled into Jenkins credential store soon.
   - chmod 600 /home/jenkins/.ssh/id_rsa
-- Setup ntp time sycnrhonization on the server/agent
+- Setup chronyd time sycnrhonization on the server/agent
+  - Set the following servers in /etc/chrony.conf
+    - server clock.util.phx2.redhat.com iburst
+    - server clock02.util.phx2.redhat.com iburst
 - Install Red Hat certificates (required for rhpkg to submit builds): https://mojo.redhat.com/groups/release-engineering/blog/2017/02/07/tmlcochs-rcm-knowledge-sharing-5-installation-of-red-hat-ca-certs
 - Create the following repos on buildvm
 

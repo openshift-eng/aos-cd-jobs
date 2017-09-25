@@ -79,6 +79,7 @@ WantedBy=multi-user.target
   - yum install gcc-c++ patch readline readline-devel zlib zlib-devel libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison iconv-devel ruby-devel libxml2 libxml2-devel libxslt libxslt-devel
   - gem install bundler
   - yum install ImageMagick-devel ImageMagick
+  - git clone https://github.com/openshift/sprint_tools.git
   - Run "bundler install" in sprint_tools clone
 - Install oc client compatible with Ops registry (https://console.reg-aws.openshift.com/console/)
   - wget https://mirror.openshift.com/pub/openshift-v3/clients/3.6.170/linux/oc.tar.gz
@@ -124,27 +125,9 @@ WantedBy=multi-user.target
   - ssh to pkgs.devel.redhat.com
 - Credentials
   - Copy /home/jenkins/.ssh/id_rsa from existing buildvm into place on new buildvm. This is necessary to ssh as ocp-build to rcm-guest. Ideally, this credential will be pulled into Jenkins credential store soon.
-- Setup host as a Jenkins agent 
-  - Copy /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar off old buildvm and into place on new buildvm.
-  - Populate /etc/systemd/system/swarm.service (ensure that -name parameter is unique and -labels are the desired ones):
-
-```
-[Unit]
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=/usr/bin/nohup /usr/bin/java -Xmx2048m -jar /home/jenkins/swarm-client-2.0-jar-with-dependencies.jar -master https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/ -name buildvm-devops.usersys.redhat.com -executors 10 -labels "openshift-build openshift-build-1" -fsroot /home/jenkins -mode exclusive -disableSslVerification -disableClientsUniqueId
-Restart=on-failure
-User=jenkins
-Group=jenkins
-
-[Install]
-WantedBy=multi-user.target
-```
-
-- Reload systemctl daemon (`sudo systemctl daemon-reload`)
-  - Set swarm to autostart (`sudo systemctl enable swarm`)
+  - chmod 600 /home/jenkins/.ssh/id_rsa
+- Setup ntp time sycnrhonization on the server/agent
+- Install Red Hat certificates (required for rhpkg to submit builds): https://mojo.redhat.com/groups/release-engineering/blog/2017/02/07/tmlcochs-rcm-knowledge-sharing-5-installation-of-red-hat-ca-certs
 - Create the following repos on buildvm
 
 ```

@@ -22,26 +22,17 @@ node('openshift-build-1') {
 
     try {
         buildlib = load('pipeline-scripts/buildlib.groovy')
+        buildlib.initialize()
 
         sshagent(["openshift-bot"]) {
             stage("oit setup"){
-
                 sh 'rm -rf enterprise-images'
-
-                git 'https://github.com/openshift/enterprise-images.git'
-
-                dir ( "enterprise-images" ) {
-                    sh 'virtualenv env'
-                    sh 'env/bin/pip install -r oit/oit/requirements.txt'
-                }
-
+                sh 'git clone git@github.com:openshift/enterprise-images.git'
             }
 
             stage("push images") {
                 dir ( "enterprise-images" ) {
-                    buildlib.with_virtualenv("${pwd()}/env") {
-                        sh './oit --user=ocp-build --group sync-3.6 distgits:push-images --to-defaults'
-                    }
+                    sh './oit/oit.py --user=ocp-build --group sync-3.7 distgits:push-images --to-defaults'
                 }
             }
 

@@ -21,7 +21,7 @@ pre-release               {origin,origin-web-console,openshift-ansible}/release-
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
-                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Sign RPMs with openshifthosted?', name: 'SIGN'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Sign RPMs with openshifthosted?', name: 'SIGN'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],

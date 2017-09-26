@@ -150,8 +150,24 @@ Jenkins job: ${env.BUILD_URL}
     }
 
 
-    if ( MODE != "silent" ) {
-        deploylib.send_ci_msg_for_cluster( CLUSTER_NAME )
+    if ( MODE != "silent" && "${env.BRANCH_NAME}".contains( "starter" )  ) {       
+        try {
+            // Send out a CI message for QE
+            build job: 'starter%2Fsend-ci-msg',
+                    propagate: false,
+                    parameters: [
+                            [$class: 'hudson.model.StringParameterValue', name: 'CLUSTER_SPEC', value: CLUSTER_SPEC],
+                    ]
+        } catch ( err2 ) {
+            mail(to: "${MAIL_LIST_FAILURE}",
+                    from: "aos-cd@redhat.com",
+                    subject: "Error sending CI msg for cluster ${CLUSTER_NAME}",
+                    body: """Encountered an error: ${err2}
+
+        Jenkins job: ${env.BUILD_URL}
+        """);
+
+        }
     }
 
 }

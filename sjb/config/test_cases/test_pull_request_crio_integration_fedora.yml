@@ -1,0 +1,7 @@
+---
+parent: 'test_cases/test_pull_request_crio_integration_rhel.yml'
+overrides:
+  provision:
+    os: "fedora"
+    stage: "crio"
+    provider: "aws"

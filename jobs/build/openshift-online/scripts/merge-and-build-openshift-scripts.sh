@@ -123,8 +123,8 @@ else
     echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
     echo
     brew watch-task ${TASK_NUMBER}
-    
-    # The build target tags things as libra-rhel-7-test. We need to tag as -candidate 
+
+    # The build target tags things as libra-rhel-7-test. We need to tag as -candidate
     # for the rest of out logic to work.
     TAG=`git describe --abbrev=0`
     COMMIT=`git log -n 1 --pretty=%h`

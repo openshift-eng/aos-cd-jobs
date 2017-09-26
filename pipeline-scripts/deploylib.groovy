@@ -124,24 +124,4 @@ Jenkins job: ${env.BUILD_URL}
     return output
 }
 
-def send_ci_msg_for_cluster(cluster_name) {
-    try {
-        // Send out a CI message for QE
-        build job: 'cluster%2Fsend-ci-msg',
-                propagate: false,
-                parameters: [
-                        [$class: 'hudson.model.StringParameterValue', name: 'CLUSTER_NAME', value: cluster_name],
-                ]
-    } catch ( err2 ) {
-        mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
-                subject: "Error sending CI msg for cluster ${CLUSTER_NAME}",
-                body: """Encountered an error: ${err2}
-
-    Jenkins job: ${env.BUILD_URL}
-    """);
-
-    }
-}
-
 return this

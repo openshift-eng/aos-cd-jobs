@@ -132,6 +132,13 @@ WantedBy=multi-user.target
     - server clock.util.phx2.redhat.com iburst
     - server clock02.util.phx2.redhat.com iburst
 - Install Red Hat certificates (required for rhpkg to submit builds): https://mojo.redhat.com/groups/release-engineering/blog/2017/02/07/tmlcochs-rcm-knowledge-sharing-5-installation-of-red-hat-ca-certs
+- Create the following .ssh/config for the jenkins user
+```
+Host rcm-guest rcm-guest.app.eng.bos.redhat.com 
+    Hostname                   rcm-guest.app.eng.bos.redhat.com 
+    ForwardAgent               yes
+    User                       ocp-build
+```
 - Create the following repos on buildvm
 
 ```

@@ -2,6 +2,19 @@
 
 This repository backs Jenkins jobs on a couple of Jenkins masters.
 
+## Jenkins pipeline definitions under `scheduled-jobs/`
+
+Scheduled pipeline definitions are stored in this directory so they are not
+indexed by the process described below and turned into a branch on the
+multi-branch pipeline.  This is done to facilitate enabling and disabling the
+jobs without needing to change the source code on the repository, and any job
+that requires that should be under this directory.
+
+|     Job Name     | Description |
+| ---------------- | ----------- |
+| `build/ose`      | Runs build/ose daily. Presently used to build 3.6 for daily integration test environments. |
+| `build/t-th`     | Runs build/ose every Tuesday and Thursday for particular builds of OCP. |
+
 ## Jenkins pipeline definitions under `jobs/`
 
 An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/) indexes
@@ -52,8 +65,6 @@ grouping. A quick synopsis of these indexed jobs is as follows:
 
 |          Job Name          | Description |
 | -------------------------- | ----------- |
-| `build/scheduled/ose`      | Runs build/ose daily. Presently used to build 3.6 for daily integration test environments. |
-| `build/scheduled/t-th`     | Runs build/ose every Tuesday and Thursday for particular builds of OCP. |
 | `build/ose`                | Main build task for OCP. Can build 3.3, 3.4, and so on up through the current ose/master branch.Also builds openshift-ansible artifiacts and jenkins images. |
 | `build/stage-to-prod`      | Promote RPMs from the staging repositories to the production repositories (Copies files from [latest/ in the enterprise online-stg](https://mirror.openshift.com/enterprise/online-stg/latest/) repo to [online-prod/lastest](https://mirror.openshift.com/enterprise/online-prod/latest/). Also copies files from [libra rhel-7-libra-stage](https://mirror.ops.rhcloud.com/libra/rhel-7-libra-stage/) to [libra's latest online-prod](https://mirror.ops.rhcloud.com/libra/online-prod/latest/) in a new directory based on the day's date.). |
 | `build/make-puddle`        | Create an Atomic OpenShift puddle on `rcm-guest`. |

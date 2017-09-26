@@ -2,7 +2,7 @@
 properties( [
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
     disableConcurrentBuilds(),
-    pipelineTriggers([[$class: 'TimerTrigger', spec: '0 1 * * *']])] )
+    ] )
 
 description = ""
 failed = false

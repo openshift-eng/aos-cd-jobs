@@ -54,7 +54,7 @@ WantedBy=multi-user.target
 - Enable RPM repos:
   - Most packages will need this: https://gitlab.cee.redhat.com/platform-eng-core-services/internal-repos/raw/master/rhel/rhel-7.repo
   - For puddle, rhpkg, rhtools, rh-signing-tools: http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo
-  - For tito and npm, install EPEL: 
+  - For tito and npm, install EPEL:
     - wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
     - rpm -ivh epel-release-7-10.noarch.rpm
 - yum install
@@ -103,18 +103,19 @@ WantedBy=multi-user.target
   - Ensure user has at least 100GB in home directory (Jenkins server will run as jenkins user and workspace will reside here).
   - Add `jenkins    ALL=(ALL)    NOPASSWD: ALL` to the bottom of /etc/sudoers (https://serverfault.com/questions/160581/how-to-setup-passwordless-sudo-on-linux)
   - Create "docker" group and add "jenkins" user to enable docker daemon operations without sudo.
+  - Set ssh config permissions: `chmod 600 ~/.ssh/config`
 - Configure git
   - `git config --global user.name "Jenkins CD Merge Bot"`
   - `git config --global user.email smunilla@redhat.com`  (or current build point-of-contact)
   - `git config --global push.default simple`
-- Configure docker 
+- Configure docker
   - You should use a production configuration of devicemapper/thinpool for docker with at least 150GB of storage in the VG
   - Edit /etc/sysconfig/docker and set the following: `INSECURE_REGISTRY='--insecure-registry brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888 --insecure-registry rcm-img-docker01.build.eng.bos.redhat.com:5001 --insecure-registry registry.access.stage.redhat.com'`
 - Configure tito
   - Populate ~/.titorc with `RHPKG_USER=ocp-build`
 - oct dependencies
   - Copy /home/jenkins/.aws/credentials from existing buildvm to target (needed for oct & dockertested job).
-  - Copy libra.pem (from shared-secrets repo) to /home/jenkins/.ssh/devenv.pem . 
+  - Copy libra.pem (from shared-secrets repo) to /home/jenkins/.ssh/devenv.pem .
 - In a temporary directory
   - git clone https://github.com/openshift/origin-web-console.git
   - cd origin-web-console
@@ -134,15 +135,15 @@ WantedBy=multi-user.target
 - Install Red Hat certificates (required for rhpkg to submit builds): https://mojo.redhat.com/groups/release-engineering/blog/2017/02/07/tmlcochs-rcm-knowledge-sharing-5-installation-of-red-hat-ca-certs
 - Create the following .ssh/config for the jenkins user
 ```
-Host rcm-guest rcm-guest.app.eng.bos.redhat.com 
-    Hostname                   rcm-guest.app.eng.bos.redhat.com 
+Host rcm-guest rcm-guest.app.eng.bos.redhat.com
+    Hostname                   rcm-guest.app.eng.bos.redhat.com
     ForwardAgent               yes
     User                       ocp-build
 ```
 - Create the following repos on buildvm
 
 ```
-# /etc/yum.repos.d/dockertested.repo 
+# /etc/yum.repos.d/dockertested.repo
 [dockertested]
 name=Latest tested version of Docker
 baseurl=https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/
@@ -156,7 +157,7 @@ sslclientkey=/var/lib/yum/client-key.pem
 
 
 
-# /etc/yum.repos.d/rhel7next.repo 
+# /etc/yum.repos.d/rhel7next.repo
 [rhel7next]
 name=Prerelease version of Enterprise Linux 7.x
 baseurl=https://mirror.openshift.com/enterprise/rhel/rhel7next/os/

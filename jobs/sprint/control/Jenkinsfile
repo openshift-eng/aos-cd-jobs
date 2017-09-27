@@ -17,6 +17,7 @@ properties(
           parameterDefinitions:
                   [
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'https://api.ci.openshift.org:443', description: 'OpenShift CI Server', name: 'CI_SERVER'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-announce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the notification email?', name: 'SPECIAL_NOTES'],
@@ -34,6 +35,13 @@ TEST_DEV_CUT = TEST_DEV_CUT.toBoolean()
 TEST_STAGE_CUT = TEST_STAGE_CUT.toBoolean()
 TEST_OPEN_MASTER = TEST_OPEN_MASTER.toBoolean()
 
+TEST_ONLY = TEST_DEV_CUT || TEST_STAGE_CUT || TEST_OPEN_MASTER
+
+if ( TEST_ONLY ) {
+    if ( MAIL_LIST_SUCCESS.contains( "aos" ) ) {
+        error "Set success list to non-mailing list when testing"
+    }
+}
 
 def mail_success( phase, body ) {
 
@@ -72,7 +80,7 @@ node(TARGET_NODE) {
                 // Jenkins will reuse temp directories if the job does not make it to deleteDir() :(
                 sh "rm -rf sprint_tools"  
                 sh "rm -rf trello_config"  
-                    
+
                 // Setup sprint tools (requires openshift-bot credentials)
                 sh "git clone --depth 1 git@github.com:openshift/sprint_tools.git"
                 sh "git clone --depth 1 git@github.com:openshift/trello_config.git"
@@ -84,17 +92,54 @@ node(TARGET_NODE) {
                 }
 
                 echo "Detected ${DAYS_LEFT_IN_SPRINT} days left in sprint"
-                    
+
+                MERGE_GATE_LABELS=""
+
                 if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
                     mail_success("Start of DevCut", DEV_CUT_BODY)
+                    MERGE_GATE_LABELS="kind/bug"
                 }
 
                 if ( DAYS_LEFT_IN_SPRINT == STAGE_CUT_DAYS_LEFT || TEST_STAGE_CUT ) {
                     mail_success("Start of StageCut", STAGE_CUT_BODY)
+                    MERGE_GATE_LABELS="kind/bug"
                 }
 
                 if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
                     mail_success("Master Open", REOPEN_BODY)
+                }
+
+                // Clone release tools to manage merge gate label
+                sh "rm -rf release"
+                sh "git clone git@github.com:openshift/release.git"
+                dir ("release/cluster/ci/config/submit-queue") {
+                    origin_sq = readFile("submit_queue.yaml")
+                    origin_sq = origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
+                    writeFile file:"submit_queue.yaml", text:origin_sq
+
+                    oa_origin_sq = readFile("submit_queue_openshift_ansible.yaml")
+                    oa_origin_sq = oa_origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
+                    writeFile file:"submit_queue_openshift_ansible.yaml", text:oa_origin_sq
+                    sh "git add ."
+                    sh "git commit -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
+
+                    if ( ! TEST_ONLY ) {
+                        sh "git push"
+                    } else {
+                        echo "SKIPPING PUSH SINCE THIS IS A TEST RUN"
+                    }
+
+                    EXTRA_ARGS=""
+                    if ( TEST_ONLY ) {
+                        echo "RUNNING APPLY IN DRY-RUN SINCE THIS IS A TEST RUN"
+                        EXTRA_ARGS="--dry-run"
+                    }
+
+                    withCredentials([string(credentialsId: 'aos-cd-sprint-control-token', variable: 'TOKEN')]) {
+                        sh "oc-3.7 process submit_queue.yaml | oc --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                        sh "oc-3.7 process submit_queue_openshift_ansible.yaml | oc --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                    }
+
                 }
 
                 deleteDir()

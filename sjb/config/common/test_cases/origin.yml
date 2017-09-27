@@ -55,6 +55,7 @@ actions:
           if [[ -n "${PULL_NUMBER:-}" ]]; then
             # this is a presubmit
             prefix="pr-logs/pull/"
+            segment="${segment:-}${PULL_NUMBER}/"
           else
             if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
               # this is a batch
@@ -107,7 +108,7 @@ post_actions:
   - type: "host_script"
     title: "assemble GCS output"
     timeout: 300
-    script: |-    
+    script: |-
       trap 'exit 0' EXIT
       mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
       scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
@@ -137,6 +138,7 @@ post_actions:
           if [[ -n "${PULL_NUMBER:-}" ]]; then
             # this is a presubmit
             prefix="pr-logs/pull/"
+            segment="${segment:-}${PULL_NUMBER}/"
           else
             if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
               # this is a batch

@@ -167,6 +167,10 @@ if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo sta
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/k8s.io/kubernetes/e2e.log
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/k8s.io/kubernetes/e2e.log &#34;${ARTIFACT_DIR}&#34;
 fi
+if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /tmp/artifacts; then
+    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/artifacts
+    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/artifacts &#34;${ARTIFACT_DIR}&#34;
+fi
 if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /tmp/kubelet.log; then
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/kubelet.log
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/kubelet.log &#34;${ARTIFACT_DIR}&#34;

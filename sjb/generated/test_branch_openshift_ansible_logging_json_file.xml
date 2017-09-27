@@ -480,6 +480,7 @@ ansible-playbook -vv --become               \
                  -e openshift_logging_mux_allow_external=True                             \
                  -e openshift_logging_es_allow_external=True                              \
                  -e openshift_logging_es_ops_allow_external=True                          \
+                 -e openshift_logging_install_eventrouter=True                            \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
                  --skip-tags=update_master_config
 SCRIPT

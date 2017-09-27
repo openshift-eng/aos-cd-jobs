@@ -90,6 +90,9 @@ WantedBy=multi-user.target
 - Install oc client compatible with Ops registry (https://console.reg-aws.openshift.com/console/)
   - wget https://mirror.openshift.com/pub/openshift-v3/clients/3.6.170/linux/oc.tar.gz
   - extract 'oc' binary in /usr/bin
+- Install an oc binary compatible with 3.7
+  - https://mirror.openshift.com/pub/openshift-v3/clients/3.7.0-0.126.6/linux/oc.tar.gz
+  - extract 'oc' binary to /usr/bin/oc-3.7   (used by sprint-control job)
 - Mounts in fstab
   - ntap-bos-c01-eng01-nfs01a.storage.bos.redhat.com:/devops_engarchive2_nfs /mnt/engarchive2 nfs tcp,ro,nfsvers=3 0 0
   - ntap-bos-c01-eng01-nfs01b.storage.bos.redhat.com:/devops_engineering_nfs/devarchive/redhat /mnt/redhat nfs tcp,ro,nfsvers=3 0 0

@@ -128,9 +128,6 @@ cd &#34;\${HOME}&#34;
 mkdir -p /data/src/github.com/kubernetes-incubator
 cd /data/src/github.com/kubernetes-incubator
 git clone https://github.com/kubernetes-incubator/cri-o.git
-cd cri-o
-git fetch origin pull/927/head:pull
-git merge pull
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

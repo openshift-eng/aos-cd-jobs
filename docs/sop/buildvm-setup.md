@@ -3,8 +3,8 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
   - sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
   - sudo yum install jenkins
-  - iptables -I INPUT -p tcp -m tcp --dport 8443 -j ACCEPT
-  - iptables-save
+  - firewall-cmd --permanent --add-port=8443/tcp
+  - firewall-cmd --reload
   - create a certificate for the server: keytool -genkeypair -keysize 2048 -keyalg RSA -alias jenkins -keystore keystore (https://wiki.jenkins.io/display/JENKINS/Starting+and+Accessing+Jenkins)
   - configure /etc/sysconfig/jenkins
     - JENKINS_HTTPS_LISTEN_ADDRESS="0.0.0.0"
@@ -19,7 +19,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - keytool -import -trustcacerts -alias jenkins -file client.crt -keystore client.keystore
     - You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/client.keystore").
   - sudo chkconfig jenkins on
-  - sudo service jenkins start
+  - sudo systemctl start jenkins
   - Setup smtp mail server in Jenkins configuration
   - Install plugins
     - UpdateSites Manager plugin
@@ -33,6 +33,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
 # Jenkins Agent Setup
 - Copy slave.jar into place onto agent at /home/jenkins/slave.jar (e.g. wget --no-check-certificate https://buildvm.openshift.eng.bos.redhat.com:8443/jnlpJars/slave.jar )
 - Use the Jenkins UI to add a new node. It will create a command line to execute and a secret. This should be used to populate /etc/systemd/system/jenkins-agent.service:
+
 ```
 [Unit]
 After=network-online.target
@@ -51,6 +52,11 @@ WantedBy=multi-user.target
 - systemctl start jenkins-agent
 
 # Core System Setup
+- Ensure /tmp is a tmpfs mount
+  - systemctl status tmp.mount
+  - If service disabled:
+    - systemctl enable tmp.mount
+    - reboot
 - Enable RPM repos:
   - Most packages will need this: https://gitlab.cee.redhat.com/platform-eng-core-services/internal-repos/raw/master/rhel/rhel-7.repo
   - For puddle, rhpkg, rhtools, rh-signing-tools: http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo

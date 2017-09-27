@@ -34,6 +34,16 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>REPO_OWNER</name>
+          <description>GitHub org that triggered the job.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>REPO_NAME</name>
+          <description>GitHub repo that triggered the job.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging&#34;&gt;origin-aggregated-logging&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>

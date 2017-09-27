@@ -10,7 +10,7 @@ def initialize() {
     }
 
 
-    if ( binding.hasVariable('MOCK') && MOCK.toBoolean() ) {
+    if ( MOCK.toBoolean() ) {
         error( "Ran in mock mode to pick up any new parameters" )
     }
 

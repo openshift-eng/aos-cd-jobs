@@ -22,14 +22,25 @@ node('openshift-build-1') {
           sh 'git checkout master'
         }
         stage('run') {
-          sshagent(['openshift-bot']) {
-            sh '''\
+          final url = sh(
+            returnStdout: true,
+            script: 'git config remote.origin.url')
+          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
+            error('This job uses ssh keys for auth, please use an ssh url')
+          }
+          def prune = true, key = 'openshift-bot'
+          if(url.trim() != 'git@github.com:openshift/aos-cd-jobs.git') {
+            prune = false
+            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
+          }
+          sshagent([key]) {
+            sh """\
 virtualenv ../env/
 . ../env/bin/activate
 pip install gitpython
-python -m aos_cd_jobs.pruner
+${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
 python -m aos_cd_jobs.updater
-'''
+"""
           }
         }
       }

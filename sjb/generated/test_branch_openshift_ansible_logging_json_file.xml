@@ -221,6 +221,7 @@ function gcs_path() {
     if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
       # this is a presubmit
       prefix=&#34;pr-logs/pull/&#34;
+      segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
     else
       if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
         # this is a batch
@@ -611,6 +612,7 @@ function gcs_path() {
     if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
       # this is a presubmit
       prefix=&#34;pr-logs/pull/&#34;
+      segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
     else
       if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
         # this is a batch

@@ -19,6 +19,46 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
+          <name>buildId</name>
+          <description>Unique build number for each run.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>REPO_OWNER</name>
+          <description>GitHub org that triggered the job.</description>
+          <defaultValue>openshift</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>REPO_NAME</name>
+          <description>GitHub repo that triggered the job.</description>
+          <defaultValue>origin</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_BASE_REF</name>
+          <description>Ref name of the base branch.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_BASE_SHA</name>
+          <description>Git SHA of the base branch.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_REFS</name>
+          <description>All refs to test.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_NUMBER</name>
+          <description>Pull request number.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_PULL_SHA</name>
+          <description>Pull request head SHA.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>ORIGIN_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&quot;https://github.com/openshift/origin&quot;&gt;origin&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
@@ -223,7 +263,7 @@ if path=&#34;$( gcs_path )&#34;; then
   gsutil cp gcs/started.json &#34;${path}/started.json&#34;
   if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
     echo &#34;${path}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
-    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
+    if [[ -n &#34;${REPO_OWNER:-}&#34; &amp;&amp; &#34;${REPO_NAME:-}&#34; != &#34;origin&#34; ]]; then
       segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
     fi
     gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${segment:-}${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
@@ -390,7 +430,7 @@ function gcs_path() {
   fi
   suffix=&#34;${JOB_NAME}/${BUILD_NUMBER}/&#34;
   if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
-    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
+    if [[ &#34;${REPO_NAME:-}&#34; != &#34;origin&#34; ]]; then
       segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
     fi
     if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then

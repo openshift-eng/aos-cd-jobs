@@ -16,22 +16,21 @@ node('openshift-build-1') {
     timeout(time: 30, unit: 'MINUTES') {
       deleteDir()
       set_workspace()
-      stage('clone') {
-        dir('aos-cd-jobs') {
+      dir('aos-cd-jobs') {
+        stage('clone') {
           checkout scm
           sh 'git checkout master'
         }
-      }
-      stage('run') {
-        sshagent(['openshift-bot']) { // git repo privileges stored in Jenkins credential store
-          sh '''\
-virtualenv env/
-. env/bin/activate
+        stage('run') {
+          sshagent(['openshift-bot']) {
+            sh '''\
+virtualenv ../env/
+. ../env/bin/activate
 pip install gitpython
-export PYTHONPATH=$PWD/aos-cd-jobs
-python aos-cd-jobs/aos_cd_jobs/pruner.py
-python aos-cd-jobs/aos_cd_jobs/updater.py
+python -m aos_cd_jobs.pruner
+python -m aos_cd_jobs.updater
 '''
+          }
         }
       }
     }

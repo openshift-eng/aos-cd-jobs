@@ -243,23 +243,46 @@ trap &#39;exit 0&#39; EXIT
 mkdir -p gcs/
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
 
-pull_id=&#34;${ORIGIN_PULL_ID:-}&#34;
-target_branch=&#34;${ORIGIN_TARGET_BRANCH:-}&#34;
-if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-  pull_id=${PULL_NUMBER}
-  target_branch=&#34;${PULL_REFS%%:*}&#34;
-fi
-# pull_id will be 0 in case of a batch merge
-if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
-  destination_bucket=&#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}&#34;
-  gsutil cp gcs/started.json &#34;${destination_bucket}/started.json&#34;
+function gcs_path() {
+  bucket=&#34;gs://origin-ci-test/&#34;
 
-  echo &#34;${destination_bucket}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
-  gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
-elif [[ &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
-  # this is a post-submit since the pull_refs has no info other than the branch
-  destination_bucket=&#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
-  gsutil cp gcs/started.json &#34;${destination_bucket}/started.json&#34;
+  if [[ -z &#34;${buildId}&#34; ]]; then
+    echo &#34;Not a Prow job!&#34; 1&gt;&amp;2
+    return 1
+  fi
+  suffix=&#34;${JOB_NAME}/${BUILD_NUMBER}/&#34;
+  if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
+    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
+      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
+    fi
+    if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+      # this is a presubmit
+      prefix=&#34;pr-logs/pull/&#34;
+    else
+      if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+        # this is a batch
+        prefix=&#34;pr-logs/pull/batch/&#34;
+      else
+        # this is a postsubmit
+        prefix=&#34;logs/&#34;
+      fi
+    fi
+  else
+    # this is a periodic
+    prefix=&#34;logs/&#34;
+  fi
+  echo &#34;${bucket}${prefix}${segment:-}${suffix}&#34;
+  return 0
+}
+if path=&#34;$( gcs_path )&#34;; then
+  gsutil cp gcs/started.json &#34;${path}/started.json&#34;
+  if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+    echo &#34;${path}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
+    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
+      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
+    fi
+    gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${segment:-}${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
+  fi
 fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -530,19 +553,39 @@ cp artifacts/generated/* gcs/artifacts/generated/
 cp artifacts/journals/* gcs/artifacts/journals/
 cp -r artifacts/scripts/* gcs/artifacts/scripts/
 
-pull_id=&#34;${ORIGIN_PULL_ID:-}&#34;
-target_branch=&#34;${ORIGIN_TARGET_BRANCH:-}&#34;
-if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-  pull_id=${PULL_NUMBER}
-  target_branch=&#34;${PULL_REFS%%:*}&#34;
-fi
-# pull_id will be 0 in case of a batch merge
-if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
-  gsutil -m cp -r gcs/* &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/&#34;
-elif [[ &#34;${PULL_REFS:-}&#34; =~ ^[^:]+:[^:]+$ ]]; then
-  # this is a post-submit since the pull_refs has no info other than the branch
-  destination_bucket=&#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
-  gsutil -m cp -r gcs/* &#34;gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/&#34;
+function gcs_path() {
+  bucket=&#34;gs://origin-ci-test/&#34;
+
+  if [[ -z &#34;${buildId}&#34; ]]; then
+    echo &#34;Not a Prow job!&#34; 1&gt;&amp;2
+    return 1
+  fi
+  suffix=&#34;${JOB_NAME}/${BUILD_NUMBER}/&#34;
+  if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
+    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
+      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
+    fi
+    if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+      # this is a presubmit
+      prefix=&#34;pr-logs/pull/&#34;
+    else
+      if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+        # this is a batch
+        prefix=&#34;pr-logs/pull/batch/&#34;
+      else
+        # this is a postsubmit
+        prefix=&#34;logs/&#34;
+      fi
+    fi
+  else
+    # this is a periodic
+    prefix=&#34;logs/&#34;
+  fi
+  echo &#34;${bucket}${prefix}${segment:-}${suffix}&#34;
+  return 0
+}
+if path=&#34;$( gcs_path )&#34;; then
+  gsutil -m cp -r gcs/* &#34;${path}&#34;
 fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

@@ -23,6 +23,18 @@ _POST_BUILD_ID_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringPara
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
+_REPO_OWNER_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinition>
+          <name>REPO_OWNER</name>
+          <description>GitHub org that triggered the job.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>""")
+
+_REPO_NAME_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinition>
+          <name>REPO_NAME</name>
+          <description>GitHub repo that triggered the job.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>""")
+
 _SYNC_TITLE_TEMPLATE = Template("SYNC {{ repository | upper }} REPOSITORY")
 _SYNC_ACTION_TEMPLATE = Template("""oct sync remote {{ repository }} --branch "${{ '{' }}{{ dependency_repository | replace('-', '_') | upper }}_TARGET_BRANCH}" """)
 
@@ -46,6 +58,8 @@ class SyncAction(Action):
             _TARGET_BRANCH_PARAMETER_TEMPLATE.render(repository=self.repository),
             _POST_PULL_REFS_PARAMETER_TEMPLATE.render(),
             _POST_BUILD_ID_PARAMETER_TEMPLATE.render(),
+            _REPO_OWNER_PARAMETER_TEMPLATE.render(),
+            _REPO_NAME_PARAMETER_TEMPLATE.render(),
         ]
 
     def generate_build_steps(self):

@@ -32,7 +32,7 @@ actions:
       - PULL_PULL_SHA
   - type: "script"
     title: "record the starting metadata"
-    timeout: 300
+    timeout: 600
     script: |-
       trap 'exit 0' EXIT
       cd /data/src/github.com/openshift/aos-cd-jobs
@@ -167,7 +167,6 @@ post_actions:
       done
       cp artifacts/generated/* gcs/artifacts/generated/
       cp artifacts/journals/* gcs/artifacts/journals/
-      cp -r artifacts/scripts/* gcs/artifacts/scripts/
 
       function gcs_path() {
         bucket="gs://origin-ci-test/"

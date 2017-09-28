@@ -18,9 +18,8 @@ parameters:
     description: "Pull request head SHA."
 provision:
   os: "rhel"
-  stage: "crio"
+  stage: "base"
   provider: "aws"
-sync_repos: []
 actions:
   - type: "forward_parameters"
     parameters:
@@ -37,15 +36,41 @@ actions:
       git fetch origin "pull/${PULL_NUMBER}/head:pr"
       git merge "${PULL_PULL_SHA}"
   - type: "script"
-    title: "run the cri-o e2e tests"
+    title: "set up cri-o dependencies"
     script: |-
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags setup  \
+                       --become-user root \
+                       --connection local \
+                       /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+  - type: "host_script"
+    title: "package the AMI"
+    script: |-
+      oct package ami --stage=crio --tag=pr="${PULL_NUMBER}"
+  - type: "script"
+    title: "run the cri-o tests"
+    script: |-
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags integration,e2e \
+                       --become-user root \
+                       --connection local \
+                       /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+post_actions:
+  - type: "script"
+    title: "gather cri-o test output"
+    script: |-
+      if [[ ! -s /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/results.yml ]]; then
+        echo "Skipping, no results playbook found."
+        exit 0
+      fi
       ansible-playbook -vv --become  \
                        -i localhost, \
                        --tags e2e    \
                        --become-user root \
                        --connection local \
-                       /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
-post_actions: []
+                       /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/results.yml
 artifacts:
   - /data/src/k8s.io/kubernetes/artifacts
   - /data/src/k8s.io/kubernetes/e2e.log

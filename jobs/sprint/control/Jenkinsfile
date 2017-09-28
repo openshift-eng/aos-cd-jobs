@@ -18,8 +18,9 @@ properties(
                   [
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'https://api.ci.openshift.org:443', description: 'OpenShift CI Server', name: 'CI_SERVER'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-announce@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-announce@redhat.com', description: 'Success Announce List', name: 'MAIL_LIST_ANNOUNCE'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-leads@redhat.com', description: 'Success List List', name: 'MAIL_LIST_LEADS'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the notification email?', name: 'SPECIAL_NOTES'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is DevCut START?', name: 'TEST_DEV_CUT'],
@@ -38,24 +39,34 @@ TEST_OPEN_MASTER = TEST_OPEN_MASTER.toBoolean()
 TEST_ONLY = TEST_DEV_CUT || TEST_STAGE_CUT || TEST_OPEN_MASTER
 
 if ( TEST_ONLY ) {
-    if ( MAIL_LIST_SUCCESS.contains( "aos" ) ) {
+    if ( MAIL_LIST_ANNOUNCE.contains( "aos" ) || MAIL_LIST_LEADS.contains( "aos" ) ) {
         error "Set success list to non-mailing list when testing"
     }
 }
 
-def mail_success( phase, body ) {
+def mail_announce(phase, body ) {
 
     if ( SPECIAL_NOTES != "" ) {
         body += "\n\nImportant Notification\n-------------------------------------\n${SPECIAL_NOTES}\n"
     }
 
     mail(
-            to: "${MAIL_LIST_SUCCESS}",
+            to: "${MAIL_LIST_ANNOUNCE}",
             from: "aos-cd@redhat.com",
             replyTo: 'jupierce@redhat.com',
             subject: "[aos-announce] Sprint Phase: ${phase} (Sprint ${SPRINT_ID})",
             body: "${body}");
 }
+
+def mail_leads(phase, body ) {
+    mail(
+            to: "${MAIL_LIST_LEADS}",
+            from: "aos-cd@redhat.com",
+            replyTo: 'jupierce@redhat.com',
+            subject: "[aos-leads] Online First Support Assignments (Sprint ${SPRINT_ID})",
+            body: "${body}");
+}
+
 
 node(TARGET_NODE) {
 
@@ -72,6 +83,8 @@ node(TARGET_NODE) {
         STAGE_CUT_BODY = readFile( "emails/stagecut_start" )
 
         REOPEN_BODY = readFile( "emails/open_master" )
+
+        SIGNUP_BODY = readFile( "emails/online_first_signup" )
 
         sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
@@ -96,17 +109,18 @@ node(TARGET_NODE) {
                 MERGE_GATE_LABELS=""
 
                 if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
-                    mail_success("Start of DevCut", DEV_CUT_BODY)
+                    mail_announce("Start of DevCut", DEV_CUT_BODY)
                     MERGE_GATE_LABELS="kind/bug"
                 }
 
                 if ( DAYS_LEFT_IN_SPRINT == STAGE_CUT_DAYS_LEFT || TEST_STAGE_CUT ) {
-                    mail_success("Start of StageCut", STAGE_CUT_BODY)
+                    mail_announce("Start of StageCut", STAGE_CUT_BODY)
                     MERGE_GATE_LABELS="kind/bug"
                 }
 
                 if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
-                    mail_success("Master Open", REOPEN_BODY)
+                    mail_announce("Master Open", REOPEN_BODY)
+                    mail_leads(SIGNUP_BODY)
                 }
 
                 // Clone release tools to manage merge gate label

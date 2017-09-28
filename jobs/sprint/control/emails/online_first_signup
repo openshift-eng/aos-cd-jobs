@@ -1,0 +1,19 @@
+A new Sprint is beginning and the Continuous Delivery team may need to reach out to a member of your team to analyze issues during our cluster upgrades.
+
+Selected team members should be aware of this assignment and must be able to prioritize these requests above typical Sprint development.
+
+Please update the support contact spreadsheet [1] for this Sprint and Continuous Delivery will reach out to the identified resource directly when the need arises.
+
+The team member specified in the spreadsheet:
+    - Should join the following IRC channel for the duration of the Sprint: #aos-devops .
+    - Should contact jupierce with any concerns or questions.
+    - Will automatically be subscribed to the aos-cicd-devops [2] mailing list in the coming days.
+      Communications about upgrades will be shared through this mailing list.
+    - Can capture their thoughts on the upgrades here [3].
+
+
+- The OpenShift Continuous Delivery Bot
+
+[1] Resource spreadsheet: https://docs.google.com/a/redhat.com/spreadsheets/d/1ZLRBh8R0x0fmcZyyPMpqTNkdSGAwo_E9tv5tEepJn7E/edit?usp=sharing
+[2] Mailing list: https://post-office.corp.redhat.com/mailman/listinfo/aos-cicd-devops
+[3] Upgrade tracking doc: https://docs.google.com/a/redhat.com/document/d/1Mx5TYD2QBtpo80bJt7ZncKfcVZOdLBiHc4TTttcB6zk/edit?usp=sharing

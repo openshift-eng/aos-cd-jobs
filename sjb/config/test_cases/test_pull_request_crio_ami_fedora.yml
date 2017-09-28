@@ -24,9 +24,9 @@ actions:
   - type: "script"
     title: "record the starting metadata"
     timeout: 300
-    repository: "aos-cd-jobs"
     script: |-
       trap 'exit 0' EXIT
+      cd /data/src/github.com/openshift/aos-cd-jobs
       sjb/gcs/started.py
   - type: "host_script"
     title: "upload GCS starting metadata"
@@ -169,9 +169,9 @@ post_actions:
   - type: "script"
     title: "record the ending metadata"
     timeout: 300
-    repository: "aos-cd-jobs"
     script: |-
       trap 'exit 0' EXIT
+      cd /data/src/github.com/openshift/aos-cd-jobs
       sjb/gcs/finished.py
   - type: "host_script"
     title: "assemble GCS output"

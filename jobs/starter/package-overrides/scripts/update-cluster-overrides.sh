@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -o xtrace
 set -e
 
 MYUID="$(id -u)"

@@ -61,7 +61,10 @@ actions:
   - type: "script"
     title: "clone cri-o and check out the correct refs"
     script: |-
-      cd /data/src/github.com/kubernetes-incubator/cri-o
+      mkdir -p /data/src/github.com/kubernetes-incubator
+      cd /data/src/github.com/kubernetes-incubator
+      git clone https://github.com/kubernetes-incubator/cri-o.git
+      cd cri-o
       git fetch origin
       git branch target "${PULL_BASE_SHA}"
       git checkout target

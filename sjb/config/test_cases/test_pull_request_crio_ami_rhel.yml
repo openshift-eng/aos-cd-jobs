@@ -32,7 +32,7 @@ actions:
       - PULL_PULL_SHA
   - type: "script"
     title: "record the starting metadata"
-    timeout: 300
+    timeout: 600
     script: |-
       trap 'exit 0' EXIT
       cd /data/src/github.com/openshift/aos-cd-jobs

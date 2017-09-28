@@ -21,6 +21,63 @@ provision:
   stage: "bare"
   provider: "aws"
 actions:
+  - type: "script"
+    title: "record the starting metadata"
+    timeout: 300
+    repository: "aos-cd-jobs"
+    script: |-
+      trap 'exit 0' EXIT
+      sjb/gcs/started.py
+  - type: "host_script"
+    title: "upload GCS starting metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
+
+      function gcs_path() {
+        bucket="gs://origin-ci-test/"
+
+        if [[ -z "${buildId}" ]]; then
+          echo "Not a Prow job!" 1>&2
+          return 1
+        fi
+        suffix="${JOB_NAME}/${BUILD_NUMBER}/"
+        if [[ -n "${REPO_OWNER:-}" ]]; then
+          if [[ "${REPO_NAME}" != "origin" ]]; then
+            segment="${REPO_OWNER}_${REPO_NAME}/"
+          fi
+          if [[ -n "${PULL_NUMBER:-}" ]]; then
+            # this is a presubmit
+            prefix="pr-logs/pull/"
+            segment="${segment:-}${PULL_NUMBER}/"
+          else
+            if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+              # this is a batch
+              prefix="pr-logs/pull/batch/"
+            else
+              # this is a postsubmit
+              prefix="logs/"
+            fi
+          fi
+        else
+          # this is a periodic
+          prefix="logs/"
+        fi
+        echo "${bucket}${prefix}${segment:-}${suffix}"
+        return 0
+      }
+      if path="$( gcs_path )"; then
+        gsutil cp gcs/started.json "${path}/started.json"
+        if [[ -n "${PULL_NUMBER:-}" ]]; then
+          echo "${path}" > "${BUILD_NUMBER}.txt"
+          if [[ -n "${REPO_OWNER:-}" && "${REPO_NAME:-}" != "origin" ]]; then
+            segment="${REPO_OWNER}_${REPO_NAME}/"
+          fi
+          gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${segment:-}${JOB_NAME}/${BUILD_NUMBER}.txt"
+        fi
+      fi
   - type: "host_script"
     title: "install CI user account"
     script: |-
@@ -106,6 +163,69 @@ post_actions:
                        --become-user root \
                        --connection local \
                        /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/results.yml
+  - type: "forward_parameters"
+    parameters:
+      - BUILD_URL
+  - type: "script"
+    title: "record the ending metadata"
+    timeout: 300
+    repository: "aos-cd-jobs"
+    script: |-
+      trap 'exit 0' EXIT
+      sjb/gcs/finished.py
+  - type: "host_script"
+    title: "assemble GCS output"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+      i=0
+      for report in $( find artifacts/ -type f -name \*.xml ); do
+        name="$( printf 'junit_%02d.xml' "$i" )"
+        cp "${report}" "gcs/artifacts/${name}"
+        i="$(( i += 1))"
+      done
+      cp artifacts/generated/* gcs/artifacts/generated/
+      cp artifacts/journals/* gcs/artifacts/journals/
+      cp -r artifacts/scripts/* gcs/artifacts/scripts/
+
+      function gcs_path() {
+        bucket="gs://origin-ci-test/"
+
+        if [[ -z "${buildId}" ]]; then
+          echo "Not a Prow job!" 1>&2
+          return 1
+        fi
+        suffix="${JOB_NAME}/${BUILD_NUMBER}/"
+        if [[ -n "${REPO_OWNER:-}" ]]; then
+          if [[ "${REPO_NAME:-}" != "origin" ]]; then
+            segment="${REPO_OWNER}_${REPO_NAME}/"
+          fi
+          if [[ -n "${PULL_NUMBER:-}" ]]; then
+            # this is a presubmit
+            prefix="pr-logs/pull/"
+            segment="${segment:-}${PULL_NUMBER}/"
+          else
+            if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+              # this is a batch
+              prefix="pr-logs/pull/batch/"
+            else
+              # this is a postsubmit
+              prefix="logs/"
+            fi
+          fi
+        else
+          # this is a periodic
+          prefix="logs/"
+        fi
+        echo "${bucket}${prefix}${segment:-}${suffix}"
+        return 0
+      }
+      if path="$( gcs_path )"; then
+        gsutil -m cp -r gcs/* "${path}"
+      fi
 artifacts:
   - /data/src/k8s.io/kubernetes/artifacts
   - /data/src/k8s.io/kubernetes/e2e.log

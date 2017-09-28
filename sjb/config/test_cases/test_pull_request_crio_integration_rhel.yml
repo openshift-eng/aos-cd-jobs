@@ -49,6 +49,7 @@ post_actions: []
 artifacts:
   - /data/src/github.com/kubernetes-incubator/cri-o/testout.txt
   - /data/src/github.com/kubernetes-incubator/cri-o/reports
+  - /tmp/artifacts
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
   avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'

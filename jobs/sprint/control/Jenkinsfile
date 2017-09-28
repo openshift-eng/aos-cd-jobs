@@ -44,7 +44,7 @@ if ( TEST_ONLY ) {
     }
 }
 
-def mail_announce(phase, body ) {
+def mail_announce(phase, body) {
 
     if ( SPECIAL_NOTES != "" ) {
         body += "\n\nImportant Notification\n-------------------------------------\n${SPECIAL_NOTES}\n"
@@ -58,7 +58,7 @@ def mail_announce(phase, body ) {
             body: "${body}");
 }
 
-def mail_leads(phase, body ) {
+def mail_leads() {
     mail(
             to: "${MAIL_LIST_LEADS}",
             from: "aos-cd@redhat.com",

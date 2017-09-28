@@ -75,6 +75,7 @@ node('openshift-build-1') {
                 deploylib.run( "upgrade-nodes", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
                 deploylib.run( "upgrade-logging" )
                 deploylib.run( "upgrade-metrics" )
+                deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity. 
             }
 
             stage( "config-loop" ) {

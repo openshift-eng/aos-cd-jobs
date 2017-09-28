@@ -103,6 +103,71 @@ oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;crio&#34; --pro
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RECORD THE STARTING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RECORD THE STARTING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+trap &#39;exit 0&#39; EXIT
+sjb/gcs/started.py
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: UPLOAD GCS STARTING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPLOAD GCS STARTING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+trap &#39;exit 0&#39; EXIT
+mkdir -p gcs/
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
+
+function gcs_path() {
+  bucket=&#34;gs://origin-ci-test/&#34;
+
+  if [[ -z &#34;${buildId}&#34; ]]; then
+    echo &#34;Not a Prow job!&#34; 1&gt;&amp;2
+    return 1
+  fi
+  suffix=&#34;${JOB_NAME}/${BUILD_NUMBER}/&#34;
+  if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
+    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
+      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
+    fi
+    if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+      # this is a presubmit
+      prefix=&#34;pr-logs/pull/&#34;
+      segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
+    else
+      if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+        # this is a batch
+        prefix=&#34;pr-logs/pull/batch/&#34;
+      else
+        # this is a postsubmit
+        prefix=&#34;logs/&#34;
+      fi
+    fi
+  else
+    # this is a periodic
+    prefix=&#34;logs/&#34;
+  fi
+  echo &#34;${bucket}${prefix}${segment:-}${suffix}&#34;
+  return 0
+}
+if path=&#34;$( gcs_path )&#34;; then
+  gsutil cp gcs/started.json &#34;${path}/started.json&#34;
+  if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+    echo &#34;${path}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
+    if [[ -n &#34;${REPO_OWNER:-}&#34; &amp;&amp; &#34;${REPO_NAME:-}&#34; != &#34;origin&#34; ]]; then
+      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
+    fi
+    gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${segment:-}${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
+  fi
+fi</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
@@ -194,6 +259,104 @@ ARTIFACT_DIR=&#34;$( pwd )/artifacts/journals&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
 tree &#34;${ARTIFACT_DIR}&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: GATHER CRI-O TEST OUTPUT ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: GATHER CRI-O TEST OUTPUT [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+if [[ ! -s /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/results.yml ]]; then
+  echo &#34;Skipping, no results playbook found.&#34;
+  exit 0
+fi
+ansible-playbook -vv --become  \
+                 -i localhost, \
+                 --tags e2e    \
+                 --become-user root \
+                 --connection local \
+                 /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/results.yml
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_URL=${BUILD_URL:-}&#39; &gt;&gt; /etc/environment&#34;
+</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RECORD THE ENDING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RECORD THE ENDING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+trap &#39;exit 0&#39; EXIT
+sjb/gcs/finished.py
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ASSEMBLE GCS OUTPUT ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ASSEMBLE GCS OUTPUT [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+trap &#39;exit 0&#39; EXIT
+mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
+cat &#34;/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log&#34; &gt; gcs/build-log.txt
+i=0
+for report in $( find artifacts/ -type f -name \*.xml ); do
+  name=&#34;$( printf &#39;junit_%02d.xml&#39; &#34;$i&#34; )&#34;
+  cp &#34;${report}&#34; &#34;gcs/artifacts/${name}&#34;
+  i=&#34;$(( i += 1))&#34;
+done
+cp artifacts/generated/* gcs/artifacts/generated/
+cp artifacts/journals/* gcs/artifacts/journals/
+cp -r artifacts/scripts/* gcs/artifacts/scripts/
+
+function gcs_path() {
+  bucket=&#34;gs://origin-ci-test/&#34;
+
+  if [[ -z &#34;${buildId}&#34; ]]; then
+    echo &#34;Not a Prow job!&#34; 1&gt;&amp;2
+    return 1
+  fi
+  suffix=&#34;${JOB_NAME}/${BUILD_NUMBER}/&#34;
+  if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
+    if [[ &#34;${REPO_NAME:-}&#34; != &#34;origin&#34; ]]; then
+      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
+    fi
+    if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+      # this is a presubmit
+      prefix=&#34;pr-logs/pull/&#34;
+      segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
+    else
+      if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+        # this is a batch
+        prefix=&#34;pr-logs/pull/batch/&#34;
+      else
+        # this is a postsubmit
+        prefix=&#34;logs/&#34;
+      fi
+    fi
+  else
+    # this is a periodic
+    prefix=&#34;logs/&#34;
+  fi
+  echo &#34;${bucket}${prefix}${segment:-}${suffix}&#34;
+  return 0
+}
+if path=&#34;$( gcs_path )&#34;; then
+  gsutil -m cp -r gcs/* &#34;${path}&#34;
+fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

@@ -28,7 +28,7 @@ actions:
     script: |-
       trap 'exit 0' EXIT
       cd /data/src/github.com/openshift/aos-cd-jobs
-      git fetch origin
+      git pull origin
       sjb/gcs/started.py
   - type: "host_script"
     title: "upload GCS starting metadata"

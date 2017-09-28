@@ -17,6 +17,7 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "online-int\nonline-stg\nonline-prod", name: 'REPO', description: 'The repository to populate'],
                               [$class: 'hudson.model.StringParameterDefinition', name: 'PACKAGES', description: 'Space delimited list of build NVRs (e.g. docker-1.12.6-30.git97ba2c0.el7). These builds will be pulled from brew and used to populate the specified repository.'],
                               [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+                      ]
              ]]
     )
     

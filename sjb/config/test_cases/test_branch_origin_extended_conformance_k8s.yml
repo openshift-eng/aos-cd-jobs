@@ -2,12 +2,11 @@
 parent: 'common/test_cases/origin_release_install_gce.yml'
 overrides:
   junit_analysis: False
-  timer: 'H H * * *'
   email:
     - ccoleman@redhat.com
 extensions:
   parameters:
-    - name: "SUITE"
+    - name: SUITE
       description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
 rectory to run."
       default_value: "conformance-k8s"

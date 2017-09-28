@@ -1,5 +1,23 @@
 ---
-parameters: []
+parameters:
+- name: buildId
+  description: "Unique build number for each run."
+- name: REPO_OWNER
+  description: "GitHub org that triggered the job."
+  default_value: openshift
+- name: REPO_NAME
+  description: "GitHub repo that triggered the job."
+  default_value: origin
+- name: PULL_BASE_REF
+  description: "Ref name of the base branch."
+- name: PULL_BASE_SHA
+  description: "Git SHA of the base branch."
+- name: PULL_REFS
+  description: "All refs to test."
+- name: PULL_NUMBER
+  description: "Pull request number."
+- name: PULL_PULL_SHA
+  description: "Pull request head SHA."
 provision:
   os: "rhel"
   stage: "base"
@@ -7,6 +25,15 @@ provision:
 sync_repos:
   - name: "origin"
 actions:
+  - type: "forward_parameters"
+    parameters:
+      - REPO_OWNER
+      - REPO_NAME
+      - PULL_BASE_REF
+      - PULL_BASE_SHA
+      - PULL_REFS
+      - PULL_NUMBER
+      - PULL_PULL_SHA
   - type: "script"
     title: "record the starting metadata"
     timeout: 300
@@ -22,23 +49,47 @@ actions:
       mkdir -p gcs/
       scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
 
-      pull_id="${ORIGIN_PULL_ID:-}"
-      target_branch="${ORIGIN_TARGET_BRANCH:-}"
-      if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
-        pull_id=${PULL_NUMBER}
-        target_branch="${PULL_REFS%%:*}"
-      fi
-      # pull_id will be 0 in case of a batch merge
-      if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
-        destination_bucket="gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}"
-        gsutil cp gcs/started.json "${destination_bucket}/started.json"
+      function gcs_path() {
+        bucket="gs://origin-ci-test/"
 
-        echo "${destination_bucket}" > "${BUILD_NUMBER}.txt"
-        gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
-      elif [[ "${PULL_REFS:-}" =~ ^[^:]+:[^:]+$ ]]; then
-        # this is a post-submit since the pull_refs has no info other than the branch
-        destination_bucket="gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
-        gsutil cp gcs/started.json "${destination_bucket}/started.json"
+        if [[ -z "${buildId}" ]]; then
+          echo "Not a Prow job!" 1>&2
+          return 1
+        fi
+        suffix="${JOB_NAME}/${BUILD_NUMBER}/"
+        if [[ -n "${REPO_OWNER:-}" ]]; then
+          if [[ "${REPO_NAME}" != "origin" ]]; then
+            segment="${REPO_OWNER}_${REPO_NAME}/"
+          fi
+          if [[ -n "${PULL_NUMBER:-}" ]]; then
+            # this is a presubmit
+            prefix="pr-logs/pull/"
+            segment="${segment:-}${PULL_NUMBER}/"
+          else
+            if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+              # this is a batch
+              prefix="pr-logs/pull/batch/"
+            else
+              # this is a postsubmit
+              prefix="logs/"
+            fi
+          fi
+        else
+          # this is a periodic
+          prefix="logs/"
+        fi
+        echo "${bucket}${prefix}${segment:-}${suffix}"
+        return 0
+      }
+      if path="$( gcs_path )"; then
+        gsutil cp gcs/started.json "${path}started.json"
+        if [[ -n "${PULL_NUMBER:-}" ]]; then
+          echo "${path}" > "${BUILD_NUMBER}.txt"
+          if [[ -n "${REPO_OWNER:-}" && "${REPO_NAME:-}" != "origin" ]]; then
+            segment="${REPO_OWNER}_${REPO_NAME}/"
+          fi
+          gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${segment:-}${JOB_NAME}/${BUILD_NUMBER}.txt"
+        fi
       fi
   - type: "script"
     title: "use a ramdisk for etcd"
@@ -81,19 +132,40 @@ post_actions:
       cp artifacts/journals/* gcs/artifacts/journals/
       cp -r artifacts/scripts/* gcs/artifacts/scripts/
 
-      pull_id="${ORIGIN_PULL_ID:-}"
-      target_branch="${ORIGIN_TARGET_BRANCH:-}"
-      if [[ -z "${pull_id}" && -n "${PULL_NUMBER:-}" ]]; then
-        pull_id=${PULL_NUMBER}
-        target_branch="${PULL_REFS%%:*}"
-      fi
-      # pull_id will be 0 in case of a batch merge
-      if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
-        gsutil -m cp -r gcs/* "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}/"
-      elif [[ "${PULL_REFS:-}" =~ ^[^:]+:[^:]+$ ]]; then
-        # this is a post-submit since the pull_refs has no info other than the branch
-        destination_bucket="gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
-        gsutil -m cp -r gcs/* "gs://origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/"
+      function gcs_path() {
+        bucket="gs://origin-ci-test/"
+
+        if [[ -z "${buildId}" ]]; then
+          echo "Not a Prow job!" 1>&2
+          return 1
+        fi
+        suffix="${JOB_NAME}/${BUILD_NUMBER}/"
+        if [[ -n "${REPO_OWNER:-}" ]]; then
+          if [[ "${REPO_NAME:-}" != "origin" ]]; then
+            segment="${REPO_OWNER}_${REPO_NAME}/"
+          fi
+          if [[ -n "${PULL_NUMBER:-}" ]]; then
+            # this is a presubmit
+            prefix="pr-logs/pull/"
+            segment="${segment:-}${PULL_NUMBER}/"
+          else
+            if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+              # this is a batch
+              prefix="pr-logs/pull/batch/"
+            else
+              # this is a postsubmit
+              prefix="logs/"
+            fi
+          fi
+        else
+          # this is a periodic
+          prefix="logs/"
+        fi
+        echo "${bucket}${prefix}${segment:-}${suffix}"
+        return 0
+      }
+      if path="$( gcs_path )"; then
+        gsutil -m cp -r gcs/* "${path}"
       fi
 artifacts:
   - "/data/src/github.com/openshift/origin/_output/scripts"

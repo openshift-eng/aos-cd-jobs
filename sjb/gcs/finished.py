@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from json import dump, load
-from subprocess import check_output
 from urllib import urlopen
 
 from os import getenv
@@ -10,11 +9,6 @@ from os import getenv
 timestamp = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
 with open("/data/started.json") as started_file:
     started_data = load(started_file)
-
-commit = check_output(
-    ["git", "log", "-1", "--pretty=%H"],
-    cwd="/data/src/github.com/openshift/origin"
-).strip()
 
 result = load(urlopen("{}api/json".format(getenv("BUILD_URL"))))["result"]
 
@@ -29,8 +23,8 @@ with open("/data/finished.json", "w+") as finished_file:
         "result": result,
         "passed": result == "SUCCESS",
         "metadata": {
-            "repo": "openshift/origin",
+            "repo": "{}/{}".format(getenv("REPO_OWNER", ""),getenv("REPO_NAME", "")),
             "repos": started_data["repos"],
-            "repo_commit": commit
+            "repo_commit": getenv("PULL_PULL_SHA", "")
         }
     }, finished_file)

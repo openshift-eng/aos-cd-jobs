@@ -13,8 +13,17 @@ jenkins_node_name = "ci.openshift"  # today only one master schedules jobs
 
 repos = {}
 
+repo_owner = getenv("REPO_OWNER", "")
+repo_name = getenv("REPO_NAME", "")
+pull_refs = getenv("PULL_REFS", "")
+repos["{}/{}".format(repo_owner,repo_name)] = pull_refs
+
+
 repository_base_dir = "/data/src/github.com/openshift"
 for repository in listdir(repository_base_dir):
+    if len(repo_name) > 0 and repository == repo_name:
+        continue
+
     repository_dir = join(repository_base_dir, repository)
 
     version_info = ""
@@ -66,7 +75,7 @@ with open("/data/started.json", "w+") as started_file:
         "timestamp": timestamp,
         "node": node_name,
         "jenkins-node": jenkins_node_name,
-        "pull": repos["openshift/origin"],
+        "pull": repos["{}/{}".format(repo_owner,repo_name)],
         "version": version,
         "repos": repos,
         "repo-version": version

@@ -108,8 +108,10 @@ script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
+cd /data/src/github.com/openshift/aos-cd-jobs
+git fetch origin
 sjb/gcs/started.py
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -406,8 +408,9 @@ script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
+cd /data/src/github.com/openshift/aos-cd-jobs
 sjb/gcs/finished.py
 SCRIPT
 chmod +x &#34;${script}&#34;

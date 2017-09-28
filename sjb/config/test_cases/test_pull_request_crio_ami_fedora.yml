@@ -21,6 +21,15 @@ provision:
   stage: "bare"
   provider: "aws"
 actions:
+  - type: "forward_parameters"
+    parameters:
+      - REPO_OWNER
+      - REPO_NAME
+      - PULL_BASE_REF
+      - PULL_BASE_SHA
+      - PULL_REFS
+      - PULL_NUMBER
+      - PULL_PULL_SHA
   - type: "script"
     title: "record the starting metadata"
     timeout: 300

@@ -12,12 +12,14 @@ else
     exit 1
 fi
 
-for job_config in "${job_configs[@]}"; do
+function update_config() {
+    job_config=$1
+
 	job="$( basename "${job_config}" ".xml" )"
 	echo "[INFO] Checking for existence of ${job}..."
 	if ! curl --request "GET" --fail --silent   \
 	          --user "${USERNAME}:${PASSWORD}"  \
-	          "https://ci.openshift.redhat.com/jenkins/job/${job}/config.xml" 2>&1 >/dev/null; then
+	          "https://ci.openshift.redhat.com/jenkins/job/${job}/config.xml" >/dev/null 2>&1; then
 	    echo "[INFO] Creating ${job}..."
 	    curl --request "POST"                  \
              --header "Content-Type: text/xml" \
@@ -32,4 +34,12 @@ for job_config in "${job_configs[@]}"; do
              --user "${USERNAME}:${PASSWORD}"  \
              "https://ci.openshift.redhat.com/jenkins/job/${job}/config.xml"
     fi
+}
+
+for job_config in "${job_configs[@]}"; do
+    update_config "${job_config}" &
+done
+
+for job in $( jobs -p ); do
+    wait "${job}"
 done

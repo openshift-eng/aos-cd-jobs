@@ -1,0 +1,39 @@
+---
+timer: 'H H * * *'
+parameters: []
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+actions:
+  - type: "script"
+    title: "set up cri-o repository"
+    script: |-
+      mkdir -p /data/src/github.com/kubernetes-incubator
+      cd /data/src/github.com/kubernetes-incubator
+      git clone https://github.com/kubernetes-incubator/cri-o.git
+  - type: "script"
+    title: "set up cri-o dependencies"
+    script: |-
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags setup  \
+                       --become-user root \
+                       --connection local \
+                       /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+  - type: "host_script"
+    title: "package the AMI"
+    script: |-
+      oct package ami --stage=crio
+  - type: "host_script"
+    title: "release the AMI"
+    script: |-
+      oct package ami --mark-ready
+artifacts: []
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+system_journals:
+  - docker.service

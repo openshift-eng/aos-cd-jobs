@@ -3,8 +3,8 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
   - sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
   - sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
   - sudo yum install jenkins
-  - iptables -I INPUT -p tcp -m tcp --dport 8443 -j ACCEPT
-  - iptables-save
+  - firewall-cmd --permanent --add-port=8443/tcp
+  - firewall-cmd --reload
   - create a certificate for the server: keytool -genkeypair -keysize 2048 -keyalg RSA -alias jenkins -keystore keystore (https://wiki.jenkins.io/display/JENKINS/Starting+and+Accessing+Jenkins)
   - configure /etc/sysconfig/jenkins
     - JENKINS_HTTPS_LISTEN_ADDRESS="0.0.0.0"
@@ -19,7 +19,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - keytool -import -trustcacerts -alias jenkins -file client.crt -keystore client.keystore
     - You will need to specify this keystore on the agents for the master (e.g. "-Djavax.net.ssl.trustStore=/home/jenkins/client.keystore").
   - sudo chkconfig jenkins on
-  - sudo service jenkins start
+  - sudo systemctl start jenkins
   - Setup smtp mail server in Jenkins configuration
   - Install plugins
     - UpdateSites Manager plugin
@@ -33,6 +33,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
 # Jenkins Agent Setup
 - Copy slave.jar into place onto agent at /home/jenkins/slave.jar (e.g. wget --no-check-certificate https://buildvm.openshift.eng.bos.redhat.com:8443/jnlpJars/slave.jar )
 - Use the Jenkins UI to add a new node. It will create a command line to execute and a secret. This should be used to populate /etc/systemd/system/jenkins-agent.service:
+
 ```
 [Unit]
 After=network-online.target
@@ -51,10 +52,15 @@ WantedBy=multi-user.target
 - systemctl start jenkins-agent
 
 # Core System Setup
+- Ensure /tmp is a tmpfs mount
+  - systemctl status tmp.mount
+  - If service disabled:
+    - systemctl enable tmp.mount
+    - reboot
 - Enable RPM repos:
   - Most packages will need this: https://gitlab.cee.redhat.com/platform-eng-core-services/internal-repos/raw/master/rhel/rhel-7.repo
   - For puddle, rhpkg, rhtools, rh-signing-tools: http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo
-  - For tito and npm, install EPEL: 
+  - For tito and npm, install EPEL:
     - wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
     - rpm -ivh epel-release-7-10.noarch.rpm
 - yum install
@@ -84,6 +90,9 @@ WantedBy=multi-user.target
 - Install oc client compatible with Ops registry (https://console.reg-aws.openshift.com/console/)
   - wget https://mirror.openshift.com/pub/openshift-v3/clients/3.6.170/linux/oc.tar.gz
   - extract 'oc' binary in /usr/bin
+- Install an oc binary compatible with 3.7
+  - https://mirror.openshift.com/pub/openshift-v3/clients/3.7.0-0.126.6/linux/oc.tar.gz
+  - extract 'oc' binary to /usr/bin/oc-3.7   (used by sprint-control job)
 - Mounts in fstab
   - ntap-bos-c01-eng01-nfs01a.storage.bos.redhat.com:/devops_engarchive2_nfs /mnt/engarchive2 nfs tcp,ro,nfsvers=3 0 0
   - ntap-bos-c01-eng01-nfs01b.storage.bos.redhat.com:/devops_engineering_nfs/devarchive/redhat /mnt/redhat nfs tcp,ro,nfsvers=3 0 0
@@ -103,18 +112,26 @@ WantedBy=multi-user.target
   - Ensure user has at least 100GB in home directory (Jenkins server will run as jenkins user and workspace will reside here).
   - Add `jenkins    ALL=(ALL)    NOPASSWD: ALL` to the bottom of /etc/sudoers (https://serverfault.com/questions/160581/how-to-setup-passwordless-sudo-on-linux)
   - Create "docker" group and add "jenkins" user to enable docker daemon operations without sudo.
+  - Create the following .ssh/config for the jenkins user
+```
+Host rcm-guest rcm-guest.app.eng.bos.redhat.com
+    Hostname                   rcm-guest.app.eng.bos.redhat.com
+    ForwardAgent               yes
+    User                       ocp-build
+```
+  - Set ssh config permissions: `chmod 600 ~/.ssh/config`
 - Configure git
   - `git config --global user.name "Jenkins CD Merge Bot"`
   - `git config --global user.email smunilla@redhat.com`  (or current build point-of-contact)
   - `git config --global push.default simple`
-- Configure docker 
+- Configure docker
   - You should use a production configuration of devicemapper/thinpool for docker with at least 150GB of storage in the VG
   - Edit /etc/sysconfig/docker and set the following: `INSECURE_REGISTRY='--insecure-registry brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888 --insecure-registry rcm-img-docker01.build.eng.bos.redhat.com:5001 --insecure-registry registry.access.stage.redhat.com'`
 - Configure tito
   - Populate ~/.titorc with `RHPKG_USER=ocp-build`
 - oct dependencies
   - Copy /home/jenkins/.aws/credentials from existing buildvm to target (needed for oct & dockertested job).
-  - Copy libra.pem (from shared-secrets repo) to /home/jenkins/.ssh/devenv.pem . 
+  - Copy libra.pem (from shared-secrets repo) to /home/jenkins/.ssh/devenv.pem .
 - In a temporary directory
   - git clone https://github.com/openshift/origin-web-console.git
   - cd origin-web-console
@@ -135,7 +152,7 @@ WantedBy=multi-user.target
 - Create the following repos on buildvm
 
 ```
-# /etc/yum.repos.d/dockertested.repo 
+# /etc/yum.repos.d/dockertested.repo
 [dockertested]
 name=Latest tested version of Docker
 baseurl=https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/
@@ -149,7 +166,7 @@ sslclientkey=/var/lib/yum/client-key.pem
 
 
 
-# /etc/yum.repos.d/rhel7next.repo 
+# /etc/yum.repos.d/rhel7next.repo
 [rhel7next]
 name=Prerelease version of Enterprise Linux 7.x
 baseurl=https://mirror.openshift.com/enterprise/rhel/rhel7next/os/

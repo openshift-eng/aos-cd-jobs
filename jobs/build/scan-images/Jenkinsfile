@@ -23,7 +23,11 @@ node('openshift-build-1') {
         checkout scm
         buildlib = load('pipeline-scripts/buildlib.groovy')
       }
-      dir('oit') { git 'https://github.com/openshift/enterprise-images.git' }
+      dir('oit') {
+        sshagent(['openshift-bot']) {
+          git 'git@github.com:openshift/enterprise-images.git'
+        }
+      }
     }
     stage('venv') {
       if(!fileExists('env')) { sh 'virtualenv env' }

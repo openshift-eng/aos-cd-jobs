@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -o xtrace
 set -e
 
 MYUID="$(id -u)"
@@ -71,8 +72,11 @@ done
 cd ${LOCAL_BASE_DIR}/x86_64/os
 createrepo -d .
 
-# Push everything up to the mirrors
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com mkdir -p ${REMOTE_BASE_DIR}
-rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "ssh ${BOT_USER} -o StrictHostKeyChecking=no" ${LOCAL_BASE_DIR} use-mirror-upload.ops.rhcloud.com:${REMOTE_BASE_DIR}
-ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.enterprise.sh rhel -v
-
+# Since this script is piped to ssh, make sure subsequent ssh scripts don't eat up stdin and 
+# prematurely eat the rest of the script. Replace stdin with /dev/null
+{
+	# Push everything up to the mirrors
+	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com mkdir -p ${REMOTE_BASE_DIR}
+	rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "ssh ${BOT_USER} -o StrictHostKeyChecking=no" ${LOCAL_BASE_DIR} use-mirror-upload.ops.rhcloud.com:${REMOTE_BASE_DIR}
+	ssh ${BOT_USER} -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.enterprise.sh rhel -v
+} < /dev/null

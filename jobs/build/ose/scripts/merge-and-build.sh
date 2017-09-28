@@ -311,7 +311,7 @@ echo
 echo "=========="
 echo "Signing RPMs"
 echo "=========="
-"${WORKSPACE}/build-scripts/sign_rpms.sh" "rhaos-${OSE_VERSION}-rhel-7-candidate" "openshifthosted"
+# "${WORKSPACE}/build-scripts/sign_rpms.sh" "rhaos-${OSE_VERSION}-rhel-7-candidate" "openshifthosted"
 
 pushd "${WORKSPACE}"
 COMMIT_SHA="$(git rev-parse HEAD)"
@@ -325,7 +325,7 @@ echo "=========="
 echo "Building Puddle"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-    sh -s -- --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n -s --label=building \
+    sh -s -- --conf "${PUDDLE_CONF}" -b -d -n -s --label=building \
     < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
 
@@ -351,7 +351,7 @@ if [ "$EARLY_LATEST_HACK" == "true" ]; then
     # Hack to keep from breaking openshift-ansible CI during daylight builds. They need the latest puddle to exist
     # before images are pushed to registry-ops in order for their current CI implementation to work.
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s -- --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n \
+        sh -s -- --conf "${PUDDLE_CONF}" -b -d -n \
         < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 fi
 
@@ -373,7 +373,7 @@ echo "Create latest puddle"
 echo "=========="
 if [ "$EARLY_LATEST_HACK" != "true" ]; then
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s -- --conf "${PUDDLE_CONF}" --keys "${PUDDLE_SIG_KEY}" -b -d -n \
+        sh -s -- --conf "${PUDDLE_CONF}" -b -d -n \
         < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 fi
 

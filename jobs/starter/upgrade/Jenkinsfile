@@ -65,7 +65,7 @@ node('openshift-build-1') {
             }
 
             stage( "enable maintenance" ) {
-                // deploylib.run( "enable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
+                deploylib.run( "enable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
                 deploylib.run( "enable-zabbix-maint" )
                 deploylib.run( "disable-config-loop" )
             }
@@ -75,6 +75,7 @@ node('openshift-build-1') {
                 deploylib.run( "upgrade-nodes", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
                 deploylib.run( "upgrade-logging" )
                 deploylib.run( "upgrade-metrics" )
+                deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity. 
             }
 
             stage( "config-loop" ) {
@@ -85,7 +86,7 @@ node('openshift-build-1') {
 
             stage( "disable maintenance" ) {
                 deploylib.run( "disable-zabbix-maint" )
-                //deploylib.run( "disable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
+                deploylib.run( "disable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
             }
 
             stage( "post-upgrade status" ) {
@@ -150,8 +151,24 @@ Jenkins job: ${env.BUILD_URL}
     }
 
 
-    if ( MODE != "silent" ) {
-        deploylib.send_ci_msg_for_cluster( CLUSTER_NAME )
+    if ( MODE != "silent" && "${env.BRANCH_NAME}".contains( "starter" )  ) {       
+        try {
+            // Send out a CI message for QE
+            build job: 'starter%2Fsend-ci-msg',
+                    propagate: false,
+                    parameters: [
+                            [$class: 'hudson.model.StringParameterValue', name: 'CLUSTER_SPEC', value: CLUSTER_SPEC],
+                    ]
+        } catch ( err2 ) {
+            mail(to: "${MAIL_LIST_FAILURE}",
+                    from: "aos-cd@redhat.com",
+                    subject: "Error sending CI msg for cluster ${CLUSTER_NAME}",
+                    body: """Encountered an error: ${err2}
+
+        Jenkins job: ${env.BUILD_URL}
+        """);
+
+        }
     }
 
 }

@@ -31,7 +31,7 @@ def registry_login() {
     // Login to legacy registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'sudo docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
+        sh 'docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
     }
 
     // Login to new registry.ops to enable pushes
@@ -41,7 +41,7 @@ def registry_login() {
 
         // Writing the file out is all to avoid displaying the token in the Jenkins console
         writeFile file:"docker_login.sh", text:'''#!/bin/bash
-        sudo docker login -u $USERNAME -p $(oc whoami -t) registry.reg-aws.openshift.com:443
+        docker login -u $USERNAME -p $(oc whoami -t) registry.reg-aws.openshift.com:443
         '''
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'

@@ -336,7 +336,6 @@ for report in $( find artifacts/ -type f -name \*.xml ); do
 done
 cp artifacts/generated/* gcs/artifacts/generated/
 cp artifacts/journals/* gcs/artifacts/journals/
-cp -r artifacts/scripts/* gcs/artifacts/scripts/
 
 function gcs_path() {
   bucket=&#34;gs://origin-ci-test/&#34;

@@ -72,6 +72,7 @@ node('openshift-build-1') {
 
             stage( "upgrade" ) {
                 deploylib.run( "upgrade-control-plane", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
+                deploylib.run( "update-jenkins-imagestream" )
                 deploylib.run( "upgrade-nodes", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
                 deploylib.run( "upgrade-logging" )
                 deploylib.run( "upgrade-metrics" )

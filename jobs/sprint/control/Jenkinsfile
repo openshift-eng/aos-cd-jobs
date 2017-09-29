@@ -58,7 +58,7 @@ def mail_announce(phase, body) {
             body: "${body}");
 }
 
-def mail_leads() {
+def mail_leads(body) {
     mail(
             to: "${MAIL_LIST_LEADS}",
             from: "aos-cd@redhat.com",

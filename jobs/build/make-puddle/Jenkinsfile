@@ -39,7 +39,7 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "building\nlatest", description: 'What is it for', name: 'PUDDLE_PURPOSE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "simple\nerrata\nsigned", description: 'What type to make (CURRENTLY ONLY WORKS WITH simple)', name: 'PUDDLE_TYPE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                       ]
              ]]
     )

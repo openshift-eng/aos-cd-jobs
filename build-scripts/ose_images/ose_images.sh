@@ -1849,7 +1849,7 @@ case "$action" in
   ;;
   compare_nodocker | compare_auto )
     if [ -s ${workingdir}/logs/mailfile ] ; then
-      mail -s "[${MAJOR_RELEASE}] Dockerfile merge diffs" tdawson@redhat.com,smunilla@redhat.com < ${workingdir}/logs/mailfile
+      mail -s "[${MAJOR_RELEASE}] Dockerfile merge diffs" smunilla@redhat.com < ${workingdir}/logs/mailfile
       echo "===== GIT COMPARE DOCKEFILE CHANGES ====="
       cat ${workingdir}/logs/mailfile
       # echo "Exiting ..."

@@ -18,9 +18,22 @@ parameters:
     description: "Pull request head SHA."
 provision:
   os: "rhel"
-  stage: "base"
+  stage: "bare"
   provider: "aws"
 actions:
+  - type: "host_script"
+    title: "install CI user account"
+    script: |-
+      oct prepare user
+      sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
+  - type: "script"
+    title: "install git"
+    script: |-
+      sudo yum install git
+  - type: "host_script"
+    title: "prepare repositories"
+    script: |-
+      oct prepare repositories
   - type: "forward_parameters"
     parameters:
       - REPO_OWNER

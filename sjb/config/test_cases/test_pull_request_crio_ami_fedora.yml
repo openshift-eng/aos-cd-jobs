@@ -27,17 +27,9 @@ actions:
       oct prepare user
       sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
   - type: "script"
-    title: "update bad vim"
+    title: "install git"
     script: |-
-      sudo dnf update -y vim-minimal
-  - type: "host_script"
-    title: "install base dependencies"
-    script: |-
-      oct prepare dependencies
-  - type: "host_script"
-    title: "install golang"
-    script: |-
-      oct prepare golang --version '1.8.3' --repourl 'https://cbs.centos.org/repos/paas7-openshift-origin37-candidate/x86_64/os/'
+      sudo yum install git
   - type: "host_script"
     title: "prepare repositories"
     script: |-
@@ -109,17 +101,6 @@ actions:
           gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${segment:-}${JOB_NAME}/${BUILD_NUMBER}.txt"
         fi
       fi
-  - type: "script"
-    title: "install system accounting rules"
-    script: |-
-      cat <<CONF >origin-ami-accounting.conf
-      [Manager]
-      DefaultCPUAccounting=yes
-      DefaultMemoryAccounting=yes
-      CONF
-      sudo mkdir -p /etc/systemd/system.conf.d/
-      sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
-      sudo systemctl daemon-reexec
   - type: "forward_parameters"
     parameters:
       - PULL_NUMBER

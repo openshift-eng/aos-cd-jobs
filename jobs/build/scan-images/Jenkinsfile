@@ -6,6 +6,12 @@ properties([[
   $class : 'ParametersDefinitionProperty',
   parameterDefinitions: [
     [
+      $class: 'BooleanParameterDefinition',
+      name: 'MOCK',
+      description: 'Mock run to pickup new Jenkins parameters?.',
+      defaultValue: false,
+    ],
+    [
       $class: 'hudson.model.ChoiceParameterDefinition',
       name: 'BUILD_VERSION',
       description: 'OCP Version to build',
@@ -24,9 +30,9 @@ node('openshift-build-1') {
         buildlib = load('pipeline-scripts/buildlib.groovy')
       }
       dir('oit') {
-        sshagent(['openshift-bot']) {
-          git 'git@github.com:openshift/enterprise-images.git'
-        }
+        git(
+          url: 'git@github.com:openshift/enterprise-images.git',
+          credentialsId: 'openshift-bot')
       }
     }
     stage('venv') {
@@ -55,15 +61,24 @@ sudo python oit/oit/oit.py \
         mail(
           from: MAIL_FROM, to: MAILING_LIST_CVE.join(', '),
           subject: 'jobs/build/scan-images: cve(s) found',
-          body: readFile('scan.txt'))
+          body: """\
+${readFile('scan.txt')}
+
+
+Jenkins job: ${env.BUILD_URL}
+""")
       }
     }
   } catch(err) {
-    sh '[ -f tmp/debug.log ] && cat tmp/debug.log'
     mail(
       from: MAIL_FROM, to: MAILING_LIST_ERR.join(', '),
       subject: 'jobs/build/scan-image: error',
-      body: "${err}")
+      body: """\
+Encoutered an error while running merge-and-build.sh: ${err}
+
+
+Jenkins job: ${env.BUILD_URL}
+""")
     throw err
   }
 }

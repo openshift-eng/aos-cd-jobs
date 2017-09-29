@@ -11,6 +11,11 @@ actions:
     script: |-
       oct prepare user
       sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
+  - type: "host_script"
+    title: "bootstrap remote host"
+    script: |-
+      oct bootstrap host
+      oct bootstrap node
   - type: "script"
     title: "install git"
     script: |-

@@ -136,8 +136,9 @@ node(TARGET_NODE) {
                             oa_origin_sq = readFile("submit_queue_openshift_ansible.yaml")
                             oa_origin_sq = oa_origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
                             writeFile file:"submit_queue_openshift_ansible.yaml", text:oa_origin_sq
-                            sh "git add ."
-                            sh "git commit -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
+                            
+                            sh "git add -u"
+                            sh "git commit --allow-empty -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
 
                             if ( ! TEST_ONLY ) {
                                 sh "git push"

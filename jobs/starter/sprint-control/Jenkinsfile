@@ -14,7 +14,7 @@ config = input(
                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: "00/00/${year}", description: 'Date of last upgrade for dev-preview-stg (usually third Friday of the sprint)', name: 'stg_upgrades_stop'],
                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: "00/00/${year}", description: 'Date of upgrade for dev-preview-prod (usually first Monday of \'next\' sprint); This process will not be performed without user input.', name: 'prod_upgrade'],
                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,tdawson@redhat.com,smunilla@redhat.com,mwoodson@redhat.com,chmurphy@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,mwoodson@redhat.com,chmurphy@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Force immediate action (do not wait for disruption hour)?.', name: 'force'],
                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Run in test mode?', name: 'test_mode'],
         ]

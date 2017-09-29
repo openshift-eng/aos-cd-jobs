@@ -34,7 +34,7 @@ actions:
   - type: "script"
     title: "install git"
     script: |-
-      sudo yum install git
+      sudo yum install -y git
   - type: "host_script"
     title: "prepare repositories"
     script: |-

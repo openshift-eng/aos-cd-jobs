@@ -16,22 +16,32 @@ node('openshift-build-1') {
     timeout(time: 30, unit: 'MINUTES') {
       deleteDir()
       set_workspace()
-      stage('clone') {
-        dir('aos-cd-jobs') {
+      dir('aos-cd-jobs') {
+        stage('clone') {
           checkout scm
           sh 'git checkout master'
         }
-      }
-      stage('run') {
-        sshagent(['openshift-bot']) { // git repo privileges stored in Jenkins credential store
-          sh '''\
-virtualenv env/
-. env/bin/activate
+        stage('run') {
+          final url = sh(
+            returnStdout: true,
+            script: 'git config remote.origin.url')
+          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
+            error('This job uses ssh keys for auth, please use an ssh url')
+          }
+          def prune = true, key = 'openshift-bot'
+          if(url.trim() != 'git@github.com:openshift/aos-cd-jobs.git') {
+            prune = false
+            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
+          }
+          sshagent([key]) {
+            sh """\
+virtualenv ../env/
+. ../env/bin/activate
 pip install gitpython
-export PYTHONPATH=$PWD/aos-cd-jobs
-python aos-cd-jobs/aos_cd_jobs/pruner.py
-python aos-cd-jobs/aos_cd_jobs/updater.py
-'''
+${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
+python -m aos_cd_jobs.updater
+"""
+          }
         }
       }
     }

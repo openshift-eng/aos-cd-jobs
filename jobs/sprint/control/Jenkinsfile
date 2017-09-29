@@ -106,7 +106,7 @@ node(TARGET_NODE) {
 
                 echo "Detected ${DAYS_LEFT_IN_SPRINT} days left in sprint"
 
-                MERGE_GATE_LABELS=""
+                MERGE_GATE_LABELS=null
 
                 if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
                     mail_announce("Start of DevCut", DEV_CUT_BODY)
@@ -121,39 +121,41 @@ node(TARGET_NODE) {
                 if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
                     mail_announce("Master Open", REOPEN_BODY)
                     mail_leads(SIGNUP_BODY)
+                    MERGE_GATE_LABELS = ""
                 }
 
-                // Clone release tools to manage merge gate label
-                sh "rm -rf release"
-                sh "git clone git@github.com:openshift/release.git"
-                dir ("release/cluster/ci/config/submit-queue") {
-                    origin_sq = readFile("submit_queue.yaml")
-                    origin_sq = origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
-                    writeFile file:"submit_queue.yaml", text:origin_sq
+                if ( MERGE_GATE_LABELS != null ) {
+                        // Clone release tools to manage merge gate label
+                        sh "rm -rf release"
+                        sh "git clone git@github.com:openshift/release.git"
+                        dir ("release/cluster/ci/config/submit-queue") {
+                            origin_sq = readFile("submit_queue.yaml")
+                            origin_sq = origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
+                            writeFile file:"submit_queue.yaml", text:origin_sq
 
-                    oa_origin_sq = readFile("submit_queue_openshift_ansible.yaml")
-                    oa_origin_sq = oa_origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
-                    writeFile file:"submit_queue_openshift_ansible.yaml", text:oa_origin_sq
-                    sh "git add ."
-                    sh "git commit -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
+                            oa_origin_sq = readFile("submit_queue_openshift_ansible.yaml")
+                            oa_origin_sq = oa_origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
+                            writeFile file:"submit_queue_openshift_ansible.yaml", text:oa_origin_sq
+                            sh "git add ."
+                            sh "git commit -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
 
-                    if ( ! TEST_ONLY ) {
-                        sh "git push"
-                    } else {
-                        echo "SKIPPING PUSH SINCE THIS IS A TEST RUN"
-                    }
+                            if ( ! TEST_ONLY ) {
+                                sh "git push"
+                            } else {
+                                echo "SKIPPING PUSH SINCE THIS IS A TEST RUN"
+                            }
 
-                    EXTRA_ARGS=""
-                    if ( TEST_ONLY ) {
-                        echo "RUNNING APPLY IN DRY-RUN SINCE THIS IS A TEST RUN"
-                        EXTRA_ARGS="--dry-run"
-                    }
+                            EXTRA_ARGS=""
+                            if ( TEST_ONLY ) {
+                                echo "RUNNING APPLY IN DRY-RUN SINCE THIS IS A TEST RUN"
+                                EXTRA_ARGS="--dry-run"
+                            }
 
-                    withCredentials([string(credentialsId: 'aos-cd-sprint-control-token', variable: 'TOKEN')]) {
-                        sh "oc-3.7 process -f submit_queue.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                        sh "oc-3.7 process -f submit_queue_openshift_ansible.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                    }
-
+                            withCredentials([string(credentialsId: 'aos-cd-sprint-control-token', variable: 'TOKEN')]) {
+                                sh "oc-3.7 process -f submit_queue.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                                sh "oc-3.7 process -f submit_queue_openshift_ansible.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                            }
+                        }            
                 }
 
                 deleteDir()

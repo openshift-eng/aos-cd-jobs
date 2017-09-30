@@ -1,0 +1,134 @@
+---
+parameters:
+  - name: buildId
+    description: "Unique build number for each run."
+  - name: REPO_OWNER
+    description: "GitHub org that triggered the job."
+  - name: REPO_NAME
+    description: "GitHub repo that triggered the job."
+  - name: PULL_BASE_REF
+    description: "Ref name of the base branch."
+  - name: PULL_BASE_SHA
+    description: "Git SHA of the base branch."
+  - name: PULL_REFS
+    description: "All refs to test."
+  - name: PULL_NUMBER
+    description: "Pull request number."
+  - name: PULL_PULL_SHA
+    description: "Pull request head SHA."
+actions:
+  - type: "host_script"
+    title: "upload GCS starting metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/
+      cat <<STARTED >gcs/started.json
+      {
+        "timestamp": $( date +%s ),
+        "pull": "${PULL_REFS}",
+        "repos": {
+          "${REPO_OWNER}/${REPO_NAME}": "${PULL_REFS}"
+        }
+      }
+      STARTED
+
+      bucket="gs://origin-ci-test/"
+      suffix="${JOB_NAME}/${BUILD_NUMBER}/"
+      if [[ -n "${REPO_OWNER:-}" ]]; then
+        segment="${REPO_OWNER}_${REPO_NAME}/"
+        if [[ -n "${PULL_NUMBER:-}" ]]; then
+          prefix="pr-logs/pull/"
+          segment="${segment:-}${PULL_NUMBER}/"
+        else
+          if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+            prefix="pr-logs/pull/batch/"
+          else
+            prefix="logs/"
+          fi
+        fi
+      else
+        prefix="logs/"
+      fi
+
+      path="${bucket}${prefix}${segment:-}${suffix}"
+      gsutil cp gcs/started.json "${path}started.json"
+      if [[ -n "${PULL_NUMBER:-}" ]]; then
+        echo "${path}" > "${BUILD_NUMBER}.txt"
+        gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${REPO_OWNER}_${REPO_NAME}/${JOB_NAME}/${BUILD_NUMBER}.txt"
+      fi
+post_actions:
+  - type: "script"
+    title: "gather cri-o test output"
+    script: |-
+      trap 'exit 0' EXIT
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags all    \
+                       --become-user root \
+                       --connection local \
+                       "/go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/results.yml"
+  - type: "host_script"
+    title: "assemble GCS output"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals
+      result=$( python -c "import json; import urllib; json.load(urllib.open('${BUILD_URL}'))['result']" )
+      cat <<FINISHED >gcs/finished.json
+      {
+        "timestamp": $( date +%s ),
+        "result": "${result}"
+      }
+      FINISHED
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/artifacts/* gcs/artifacts/
+      i=0
+      for report in $( find artifacts/ -type f -name \*.xml ); do
+        name="$( printf 'junit_%02d.xml' "$i" )"
+        cp "${report}" "gcs/artifacts/${name}"
+        i="$(( i += 1))"
+      done
+      cp artifacts/generated/* gcs/artifacts/generated/
+      cp artifacts/journals/* gcs/artifacts/journals/
+
+      bucket="gs://origin-ci-test/"
+      suffix="${JOB_NAME}/${BUILD_NUMBER}/"
+      if [[ -n "${REPO_OWNER:-}" ]]; then
+        segment="${REPO_OWNER}_${REPO_NAME}/"
+        if [[ -n "${PULL_NUMBER:-}" ]]; then
+          prefix="pr-logs/pull/"
+          segment="${segment:-}${PULL_NUMBER}/"
+        else
+          if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+            prefix="pr-logs/pull/batch/"
+          else
+            prefix="logs/"
+          fi
+        fi
+      else
+        prefix="logs/"
+      fi
+
+      path="${bucket}${prefix}${segment:-}${suffix}"
+      gsutil -m cp -r gcs/* "${path}"
+artifacts:
+  - /go/src/k8s.io/kubernetes/artifacts
+  - /go/src/k8s.io/kubernetes/e2e.log
+  - /go/src/github.com/kubernetes-incubator/cri-o/testout.txt
+  - /go/src/github.com/kubernetes-incubator/cri-o/reports
+  - /tmp/artifacts
+  - /tmp/kubelet.log
+  - /tmp/kube-apiserver.log
+  - /tmp/kube-controller-manager.log
+  - /tmp/kube-proxy.log
+  - /tmp/kube-proxy.yaml
+  - /tmp/kube-scheduler.log
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+  pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
+system_journals:
+  - crio.service
+  - customcluster.service

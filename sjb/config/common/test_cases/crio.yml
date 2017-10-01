@@ -54,7 +54,7 @@ actions:
       path="${bucket}${prefix}${segment:-}${suffix}"
       gsutil cp gcs/started.json "${path}started.json"
       if [[ -n "${PULL_NUMBER:-}" ]]; then
-        echo "${path}" > "${BUILD_NUMBER}.txt"
+        echo "${path%\/}" > "${BUILD_NUMBER}.txt"
         gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${REPO_OWNER}_${REPO_NAME}/${JOB_NAME}/${BUILD_NUMBER}.txt"
       fi
 post_actions:

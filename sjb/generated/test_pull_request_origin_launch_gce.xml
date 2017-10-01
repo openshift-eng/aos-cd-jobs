@@ -266,7 +266,7 @@ function gcs_path() {
 if path=&#34;$( gcs_path )&#34;; then
   gsutil cp gcs/started.json &#34;${path}started.json&#34;
   if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-    echo &#34;${path}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
+    echo &#34;${path%\/}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
     if [[ -n &#34;${REPO_OWNER:-}&#34; &amp;&amp; &#34;${REPO_NAME:-}&#34; != &#34;origin&#34; ]]; then
       segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
     fi

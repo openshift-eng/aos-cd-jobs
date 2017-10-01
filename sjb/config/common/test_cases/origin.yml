@@ -84,7 +84,7 @@ actions:
       if path="$( gcs_path )"; then
         gsutil cp gcs/started.json "${path}started.json"
         if [[ -n "${PULL_NUMBER:-}" ]]; then
-          echo "${path}" > "${BUILD_NUMBER}.txt"
+          echo "${path%\/}" > "${BUILD_NUMBER}.txt"
           if [[ -n "${REPO_OWNER:-}" && "${REPO_NAME:-}" != "origin" ]]; then
             segment="${REPO_OWNER}_${REPO_NAME}/"
           fi

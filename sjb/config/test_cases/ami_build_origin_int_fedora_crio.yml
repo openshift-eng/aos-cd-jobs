@@ -1,56 +1,7 @@
 ---
-timer: 'H H * * *'
-parameters: []
-provision:
-  os: "fedora"
-  stage: "bare"
-  provider: "aws"
-actions:
-  - type: "host_script"
-    title: "install CI user account"
-    script: |-
-      oct prepare user
-      sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
-  - type: "host_script"
-    title: "bootstrap remote host"
-    script: |-
-      oct bootstrap host
-      oct bootstrap node
-  - type: "script"
-    title: "install git"
-    script: |-
-      sudo yum install -y git
-  - type: "host_script"
-    title: "prepare repositories"
-    script: |-
-      oct prepare repositories
-  - type: "script"
-    title: "set up cri-o repository"
-    script: |-
-      mkdir -p /data/src/github.com/kubernetes-incubator
-      cd /data/src/github.com/kubernetes-incubator
-      git clone https://github.com/kubernetes-incubator/cri-o.git
-  - type: "script"
-    title: "set up cri-o dependencies"
-    script: |-
-      ansible-playbook -vv --become  \
-                       -i localhost, \
-                       --tags setup  \
-                       --become-user root \
-                       --connection local \
-                       /data/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
-  - type: "host_script"
-    title: "package the AMI"
-    script: |-
-      oct package ami --stage=crio
-  - type: "host_script"
-    title: "release the AMI"
-    script: |-
-      oct package ami --mark-ready
-artifacts: []
-generated_artifacts:
-  installed_packages.log: 'sudo yum list installed'
-  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR'
-  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
-system_journals:
-  - crio.service
+parent: 'test_cases/ami_build_origin_int_rhel_crio.yml'
+overrides:
+  provision:
+    os: "fedora"
+    stage: "bare"
+    provider: "aws"

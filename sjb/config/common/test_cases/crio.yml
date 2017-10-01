@@ -54,7 +54,7 @@ actions:
       path="${bucket}${prefix}${segment:-}${suffix}"
       gsutil cp gcs/started.json "${path}started.json"
       if [[ -n "${PULL_NUMBER:-}" ]]; then
-        echo "${path}" > "${BUILD_NUMBER}.txt"
+        echo "${path%\/}" > "${BUILD_NUMBER}.txt"
         gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${REPO_OWNER}_${REPO_NAME}/${JOB_NAME}/${BUILD_NUMBER}.txt"
       fi
 post_actions:
@@ -73,8 +73,8 @@ post_actions:
     timeout: 300
     script: |-
       trap 'exit 0' EXIT
-      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals
-      result=$( python -c "import json; import urllib; json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+      result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
       cat <<FINISHED >gcs/finished.json
       {
         "timestamp": $( date +%s ),
@@ -89,6 +89,10 @@ post_actions:
         cp "${report}" "gcs/artifacts/${name}"
         i="$(( i += 1))"
       done
+      for artifact in $( find artifacts/ -mindepth 1 -maxdepth 1 -type f ); do
+        cp "${artifact}" gcs/artifacts/gathered
+      done
+      cp artifacts/artifacts/* gcs/artifacts/gathered/
       cp artifacts/generated/* gcs/artifacts/generated/
       cp artifacts/journals/* gcs/artifacts/journals/
 

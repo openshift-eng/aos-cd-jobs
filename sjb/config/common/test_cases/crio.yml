@@ -74,7 +74,7 @@ post_actions:
     script: |-
       trap 'exit 0' EXIT
       mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals
-      result=$( python -c "import json; import urllib; json.load(urllib.open('${BUILD_URL}'))['result']" )
+      result=$( python -c "import json; import urllib; json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
       cat <<FINISHED >gcs/finished.json
       {
         "timestamp": $( date +%s ),

@@ -84,7 +84,7 @@ Cluster Info:
     Provisioning:    $(get_provisioner)
 
 Openshift Nodes:
-$(ossh root@${MASTER} -c "oc get nodes")
+$(ossh root@${MASTER} -c "oc get nodes -L hostname -L type")
 
 Default Project Pods:
 $(get_pods default)

@@ -1,15 +1,17 @@
 A new Sprint is beginning and the Continuous Delivery team may need to reach out to a member of your team to analyze issues during our cluster upgrades.
 
-Selected team members should be aware of this assignment and must be able to prioritize these requests above typical Sprint development.
-
 Please update the support contact spreadsheet [1] for this Sprint and Continuous Delivery will reach out to the identified resource directly when the need arises.
 
 The team member specified in the spreadsheet:
     - Should join the following IRC channel for the duration of the Sprint: #aos-devops .
-    - Should contact jupierce with any concerns or questions.
-    - Will automatically be subscribed to the aos-cicd-devops [2] mailing list in the coming days.
-      Communications about upgrades will be shared through this mailing list.
+    - Will automatically be subscribed to the aos-cicd-devops [2] mailing list in the coming days. 
+      - Communications about upgrades will be shared through this mailing list.
+    - Must be able to prioritize issues and questions related to Starter clusters over all other work.
+    - Should rapidly respond to help requests from the Operations, SRE, or CD team to support production and non-production clusters. 
+      - Requests will originate through IRC or email. This includes automated alerts from Operations which are directed to the aos-cicd-devops mailing list.
+      - This response may need to include Bluejeans sessions to aid in discussion / live analysis of cluster issues. 
     - Can capture their thoughts on the upgrades here [3].
+    - Should contact jupierce with any concerns or questions related to this responsibility.
 
 
 - The OpenShift Continuous Delivery Bot

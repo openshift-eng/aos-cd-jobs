@@ -71,12 +71,14 @@ version = check_output(
 # format and layout of this file so we can
 # plug in to systems like Gubernator
 with open("/data/started.json", "w+") as started_file:
-    dump({
+    obj = {
         "timestamp": timestamp,
         "node": node_name,
         "jenkins-node": jenkins_node_name,
-        "pull": repos["{}/{}".format(repo_owner,repo_name)],
         "version": version,
         "repos": repos,
         "repo-version": version
-    }, started_file)
+    }
+    if len(repo_owner) > 0 and len(repo_name) > 0:
+        obj["pull"] = repos["{}/{}".format(repo_owner,repo_name)]
+    dump(obj, started_file)

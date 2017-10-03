@@ -25,7 +25,7 @@ extensions:
       git fetch origin "pull/${PULL_NUMBER}/head:pr"
       git merge "${PULL_PULL_SHA}"
   - type: "script"
-    title: "run the cri-o integration tests"
+    title: "run the cri-o e2e tests"
     script: |-
       ansible-playbook -vv --become  \
                        -i localhost, \

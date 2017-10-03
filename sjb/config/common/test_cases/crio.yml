@@ -23,15 +23,23 @@ actions:
     script: |-
       trap 'exit 0' EXIT
       mkdir -p gcs/
-      cat <<STARTED >gcs/started.json
-      {
-        "timestamp": $( date +%s ),
-        "pull": "${PULL_REFS}",
-        "repos": {
-          "${REPO_OWNER}/${REPO_NAME}": "${PULL_REFS}"
+      if [[ -n "${REPO_OWNER:-}" ]]; then
+        cat <<STARTED >gcs/started.json
+        {
+          "timestamp": $( date +%s ),
+          "pull": "${PULL_REFS}",
+          "repos": {
+            "${REPO_OWNER}/${REPO_NAME}": "${PULL_REFS}"
+          }
         }
-      }
       STARTED
+      else
+        cat <<STARTED >gcs/started.json
+        {
+          "timestamp": $( date +%s )
+        }
+      STARTED
+      fi
 
       bucket="gs://origin-ci-test/"
       suffix="${JOB_NAME}/${BUILD_NUMBER}/"

@@ -162,5 +162,6 @@ extensions:
     - ovs-vswitchd.service
     - ovsdb-server.service
     - etcd.service
+    - systemd-journald.service
   artifacts:
     - "/data/src/github.com/openshift/origin-aggregated-logging/_output/scripts"

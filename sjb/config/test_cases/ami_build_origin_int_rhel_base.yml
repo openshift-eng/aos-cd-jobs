@@ -119,3 +119,4 @@ system_journals:
   - origin-master-api.service
   - origin-master-controllers.service
   - origin-node.service
+  - systemd-journald.service

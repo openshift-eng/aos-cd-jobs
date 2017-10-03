@@ -12,7 +12,7 @@ SSH_OPTIONS="-o StrictHostKeychecking=no"
 
 usage() {
   echo
-  echo "Usage `basename $0` <repo>"
+  echo "Usage $(basename "$0") <repo>"
   echo
   echo "repo: the path component of the content to sync within ${BASE_PATH}"
   echo "  e.g. 'online', 'online-openshift-scripts'"
@@ -32,7 +32,7 @@ PROD_PATH="${BASE_PATH}/${REPO}-prod"
 
 # sanity check the repo name: just checking repo-stg, assuming that repo-prod
 # would exist if repo-stg does
-if [ ! -d ${STG_PATH] ]; then
+if [ ! -d "${STG_PATH}" ]; then
     echo "ERROR: the provided repo (${REPO}) stage path (${STG_PATH}) does not exist." >&2
     exit 1
 fi
@@ -50,7 +50,7 @@ MIRROR_SSH="ssh ${BOT_USER} ${SSH_OPTIONS} ${MIRROR_SSH_SERVER}"
 ############
 
 $MIRROR_SSH sh -s <<EOF
-  LASTDIR=$(readlink ${STG_PATH}/latest)
+  LASTDIR=$(readlink "${STG_PATH}"/latest)
   echo "latest in stg points to: ${LASTDIR}"
   cd ${PROD_PATH}
   if [ -d ${LASTDIR} ] ; then

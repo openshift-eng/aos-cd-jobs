@@ -180,3 +180,4 @@ generated_artifacts:
 system_journals:
   - docker.service
   - dnsmasq.service
+  - systemd-journald.service

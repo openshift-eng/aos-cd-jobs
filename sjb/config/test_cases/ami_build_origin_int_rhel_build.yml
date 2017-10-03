@@ -62,3 +62,4 @@ generated_artifacts:
   filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
 system_journals:
   - docker.service
+  - systemd-journald.service

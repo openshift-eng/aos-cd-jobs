@@ -142,3 +142,4 @@ extensions:
     - ovsdb-server.service
     - etcd.service
     - cri-o.service
+    - systemd-journald.service

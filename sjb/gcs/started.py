@@ -16,8 +16,8 @@ repos = {}
 repo_owner = getenv("REPO_OWNER", "")
 repo_name = getenv("REPO_NAME", "")
 pull_refs = getenv("PULL_REFS", "")
-repos["{}/{}".format(repo_owner,repo_name)] = pull_refs
-
+if len(repo_owner) > 0 and len(repo_name) > 0:
+    repos["{}/{}".format(repo_owner,repo_name)] = pull_refs
 
 repository_base_dir = "/data/src/github.com/openshift"
 for repository in listdir(repository_base_dir):

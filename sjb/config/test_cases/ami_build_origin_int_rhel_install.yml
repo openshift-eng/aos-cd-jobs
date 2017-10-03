@@ -93,6 +93,7 @@ system_journals:
   - ovsdb-server.service
   - etcd.service
   - docker.service
+  - systemd-journald.service
 artifacts:
   - "/data/src/github/openshift/origin/_output/scripts"
 generated_artifacts:

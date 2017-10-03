@@ -144,3 +144,4 @@ generated_artifacts:
 system_journals:
   - crio.service
   - customcluster.service
+  - systemd-journald.service

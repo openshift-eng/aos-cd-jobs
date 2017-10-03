@@ -113,5 +113,6 @@ extensions:
     - ovs-vswitchd.service
     - ovsdb-server.service
     - etcd.service
+    - systemd-journald.service
   generated_artifacts:
     etcd.conf: 'sudo cat /etc/etcd/etcd.conf'

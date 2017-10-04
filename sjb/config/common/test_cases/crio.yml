@@ -81,12 +81,6 @@ post_actions:
       FINISHED
       cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
       scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/artifacts/* gcs/artifacts/
-      i=0
-      for report in $( find artifacts/ -type f -name \*.xml ); do
-        name="$( printf 'junit_%02d.xml' "$i" )"
-        cp "${report}" "gcs/artifacts/${name}"
-        i="$(( i += 1))"
-      done
       for artifact in $( find artifacts/ -mindepth 1 -maxdepth 1 -type f ); do
         cp "${artifact}" gcs/artifacts/gathered
       done

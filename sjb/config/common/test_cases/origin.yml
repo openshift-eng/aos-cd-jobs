@@ -121,13 +121,7 @@ post_actions:
       trap 'exit 0' EXIT
       mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
       scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
-      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
-      i=0
-      for report in $( find artifacts/ -type f -name \*.xml ); do
-        name="$( printf 'junit_%02d.xml' "$i" )"
-        cp "${report}" "gcs/artifacts/${name}"
-        i="$(( i += 1))"
-      done
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txte
       cp artifacts/generated/* gcs/artifacts/generated/
       cp artifacts/journals/* gcs/artifacts/journals/
       cp -r artifacts/scripts/* gcs/artifacts/scripts/

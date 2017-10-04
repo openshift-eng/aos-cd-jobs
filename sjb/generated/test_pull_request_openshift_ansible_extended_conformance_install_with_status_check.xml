@@ -647,13 +647,7 @@ SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &a
 trap &#39;exit 0&#39; EXIT
 mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
-cat &#34;/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log&#34; &gt; gcs/build-log.txt
-i=0
-for report in $( find artifacts/ -type f -name \*.xml ); do
-  name=&#34;$( printf &#39;junit_%02d.xml&#39; &#34;$i&#34; )&#34;
-  cp &#34;${report}&#34; &#34;gcs/artifacts/${name}&#34;
-  i=&#34;$(( i += 1))&#34;
-done
+cat &#34;/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log&#34; &gt; gcs/build-log.txte
 cp artifacts/generated/* gcs/artifacts/generated/
 cp artifacts/journals/* gcs/artifacts/journals/
 cp -r artifacts/scripts/* gcs/artifacts/scripts/

@@ -10,8 +10,8 @@ extensions:
       repository: "origin"
       script: |-
         sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
-        # Temporarily downgrade Firefox to 52.3 since 52.4 breaks the console integration tests.
-        sudo yum downgrade -y firefox-52.3.0-2.el7_4.x86_64
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+        sudo yum install ./google-chrome-stable_current_*.rpm
         oc cluster up --version=latest --public-hostname=localhost --loglevel=5 --server-loglevel=5
     - type: "script"
       title: "run web console tests"

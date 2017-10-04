@@ -66,16 +66,6 @@ actions:
         gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${REPO_OWNER}_${REPO_NAME}/${JOB_NAME}/${BUILD_NUMBER}.txt"
       fi
 post_actions:
-  - type: "script"
-    title: "gather cri-o test output"
-    script: |-
-      trap 'exit 0' EXIT
-      ansible-playbook -vv --become  \
-                       -i localhost, \
-                       --tags all    \
-                       --become-user root \
-                       --connection local \
-                       "/go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/results.yml"
   - type: "host_script"
     title: "assemble GCS output"
     timeout: 300

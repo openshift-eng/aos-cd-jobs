@@ -90,10 +90,26 @@ https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_V
 ===OpenShift Ansible changelog snippet===
 ${OA_CHANGELOG}
 """);
+
+    try {
+        sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
+
+                messageProperties: """build_mode=${BUILD_MODE}
+mirror_url=${mirrorURL}
+image_registry_root=registry.reg-aws.openshift.com:443
+brew_task_url_openshift=${OSE_BREW_URL}
+brew_task_url_openshift_ansible=${OA_BREW_URL}
+""",
+                messageType: 'ComponentBuildDone',
+                providerName: 'CI Publish'
+        )
+    } catch ( mex ) {
+        mex.printStackTrace()
+    }
 }
 
 // Will be used to track which atomic-openshift build was tagged before we ran.
-PREV_BUILD="not yet acquired"
+PREV_BUILD = NULL
 
 node(TARGET_NODE) {
 
@@ -490,6 +506,7 @@ node(TARGET_NODE) {
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
+            PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
 
             mail_success( NEW_FULL_VERSION )
         }
@@ -498,7 +515,7 @@ node(TARGET_NODE) {
         ATTN=""
         try {
                 NEW_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
-            if ( PREV_BUILD != NEW_BUILD ) {
+            if ( PREV_BUILD != null && PREV_BUILD != NEW_BUILD ) {
                 // Untag anything tagged by this build if an error occured at any point
                     sh "brew --user=ocp-build untag-build rhaos-${BUILD_VERSION}-rhel-7-candidate ${NEW_BUILD}"
             }

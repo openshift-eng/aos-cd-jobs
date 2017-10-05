@@ -257,7 +257,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
-sudo yum install ./google-chrome-stable_current_*.rpm
+sudo yum install ./google-chrome-stable_current_*.rpm -y
 oc cluster up --version=latest --public-hostname=localhost --loglevel=5 --server-loglevel=5
 SCRIPT
 chmod +x &#34;${script}&#34;

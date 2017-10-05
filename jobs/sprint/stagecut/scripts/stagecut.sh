@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 set -o xtrace
-set -e
+set -eE #E for error trap
+
+TEMPDIR=
+# If anything below errors out, delete TEMPDIR if exists
+trap 'rm -rf ${TEMPDIR} || true' ERR
 
 if [ "$1" == "" ]; then
     echo "Syntax: $0 <last_sprint_number>"
@@ -19,10 +23,10 @@ fi
 
 for repo in $@; do
     echo "Processing git repository: ${repo}"
-    d=$(mktemp -d)
-    git clone "${repo}" "${d}"
+    TEMPDIR=$(mktemp -d)
+    git clone "${repo}" "${TEMPDIR}"
 
-    pushd "${d}"
+    pushd "${TEMPDIR}"
         git fetch --all
 
         if git checkout stage; then
@@ -32,7 +36,7 @@ for repo in $@; do
                     echo "Backup branch $BACKUP_BRANCH already exists in $repo ; unable to proceed"
                     exit 1
                 fi
-            
+
                 git checkout -b "stage-${LAST_SPRINT_NUMBER}"
                 if [ "${TEST_MODE}" != "true" ]; then
                     git push origin "stage-${LAST_SPRINT_NUMBER}"
@@ -74,5 +78,5 @@ for repo in $@; do
 
     popd
 
-    rm -rf "${d}"
+    rm -rf "${TEMPDIR}"
 done

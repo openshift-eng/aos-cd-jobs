@@ -42,7 +42,8 @@ MIRROR_SSH="ssh ${BOT_USER} ${SSH_OPTIONS} ${MIRROR_SSH_SERVER}"
 # Push
 ############
 
-$MIRROR_SSH sh -s <<EOF
+# Using quoted 'EOF' prevents ${var} expansion
+$MIRROR_SSH sh -s <<'EOF'
   LASTDIR=$(readlink "${STG_PATH}"/latest)
   echo "latest in stg points to: ${LASTDIR}"
   cd ${PROD_PATH}

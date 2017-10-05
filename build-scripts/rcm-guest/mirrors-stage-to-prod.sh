@@ -30,13 +30,6 @@ REPO="${1}"
 STG_PATH="${BASE_PATH}/${REPO}-stg"
 PROD_PATH="${BASE_PATH}/${REPO}-prod"
 
-# sanity check the repo name: just checking repo-stg, assuming that repo-prod
-# would exist if repo-stg does
-if [ ! -d "${STG_PATH}" ]; then
-    echo "ERROR: the provided repo (${REPO}) stage path (${STG_PATH}) does not exist." >&2
-    exit 1
-fi
-
 # SSH client cmdline setup
 if [ "$(whoami)" == "ocp-build" ]; then
   BOT_USER="-l jenkins_aos_cd_bot"

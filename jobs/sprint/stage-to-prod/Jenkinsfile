@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 MAIL_FROM = 'aos-cd@redhat.com'
-REPLY_TO = 'smunilla@redhat.com'
+REPLY_TO = 'jupierce@redhat.com'
 
 repos = [
     //  repo-name: repo-path within /srv/enterprise
@@ -61,7 +61,7 @@ def mail_success() {
             to: "${MAIL_LIST_SUCCESS}",
             from: MAIL_FROM,
             replyTo: REPLY_TO,
-            subject: "Stage has been synced to prod",
+            subject: "Stage has been synced to prod for: ${CONTENT}",
             body: """
 For details see the jenkins job.
 Jenkins job: ${env.BUILD_URL}
@@ -75,7 +75,7 @@ def mail_failure = { err ->
             to: "${MAIL_LIST_FAILURE}",
             from: MAIL_FROM,
             replyTo: REPLY_TO,
-            subject: "Error syncing stage to prod on mirrors",
+            subject: "Error syncing stage to prod on mirrors for: ${CONTENT}",
             body: """Encoutered an error while syncing stage to prod on mirrors: ${err}
 
 Jenkins job: ${env.BUILD_URL}

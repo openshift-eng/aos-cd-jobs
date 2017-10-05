@@ -21,12 +21,12 @@ usage() {
 }
 
 # Make sure the repo is provided
-if [ "$#" -lt 2 ] ; then
+if [ "$#" -lt 1 ] ; then
   usage
 fi
+REPO="${1}"
 
 # Path setup for repo
-REPO="${1}"
 STG_PATH="${BASE_PATH}/${REPO}-stg"
 PROD_PATH="${BASE_PATH}/${REPO}-prod"
 

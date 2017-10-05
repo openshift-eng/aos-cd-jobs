@@ -4,7 +4,8 @@ overrides:
   junit_analysis: False
 extensions:
   sync_repos:
-    - name: "aos-cd-jobs"
+    - name: "origin"
+      type: "pull_request"
   actions:
     - type: "forward_parameters"
       parameters:

@@ -109,7 +109,7 @@ brew_task_url_openshift_ansible=${OA_BREW_URL}
 }
 
 // Will be used to track which atomic-openshift build was tagged before we ran.
-PREV_BUILD = NULL
+PREV_BUILD = null
 
 node(TARGET_NODE) {
 

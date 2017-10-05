@@ -1,9 +1,9 @@
 #!/usr/bin/env groovy
 
-final MAIL_FROM = 'aos-cd@redhat.com'
-final REPLY_TO = 'smunilla@redhat.com'
+MAIL_FROM = 'aos-cd@redhat.com'
+REPLY_TO = 'smunilla@redhat.com'
 
-final repos = [
+repos = [
     //  repo-name: repo-path within /srv/enterprise
     OCP:           'online',
     OnlineScripts: 'online-openshift-scripts'

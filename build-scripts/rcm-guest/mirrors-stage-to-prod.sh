@@ -43,17 +43,17 @@ MIRROR_SSH="ssh ${BOT_USER} ${SSH_OPTIONS} ${MIRROR_SSH_SERVER}"
 # Push
 ############
 
-# Using quoted 'EOF' prevents ${var} expansion
-$MIRROR_SSH sh -s <<'EOF'
-  LASTDIR=$(readlink "${STG_PATH}"/latest)
-  echo "latest in stg points to: ${LASTDIR}"
-  cd ${PROD_PATH}
-  if [ -d ${LASTDIR} ] ; then
-     echo "${LASTDIR} already exists in prod, nothing to do"
+$MIRROR_SSH sh -s <<EOF
+  set -ex
+  LASTDIR=\$(readlink "${STG_PATH}/latest")
+  echo "latest in stg points to: \${LASTDIR}"
+  cd "${PROD_PATH}"
+  if [ -d "\${LASTDIR}" ] ; then
+     echo "\${LASTDIR} already exists in prod, nothing to do"
   else
-     cp -r --link ${STG_PATH}/${LASTDIR} ${LASTDIR}
+     cp -r --link "${STG_PATH}/\${LASTDIR}" "\${LASTDIR}"
      rm -f latest
-     ln -s ${LASTDIR} latest
+     ln -s "\${LASTDIR}" latest
      /usr/local/bin/push.enterprise.sh -v
   fi
 EOF

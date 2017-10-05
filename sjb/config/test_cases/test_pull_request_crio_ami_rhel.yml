@@ -53,7 +53,7 @@ extensions:
     - type: "host_script"
       title: "package the AMI"
       script: |-
-        oct package ami --stage=crio --tag=pr="${PULL_NUMBER}"
+        oct package ami --stage=crio
     - type: "script"
       title: "run the cri-o tests"
       script: |-

@@ -4,6 +4,7 @@
 #
 
 set -eu
+set -o xtrace
 
 # Settings
 BASE_PATH="/srv/enterprise"

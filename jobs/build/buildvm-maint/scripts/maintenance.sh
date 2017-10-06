@@ -3,6 +3,9 @@
 set -o xtrace
 set -e
 
+echo "====Cleaning up old tito files===="
+sudo find /tmp/tito -type f -mtime +1 -exec rm -rf {} \;
+
 echo "====Cleaning up old ose_images.sh temporary directories===="
 sudo find /var/tmp/ose_images* -maxdepth 0 -mtime +1 -exec rm -rf {} \;
 

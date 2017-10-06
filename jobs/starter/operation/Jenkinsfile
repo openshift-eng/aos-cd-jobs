@@ -42,7 +42,7 @@ node('openshift-build-1') {
     def deploylib = load( "pipeline-scripts/deploylib.groovy")
     deploylib.initialize(CLUSTER_SPEC, ADDITIONAL_OPTS)
 
-    currentBuild.displayName = "#${currentBuild.number} - ${OPERATION} ${CLUSTER_NAME}"
+    currentBuild.displayName = "#${currentBuild.number} - ${CLUSTER_NAME} : ${OPERATION}"
 
     if ( MODE != "automatic" ) {
         input "Are you certain you want to =====>${OPERATION}<===== the =====>${CLUSTER_NAME}<===== cluster?"

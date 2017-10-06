@@ -83,8 +83,19 @@ ossh "root@${MASTER}" -c "/bin/bash" << 'EOF'
         done
         if [ $count -ge $ATTEMPTS ]; then exit 1; fi
     }
-    PROJ_RANDOM=aos-cd-smoketest-$(shuf -i 100000-999999 -n 1)
+
+    on_exit () {
+        echo "Exiting project creation test.."
+        oc describe all
+        oc get all -o=yaml
+        oc delete project ${PROJ_RANDOM}
+    }
+
+    export PROJ_RANDOM=aos-cd-smoketest-$(shuf -i 100000-999999 -n 1)
     oc new-project ${PROJ_RANDOM}
+
+    trap on_exit EXIT
+
     wait_for project ${PROJ_RANDOM}
     oc new-app --image-stream=ruby --code=https://github.com/openshift/ruby-hello-world
     wait_for build ruby-hello-world-1
@@ -95,7 +106,7 @@ ossh "root@${MASTER}" -c "/bin/bash" << 'EOF'
     wait_for endpoints ruby-hello-world
     sleep 30 # Give time to the router to sync route/endpoints
     curl --fail -Is $(oc get routes ruby-hello-world --template={{.spec.host}})
-    oc delete project ${PROJ_RANDOM}
+
 EOF
 
 if [ "$?" != "0" ]; then

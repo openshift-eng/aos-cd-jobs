@@ -59,11 +59,6 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>OPENSHIFT_ANSIBLE_TARGET_BRANCH</name>
-          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/openshift-ansible&#34;&gt;openshift-ansible&lt;/a&gt; repository to test against.</description>
-          <defaultValue>master</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging&#34;&gt;origin-aggregated-logging&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
@@ -72,6 +67,11 @@
           <name>ORIGIN_AGGREGATED_LOGGING_PULL_ID</name>
           <description>The pull-request in the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging&#34;&gt;origin-aggregated-logging&lt;/a&gt; repository to test.</description>
           <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>OPENSHIFT_ANSIBLE_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/openshift-ansible&#34;&gt;openshift-ansible&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>MERGE_SEVERITY</name>

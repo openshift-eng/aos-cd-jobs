@@ -463,7 +463,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 for i in \$(docker images --format &#39;{{.Repository}}:{{.Tag}}&#39; | grep &#34;openshift\/origin&#34;); do
-  sudo skopeo copy docker-daemon:\$i containers-storage:\[overlay2@/var/lib/containers/storage+/var/run/containers/storage:overlay2.override_kernel_check=1\]\$i
+  sudo skopeo copy docker-daemon:\$i containers-storage:\[overlay@/var/lib/containers/storage+/var/run/containers/storage:overlay.override_kernel_check=1\]\$i
 done
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -479,9 +479,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
 local_ip=&#34;\$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )&#34;
-# debug for Dan
-sudo setenforce 0
-sudo semodule -DB
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
@@ -571,6 +568,10 @@ if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo sta
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /var/log/pods
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/var/log/pods &#34;${ARTIFACT_DIR}&#34;
 fi
+if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /etc/crio; then
+    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /etc/crio
+    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/etc/crio &#34;${ARTIFACT_DIR}&#34;
+fi
 if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /etc/systemd/system; then
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /etc/systemd/system
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/etc/systemd/system &#34;${ARTIFACT_DIR}&#34;
@@ -584,17 +585,18 @@ trap &#39;exit 0&#39; EXIT
 ARTIFACT_DIR=&#34;$( pwd )/artifacts/generated&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/crio/crio.conf 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.conf&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.info&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.config&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/origin/master/master-config.yaml 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/master_config_yaml.log&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /var/log/audit/audit.log 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/auditd.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/node-metrics.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m avc -ts recent 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_selinux_denials.log&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;dmesg 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/dmesg.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/master-metrics.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo df -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/filesystem.info&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl -xe 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/journal_xe.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo yum list installed 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/installed_packages.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;dmesg 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/dmesg.log&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m avc -ts recent 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_selinux_denials.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl _PID=1 --no-pager --all --lines=all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/pid1.journal&#34; || true
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>

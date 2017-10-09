@@ -9,6 +9,8 @@ overrides:
     - mpatel@redhat.com
     - amurdaca@redhat.com
 extensions:
+  sync_repos:
+    - name: "openshift-ansible"
   actions:
     - type: "script"
       title: "build an origin release"

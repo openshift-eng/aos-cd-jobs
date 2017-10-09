@@ -67,6 +67,11 @@ def mail_leads(body) {
             body: "${body}");
 }
 
+def set_required_labels(template_filename, label) {
+    sq = readFile(template_filename)
+    sq = sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${label}\"")
+    writeFile file:template_filename, text:sq
+}
 
 node(TARGET_NODE) {
 
@@ -129,14 +134,10 @@ node(TARGET_NODE) {
                         sh "rm -rf release"
                         sh "git clone git@github.com:openshift/release.git"
                         dir ("release/cluster/ci/config/submit-queue") {
-                            origin_sq = readFile("submit_queue.yaml")
-                            origin_sq = origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
-                            writeFile file:"submit_queue.yaml", text:origin_sq
+                            set_required_labels("submit_queue.yaml", MERGE_GATE_LABELS)
+                            set_required_labels("submit_queue_openshift_ansible.yaml", MERGE_GATE_LABELS)
+                            set_required_labels("submit_queue_origin_aggregated_logging.yaml", MERGE_GATE_LABELS)
 
-                            oa_origin_sq = readFile("submit_queue_openshift_ansible.yaml")
-                            oa_origin_sq = oa_origin_sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${MERGE_GATE_LABELS}\"")
-                            writeFile file:"submit_queue_openshift_ansible.yaml", text:oa_origin_sq
-                            
                             sh "git add -u"
                             sh "git commit --allow-empty -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
 
@@ -155,6 +156,7 @@ node(TARGET_NODE) {
                             withCredentials([string(credentialsId: 'aos-cd-sprint-control-token', variable: 'TOKEN')]) {
                                 sh "oc-3.7 process -f submit_queue.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
                                 sh "oc-3.7 process -f submit_queue_openshift_ansible.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                                sh "oc-3.7 process -f submit_queue_origin_aggregated_logging.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
                             }
                         }            
                 }

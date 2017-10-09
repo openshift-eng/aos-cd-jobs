@@ -26,6 +26,7 @@ properties(
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is DevCut START?', name: 'TEST_DEV_CUT'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is StageCut START?', name: 'TEST_STAGE_CUT'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is master open?', name: 'TEST_OPEN_MASTER'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force open (regardless of date)', name: 'FORCE_OPEN_MASTER'],
                   ]
             ],
             disableConcurrentBuilds()
@@ -35,12 +36,13 @@ properties(
 TEST_DEV_CUT = TEST_DEV_CUT.toBoolean()
 TEST_STAGE_CUT = TEST_STAGE_CUT.toBoolean()
 TEST_OPEN_MASTER = TEST_OPEN_MASTER.toBoolean()
+FORCE_OPEN_MASTER = FORCE_OPEN_MASTER.toBoolean()
 
 TEST_ONLY = TEST_DEV_CUT || TEST_STAGE_CUT || TEST_OPEN_MASTER
 
-if ( TEST_ONLY ) {
+if ( TEST_ONLY || FORCE_OPEN_MASTER ) {
     if ( MAIL_LIST_ANNOUNCE.contains( "aos" ) || MAIL_LIST_LEADS.contains( "aos" ) ) {
-        error "Set success list to non-mailing list when testing"
+        error "Set success list to non-mailing list when testing or forcing"
     }
 }
 
@@ -123,7 +125,7 @@ node(TARGET_NODE) {
                     MERGE_GATE_LABELS="kind/bug"
                 }
 
-                if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
+                if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER || FORCE_OPEN_MASTER ) {
                     mail_announce("Master Open", REOPEN_BODY)
                     mail_leads(SIGNUP_BODY)
                     MERGE_GATE_LABELS = ""

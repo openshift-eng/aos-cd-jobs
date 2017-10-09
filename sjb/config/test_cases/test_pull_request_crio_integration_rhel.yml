@@ -27,9 +27,12 @@ extensions:
   - type: "script"
     title: "run the cri-o integration tests"
     script: |-
-      ansible-playbook -vv --become  \
-                       -i localhost, \
-                       --tags integration \
-                       --become-user root \
-                       --connection local \
-                       /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+        cd /go/src/github.com/kubernetes-incubator/cri-o/contrib/test
+        export WORKSPACE=/tmp
+        ./venv-ansible-playbook.sh \
+                         -vv --become  \
+                         -i localhost, \
+                         --tags integration \
+                         --become-user root \
+                         --connection local \
+                         ./integration/main.yml

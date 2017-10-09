@@ -188,12 +188,15 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-ansible-playbook -vv --become  \
+cd /go/src/github.com/kubernetes-incubator/cri-o/contrib/test
+export WORKSPACE=/tmp
+./venv-ansible-playbook.sh \
+                 -vv --become  \
                  -i localhost, \
                  --tags integration \
                  --become-user root \
                  --connection local \
-                 /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+                 ./integration/main.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

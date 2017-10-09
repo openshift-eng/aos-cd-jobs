@@ -19,9 +19,11 @@ extensions:
         oct bootstrap host
         oct bootstrap node
     - type: "script"
-      title: "install git"
+      title: "install git and wrapper-dependencies"
       script: |-
-        sudo yum install -y git
+        sudo yum install -y git python2-virtualenv python-virtualenv gcc \
+            openssl-devel redhat-rpm-config libffi-devel python-devel libselinux-python \
+            rsync yum-utils python3-pycurl python-pycurl python2-simplejson python-simplejson
     - type: "script"
       title: "set up cri-o repository"
       script: |-
@@ -33,14 +35,17 @@ extensions:
         cd /go/src/github.com/kubernetes-incubator
         git clone https://github.com/kubernetes-incubator/cri-o.git
     - type: "script"
-      title: "set up cri-o dependencies"
+      title: "set up system for cri-o testing"
       script: |-
-        ansible-playbook -vv --become  \
+        cd /go/src/github.com/kubernetes-incubator/cri-o/contrib/test
+        export WORKSPACE=/tmp
+        ./venv-ansible-playbook.sh \
+                         -vv --become  \
                          -i localhost, \
                          --tags setup  \
                          --become-user root \
                          --connection local \
-                         /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+                         ./integration/main.yml
     - type: "host_script"
       title: "package the AMI"
       script: |-

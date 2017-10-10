@@ -173,8 +173,14 @@ node(TARGET_NODE) {
                     }
 
                     if ( IS_SOURCE_IN_MASTER ) {
-                        OSE_SOURCE_BRANCH = "master"
-                        UPSTREAM_SOURCE_BRANCH = "upstream/master"
+                        if ( BUILD_MODE == "online:stg" ) {
+                            OSE_SOURCE_BRANCH = "stage"
+                            UPSTREAM_SOURCE_BRANCH = "upstream/stage"
+                            sh "git checkout -b stage origin/stage"
+                        } else {
+                            OSE_SOURCE_BRANCH = "master"
+                            UPSTREAM_SOURCE_BRANCH = "upstream/master"
+                        }
                     } else {
                         OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
                         if ( BUILD_MODE == "release" ) {

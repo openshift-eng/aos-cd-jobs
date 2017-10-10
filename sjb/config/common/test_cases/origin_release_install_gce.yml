@@ -197,6 +197,7 @@ extensions:
             gcloud compute ssh "${instance}" -- sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/ovsdb-server.service"  || true
             gcloud compute ssh "${instance}" -- sudo journalctl --unit docker.service       --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/docker.service"  || true
             gcloud compute ssh "${instance}" -- sudo journalctl --unit dnsmasq.service      --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/dnsmasq.service"  || true
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/systemd-journald.service"  || true
 
             gcloud compute ssh "${instance}" -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                  2>&1 > "${artifact_dir}/generated/node-metrics.log"  || true
             gcloud compute ssh "${instance}" -- "sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a" 2>&1 > "${artifact_dir}/generated/docker.info"  || true

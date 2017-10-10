@@ -45,7 +45,9 @@ echo
 echo "=========="
 echo "Making sure we have kerberos"
 echo "=========="
-kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
+# Old keytab for original OS1 build machine
+# kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
+kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM
 
 # Path for merge-and-build script
 MB_PATH=$(readlink -f $0)

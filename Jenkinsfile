@@ -42,10 +42,10 @@ node('openshift-build-1') {
                       [
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", defaultValue: '4', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific version to use. (i.e. v3.6.173)', name: 'VERSION_OVERRIDE'],
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base\nall", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optiontal version to use. (i.e. v3.6.173); leave blank to bump', name: 'VERSION_OVERRIDE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'rhel7:7-released', description: 'Image to use when FROM rhel; blank will not change', name: 'RHEL'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Image to use when FROM rhel; blank will not change', name: 'RHEL'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: REPOS.join('\n'), defaultValue: DEFAULT_REPO, description: 'Which repo to use', name: 'OSE_REPO'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
@@ -80,8 +80,20 @@ node('openshift-build-1') {
             }
             
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
+                
+                update_docker_args = "--bump_release"
+                if ( VERSION_OVERRIDE != "" ) {
+                    if ( OSE_GROUP != "base" ) {
+                        error( "You probably don't want to run with VERSION_OVERRIDE if group is not base" )
+                    }
+                    if ( RELEASE_OVERRIDE == "" ) {
+                        error( "RELEASE_OVERRIDE must be specified if VERSION_OVERRIDE is" )
+                    }
+                    update_docker_args = "--version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE}"
+                }
+                
                 sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
-                sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} --version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
+                sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} ${update_docker_args} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
                 sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
                 sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
             }

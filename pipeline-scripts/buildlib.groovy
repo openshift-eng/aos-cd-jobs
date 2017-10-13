@@ -256,10 +256,17 @@ def args_to_string(Object... args) {
  * @return Returns the stdout of the operation
  */
 def invoke_on_rcm_guest(git_script_filename, Object... args ) {
+    // The script is surrounded by `{} < /dev/null` to prevent its commands
+    // from trying to read from ssh's stdin, which would interfere with the
+    // script text itself that is being streamed to it.
     return sh(
             returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
-    ).trim()
+            script: """
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} <<EOF
+{ \$(< '${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}'); } \
+    < /dev/null
+EOF
+""").trim()
 }
 
 /**

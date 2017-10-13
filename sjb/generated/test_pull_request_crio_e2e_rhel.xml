@@ -146,7 +146,7 @@ path=&#34;${bucket}${prefix}${segment:-}${suffix}&#34;
 gsutil cp gcs/started.json &#34;${path}started.json&#34;
 if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
   echo &#34;${path%\/}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
-  gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${REPO_OWNER}_${REPO_NAME}/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
+  gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
 fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

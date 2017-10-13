@@ -1,5 +1,5 @@
-- name: Install atomic-openshift-utils for installer
-  yum: name=atomic-openshift-utils state=latest
+- name: Install openshift-ansible for installer
+  yum: name=openshift-ansible* state=latest
   when: "'masters' in group_names"
 
 - name: create installer.cfg.yml

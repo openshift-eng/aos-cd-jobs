@@ -30,7 +30,7 @@ script=&quot;$( mktemp )&quot;
 cat &lt;&lt;SCRIPT &gt;&quot;${script}&quot;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases update -y atomic-openshift-utils
+sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases update -y openshift-ansible
 cd /root/aos-cd-jobs/
 sudo python sjb/hack/determine_install_upgrade_version.py &quot;\$( rpm -qa atomic-openshift )&quot; &gt; AOS_VARS
 source AOS_VARS

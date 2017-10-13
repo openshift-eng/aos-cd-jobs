@@ -4,7 +4,7 @@ cat <<SCRIPT >"${script}"
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 
-sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases update -y atomic-openshift-utils
+sudo yum --disablerepo=* --enablerepo=openshift-int,oso-rhui-rhel-server-releases update -y openshift-ansible
 cd /data/src/github.com/openshift/aos-cd-jobs/
 rpm -qa atomic-openshift
 sudo python sjb/hack/determine_install_upgrade_version.py "\$( rpm -qa atomic-openshift )" > AOS_VARS

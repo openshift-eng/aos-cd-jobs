@@ -25,20 +25,42 @@ node('openshift-build-1') {
         buildlib.initialize()
 
         sshagent(["openshift-bot"]) {
-            stage("oit setup"){
-                sh 'rm -rf enterprise-images'
-                sh 'git clone git@github.com:openshift/enterprise-images.git'
-            }
 
-            stage("push images") {
-                dir ( "enterprise-images" ) {
-                    sh './oit/oit.py --user=ocp-build --group sync-3.7 distgits:push-images --to-defaults'
+            // Capture exceptions and don't let one problem stop other cleanup from executing
+            e1 = null
+            e2 = null
+
+            try {
+                stage("oit setup"){
+                    sh 'rm -rf enterprise-images'
+                    sh 'git clone git@github.com:openshift/enterprise-images.git'
                 }
+
+                stage("push images") {
+                    dir ( "enterprise-images" ) {
+                        sh './oit/oit.py --user=ocp-build --group sync-3.7 distgits:push-images --to-defaults'
+                    }
+                }
+            } catch ( ex1 ) {
+                e1 = ex1
             }
 
-            stage("legacy maint") {
-                sh "./scripts/maintenance.sh"
+            try {
+                stage("legacy maint") {
+                    sh "./scripts/maintenance.sh"
+                }
+            } catch ( ex2 ) {
+                e2 = ex2
             }
+
+            if ( e1 != null ) {
+                throw e1
+            }
+
+            if ( e2 != null ) {
+                throw e2
+            }
+
         }
 
     } catch ( err ) {

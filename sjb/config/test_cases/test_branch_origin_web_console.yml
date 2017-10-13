@@ -28,3 +28,5 @@ extensions:
         ( source hack/lib/init.sh; os::cleanup::dump_container_logs )
   artifacts:
     - "/data/src/github.com/openshift/origin-web-console/test/tmp/screenshots/"
+    - "/data/src/github.com/openshift/origin-web-console/test/coverage/"
+    - "/data/src/github.com/openshift/origin-web-console/test/junit/"

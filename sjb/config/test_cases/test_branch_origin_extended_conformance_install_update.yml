@@ -126,8 +126,6 @@ extensions:
                           -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
                           -e openshift_node_port_range='30000-32000'                    \
-                          -e "openshift_enable_service_catalog=true"                    \
-                          -e "template_service_broker_install=true"                     \
                           -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'
     - type: "script"
       title: "upgrade openshift-ansible to release"
@@ -169,8 +167,6 @@ extensions:
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
                           -e openshift_node_port_range='30000-32000'                    \
                           -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \
-                          -e "openshift_enable_service_catalog=true"                    \
-                          -e "template_service_broker_install=true"                     \
                           -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
     - type: "script"
       title: "expose the kubeconfig"

@@ -17,11 +17,11 @@ that requires that should be under this directory.
 
 ## Jenkins pipeline definitions under `jobs/`
 
-An internal [Continuous Infrastructure Jenkins instance](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/) indexes
+An internal [Continuous Infrastructure Jenkins instance](https://buildvm.openshift.eng.bos.redhat.com:8443/) indexes
 Jenkinsfiles in the branches of this repository.  The branches are automatically generated from the Jenkinsfiles that live under
 the `jobs/` directory on the `master` branch. The job responsible for generating, updating and removing the branches can be found
-in the [`Jenkinsfile`](Jenkinsfile) at the root directory. The builds are currently configured to be executed periodically, but
-can be manually triggered in [jenkins](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd-master/job/master/).
+in the [`Jenkinsfile`](Jenkinsfile) at the root directory. The branch update job is configured to be executed periodically, but
+can be manually triggered in [jenkins](https://buildvm.openshift.eng.bos.redhat.com:8443/job/update-branches/).
 
 The scripts used by the job described above are [`pruner.py`](aos_cd_jobs/pruner.py), which removes branches for jobs that no
 longer exist, and [`updater.py`](aos_cd_jobs/updater.py), which creates/updates branches for existing jobs. A "job" is any
@@ -59,22 +59,21 @@ Note that the files `Jenkinsfile` and `README.md` in the master branch exist bot
 Because of the sequence of steps described above, the former will be overwritten by the latter.
 
 Jobs under the `jobs/build/` directory are indexed at the
-[`aos-cd-builds`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd-builds/) grouping, while the jobs under
-`jobs/cluster/` are indexed at the general [`aos-cd`](https://atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com/job/aos-cd/)
-grouping. A quick synopsis of these indexed jobs is as follows:
+[`aos-cd-builds`](https://buildvm.openshift.eng.bos.redhat.com:8443/job/aos-cd-builds/) grouping. Some jobs are described below. 
 
 |          Job Name          | Description |
 | -------------------------- | ----------- |
-| `build/ose`                | Main build task for OCP. Can build 3.3, 3.4, and so on up through the current ose/master branch.Also builds openshift-ansible artifiacts and jenkins images. |
-| `build/stage-to-prod`      | Promote RPMs from the staging repositories to the production repositories (Copies files from [latest/ in the enterprise online-stg](https://mirror.openshift.com/enterprise/online-stg/latest/) repo to [online-prod/lastest](https://mirror.openshift.com/enterprise/online-prod/latest/). Also copies files from [libra rhel-7-libra-stage](https://mirror.ops.rhcloud.com/libra/rhel-7-libra-stage/) to [libra's latest online-prod](https://mirror.ops.rhcloud.com/libra/online-prod/latest/) in a new directory based on the day's date.). |
+| `build/ocp`                | Main build task for OCP 3.7. Also builds openshift-ansible 3.7 and all OCP images. |
+| `build/ose`                | Main build task for OCP <=3.6. Also builds openshift-ansible artifiacts and jenkins images. |
 | `build/make-puddle`        | Create an Atomic OpenShift puddle on `rcm-guest`. |
 | `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](https://github.com/openshift/online) team. |
-| `build/ose-pipeline`       | R&D to replace build/ose shell scripts with Jenkins pipeline syntax. |
 | `build/refresh-images`     |             |
 | `build/scan-images`        | Scans the images for CVEs using openscap. |
-| `cluster/sprint-control`   | R&D task to drive full Spring cadence when human intervention is no longer required. |
-| `cluster/operation`        | Deletes/upgrades/installs specific Redhat clusters. |
+| `sprint/stage-to-prod`     | Promote RPMs from the staging repositories to the production repositories (Copies files from [latest/ in the enterprise online-stg](https://mirror.openshift.com/enterprise/online-stg/latest/) repo to [online-prod/lastest](https://mirror.openshift.com/enterprise/online-prod/latest/). Also copies files from [libra rhel-7-libra-stage](https://mirror.ops.rhcloud.com/libra/rhel-7-libra-stage/) to [libra's latest online-prod](https://mirror.ops.rhcloud.com/libra/online-prod/latest/) in a new directory based on the day's date.). |
+| `sprint/control`           | Send out messages about dev/stage cut to engineering teams. |
 | `package-dockertested`     | Tests new Brew builds of Docker and tags them into a [mirror repo](https://mirror.openshift.com/enterprise/rhel/dockerextra/x86_64/os/Packages/) for use by the CI systems. |
+| `starter/operation`        | Run specific operations on starter clusters. |
+| `starter/upgrade`          | Runs an openshift-ansible based upgrade on a starter cluster. |
 
 ## Jenkins Job Builder configuration under `jjb/`
 

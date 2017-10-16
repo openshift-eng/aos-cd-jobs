@@ -153,7 +153,7 @@ node('openshift-build-1') {
 			}
 			if ( currentBuild.result != 'FAILURE' ) {
 				stage ('Update the state of the dockertested repo') {
-					sh 'kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM'
+					sh 'kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM'
 					sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${docker_rpm} ${container_selinux_rpm} ${container_storage_setup_rpm} ${skopeo_rpm} ${atomic_rpm}"
 				}
 				stage ('Send out an e-mail about new versions') {

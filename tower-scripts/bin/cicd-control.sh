@@ -404,7 +404,7 @@ function cluster_operation() {
       get_latest_openshift_ansible ${oo_environment}
     fi
 
-    if [ "${CLUSTER_OPERATION}" == online-* ]; then
+    if [[ "${CLUSTER_OPERATION}" == online-* ]]; then
       update-online-roles
     fi
   fi

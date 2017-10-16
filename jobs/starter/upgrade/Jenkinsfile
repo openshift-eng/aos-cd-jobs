@@ -33,6 +33,15 @@ properties(
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Docker version (e.g. 1.12.6-48.git0fdc778.el7)', name: 'DOCKER_VERSION'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: '', description: 'Additional options (key=value linefeed delimited)', name: 'ADDITIONAL_OPTS'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-control-plane?', name: 'UPGRADE_CONTROL_PLANE'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run upgrade-jenkins-image-stream?', name: 'UPGRADE_JENKINS_IMAGE_STREAM'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-nodes?', name: 'UPGRADE_NODES'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-logging?', name: 'UPGRADE_LOGGING'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-metrics?', name: 'UPGRADE_METRICS'],
+
+
+
                   ]
          ]]
 )
@@ -70,13 +79,38 @@ node('openshift-build-1') {
                 deploylib.run( "disable-config-loop" )
             }
 
-            stage( "upgrade" ) {
-                deploylib.run( "upgrade-control-plane", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
-                deploylib.run( "update-jenkins-imagestream" )
-                deploylib.run( "upgrade-nodes", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
-                deploylib.run( "upgrade-logging" )
-                deploylib.run( "upgrade-metrics" )
-                deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity. 
+            stage( "upgrade: control plane" ) {
+                if (UPGRADE_CONTROL_PLANE.toBoolean()) {
+                    deploylib.run("upgrade-control-plane", ["cicd_docker_version": DOCKER_VERSION.trim(), "cicd_openshift_version": OPENSHIFT_VERSION.trim()])
+                }
+            }
+
+            stage( "upgrade: nodes" ) {
+                if (UPGRADE_JENKINS_IMAGE_STREAM.toBoolean()) {
+                    deploylib.run("update-jenkins-imagestream")
+                }
+
+                if (UPGRADE_NODES.toBoolean()) {
+                    deploylib.run("upgrade-nodes", ["cicd_docker_version": DOCKER_VERSION.trim(), "cicd_openshift_version": OPENSHIFT_VERSION.trim()])
+                }
+            }
+
+            stage ("upgrade: logging") {
+                if (UPGRADE_LOGGING.toBoolean()) {
+                    deploylib.run("upgrade-logging")
+                }
+            }
+
+            stage ("upgrade: metrics" ) {
+                if ( UPGRADE_METRICS.toBoolean()  ) {
+                    deploylib.run( "upgrade-metrics" )
+                }
+            }
+
+            stage ( "upgrade: misc" ) {
+                if ( UPGRADE_NODES.toBoolean()  ) {
+                    deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity.
+                }
             }
 
             stage( "config-loop" ) {

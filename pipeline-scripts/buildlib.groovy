@@ -264,10 +264,10 @@ def invoke_on_rcm_guest(git_script_filename, Object... args ) {
     return sh(
             returnStdout: true,
             script: """
-ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} <<EOF
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} <<I_EOF
 { \$(< '${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}'); } \
     < /dev/null
-EOF
+I_EOF
 """).trim()
 }
 

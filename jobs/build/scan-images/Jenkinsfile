@@ -74,7 +74,7 @@ Jenkins job: ${env.BUILD_URL}
       from: MAIL_FROM, to: MAILING_LIST_ERR.join(', '),
       subject: 'jobs/build/scan-image: error',
       body: """\
-Encoutered an error while running merge-and-build.sh: ${err}
+Encoutered an error while running ${env.JOB_NAME}: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}

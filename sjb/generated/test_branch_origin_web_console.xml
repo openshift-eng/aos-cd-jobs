@@ -303,6 +303,10 @@ if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo sta
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin-web-console/test/junit/
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin-web-console/test/junit/ &#34;${ARTIFACT_DIR}&#34;
 fi
+if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /data/src/github.com/openshift/origin-web-console/test/reports/; then
+    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin-web-console/test/reports/
+    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin-web-console/test/reports/ &#34;${ARTIFACT_DIR}&#34;
+fi
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

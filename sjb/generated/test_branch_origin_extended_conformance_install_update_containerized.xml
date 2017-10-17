@@ -291,10 +291,7 @@ if path=&#34;$( gcs_path )&#34;; then
   gsutil cp gcs/started.json &#34;${path}started.json&#34;
   if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
     echo &#34;${path%\/}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
-    if [[ -n &#34;${REPO_OWNER:-}&#34; &amp;&amp; &#34;${REPO_NAME:-}&#34; != &#34;origin&#34; ]]; then
-      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
-    fi
-    gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${segment:-}${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
+    gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
   fi
 fi</command>
         </hudson.tasks.Shell>
@@ -564,9 +561,9 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DOWNLOAD ARTIFACTS FROM THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DOWNLOAD ARTIFACTS FROM THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 trap &#39;exit 0&#39; EXIT
-ARTIFACT_DIR=&#34;$( pwd )/artifacts&#34;
+ARTIFACT_DIR=&#34;$( pwd )/artifacts/gathered&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
-mkdir &#34;${ARTIFACT_DIR}&#34;
+mkdir -p &#34;${ARTIFACT_DIR}&#34;
 if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /data/src/github.com/openshift/origin/_output/scripts; then
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin/_output/scripts
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin/_output/scripts &#34;${ARTIFACT_DIR}&#34;
@@ -637,12 +634,12 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ASSEMBLE GCS OUTPUT ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ASSEMBLE GCS OUTPUT [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 trap &#39;exit 0&#39; EXIT
-mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/scripts
+mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
 cat &#34;/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log&#34; &gt; gcs/build-log.txt
 cp artifacts/generated/* gcs/artifacts/generated/
 cp artifacts/journals/* gcs/artifacts/journals/
-cp -r artifacts/scripts/* gcs/artifacts/scripts/
+cp -r artifacts/gathered/* gcs/artifacts/
 
 function gcs_path() {
   bucket=&#34;gs://origin-ci-test/&#34;

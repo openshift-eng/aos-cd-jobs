@@ -30,3 +30,4 @@ extensions:
     - "/data/src/github.com/openshift/origin-web-console/test/tmp/screenshots/"
     - "/data/src/github.com/openshift/origin-web-console/test/coverage/"
     - "/data/src/github.com/openshift/origin-web-console/test/junit/"
+    - "/data/src/github.com/openshift/origin-web-console/test/reports/"

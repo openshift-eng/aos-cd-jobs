@@ -7,7 +7,7 @@ properties(
               parameterDefinitions:
                   [
                           [     
-                                  name: 'CI_SERVER'
+                                  name: 'CI_SERVER',
                                   $class: 'hudson.model.StringParameterDefinition', 
                                   defaultValue: 'https://api.ci.openshift.org:443', 
                                   description: 'OpenShift CI Server', 

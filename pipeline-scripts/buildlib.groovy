@@ -3,13 +3,16 @@ def commonlib = load("pipeline-scripts/commonlib.groovy")
 
 commonlib.initialize()
 
+GITHUB_URLS = [:]
+GITHUB_BASE_PATHS = [:]
+
 def initialize() {
     this.registry_login()
     this.path_setup()
     this.kinit()
 
-    env.GITHUB_URLS = [:]
-    env.GITHUB_BASE_PATHS = [:]
+    GITHUB_URLS = [:]
+    GITHUB_BASE_PATHS = [:]
 }
 
 // Initialize $PATH and $GOPATH
@@ -77,10 +80,10 @@ def initialize_ose_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/ose.git"
-        env.GITHUB_URLS["ose"] = "${GITHUB_BASE}/ose.git"
+        GITHUB_URLS["ose"] = "${GITHUB_BASE}/ose.git"
     }
     OSE_DIR = "${OPENSHIFT_DIR}/ose"
-    env.GITHUB_BASE_PATHS["ose"] = OSE_DIR
+    GITHUB_BASE_PATHS["ose"] = OSE_DIR
     env.OSE_DIR = OSE_DIR
     echo "Initialized env.OSE_DIR: ${env.OSE_DIR}"
 }
@@ -89,10 +92,10 @@ def initialize_origin_web_console_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/origin-web-console.git"
-        env.GITHUB_URLS["origin-web-console"] = "${GITHUB_BASE}/origin-web-console.git"
+        GITHUB_URLS["origin-web-console"] = "${GITHUB_BASE}/origin-web-console.git"
     }
     WEB_CONSOLE_DIR = "${OPENSHIFT_DIR}/origin-web-console"
-    env.GITHUB_BASE_PATHS["origin-web-console"] = WEB_CONSOLE_DIR
+    GITHUB_BASE_PATHS["origin-web-console"] = WEB_CONSOLE_DIR
     env.WEB_CONSOLE_DIR = WEB_CONSOLE_DIR
     echo "Initialized env.WEB_CONSOLE_DIR: ${env.WEB_CONSOLE_DIR}"
 }
@@ -101,10 +104,10 @@ def initialize_openshift_ansible() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/openshift-ansible.git"
-        env.GITHUB_URLS["openshift-ansible"] = "${GITHUB_BASE}/openshift-ansible.git"
+        GITHUB_URLS["openshift-ansible"] = "${GITHUB_BASE}/openshift-ansible.git"
     }
     OPENSHIFT_ANSIBLE_DIR = "${OPENSHIFT_DIR}/openshift-ansible"
-    env.GITHUB_BASE_PATHS["openshift-ansible"] = OPENSHIFT_ANSIBLE_DIR
+    GITHUB_BASE_PATHS["openshift-ansible"] = OPENSHIFT_ANSIBLE_DIR
     env.OPENSHIFT_ANSIBLE_DIR = OPENSHIFT_ANSIBLE_DIR
     echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
 }
@@ -113,10 +116,10 @@ def initialize_openshift_jenkins() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/jenkins.git"
-        env.GITHUB_URLS["jenkins"] = "${GITHUB_BASE}/jenkins.git"
+        GITHUB_URLS["jenkins"] = "${GITHUB_BASE}/jenkins.git"
     }
     OPENSHIFT_JENKINS_DIR = "${OPENSHIFT_DIR}/jenkins"
-    env.GITHUB_BASE_PATHS["jenkins"] = OPENSHIFT_JENKINS_DIR
+    GITHUB_BASE_PATHS["jenkins"] = OPENSHIFT_JENKINS_DIR
     env.OPENSHIFT_JENKINS_DIR = OPENSHIFT_JENKINS_DIR
     echo "Initialized env.OPENSHIFT_JENKINS_DIR: ${env.OPENSHIFT_JENKINS_DIR}"
 }

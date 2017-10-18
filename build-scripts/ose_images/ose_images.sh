@@ -121,8 +121,7 @@ add_group_to_list() {
         add_to_list openshift-enterprise-haproxy-router-docker
       else
         add_to_list openshift-enterprise-pod-docker
-        # Removed for OIT testing
-        # add_to_list aos3-installation-docker
+        add_to_list aos3-installation-docker
         add_to_list openshift-enterprise-docker
         add_to_list openshift-enterprise-dockerregistry-docker
         add_to_list openshift-enterprise-egress-router-docker
@@ -171,9 +170,7 @@ add_group_to_list() {
       fi
     ;;
     installer)
-      echo "aos3-installation-docker not available"
-      # Disabled for OIT testing
-      # add_to_list aos3-installation-docker
+      add_to_list aos3-installation-docker
     ;;
     asb)
           add_to_list openshift-enterprise-mediawiki-docker
@@ -252,8 +249,7 @@ add_group_to_list() {
         add_to_list openshift-enterprise-haproxy-router-docker
       else
         add_to_list openshift-enterprise-pod-docker
-        # Removed for OIT testing
-        # add_to_list aos3-installation-docker
+        add_to_list aos3-installation-docker
         add_to_list openshift-enterprise-docker
         add_to_list openshift-enterprise-dockerregistry-docker
         add_to_list openshift-enterprise-egress-router-docker

@@ -29,7 +29,7 @@ properties([
                 [
                     name: 'MAIL_LIST_SUCCESS',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com',
+                    defaultValue: 'jupierce@redhat.com',
                     description: 'Success Mailing List'
                 ],
                 [

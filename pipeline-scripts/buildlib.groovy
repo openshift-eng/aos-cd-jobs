@@ -56,8 +56,18 @@ def registry_login() {
     }
 }
 
+def initialize_openshift_dir() {
+    OPENSHIFT_DIR = "${GOPATH}/src/github.com/openshift"
+    env.OPENSHIFT_DIR = OPENSHIFT_DIR
+    sh "mkdir -p ${OPENSHIFT_DIR}"
+    echo "Initialized env.OPENSHIFT_DIR: ${env.OPENSHIFT_DIR}"
+}
+
 def initialize_enterprise_images_dir() {
+    this.initialize_openshift_dir()
     ENTERPRISE_IMAGES_DIR = "${env.WORKSPACE}/enterprise-images"
+    sh "rm -rf ${ENTERPRISE_IMAGES_DIR}"  // Remove any cruft
+    sh "mkdir -p ${ENTERPRISE_IMAGES_DIR}"
     OIT_PATH = "${ENTERPRISE_IMAGES_DIR}/oit/oit.py"
     sh "git clone ${GITHUB_BASE}/enterprise-images.git ${ENTERPRISE_IMAGES_DIR}"
     env.ENTERPRISE_IMAGES_DIR = ENTERPRISE_IMAGES_DIR
@@ -67,13 +77,6 @@ def initialize_enterprise_images_dir() {
 
 def oit( cmd ){
     sh "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build ${cmd.trim()}"
-}
-
-def initialize_openshift_dir() {
-    OPENSHIFT_DIR = "${GOPATH}/src/github.com/openshift"
-    env.OPENSHIFT_DIR = OPENSHIFT_DIR
-    sh "mkdir -p ${OPENSHIFT_DIR}"
-    echo "Initialized env.OPENSHIFT_DIR: ${env.OPENSHIFT_DIR}"
 }
 
 def initialize_ose_dir() {

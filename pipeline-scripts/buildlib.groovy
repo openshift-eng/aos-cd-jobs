@@ -7,6 +7,9 @@ def initialize() {
     this.registry_login()
     this.path_setup()
     this.kinit()
+
+    env.GITHUB_URLS = [:]
+    env.GITHUB_BASE_PATHS = [:]
 }
 
 // Initialize $PATH and $GOPATH
@@ -50,6 +53,19 @@ def registry_login() {
     }
 }
 
+def initialize_enterprise_images_dir() {
+    ENTERPRISE_IMAGES_DIR = "${env.WORKSPACE}/enterprise-images"
+    OIT_PATH = "${ENTERPRISE_IMAGES_DIR}/oit/oit.py"
+    sh "git clone ${GITHUB_BASE}/enterprise-images.git ${ENTERPRISE_IMAGES_DIR}"
+    env.ENTERPRISE_IMAGES_DIR = ENTERPRISE_IMAGES_DIR
+    env.OIT_PATH = OIT_PATH
+    echo "Initialized env.ENTERPRISE_IMAGES_DIR: ${env.ENTERPRISE_IMAGES_DIR}"
+}
+
+def oit( cmd ){
+    sh "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build ${cmd.trim()}"
+}
+
 def initialize_openshift_dir() {
     OPENSHIFT_DIR = "${GOPATH}/src/github.com/openshift"
     env.OPENSHIFT_DIR = OPENSHIFT_DIR
@@ -61,8 +77,10 @@ def initialize_ose_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/ose.git"
+        env.GITHUB_URLS["ose"] = "${GITHUB_BASE}/ose.git"
     }
     OSE_DIR = "${OPENSHIFT_DIR}/ose"
+    env.GITHUB_BASE_PATHS["ose"] = OSE_DIR
     env.OSE_DIR = OSE_DIR
     echo "Initialized env.OSE_DIR: ${env.OSE_DIR}"
 }
@@ -71,8 +89,10 @@ def initialize_origin_web_console_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/origin-web-console.git"
+        env.GITHUB_URLS["origin-web-console"] = "${GITHUB_BASE}/origin-web-console.git"
     }
     WEB_CONSOLE_DIR = "${OPENSHIFT_DIR}/origin-web-console"
+    env.GITHUB_BASE_PATHS["origin-web-console"] = WEB_CONSOLE_DIR
     env.WEB_CONSOLE_DIR = WEB_CONSOLE_DIR
     echo "Initialized env.WEB_CONSOLE_DIR: ${env.WEB_CONSOLE_DIR}"
 }
@@ -81,10 +101,24 @@ def initialize_openshift_ansible() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/openshift-ansible.git"
+        env.GITHUB_URLS["openshift-ansible"] = "${GITHUB_BASE}/openshift-ansible.git"
     }
     OPENSHIFT_ANSIBLE_DIR = "${OPENSHIFT_DIR}/openshift-ansible"
+    env.GITHUB_BASE_PATHS["openshift-ansible"] = OPENSHIFT_ANSIBLE_DIR
     env.OPENSHIFT_ANSIBLE_DIR = OPENSHIFT_ANSIBLE_DIR
     echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
+}
+
+def initialize_openshift_jenkins() {
+    this.initialize_openshift_dir()
+    dir( OPENSHIFT_DIR ) {
+        sh "git clone ${GITHUB_BASE}/jenkins.git"
+        env.GITHUB_URLS["jenkins"] = "${GITHUB_BASE}/jenkins.git"
+    }
+    OPENSHIFT_JENKINS_DIR = "${OPENSHIFT_DIR}/jenkins"
+    env.GITHUB_BASE_PATHS["jenkins"] = OPENSHIFT_JENKINS_DIR
+    env.OPENSHIFT_JENKINS_DIR = OPENSHIFT_JENKINS_DIR
+    echo "Initialized env.OPENSHIFT_JENKINS_DIR: ${env.OPENSHIFT_JENKINS_DIR}"
 }
 
 /**
@@ -299,6 +333,7 @@ def build_puddle(conf_url, keys, Object...args) {
     return puddle_dir
 }
 
+
 def with_virtualenv(path, f) {
     final env = [
         "VIRTUAL_ENV=${path}",
@@ -308,4 +343,100 @@ def with_virtualenv(path, f) {
     return withEnv(env, f)
 }
 
-return this
+// Parse record.log from OIT into a map
+// Records will be formatted in a map like below:
+// rpms/jenkins-slave-maven-rhel7-docker:
+//   source_alias: jenkins
+//   image: openshift3/jenkins-slave-maven-rhel7
+//   dockerfile: /tmp/oit-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
+//   owners: ahaile@redhat.com,smunilla@redhat.com
+//   distgit: rpms/jenkins-slave-maven-rhel7-docker]
+// pms/aos-f5-router-docker:
+//   source_alias: ose
+//   image: openshift3/ose-f5-router
+//   dockerfile: /tmp/oit-uEeF2_.tmp/distgits/aos-f5-router-docker/Dockerfile
+//   owners:
+//   distgit: rpms/aos-f5-router-docker
+def parse_record_log( working_dir ) {
+    def record = readFile( "${working_dir}/record.log" )
+    lines = record.split("\\r?\\n");
+
+    def result = [:]
+    int i = 0
+    int f = 0
+    // loop records and pull type from first field
+    // then create map all all remaining fields
+    for ( i = 0; i < lines.size(); i++ ) {
+        fields = lines[i].tokenize("|")
+        type = fields[0]
+        if(! result.containsKey(type)) {
+            result[type] = []
+        }
+        record = [:]
+        for ( f = 1; f < fields.size(); f++ ){
+            entry = fields[f].tokenize("=")
+            if ( entry.size() == 1 ){
+                record[entry[0]] = null
+            }
+            else {
+                record[entry[0]] = entry[1]
+            }
+        }
+        result[type].add(record)
+    }
+
+    return result
+}
+
+
+// gets map of emails to notify from output of parse_record_log
+// map formatted as below:
+// rpms/jenkins-slave-maven-rhel7-docker
+//   source_alias: jenkins
+//   image: openshift3/jenkins-slave-maven-rhel7
+//   dockerfile: /tmp/oit-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
+//   owners: bparees@redhat.com
+//   distgit: rpms/jenkins-slave-maven-rhel7-docker
+//   sha: 1b8903ef72878cd895b3f94bee1c6f5d60ce95c3
+def get_distgit_notify( record_log ) {
+    def result = [:]
+    // It's possible there were no commits or no one specified to notify
+    if ( ! record_log.containsKey("distgit_commit") || ! record_log.containsKey("dockerfile_notify")) {
+        return result
+    }
+
+    commit = record_log["distgit_commit"]
+    notify = record_log["dockerfile_notify"]
+
+    int i = 0
+    // get notification emails by distgit name
+    for ( i = 0; i < notify.size(); i++ ) {
+        result[notify[i]["distgit"]] = notify[i]
+    }
+
+    // match commit hash with notify email record
+    for ( i = 0; i < commit.size(); i++ ) {
+      if(result.containsKey(commit[i]["distgit"])){
+        result[commit[i]["distgit"]]["sha"] = commit[i]["sha"]
+      }
+    }
+
+    return result
+
+}
+
+def write_sources_file() {
+  sources = """ose: ${env.OSE_DIR}
+jenkins: ${env.OPENSHIFT_JENKINS_DIR}
+openshift-ansible: ${env.OPENSHIFT_ANSIBLE_DIR}
+  """
+  writeFile("${env.WORKSPACE}/sources.yml", sources)
+}
+
+//https://stackoverflow.com/a/42775560
+@NonCPS
+List<List<?>> mapToList(Map map) {
+  return map.collect { it ->
+    [it.key, it.value]
+  }
+}

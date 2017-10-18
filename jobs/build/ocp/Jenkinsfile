@@ -489,11 +489,11 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} 
 
             alias = val['source_alias']
             dockerfile_url = ""
-            github_url = env.GITHUB_URLS[alias]
+            github_url = GITHUB_URLS[alias]
             github_url = github_url.minus(".git")
             github_url = github_url.minus("git@")
             github_url = github_url.replaceFirst(":", "/")
-            base_path = env.GITHUB_BASE_PATHS[alias]
+            base_path = GITHUB_BASE_PATHS[alias]
             dockerfile_sub_path = val['dockerfile'].minus(base_path)
             dockerfile_url = "Source file: " + github_url + "/" + dockerfile_sub_path
             // always mail success list, val.owners will be comma delimited or empty

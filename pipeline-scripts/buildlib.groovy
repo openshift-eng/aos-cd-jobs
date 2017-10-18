@@ -440,3 +440,5 @@ List<List<?>> mapToList(Map map) {
     [it.key, it.value]
   }
 }
+
+return this

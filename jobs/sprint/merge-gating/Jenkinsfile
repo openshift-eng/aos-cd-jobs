@@ -6,6 +6,12 @@ properties(
             [$class : 'ParametersDefinitionProperty',
               parameterDefinitions:
                   [
+                          [     
+                                  name: 'CI_SERVER'
+                                  $class: 'hudson.model.StringParameterDefinition', 
+                                  defaultValue: 'https://api.ci.openshift.org:443', 
+                                  description: 'OpenShift CI Server', 
+                          ],
                           [
                                   name: 'MAIL_LIST_FAILURE',
                                   $class: 'hudson.model.StringParameterDefinition',
@@ -63,8 +69,6 @@ node(TARGET_NODE) {
     commonlib.initialize()
 
     try {
-
-        MERGE_GATE_LABELS = REQUIRED_LABEL
 
         sshagent(["openshift-bot"]) {
 

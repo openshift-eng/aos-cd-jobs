@@ -2,61 +2,33 @@
 
 // Expose properties for a parameterized build
 properties(
-    [
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
-        [$class : 'ParametersDefinitionProperty',
-      parameterDefinitions:
-            [
-                [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1',
-                 description: 'Jenkins agent node', name: 'TARGET_NODE'],
-
-                [$class: 'hudson.model.ChoiceParameterDefinition',
-                 choices: '''
-git@github.com:openshift
-git@github.com:jupierce
-git@github.com:jupierce-aos-cd-bot
-git@github.com:adammhaile
-git@github.com:adammhaile-aos-cd-bot
-''',
-                 defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
-
-                [$class: 'hudson.model.ChoiceParameterDefinition', choices: "openshift-bot\naos-cd-test\njupierce-aos-cd-bot\nadammhaile-aos-cd-bot",
-                 defaultValue: 'aos-cd-test', description: 'SSH credential id to use', name: 'SSH_KEY_ID'],
-
-                [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.7',
-                 description: 'OCP Version to build', name: 'BUILD_VERSION'],
-
-                [$class: 'hudson.model.StringParameterDefinition',
-                 defaultValue: 'aos-devel@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com',
-                 description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-
-                [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com',
-                 description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-
-                [$class: 'hudson.model.ChoiceParameterDefinition',
-                 choices: "release\npre-release\nonline:int\nonline:stg", description:
+        [
+            buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
+            [$class : 'ParametersDefinitionProperty',
+          parameterDefinitions:
+                  [
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "openshift-bot\naos-cd-test\njupierce-aos-cd-bot\nadammhaile-aos-cd-bot", defaultValue: 'aos-cd-test', description: 'SSH credential id to use', name: 'SSH_KEY_ID'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.7', description: 'OCP Version to build', name: 'BUILD_VERSION'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable intra-day build hack for CL team CI?', name: 'EARLY_LATEST_HACK'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "release\npre-release\nonline:int\nonline:stg", description:
 '''
 release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
 pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
-
-                [$class: 'hudson.model.BooleanParameterDefinition',
-                 defaultValue: true, description: 'Sign RPMs with openshifthosted?', name: 'SIGN'],
-
-                [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false,
-                 description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
-
-                [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false,
-                 description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
-
-                [$class: 'hudson.model.TextParameterDefinition', defaultValue: "",
-                 description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],
-            ]
-        ],
-        disableConcurrentBuilds()
-    ]
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Sign RPMs with openshifthosted?', name: 'SIGN'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
+                          [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],
+                  ]
+            ],
+            disableConcurrentBuilds()
+        ]
 )
 
 IS_TEST_MODE = TEST.toBoolean()
@@ -163,10 +135,6 @@ node(TARGET_NODE) {
             buildlib.initialize()
             echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
-            stage( "enterprise-images repo" ) {
-                buildlib.initialize_enterprise_images_dir()
-            }
-
             stage( "ose repo" ) {
                 master_spec = buildlib.initialize_ose()
             }
@@ -187,10 +155,6 @@ node(TARGET_NODE) {
                 buildlib.initialize_openshift_ansible()
             }
 
-            stage( "jenkins repo" ) {
-                buildlib.initialize_openshift_jenkins()
-            }
-
             stage( "analyze" ) {
 
                 dir ( env.OSE_DIR ) {
@@ -208,20 +172,15 @@ node(TARGET_NODE) {
                         }
                     }
 
-                if ( IS_SOURCE_IN_MASTER ) {
-                    if ( BUILD_MODE == "online:stg" ) {
-                        OSE_SOURCE_BRANCH = "stage"
-                        UPSTREAM_SOURCE_BRANCH = "upstream/stage"
-                        sh "git checkout -b stage origin/stage"
-                    } else {
-                        OSE_SOURCE_BRANCH = "master"
-                        UPSTREAM_SOURCE_BRANCH = "upstream/master"
-                    }
-                } else {
-                    OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
-                    if ( BUILD_MODE == "release" ) {
-                        // When building in release mode, no longer pull from upstream
-                        UPSTREAM_SOURCE_BRANCH = null
+                    if ( IS_SOURCE_IN_MASTER ) {
+                        if ( BUILD_MODE == "online:stg" ) {
+                            OSE_SOURCE_BRANCH = "stage"
+                            UPSTREAM_SOURCE_BRANCH = "upstream/stage"
+                            sh "git checkout -b stage origin/stage"
+                        } else {
+                            OSE_SOURCE_BRANCH = "master"
+                            UPSTREAM_SOURCE_BRANCH = "upstream/master"
+                        }
                     } else {
                         OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
                         if ( BUILD_MODE == "release" ) {
@@ -493,8 +452,6 @@ node(TARGET_NODE) {
               )
             }
 
-            // TODO: Remove after new OIT version confirmed
-            // Old method for most images
             stage( "compare dist-git" ) {
                 sh "ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
             }
@@ -502,73 +459,23 @@ node(TARGET_NODE) {
             stage( "update dist-git" ) {
                 sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_DOCKERFILE_RELEASE}' --version 'v${NEW_VERSION}'"
             }
-            // End old method
-
-            // OIT Method
-            OIT_WORKING = "${pwd(tmp=true)}"
-
-            stage( "update dist-git" ) {
-              buildlib.write_sources_file()
-              buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' \\
-distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} \\
---release ${NEW_DOCKERFILE_RELEASE}
-"""
-            }
-
-            record_log = buildlib.parse_record_log( OIT_WORKING )
-            distgit_notify = buildlib.get_distgit_notify( record_log )
-            distgit_notify = buildlib.mapToList(distgit_notify)
-            // loop through all new commits and notify their owners
-            for(i = 0; i < distgit_notify.size(); i++) {
-                distgit = distgit_notify[i][0]
-                val = distgit_notify[i][1]
-
-                alias = val['source_alias']
-                dockerfile_url = ""
-                github_url = env.GITHUB_URLS[alias]
-                github_url = github_url.minus(".git")
-                github_url = github_url.minus("git@")
-                github_url = github_url.replaceFirst(":", "/")
-                base_path = env.GITHUB_BASE_PATHS[alias]
-                dockerfile_sub_path = val['dockerfile'].minus(base_path)
-                dockerfile_url = "Source file: " + github_url + "/" + dockerfile_sub_path
-                // always mail success list, val.owners will be comma delimited or empty
-                mail(to: "${MAIL_LIST_SUCCESS},${val.owners}",
-                        from: "aos-cd@redhat.com",
-                        subject: "${val.image} Dockerfile reconciliation.",
-                        body: """
-OIT has detected a change in the Dockerfile for ${val.image}
-${dockerfile_url}
-This has been automatically reconciled and the new file can be seen here:
-http://pkgs.devel.redhat.com/cgit/${disgit}/tree/Dockerfile?id=${val.sha}
-            """);
-            }
 
             stage( "build images" ) {
-                sh """
-ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base \\
---repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo
-"""
-
-                buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION} --include aos3-installation-docker \\
-distgits:build-images \\
---push-to-defaults --repo_type unsigned
-"""
+                // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
+                sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
             }
 
-            // Old method
             if ( EARLY_LATEST_HACK.toBoolean() ) {
-            // Hack to keep from breaking openshift-ansible CI during US Eastern daylight builds. They need the latest puddle to exist
-            // before images are pushed to registry-ops in order for their current CI implementation to work.
-            OCP_PUDDLE = buildlib.build_puddle(
-                    PUDDLE_CONF,    // The puddle configuration file to use
-                    PUDDLE_SIGN_KEYS, // openshifthosted key
-                    "-b",   // do not fail if we are missing dependencies
-                    "-d",   // print debug information
-                    "-n"
-            )
+                // Hack to keep from breaking openshift-ansible CI during US Eastern daylight builds. They need the latest puddle to exist
+                // before images are pushed to registry-ops in order for their current CI implementation to work.
+                OCP_PUDDLE = buildlib.build_puddle(
+                        PUDDLE_CONF,    // The puddle configuration file to use
+                        PUDDLE_SIGN_KEYS, // openshifthosted key
+                        "-b",   // do not fail if we are missing dependencies
+                        "-d",   // print debug information
+                        "-n"
+                )
+            }
 
             stage( "push images" ) {
                 dir( "${env.WORKSPACE}/build-scripts/ose_images" ) {
@@ -587,24 +494,23 @@ distgits:build-images \\
                         "-d",   // print debug information
                         "-n"
                 )
-                // end old method
-
-                echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
-
-                // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
-                buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", BUILD_VERSION, BUILD_MODE )
-
-                NEW_FULL_VERSION="${NEW_VERSION}-${NEW_RELEASE}"
-
-                if ( NEW_RELEASE != "1" ) {
-                    // If this is not a release candidate, push binary in a directory qualified with release field information
-                    buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION )
-                } else {
-                    // If this is a release candidate, the directory binary directory should not contain release information
-                    buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_VERSION )
-                }
-
             }
+
+            echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
+
+            // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
+            buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", BUILD_VERSION, BUILD_MODE )
+
+            NEW_FULL_VERSION="${NEW_VERSION}-${NEW_RELEASE}"
+
+            if ( NEW_RELEASE != "1" ) {
+                // If this is not a release candidate, push binary in a directory qualified with release field information
+                buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION )
+            } else {
+                // If this is a release candidate, the directory binary directory should not contain release information
+                buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_VERSION )
+            }
+
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
 

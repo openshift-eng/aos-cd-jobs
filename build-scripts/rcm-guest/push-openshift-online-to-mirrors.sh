@@ -8,15 +8,16 @@ set -e
 
 if [ "$#" != "2" ]; then
 	echo "Invalid arguments"
-	echo "Syntax: $0 <major.minor> <build_mode>"
+	echo "Syntax: $0 <version> <build_mode>"
 	echo "  Build Modes: online:int, online:stg, pre-release, release"
 	exit 1
 fi
 
 
-VERSION="${1}"
+FULL_VERSION="${1}"
 BUILD_MODE="${2}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
+VERSION=$(echo "${FULL_VERSION}" | cut -d . -f 1-2)
 
 if [ "$BUILD_MODE" == "online:int" ]; then
 	REPO="online-openshift-scripts-int"
@@ -38,15 +39,19 @@ fi
 # This script is called after a successful build. The build should have created
 # a puddle and "latest" should be a symlink to that puddle directory. The goal here
 # is to copy this puddle out to an appropriate location on the mirrors.
-PUDDLEDIR="${BASEDIR}/AtomicOpenShiftOnline/${VERSION}/latest"
+PUDDLEDIR="${BASEDIR}/AtomicOpenShiftOnline/${VERSION}"
 
-if [ ! -e "${PUDDLEDIR}" ]; then
-	echo "Unable to find latest AtomicOpenShiftOnline build: $PUDDLEDIR"
+if [ ! -e "${PUDDLEDIR}/latest" ]; then
+	echo "Unable to find latest AtomicOpenShiftOnline build: ${PUDDLEDIR}/latest"
 	exit 1
 fi
 
 # dereference the symlink to the actual directory basename: e.g. "2017-06-09.4"
-LASTDIR=$(readlink ${PUDDLEDIR})
+LASTDIR=$(readlink --verbose "${PUDDLEDIR}/latest")
+
+# Append version number to facilitate searches on the mirrors.
+mv "${PUDDLEDIR}/${LASTDIR}" "${PUDDLEDIR}/${LASTDIR}_v${FULL_VERSION}"
+LASTDIR=${LASTDIR}_v${FULL_VERSION}
 
 echo "Pushing puddle: $LASTDIR"
 
@@ -69,7 +74,7 @@ EOF
 
 
 # Copy the local puddle to the new directory prepped on use-mirror
-rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "ssh ${BOT_USER} -o StrictHostKeyChecking=no" ${PUDDLEDIR}/ use-mirror-upload.ops.rhcloud.com:/srv/enterprise/${REPO}/${LASTDIR}/
+rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "ssh ${BOT_USER} -o StrictHostKeyChecking=no" "${PUDDLEDIR}/${LASTDIR}" "use-mirror-upload.ops.rhcloud.com:/srv/enterprise/${REPO}/"
 
 $MIRROR_SSH sh -s <<-EOF
 	set -e

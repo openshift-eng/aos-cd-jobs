@@ -69,6 +69,15 @@ node('openshift-build-1') {
     }
 
     set_workspace()
+
+    def buildlib = load( "pipeline-scripts/buildlib.groovy")
+    buildlib.initialize()
+    echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
+
+    stage( "enterprise-images repo" ) {
+        buildlib.initialize_enterprise_images_dir()
+    }
+
     stage('Refresh Images') {
         try {
             checkout scm
@@ -78,9 +87,9 @@ node('openshift-build-1') {
             if ( RHEL != "" ) {
                 rhel_arg = "--rhel ${RHEL}"
             }
-            
+
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
-                
+
                 update_docker_args = "--bump_release"
                 if ( VERSION_OVERRIDE != "" ) {
                     if ( OSE_GROUP != "base" ) {
@@ -91,11 +100,27 @@ node('openshift-build-1') {
                     }
                     update_docker_args = "--version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE}"
                 }
-                
+
                 sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"
                 sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} ${update_docker_args} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
                 sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
                 sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
+                // end ose_images method
+
+                // OIT method
+                buildlib.write_sources_file()
+                buildlib.oit """
+  --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}' \\
+  distgits:update-dockerfile --sources ${env.WORKSPACE}/sources.yml --version ${VERSION_OVERRIDE} \\
+  --release ${RELEASE_OVERRIDE}
+  """
+
+              buildlib.oit """
+--working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR} --include aos3-installation-docker \\
+distgits:build-images \\
+--push-to-defaults --repo_type signed
+"""
+                // end OIT method
             }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available

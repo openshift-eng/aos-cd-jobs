@@ -26,7 +26,6 @@ properties(
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is DevCut START?', name: 'TEST_DEV_CUT'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is StageCut START?', name: 'TEST_STAGE_CUT'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Pretend it is master open?', name: 'TEST_OPEN_MASTER'],
-                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force open (regardless of date)', name: 'FORCE_OPEN_MASTER'],
                   ]
             ],
             disableConcurrentBuilds()
@@ -36,17 +35,16 @@ properties(
 TEST_DEV_CUT = TEST_DEV_CUT.toBoolean()
 TEST_STAGE_CUT = TEST_STAGE_CUT.toBoolean()
 TEST_OPEN_MASTER = TEST_OPEN_MASTER.toBoolean()
-FORCE_OPEN_MASTER = FORCE_OPEN_MASTER.toBoolean()
 
 TEST_ONLY = TEST_DEV_CUT || TEST_STAGE_CUT || TEST_OPEN_MASTER
 
-if ( TEST_ONLY || FORCE_OPEN_MASTER ) {
+if ( TEST_ONLY ) {
     if ( MAIL_LIST_ANNOUNCE.contains( "aos" ) || MAIL_LIST_LEADS.contains( "aos" ) ) {
-        error "Set success list to non-mailing list when testing or forcing"
+        error "Set success list to non-mailing list when testing"
     }
 }
 
-def mail_announce(phase, body) {
+def sprint_announce(phase, body) {
 
     if ( SPECIAL_NOTES != "" ) {
         body += "\n\nImportant Notification\n-------------------------------------\n${SPECIAL_NOTES}\n"
@@ -60,19 +58,29 @@ def mail_announce(phase, body) {
             body: "${body}");
 }
 
+def release_announce(phase, body) {
+
+    if ( SPECIAL_NOTES != "" ) {
+        body += "\n\nImportant Notification\n-------------------------------------\n${SPECIAL_NOTES}\n"
+    }
+
+    mail(
+            to: "${MAIL_LIST_ANNOUNCE}",
+            from: "aos-cd@redhat.com",
+            replyTo: 'jupierce@redhat.com',
+            subject: "[aos-announce] Release Phase: ${phase}",
+            body: "${body}");
+}
+
+
 def mail_leads(body) {
+
     mail(
             to: "${MAIL_LIST_LEADS}",
             from: "aos-cd@redhat.com",
             replyTo: 'jupierce@redhat.com',
             subject: "[aos-leads] Online First Support Assignments (Sprint ${SPRINT_ID})",
             body: "${body}");
-}
-
-def set_required_labels(template_filename, label) {
-    sq = readFile(template_filename)
-    sq = sq.replaceAll('additional-required-labels: ".*"', "additional-required-labels: \"${label}\"")
-    writeFile file:template_filename, text:sq
 }
 
 node(TARGET_NODE) {
@@ -84,6 +92,7 @@ node(TARGET_NODE) {
 
     try {
 
+        FEATURE_COMPLETE_BODY = readFile( "emails/feature_complete" )
 
         DEV_CUT_BODY = readFile( "emails/devcut_start" )
 
@@ -107,60 +116,52 @@ node(TARGET_NODE) {
                 sh "cp -r trello_config/trello/* sprint_tools/"
 
                 dir("sprint_tools") {
-                    SPRINT_ID = sh(returnStdout: true, script: "./trello sprint_identifier").trim()
+                    SPRINT_ID = sh(returnStdout: true, script: "./trello sprint_identifier").trim().toInteger()
                     DAYS_LEFT_IN_SPRINT = sh(returnStdout: true, script: "./trello days_left_in_sprint").trim().toInteger()
+                    DAYS_LEFT_UNTIL_FEATURE_COMPLETE = sh(returnStdout: true, script: "./trello days_until_feature_complete").trim().toInteger()
+
                 }
 
                 echo "Detected ${DAYS_LEFT_IN_SPRINT} days left in sprint"
+                echo "Days left until feature complete: ${DAYS_LEFT_UNTIL_FEATURE_COMPLETE}"
 
                 MERGE_GATE_LABELS=null
 
-                if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
-                    mail_announce("Start of DevCut", DEV_CUT_BODY)
+                FC = (DAYS_LEFT_UNTIL_FEATURE_COMPLETE <= 0)
+
+                if ( DAYS_LEFT_UNTIL_FEATURE_COMPLETE == 0 ) {
+                    release_announce("Feature Complete", FEATURE_COMPLETE_BODY)
                     MERGE_GATE_LABELS="kind/bug"
+
+                } else if ( DAYS_LEFT_UNTIL_FEATURE_COMPLETE > 0 ) {
+
+                    if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
+                        sprint_announce("Start of DevCut", DEV_CUT_BODY)
+                        MERGE_GATE_LABELS="kind/bug"
+                    }
+
+                    if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
+                        sprint_announce("Master Open", REOPEN_BODY)
+                        mail_leads(SIGNUP_BODY)
+                        MERGE_GATE_LABELS = ""
+                    }
+
                 }
 
+                // Stagecut should happen regardless of feature complete
                 if ( DAYS_LEFT_IN_SPRINT == STAGE_CUT_DAYS_LEFT || TEST_STAGE_CUT ) {
-                    mail_announce("Start of StageCut", STAGE_CUT_BODY)
+                    sprint_announce("Start of StageCut", STAGE_CUT_BODY)
                     MERGE_GATE_LABELS="kind/bug"
                 }
 
-                if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER || FORCE_OPEN_MASTER ) {
-                    mail_announce("Master Open", REOPEN_BODY)
-                    mail_leads(SIGNUP_BODY)
-                    MERGE_GATE_LABELS = ""
-                }
-
+                // If there is a change to be made
                 if ( MERGE_GATE_LABELS != null ) {
-                        // Clone release tools to manage merge gate label
-                        sh "rm -rf release"
-                        sh "git clone git@github.com:openshift/release.git"
-                        dir ("release/cluster/ci/config/submit-queue") {
-                            set_required_labels("submit_queue.yaml", MERGE_GATE_LABELS)
-                            set_required_labels("submit_queue_openshift_ansible.yaml", MERGE_GATE_LABELS)
-                            set_required_labels("submit_queue_origin_aggregated_logging.yaml", MERGE_GATE_LABELS)
+                    b = build       job: './merge-gating', propagate: true,
+                            parameters: [
+                                    [$class: 'StringParameterValue', name: 'MERGE_GATE_LABELS', value: "${MERGE_GATE_LABELS}"],
+                                    [$class: 'BooleanParameterValue', name: 'TEST_ONLY', value: TEST_ONLY],
+                            ]
 
-                            sh "git add -u"
-                            sh "git commit --allow-empty -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
-
-                            if ( ! TEST_ONLY ) {
-                                sh "git push"
-                            } else {
-                                echo "SKIPPING PUSH SINCE THIS IS A TEST RUN"
-                            }
-
-                            EXTRA_ARGS=""
-                            if ( TEST_ONLY ) {
-                                echo "RUNNING APPLY IN DRY-RUN SINCE THIS IS A TEST RUN"
-                                EXTRA_ARGS="--dry-run"
-                            }
-
-                            withCredentials([string(credentialsId: 'aos-cd-sprint-control-token', variable: 'TOKEN')]) {
-                                sh "oc-3.7 process -f submit_queue.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                                sh "oc-3.7 process -f submit_queue_openshift_ansible.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                                sh "oc-3.7 process -f submit_queue_origin_aggregated_logging.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                            }
-                        }            
                 }
 
                 deleteDir()

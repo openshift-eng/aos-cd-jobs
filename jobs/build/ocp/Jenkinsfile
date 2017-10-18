@@ -468,7 +468,7 @@ node(TARGET_NODE) {
         // End old method
 
         // OIT Method
-        OIT_WORKING = "${pwd(tmp=true)}"
+        OIT_WORKING = pwd(tmp:true)
 
         stage( "update dist-git" ) {
           buildlib.write_sources_file()

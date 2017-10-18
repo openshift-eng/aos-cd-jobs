@@ -21,3 +21,5 @@ enable_excluders: "false"
 osm_cluster_network_cidr: "10.128.0.0/14"
 openshift_portal_net: "172.30.0.0/16"
 osm_host_subnet_length: 9
+openshift_metrics_install_metrics: true
+openshift_metrics_heapster_standalone: true

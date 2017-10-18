@@ -10,9 +10,10 @@ set -e
 # VARIABLES
 ############
 PUDDLE_TYPE="${1}"
-MAJOR_MINOR="${2}"
+FULL_VERSION="${2}"
 BUILD_MODE="${3}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
+MAJOR_MINOR=$(echo "${FULL_VERSION}" | cut -d . -f 1-2)
 
 if [ "$BUILD_MODE" == "release" ] || [ "$BUILD_MODE" == "pre-release" ] || [ "$BUILD_MODE" == "" ]; then
     REPO="enterprise-${MAJOR_MINOR}"
@@ -39,7 +40,7 @@ usage() {
   echo >&2
   echo "type: simple errata" >&2
   echo "  type of puddle we are pushing" >&2
-  echo "version: 3.2 3.3 etc.." >&2
+  echo "version: e.g. 3.7.0-0.143.7" >&2
   echo "  What version we are pulling from" >&2
   echo "  For enterprise repos, which release we are pushing to" >&2
   echo "build_mode: release|pre-release|online:int|online:stg" >&2
@@ -56,24 +57,23 @@ if [ "$#" -lt 2 ] ; then
   usage
 fi
 
-
-
 if [ "${PUDDLE_TYPE}" == "simple" ] ; then
-  # This directory is initially created by puddle as 755.
-  # Setting it to 775 allows other trusted users to run puddle/write into this directory once the directory has been established.
-  chmod 775 "${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/" || true
-  # PUDDLEDIR is a symlink to the most recently created puddle.
-  PUDDLEDIR="${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}/latest"
+  PUDDLEDIR=${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}
 else
-  # This directory is initially created by puddle as 755.
-  # Setting it to 775 allows other trusted users to run puddle/write into this directory once the directory has been established.
-  chmod 775 "${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/" || true
-  # PUDDLEDIR is a symlink to the most recently created puddle.
-  PUDDLEDIR="${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}/latest"
+  PUDDLEDIR=${BASEDIR}/AtomicOpenShift-errata/${MAJOR_MINOR}
 fi
 
+# This directory is initially created by puddle as 755.  Setting it to 775
+# allows other trusted users to run puddle/write into this directory once the
+# directory has been established.
+chmod 775 "${PUDDLEDIR}/" || true
+
 # dereference the symlink to the actual directory basename: e.g. "2017-06-09.4"
-LASTDIR=$(readlink ${PUDDLEDIR})
+LASTDIR=$(readlink --verbose "${PUDDLEDIR}/latest")
+
+# Append version number to facilitate searches on the mirrors.
+mv "${PUDDLEDIR}/${LASTDIR}" "${PUDDLEDIR}/${LASTDIR}_v${FULL_VERSION}"
+LASTDIR=${LASTDIR}_v${FULL_VERSION}
 
 echo "Pushing puddle: $LASTDIR"
 
@@ -97,7 +97,7 @@ $MIRROR_SSH sh -s <<-EOF
 EOF
 
 # Copy the local puddle to the new, remote location.
-rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "${MIRROR_SSH_BASE}" ${PUDDLEDIR}/ ${MIRROR_SSH_SERVER}:${MIRROR_PATH}/${LASTDIR}/
+rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e "${MIRROR_SSH_BASE}" "${PUDDLEDIR}/${LASTDIR}" "${MIRROR_SSH_SERVER}:${MIRROR_PATH}/"
 
 $MIRROR_SSH sh -s <<-EOF
   set -e

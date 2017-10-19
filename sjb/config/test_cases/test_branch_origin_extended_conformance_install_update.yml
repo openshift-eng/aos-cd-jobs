@@ -169,6 +169,30 @@ extensions:
                           -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \
                           -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
     - type: "script"
+      title: "Install service catalog"
+      repository: "aos-cd-jobs"
+      timeout: 1800
+      script: |-
+        if [[ "${ORIGIN_UPGRADE_RELEASE_MINOR_VERSION}" > 6 ]]; then
+          pkg_name=$( cat ./PKG_NAME )
+          source ORIGIN_VARS
+          sc_playbook="/usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/service-catalog.yml"
+          ansible-playbook  -vv                    \
+                            --become               \
+                            --become-user root     \
+                            --connection local     \
+                            --inventory sjb/inventory/ \
+                             "${sc_playbook}"     \
+                            -e etcd_data_dir="${ETCD_DATA_DIR}" \
+                            -e openshift_pkg_version="-${ORIGIN_UPGRADE_RELEASE_VERSION}" \
+                            -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
+                            -e openshift_node_port_range='30000-32000'                    \
+                            -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \
+                            -e "openshift_enable_service_catalog=true"                    \
+                            -e "template_service_broker_install=true"                     \
+                            -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
+        fi
+    - type: "script"
       title: "expose the kubeconfig"
       script: |-
         sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/

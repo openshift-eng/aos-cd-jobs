@@ -477,10 +477,10 @@ node(TARGET_NODE) {
         stage( "update dist-git" ) {
           buildlib.write_sources_file()
           buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' \\
+--working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' --include aos3-installation-docker \\
 distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} \\
 --release ${NEW_DOCKERFILE_RELEASE} \\
---message 'Updating Dockerfile version and release ${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}'
+--message 'Updating Dockerfile version and release ${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE} --push'
 """
         }
 
@@ -495,11 +495,10 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} 
             alias = val['source_alias']
             dockerfile_url = ""
             github_url = GITHUB_URLS[alias]
-            github_url = github_url.minus(".git")
-            github_url = github_url.minus("git@")
+            github_url = github_url.replace(".git", "")
+            github_url = github_url.replace("git@", "")
             github_url = github_url.replaceFirst(":", "/")
-            base_path = GITHUB_BASE_PATHS[alias]
-            dockerfile_sub_path = val['dockerfile'].minus(base_path)
+            dockerfile_sub_path = val['source_dockerfile_subpath']
             dockerfile_url = "Source file: " + github_url + "/" + dockerfile_sub_path
             // always mail success list, val.owners will be comma delimited or empty
             mail(to: "${MAIL_LIST_SUCCESS},${val.owners}",

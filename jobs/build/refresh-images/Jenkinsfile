@@ -111,12 +111,14 @@ node('openshift-build-1') {
                 buildlib.write_sources_file()
                 buildlib.oit """
   --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}' \\
+  --metadata-dir ${ENTERPRISE_IMAGES_DIR} \\
   distgits:update-dockerfile --sources ${env.WORKSPACE}/sources.yml --version ${VERSION_OVERRIDE} \\
   --release ${RELEASE_OVERRIDE}
   """
 
               buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR} --include aos3-installation-docker \\
+--metadata-dir ${ENTERPRISE_IMAGES_DIR} \\
 distgits:build-images \\
 --push-to-defaults --repo_type signed
 """

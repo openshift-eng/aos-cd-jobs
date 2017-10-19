@@ -76,7 +76,7 @@ def initialize_enterprise_images_dir() {
 }
 
 def oit( cmd ){
-    sh "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build ${cmd.trim()}"
+    sh "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}"
 }
 
 def initialize_ose_dir() {

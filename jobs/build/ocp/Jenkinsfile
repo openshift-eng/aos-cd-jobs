@@ -478,7 +478,6 @@ node(TARGET_NODE) {
           buildlib.write_sources_file()
           buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' \\
---metadata-dir ${ENTERPRISE_IMAGES_DIR} \\
 distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} \\
 --release ${NEW_DOCKERFILE_RELEASE} \\
 --message 'Updating Dockerfile version and release ${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}'
@@ -520,7 +519,6 @@ http://pkgs.devel.redhat.com/cgit/${disgit}/tree/Dockerfile?id=${val.sha}
 
             buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION} --include aos3-installation-docker \\
---metadata-dir ${ENTERPRISE_IMAGES_DIR} \\
 distgits:build-images \\
 --push-to-defaults --repo_type unsigned
 """

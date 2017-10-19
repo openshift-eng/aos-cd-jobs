@@ -485,8 +485,6 @@ ansible-playbook  -vv                \
                   -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34;                           \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)                  \
                   -e openshift_node_port_range=&#39;30000-32000&#39;                    \
-                  -e &#34;openshift_enable_service_catalog=true&#34;                    \
-                  -e &#34;template_service_broker_install=true&#34;                     \
                   -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -553,8 +551,6 @@ ansible-playbook  -vv                    \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)                  \
                   -e openshift_node_port_range=&#39;30000-32000&#39;                    \
                   -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39; \
-                  -e &#34;openshift_enable_service_catalog=true&#34;                    \
-                  -e &#34;template_service_broker_install=true&#34;                     \
                   -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -143,6 +143,10 @@ node(TARGET_NODE) {
             master_spec = buildlib.initialize_ose()
         }
 
+        stage( "openshift-jenkins repo ") {
+          buildlib.initialize_openshift_jenkins()
+        }
+
         stage( "origin-web-console repo" ) {
             sh "go get github.com/jteeuwen/go-bindata"
             buildlib.initialize_origin_web_console()

@@ -17,6 +17,8 @@ repos:
     dst: roles/oso_deployer/
   - src: ansible/roles/oso_hibernation/ # NOTE: will be moving to it's own repo soon
     dst: roles/oso_hibernation/
+  - src: ansible/roles/oso_restrict_custom_routes/
+    dst: roles/oso_restrict_custom_routes/
 - id: openshift-ansible
   url: https://github.com/openshift/openshift-ansible.git
   version: openshift-ansible-3.7.0-0.125.0

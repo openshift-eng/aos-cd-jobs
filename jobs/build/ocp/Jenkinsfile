@@ -475,7 +475,8 @@ node(TARGET_NODE) {
           buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' \\
 distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} \\
---release ${NEW_DOCKERFILE_RELEASE}
+--release ${NEW_DOCKERFILE_RELEASE} \\
+--message 'Updating Dockerfile version and release ${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}'
 """
         }
 

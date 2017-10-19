@@ -436,7 +436,7 @@ def write_sources_file() {
 jenkins: ${env.OPENSHIFT_JENKINS_DIR}
 openshift-ansible: ${env.OPENSHIFT_ANSIBLE_DIR}
   """
-  writeFile("${env.WORKSPACE}/sources.yml", sources)
+  writeFile(file: "${env.WORKSPACE}/sources.yml", text: sources)
 }
 
 //https://stackoverflow.com/a/42775560

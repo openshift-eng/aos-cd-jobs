@@ -474,6 +474,9 @@ node(TARGET_NODE) {
         // OIT Method
         OIT_WORKING = pwd(tmp:true)
 
+        //Clear out if previously in use
+        sh "rm -rf ${OIT_WORKING}/*"
+
         stage( "update dist-git" ) {
           buildlib.write_sources_file()
           buildlib.oit """

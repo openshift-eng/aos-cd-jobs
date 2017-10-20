@@ -5,5 +5,16 @@ openshift_logging_es_log_appenders:
   - "console"
 openshift_logging_fluentd_journal_read_from_head: false
 openshift_logging_fluentd_audit_container_engine: true
+
+openshift_logging_curator_memory_limit: "32Mi"
+openshift_logging_curator_ops_memory_limit: "32Mi"
+openshift_logging_elasticsearch_proxy_memory_limit: "32Mi"
 openshift_logging_es_memory_limit: "4Gi"
 openshift_logging_es_ops_memory_limit: "4Gi"
+openshift_logging_eventrouter_memory_limit: "64Mi"
+openshift_logging_fluentd_memory_limit: "128Mi"
+openshift_logging_kibana_memory_limit: "128Mi"
+openshift_logging_kibana_ops_memory_limit: "128Mi"
+openshift_logging_kibana_ops_proxy_memory_limit: "64Mi"
+openshift_logging_kibana_proxy_memory_limit: "64Mi"
+openshift_logging_mux_memory_limit: "256Mi"

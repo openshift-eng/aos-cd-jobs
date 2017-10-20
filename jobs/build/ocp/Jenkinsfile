@@ -472,8 +472,9 @@ node(TARGET_NODE) {
         // End old method
 
         // OIT Method
-        OIT_WORKING = pwd(tmp:true)
-
+        OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
+        // create working if not exists
+        sh "mkdir -p ${OIT_WORKING}"
         //Clear out if previously in use
         sh "rm -rf ${OIT_WORKING}/*"
 

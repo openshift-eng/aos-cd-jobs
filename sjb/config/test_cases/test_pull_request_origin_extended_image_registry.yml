@@ -11,5 +11,25 @@ extensions:
       title: "run extended tests"
       repository: "origin"
       script: |-
+        for pth in ${OS_ROOT:-} "$(pwd)" "$(dirname ${BASH_SOURCE})" "/data/src/github.com/openshift/origin"; do
+          if [[ -e "${pth}/hack/lib/init.sh" && -e "${pth}/test/extended/setup.sh" ]]; then
+            export OS_ROOT="${pth}"
+            break
+          fi
+        done
+
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
-        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="\[Feature:Image|\[registry\]"
+
+        export OPENSHIFT_SKIP_BUILD=true
+        export KUBECONFIG=/etc/origin/master/admin.kubeconfig
+        export TEST_ONLY=true
+        export JUNIT_REPORT=true
+
+        source "${OS_ROOT}/hack/lib/init.sh"
+        source "${OS_ROOT}/test/extended/setup.sh"
+
+        export TEST_REPORT_FILE_NAME=registry_suite
+        export FOCUS="\[Feature:Image|\[registry\]"
+
+        os::log::info "Running registry extended tests serially"
+        os::test::extended::run -- -test.timeout 6h ${TEST_EXTENDED_ARGS:-}

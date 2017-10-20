@@ -481,8 +481,28 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+for pth in \${OS_ROOT:-} &#34;\$(pwd)&#34; &#34;\$(dirname \${BASH_SOURCE})&#34; &#34;/data/src/github.com/openshift/origin&#34;; do
+  if [[ -e &#34;\${pth}/hack/lib/init.sh&#34; &amp;&amp; -e &#34;\${pth}/test/extended/setup.sh&#34; ]]; then
+    export OS_ROOT=&#34;\${pth}&#34;
+    break
+  fi
+done
+
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
-OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=core FOCUS=&#34;\[Feature:Image|\[registry\]&#34;
+
+export OPENSHIFT_SKIP_BUILD=true
+export KUBECONFIG=/etc/origin/master/admin.kubeconfig
+export TEST_ONLY=true
+export JUNIT_REPORT=true
+
+source &#34;\${OS_ROOT}/hack/lib/init.sh&#34;
+source &#34;\${OS_ROOT}/test/extended/setup.sh&#34;
+
+export TEST_REPORT_FILE_NAME=registry_suite
+export FOCUS=&#34;\[Feature:Image|\[registry\]&#34;
+
+os::log::info &#34;Running registry extended tests serially&#34;
+os::test::extended::run -- -test.timeout 6h \${TEST_EXTENDED_ARGS:-}
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

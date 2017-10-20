@@ -40,18 +40,6 @@ properties(
         ]
 )
 
-if ( MANAGE_FEATURE_COMPLETE == "create-and-exit" ) {
-    sh "touch in_feature_complete"
-    currentBuild.result = 'SUCCESS'
-    return
-}
-
-if ( MANAGE_FEATURE_COMPLETE == "remove-and-exit" ) {
-    sh "rm -f in_feature_complete"
-    currentBuild.result = 'SUCCESS'
-    return
-}
-
 
 TEST_DEV_CUT = TEST_DEV_CUT.toBoolean()
 TEST_STAGE_CUT = TEST_STAGE_CUT.toBoolean()
@@ -115,6 +103,18 @@ def remind_me(msg) {
 
 node(TARGET_NODE) {
 
+        if ( MANAGE_FEATURE_COMPLETE == "create-and-exit" ) {
+            sh "touch in_feature_complete"
+            currentBuild.result = 'SUCCESS'
+            return
+        }
+
+        if ( MANAGE_FEATURE_COMPLETE == "remove-and-exit" ) {
+            sh "rm -f in_feature_complete"
+            currentBuild.result = 'SUCCESS'
+            return
+        }        
+        
     checkout scm
 
     def commonlib = load( "pipeline-scripts/commonlib.groovy")

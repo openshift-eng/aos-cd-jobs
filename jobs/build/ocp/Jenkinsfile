@@ -500,16 +500,22 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} 
             github_url = github_url.replaceFirst(":", "/")
             dockerfile_sub_path = val['source_dockerfile_subpath']
             dockerfile_url = "Source file: " + github_url + "/" + dockerfile_sub_path
-            // always mail success list, val.owners will be comma delimited or empty
-            mail(to: "${MAIL_LIST_SUCCESS},${val.owners}",
-                    from: "aos-cd@redhat.com",
-                    subject: "${val.image} Dockerfile reconciliation.",
-                    body: """
+            try {
+              // always mail success list, val.owners will be comma delimited or empty
+              mail(to: "${MAIL_LIST_SUCCESS},${val.owners}",
+                      from: "aos-cd@redhat.com",
+                      subject: "${val.image} Dockerfile reconciliation.",
+                      body: """
 OIT has detected a change in the Dockerfile for ${val.image}
 ${dockerfile_url}
 This has been automatically reconciled and the new file can be seen here:
 http://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
-        """);
+              """);
+            } catch ( err ) {
+
+                echo "Failure sending email"
+                echo "${err}"
+            }
         }
 
         stage( "build images" ) {

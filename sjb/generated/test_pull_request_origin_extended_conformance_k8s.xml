@@ -444,6 +444,7 @@ if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34;
   # if [[ -n &#34;${out}&#34; ]]; then
   #   echo &#34;${out}&#34; | xargs -L 1 gsutil rm -rf
   # fi
+  echo &#34;Skip artifact cleanup&#34;
 else
   # update the pointer to this location
   echo &#34;${base_location_url}&#34; &gt; .latest

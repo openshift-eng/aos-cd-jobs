@@ -508,7 +508,7 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} 
 OIT has detected a change in the Dockerfile for ${val.image}
 ${dockerfile_url}
 This has been automatically reconciled and the new file can be seen here:
-http://pkgs.devel.redhat.com/cgit/${disgit}/tree/Dockerfile?id=${val.sha}
+http://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
         """);
         }
 

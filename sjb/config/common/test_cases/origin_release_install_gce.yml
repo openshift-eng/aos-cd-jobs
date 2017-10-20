@@ -80,10 +80,10 @@ extensions:
         # pull_id will be 0 in case of a batch merge
         if [[ -n "${pull_id:-}" && "${pull_id:-}" != "0" ]]; then
           # if we've built this PR before, remove older rpm artifact directories
-          out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -2 )"
-          if [[ -n "${out}" ]]; then
-            echo "${out}" | xargs -L 1 gsutil rm -rf
-          fi
+          # out="$( gsutil ls -d "gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/*/artifacts/rpms" | sort -n -t / -k 7 | head -n -2 )"
+          # if [[ -n "${out}" ]]; then
+          #   echo "${out}" | xargs -L 1 gsutil rm -rf
+          # fi
         else
           # update the pointer to this location
           echo "${base_location_url}" > .latest

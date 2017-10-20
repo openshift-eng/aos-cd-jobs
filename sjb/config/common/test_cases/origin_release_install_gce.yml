@@ -84,6 +84,7 @@ extensions:
           # if [[ -n "${out}" ]]; then
           #   echo "${out}" | xargs -L 1 gsutil rm -rf
           # fi
+          echo "Skip artifact cleanup"
         else
           # update the pointer to this location
           echo "${base_location_url}" > .latest

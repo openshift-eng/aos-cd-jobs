@@ -16,6 +16,14 @@ properties(
             [$class : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [
+                          [
+                                  name: 'MANAGE_FEATURE_COMPLETE',
+                                  $class: 'hudson.model.ChoiceParameterDefinition',
+                                  choices: "no-action\ncreate-and-exit\nremove-and-exit",
+                                  defaultValue: 'no-action',
+                                  description: 'Run the job in order to manage the in_feature_complete flag?'
+                          ],
+
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'https://api.ci.openshift.org:443', description: 'OpenShift CI Server', name: 'CI_SERVER'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-announce@redhat.com', description: 'Success Announce List', name: 'MAIL_LIST_ANNOUNCE'],
@@ -31,6 +39,19 @@ properties(
             disableConcurrentBuilds()
         ]
 )
+
+if ( MANAGE_FEATURE_COMPLETE == "create-and-exit" ) {
+    sh "touch in_feature_complete"
+    currentBuild.result = 'SUCCESS'
+    return
+}
+
+if ( MANAGE_FEATURE_COMPLETE == "remove-and-exit" ) {
+    sh "rm -f in_feature_complete"
+    currentBuild.result = 'SUCCESS'
+    return
+}
+
 
 TEST_DEV_CUT = TEST_DEV_CUT.toBoolean()
 TEST_STAGE_CUT = TEST_STAGE_CUT.toBoolean()
@@ -83,6 +104,15 @@ def mail_leads(body) {
             body: "${body}");
 }
 
+def remind_me(msg) {
+    mail(
+            to: "jupierce@redhat.com",
+            from: "aos-cd@redhat.com",
+            replyTo: 'jupierce@redhat.com',
+            subject: "${msg}",
+            body: "${msg}");
+}
+
 node(TARGET_NODE) {
 
     checkout scm
@@ -103,8 +133,10 @@ node(TARGET_NODE) {
         SIGNUP_BODY = readFile( "emails/online_first_signup" )
 
         sshagent(["openshift-bot"]) {
+
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
             tmpd = pwd tmp: true
+
             dir(tmpd) {
                 // Jenkins will reuse temp directories if the job does not make it to deleteDir() :(
                 sh "rm -rf sprint_tools"  
@@ -121,51 +153,68 @@ node(TARGET_NODE) {
                     DAYS_LEFT_UNTIL_FEATURE_COMPLETE = sh(returnStdout: true, script: "./trello days_until_feature_complete").trim().toInteger()
 
                 }
-
-                echo "Detected ${DAYS_LEFT_IN_SPRINT} days left in sprint"
-                echo "Days left until feature complete: ${DAYS_LEFT_UNTIL_FEATURE_COMPLETE}"
-
-                MERGE_GATE_LABELS=null
-
-                FC = (DAYS_LEFT_UNTIL_FEATURE_COMPLETE <= 0)
-
-                if ( DAYS_LEFT_UNTIL_FEATURE_COMPLETE == 0 ) {
-                    release_announce("Feature Complete", FEATURE_COMPLETE_BODY)
-                    MERGE_GATE_LABELS="kind/bug"
-
-                } else if ( DAYS_LEFT_UNTIL_FEATURE_COMPLETE > 0 ) {
-
-                    if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
-                        sprint_announce("Start of DevCut", DEV_CUT_BODY)
-                        MERGE_GATE_LABELS="kind/bug"
-                    }
-
-                    if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
-                        sprint_announce("Master Open", REOPEN_BODY)
-                        mail_leads(SIGNUP_BODY)
-                        MERGE_GATE_LABELS = ""
-                    }
-
-                }
-
-                // Stagecut should happen regardless of feature complete
-                if ( DAYS_LEFT_IN_SPRINT == STAGE_CUT_DAYS_LEFT || TEST_STAGE_CUT ) {
-                    sprint_announce("Start of StageCut", STAGE_CUT_BODY)
-                    MERGE_GATE_LABELS="kind/bug"
-                }
-
-                // If there is a change to be made
-                if ( MERGE_GATE_LABELS != null ) {
-                    b = build       job: './merge-gating', propagate: true,
-                            parameters: [
-                                    [$class: 'StringParameterValue', name: 'MERGE_GATE_LABELS', value: "${MERGE_GATE_LABELS}"],
-                                    [$class: 'BooleanParameterValue', name: 'TEST_ONLY', value: TEST_ONLY],
-                            ]
-
-                }
-
                 deleteDir()
             }
+
+            echo "Detected ${DAYS_LEFT_IN_SPRINT} days left in sprint"
+            echo "Days left until feature complete: ${DAYS_LEFT_UNTIL_FEATURE_COMPLETE}"
+
+            MERGE_GATE_LABELS=null
+
+            /**
+             * We can't trust this yet, so we use a manual flag. After feature
+             * complete it hit, anyone can adjust the date forward and make
+             * this pipeline think we were out of feature complete. Leave
+             * that decision up to a human (they should delete the flag
+             * when origin branches a release-X.Y branch). 
+             */
+            // FC = (DAYS_LEFT_UNTIL_FEATURE_COMPLETE <= 0)
+
+            if ( DAYS_LEFT_UNTIL_FEATURE_COMPLETE == 0 ) {
+                release_announce("Feature Complete", FEATURE_COMPLETE_BODY)
+                MERGE_GATE_LABELS="kind/bug"
+                // If this file exists, we've hit feature complete. This file must be manually deleted.
+                sh "touch in_feature_complete"
+            }
+
+            FEATURE_COMPLETE = fileExists 'in_feature_complete'
+
+
+            if ( DAYS_LEFT_IN_SPRINT == DEV_CUT_DAY_LEFT || TEST_DEV_CUT ) {
+                if ( ! FEATURE_COMPLETE ) {
+                    sprint_announce("Start of DevCut", DEV_CUT_BODY)
+                    MERGE_GATE_LABELS="kind/bug"
+                } else {
+                    remind_me("Skipping DevCut because in_feature_complete flag exists")
+                }
+            }
+
+            if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
+                if ( ! FEATURE_COMPLETE ) {
+                    sprint_announce("Master Open", REOPEN_BODY)
+                    mail_leads(SIGNUP_BODY)
+                    MERGE_GATE_LABELS = ""
+                } else {
+                    remind_me("Skipping Master Open because in_feature_complete flag exists")
+                }
+            }
+
+            // Stagecut should happen regardless of feature complete
+            if ( DAYS_LEFT_IN_SPRINT == STAGE_CUT_DAYS_LEFT || TEST_STAGE_CUT ) {
+                sprint_announce("Start of StageCut", STAGE_CUT_BODY)
+                MERGE_GATE_LABELS="kind/bug"
+            }
+
+            // If there is a change to be made
+            if ( MERGE_GATE_LABELS != null ) {
+                b = build       job: './merge-gating', propagate: true,
+                        parameters: [
+                                [$class: 'StringParameterValue', name: 'MERGE_GATE_LABELS', value: "${MERGE_GATE_LABELS}"],
+                                [$class: 'BooleanParameterValue', name: 'TEST_ONLY', value: TEST_ONLY],
+                        ]
+
+            }
+
         }
 
     } catch ( err ) {

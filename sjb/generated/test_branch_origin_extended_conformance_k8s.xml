@@ -377,10 +377,10 @@ gsutil -m cp -r artifacts/rpms &#34;gs://${location}&#34;
 # pull_id will be 0 in case of a batch merge
 if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
   # if we&#39;ve built this PR before, remove older rpm artifact directories
-  out=&#34;$( gsutil ls -d &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/*/artifacts/rpms&#34; | sort -n -t / -k 7 | head -n -2 )&#34;
-  if [[ -n &#34;${out}&#34; ]]; then
-    echo &#34;${out}&#34; | xargs -L 1 gsutil rm -rf
-  fi
+  # out=&#34;$( gsutil ls -d &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/*/artifacts/rpms&#34; | sort -n -t / -k 7 | head -n -2 )&#34;
+  # if [[ -n &#34;${out}&#34; ]]; then
+  #   echo &#34;${out}&#34; | xargs -L 1 gsutil rm -rf
+  # fi
 else
   # update the pointer to this location
   echo &#34;${base_location_url}&#34; &gt; .latest

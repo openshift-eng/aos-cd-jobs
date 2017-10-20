@@ -505,7 +505,7 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} 
             dockerfile_url = "Source file: " + github_url + "/" + dockerfile_sub_path
             try {
               // always mail success list, val.owners will be comma delimited or empty
-              mail(to: "${MAIL_LIST_SUCCESS},${val.owners}",
+              mail(to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com",
                       from: "aos-cd@redhat.com",
                       subject: "${val.image} Dockerfile reconciliation.",
                       body: """

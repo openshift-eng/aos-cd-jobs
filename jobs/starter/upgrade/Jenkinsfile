@@ -45,8 +45,8 @@ node('openshift-build-1') {
     checkout scm
 
     // Get default values from aos-cd-jobs-secrets
-    MAIL_LIST_SUCCESS = MAIL_LIST_SUCCESS_DEFAULT = aos_cd_ops_data.getMailingList("on_success", CLUSTER_SPEC).join("\n")
-    MAIL_LIST_FAILURE = MAIL_LIST_FAILURE_DEFAULT = aos_cd_ops_data.getMailingList("on_failure", CLUSTER_SPEC).join("\n")
+    MAIL_LIST_SUCCESS = MAIL_LIST_SUCCESS_DEFAULT = aos_cd_ops_data.getMailingList("on_success", CLUSTER_SPEC)
+    MAIL_LIST_FAILURE = MAIL_LIST_FAILURE_DEFAULT = aos_cd_ops_data.getMailingList("on_failure", CLUSTER_SPEC)
     ADDITIONAL_OPTS = ADDITIONAL_OPTS_DEFAULT = aos_cd_ops_data.getOptionsList(CLUSTER_SPEC)
 
     if ( MODE != "automatic" ) {

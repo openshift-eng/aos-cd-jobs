@@ -1,4 +1,0 @@
----
-parent: "common/test_suites/openshift_ansible.yml"
-overrides:
-  merge: "openshift-ansible"

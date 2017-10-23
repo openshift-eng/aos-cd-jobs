@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_installed_release.yml'
+parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   junit_analysis: True
   timer: 'H H * * *'
@@ -18,4 +18,5 @@ extensions:
       title: "run extended tests"
       repository: "origin"
       script: |-
+        export ORIGIN_COMMIT=$(git log -1 --pretty=%h)
         test/extended/clusterup.sh

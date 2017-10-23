@@ -43,6 +43,9 @@ properties(
 node('openshift-build-1') {
 
     checkout scm
+    
+    def commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib.initialize()
 
     // Get default values from aos-cd-jobs-secrets
     MAIL_LIST_SUCCESS = MAIL_LIST_SUCCESS_DEFAULT = aos_cd_ops_data.getMailingList("on_success", CLUSTER_SPEC)

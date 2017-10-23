@@ -475,12 +475,14 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-ansible-playbook -vv --become               \
-                 --become-user root         \
-                 --connection local         \
-                 --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+if [ -f /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml ]; then
+    ansible-playbook -vv --become               \
+                     --become-user root         \
+                     --connection local         \
+                     --inventory sjb/inventory/ \
+                     -e deployment_type=origin  \
+                     /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \

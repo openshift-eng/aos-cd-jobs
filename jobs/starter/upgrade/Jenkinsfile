@@ -76,7 +76,7 @@ node('openshift-build-1') {
         sshagent([CLUSTER_ENV]) {
 
             stage( "pre-check" ) {
-                deploylib.run("pre-check", [ "cicd_docker_version" : DOCKER_VERSION.trim(), "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ])
+                deploylib.run("pre-check")
             }
 
             if ( MODE != "automatic" ) {
@@ -89,14 +89,14 @@ node('openshift-build-1') {
             }
 
             stage( "enable maintenance" ) {
-                deploylib.run( "enable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
+                deploylib.run( "enable-statuspage" )
                 deploylib.run( "enable-zabbix-maint" )
                 deploylib.run( "disable-config-loop" )
             }
 
             stage( "upgrade: control plane" ) {
                 if (UPGRADE_CONTROL_PLANE.toBoolean()) {
-                    deploylib.run("upgrade-control-plane", ["cicd_docker_version": DOCKER_VERSION.trim(), "cicd_openshift_version": OPENSHIFT_VERSION.trim()])
+                    deploylib.run("upgrade-control-plane")
                 }
             }
 
@@ -106,7 +106,7 @@ node('openshift-build-1') {
                 }
 
                 if (UPGRADE_NODES.toBoolean()) {
-                    deploylib.run("upgrade-nodes", ["cicd_docker_version": DOCKER_VERSION.trim(), "cicd_openshift_version": OPENSHIFT_VERSION.trim()])
+                    deploylib.run("upgrade-nodes")
                 }
             }
 
@@ -136,7 +136,7 @@ node('openshift-build-1') {
 
             stage( "disable maintenance" ) {
                 deploylib.run( "disable-zabbix-maint" )
-                deploylib.run( "disable-statuspage", [ "cicd_openshift_version" : OPENSHIFT_VERSION.trim() ] )
+                deploylib.run( "disable-statuspage" )
             }
 
             stage( "post-upgrade status" ) {

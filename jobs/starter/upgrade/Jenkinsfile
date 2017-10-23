@@ -56,8 +56,8 @@ node('openshift-build-1') {
         parms = input(
                 message: 'Review/update the parameters for this before proceeding.',
                 parameters: [
-                        choice(choices: MAIL_LIST_SUCCESS_DEFAULT.join("\n"), description: 'Who to email if the upgrade succeeds. ', name: 'MAIL_LIST_SUCCESS'),
-                        choice(choices: MAIL_LIST_FAILURE_DEFAULT.join("\n"), description: 'Who to email if the upgrade encounters an error. ', name: 'MAIL_LIST_FAILURE'),
+                        string(defaultValue: MAIL_LIST_SUCCESS_DEFAULT.join(','), description: 'Who to email if the upgrade succeeds. ', name: 'MAIL_LIST_SUCCESS'),
+                        string(defaultValue: MAIL_LIST_FAILURE_DEFAULT.join(','), description: 'Who to email if the upgrade encounters an error. ', name: 'MAIL_LIST_FAILURE'),
                         text(defaultValue: ADDITIONAL_OPTS_DEFAULT, description: 'Additional options to pass to CD operations. ', name: 'ADDITIONAL_OPTS')
                 ]
         )

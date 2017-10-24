@@ -33,6 +33,7 @@ properties(
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-nodes?', name: 'UPGRADE_NODES'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-logging?', name: 'UPGRADE_LOGGING'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-metrics?', name: 'UPGRADE_METRICS'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run online-deployer?', name: 'UPGRADE_ONLINE_COMPONENTS'],
 
                   ]
          ]]
@@ -128,6 +129,9 @@ node('openshift-build-1') {
             stage ( "upgrade: misc" ) {
                 if ( UPGRADE_NODES.toBoolean()  ) {
                     deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity.
+                }
+                if ( UPGRADE_ONLINE_COMPONENTS.toBoolean()  ) {
+                    deploylib.run( "online-deployer" ) 
                 }
             }
 

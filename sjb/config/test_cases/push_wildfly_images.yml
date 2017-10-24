@@ -32,7 +32,7 @@ extensions:
       title: "push the wildfly images"
       repository: "sti-wildfly"
       timeout: 7200
-      script: |-      
+      script: |-
         sudo chmod a+rw /tmp/.docker/config.json
         export DOCKER_CONFIG=/tmp/.docker
 
@@ -47,3 +47,6 @@ extensions:
 
         docker tag openshift/wildfly-101-centos7 docker.io/openshift/wildfly-101-centos7
         docker push docker.io/openshift/wildfly-101-centos7
+
+        docker tag openshift/wildfly-110-centos7 docker.io/openshift/wildfly-110-centos7
+        docker push docker.io/openshift/wildfly-110-centos7

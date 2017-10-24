@@ -294,7 +294,7 @@ cat &lt;&lt;FINISHED &gt;gcs/finished.json
 }
 FINISHED
 cat &#34;/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log&#34; &gt; gcs/build-log.txt
-cp artifacts/gathered/* gcs/artifacts/ || true
+cp -r artifacts/gathered/* gcs/artifacts/ || true
 cp artifacts/generated/* gcs/artifacts/generated/ || true
 cp artifacts/journals/* gcs/artifacts/journals/ || true
 

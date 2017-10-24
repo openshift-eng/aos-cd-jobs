@@ -80,7 +80,7 @@ post_actions:
       }
       FINISHED
       cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
-      cp artifacts/gathered/* gcs/artifacts/ || true
+      cp -r artifacts/gathered/* gcs/artifacts/ || true
       cp artifacts/generated/* gcs/artifacts/generated/ || true
       cp artifacts/journals/* gcs/artifacts/journals/ || true
 

@@ -292,16 +292,26 @@ def args_to_string(Object... args) {
 
 /**
  * We need to execute some scripts directly from the rcm-guest host. To perform
- * those operations, we stream the script into stdin of an SSH bash invocation.
+ * those operations, we copy the script to a temporary file on the server, then
+ * execute and remove it.
  * @param git_script_filename  The file in build-scripts/rcm-guest to execute
  * @param args A list of arguments to pass to script
  * @return Returns the stdout of the operation
  */
 def invoke_on_rcm_guest(git_script_filename, Object... args ) {
-    return sh(
-            returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
-    ).trim()
+    git_script_filename = "${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}"
+    final remote = 'ocp-build@rcm-guest.app.eng.bos.redhat.com'
+    final ssh = "ssh ${remote}"
+    final tmp = sh(returnStdout: true, script: "${ssh} mktemp").trim()
+    try {
+      sh "rsync --executability ${git_script_filename} ${remote}:${tmp}"
+      return sh(
+        returnStdout: true,
+        script: "${ssh} '${tmp}' ${this.args_to_string(args)}",
+      ).trim()
+    } finally {
+      sh "${ssh} rm '${tmp}'"
+    }
 }
 
 /**

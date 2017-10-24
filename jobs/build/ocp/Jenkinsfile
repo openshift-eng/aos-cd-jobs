@@ -482,9 +482,9 @@ node(TARGET_NODE) {
           buildlib.write_sources_file()
           buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' --include aos3-installation-docker \\
-distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version ${NEW_VERSION} \\
+distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION} \\
 --release ${NEW_DOCKERFILE_RELEASE} \\
---message 'Updating Dockerfile version and release ${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
+--message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
 """
         }
 

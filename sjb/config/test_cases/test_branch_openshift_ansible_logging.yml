@@ -106,6 +106,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_logging_install_logging=False \
                          -e deployment_type=origin  \
+                         -e debug_level=2           \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
@@ -136,6 +137,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e deployment_type=origin  \
+                         -e debug_level=2           \
                          -e openshift_logging_install_logging=True \
                          -e openshift_logging_image_prefix="openshift/origin-" \
                          -e openshift_hosted_logging_hostname="kibana.127.0.0.1.nip.io"           \

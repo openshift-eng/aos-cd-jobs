@@ -116,6 +116,11 @@ See also:
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/release&#34;&gt;release&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>OS_PUSH_TAG</name>
+          <description>The docker image tag to push to, defaults to :latest</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">

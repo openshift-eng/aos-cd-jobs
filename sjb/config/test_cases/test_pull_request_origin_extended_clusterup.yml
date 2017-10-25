@@ -1,0 +1,14 @@
+---
+parent: 'common/test_cases/origin_built_installed_release.yml'
+overrides:
+  junit_analysis: True
+  sync_repos:
+    - name: "origin"
+      type: "pull_request"
+extensions:
+  actions:
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      script: |-
+        test/extended/clusterup.sh

@@ -1,6 +1,9 @@
 ---
 parent: 'common/test_cases/origin_release.yml'
 extensions:
+  parameters:
+    - name: "OS_PUSH_TAG"
+      description: "The docker image tag to push to, defaults to :latest"
   actions:
     - type: "script"
       title: "create directory for docker config"
@@ -11,6 +14,9 @@ extensions:
       title: "transfer docker config to remote host"
       script: |-
         scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "forward_parameters"
+      parameters:
+        - OS_PUSH_TAG
     - type: "script"
       title: "push the release"
       repository: "origin"

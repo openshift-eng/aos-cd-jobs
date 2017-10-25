@@ -190,9 +190,9 @@ node(TARGET_NODE) {
             }
 
             if ( DAYS_LEFT_IN_SPRINT == LIFT_STAGE_CUT_DAYS_LEFT || TEST_OPEN_MASTER ) {
+                mail_leads(SIGNUP_BODY) // Signup happens even if feature complete is done
                 if ( ! FEATURE_COMPLETE ) {
                     sprint_announce("Master Open", REOPEN_BODY)
-                    mail_leads(SIGNUP_BODY)
                     MERGE_GATE_LABELS = ""
                 } else {
                     remind_me("Skipping Master Open because in_feature_complete flag exists")
@@ -207,7 +207,7 @@ node(TARGET_NODE) {
 
             // If there is a change to be made
             if ( MERGE_GATE_LABELS != null ) {
-                b = build       job: './merge-gating', propagate: true,
+                b = build       job: 'sprint%2Fmerge-gating', propagate: true,
                         parameters: [
                                 [$class: 'StringParameterValue', name: 'MERGE_GATE_LABELS', value: "${MERGE_GATE_LABELS}"],
                                 [$class: 'BooleanParameterValue', name: 'TEST_ONLY', value: TEST_ONLY],

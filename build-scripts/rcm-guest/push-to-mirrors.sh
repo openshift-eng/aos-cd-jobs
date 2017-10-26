@@ -74,6 +74,7 @@ LASTDIR=$(readlink --verbose "${PUDDLEDIR}/latest")
 # Append version number to facilitate searches on the mirrors.
 mv "${PUDDLEDIR}/${LASTDIR}" "${PUDDLEDIR}/${LASTDIR}_v${FULL_VERSION}"
 LASTDIR=${LASTDIR}_v${FULL_VERSION}
+ln -sfn "${LASTDIR}" "${PUDDLEDIR}/latest"
 
 echo "Pushing puddle: $LASTDIR"
 

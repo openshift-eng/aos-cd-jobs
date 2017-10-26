@@ -77,10 +77,10 @@ node(TARGET_NODE) {
                     sh "rm -rf release"
                     sh "git clone git@github.com:openshift/release.git"
                     dir ("release/cluster/ci/config/submit-queue") {
-                        set_required_labels("submit_queue.yaml", MERGE_GATE_LABELS)
-                        set_required_labels("submit_queue_openshift_ansible.yaml", MERGE_GATE_LABELS)
-                        set_required_labels("submit_queue_origin_aggregated_logging.yaml", MERGE_GATE_LABELS)
-                        set_required_labels("submit_queue_origin_web_console.yaml", MERGE_GATE_LABELS)                          
+                        final files = findFiles(glob: 'submit_queue*.yaml')
+                        for(def f : files) {
+                            set_required_labels(f.name, MERGE_GATE_LABELS)
+                        }
 
                         sh "git add -u"
                         sh "git commit --allow-empty -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
@@ -98,10 +98,9 @@ node(TARGET_NODE) {
                         }
 
                         withCredentials([string(credentialsId: 'aos-cd-sprint-control-token', variable: 'TOKEN')]) {
-                            sh "oc-3.7 process -f submit_queue.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                            sh "oc-3.7 process -f submit_queue_openshift_ansible.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                            sh "oc-3.7 process -f submit_queue_origin_aggregated_logging.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                            sh "oc-3.7 process -f submit_queue_origin_web_console.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                            for(def f : files) {
+                                sh "oc-3.7 process -f ${f.name} | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                            }
                         }
                     }
             }

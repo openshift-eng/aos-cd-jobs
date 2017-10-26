@@ -567,10 +567,10 @@ distgits:build-images \\
 
         echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
 
-        // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
-        buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", BUILD_VERSION, BUILD_MODE )
-
         NEW_FULL_VERSION="${NEW_VERSION}-${NEW_RELEASE}"
+
+        // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
+        buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", NEW_FULL_VERSION, BUILD_MODE )
 
         if ( NEW_RELEASE != "1" ) {
             // If this is not a release candidate, push binary in a directory qualified with release field information

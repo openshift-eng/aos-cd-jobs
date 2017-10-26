@@ -80,7 +80,7 @@ node(TARGET_NODE) {
                         set_required_labels("submit_queue.yaml", MERGE_GATE_LABELS)
                         set_required_labels("submit_queue_openshift_ansible.yaml", MERGE_GATE_LABELS)
                         set_required_labels("submit_queue_origin_aggregated_logging.yaml", MERGE_GATE_LABELS)
-                        set_required_labels("submit-queue-origin-web-console.yaml", MERGE_GATE_LABELS)                          
+                        set_required_labels("submit_queue_origin_web_console.yaml", MERGE_GATE_LABELS)                          
 
                         sh "git add -u"
                         sh "git commit --allow-empty -m 'Setting required-labels to: ${MERGE_GATE_LABELS}'"
@@ -101,7 +101,7 @@ node(TARGET_NODE) {
                             sh "oc-3.7 process -f submit_queue.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
                             sh "oc-3.7 process -f submit_queue_openshift_ansible.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
                             sh "oc-3.7 process -f submit_queue_origin_aggregated_logging.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
-                            sh "oc-3.7 process -f submit-queue-origin-web-console.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                            sh "oc-3.7 process -f submit_queue_origin_web_console.yaml | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
                         }
                     }
             }

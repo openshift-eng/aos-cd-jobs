@@ -78,8 +78,8 @@ node(TARGET_NODE) {
                     sh "git clone git@github.com:openshift/release.git"
                     dir ("release/cluster/ci/config/submit-queue") {
                         final files = findFiles(glob: 'submit_queue*.yaml')
-                        for(def f : files) {
-                            set_required_labels(f.name, MERGE_GATE_LABELS)
+                        for(int i = 0; i < files.size(); ++i) {
+                            set_required_labels(files[i].name, MERGE_GATE_LABELS)
                         }
 
                         sh "git add -u"
@@ -98,8 +98,8 @@ node(TARGET_NODE) {
                         }
 
                         withCredentials([string(credentialsId: 'aos-cd-sprint-control-token', variable: 'TOKEN')]) {
-                            for(def f : files) {
-                                sh "oc-3.7 process -f ${f.name} | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
+                            for(int i = 0; i < files.size(); ++i) {
+                                sh "oc-3.7 process -f ${files[i].name} | oc-3.7 -n ci --server=${CI_SERVER} --token=$TOKEN apply ${EXTRA_ARGS} -f -"
                             }
                         }
                     }

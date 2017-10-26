@@ -197,7 +197,7 @@ else
     echo "Build and Push repos"
     echo "=========="
     ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-      sh -s "${MAJOR_MINOR_VERSION}" "${BUILD_MODE}" \
+      sh -s "${VERSION}" "${BUILD_MODE}" \
       < "${WORKSPACE}/build-scripts/rcm-guest/push-openshift-online-to-mirrors.sh"
 
 fi

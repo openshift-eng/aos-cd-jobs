@@ -117,11 +117,12 @@ def initialize_openshift_ansible() {
 
 def initialize_openshift_jenkins() {
     this.initialize_openshift_dir()
+    OPENSHIFT_JENKINS_DIR = "${OPENSHIFT_DIR}/jenkins"
     dir( OPENSHIFT_DIR ) {
         sh "git clone ${GITHUB_BASE}/jenkins.git"
-        GITHUB_URLS["jenkins"] = "${GITHUB_BASE}/jenkins.git"
     }
-    OPENSHIFT_JENKINS_DIR = "${OPENSHIFT_DIR}/jenkins"
+
+    GITHUB_URLS["jenkins"] = "${GITHUB_BASE}/jenkins.git"
     GITHUB_BASE_PATHS["jenkins"] = OPENSHIFT_JENKINS_DIR
     env.OPENSHIFT_JENKINS_DIR = OPENSHIFT_JENKINS_DIR
     echo "Initialized env.OPENSHIFT_JENKINS_DIR: ${env.OPENSHIFT_JENKINS_DIR}"

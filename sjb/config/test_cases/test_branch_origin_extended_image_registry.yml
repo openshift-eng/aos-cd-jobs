@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_installed_release.yml'
+parent: 'common/test_cases/origin_built_installed_release.yml'
 overrides:
   junit_analysis: True
   timer: 'H H * * *'

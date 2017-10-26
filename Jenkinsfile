@@ -88,7 +88,7 @@ node('openshift-build-1') {
                 rhel_arg = "--rhel ${RHEL}"
             }
 
-            sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
+            sshagent(['openshift-bot']) {
 
                 update_docker_args = "--bump_release"
                 if ( VERSION_OVERRIDE != "" ) {
@@ -132,7 +132,7 @@ distgits:build-images \\
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
                     subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR} ${OSE_GROUP} ${OSE_REPO}",
-                    body: """Encoutered an error while running merge-and-build.sh: ${err}
+                    body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}

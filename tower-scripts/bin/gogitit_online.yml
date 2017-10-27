@@ -13,10 +13,16 @@ repos:
   url: git@github.com:openshift/online.git
   version: master
   copy:
-  # Copy all online roles with oso prefix. These roles are intended for                                                                                                                                                                                       
-  # formal consumption by ops/CD.                                                                                                                                                                                                                             
-  - src: ansible/roles/oso_*                                                                                                                                                                                                                                  
+  # Copy all online roles with oso prefix. These roles are intended for
+  # formal consumption by ops/CD.
+  - src: ansible/roles/oso_*
     dst: roles
+- id: online-archivist
+  url: https://github.com/openshift/online-archivist.git
+  version: master
+  copy:
+  - src: ansible/roles/oc_start_build_check/
+    dst: roles/oc_start_build_check/
 - id: openshift-ansible
   url: https://github.com/openshift/openshift-ansible.git
   version: openshift-ansible-3.7.0-0.125.0

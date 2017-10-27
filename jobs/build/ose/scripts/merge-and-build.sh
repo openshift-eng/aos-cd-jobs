@@ -381,7 +381,6 @@ fi
 
 # Record the name of the puddle which was created
 PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/latest")
-echo -n "${PUDDLE_NAME}" > "${RESULTS}/ose-puddle.name"
 echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/${PUDDLE_NAME}"
 
 echo
@@ -398,9 +397,12 @@ enterprise:pre-release ) PUDDLE_REPO="" ;;
 esac
 
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-  sh -s "simple" "${OSE_VERSION}" "${PUDDLE_REPO}" \
+  sh -s "simple" "${VERSION}" "${PUDDLE_REPO}" \
   < "${WORKSPACE}/build-scripts/rcm-guest/push-to-mirrors.sh"
 
+# push-to-mirrors.sh creates a symlink on rcm-guest with this new name and makes the
+# directory on the mirrors match this name.
+echo -n "${PUDDLE_NAME}_v${VERSION}" > "${RESULTS}/ose-puddle.name"
 
 echo
 echo "=========="

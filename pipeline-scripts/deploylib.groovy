@@ -83,15 +83,20 @@ def run( operation_name, opts = [:], capture_stdout=false, interactive_retry=tru
                 throw rerr
             }
 
-            mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cd@redhat.com",
-                    subject: "RESUMABLE Error during ${operation_name} on cluster ${CLUSTER_NAME}",
-                    body: """Encountered an error: ${rerr}
+            try {
+                mail(to: "${MAIL_LIST_FAILURE}",
+                        from: "aos-cd@redhat.com",
+                        subject: "RESUMABLE Error during ${operation_name} on cluster ${CLUSTER_NAME}",
+                        body: """Encountered an error: ${rerr}
 
 Input URL: ${env.BUILD_URL}input
 
 Jenkins job: ${env.BUILD_URL}
 """);
+            } catch ( mail_exception ) {
+                echo "One or more errors sending email: ${mail_exception}"
+            }
+
             def resp = input    message: "On ${CLUSTER_NAME}: Error during ${operation_name} with args: ${opts}",
                                 parameters: [
                                                 [$class: 'hudson.model.ChoiceParameterDefinition',

@@ -141,10 +141,22 @@ node(TARGET_NODE) {
 
         stage( "ose repo" ) {
             master_spec = buildlib.initialize_ose()
+            // If the target version resides in ose#master
+            IS_SOURCE_IN_MASTER = ( BUILD_VERSION == master_spec.major_minor )
         }
 
         stage( "openshift-jenkins repo ") {
           buildlib.initialize_openshift_jenkins()
+
+          JENKINS_SOURCE_BRANCH = "master"
+          dir( OPENSHIFT_JENKINS_DIR ) {
+              if ( ! IS_SOURCE_IN_MASTER ) {
+                  if(BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 6 ){
+                      JENKINS_SOURCE_BRANCH = "openshift-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
+                  }
+              }
+              sh "git checkout ${JENKINS_SOURCE_BRANCH}"
+          }
         }
 
         stage( "origin-web-console repo" ) {
@@ -164,11 +176,7 @@ node(TARGET_NODE) {
         }
 
         stage( "analyze" ) {
-
             dir ( env.OSE_DIR ) {
-
-                // If the target version resides in ose#master
-                IS_SOURCE_IN_MASTER = ( BUILD_VERSION == master_spec.major_minor )
 
                 if ( IS_SOURCE_IN_MASTER ) {
                     if ( BUILD_MODE == "release" ) {
@@ -363,17 +371,20 @@ node(TARGET_NODE) {
         }
 
         stage( "openshift-ansible prep" ) {
+            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "master"
             dir( OPENSHIFT_ANSIBLE_DIR ) {
                 if ( BUILD_MODE == "online:stg" ) {
                     sh "git checkout -b stage origin/stage"
+                    OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "stage"
                 } else {
                     if ( ! IS_SOURCE_IN_MASTER ) {
                         // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
                         if ( BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6 ) {
-                            sh "git checkout -b release-1.${BUILD_VERSION_MINOR} origin/release-1.${BUILD_VERSION_MINOR}"
+                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
                         } else {
-                            sh "git checkout -b release-${BUILD_VERSION} origin/release-${BUILD_VERSION}"
+                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
                         }
+                        sh "git checkout -b ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
                     } else {
                        sh "git checkout master"
                     }
@@ -492,6 +503,12 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION}
         distgit_notify = buildlib.get_distgit_notify( record_log )
         distgit_notify = buildlib.mapToList(distgit_notify)
         // loop through all new commits and notify their owners
+
+        SOURCE_BRANCHES = [
+          "ose": OSE_SOURCE_BRANCH,
+          "jenkins": JENKINS_SOURCE_BRANCH,
+          "openshift-ansible": OPENSHIFT_ANSIBLE_SOURCE_BRANCH
+        ]
         for(i = 0; i < distgit_notify.size(); i++) {
             distgit = distgit_notify[i][0]
             val = distgit_notify[i][1]
@@ -503,7 +520,7 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION}
             github_url = github_url.replace("git@", "")
             github_url = github_url.replaceFirst(":", "/")
             dockerfile_sub_path = val['source_dockerfile_subpath']
-            dockerfile_url = "Source file: " + github_url + "/" + dockerfile_sub_path
+            dockerfile_url = "Source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] +"/" + dockerfile_sub_path
             try {
               // always mail success list, val.owners will be comma delimited or empty
               mail(to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com",
@@ -513,7 +530,7 @@ distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION}
 OIT has detected a change in the Dockerfile for ${val.image}
 ${dockerfile_url}
 This has been automatically reconciled and the new file can be seen here:
-http://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
+https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
               """);
             } catch ( err ) {
 

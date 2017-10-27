@@ -589,6 +589,9 @@ distgits:build-images \\
         // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
         buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", NEW_FULL_VERSION, BUILD_MODE )
 
+        // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
+        OCP_PUDDLE = "${OCP_PUDDLE}_v${NEW_FULL_VERSION}"
+
         if ( NEW_RELEASE != "1" ) {
             // If this is not a release candidate, push binary in a directory qualified with release field information
             buildlib.invoke_on_rcm_guest( "publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION )

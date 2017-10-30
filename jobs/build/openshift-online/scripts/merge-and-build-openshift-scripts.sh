@@ -179,11 +179,8 @@ else
     echo "=========="
     echo "Push Images"
     echo "=========="
-    # Push to legacy registry
+    # Push to registry
     sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
-    # Push to new registry
-    sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --push_reg registry.reg-aws.openshift.com:443
-
     echo
     echo "=========="
     echo "Create latest puddle"

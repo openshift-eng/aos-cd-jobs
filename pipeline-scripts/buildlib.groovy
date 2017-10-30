@@ -36,12 +36,6 @@ def kinit() {
 }
 
 def registry_login() {
-    // Login to legacy registry.ops to enable pushes
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
-                      usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
-    }
-
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {

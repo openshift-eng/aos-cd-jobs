@@ -364,11 +364,6 @@ echo "=========="
 # Pass PATH to ensure that sudo inherits Jenkins setup of PATH environment variable.
 sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base
 
-set +e
-# Try pushing to new registry, but don't error for now.
-sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base --push_reg registry.reg-aws.openshift.com:443
-set -e
-
 echo
 echo "=========="
 echo "Create latest puddle"

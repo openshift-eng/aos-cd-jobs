@@ -43,13 +43,7 @@ if ( MOCK.toBoolean() ) {
 node(TARGET_NODE) {
 
     set_workspace()
-    
-    // Login to legacy registry.ops to enable pushes
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
-                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'sudo docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
-    }    
-    
+
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
@@ -61,8 +55,8 @@ node(TARGET_NODE) {
         '''
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'
-    }    
-   
+    }
+
     stage('Merge and build') {
         try {
             checkout scm

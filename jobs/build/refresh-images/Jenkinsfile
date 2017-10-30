@@ -54,11 +54,6 @@ node('openshift-build-1') {
              ]]
     )
 
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
-                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'sudo docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
-    }
-
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO} MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
 
@@ -105,7 +100,6 @@ node('openshift-build-1') {
                 sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} ${update_docker_args} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
                 sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
                 sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
-                sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --push_reg registry.reg-aws.openshift.com:443"
                 // end ose_images method
 
                 // OIT method

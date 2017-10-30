@@ -159,8 +159,9 @@ add_group_to_list() {
           add_to_list golang-github-prometheus-prometheus-docker
           add_to_list golang-github-prometheus-alertmanager-docker
           add_to_list golang-github-openshift-prometheus-alert-buffer-docker
-	  add_to_list golang-github-openshift-oauth-proxy-docker
-	fi
+	      add_to_list golang-github-openshift-oauth-proxy-docker
+	      add_to_list logging-eventrouter-docker
+	    fi
         add_to_list openshift-enterprise-openvswitch-docker
       fi
     ;;

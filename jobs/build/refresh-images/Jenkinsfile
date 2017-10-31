@@ -72,7 +72,6 @@ node('openshift-build-1') {
 
     def buildlib = load( "pipeline-scripts/buildlib.groovy")
     buildlib.initialize()
-    echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
     stage( "enterprise-images repo" ) {
         buildlib.initialize_enterprise_images_dir()

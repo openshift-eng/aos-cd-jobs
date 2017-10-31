@@ -423,10 +423,17 @@ if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34;
   location=&#34;${location_base}/artifacts/rpms&#34;
 else
   location_root=&#34;origin-ci-test/branch-logs/origin/${target_branch}/builds&#34;
-  location_base=&#34;${location_root}/${BUILD_NUMBER}&#34;
+  location_base=&#34;${location_root}/${JOB_NAME}/${BUILD_NUMBER}&#34;
   location=&#34;${location_base}/artifacts/rpms&#34;
   base_location_url=&#34;https://storage.googleapis.com/${location_base}&#34;
 fi
+cat &lt;&lt;REPO &gt; /tmp/local.repo
+[origin-repo]
+name=Origin RPMs
+baseurl=${location}
+enabled=1
+gpgcheck=0
+REPO
 location_url=&#34;https://storage.googleapis.com/${location}&#34;
 echo &#34;${JOB_NAME}/${BUILD_NUMBER}&#34; &gt; .build
 if gsutil ls &#34;gs://${location_base}&#34; &amp;&gt;/dev/null; then
@@ -449,6 +456,7 @@ else
   # update the pointer to this location
   echo &#34;${base_location_url}&#34; &gt; .latest
   gsutil cp .latest &#34;gs://${location_root}/.latest&#34;
+  gsutil cp /tmp/local.repo &#34;gs://${location_root}/origin.repo&#34;
 fi
 
 # hack around forwarding this to the other machine

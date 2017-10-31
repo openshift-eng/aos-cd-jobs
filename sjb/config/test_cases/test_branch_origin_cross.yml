@@ -14,7 +14,7 @@ extensions:
       script: |-
         target_branch="${ORIGIN_TARGET_BRANCH:-}"
         location_root="origin-ci-test/branch-logs/origin/${target_branch}/builds"
-        location_base="${location_root}/${BUILD_NUMBER}"
+        location_base="${location_root}/${JOB_NAME}/${BUILD_NUMBER}"
         location="${location_base}/artifacts/zips"
         base_location_url="https://storage.googleapis.com/${location_base}"
         location_url="https://storage.googleapis.com/${location}"

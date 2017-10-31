@@ -63,10 +63,17 @@ extensions:
           location="${location_base}/artifacts/rpms"
         else
           location_root="origin-ci-test/branch-logs/origin/${target_branch}/builds"
-          location_base="${location_root}/${BUILD_NUMBER}"
+          location_base="${location_root}/${JOB_NAME}/${BUILD_NUMBER}"
           location="${location_base}/artifacts/rpms"
           base_location_url="https://storage.googleapis.com/${location_base}"
         fi
+        cat <<REPO > /tmp/local.repo
+        [origin-repo]
+        name=Origin RPMs
+        baseurl=${location}
+        enabled=1
+        gpgcheck=0
+        REPO
         location_url="https://storage.googleapis.com/${location}"
         echo "${JOB_NAME}/${BUILD_NUMBER}" > .build
         if gsutil ls "gs://${location_base}" &>/dev/null; then
@@ -89,6 +96,7 @@ extensions:
           # update the pointer to this location
           echo "${base_location_url}" > .latest
           gsutil cp .latest "gs://${location_root}/.latest"
+          gsutil cp /tmp/local.repo "gs://${location_root}/origin.repo"
         fi
 
         # hack around forwarding this to the other machine

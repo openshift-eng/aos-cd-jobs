@@ -33,6 +33,7 @@ ${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO}
 }
 
 node('openshift-build-1') {
+    checkout scm
 
     // Expose properties for a parameterized build
     properties(
@@ -79,7 +80,6 @@ node('openshift-build-1') {
 
     stage('Refresh Images') {
         try {
-            checkout scm
             env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
 
             rhel_arg = ""

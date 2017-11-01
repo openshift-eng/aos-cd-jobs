@@ -95,6 +95,9 @@ node('openshift-build-1') {
 			stage ('Configure TMPFS') {
 				runScript './configure-tmpfs.sh'
 			}
+			stage ('Install the RHEL7Next repositories') {
+				sh "scp -F ${ssh_config} ./rhel7next.repo openshiftdevel:/etc/yum.repos.d/rhel7next.repo"
+			}
 			stage ('Install distribution dependencies') {
 				sh 'oct prepare dependencies'
 			}

@@ -11,14 +11,6 @@ def runScript(script) {
 }
 node('openshift-build-1') {
 	properties ([[
-		$class: 'ParametersDefinitionProperty',
-		parameterDefinitions: [[
-			$class: 'BooleanParameterDefinition',
-			defaultValue: false,
-			description: 'Destroy the previous <code>virtualenv</code> and install the <code>origin-ci-tool</code> from scratch.',
-			name: 'CLEAN_INSTALL'
-		]]
-	],[
 		$class: 'PipelineTriggersJobProperty',
 		triggers: [[
 			$class: 'TimerTrigger',
@@ -52,12 +44,9 @@ node('openshift-build-1') {
 	}
 	venv_dir = "${env.WORKSPACE}/origin-ci-tool"
 	stage ('Create a virtualenv for the origin-ci-tool') {
-		if ( CLEAN_INSTALL.toBoolean() ) {
-			sh "rm -rf ${venv_dir}"
-			sh "rm -rf ${env.WORKSPACE}/.config"
-			sh "virtualenv ${venv_dir} --system-site-packages"
-		}
-		sh "test -d ${venv_dir}"
+		sh "rm -rf ${venv_dir}"
+		sh "rm -rf ${env.WORKSPACE}/.config"
+		sh "virtualenv ${venv_dir} --system-site-packages"
 	}
 	stage ('Fetch the scripts') {
 	    checkout scm

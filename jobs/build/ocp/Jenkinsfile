@@ -567,7 +567,6 @@ distgits:build-images \\
             dir( "${env.WORKSPACE}/build-scripts/ose_images" ) {
                 TAG_LATEST = IS_SOURCE_IN_MASTER?"":"--nolatest"
                 sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
-                sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --push_reg registry.reg-aws.openshift.com:443"
             }
         }
 

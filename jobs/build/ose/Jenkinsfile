@@ -114,12 +114,6 @@ echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_
 node(TARGET_NODE) {
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
 
-    // Login to legacy registry.ops to enable pushes
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'registry-push.ops.openshift.com',
-                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'sudo docker login -u $USERNAME -p "$PASSWORD" registry-push.ops.openshift.com'
-    }
-
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
@@ -157,9 +151,9 @@ node(TARGET_NODE) {
             }
 
             thisBuildVersion = version("${env.WORKSPACE}/src/github.com/openshift/ose/origin.spec")
-            
+
             currentBuild.displayName = "#${currentBuild.number} - ${thisBuildVersion} (${BUILD_MODE})"
-            
+
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success(thisBuildVersion)
 
@@ -168,7 +162,7 @@ node(TARGET_NODE) {
             ATTN=""
             try {
                 new_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
-                echo "Comparing new_build (" + new_build + ") and prev_build (" + prev_build + ")" 
+                echo "Comparing new_build (" + new_build + ") and prev_build (" + prev_build + ")"
                 if ( new_build != prev_build ) {
                     // Untag anything tagged by this build if an error occured at any point
                     sh "brew --user=ocp-build untag-build rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate ${new_build}"

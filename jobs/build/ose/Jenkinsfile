@@ -133,6 +133,8 @@ node(TARGET_NODE) {
     }
 
     set_workspace()
+
+    env.OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
     stage('Merge and build') {
         try {
 

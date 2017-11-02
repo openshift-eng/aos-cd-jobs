@@ -73,6 +73,12 @@ node('openshift-build-1') {
     stage( "enterprise-images repo" ) {
         buildlib.initialize_enterprise_images_dir()
     }
+    
+    OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
+    // create working if not exists
+    sh "mkdir -p ${OIT_WORKING}"
+    //Clear out if previously in use
+    sh "rm -rf ${OIT_WORKING}/*"
 
     stage('Refresh Images') {
         try {

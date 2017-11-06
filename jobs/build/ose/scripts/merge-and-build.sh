@@ -319,7 +319,6 @@ else
     fi
   fi
 fi
-popd
 
 echo
 echo "=========="
@@ -347,6 +346,7 @@ echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TA
 echo
 echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/openshift-ansible-brew.url"
 brew watch-task ${TASK_NUMBER}
+popd
 
 echo
 echo "=========="

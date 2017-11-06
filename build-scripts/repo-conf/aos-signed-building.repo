@@ -101,10 +101,9 @@ baseurl=http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShi
 gpgcheck=0
 enabled=0
 
-#For ansible 2.3, openshift-enterprise-apb-base-docker
-[abp-rhel-7.4-server-extras-rpms]
+#For ansible 2.4, openshift-enterprise-apb-base-docker
+[apb-rhel-7.4-server-extras-rpms]
 name = Red Hat Enterprise Linux 7.4 Extras
-baseurl = http://download.devel.redhat.com/rel-eng/EXTRAS-7.4-RHEL-7-Snapshot-5.0/compose/Server/x86_64/os/
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/extras/os/
 enabled = 0
 gpgcheck = 0
-

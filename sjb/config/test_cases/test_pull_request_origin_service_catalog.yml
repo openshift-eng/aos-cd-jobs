@@ -20,6 +20,24 @@ extensions:
         source hack/lib/init.sh
         os::build::rpm::format_nvra > "${jobs_repo}/ORIGIN_BUILT_VERSION"
     - type: "script"
+      title: "build junitreport"
+      repository: "origin"
+      timeout: 1800
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/junitreport hack/env make build WHAT=tools/junitreport
+    - type: "script"
+      title: "update bindata"
+      repository: "origin"
+      timeout: 1800
+      script: |-
+        hack/update-generated-bindata.sh
+    - type: "script"
+      title: "build Origin OC binary with latest RBAC"
+      repository: "origin"
+      timeout: 1800
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
+    - type: "script"
       title: "build service-catalog user-broker image"
       repository: "origin"
       timeout: 1800
@@ -30,10 +48,9 @@ extensions:
       repository: "origin"
       timeout: 1800
       script: |-
-        hack/update-generated-bindata.sh
         unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-go.sh
     - type: "script"
-      title: "Service Catalog unit tests"
+      title: "run Service Catalog unit tests"
       repository: "origin"
       timeout: 1800
       script: |-

@@ -117,7 +117,11 @@ node('openshift-build-1') {
   """
 
               buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR} --include aos3-installation-docker \\
+--working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR} \\
+--include aos3-installation-docker \\
+--optional-include jenkins-slave-base-rhel7-docker \\
+--optional-include jenkins-slave-maven-rhel7-docker \\
+--optional-include jenkins-slave-nodejs-rhel7-docker \\
 distgits:build-images \\
 --push-to-defaults --repo_type signed
 """

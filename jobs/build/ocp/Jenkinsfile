@@ -492,7 +492,11 @@ node(TARGET_NODE) {
         stage( "update dist-git" ) {
           buildlib.write_sources_file()
           buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' --include aos3-installation-docker \\
+--working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' \\
+--include aos3-installation-docker \\
+--include jenkins-slave-base-rhel7-docker \\
+--include jenkins-slave-maven-rhel7-docker \\
+--include jenkins-slave-nodejs-rhel7-docker \\
 distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION} \\
 --release ${NEW_DOCKERFILE_RELEASE} \\
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push

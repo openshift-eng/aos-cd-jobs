@@ -86,6 +86,11 @@ if [ -d "${RESULTS}" ]; then
 fi
 mkdir -p "${RESULTS}"
 
+if [ -d "${OIT_WORKING}" ]; then
+  rm -rf "${OIT_WORKING}"
+fi
+mkdir -p "${OIT_WORKING}"
+
 WORKPATH="${BUILDPATH}/src/github.com/openshift/"
 mkdir -p ${WORKPATH}
 cd ${BUILDPATH}
@@ -116,6 +121,20 @@ if [ ! -z "$(git ls-remote --heads git@github.com:openshift/origin.git release-$
     echo "to update OSE_MASTER in the Jenkinsfile."
     exit 1
 fi
+
+echo
+echo "=========="
+echo "Setup OIT stuff"
+echo "=========="
+
+
+pushd ${BUILDPATH}
+OIT_DIR="${BUILDPATH}/enterprise-images/"
+rm -rf ${OIT_DIR}
+mkdir -p ${OIT_DIR}
+OIT_PATH="${OIT_DIR}/oit/oit.py"
+git clone git@github.com:openshift/enterprise-images.git ${OIT_DIR}
+popd
 
 echo
 echo "=========="
@@ -159,6 +178,8 @@ cd ${WORKPATH}
 rm -rf ose
 git clone git@github.com:openshift/ose.git
 cd ose
+
+OSE_DIR="${WORKPATH}/ose/"
 
 # Enable fake merge driver used in our .gitattributes
 # https://github.com/openshift/ose/commit/02b57ed38d94ba1d28b9bc8bd8abcb6590013b7c
@@ -262,25 +283,43 @@ echo
 echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/ose-brew.url"
 brew watch-task ${TASK_NUMBER}
 
+echo
+echo "=========="
+echo "Setup: openshift-jenkins"
+echo "=========="
+pushd ${WORKPATH}
+rm -rf jenkins
+git clone git@github.com:openshift/jenkins.git
+OPENSHIFT_JENKINS_DIR="${WORKPATH}/jenkins/"
+cd jenkins/
+if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
+  if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -ge 6 ] ; then # 3.5 and below maps to "release-1.5"
+    git checkout -q openshift-${MAJOR}.${MINOR}
+  fi
+fi
+popd
 
 echo
 echo "=========="
 echo "Setup: openshift-ansible"
 echo "=========="
+pushd ${WORKPATH}
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
+OPENSHIFT_ANSIBLE_DIR="${WORKPATH}/openshift-ansible/"
 cd openshift-ansible/
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
     git checkout -q stage
 else
   if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-    if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
+    if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
       git checkout -q release-1.${MINOR}
     else  # Afterwards, version maps directly; 3.5 => "release-3.5"
       git checkout -q release-${OSE_VERSION}
     fi
   fi
 fi
+popd
 
 echo
 echo "=========="
@@ -339,9 +378,43 @@ ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${OSE_VERSION}-rh
 
 echo
 echo "=========="
-echo "Update Dockerfiles to new version"
+echo "Run OIT rebase"
+echo "=========="
+
+cat >"${OIT_WORKING}/sources.yml" <<EOF
+ose: ${OSE_DIR}
+jenkins: ${OPENSHIFT_JENKINS_DIR}
+openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
+EOF
+
+${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_PATH} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+--include aos3-installation-docker \
+--optional-include jenkins-slave-base-rhel7-docker \
+--optional-include jenkins-slave-maven-rhel7-docker \
+--optional-include jenkins-slave-nodejs-rhel7-docker \
+distgits:rebase --sources ${OIT_WORKING}/sources.yml --version v${VERSION} \
+--release 1 \
+--message "Updating Dockerfile version and release v${VERSION}-1" --push
+
+
+echo
+echo "=========="
+echo "Update Dockerfiles to new version"``
 echo "=========="
 ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version "v${VERSION}"
+
+echo
+echo "=========="
+echo "Build OIT images"
+echo "=========="
+
+${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_PATH} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+--include aos3-installation-docker \
+--optional-include jenkins-slave-base-rhel7-docker \
+--optional-include jenkins-slave-maven-rhel7-docker \
+--optional-include jenkins-slave-nodejs-rhel7-docker \
+distgits:build-images \
+--push-to-defaults --repo_type unsigned
 
 echo
 echo "=========="

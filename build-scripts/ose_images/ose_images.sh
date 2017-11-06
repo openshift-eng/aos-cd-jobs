@@ -205,9 +205,7 @@ add_group_to_list() {
       if [ ${MAJOR_RELEASE} != "3.1" ] && [ ${MAJOR_RELEASE} != "3.2" ] && [ ${MAJOR_RELEASE} != "3.3" ] ; then
         add_to_list openshift-jenkins-2-docker
       fi
-      add_to_list jenkins-slave-base-rhel7-docker
-      add_to_list jenkins-slave-maven-rhel7-docker
-      add_to_list jenkins-slave-nodejs-rhel7-docker
+      add_group_to_list "jenkins-slaves"
     ;;
     jenkins-plain )
       add_to_list openshift-jenkins-docker
@@ -216,9 +214,12 @@ add_group_to_list() {
       fi
     ;;
     jenkins-slaves )
-      add_to_list jenkins-slave-base-rhel7-docker
-      add_to_list jenkins-slave-maven-rhel7-docker
-      add_to_list jenkins-slave-nodejs-rhel7-docker
+      # if [ ${MAJOR_RELEASE} != "3.7" ] ; then
+      if false; then  # temporary for initial testing. In case it needs to come back.
+        add_to_list jenkins-slave-base-rhel7-docker
+        add_to_list jenkins-slave-maven-rhel7-docker
+        add_to_list jenkins-slave-nodejs-rhel7-docker
+      fi
     ;;
     metrics)
       add_to_list metrics-cassandra-docker

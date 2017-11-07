@@ -25,8 +25,9 @@ for master in $masters ; do
         echo "Processing master: $master"
         ossh -o StrictHostKeyChecking=no "root@${master}" -c "etcdctl3 defrag"
         ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/lib/origin/core.*"
-        ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/lib/etcd/openshift-backup-etcd_backup*"
+        ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/lib/etcd/openshift-backup-*"
         ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/cache/yum/*"
         ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/log/*.gz"
+        ossh -o StrictHostKeyChecking=no "root@${master}" -c "journalctl --vacuum-time=5h"
         COUNT=$((COUNT+1))
 done

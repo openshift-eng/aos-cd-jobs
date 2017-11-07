@@ -387,7 +387,7 @@ jenkins: ${OPENSHIFT_JENKINS_DIR}
 openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
 EOF
 
-${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_PATH} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
 --include aos3-installation-docker \
 --optional-include jenkins-slave-base-rhel7-docker \
 --optional-include jenkins-slave-maven-rhel7-docker \
@@ -408,7 +408,7 @@ echo "=========="
 echo "Build OIT images"
 echo "=========="
 
-${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_PATH} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
 --include aos3-installation-docker \
 --optional-include jenkins-slave-base-rhel7-docker \
 --optional-include jenkins-slave-maven-rhel7-docker \

@@ -359,7 +359,8 @@ node(TARGET_NODE) {
 
         stage( "ose tag" ) {
             dir( OSE_DIR ) {
-                // Set the new release value in the file and tell tito to keep the version & release in the spec.
+                // Set the new version/release value in the file and tell tito to keep the version & release in the spec.
+                buildlib.set_rpm_spec_version( "origin.spec", NEW_VERSION )
                 buildlib.set_rpm_spec_release_prefix( "origin.spec", NEW_RELEASE )
                 // Note that I did not use --use-release because it did not maintain variables like %{?dist}
                 sh "tito tag --accept-auto-changelog --keep-version --debug"

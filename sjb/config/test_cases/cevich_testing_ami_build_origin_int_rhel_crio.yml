@@ -1,0 +1,56 @@
+---
+parent: 'common/test_cases/crio.yml'
+overrides:
+  timer: 'H H * * *'
+  provision:
+    os: "rhel"
+    stage: "bare"
+    provider: "aws"
+extensions:
+  actions:
+    - type: "host_script"
+      title: "install CI user account"
+      script: |-
+        oct prepare user
+        sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
+    - type: "host_script"
+      title: "bootstrap remote host"
+      script: |-
+        oct bootstrap host
+        oct bootstrap node
+    - type: "script"
+      title: "install git and wrapper-dependencies"
+      script: |-
+        sudo yum install -y git python2-virtualenv python-virtualenv gcc \
+            openssl-devel redhat-rpm-config libffi-devel python-devel libselinux-python \
+            rsync yum-utils python3-pycurl python-pycurl python2-simplejson python-simplejson
+    - type: "script"
+      title: "set up cri-o repository"
+      script: |-
+        sudo mkdir /go
+        sudo chmod a+rwx /go
+        sudo chmod o+rw /etc/environment
+        sudo echo "GOPATH=/go" >> /etc/environment
+        mkdir -p /go/src/github.com/kubernetes-incubator
+        cd /go/src/github.com/kubernetes-incubator
+        git clone https://github.com/kubernetes-incubator/cri-o.git
+    - type: "script"
+      title: "set up system for cri-o testing"
+      script: |-
+        cd /go/src/github.com/kubernetes-incubator/cri-o/contrib/test
+        export WORKSPACE=/tmp
+        ./venv-ansible-playbook.sh \
+                         -vv --become  \
+                         -i localhost, \
+                         --tags setup  \
+                         --become-user root \
+                         --connection local \
+                         ./integration/main.yml
+    - type: "host_script"
+      title: "package the AMI"
+      script: |-
+        oct package ami --stage=crio
+    - type: "host_script"
+      title: "release the AMI"
+      script: |-
+        oct package ami --mark-ready

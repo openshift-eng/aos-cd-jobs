@@ -276,7 +276,8 @@ node(TARGET_NODE) {
                     ver_fields = spec.version.tokenize(".")
                     ver_fields[ver_fields.size()-1] = "${ver_fields[ver_fields.size()-1].toInteger() + 1}"
                     NEW_VERSION = ver_fields.join(".")
-                    NEW_DOCKERFILE_RELEASE = NEW_RELEASE = "1"
+                    NEW_RELEASE = "1"
+                    NEW_DOCKERFILE_RELEASE = NEW_RELEASE
 
                 } else {
                     error( "Unknown BUILD_MODE: ${BUILD_MODE}" )

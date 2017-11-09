@@ -174,7 +174,7 @@ function get_master_name() {
 # Outputs the name of one a master for a cluster
 
   # Find an appropriate master
-  MASTER="$(ossh --list | grep ${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
+  MASTER="$(ossh --list | grep -E \^${CLUSTERNAME}-master | head -n 1 | cut -d " " -f 1)"
 
   if [[ "${MASTER}" != "${CLUSTERNAME}"-* ]]; then
       echo "Unable to find master for the specified cluster"

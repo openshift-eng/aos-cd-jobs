@@ -31,7 +31,7 @@ function update_config() {
 				 "https://ci.openshift.redhat.com/jenkins/createItem?name=${job}"
 		)"
 
-		if [[ "${response}" != "201" ]]; then
+		if [[ "${response}" != "200" ]]; then
 			tput setaf 1
 			tput bold
 			echo "[ERROR] Failed to create ${job}: ${response}"

@@ -6,3 +6,11 @@ extensions:
       description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
 rectory to run."
       default_value: "conformance"
+  actions:
+    - type: "script"
+      title: "publish GCE image"
+      repository: "release"
+      timeout: 900
+      script: |-
+        cd cluster/test-deploy/data
+        ../../bin/local.sh ansible-playbook -e openshift_gcp_keep_images=5 -e openshift_gcp_target_image=origin-node playbooks/publish_image.yaml

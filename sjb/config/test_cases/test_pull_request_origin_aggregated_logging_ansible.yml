@@ -5,6 +5,7 @@ overrides:
     - name: "origin-aggregated-logging"
       type: "pull_request"
     - name: "openshift-ansible"
+    - name: "aos-cd-jobs"
 extensions:
   actions:
     - type: "script"

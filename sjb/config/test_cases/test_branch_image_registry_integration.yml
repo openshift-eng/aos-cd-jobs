@@ -1,0 +1,12 @@
+---
+parent: 'common/test_cases/origin.yml'
+overrides:
+  sync_repos:
+    - name: "image-registry"
+extensions:
+  actions:
+    - type: "script"
+      title: "run image-registry integration tests"
+      repository: "image-registry"
+      script: |-
+        echo "TODO(SKUZNETS): CALL INTEGRATION TESTS WHEN THEY ARE READY"

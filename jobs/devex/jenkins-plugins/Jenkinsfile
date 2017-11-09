@@ -13,8 +13,8 @@ properties(
                     name: 'OCP_RELEASE',
                     description: 'OCP target release',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: ['3.7', '3.6', '3.5', '3.4', '3.3'].join('\n'),
-                    defaultValue: '3.7'
+                    choices: ['3.8',''3.7', '3.6', '3.5', '3.4', '3.3'].join('\n'),
+                    defaultValue: '3.8'
                 ],
                 [
                     name: 'PLUGIN_LIST',

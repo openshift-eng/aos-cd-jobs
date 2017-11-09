@@ -3,14 +3,14 @@
 // Expose properties for a parameterized build
 properties(
         [
-            buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
+            buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '1000')),
             [$class : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "openshift-bot\naos-cd-test\njupierce-aos-cd-bot\nadammhaile-aos-cd-bot", defaultValue: 'aos-cd-test', description: 'SSH credential id to use', name: 'SSH_KEY_ID'],
-                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.7', description: 'OCP Version to build', name: 'BUILD_VERSION'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.8\n3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.7', description: 'OCP Version to build', name: 'BUILD_VERSION'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable intra-day build hack for CL team CI?', name: 'EARLY_LATEST_HACK'],

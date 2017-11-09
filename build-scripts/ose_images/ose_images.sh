@@ -18,7 +18,7 @@ PS4='${LINENO}: '
 set -o xtrace
 
 ## LOCAL VARIABLES ##
-MASTER_RELEASE="3.7"    # Update version_trim_list when this changes
+MASTER_RELEASE="3.8"    # Update version_trim_list when this changes
 MAJOR_RELEASE="${MASTER_RELEASE}"  # This is a default if --branch is not specified
 MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
 
@@ -155,7 +155,7 @@ add_group_to_list() {
           add_to_list container-engine-docker
           add_to_list ose-egress-http-proxy-docker
         fi
-        if [ ${MAJOR_RELEASE} == "3.7" ]; then
+        if [ ${MAJOR_RELEASE} == "3.7" ] || [ ${MAJOR_RELEASE} == "3.8" ]; then
           add_to_list golang-github-prometheus-prometheus-docker
           add_to_list golang-github-prometheus-alertmanager-docker
           add_to_list golang-github-openshift-prometheus-alert-buffer-docker
@@ -1157,7 +1157,7 @@ start_push_image() {
         ;;
         all-v )
           if ! [ "${NOCHANNEL}" == "TRUE" ] ; then
-            version_trim_list="v3.1 v3.2 v3.3 v3.4 v3.5"
+            version_trim_list="v3.1 v3.2 v3.3 v3.4 v3.5 v3.6 v3.7 v3.8"
             for version_trim in ${version_trim_list} ; do
               echo "  TAG/PUSH: ${PUSH_REGISTRY}/${image_path}:${version_trim}" | tee -a ${workingdir}/logs/push.image.log
               docker tag ${PULL_REGISTRY}/${image_path}:${version_version}-${release_version} ${PUSH_REGISTRY}/${image_path}:${version_trim} | tee -a ${workingdir}/logs/push.image.log

@@ -4,6 +4,7 @@ overrides:
   sync_repos:
     - name: "origin-aggregated-logging"
     - name: "openshift-ansible"
+    - name: "aos-cd-jobs"
 extensions:
   actions:
     - type: "script"

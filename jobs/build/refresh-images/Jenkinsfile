@@ -113,7 +113,9 @@ node('openshift-build-1') {
                 buildlib.oit """
   --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}' \\
   distgits:update-dockerfile --version ${VERSION_OVERRIDE} \\
-  --release ${RELEASE_OVERRIDE}
+  --release ${RELEASE_OVERRIDE} \\
+  --message 'Updating Dockerfile version and release v${VERSION_OVERRIDE}-${RELEASE_OVERRIDE}' \\
+  --push
   """
 
               buildlib.oit """

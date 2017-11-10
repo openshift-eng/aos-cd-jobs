@@ -112,7 +112,7 @@ node('openshift-build-1') {
                 buildlib.write_sources_file()
                 buildlib.oit """
   --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}' \\
-  distgits:update-dockerfile --sources ${env.WORKSPACE}/sources.yml --version ${VERSION_OVERRIDE} \\
+  distgits:update-dockerfile --version ${VERSION_OVERRIDE} \\
   --release ${RELEASE_OVERRIDE}
   """
 

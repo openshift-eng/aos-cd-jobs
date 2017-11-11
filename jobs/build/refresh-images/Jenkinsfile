@@ -158,7 +158,7 @@ Jenkins job: ${env.BUILD_URL}
             try {
                 archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/*.log"
                 archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/brew-logs/**"
-            catch( aae ) {}
+            } catch( aae ) {}
         }
 
     }

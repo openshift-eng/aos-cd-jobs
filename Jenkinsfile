@@ -92,6 +92,7 @@ node('openshift-build-1') {
             sshagent(['openshift-bot']) {
 
                 update_docker_args = "--bump_release"
+                oit_update_docker_args = ""
                 if ( VERSION_OVERRIDE != "" ) {
                     if ( OSE_GROUP != "base" ) {
                         error( "You probably don't want to run with VERSION_OVERRIDE if group is not base" )
@@ -100,21 +101,21 @@ node('openshift-build-1') {
                         error( "RELEASE_OVERRIDE must be specified if VERSION_OVERRIDE is" )
                     }
                     update_docker_args = "--version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE}"
+                    oit_update_docker_args = update_docker_args
                 }
 
                 sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"
-                sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} ${update_docker_args} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
-                sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
-                sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
-                // end ose_images method
 
-                // OIT method
-                buildlib.write_sources_file()
+                /**
+                 * By default, do not specify a version or release for oit. This will preserve the version label and remove
+                 * the release label. OSBS now chooses a viable release label to prevent conflicting with pre-existing
+                 * builds. Let's use that fact to our advantage.
+                 */
                 buildlib.oit """
-  --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}' \\
-  distgits:update-dockerfile --version ${VERSION_OVERRIDE} \\
-  --release ${RELEASE_OVERRIDE} \\
-  --message 'Updating Dockerfile version and release v${VERSION_OVERRIDE}-${RELEASE_OVERRIDE}' \\
+  --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+  distgits:update-dockerfile
+  ${oit_update_docker_args}
+  --message 'Updating for image refresh'
   --push
   """
 
@@ -127,7 +128,14 @@ node('openshift-build-1') {
 distgits:build-images \\
 --push-to-defaults --repo_type signed
 """
-                // end OIT method
+                
+                
+                
+                sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} ${update_docker_args} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
+                sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
+                sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
+                // end ose_images method
+
             }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
@@ -146,6 +154,11 @@ Jenkins job: ${env.BUILD_URL}
 """);
             // Re-throw the error in order to fail the job
             throw err
+        } finally {
+            try {
+                archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/*.log"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/brew-logs/**"
+            catch( aae ) {}
         }
 
     }

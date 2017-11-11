@@ -130,6 +130,12 @@ node(TARGET_NODE) {
     buildlib.initialize()
     echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
+    OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
+    // create working if not exists
+    sh "mkdir -p ${OIT_WORKING}"
+    //Clear out if previously in use
+    sh "rm -rf ${OIT_WORKING}/*"
+
     try {
         sshagent([SSH_KEY_ID]) { // To work on real repos, buildlib operations must run with the permissions of openshift-bot
 
@@ -484,13 +490,6 @@ node(TARGET_NODE) {
         }
         // End old method
 
-        // OIT Method
-        OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
-        // create working if not exists
-        sh "mkdir -p ${OIT_WORKING}"
-        //Clear out if previously in use
-        sh "rm -rf ${OIT_WORKING}/*"
-
         stage( "update dist-git" ) {
           buildlib.write_sources_file()
           buildlib.oit """
@@ -634,6 +633,11 @@ distgits:build-images \\
     Jenkins job: ${env.BUILD_URL}
     """);
         throw err
+    } finally {
+        try {
+            archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/*.log"
+            archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/brew-logs/**"
+        catch( aae ) {}
     }
 
 

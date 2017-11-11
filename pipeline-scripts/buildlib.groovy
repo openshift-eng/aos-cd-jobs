@@ -70,6 +70,7 @@ def initialize_enterprise_images_dir() {
 }
 
 def oit( cmd ){
+    cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
     sh "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}"
 }
 

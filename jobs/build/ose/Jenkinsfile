@@ -134,7 +134,7 @@ node(TARGET_NODE) {
 
     set_workspace()
 
-    # oit_working must be in WORKSPACE in order to have artifacts archived
+    // oit_working must be in WORKSPACE in order to have artifacts archived
     OIT_WORKING = "${WORKSPACE}/oit_working"
     env.OIT_WORKING = OIT_WORKING
     //Clear out previous work

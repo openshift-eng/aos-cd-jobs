@@ -86,11 +86,6 @@ if [ -d "${RESULTS}" ]; then
 fi
 mkdir -p "${RESULTS}"
 
-if [ -d "${OIT_WORKING}" ]; then
-  rm -rf "${OIT_WORKING}"
-fi
-mkdir -p "${OIT_WORKING}"
-
 WORKPATH="${BUILDPATH}/src/github.com/openshift/"
 mkdir -p ${WORKPATH}
 cd ${BUILDPATH}

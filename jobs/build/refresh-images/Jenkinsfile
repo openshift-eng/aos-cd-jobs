@@ -73,12 +73,12 @@ node('openshift-build-1') {
     stage( "enterprise-images repo" ) {
         buildlib.initialize_enterprise_images_dir()
     }
-    
-    OIT_WORKING = "${pwd(tmp:true)}/oit_working"
-    // create working if not exists
+
+    # oit_working must be in WORKSPACE in order to have artifacts archived
+    OIT_WORKING = "${WORKSPACE}/oit_working"
+    //Clear out previous work
+    sh "rm -rf ${OIT_WORKING}"
     sh "mkdir -p ${OIT_WORKING}"
-    //Clear out if previously in use
-    sh "rm -rf ${OIT_WORKING}/*"
 
     stage('Refresh Images') {
         try {
@@ -160,8 +160,8 @@ Jenkins job: ${env.BUILD_URL}
             throw err
         } finally {
             try {
-                archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/*.log"
-                archiveArtifacts allowEmptyArchive: true, artifacts: "${OIT_WORKING}/brew-logs/**"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
             } catch( aae ) {}
         }
 

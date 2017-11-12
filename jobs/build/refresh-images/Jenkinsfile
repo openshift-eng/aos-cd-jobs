@@ -113,11 +113,11 @@ node('openshift-build-1') {
                  */
                 buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
-distgits:update-dockerfile
 --include aos3-installation-docker
 --optional-include jenkins-slave-base-rhel7-docker
 --optional-include jenkins-slave-maven-rhel7-docker
 --optional-include jenkins-slave-nodejs-rhel7-docker
+distgits:update-dockerfile
   ${oit_update_docker_args}
   --message 'Updating for image refresh'
   --push

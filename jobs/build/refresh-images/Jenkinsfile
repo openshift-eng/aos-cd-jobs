@@ -74,7 +74,7 @@ node('openshift-build-1') {
         buildlib.initialize_enterprise_images_dir()
     }
 
-    # oit_working must be in WORKSPACE in order to have artifacts archived
+    // oit_working must be in WORKSPACE in order to have artifacts archived
     OIT_WORKING = "${WORKSPACE}/oit_working"
     //Clear out previous work
     sh "rm -rf ${OIT_WORKING}"

@@ -74,7 +74,7 @@ node('openshift-build-1') {
         buildlib.initialize_enterprise_images_dir()
     }
     
-    OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
+    OIT_WORKING = "${pwd(tmp:true)}/oit_working"
     // create working if not exists
     sh "mkdir -p ${OIT_WORKING}"
     //Clear out if previously in use

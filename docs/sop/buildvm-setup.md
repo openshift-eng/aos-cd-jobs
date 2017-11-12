@@ -28,7 +28,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - Role Based Authentication
     - Pipeline Utility Steps
     - Extra Columns Plugin (to disable projects)
-    - Install CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  (download HPI and install manually, then install dependencies)
+    - Install Red Hat CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  . Added update center manager plugin and then installed.
 
 # Jenkins Agent Setup
 - Copy slave.jar into place onto agent at /home/jenkins/slave.jar (e.g. wget --no-check-certificate https://buildvm.openshift.eng.bos.redhat.com:8443/jnlpJars/slave.jar )

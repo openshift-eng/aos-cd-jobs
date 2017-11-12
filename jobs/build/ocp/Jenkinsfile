@@ -132,7 +132,7 @@ node(TARGET_NODE) {
     buildlib.initialize()
     echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
-    # oit_working must be in WORKSPACE in order to have artifacts archived
+    // oit_working must be in WORKSPACE in order to have artifacts archived
     OIT_WORKING = "${WORKSPACE}/oit_working"
     //Clear out previous work
     sh "rm -rf ${OIT_WORKING}"

@@ -130,7 +130,7 @@ node(TARGET_NODE) {
     buildlib.initialize()
     echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
-    OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
+    OIT_WORKING = "${pwd(tmp:true)}/oit_working"
     // create working if not exists
     sh "mkdir -p ${OIT_WORKING}"
     //Clear out if previously in use

@@ -493,13 +493,13 @@ node(TARGET_NODE) {
         stage( "update dist-git" ) {
           buildlib.write_sources_file()
           buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}' \\
---include aos3-installation-docker \\
---include jenkins-slave-base-rhel7-docker \\
---include jenkins-slave-maven-rhel7-docker \\
---include jenkins-slave-nodejs-rhel7-docker \\
-distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION} \\
---release ${NEW_DOCKERFILE_RELEASE} \\
+--working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
+--include aos3-installation-docker
+--include jenkins-slave-base-rhel7-docker
+--include jenkins-slave-maven-rhel7-docker
+--include jenkins-slave-nodejs-rhel7-docker
+distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION}
+--release ${NEW_DOCKERFILE_RELEASE}
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
 """
         }
@@ -549,8 +549,12 @@ https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
             sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
 
             buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION} --include aos3-installation-docker \\
-distgits:build-images \\
+--working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+--include aos3-installation-docker
+--include jenkins-slave-base-rhel7-docker
+--include jenkins-slave-maven-rhel7-docker
+--include jenkins-slave-nodejs-rhel7-docker
+distgits:build-images
 --push-to-defaults --repo_type unsigned
 """
         }

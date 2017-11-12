@@ -116,20 +116,24 @@ node('openshift-build-1') {
                  * builds. Let's use that fact to our advantage.
                  */
                 buildlib.oit """
-  --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
-  distgits:update-dockerfile
+--working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+distgits:update-dockerfile
+--include aos3-installation-docker
+--optional-include jenkins-slave-base-rhel7-docker
+--optional-include jenkins-slave-maven-rhel7-docker
+--optional-include jenkins-slave-nodejs-rhel7-docker
   ${oit_update_docker_args}
   --message 'Updating for image refresh'
   --push
   """
 
               buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR} \\
---include aos3-installation-docker \\
---optional-include jenkins-slave-base-rhel7-docker \\
---optional-include jenkins-slave-maven-rhel7-docker \\
---optional-include jenkins-slave-nodejs-rhel7-docker \\
-distgits:build-images \\
+--working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+--include aos3-installation-docker
+--optional-include jenkins-slave-base-rhel7-docker
+--optional-include jenkins-slave-maven-rhel7-docker
+--optional-include jenkins-slave-nodejs-rhel7-docker
+distgits:build-images
 --push-to-defaults --repo_type signed
 """
             }

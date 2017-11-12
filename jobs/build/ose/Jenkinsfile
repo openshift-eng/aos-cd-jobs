@@ -134,7 +134,13 @@ node(TARGET_NODE) {
 
     set_workspace()
 
-    env.OIT_WORKING = "${pwd(tmp:true)}/oit_working/"
+    # oit_working must be in WORKSPACE in order to have artifacts archived
+    OIT_WORKING = "${WORKSPACE}/oit_working"
+    env.OIT_WORKING = OIT_WORKING
+    //Clear out previous work
+    sh "rm -rf ${OIT_WORKING}"
+    sh "mkdir -p ${OIT_WORKING}"
+
     stage('Merge and build') {
         try {
 
@@ -183,6 +189,11 @@ Jenkins job: ${env.BUILD_URL}
 """);
             // Re-throw the error in order to fail the job
             throw err
+        } finally {
+            try {
+                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
+            } catch( aae ) {}
         }
 
     }

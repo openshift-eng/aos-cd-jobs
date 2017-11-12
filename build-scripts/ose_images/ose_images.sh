@@ -25,6 +25,8 @@ MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
 RELEASE_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
 RELEASE_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
 
+TOTAL_RETRIES=10
+
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
@@ -37,10 +39,13 @@ ERRATA_ID="24510"
 ERRATA_PRODUCT_VERSION="RHEL-7-OSE-${MAJOR_RELEASE}"
 SCRIPT_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+trap "exit 1" TERM
 export TOP_PID=$$
 
+# Hard exit is designed to terminate the script even in cases
+# where a function is being used like $(func).
 hard_exit() {
-    kill "$TOP_PID"
+    kill -s TERM "$TOP_PID"
 }
 
 usage() {
@@ -459,10 +464,25 @@ check_builds() {
               echo "Package with same NVR has already been built"
               echo "::${package}::" >> ${workingdir}/logs/prebuilt
           else
-              echo "::${package}::" >> ${workingdir}/logs/buildfailed
-              echo "Failed logs"
-              ls -1 ${package}.*
-              cp -f ${package}.* ${workingdir}/logs/failed-logs/
+              if [ "$TOTAL_RETRIES" == "0" ]; then
+                  echo "::${package}::" >> ${workingdir}/logs/buildfailed
+                  echo "Failed logs"
+                  ls -1 ${package}.*
+                  cp -f ${package}.* ${workingdir}/logs/failed-logs/
+              else
+                    echo "Detected failed build: ${package} but there are $TOTAL_RETRIES left, so triggering it again."
+                    echo "Failed brew URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${taskid}"
+
+                    TOTAL_RETRIES=$(($TOTAL_RETRIES - 1))
+                    export container="$package"
+                    F="$FORCE"
+                    export FORCE="TRUE"
+                    start_build_image
+                    export FORCE="$F"  # Restore old value after the call
+
+                    # Pretend the build never terminated with an error
+                    continue
+              fi
           fi
       fi
       mv ${line} ${package}.watchlog done/
@@ -473,6 +493,8 @@ check_builds() {
 }
 
 wait_for_all_builds() {
+
+  # While there are .buildlog files in workindir/logs, builds are still running
   buildcheck=`ls -1 ${workingdir}/logs/*buildlog 2>/dev/null`
   while ! [ "${buildcheck}" == "" ]
   do
@@ -500,7 +522,7 @@ wait_for_all_builds() {
       echo
     done
 
-    echo "Failed build occured. Exiting."
+    echo "Failed build occurred. Exiting."
     hard_exit
   fi
 }
@@ -527,7 +549,7 @@ check_build_dependencies() {
 }
 
 build_image() {
-    rhpkg ${USER_USERNAME} container-build ${SCRATCH_OPTION} --repo ${BUILD_REPO} >> ${workingdir}/logs/${container}.buildlog 2>&1 &
+    rhpkg ${USER_USERNAME} container-build ${SCRATCH_OPTION} --repo ${BUILD_REPO} > ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-latest.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &
     #rhpkg container-build --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-errata-building.repo >> ${workingdir}/logs/${container}.buildlog 2>&1 &

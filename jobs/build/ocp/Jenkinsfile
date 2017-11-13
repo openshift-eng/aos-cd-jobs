@@ -192,7 +192,7 @@ node(TARGET_NODE) {
                     }
                 } else {
                     if ( BUILD_MODE != "release" && BUILD_MODE != "pre-release" ) {
-                        error( "Invlaid build mode for a releaes that does not reside in master: ${BUILD_MODE}" )
+                        error( "Invalid build mode for a release that does not reside in master: ${BUILD_MODE}" )
                     }
                 }
 
@@ -306,23 +306,28 @@ node(TARGET_NODE) {
                     WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
                     sh "git checkout -b ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
                     if ( IS_SOURCE_IN_MASTER ) {
-                        sh """
-                            # Pull content of master into enterprise branch
-                            git merge master --no-commit --no-ff
-                            # Use grunt to rebuild everything in the dist directory
-                            ./hack/install-deps.sh
-                            grunt build
 
-                            git add dist
-                            git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
-                        """
+                        // jwforres asked that master *not* merge into the 3.8 branch.
+                        if ( BUILD_VERSION != "3.8" ) {
+                            sh """
+                                # Pull content of master into enterprise branch
+                                git merge master --no-commit --no-ff
+                                # Use grunt to rebuild everything in the dist directory
+                                ./hack/install-deps.sh
+                                grunt build
 
-                        if ( ! IS_TEST_MODE ) {
-                            sh "git push"
+                                git add dist
+                                git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
+                            """
+
+                            if ( ! IS_TEST_MODE ) {
+                                sh "git push"
+                            }
+
+                            // Clean up any unstaged changes (e.g. .gitattributes)
+                            sh "git reset --hard HEAD"
                         }
 
-                        // Clean up any unstaged changes (e.g. .gitattributes)
-                        sh "git reset --hard HEAD"
                     }
                 }
             }

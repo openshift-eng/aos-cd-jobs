@@ -50,6 +50,14 @@ def registry_login() {
     }
 }
 
+def print_tags(image_name) {
+    // Writing the file out is all to avoid displaying the token in the Jenkins console
+    writeFile file:"print_tags.sh", text:'''#!/bin/bash
+    curl -sH "Authorization: Bearer $(oc whoami -t)" ''' + "https://registry.reg-aws.openshift.com/v2/${image_name}/tags/list | jq ."
+    sh 'chmod +x print_tags.sh'
+    sh './print_tags.sh'
+}
+
 def initialize_openshift_dir() {
     OPENSHIFT_DIR = "${GOPATH}/src/github.com/openshift"
     env.OPENSHIFT_DIR = OPENSHIFT_DIR

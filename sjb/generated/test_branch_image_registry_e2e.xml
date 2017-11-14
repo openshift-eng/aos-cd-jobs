@@ -312,7 +312,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-make build-image
+make build-images
 docker tag openshift/origin-docker-registry:latest &#34;openshift/origin-docker-registry:\$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

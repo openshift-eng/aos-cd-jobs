@@ -1,0 +1,10 @@
+
+properties( [
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    ] )
+
+description = ""
+failed = false
+
+b = build job: '../sprint/sprint-jobs/control'

@@ -12,7 +12,6 @@ LIFT_STAGE_CUT_DAYS_LEFT = 19  // First Sunday
 properties(
         [
             buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
-            pipelineTriggers([cron('00 20 * * *')]),
             [$class : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [

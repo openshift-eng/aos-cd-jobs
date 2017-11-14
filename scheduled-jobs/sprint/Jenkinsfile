@@ -7,4 +7,4 @@ properties( [
 description = ""
 failed = false
 
-b = build job: '../sprint/control'
+b = build job: '../sprint/sprint-jobs/control'

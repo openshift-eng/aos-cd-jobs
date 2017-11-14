@@ -120,9 +120,7 @@ node(TARGET_NODE) {
     commonlib.initialize()
 
     try {
-
-        error("Sprint job temporarily disabled - should not be triggered by external timer")
-            
+          
         FEATURE_COMPLETE_BODY = readFile( "emails/feature_complete" )
 
         DEV_CUT_BODY = readFile( "emails/devcut_start" )

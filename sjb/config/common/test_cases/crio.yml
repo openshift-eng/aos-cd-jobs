@@ -41,7 +41,7 @@ actions:
       STARTED
       fi
 
-      bucket="gs://origin-ci-test/"
+      bucket="gs://origin-federated-results/"
       suffix="${JOB_NAME}/${BUILD_NUMBER}/"
       if [[ -n "${REPO_OWNER:-}" ]]; then
         segment="${REPO_OWNER}_${REPO_NAME}/"
@@ -63,7 +63,7 @@ actions:
       gsutil cp gcs/started.json "${path}started.json"
       if [[ -n "${PULL_NUMBER:-}" ]]; then
         echo "${path%\/}" > "${BUILD_NUMBER}.txt"
-        gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
+        gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
       fi
 post_actions:
   - type: "host_script"
@@ -84,7 +84,7 @@ post_actions:
       cp artifacts/generated/* gcs/artifacts/generated/ || true
       cp artifacts/journals/* gcs/artifacts/journals/ || true
 
-      bucket="gs://origin-ci-test/"
+      bucket="gs://origin-federated-results/"
       suffix="${JOB_NAME}/${BUILD_NUMBER}/"
       if [[ -n "${REPO_OWNER:-}" ]]; then
         segment="${REPO_OWNER}_${REPO_NAME}/"

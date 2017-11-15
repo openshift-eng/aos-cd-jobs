@@ -85,6 +85,7 @@ extensions:
       timeout: 7200
       repository: "aos-cd-jobs"
       script: |-
+        sudo setenforce 0
         local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
         ansible-playbook -vv --become               \
                          --become-user root         \

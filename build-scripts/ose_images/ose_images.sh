@@ -470,9 +470,9 @@ check_builds() {
                   ls -1 ${package}.*
                   cp -f ${package}.* ${workingdir}/logs/failed-logs/
               else
-                    echo "Detected failed build: ${package} but there are $TOTAL_RETRIES left, so triggering it again."
+                    echo "Detected failed build: ${package} but there are $TOTAL_RETRIES left, so triggering it again in 5 minutes."
                     echo "Failed brew URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${taskid}"
-
+		    sleep 300
                     TOTAL_RETRIES=$(($TOTAL_RETRIES - 1))
                     export container="$package"
                     F="$FORCE"

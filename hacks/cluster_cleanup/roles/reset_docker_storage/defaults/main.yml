@@ -1,0 +1,2 @@
+---
+openshift_local_volume_root: "/var/lib/origin/openshift.local.volumes"

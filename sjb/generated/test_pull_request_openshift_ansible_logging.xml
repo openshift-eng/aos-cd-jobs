@@ -450,6 +450,7 @@ jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 if [[ &#34;\${curbranch}&#34; == master ]] ; then
    git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
    ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+   ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_RELEASE&#34;
 elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
    pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
    # get repo ver from branch name
@@ -469,6 +470,7 @@ elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
    done
    echo &#34;\${closest_tag}&#34; &gt; \${jobs_repo}/ORIGIN_COMMIT
    echo &#34;\${pkgver}&#34; &gt; \${jobs_repo}/ORIGIN_PKG_VERSION
+   echo &#34;\${closest_tag:1}&#34; | cut -d&#39;.&#39; -f1,2 &gt; \${jobs_repo}/ORIGIN_RELEASE
    # disable local origin repo
    sudo yum-config-manager --disable origin-local-release
 else
@@ -502,6 +504,7 @@ ansible-playbook -vv --become               \
                  -e debug_level=2           \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
+                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
 SCRIPT
@@ -569,6 +572,8 @@ ansible-playbook -vv --become               \
                  -e openshift_logging_es_allow_external=True                              \
                  -e openshift_logging_es_ops_allow_external=True                          \
                  -e openshift_logging_install_eventrouter=True                            \
+                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;                 \
+                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                         \
                  /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
                  --skip-tags=update_master_config
 SCRIPT

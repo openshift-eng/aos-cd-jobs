@@ -130,6 +130,7 @@ extensions:
                           --inventory sjb/inventory/ \
                           /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
+                          -e openshift_release="3.${ORIGIN_INSTALL_MINOR_VERSION}"      \
                           -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
                           -e openshift_node_port_range='30000-32000'                    \
@@ -171,6 +172,7 @@ extensions:
                            "${upgrade_playbook}"     \
                           -e etcd_data_dir="${ETCD_DATA_DIR}" \
                           -e openshift_pkg_version="-${ORIGIN_UPGRADE_RELEASE_VERSION}" \
+                          -e openshift_release="3.${ORIGIN_UPGRADE_RELEASE_MINOR_VERSION}" \
                           -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
                           -e openshift_node_port_range='30000-32000'                    \
                           -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \

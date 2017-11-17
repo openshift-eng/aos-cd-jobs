@@ -69,6 +69,11 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>IMAGE_REGISTRY_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/image-registry&#34;&gt;image-registry&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&#34;https://github.com/openshift/openshift-ansible&#34;&gt;openshift-ansible&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>

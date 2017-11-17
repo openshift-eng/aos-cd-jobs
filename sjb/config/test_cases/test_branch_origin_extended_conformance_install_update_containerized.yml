@@ -70,6 +70,13 @@ extensions:
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_RPM_VERSION}" | cut -d'.' -f2 ) >> "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
     - type: "script"
+      title: "build the image registry container image"
+      repository: "image-registry"
+      timeout: 3600
+      script: |-
+        make build-images
+        docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+    - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-

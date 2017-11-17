@@ -67,6 +67,7 @@ extensions:
         if [[ "${curbranch}" == master ]] ; then
            git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
            ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+           ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
         elif [[ "${curbranch}" =~ ^release-* ]] ; then
            pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
            # get repo ver from branch name
@@ -86,6 +87,7 @@ extensions:
            done
            echo "${closest_tag}" > ${jobs_repo}/ORIGIN_COMMIT
            echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
+           echo "${closest_tag:1}" | cut -d'.' -f1,2 > ${jobs_repo}/ORIGIN_RELEASE
            # disable local origin repo
            sudo yum-config-manager --disable origin-local-release
         else
@@ -110,6 +112,7 @@ extensions:
                          -e debug_level=2           \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
     - type: "script"
@@ -150,6 +153,8 @@ extensions:
                          -e openshift_logging_es_allow_external=True                              \
                          -e openshift_logging_es_ops_allow_external=True                          \
                          -e openshift_logging_install_eventrouter=True                            \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"                 \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                         \
                          /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
                          --skip-tags=update_master_config
     - type: "script"

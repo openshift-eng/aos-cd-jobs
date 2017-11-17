@@ -7,3 +7,4 @@ overrides:
       type: "pull_request"
     - name: "openshift-ansible"
     - name: "aos-cd-jobs"
+    - name: "image-registry"

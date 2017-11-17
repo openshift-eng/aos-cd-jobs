@@ -84,6 +84,11 @@
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>IMAGE_REGISTRY_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/image-registry&#34;&gt;image-registry&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>FOCUS</name>
           <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
           <defaultValue></defaultValue>

@@ -7,3 +7,4 @@ overrides:
     - name: "openshift-ansible"
     - name: "origin"
       type: "pull_request"
+    - name: "image-registry"

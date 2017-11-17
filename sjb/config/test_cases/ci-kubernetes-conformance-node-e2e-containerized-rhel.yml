@@ -1,0 +1,52 @@
+---
+parent: 'common/test_cases/kubernetes.yml'
+overrides:
+  junit_analysis: False
+  timer: "H */2 * * *"
+extensions:
+  sync_repos:
+    - name: "aos-cd-jobs"
+  actions:
+    - type: "script"
+      title: "Install go 1.9.1"
+      script: |-
+        mkdir -p ~/bin
+        curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
+        chmod +x ~/bin/gimme
+        gimme 1.9.1
+    - type: "script"
+      title: "Build hyperkube image"
+      script: |-
+        source ~/.gimme/envs/go1.9.1.env
+        # The docker run command run by the systemd-run can get longer than 2048 characters,
+        # causing the systemd-run command to fail. Thus, in order to minimize the
+        # length of all arguments, we need to replace /home/origin with /go prefix path.
+        # Thus, saving 54 characters (6*12-18)
+        sudo mkdir /go
+        sudo chown origin:origin /go
+        export GOPATH=/go
+        mv src /go/.
+        # persist files needed be the GCS
+        mkdir -p src/k8s.io/kubernetes
+        cd /go/src/k8s.io/kubernetes
+        cp KUBE_GIT_VERSION PULL_BASE_SHA ~/src/k8s.io/kubernetes/.
+        make WHAT="cmd/hyperkube"
+        cd cluster/images/hyperkube
+        export REGISTRY=registry.access.redhat.com
+        export HYPERKUBE_BIN="_output/local/bin/linux/amd64/hyperkube"
+        IMAGE_TAG=$(git describe --abbrev=0)
+        make build VERSION=${IMAGE_TAG} ARCH=amd64 BASEIMAGE=rhel7
+    - type: "script"
+      title: "Run node e2e tests over containerized Kubelet"
+      script: |-
+        source ~/.gimme/envs/go1.9.1.env
+        export GOPATH=/go
+        cd /go/src/k8s.io/kubernetes
+        IMAGE_TAG=$(git describe --abbrev=0)
+        HYPERKUBE_IMAGE="registry.access.redhat.com/hyperkube-amd64:${IMAGE_TAG}"
+        # --cgroups-per-qos=true no longer available
+        KUBELET_FLAGS="--cgroup-driver=systemd --cgroup-root=/"
+        make test-e2e-node TEST_ARGS="--kubelet-containerized=true --hyperkube-image=\"${HYPERKUBE_IMAGE}\" --kubelet-flags=\"${KUBELET_FLAGS}\"" FOCUS="Conformance"
+
+  system_journals:
+    - systemd-journald.service

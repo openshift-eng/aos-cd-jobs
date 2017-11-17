@@ -1,0 +1,27 @@
+---
+parent: 'common/test_cases/kubernetes.yml'
+overrides:
+  junit_analysis: False
+  timer: "H */2 * * *"
+extensions:
+  sync_repos:
+    - name: "aos-cd-jobs"
+  actions:
+    - type: "script"
+      title: "Install go 1.9.1"
+      script: |-
+        mkdir -p ~/bin
+        curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
+        chmod +x ~/bin/gimme
+        gimme 1.9.1
+    - type: "script"
+      title: "Run node e2e tests"
+      script: |-
+        source ~/.gimme/envs/go1.9.1.env
+        export GOPATH=$(pwd)
+        env
+        cd src/k8s.io/kubernetes
+        KUBELET_FLAGS="--cgroup-driver=systemd --cgroups-per-qos=true --cgroup-root=/"
+        make test-e2e-node TEST_ARGS="--kubelet-flags=\"${KUBELET_FLAGS}\"" FOCUS="Conformance"
+  system_journals:
+    - systemd-journald.service

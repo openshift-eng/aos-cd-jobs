@@ -1,0 +1,54 @@
+# This playbook wraps the similarly named role in openshift-ansible.
+#
+# It's idempotent and safe to run repeatedly.  If the node's storage driver
+# is already overlay2, the ephemeral storage is left untouched.
+#
+# The role itself wipes all ephemeral storage with "atomic storage reset", so
+# this playbook drains nodes before invoking the role.
+#
+# Usage example:
+#
+#  ansible-playbook clean_nodes_docker.yml -e cli_clusterid=CLUSTERNAME
+#
+
+- hosts: localhost
+  gather_facts: no
+  become: no
+  user: root
+
+  tasks:
+
+  - name: Check for required variables
+    fail:
+      msg: "Please define {{ item }}"
+    when: "{{ item }} is undefined"
+    with_items:
+    - cli_clusterid
+    run_once: True
+
+##############################################
+# Cleanup compute nodes
+##############################################
+
+- hosts: "oo_clusterid_{{ cli_clusterid }}:&oo_subhosttype_compute"
+  become: no
+  user: root
+  serial: 10%
+
+  vars:
+    roles_path: "{{ HOME }}/git/openshift-tools/ansible/roles"
+
+  roles:
+  - role: openshift_node_schedulable
+    osns_is_schedulable: False
+    osns_drain: True
+    osns_cluster_master: "{{ groups['oo_hosttype_master'] | intersect(groups['oo_clusterid_' ~ oo_clusterid]) | first }}"
+
+  - role: reset_docker_storage
+
+  - role: os_reboot_server
+
+  - role: openshift_node_schedulable
+    osns_is_schedulable: True
+    osns_cluster_master: "{{ groups['oo_hosttype_master'] | intersect(groups['oo_clusterid_' ~ oo_clusterid]) | first }}"
+

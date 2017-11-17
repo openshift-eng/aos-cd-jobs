@@ -1,0 +1,63 @@
+---
+
+- name: Install or update atomic
+  package:
+    name: atomic
+    state: latest
+
+- openshift_facts:
+    role: common
+
+- name: Stop services
+  service:
+    name: "{{ item }}"
+    state: stopped
+  with_items:
+  - "{{ openshift.common.service_type }}-node"
+  - "{{ openshift.docker.service_name }}"
+
+- name: Remove immutable flag on /var/lib/docker/volumes
+  command: chattr -i /var/lib/docker/volumes
+  ignore_errors: yes
+
+- name: List mounted filesystems
+  command: mount
+  register: mounts
+  changed_when: False
+
+- name: Collect mount points
+  set_fact:
+    mount_points: "{{ mount_points | default([]) + [ item.split()[2] ] }}"
+  with_items: "{{ mounts.stdout_lines }}"
+
+- name: Unmount OpenShift local volumes
+  mount:
+    path: "{{ item }}"
+    state: unmounted
+  when: "{{ openshift_local_volume_root in item }}"
+  with_items: "{{ mount_points }}"
+
+- name: Delete OpenShift local volume root
+  file:
+    path: "{{ openshift_local_volume_root }}"
+    state: absent
+
+- name: Reset docker storage
+  command: atomic storage reset
+
+- name: Run docker-storage-setup
+  command: docker-storage-setup
+
+- name: Recreate /var/lib/docker/volumes
+  file:
+    path: /var/lib/docker/volumes
+    state: directory
+
+- name: "Start {{ openshift.docker.service_name }}"
+  service:
+    name: "{{ openshift.docker.service_name }}"
+    state: started
+
+- name: Pull ose-pod image from OpenShift registry
+  docker_image:
+    name: "{{ openshift.node.registry_url | replace('${component}', 'pod') | replace('${version}', openshift.common.version) }}"

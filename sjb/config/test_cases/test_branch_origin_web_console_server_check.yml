@@ -1,0 +1,13 @@
+---
+parent: 'common/test_cases/origin.yml'
+overrides:
+  junit_analysis: False
+  sync_repos:
+    - name: "origin-web-console-server"
+extensions:
+  actions:
+    - type: "script"
+      title: "run check and verify tasks"
+      repository: "origin-web-console-server"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -j -k

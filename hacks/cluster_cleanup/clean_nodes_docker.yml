@@ -1,15 +1,17 @@
-# This playbook wraps the similarly named role in openshift-ansible.
+# This playbook resets Docker storage on all compute nodes in a cluster.
 #
-# It's idempotent and safe to run repeatedly.  If the node's storage driver
-# is already overlay2, the ephemeral storage is left untouched.
-#
-# The role itself wipes all ephemeral storage with "atomic storage reset", so
-# this playbook drains nodes before invoking the role.
+# For each node it:
+# - Clears the schedulable flag
+# - Resets Docker storage
+# - Reboots
+# - Restores the schedulable flag
+# - Installs the appropriate ose-pod container image
 #
 # Usage example:
 #
 #  ansible-playbook clean_nodes_docker.yml -e cli_clusterid=CLUSTERNAME
 #
+
 
 - hosts: localhost
   gather_facts: no

@@ -24,6 +24,7 @@ provision:
   provider: "aws"
 sync_repos:
   - name: "origin"
+  - name: "image-registry"
 actions:
   - type: "forward_parameters"
     parameters:

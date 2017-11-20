@@ -89,6 +89,11 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>BUILD_ID</name>
+          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>REPO_OWNER</name>
           <description>GitHub org that triggered the job.</description>
           <defaultValue></defaultValue>
@@ -116,7 +121,11 @@
   <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <authToken>origin1</authToken>
-  <triggers/>
+  <triggers>
+    <hudson.triggers.TimerTrigger>
+      <spec>H H * * *</spec>
+    </hudson.triggers.TimerTrigger>
+  </triggers>
   <concurrentBuild>true</concurrentBuild>
   <builders>
         <hudson.tasks.Shell>
@@ -159,6 +168,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod 
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH=${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;buildId=${buildId:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_ID=${BUILD_ID:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
@@ -283,6 +293,19 @@ oct deprovision</command>
       </pluginFailureResultConstraint>
       <userMetadata/>
     </hudson.plugins.s3.S3BucketPublisher>
+    <hudson.plugins.ws__cleanup.WsCleanup plugin="ws-cleanup@0.34">
+      <patterns class="empty-list"/>
+      <deleteDirs>false</deleteDirs>
+      <skipWhenFailed>false</skipWhenFailed>
+      <cleanWhenSuccess>true</cleanWhenSuccess>
+      <cleanWhenUnstable>true</cleanWhenUnstable>
+      <cleanWhenFailure>true</cleanWhenFailure>
+      <cleanWhenNotBuilt>true</cleanWhenNotBuilt>
+      <cleanWhenAborted>true</cleanWhenAborted>
+      <notFailBuild>false</notFailBuild>
+      <cleanupMatrixParent>false</cleanupMatrixParent>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.WsCleanup>
   </publishers>
   <buildWrappers>
     <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.32">
@@ -290,9 +313,6 @@ oct deprovision</command>
       <cleanupParameter></cleanupParameter>
       <externalDelete></externalDelete>
     </hudson.plugins.ws__cleanup.PreBuildCleanup>
-    <hudson.plugins.ansicolor.AnsiColorBuildWrapper plugin="ansicolor@0.4.2">
-      <colorMapName>xterm</colorMapName>
-    </hudson.plugins.ansicolor.AnsiColorBuildWrapper>
   </buildWrappers>
   <pollSubjobs>false</pollSubjobs>
 </com.tikal.jenkins.plugins.multijob.MultiJobProject>

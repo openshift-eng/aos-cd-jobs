@@ -5,6 +5,19 @@ overrides:
 extensions:
   actions:
     - type: "script"
+      title: "determine the release commit for origin images and version for rpms"
+      repository: "origin"
+      script: |-
+        registry_repo="/data/src/github.com/openshift/image-registry/"
+        git log -1 --pretty=%h >> "${registry_repo}/ORIGIN_COMMIT"
+    - type: "script"
+      title: "build the image registry container image"
+      repository: "image-registry"
+      timeout: 3600
+      script: |-
+        make build-images
+        docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat ./ORIGIN_COMMIT )"
+    - type: "script"
       title: "run end-to-end tests"
       repository: "origin"
       timeout: 7200

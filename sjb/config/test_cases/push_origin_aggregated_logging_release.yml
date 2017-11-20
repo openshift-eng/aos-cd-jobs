@@ -3,6 +3,7 @@ provision:
   os: "rhel"
   stage: "base"
   provider: "aws"
+timer: 'H H * * *'
 parameters:
   - name: buildId
     description: "Unique build number for each run."

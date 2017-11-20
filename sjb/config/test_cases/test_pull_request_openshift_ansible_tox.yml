@@ -25,6 +25,16 @@ extensions:
           test/integration/build-images.sh
         fi
     - type: "script"
+      title: "install origin"
+      repository: "aos-cd-jobs"
+      script: |-
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e deployment_type=origin  \
+                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+    - type: "script"
       title: "run integration tests"
       repository: "openshift-ansible"
       script: |-

@@ -35,6 +35,7 @@ actions:
       - PULL_REFS
       - PULL_NUMBER
       - PULL_PULL_SHA
+      - JOB_NAME
   - type: "script"
     title: "record the starting metadata"
     timeout: 300
@@ -101,6 +102,34 @@ actions:
       restorecon -R /tmp
       echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
       SUDO
+  - type: "script"
+    title: "turn off unnecessary CentOS PaaS SIG repos"
+    timeout: 300
+    script: |-
+      sudo yum-config-manager --disable centos-paas-sig-openshift-origin\*-rpms
+
+      if [[ "${JOB_NAME}" == *update* ]]; then
+        branch="${PULL_BASE_REF:-"master"}"
+        case "${branch}" in
+          master )
+            sudo yum-config-manager --enable centos-paas-sig-openshift-origin37-rpms
+            ;;
+          release-* )
+            major="$( grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
+            minor="$( grep -Po "(?<=release-[0-9]\.)[0-9]" )"
+            previous="$(( minor - 1 ))"
+            repo="centos-paas-sig-openshift-origin${major}${previous}-rpms"
+            sudo yum-config-manager --enable "${repo}"
+            ;;
+          enterprise-* )
+            major="$( grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
+            minor="$( grep -Po "(?<=release-[0-9]\.)[0-9]" )"
+            previous="$(( minor - 1 ))"
+            repo="centos-paas-sig-openshift-origin${major}${previous}-rpms"
+            sudo yum-config-manager --enable "${repo}"
+            ;;
+        esac
+      fi
 post_actions:
   - type: "forward_parameters"
     parameters:

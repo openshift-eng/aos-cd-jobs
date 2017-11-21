@@ -111,6 +111,7 @@ node('openshift-build-1') {
                  * the release label. OSBS now chooses a viable release label to prevent conflicting with pre-existing
                  * builds. Let's use that fact to our advantage.
                  */
+/*                
                 buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
 --include aos3-installation-docker
@@ -130,8 +131,9 @@ distgits:update-dockerfile
 --optional-include jenkins-slave-maven-rhel7-docker
 --optional-include jenkins-slave-nodejs-rhel7-docker
 distgits:build-images
---repo_type signed
+--push-to-defaults --repo_type signed
 """
+  */
                 
                 
                 

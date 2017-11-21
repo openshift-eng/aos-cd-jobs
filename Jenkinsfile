@@ -130,14 +130,14 @@ distgits:update-dockerfile
 --optional-include jenkins-slave-maven-rhel7-docker
 --optional-include jenkins-slave-nodejs-rhel7-docker
 distgits:build-images
---push-to-defaults --repo_type signed
+--repo_type signed
 """
                 
                 
                 
                 sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} ${update_docker_args} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
                 sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
-                sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
+                // sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
                 // end ose_images method
 
             }

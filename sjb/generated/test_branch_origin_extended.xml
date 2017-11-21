@@ -217,6 +217,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_PULL_SHA=${PULL_PULL_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -297,6 +298,43 @@ chmod a+rwx /tmp/etcd
 restorecon -R /tmp
 echo &#34;ETCD_DATA_DIR=/tmp/etcd&#34; &gt;&gt; /etc/environment
 SUDO
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: TURN OFF UNNECESSARY CENTOS PAAS SIG REPOS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: TURN OFF UNNECESSARY CENTOS PAAS SIG REPOS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+sudo yum-config-manager --disable centos-paas-sig-openshift-origin\*-rpms
+
+if [[ &#34;\${JOB_NAME}&#34; == *update* ]]; then
+  branch=&#34;\${PULL_BASE_REF:-&#34;master&#34;}&#34;
+  case &#34;\${branch}&#34; in
+    master )
+      sudo yum-config-manager --enable centos-paas-sig-openshift-origin37-rpms
+      ;;
+    release-* )
+      major=&#34;\$( grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
+      minor=&#34;\$( grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
+      previous=&#34;\$(( minor - 1 ))&#34;
+      repo=&#34;centos-paas-sig-openshift-origin\${major}\${previous}-rpms&#34;
+      sudo yum-config-manager --enable &#34;\${repo}&#34;
+      ;;
+    enterprise-* )
+      major=&#34;\$( grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
+      minor=&#34;\$( grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
+      previous=&#34;\$(( minor - 1 ))&#34;
+      repo=&#34;centos-paas-sig-openshift-origin\${major}\${previous}-rpms&#34;
+      sudo yum-config-manager --enable &#34;\${repo}&#34;
+      ;;
+  esac
+fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

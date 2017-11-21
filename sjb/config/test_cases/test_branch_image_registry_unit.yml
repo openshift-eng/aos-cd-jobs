@@ -1,0 +1,11 @@
+---
+parent: 'common/test_cases/origin.yml'
+overrides:
+  junit_analysis: False
+extensions:
+  actions:
+    - type: "script"
+      title: "run unit tests"
+      repository: "image-registry"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/scripts hack/env JUNIT_REPORT='true' make test-unit -k

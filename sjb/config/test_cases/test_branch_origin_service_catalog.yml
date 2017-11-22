@@ -60,7 +60,7 @@ extensions:
       repository: "origin"
       timeout: 1800
       script: |-
-        NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog  bin/e2e.test
+        NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog bin/e2e.test
     - type: "script"
       title: "start cluster with Service Catalog"
       repository: "origin"
@@ -75,7 +75,7 @@ extensions:
         sudo chmod a+rw /var/lib/origin/openshift.local.config/master/admin.kubeconfig
         export KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
         ./_output/local/bin/linux/amd64/oc login -u system:admin
-        SERVICECATALOGCONFIG=$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test  -v 10 -alsologtostderr 
+        SERVICECATALOGCONFIG=$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
   system_journals:
     - origin-master.service
     - origin-master-api.service

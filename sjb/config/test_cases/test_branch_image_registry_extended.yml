@@ -32,8 +32,8 @@ extensions:
       repository: "origin"
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
-        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+        git log -1 --pretty=%h > "${jobs_repo}/ORIGIN_COMMIT"
+        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) > "${jobs_repo}/ORIGIN_PKG_VERSION"
     - type: "script"
       title: "build the image registry container image"
       repository: "image-registry"

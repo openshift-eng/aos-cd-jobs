@@ -142,9 +142,9 @@ add_group_to_list() {
 	if [ ${MAJOR_RELEASE} == "3.4" ]; then
 	 	# This is no longer required after moving to ansible
         	add_to_list logging-deployment-docker
+	        add_to_list metrics-deployer-docker
 	fi
         add_to_list logging-curator-docker
-        add_to_list metrics-deployer-docker
         if [ ${MAJOR_RELEASE} != "3.3" ] && [ ${MAJOR_RELEASE} != "3.4" ]  && [ ${MAJOR_RELEASE} != "3.5" ] ; then
           add_to_list logging-auth-proxy-docker
           add_to_list logging-elasticsearch-docker

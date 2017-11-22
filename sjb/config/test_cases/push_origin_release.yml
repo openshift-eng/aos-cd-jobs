@@ -23,4 +23,14 @@ extensions:
       script: |-
         sudo chmod a+rw /tmp/.docker/config.json
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+    - type: "script"
+      title: "build an image registry release"
+      repository: "image-registry"
+      script: |-
+        make build-images
+    - type: "script"
+      title: "push the image registry release"
+      repository: "image-registry"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
         sudo rm -rf /tmp/.docker

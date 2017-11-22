@@ -16,6 +16,12 @@ baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7
 enabled = 0
 gpgcheck = 0
 
+[cri-o-rhel-7-server-extras-rpms]
+name = Red Hat Enterprise Linux 7 Extras - Updated run-c for CRI-O
+baseurl = http://download-node-02.eng.bos.redhat.com/rel-eng/EXTRAS-7.4-RHEL-7-Update-3.0/compose/Server/x86_64/os/
+enabled = 0
+gpgcheck = 0
+
 [rhel-7-fast-datapath-rpms]
 name = Red Hat Enterprise Linux 7 Fast Datapath
 baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/fast-datapath/os/

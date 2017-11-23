@@ -195,7 +195,7 @@ add_group_to_list() {
     #      add_to_list openshift-enterprise-asb-docker
     #      add_to_list openshift-enterprise-mediawiki
     #      add_to_list openshift-enterprise-postgresql
-    ;;
+    #;;
     rhel-extras)
       add_to_list etcd-docker
       add_to_list etcd3-docker

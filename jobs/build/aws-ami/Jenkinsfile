@@ -44,10 +44,20 @@ if ( MOCK.toBoolean() ) {
 node(TARGET_NODE) {
     try {
         set_workspace()
+        def buildlib = null
         stage('clone') {
+            checkout scm
+            buildlib = load('pipeline-scripts/buildlib.groovy')
             dir('openshift-ansible') {
                 git 'https://github.com/openshift/openshift-ansible.git'
             }
+        }
+        stage('venv') {
+            sh '''
+[ -e env/ ] || virtualenv env/
+env/bin/pip install --upgrade pip
+env/bin/pip install --upgrade ansible boto
+'''
         }
         stage('build') {
             // create the provisioning_vars.yml file to use as inventory
@@ -76,7 +86,9 @@ openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo', 
             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ami-build-creds']]) {
                 withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
                     sshagent([AWS_SSH_KEY_USER]) {
-                        sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+                        buildlib.with_virtualenv('env') {
+                            sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+                        }
                     }
                 }
             }

@@ -383,10 +383,6 @@ openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
 EOF
 
 ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
---include aos3-installation-docker \
---optional-include jenkins-slave-base-rhel7-docker \
---optional-include jenkins-slave-maven-rhel7-docker \
---optional-include jenkins-slave-nodejs-rhel7-docker \
 distgits:rebase --sources ${OIT_WORKING}/sources.yml --version v${VERSION} \
 --release 1 \
 --message "Updating Dockerfile version and release v${VERSION}-1" --push
@@ -404,12 +400,8 @@ echo "Build OIT images"
 echo "=========="
 
 ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
---include aos3-installation-docker \
---optional-include jenkins-slave-base-rhel7-docker \
---optional-include jenkins-slave-maven-rhel7-docker \
---optional-include jenkins-slave-nodejs-rhel7-docker \
 distgits:build-images \
---push-to-defaults --repo_type unsigned
+--push-to-defaults --repo-type unsigned
 
 echo
 echo "=========="

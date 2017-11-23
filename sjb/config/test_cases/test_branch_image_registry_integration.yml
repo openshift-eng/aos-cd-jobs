@@ -1,6 +1,7 @@
 ---
 parent: 'common/test_cases/origin.yml'
 overrides:
+  junit_analysis: False
   sync_repos:
     - name: "image-registry"
 extensions:
@@ -9,4 +10,4 @@ extensions:
       title: "run image-registry integration tests"
       repository: "image-registry"
       script: |-
-        echo "TODO(SKUZNETS): CALL INTEGRATION TESTS WHEN THEY ARE READY"
+        make test-integration

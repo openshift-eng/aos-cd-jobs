@@ -9,4 +9,4 @@ extensions:
       title: "run image-registry integration tests"
       repository: "image-registry"
       script: |-
-        echo "TODO(SKUZNETS): CALL INTEGRATION TESTS WHEN THEY ARE READY"
+        OS_BUILD_ENV_TMP_VOLUME='/tmp' hack/env JUNIT_REPORT='true' make test-integration

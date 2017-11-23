@@ -396,18 +396,18 @@ ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-
 
 echo
 echo "=========="
+echo "Build Images"
+echo "=========="
+ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo
+
+echo
+echo "=========="
 echo "Build OIT images"
 echo "=========="
 
 ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
 distgits:build-images \
 --push-to-defaults --repo-type unsigned
-
-echo
-echo "=========="
-echo "Build Images"
-echo "=========="
-ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo
 
 if [ "$EARLY_LATEST_HACK" == "true" ]; then
     # Hack to keep from breaking openshift-ansible CI during daylight builds. They need the latest puddle to exist

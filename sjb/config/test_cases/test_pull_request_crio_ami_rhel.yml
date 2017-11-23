@@ -19,9 +19,11 @@ extensions:
         oct bootstrap host
         oct bootstrap node
     - type: "script"
-      title: "install git"
+      title: "install git and wrapper-dependencies"
       script: |-
-        sudo yum install -y git
+        sudo yum install -y git python2-virtualenv python-virtualenv gcc \
+            openssl-devel redhat-rpm-config libffi-devel python-devel libselinux-python \
+            rsync yum-utils python3-pycurl python-pycurl python2-simplejson python-simplejson
     - type: "forward_parameters"
       parameters:
         - PULL_NUMBER
@@ -42,24 +44,30 @@ extensions:
         git fetch origin "pull/${PULL_NUMBER}/head:pr"
         git merge "${PULL_PULL_SHA}"
     - type: "script"
-      title: "set up cri-o dependencies"
+      title: "set up system for cri-o testing"
       script: |-
-        ansible-playbook -vv --become  \
+        cd /go/src/github.com/kubernetes-incubator/cri-o/contrib/test
+        export WORKSPACE=/tmp
+        ./venv-ansible-playbook.sh \
+                         -vv --become  \
                          -i localhost, \
                          --tags setup  \
                          --become-user root \
                          --connection local \
-                         /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+                         ./integration/main.yml
     - type: "host_script"
       title: "package the AMI"
       script: |-
         oct package ami --stage=crio
     - type: "script"
-      title: "run the cri-o tests"
+      title: "run all the cri-o tests"
       script: |-
-        ansible-playbook -vv --become  \
+        cd /go/src/github.com/kubernetes-incubator/cri-o/contrib/test
+        export WORKSPACE=/tmp
+        ./venv-ansible-playbook.sh \
+                         -vv --become  \
                          -i localhost, \
-                         --tags integration,e2e \
+                         --tags integration,e2e  \
                          --become-user root \
                          --connection local \
-                         /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml
+                         ./integration/main.yml

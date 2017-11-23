@@ -156,7 +156,7 @@ add_group_to_list() {
           add_to_list metrics-heapster-docker
           add_group_to_list "jenkins"
           add_to_list registry-console-docker
-          add_group_to_list "asb"
+          #add_group_to_list "asb"
           add_to_list openshift-enterprise-service-catalog-docker
           add_to_list openshift-enterprise-federation-docker
           add_to_list openshift-enterprise-cluster-capacity-docker
@@ -187,7 +187,7 @@ add_group_to_list() {
     #asb)  # Should move to oit management
     #      add_to_list openshift-enterprise-mediawiki-docker
     #      add_to_list openshift-enterprise-apb-base-docker
-           add_to_list openshift-enterprise-asb-docker
+    #      add_to_list openshift-enterprise-asb-docker
     #      add_to_list openshift-enterprise-mediawiki
     #      add_to_list openshift-enterprise-postgresql
     ;;

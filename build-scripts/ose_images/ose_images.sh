@@ -129,7 +129,12 @@ add_group_to_list() {
         # Removed for OIT testing
         # add_to_list aos3-installation-docker
         add_to_list openshift-enterprise-docker
-        add_to_list openshift-enterprise-dockerregistry-docker
+
+          # dockerregistry moving to its own github repo in 3.8
+          if [[ "${RELEASE_MAJOR}" == 3 && "${RELEASE_MINOR}" -lt 8 ]]; then
+                add_to_list openshift-enterprise-dockerregistry-docker
+          fi
+
         add_to_list openshift-enterprise-egress-router-docker
         add_to_list openshift-enterprise-keepalived-ipfailover-docker
         add_to_list aos-f5-router-docker

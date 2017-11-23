@@ -184,12 +184,12 @@ add_group_to_list() {
       # Disabled for OIT testing
       # add_to_list aos3-installation-docker
     ;;
-    asb)
-          add_to_list openshift-enterprise-mediawiki-docker
-          add_to_list openshift-enterprise-apb-base-docker
-          add_to_list openshift-enterprise-asb-docker
-          add_to_list openshift-enterprise-mediawiki
-          add_to_list openshift-enterprise-postgresql
+    #asb)  # Should move to oit management
+    #      add_to_list openshift-enterprise-mediawiki-docker
+    #      add_to_list openshift-enterprise-apb-base-docker
+           add_to_list openshift-enterprise-asb-docker
+    #      add_to_list openshift-enterprise-mediawiki
+    #      add_to_list openshift-enterprise-postgresql
     ;;
     rhel-extras)
       add_to_list etcd-docker

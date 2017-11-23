@@ -501,10 +501,6 @@ node(TARGET_NODE) {
           buildlib.write_sources_file()
           buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
---include aos3-installation-docker
---include jenkins-slave-base-rhel7-docker
---include jenkins-slave-maven-rhel7-docker
---include jenkins-slave-nodejs-rhel7-docker
 distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION}
 --release ${NEW_DOCKERFILE_RELEASE}
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
@@ -557,12 +553,8 @@ https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
             buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
---include aos3-installation-docker
---include jenkins-slave-base-rhel7-docker
---include jenkins-slave-maven-rhel7-docker
---include jenkins-slave-nodejs-rhel7-docker
 distgits:build-images
---push-to-defaults --repo_type unsigned
+--push-to-defaults --repo-type unsigned
 """
         }
 

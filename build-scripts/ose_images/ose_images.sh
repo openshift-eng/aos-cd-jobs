@@ -25,8 +25,6 @@ MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
 RELEASE_MAJOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 1)
 RELEASE_MINOR=$(echo "$MAJOR_RELEASE" | cut -d . -f 2)
 
-TOTAL_RETRIES=10
-
 DIST_GIT_BRANCH="rhaos-${MAJOR_RELEASE}-rhel-7"
 #DIST_GIT_BRANCH="rhaos-3.2-rhel-7-candidate"
 #DIST_GIT_BRANCH="rhaos-3.1-rhel-7"
@@ -472,16 +470,26 @@ check_builds() {
               echo "Package with same NVR has already been built"
               echo "::${package}::" >> ${workingdir}/logs/prebuilt
           else
-              if [ "$TOTAL_RETRIES" == "0" ]; then
+
+                RF="${workingdir}/retries"
+                if [ -f "$RF" ]; then
+                    retries="$(cat $RF)"
+                else
+                    retries="10"
+                fi
+
+                retries=$(($retries - 1))
+                echo -n "$retries" > $RF
+
+              if [ "$retries" == "0" ]; then
                   echo "::${package}::" >> ${workingdir}/logs/buildfailed
                   echo "Failed logs"
                   ls -1 ${package}.*
                   cp -f ${package}.* ${workingdir}/logs/failed-logs/
               else
-                    echo "Detected failed build: ${package} but there are $TOTAL_RETRIES left, so triggering it again in 5 minutes."
+                    echo "Detected failed build: ${package} but there are $retries left, so triggering it again in 5 minutes."
                     echo "Failed brew URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${taskid}"
-		    sleep 300
-                    TOTAL_RETRIES=$(($TOTAL_RETRIES - 1))
+		            sleep 300
                     export container="$package"
                     F="$FORCE"
                     export FORCE="TRUE"

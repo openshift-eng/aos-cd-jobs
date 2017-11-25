@@ -406,7 +406,7 @@ echo "Build OIT images"
 echo "=========="
 
 ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
-distgits:build-images \
+distgits:build-image \
 --push-to-defaults --repo-type unsigned
 
 if [ "$EARLY_LATEST_HACK" == "true" ]; then

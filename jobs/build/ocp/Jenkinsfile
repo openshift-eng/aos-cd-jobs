@@ -553,7 +553,7 @@ https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
             buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
-distgits:build-images
+distgits:build-image
 --push-to-defaults --repo-type unsigned
 """
         }

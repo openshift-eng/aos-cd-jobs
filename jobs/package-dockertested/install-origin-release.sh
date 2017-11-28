@@ -10,6 +10,9 @@ jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
 git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
 ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
 
+docker pull openshift/origin-docker-registry:latest
+docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat "${jobs_repo}/ORIGIN_COMMIT" )"
+
 cd /data/src/github.com/openshift/aos-cd-jobs
 ansible-playbook -vv --become               \
                  --become-user root         \

@@ -1,0 +1,21 @@
+[Unit]
+Description=Temporary fix to OpenShift iptables rules on INPUT chain
+After=atomic-openshift-node.service
+Wants=atomic-openshift-node.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/usr/sbin/iptables -w -N KUBE-SERVICES
+ExecStart=/usr/sbin/iptables -w -D INPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+ExecStart=/usr/sbin/iptables -w -A INPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+ExecStart=/usr/sbin/iptables -w -I INPUT -m comment --comment "kubernetes service portals" -d 172.17.0.0/24 -j KUBE-SERVICES
+ExecReload=/usr/sbin/iptables -w -D INPUT -m comment --comment "kubernetes service portals" -d 172.17.0.0/24 -j KUBE-SERVICES
+ExecReload=/usr/sbin/iptables -w -D INPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+ExecReload=/usr/sbin/iptables -w -A INPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+ExecReload=/usr/sbin/iptables -w -I INPUT -m comment --comment "kubernetes service portals" -d 172.17.0.0/24 -j KUBE-SERVICES
+ExecStop=/usr/sbin/iptables -w -D INPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+ExecStop=/usr/sbin/iptables -w -D INPUT -m comment --comment "kubernetes service portals" -d 172.17.0.0/24 -j KUBE-SERVICES
+ExecStop=/usr/sbin/iptables -w -I INPUT -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+StandardOutput=syslog
+StandardError=syslog

@@ -91,9 +91,8 @@ https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_V
 ${OA_CHANGELOG}
 """);
 
-        // Disabling message until our Jenkins instance is working with the UMB
-        /*
-    try {        
+    // Commented out pending successful verification of UMB migration
+    /*try {
         sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
 
                 messageProperties: """build_mode=${BUILD_MODE}
@@ -103,7 +102,8 @@ brew_task_url_openshift=${OSE_BREW_URL}
 brew_task_url_openshift_ansible=${OA_BREW_URL}
 """,
                 messageType: 'ComponentBuildDone',
-                providerName: 'CI Publish'
+                overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
+                providerName: 'CI Red Hat UMB'
         )
     } catch ( mex ) {
         mex.printStackTrace()

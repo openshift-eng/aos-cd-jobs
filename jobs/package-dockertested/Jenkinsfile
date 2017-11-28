@@ -21,23 +21,35 @@ node('openshift-build-1') {
 	]])
 	// https://issues.jenkins-ci.org/browse/JENKINS-33511
 	env.WORKSPACE = pwd()
+	def packages = ['docker', 'container-selinux', 'container-storage-setup', 'skopeo', 'atomic', 'python-pytoml']
+	def installed_packages = []
+
 	stage ('Check to see if we need to run') {
-	    next_docker = latestVersion('docker', 'rhel7next*')
-	    next_cselinux = latestVersion('container-selinux', 'rhel7next*')
-	    next_cstorage = latestVersion('container-storage-setup', 'rhel7next*')
-	    next_skopeo = latestVersion('skopeo', 'rhel7next*')
-	    next_atomic = latestVersion('atomic', 'rhel7next*')
-	    echo "rhel7next: docker-${next_docker} container-selinux-${next_cselinux} container-storage-setup-${next_cstorage} skopeo-${next_skopeo} atomic-${next_atomic}"
-	    test_docker = latestVersion('docker', 'dockertested')
-	    test_cselinux = latestVersion('container-selinux', 'dockertested')
-	    test_cstorage = latestVersion('container-storage-setup', 'dockertested')
-	    test_skopeo = latestVersion('skopeo', 'dockertested')
-	    test_atomic = latestVersion('atomic', 'dockertested')
-	    echo "dockertested: docker-${test_docker} container-selinux-${test_cselinux} container-storage-setup-${test_cstorage} skopeo-${test_skopeo} atomic-${test_atomic}"
-	    if ( next_docker == test_docker && next_cselinux == test_cselinux && next_cstorage == test_cstorage && next_skopeo == test_skopeo && next_atomic == test_atomic) {
+		def versions = []
+		for(int i = 0; i < packages.size(); ++i) {
+			def package = packages[i]
+			def package_versions = [:]
+			package_versions['next'] = latestVersion(package, 'rhel7next*')
+			package_versions['current'] = latestVersion(package, 'dockertested')
+			versions.add([package,package_versions])
+		}
+
+		def sync_necessary = false
+		def table = "Package\tCurrent\tRHEL 7 Next\n"
+		for(int i = 0; i < versions.size(); ++i) {
+			def package = versions[i][0]
+			def package_version = versions[i][1]
+			table = table + "${package}\t${package_version['current']}\t${package_version['next']}\n"
+			if (package_version['current'] != package_version['next']) {
+				sync_necessary = true
+			}
+		}
+		echo table
+
+		if (! sync_necessary) {
+			currentBuild.result = 'SUCCESS'
 	        echo 'No new packages. Aborting build.'
-	        currentBuild.result = 'SUCCESS'
-	    }
+		}
 	}
 	if ( currentBuild.result == 'SUCCESS' ) {
 	    return
@@ -109,13 +121,15 @@ node('openshift-build-1') {
 				sh 'oct prepare docker --repo "rhel7next*"'
 			}
 			stage ('Install Other RHEL7Next Dependencies') {
-				runScript './install-rhel7next-dependencies.sh'
-				docker_rpm = installedNVR('docker')
-				container_selinux_rpm = installedNVR('container-selinux')
-				container_storage_setup_rpm = installedNVR('container-storage-setup')
-				skopeo_rpm = installedNVR('skopeo')
-				atomic_rpm = installedNVR('atomic')
-				echo "Installed: ${docker_rpm} ${container_selinux_rpm} ${container_storage_setup_rpm} ${skopeo_rpm} ${atomic_rpm}"
+				runScript "./install-rhel7next-dependencies.sh ${packages.join(' ')}"
+				def table = "Installed\n"
+				for(int i = 0; i < packages.size(); ++i) {
+					def package = packages[i]
+					def installed_package = installedNVR(package)
+					table = table + "${installed_package}\n"
+					installed_packages.add(installed_package)
+				}
+				echo table
 			}
 			stage ('Prepare source repositories') {
 				sh 'oct prepare repositories'
@@ -147,19 +161,15 @@ node('openshift-build-1') {
 			if ( currentBuild.result != 'FAILURE' ) {
 				stage ('Update the state of the dockertested repo') {
 					sh 'kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM'
-					sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${docker_rpm} ${container_selinux_rpm} ${container_storage_setup_rpm} ${skopeo_rpm} ${atomic_rpm}"
+					sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com /mnt/rcm-guest/puddles/RHAOS/scripts/update-dockertested-repo.sh ${installed_packages.join(' ')}"
 				}
 				stage ('Send out an e-mail about new versions') {
 					mail (
 						to: 'aos-cicd@redhat.com',
 						cc: 'skuznets@redhat.com',
-						subject: "${docker_rpm} and dependencies pushed to dockertested repository",
+						subject: "${installed_packages[0]} and dependencies pushed to dockertested repository",
 						body: """The latest job[1] marked the following RPMs as successful:
-${docker_rpm}
-${container_selinux_rpm}
-${container_storage_setup_rpm}
-${skopeo_rpm}
-${atomic_rpm}
+${installed_packages.join('\n')}
 
 These RPMs have been pushed to the dockertested[2] repository.
 

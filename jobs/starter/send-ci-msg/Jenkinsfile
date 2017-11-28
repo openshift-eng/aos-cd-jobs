@@ -27,7 +27,11 @@ node('openshift-build-1') {
         stage("send ci msg") {
             msg = deploylib.run("build-ci-msg", null, true, false)
             echo "Sending CI Message:\n${msg}"
-            sendCIMessage messageContent: '', messageProperties: msg, messageType: 'ComponentBuildDone', providerName: 'CI Publish'
+            sendCIMessage messageContent: '',
+                          messageProperties: msg,
+                          messageType: 'ComponentBuildDone',
+                          overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
+                          providerName: 'Red Hat UMB'
         }
     }
 

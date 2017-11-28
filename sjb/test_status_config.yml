@@ -4,6 +4,7 @@ master:
   - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"
   - "aos-ci-jenkins/OS_3.6_containerized"
   - "aos-ci-jenkins/OS_3.6_containerized_e2e_tests"
+  - "fedora/27/atomic"
 stage:
   - "aos-ci-jenkins/OS_3.6_NOT_containerized"
   - "aos-ci-jenkins/OS_3.6_NOT_containerized_e2e_tests"

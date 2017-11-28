@@ -91,8 +91,7 @@ https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_V
 ${OA_CHANGELOG}
 """);
 
-    // Commented out pending successful verification of UMB migration
-    /*try {
+    try {
         sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
 
                 messageProperties: """build_mode=${BUILD_MODE}
@@ -107,7 +106,7 @@ brew_task_url_openshift_ansible=${OA_BREW_URL}
         )
     } catch ( mex ) {
         mex.printStackTrace()
-    }*/
+    }
 }
 
 // Will be used to track which atomic-openshift build was tagged before we ran.

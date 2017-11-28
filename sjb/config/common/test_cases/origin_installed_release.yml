@@ -33,6 +33,17 @@ extensions:
         git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
     - type: "script"
+      title: "origin prerequisites"
+      repository: "aos-cd-jobs"
+      script: |-
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e containerized=true      \
+                         -e deployment_type=origin  \
+                         /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+    - type: "script"
       title: "install origin"
       timeout: 7200
       repository: "aos-cd-jobs"

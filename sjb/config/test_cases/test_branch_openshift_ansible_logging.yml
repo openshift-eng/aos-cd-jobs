@@ -102,6 +102,17 @@ extensions:
            echo Error: unknown base branch $curbranch: please resubmit PR on master or a release-x.y branch
         fi
     - type: "script"
+      title: "origin prerequisites"
+      repository: "aos-cd-jobs"
+      script: |-
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e containerized=true      \
+                         -e deployment_type=origin  \
+                         /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+    - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
       script: |-

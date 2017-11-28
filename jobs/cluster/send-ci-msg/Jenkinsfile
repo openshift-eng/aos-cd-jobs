@@ -16,7 +16,11 @@ node('openshift-build-1') {
         sshagent([CLUSTER_NAME]) {
             msg = sh(returnStdout: true, script: "ssh -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com build-ci-msg").trim()
             echo "Sending CI Message:\n${msg}"
-            sendCIMessage messageContent: '', messageProperties: msg, messageType: 'ComponentBuildDone', providerName: 'CI Publish'
+            sendCIMessage messageContent: '',
+                          messageProperties: msg,
+                          messageType: 'ComponentBuildDone',
+                          overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
+                          providerName: 'Red Hat UMB'
         }
 
     }

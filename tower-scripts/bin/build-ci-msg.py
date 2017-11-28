@@ -74,7 +74,6 @@ if test_mode:
 msg = """owner=Continuous Delivery
 email=jupierce@redhat.com
 CI_TYPE=component-build-done
-destination=/topic/CI
 product=%s
 cluster_name=%s
 description=OSO cluster upgraded

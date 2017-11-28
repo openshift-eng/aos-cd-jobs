@@ -95,6 +95,17 @@ extensions:
         sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
         sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
     - type: "script"
+      title: "origin prerequisites"
+      repository: "aos-cd-jobs"
+      script: |-
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e containerized=true      \
+                         -e deployment_type=origin  \
+                         /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+    - type: "script"
       title: "install origin"
       repository: "aos-cd-jobs"
       timeout: 1800

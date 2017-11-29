@@ -25,7 +25,7 @@ properties(
                                                     openshift-enterprise      Openshift Enterpriseonline <br>
                                     ''',
                                     name: 'DEPLOYMENT_TYPE'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'opstest', description: 'Clusterid to set for ami build. Also used for VPC and other settings', name: 'CLUSTERID'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'default', description: 'Clusterid to set for ami build. Also used for VPC and other settings', name: 'CLUSTERID'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: '3.7.0', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],
                                  [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'ami-068a787c', description: 'Base AMI id to build from.', name: 'BASE_AMI_ID'],

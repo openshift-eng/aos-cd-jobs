@@ -128,7 +128,7 @@ distgits:update-dockerfile
 
               buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-distgits:build-images
+distgits:build-image
 --push-to-defaults --repo-type signed
 """
             }

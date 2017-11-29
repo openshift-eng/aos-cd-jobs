@@ -27,19 +27,19 @@ node('openshift-build-1') {
 	stage ('Check to see if we need to run') {
 		def versions = []
 		for(int i = 0; i < packages.size(); ++i) {
-			def package = packages[i]
+			def pkg = packages[i]
 			def package_versions = [:]
-			package_versions['next'] = latestVersion(package, 'rhel7next*')
-			package_versions['current'] = latestVersion(package, 'dockertested')
-			versions.add([package,package_versions])
+			package_versions['next'] = latestVersion(pkg, 'rhel7next*')
+			package_versions['current'] = latestVersion(pkg, 'dockertested')
+			versions.add([pkg,package_versions])
 		}
 
 		def sync_necessary = false
 		def table = "Package\tCurrent\tRHEL 7 Next\n"
 		for(int i = 0; i < versions.size(); ++i) {
-			def package = versions[i][0]
+			def pkg = versions[i][0]
 			def package_version = versions[i][1]
-			table = table + "${package}\t${package_version['current']}\t${package_version['next']}\n"
+			table = table + "${pkg}\t${package_version['current']}\t${package_version['next']}\n"
 			if (package_version['current'] != package_version['next']) {
 				sync_necessary = true
 			}
@@ -124,8 +124,8 @@ node('openshift-build-1') {
 				runScript "./install-rhel7next-dependencies.sh ${packages.join(' ')}"
 				def table = "Installed\n"
 				for(int i = 0; i < packages.size(); ++i) {
-					def package = packages[i]
-					def installed_package = installedNVR(package)
+					def pkg = packages[i]
+					def installed_package = installedNVR(pkg)
 					table = table + "${installed_package}\n"
 					installed_packages.add(installed_package)
 				}

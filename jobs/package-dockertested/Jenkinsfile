@@ -1,13 +1,13 @@
 def latestVersion(rpm, repo) {
-    sh "sudo yum --disablerepo='*' --enablerepo='${repo}' makecache"
+    sh "sudo yum --disablerepo='*' --enablerepo='${repo}' --quiet makecache"
     sh(script: "sudo yum --disablerepo='*' --enablerepo='${repo}' --quiet list upgrades '${rpm}' | tail -n 1 | awk '{ print \$2 }'", returnStdout: true).trim()
 }
 def installedNVR(rpm) {
     sh(script: "ssh -F ${ssh_config} openshiftdevel 'rpm --query ${rpm} --queryformat %{NAME}-%{VERSION}-%{RELEASE}'", returnStdout: true).trim()
 }
-def runScript(script) {
+def runScript(script, args=[]) {
     sh "scp -F ${ssh_config} ${script} openshiftdevel:/tmp/${script}"
-    sh "ssh -F ${ssh_config} -t openshiftdevel \"bash -l -c /tmp/${script}\""
+    sh "ssh -F ${ssh_config} -t openshiftdevel \"bash -l -c /tmp/${script} ${args.join(' ')}\""
 }
 node('openshift-build-1') {
 	properties ([[
@@ -121,7 +121,7 @@ node('openshift-build-1') {
 				sh 'oct prepare docker --repo "rhel7next*"'
 			}
 			stage ('Install Other RHEL7Next Dependencies') {
-				runScript "./install-rhel7next-dependencies.sh ${packages.join(' ')}"
+				runScript "./install-rhel7next-dependencies.sh", packages
 				def table = "Installed\n"
 				for(int i = 0; i < packages.size(); ++i) {
 					def pkg = packages[i]

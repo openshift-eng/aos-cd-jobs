@@ -39,8 +39,10 @@ extensions:
       repository: "image-registry"
       timeout: 3600
       script: |-
-        make build-images
-        docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.8" ]]; then
+          make build-images
+          docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+        fi
     - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"

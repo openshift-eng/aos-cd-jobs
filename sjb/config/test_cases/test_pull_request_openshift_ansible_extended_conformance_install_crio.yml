@@ -1,0 +1,10 @@
+---
+parent: 'test_cases/test_branch_origin_extended_conformance_crio.yml'
+overrides:
+  junit_analysis: True
+  sync_repos:
+    - name: "aos-cd-jobs"
+    - name: "openshift-ansible"
+      type: "pull_request"
+    - name: "origin"
+    - name: "image-registry"

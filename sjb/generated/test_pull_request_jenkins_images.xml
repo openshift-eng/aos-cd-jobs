@@ -248,9 +248,27 @@ docker build --rm -t registry.access.redhat.com/openshift3/ose \$contextdir
 # make sure the new image has valid certs
 docker run registry.access.redhat.com/openshift3/ose yum install -y tar
 
-# remove these once no one is referencing them anymore.
-docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7.3
-docker tag registry.access.redhat.com/openshift3/ose registry.access.redhat.com/rhel7
+
+
+# create Dockerfile
+cat &lt;&lt;EOF &gt; \$contextdir/Dockerfile
+FROM registry.access.redhat.com/openshift3/ose:v3.6
+
+RUN yum remove -y subscription-manager
+
+ADD vars/* /etc/yum/vars/
+ADD repos/* /etc/yum.repos.d/
+ADD certs/* /var/lib/yum/
+ADD keys/* /etc/pki/rpm-gpg/
+
+RUN yum update -y &amp;&amp; yum clean all
+ENTRYPOINT []
+EOF
+
+docker build --rm -t registry.access.redhat.com/openshift3/ose:v3.6 \$contextdir
+
+# make sure the new image has valid certs
+docker run registry.access.redhat.com/openshift3/ose:v3.6 yum install -y tar
 
 # cleaning
 rm -rf \$contextdir

@@ -7,7 +7,7 @@ def installedNVR(rpm) {
 }
 def runScript(script, args=[]) {
     sh "scp -F ${ssh_config} ${script} openshiftdevel:/tmp/${script}"
-    sh "ssh -F ${ssh_config} -t openshiftdevel \"bash -l -c \"/tmp/${script} ${args.join(' ')}\"\""
+    sh "ssh -F ${ssh_config} -t openshiftdevel \"bash -l -c '/tmp/${script} ${args.join(' ')}'\""
 }
 node('openshift-build-1') {
 	properties ([[

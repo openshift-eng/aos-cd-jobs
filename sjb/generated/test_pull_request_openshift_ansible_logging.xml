@@ -500,7 +500,7 @@ elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
    # disable all of the centos repos except for the one for the
    # version being tested - this assumes a devenv environment where
    # all of the repos are installed
-   for repo in \$( sudo yum repolist | awk &#39;/^centos-paas-sig-openshift-origin/ {print \$1}&#39; ) ; do
+   for repo in \$( sudo yum repolist all | awk &#39;/^[!]?centos-paas-sig-openshift-origin/ {print gensub(/^!/,&#34;&#34;,1,\$1)}&#39; ) ; do
       case \$repo in
          centos-paas-sig-openshift-origin\${repover}-rpms) sudo yum-config-manager --enable \$repo &gt; /dev/null ;;
          *) sudo yum-config-manager --disable \$repo &gt; /dev/null ;;
@@ -510,7 +510,7 @@ elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
    echo &#34;\${pkgver}&#34; &gt; \${jobs_repo}/ORIGIN_PKG_VERSION
    echo &#34;\${closest_tag:1}&#34; | cut -d&#39;.&#39; -f1,2 &gt; \${jobs_repo}/ORIGIN_RELEASE
    # disable local origin repo
-   sudo yum-config-manager --disable origin-local-release
+   sudo yum-config-manager --disable origin-local-release &gt; /dev/null
    # hackety hackety hack hack - pre-releases use a *wack[y]* versioning scheme
    if ( sudo yum install --assumeno origin\${pkgver} 2&gt;&amp;1 || : ) | grep -q &#39;No package .* available&#39; ; then
       # just ask yum what the heck the version is

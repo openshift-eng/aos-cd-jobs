@@ -1,0 +1,18 @@
+---
+# TODO for now we are just running build-images so we don't need to depend on a built origin AMI
+# but eventually we will need to change this back to do more interesting e2e tests
+# parent: 'common/test_cases/origin_built_release.yml'
+parent: 'common/test_cases/origin.yml'
+extensions:
+  sync_repos:
+    - name: "origin-web-console-server"
+  actions:
+    - type: "script"
+      title: "build the web console container image"
+      repository: "origin-web-console-server"
+      timeout: 3600
+      script: |-
+        make build-images
+    # TODO deploy the image and validate it serves content
+  system_journals:
+    - systemd-journald.service

@@ -654,6 +654,12 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+playbook_base=&#39;/usr/share/ansible/openshift-ansible/playbooks/&#39;
+if [[ -s &#34;\${playbook_base}openshift-logging/config.yml&#34; ]]; then
+    playbook=&#34;\${playbook_base}openshift-logging/config.yml&#34;
+else
+    playbook=&#34;\${playbook_base}byo/openshift-cluster/openshift-logging.yml&#34;
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
@@ -671,7 +677,7 @@ ansible-playbook -vv --become               \
                  -e openshift_logging_es_allow_external=True                              \
                  -e openshift_logging_es_ops_allow_external=True                          \
                  -e openshift_logging_install_eventrouter=True                            \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
+                 \${playbook} \
                  --skip-tags=update_master_config
 SCRIPT
 chmod +x &#34;${script}&#34;

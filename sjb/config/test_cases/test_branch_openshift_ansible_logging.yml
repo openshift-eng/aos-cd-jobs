@@ -79,7 +79,7 @@ extensions:
            # disable all of the centos repos except for the one for the
            # version being tested - this assumes a devenv environment where
            # all of the repos are installed
-           for repo in $( sudo yum repolist | awk '/^centos-paas-sig-openshift-origin/ {print $1}' ) ; do
+           for repo in $( sudo yum repolist all | awk '/^[!]?centos-paas-sig-openshift-origin/ {print gensub(/^!/,"",1,$1)}' ) ; do
               case $repo in
                  centos-paas-sig-openshift-origin${repover}-rpms) sudo yum-config-manager --enable $repo > /dev/null ;;
                  *) sudo yum-config-manager --disable $repo > /dev/null ;;
@@ -89,7 +89,7 @@ extensions:
            echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
            echo "${closest_tag:1}" | cut -d'.' -f1,2 > ${jobs_repo}/ORIGIN_RELEASE
            # disable local origin repo
-           sudo yum-config-manager --disable origin-local-release
+           sudo yum-config-manager --disable origin-local-release > /dev/null
            # hackety hackety hack hack - pre-releases use a *wack[y]* versioning scheme
            if ( sudo yum install --assumeno origin${pkgver} 2>&1 || : ) | grep -q 'No package .* available' ; then
               # just ask yum what the heck the version is

@@ -1,11 +1,11 @@
 #!/bin/bash -e
-
 START_DIR=$(dirname "${BASH_SOURCE[0]}")
+
 GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"
 
-VALID_ARGUMENTS=(cicd_docker_version cicd_openshift_ansible_build cicd_openshift_version)
+VALID_ARGUMENTS=(cicd_docker_version cicd_openshift_ansible_build cicd_openshift_version cicd_yum_main_url cicd_yum_openshift_ansible_url)
 
 # TMPTMP is a directory specific to each invocation. It will be
 # deleted when the script terminates.
@@ -164,7 +164,11 @@ function get_latest_openshift_ansible()  {
   mkdir -p "${AOS_TMPDIR}"
 
   pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
-    /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${1} -e cli_download_dir=${AOS_TMPDIR}
+    if [ -z "${cicd_yum_openshift_ansible_url+x}" ]; then
+      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${1} -e cli_download_dir=${AOS_TMPDIR}
+    else
+      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_download_link=${cicd_yum_openshift_ansible_url} -e cli_download_dir=${AOS_TMPDIR}
+    fi
   popd
 
   export OPENSHIFT_ANSIBLE_INSTALL_DIR="${AOS_TMPDIR}"

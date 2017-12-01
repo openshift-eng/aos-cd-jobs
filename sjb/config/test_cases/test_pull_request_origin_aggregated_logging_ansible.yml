@@ -147,6 +147,12 @@ extensions:
       title: "install origin-aggregated-logging"
       repository: "aos-cd-jobs"
       script: |-
+        playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
+        if [[ -s "${playbook_base}openshift-logging/config.yml" ]]; then
+            playbook="${playbook_base}openshift-logging/config.yml"
+        else
+            playbook="${playbook_base}byo/openshift-cluster/openshift-logging.yml"
+        fi
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
@@ -164,7 +170,7 @@ extensions:
                          -e openshift_logging_es_allow_external=True                              \
                          -e openshift_logging_es_ops_allow_external=True                          \
                          -e openshift_logging_install_eventrouter=True                            \
-                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-cluster/openshift-logging.yml \
+                         ${playbook} \
                          --skip-tags=update_master_config
     - type: "script"
       title: "run logging tests"

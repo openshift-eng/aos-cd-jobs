@@ -280,25 +280,35 @@ cd &#34;\${GOPATH}/src/github.com/openshift/jenkins&#34;
 sudo chmod a+rw /tmp/.docker/config.json
 export DOCKER_CONFIG=/tmp/.docker
 
+version_tag=`cat release.version`
+
 docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
 docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
 docker tag openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7
 docker push docker.io/openshift/jenkins-2-centos7
+docker tag openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7:\${version_tag}
+docker push docker.io/openshift/jenkins-2-centos7:\${version_tag}
 
 docker tag registry.access.redhat.com/openshift3/jenkins-slave-base-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
 docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
 docker tag openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7
 docker push docker.io/openshift/jenkins-slave-base-centos7
+docker tag openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7:\${version_tag}
+docker push docker.io/openshift/jenkins-slave-base-centos7:\${version_tag}
 
 docker tag registry.access.redhat.com/openshift3/jenkins-slave-maven-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
 docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
 docker tag openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7
 docker push docker.io/openshift/jenkins-slave-maven-centos7
+docker tag openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
+docker push docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
 
 docker tag registry.access.redhat.com/openshift3/jenkins-slave-nodejs-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
 docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
 docker tag openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7
 docker push docker.io/openshift/jenkins-slave-nodejs-centos7
+docker tag openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
+docker push docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -92,18 +92,19 @@ ${OA_CHANGELOG}
 """);
 
     try {
-        sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
-
-                messageProperties: """build_mode=${BUILD_MODE}
+            timeout(3) {
+                sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
+                        messageProperties: """build_mode=${BUILD_MODE}
 mirror_url=${mirrorURL}
 image_registry_root=registry.reg-aws.openshift.com:443
 brew_task_url_openshift=${OSE_BREW_URL}
 brew_task_url_openshift_ansible=${OA_BREW_URL}
 """,
-                messageType: 'ComponentBuildDone',
-                overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
-                providerName: 'CI Red Hat UMB'
-        )
+                        messageType: 'ComponentBuildDone',
+                        overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
+                        providerName: 'CI Red Hat UMB'
+                )
+            }
     } catch ( mex ) {
         mex.printStackTrace()
     }

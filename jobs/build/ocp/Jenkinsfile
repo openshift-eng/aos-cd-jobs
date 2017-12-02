@@ -106,7 +106,7 @@ brew_task_url_openshift_ansible=${OA_BREW_URL}
                 )
             }
     } catch ( mex ) {
-        mex.printStackTrace()
+            echo "Error while sending CI message: ${msg}"
     }
 }
 

@@ -93,6 +93,21 @@ extensions:
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
       script: |-
+        crio_tag="$( cat ./ORIGIN_PKG_VERSION | grep -Po '\d.\d' )"
+        case $crio_tag in
+        "3.7")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.7"
+          ;;
+        "3.8")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.8"
+          ;;
+        "3.9")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.9"
+          ;;
+        ""|*)
+          crio_image="docker.io/runcom/cri-o-system-container:latest"
+          ;;
+        esac
         local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
         ansible-playbook -vv --become               \
                          --become-user root         \
@@ -100,7 +115,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e deployment_type=origin  \
                          -e openshift_use_crio=True   \
-                         -e openshift_crio_systemcontainer_image_override=docker.io/gscrivano/cri-o-centos \
+                         -e openshift_crio_systemcontainer_image_override="${crio_image}" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
@@ -119,6 +134,21 @@ extensions:
         else
             playbook="${playbook_base}byo/openshift-node/network_manager.yml"
         fi
+        crio_tag="$( cat ./ORIGIN_PKG_VERSION | grep -Po '\d.\d' )"
+        case $crio_tag in
+        "3.7")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.7"
+          ;;
+        "3.8")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.8"
+          ;;
+        "3.9")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.9"
+          ;;
+        ""|*)
+          crio_image="docker.io/runcom/cri-o-system-container:latest"
+          ;;
+        esac
         local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
         ansible-playbook -vv --become               \
                          --become-user root         \
@@ -137,7 +167,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e deployment_type=origin  \
                          -e openshift_use_crio=True   \
-                         -e openshift_crio_systemcontainer_image_override=docker.io/gscrivano/cri-o-centos \
+                         -e openshift_crio_systemcontainer_image_override="${crio_image}" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
@@ -169,6 +199,7 @@ extensions:
     - /etc/crio
     - /etc/systemd/system
   generated_artifacts:
+    crio.commit: "sudo runc exec -t cri-o crio --version"
     dmesg.log: "dmesg"
     journal_xe.log: "sudo journalctl -xe"
     avc_selinux_denials.log: 'sudo ausearch -m avc -ts recent'

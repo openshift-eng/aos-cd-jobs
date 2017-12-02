@@ -489,11 +489,15 @@ node(TARGET_NODE) {
         // TODO: Remove after new OIT version confirmed
         // Old method for most images
         stage( "compare dist-git" ) {
-            sh "ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
+            if ( BUILD_VERSION != "3.8" ) { // Trying to make all of 3.8 build with oit
+                sh "ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
+            }
         }
 
         stage( "update dist-git" ) {
-            sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_DOCKERFILE_RELEASE}' --version 'v${NEW_VERSION}'"
+            if ( BUILD_VERSION != "3.8" ) { // Trying to make all of 3.8 build with oit
+                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_DOCKERFILE_RELEASE}' --version 'v${NEW_VERSION}'"
+            }
         }
         // End old method
 
@@ -549,7 +553,9 @@ https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
         stage( "build images" ) {
             // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
-            sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
+            if ( BUILD_VERSION != "3.8" ) { // Trying to move all 3.8 images to oit
+                sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
+            }
 
             buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
@@ -574,7 +580,9 @@ distgits:build-image
         stage( "push images" ) {
             dir( "${env.WORKSPACE}/build-scripts/ose_images" ) {
                 TAG_LATEST = IS_SOURCE_IN_MASTER?"":"--nolatest"
-                sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
+                if ( BUILD_VERSION != "3.8" ) { // Trying to get all of 3.8 building with oit
+                    sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
+                }
                 try {
                     buildlib.print_tags("openshift3/ose")
                 } catch ( cex ) {}

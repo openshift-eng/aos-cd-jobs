@@ -12,6 +12,8 @@ These instructions assume we are moving from release X.A to X.B and that origin#
 
 - Create a new branch openshift-ansible#release-X.A from openshift-ansible#master
 
+- Create a new branch in openshift/jenkins: openshift-X.B
+
 - In ose#master, set origin.spec "Version: X.B.0" and "Release: "0.0.0%{?dist}"
 
 - In ose#enterprise-X.A, make sure the release is to to "1%{?dist}" (unless it has already been changed to a non 0. value)

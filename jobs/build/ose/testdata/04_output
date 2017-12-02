@@ -1,6 +1,0 @@
-pick 59dn2sf [CARRY][BUILD] Tooling diff for OSE
-fixup 5hfos3s [SQUASH][BUILD] Check in new shiny script for OSE
-pick c21ea24 [CARRY][BRANDING] OAuth server branding
-fixup c21ea22 [SQUASH][BRANDING] Additional OAuth server branding
-pick 975a829 [CARRY][BUILD_GEN] Specfile updates
-fixup ba426b9 Automatic commit of package [atomic-openshift] release [3.5.0.50-1].

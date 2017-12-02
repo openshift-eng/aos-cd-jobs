@@ -1,5 +1,0 @@
-pick c21ea24 [CARRY][BRANDING] OAuth server branding
-fixup c21ea21 [SQUASH][BRANDING] OAuth server branding
-fixup c21ea22 [SQUASH][BRANDING] OAuth server branding
-pick 975a829 [CARRY][BUILD_GEN] Specfile updates
-fixup ba426b9 Automatic commit of package [atomic-openshift] release [3.5.0.50-1].

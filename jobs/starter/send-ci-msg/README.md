@@ -1,1 +1,0 @@
-Sends a CI message on the Red Hat CI Message bus. 

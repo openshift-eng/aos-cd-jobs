@@ -14,12 +14,18 @@ docker pull openshift/origin-docker-registry:latest
 docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat "${jobs_repo}/ORIGIN_COMMIT" )"
 
 cd /data/src/github.com/openshift/aos-cd-jobs
+playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
+if [[ -s "${playbook_base}/openshift-node/network_manager.yml" ]]; then
+    playbook="${playbook_base}openshift-node/network_manager.yml"
+else
+    playbook="${playbook_base}byo/openshift-node/network_manager.yml"
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+                 ${playbook}
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \

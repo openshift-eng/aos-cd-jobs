@@ -21,7 +21,7 @@ node('openshift-build-1') {
 	]])
 	// https://issues.jenkins-ci.org/browse/JENKINS-33511
 	env.WORKSPACE = pwd()
-	def packages = ['docker', 'container-selinux', 'container-storage-setup', 'skopeo', 'atomic', 'python-pytoml']
+	def packages = ['docker', 'container-selinux', 'container-storage-setup', 'skopeo', 'skopeo-containers', 'atomic', 'python-pytoml']
 	def installed_packages = []
 
 	stage ('Check to see if we need to run') {

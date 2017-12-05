@@ -120,6 +120,13 @@ node(TARGET_NODE) {
             returnStdout: true,
             script: "git rev-parse HEAD",
     ).trim()
+        
+    try{
+            // Clean up old images so that we don't run out of device mapper space
+            sh "docker rmi --force \$(docker images  | grep v${BUILD_VERSION} | awk '{print \$3}')"
+    } catch ( cce ) {
+            echo "Error cleaning up old images: ${cce}"
+    }
 
     PUDDLE_CONF_BASE="https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
     PUDDLE_CONF="${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}.conf"

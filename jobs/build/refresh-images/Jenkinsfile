@@ -88,7 +88,14 @@ node('openshift-build-1') {
             if ( RHEL != "" ) {
                 rhel_arg = "--rhel ${RHEL}"
             }
-
+    
+            try{
+                // Clean up old images so that we don't run out of device mapper space
+                sh "docker rmi --force \$(docker images  | grep v${OSE_MAJOR}.${OSE_MINOR} | awk '{print \$3}')"
+            } catch ( cce ) {
+                echo "Error cleaning up old images: ${cce}"
+            }            
+            
             sshagent(['openshift-bot']) {
 
                 update_docker_args = "--bump_release"

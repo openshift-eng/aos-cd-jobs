@@ -165,7 +165,8 @@ function get_latest_openshift_ansible()  {
 
   pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms"
     if [ -z "${cicd_yum_openshift_ansible_url+x}" ]; then
-      /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${1} -e cli_download_dir=${AOS_TMPDIR}
+      echo "Exiting, 'cicd_yum_openshift_ansible_url' var is not set, unable to determine openshift-ansible download URL"
+      exit 1
     else
       /usr/bin/ansible-playbook extract_openshift_ansible_rpms.yml -e cli_download_link=${cicd_yum_openshift_ansible_url} -e cli_download_dir=${AOS_TMPDIR}
     fi

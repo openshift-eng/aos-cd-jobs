@@ -617,6 +617,8 @@ if [[ -s &#34;\${playbook_base}openshift-logging/config.yml&#34; ]]; then
 else
     playbook=&#34;\${playbook_base}byo/openshift-cluster/openshift-logging.yml&#34;
 fi
+#                          -e openshift_logging_install_eventrouter=True                            \
+# richm 20171205 - ansible &#34;too much recursion&#34; bug
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
@@ -633,7 +635,6 @@ ansible-playbook -vv --become               \
                  -e openshift_logging_mux_allow_external=True                             \
                  -e openshift_logging_es_allow_external=True                              \
                  -e openshift_logging_es_ops_allow_external=True                          \
-                 -e openshift_logging_install_eventrouter=True                            \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;                 \
                  -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                         \
                  \${playbook} \

@@ -122,7 +122,7 @@ node('openshift-build-1') {
                  */
                 buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
-distgits:update-dockerfile
+images:update-dockerfile
   ${oit_update_docker_args}
   --message 'Updating for image refresh'
   --push
@@ -130,7 +130,7 @@ distgits:update-dockerfile
 
               buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-distgits:build-image
+images:build
 --push-to-defaults --repo-type signed
 """
             }

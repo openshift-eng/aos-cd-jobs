@@ -16,6 +16,12 @@ Jenkins job: ${env.BUILD_URL}
 // Ask the shared library which clusters this job should act on
 cluster_choice = aos_cd_ops_data.getClusterList("${env.BRANCH_NAME}").join("\n")  // Jenkins expects choice parameter to be linefeed delimited
 
+COMMON_OPTS= """cicd_openshift_version=
+cicd_docker_version=
+cicd_yum_openshift_ansible_url=
+cicd_yum_main_url=
+"""
+
 properties(
         [[$class              : 'ParametersDefinitionProperty',
           parameterDefinitions:
@@ -24,7 +30,7 @@ properties(
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com, mwoodson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The specification of the cluster to affect'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "build-ci-msg\ncommit-config-loop\ndelete\ndisable-config-loop\ndisable-statuspage\ndisable-zabbix-maint\nenable-config-loop\nenable-statuspage\nenable-zabbix-maint\ngenerate-byo-inventory\ninstall\nlegacy-upgrade\nonline-deployer\nperf1\nperf2\nperf3\npre-check\nrun-config-loop\nschedule-all-nodes\nsmoketest\nstatus\nunschedule-extra-nodes\nupdate-inventory\nupdate-jenkins-imagestream\nupdate-yum-extra-repos\nupgrade\nupgrade-control-plane\nupgrade-logging\nupgrade-metrics\nupgrade-nodes\n", name: 'OPERATION', description: 'Operation to perform'],
-                          [$class: 'hudson.model.TextParameterDefinition', defaultValue: '', description: 'Additional options (key=value linefeed delimited)', name: 'ADDITIONAL_OPTS'],
+                          [$class: 'hudson.model.TextParameterDefinition', defaultValue: COMMON_OPTS, description: 'Additional options (key=value linefeed delimited)', name: 'ADDITIONAL_OPTS'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to prevent input prompt. Select quiet to prevent aos-cicd emails. Select silent to prevent any success email.'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                   ]

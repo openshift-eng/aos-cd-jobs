@@ -125,13 +125,19 @@ node(TARGET_NODE) {
         '''
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'
-    }
-
+    } 
 
     if ( OSE_MINOR.toInteger() > 6 ) {
         error( "This pipeline is only designed for versions <= 3.6" )
     }
 
+    try{
+        // Clean up old images so that we don't run out of device mapper space
+        sh "docker rmi --force \$(docker images  | grep v${OSE_MAJOR}.${OSE_MINOR} | awk '{print \$3}')"
+    } catch ( cce ) {
+        echo "Error cleaning up old images: ${cce}"
+    }
+    
     set_workspace()
 
     // oit_working must be in WORKSPACE in order to have artifacts archived

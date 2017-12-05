@@ -667,13 +667,19 @@ if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]
     exit 0
 fi
 
+playbook_base=&#39;/usr/share/ansible/openshift-ansible/playbooks/&#39;
+if [[ -s &#34;\${playbook_base}/openshift-node/network_manager.yml&#34; ]]; then
+    playbook=&#34;\${playbook_base}openshift-node/network_manager.yml&#34;
+else
+    playbook=&#34;\${playbook_base}byo/openshift-node/network_manager.yml&#34;
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e containerized=true      \
                  -e deployment_type=origin  \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+                 \${playbook}
 # install atomic rpm
 sudo yum install atomic -y
 # only origin, openvswitch and node docker images are run as system containers

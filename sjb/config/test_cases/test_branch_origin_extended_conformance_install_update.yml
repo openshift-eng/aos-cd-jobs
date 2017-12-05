@@ -132,13 +132,19 @@ extensions:
         source ORIGIN_VARS
         source OPENSHIFT_ANSIBLE_VARS
         echo "=== Installing ${pkg_name}-${ORIGIN_INSTALL_VERSION} ==="
+        playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
+        if [[ -s "${playbook_base}/openshift-node/network_manager.yml" ]]; then
+            playbook="${playbook_base}openshift-node/network_manager.yml"
+        else
+            playbook="${playbook_base}byo/openshift-node/network_manager.yml"
+        fi
         ansible-playbook  -vv                \
                           --become           \
                           --become-user root \
                           --connection local \
                           --inventory sjb/inventory/ \
-                          /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml \
-                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)
+                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE) \
+                          ${playbook}
         ansible-playbook  -vv                \
                           --become           \
                           --become-user root \

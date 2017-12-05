@@ -50,7 +50,7 @@ set -o pipefail
 sudo python oit/oit/oit.py \
   --metadata-dir oit/ \
   --group 'openshift-${BUILD_VERSION}' \
-  distgits:scan-for-cves \
+  images:scan-for-cves \
   | tee scan.txt
 """
       }

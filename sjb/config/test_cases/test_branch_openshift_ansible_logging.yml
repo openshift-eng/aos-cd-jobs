@@ -167,6 +167,8 @@ extensions:
         else
             playbook="${playbook_base}byo/openshift-cluster/openshift-logging.yml"
         fi
+        #                          -e openshift_logging_install_eventrouter=True                            \
+        # richm 20171205 - ansible "too much recursion" bug
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
@@ -183,7 +185,6 @@ extensions:
                          -e openshift_logging_mux_allow_external=True                             \
                          -e openshift_logging_es_allow_external=True                              \
                          -e openshift_logging_es_ops_allow_external=True                          \
-                         -e openshift_logging_install_eventrouter=True                            \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"                 \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                         \
                          ${playbook} \

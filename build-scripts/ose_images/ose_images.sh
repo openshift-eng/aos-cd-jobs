@@ -166,7 +166,7 @@ add_group_to_list() {
           add_to_list container-engine-docker
           add_to_list ose-egress-http-proxy-docker
         fi
-        if [ ${MAJOR_RELEASE} == "3.7" ] || [ ${MAJOR_RELEASE} == "3.8" || [ ${MAJOR_RELEASE} == "3.9" ]; then
+        if [ ${MAJOR_RELEASE} == "3.7" ] || [ ${MAJOR_RELEASE} == "3.8" ] || [ ${MAJOR_RELEASE} == "3.9" ]; then
           add_to_list golang-github-prometheus-prometheus-docker
           add_to_list golang-github-prometheus-alertmanager-docker
           add_to_list golang-github-openshift-prometheus-alert-buffer-docker

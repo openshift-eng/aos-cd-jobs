@@ -80,6 +80,7 @@ node('openshift-build-1') {
         sshagent([CLUSTER_ENV]) {
 
             stage( "pre-check" ) {
+                deploylib.run("set-yum-repos")
                 deploylib.run("pre-check")
             }
 

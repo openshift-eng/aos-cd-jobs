@@ -649,13 +649,19 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+playbook_base=&#39;/usr/share/ansible/openshift-ansible/playbooks/&#39;
+if [[ -s &#34;\${playbook_base}/openshift-node/network_manager.yml&#34; ]]; then
+    playbook=&#34;\${playbook_base}openshift-node/network_manager.yml&#34;
+else
+    playbook=&#34;\${playbook_base}byo/openshift-node/network_manager.yml&#34;
+fi
 local_ip=&#34;\$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )&#34;
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+                 \${playbook}
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \

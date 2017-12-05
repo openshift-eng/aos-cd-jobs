@@ -48,13 +48,19 @@ extensions:
       timeout: 7200
       repository: "aos-cd-jobs"
       script: |-
+        playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
+        if [[ -s "${playbook_base}/openshift-node/network_manager.yml" ]]; then
+            playbook="${playbook_base}openshift-node/network_manager.yml"
+        else
+            playbook="${playbook_base}byo/openshift-node/network_manager.yml"
+        fi
         local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e deployment_type=origin  \
-                         /usr/share/ansible/openshift-ansible/playbooks/byo/openshift-node/network_manager.yml
+                         ${playbook}
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \

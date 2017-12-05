@@ -89,26 +89,6 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>ORIGIN_AGGREGATED_LOGGING_PULL_ID</name>
-          <description>The pull-request in the &lt;a href=&quot;https://github.com/openshift/origin-aggregated-logging&quot;&gt;origin-aggregated-logging&lt;/a&gt; repository to test.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PULL_NUMBER</name>
-          <description>The pull-request in the &lt;a href=&quot;https://github.com/openshift/origin-aggregated-logging&quot;&gt;origin-aggregated-logging&lt;/a&gt; repository to test. This is compatible with prow.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PULL_REFS</name>
-          <description>The pull-request(s) in the &lt;a href=&quot;https://github.com/openshift/origin-aggregated-logging&quot;&gt;origin-aggregated-logging&lt;/a&gt; repository to test. This is compatible with prow and can be used for batch testing.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>buildId</name>
-          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob and bubble statuses up to the correct pull request.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&quot;https://github.com/openshift/openshift-ansible&quot;&gt;openshift-ansible&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
@@ -214,8 +194,8 @@ oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;build&#34; --pr
     <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
       <regexp></regexp>
       <description>&lt;div&gt;
-Using PR &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging/pull/${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&#34;&gt;${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&lt;/a&gt; merged into the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging/tree/${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34;&gt;origin-aggregated-logging ${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
-Using the &lt;a href=&#34;https://github.com/openshift/openshift-ansible/tree/${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34;&gt;openshift-ansible ${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
+Using the &lt;a href=&#34;https://github.com/openshift/origin-aggregated-logging/tree/${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34;&gt;origin-aggregated-logging ${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
+Using the &lt;a href=&#34;https://github.com/openshift/openshift-ansible/tree/${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34;&gt;openshift-ansible ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&lt;/a&gt; branch.&lt;br/&gt;
 Using the &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs/tree/${AOS_CD_JOBS_TARGET_BRANCH}&#34;&gt;aos-cd-jobs ${AOS_CD_JOBS_TARGET_BRANCH}&lt;/a&gt; branch.
 &lt;/div&gt;</description>
     </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
@@ -226,42 +206,8 @@ oct sync remote origin-aggregated-logging --branch &#34;${ORIGIN_AGGREGATED_LOGG
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC ORIGIN-AGGREGATED-LOGGING PULL REQUEST ${PULL_NUMBER:-}${ORIGIN_AGGREGATED_LOGGING_PULL_ID:-} ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC ORIGIN-AGGREGATED-LOGGING PULL REQUEST ${PULL_NUMBER:-}${ORIGIN_AGGREGATED_LOGGING_PULL_ID:-} [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-cat &lt;&lt; SCRIPT &gt; unravel-pull-refs.py
-#!/usr/bin/env python
-from __future__ import print_function
-import sys
-
-# PULL_REFS is expected to be in the form of:
-#
-# base_branch:commit_sha_of_base_branch,pull_request_no:commit_sha_of_pull_request_no,...
-#
-# For example:
-#
-# master:97d901d,4:bcb00a1
-#
-# And for multiple pull requests that have been batched:
-#
-# master:97d901d,4:bcb00a1,6:ddk2tka
-print( &#34;\n&#34;.join([r.split(&#39;:&#39;)[0] for r in sys.argv[1].split(&#39;,&#39;)][1:]) )
-SCRIPT
-chmod +x unravel-pull-refs.py
-
-if [[ -n &#34;${PULL_REFS:-}&#34; ]]; then
-  for ref in $(./unravel-pull-refs.py $PULL_REFS); do
-      oct sync remote origin-aggregated-logging --refspec &#34;pull/$ref/head&#34; --branch &#34;pull-$ref&#34; --merge-into &#34;${PULL_REFS%%:*}&#34;
-   done
-elif [[ -n &#34;${ORIGIN_AGGREGATED_LOGGING_PULL_ID:-}&#34; ]]; then
-  oct sync remote origin-aggregated-logging --refspec &#34;pull/${ORIGIN_AGGREGATED_LOGGING_PULL_ID}/head&#34; --branch &#34;pull-${ORIGIN_AGGREGATED_LOGGING_PULL_ID}&#34; --merge-into &#34;${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34;
-else
-  echo &#34;[ERROR] Either \$PULL_REFS or ${ORIGIN_AGGREGATED_LOGGING_PULL_ID:-} and \$ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH must be set&#34;
-  exit 1
-fi</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC OPENSHIFT-ANSIBLE REPOSITORY ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC OPENSHIFT-ANSIBLE REPOSITORY [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-oct sync remote openshift-ansible --branch &#34;${ORIGIN_AGGREGATED_LOGGING_TARGET_BRANCH}&#34; </command>
+oct sync remote openshift-ansible --branch &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -278,10 +224,6 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_ID=${BUILD_ID:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;ORIGIN_AGGREGATED_LOGGING_PULL_ID=${ORIGIN_AGGREGATED_LOGGING_PULL_ID:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;buildId=${buildId:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_TARGET_BRANCH=${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;buildId=${buildId:-}&#39; &gt;&gt; /etc/environment&#34;
@@ -446,43 +388,14 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD AN OPENSHIFT-ANSIBLE RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD AN OPENSHIFT-ANSIBLE RELEASE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL ANSIBLE AND OTHER PACKAGES NEEDED FOR OPENSHIFT ANSIBLE TASKS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE AND OTHER PACKAGES NEEDED FOR OPENSHIFT ANSIBLE TASKS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
-git checkout &#34;\${PULL_REFS%%:*}&#34;
-tito_tmp_dir=&#34;tito&#34;
-rm -rf &#34;\${tito_tmp_dir}&#34;
-mkdir -p &#34;\${tito_tmp_dir}&#34;
-tito tag --offline --accept-auto-changelog
-tito build --output=&#34;\${tito_tmp_dir}&#34; --rpm --test --offline --quiet
-createrepo &#34;\${tito_tmp_dir}/noarch&#34;
-cat &lt;&lt; EOR &gt; ./openshift-ansible-local-release.repo
-[openshift-ansible-local-release]
-baseurl = file://\$( pwd )/\${tito_tmp_dir}/noarch
-gpgcheck = 0
-name = OpenShift Ansible Release from Local Source
-EOR
-sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL THE OPENSHIFT-ANSIBLE RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL THE OPENSHIFT-ANSIBLE RELEASE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
-last_tag=&#34;\$( git describe --tags --abbrev=0 --exact-match HEAD )&#34;
-last_commit=&#34;\$( git log -n 1 --pretty=%h )&#34;
-sudo yum install -y &#34;atomic-openshift-utils\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
-rpm -V &#34;atomic-openshift-utils\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
+cd &#34;\${GOPATH}/src/github.com/openshift/origin-aggregated-logging&#34;
+sudo yum install -y ansible python2 python-six tar java-1.8.0-openjdk-headless httpd-tools \
+   libselinux-python python-passlib python-pip
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -495,7 +408,7 @@ script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+cd &#34;\${GOPATH}/src/github.com/openshift/origin-aggregated-logging&#34;
 sudo chmod o+rw /etc/environment
 echo &#34;ANSIBLE_JUNIT_DIR=\$( pwd )/_output/scripts/ansible_junit&#34; &gt;&gt; /etc/environment
 sudo mkdir -p /usr/share/ansible/plugins/callback
@@ -511,22 +424,20 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ENSURE THE CORRECT PACKAGE REPOSITORIES ARE USED FOR THE CORRECT RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ENSURE THE CORRECT PACKAGE REPOSITORIES ARE USED FOR THE CORRECT RELEASE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+cd &#34;\${GOPATH}/src/github.com/openshift/origin-aggregated-logging&#34;
 # is logging using master or a release branch?
-pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
 curbranch=\$( git rev-parse --abbrev-ref HEAD )
-popd
-jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 if [[ &#34;\${curbranch}&#34; == master ]] ; then
-   git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
-   ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+   # enable centos-openshift-origin and centos-openshift-origin-testing
+   # assume everything else has been disabled
+   sudo yum-config-manager --enable centos-openshift-origin &gt; /dev/null
+   sudo yum-config-manager --enable centos-openshift-origin-testing &gt; /dev/null
 elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
-   pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
    # get repo ver from branch name
    repover=\$( echo &#34;\${curbranch}&#34; | sed -e &#39;s/release-//&#39; -e &#39;s/[.]//&#39; )
    # get version from tag
@@ -542,17 +453,7 @@ elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
          *) sudo yum-config-manager --disable \$repo &gt; /dev/null ;;
       esac
    done
-   echo &#34;\${closest_tag}&#34; &gt; \${jobs_repo}/ORIGIN_COMMIT
-   echo &#34;\${pkgver}&#34; &gt; \${jobs_repo}/ORIGIN_PKG_VERSION
-   # disable local origin repo
    sudo yum-config-manager --disable origin-local-release &gt; /dev/null
-   if ( sudo yum install --assumeno origin\${pkgver} 2&gt;&amp;1 || : ) | grep -q &#39;No package .* available&#39; ; then
-      # just ask yum what the heck the version is
-      pkgver=\$( ( sudo yum install --assumeno origin 2&gt;&amp;1 || : ) | awk &#39;\$1 == &#34;x86_64&#34; {print \$2}&#39; )
-      echo &#34;-\${pkgver}&#34; &gt; \${jobs_repo}/ORIGIN_PKG_VERSION
-   else
-      echo package origin\${pkgver} is available
-   fi
 else
    echo Error: unknown base branch \$curbranch: please resubmit PR on master or a release-x.y branch
 fi
@@ -563,55 +464,80 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ORIGIN PREREQUISITES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ORIGIN PREREQUISITES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: CONFIGURE SYSTEM TO RUN OC CLUSTER UP AND RUN IT ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CONFIGURE SYSTEM TO RUN OC CLUSTER UP AND RUN IT [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-ansible-playbook -vv --become               \
-                 --become-user root         \
-                 --connection local         \
-                 --inventory sjb/inventory/ \
-                 -e containerized=true      \
-                 -e deployment_type=origin  \
-                 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL ORIGIN ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ORIGIN [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-playbook_base=&#39;/usr/share/ansible/openshift-ansible/playbooks/&#39;
-if [[ -s &#34;\${playbook_base}/openshift-node/network_manager.yml&#34; ]]; then
-    playbook=&#34;\${playbook_base}openshift-node/network_manager.yml&#34;
-else
-    playbook=&#34;\${playbook_base}byo/openshift-node/network_manager.yml&#34;
+cd &#34;\${GOPATH}/src/github.com/openshift/origin-aggregated-logging&#34;
+# https://github.com/openshift/origin/blob/master/docs/cluster_up_down.md#overview
+# 3.8 has a problem with fail-swap-on - not a valid flag
+sudo yum install -y origin-clients docker /usr/bin/firewall-cmd
+sudo yum info origin-clients
+sudo systemctl enable firewalld
+sudo systemctl start firewalld
+sudo sysctl -w net.ipv4.ip_forward=1
+
+# set up docker for local registry
+if ! sudo grep -q &#39;^INSECURE_REGISTRY=&#39; /etc/sysconfig/docker ; then
+  # not present - easy - just add it
+  echo &#34;INSECURE_REGISTRY=&#39;--insecure-registry=172.30.0.0/16&#39;&#34; | sudo tee -a /etc/sysconfig/docker &gt; /dev/null
+elif ! sudo grep -q &#39;^INSECURE_REGISTRY=.*--insecure-registry=172.30.0.0/16&#39; /etc/sysconfig/docker ; then
+  # already there - just add our registry - assumes 1 single line
+  sudo sed -e &#34;/^INSECURE_REGISTRY=/s,[&#39;]\$, --insecure-registry 172.30.0.0/16&#39;,&#34; -i /etc/sysconfig/docker
 fi
-ansible-playbook -vv --become               \
-                 --become-user root         \
-                 --connection local         \
-                 --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
-                 -e debug_level=2           \
-                 \${playbook}
-ansible-playbook -vv --become               \
-                 --become-user root         \
-                 --connection local         \
-                 --inventory sjb/inventory/ \
-                 -e openshift_logging_install_logging=False \
-                 -e deployment_type=origin  \
-                 -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
-                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
-                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+
+# set docker log driver correctly
+if ! sudo grep -q &#39;^OPTIONS=&#39; /etc/sysconfig/docker ; then
+  # not present - easy - just add it
+  echo &#34;OPTIONS=&#39;--log-driver=\${LOG_DRIVER:-journald}&#39;&#34; | sudo tee -a /etc/sysconfig/docker &gt; /dev/null
+elif ! sudo grep -q &#39;^OPTIONS=.*--log-driver&#39; /etc/sysconfig/docker ; then
+  # already there - just add our value - assumes 1 single line
+  sudo sed -e &#34;/^OPTIONS=/s,[&#39;]\$, --log-driver=\${LOG_DRIVER:-journald}&#39;,&#34; -i /etc/sysconfig/docker
+else
+  # already there with value - change the value
+  sudo sed -e &#34;/^OPTIONS=/s/--log-driver=[-_a-zA-Z0-9][-_a-zA-Z0-9]*/--log-driver=\${LOG_DRIVER:-journald}/&#34; -i /etc/sysconfig/docker
+fi
+
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+subnet=\$( sudo docker network inspect -f &#34;{{range .IPAM.Config }}{{ .Subnet }}{{end}}&#34; bridge )
+sudo firewall-cmd --permanent --new-zone dockerc
+sudo firewall-cmd --permanent --zone dockerc --add-source \$subnet
+sudo firewall-cmd --permanent --zone dockerc --add-port 8443/tcp
+sudo firewall-cmd --permanent --zone dockerc --add-port 53/udp
+sudo firewall-cmd --permanent --zone dockerc --add-port 8053/udp
+sudo firewall-cmd --reload
+# this is specific to AWS - other platforms will need to get public ip and hostname elsewhere
+metadata_endpoint=&#34;http://169.254.169.254/latest/meta-data&#34;
+public_hostname=&#34;\$( curl -s &#34;\${metadata_endpoint}/public-hostname&#34; )&#34;
+public_ip=&#34;\$( curl -s &#34;\${metadata_endpoint}/public-ipv4&#34; )&#34;
+sudo oc cluster up --public-hostname=&#34;\${public_hostname}&#34; --routing-suffix=&#34;\${public_ip}.xip.io&#34;
+# change the config
+# allow externalIPs, and kibana UI access
+SERVER_CONFIG_DIR=/var/lib/origin/openshift.local.config
+# add loggingPublicURL so the OpenShift UI Console will include a link for Kibana
+# this part stolen from util.sh configure_os_server()
+sudo cp \${SERVER_CONFIG_DIR}/master/master-config.yaml \${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
+ocver=\$( oc version | awk -F&#39;[ v.-]+&#39; &#39;/^oc / {print \$2 \$3 \$4}&#39; )
+patchcmd=&#34;sudo oc ex config patch&#34;
+if [ \$ocver -lt 380 ] ; then
+    patchcmd=&#34;docker exec origin openshift ex config patch&#34;
+fi
+\$patchcmd \${SERVER_CONFIG_DIR}/master/master-config.orig.yaml \
+    --patch=&#34;{\&#34;assetConfig\&#34;: {\&#34;loggingPublicURL\&#34;: \&#34;https://kibana.\${public_ip}.xip.io\&#34;}}&#34; | \
+    sudo tee \${SERVER_CONFIG_DIR}/master/master-config.yaml &gt; /dev/null
+sudo cp \${SERVER_CONFIG_DIR}/master/master-config.yaml \${SERVER_CONFIG_DIR}/master/master-config.save.yaml
+\$patchcmd \${SERVER_CONFIG_DIR}/master/master-config.save.yaml \
+    --patch=&#34;{\&#34;networkConfig\&#34;: {\&#34;externalIPNetworkCIDRs\&#34;: [\&#34;0.0.0.0/0\&#34;]}}&#34; | \
+    sudo tee \${SERVER_CONFIG_DIR}/master/master-config.yaml &gt; /dev/null
+# restart cluster so changes will take effect
+sudo oc cluster down
+# have to restart docker while oc cluster is down, after it has been initialized, or inter-pod
+# networking does not work
+sudo systemctl restart docker
+sudo oc cluster up --use-existing-config --public-hostname=&#34;\${public_hostname}&#34; --routing-suffix=&#34;\${public_ip}.xip.io&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -625,6 +551,13 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
+if [ ! -d \$HOME/.kube ] ; then
+  mkdir \$HOME/.kube
+fi
+sudo cp /var/lib/origin/openshift.local.config/master/admin.kubeconfig \$HOME/.kube/config
+sudo chown \$USER \$HOME/.kube/config
+sudo mkdir -p /etc/origin/master
+sudo cp /var/lib/origin/openshift.local.config/master/admin.kubeconfig /etc/origin/master/admin.kubeconfig
 sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig
 SCRIPT
@@ -634,55 +567,55 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ENSURE BUILT VERSION OF ORIGIN IS INSTALLED ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ENSURE BUILT VERSION OF ORIGIN IS INSTALLED [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
-curbranch=\$( git rev-parse --abbrev-ref HEAD )
-popd
-if [[ &#34;\${curbranch}&#34; == master ]] ; then
-   origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
-   rpm -V &#34;\${origin_package}&#34;
-fi
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL ORIGIN-AGGREGATED-LOGGING ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ORIGIN-AGGREGATED-LOGGING [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-playbook_base=&#39;/usr/share/ansible/openshift-ansible/playbooks/&#39;
+cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+OS_A_C_J_DIR=/data/src/github.com/openshift/aos-cd-jobs
+pushd \$OS_A_C_J_DIR &gt; /dev/null
+# cannot use the networking related parameters with cluster up deployment
+if [ -f sjb/inventory/group_vars/OSEv3/general.yml ] ; then
+    sed -e &#39;/^osm_cluster_network_cidr/d&#39; \
+        -e &#39;/^openshift_portal_net/d&#39; \
+        -e &#39;/^osm_host_subnet_length/d&#39; \
+        -i sjb/inventory/group_vars/OSEv3/general.yml
+else
+    echo ERROR: no such file \$OS_A_C_J_DIR/sjb/inventory/group_vars/OSEv3/general.yml
+    exit 1
+fi
+popd &gt; /dev/null
+# this is specific to AWS - other platforms will need to get public ip and hostname elsewhere
+metadata_endpoint=&#34;http://169.254.169.254/latest/meta-data&#34;
+public_hostname=&#34;\$( curl -s &#34;\${metadata_endpoint}/public-hostname&#34; )&#34;
+public_ip=&#34;\$( curl -s &#34;\${metadata_endpoint}/public-ipv4&#34; )&#34;
+playbook_base=&#39;playbooks/&#39;
 if [[ -s &#34;\${playbook_base}openshift-logging/config.yml&#34; ]]; then
     playbook=&#34;\${playbook_base}openshift-logging/config.yml&#34;
 else
     playbook=&#34;\${playbook_base}byo/openshift-cluster/openshift-logging.yml&#34;
 fi
+# richm 20171205 - causes this:
+# RuntimeError: maximum recursion depth exceeded in cmp
+# -e openshift_logging_install_eventrouter=True
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
-                 --inventory sjb/inventory/ \
+                 --inventory \$OS_A_C_J_DIR/sjb/inventory/ \
                  -e deployment_type=origin  \
                  -e debug_level=2           \
                  -e openshift_logging_install_logging=True \
                  -e openshift_logging_image_prefix=&#34;openshift/origin-&#34; \
                  -e openshift_logging_elasticsearch_proxy_image_prefix=&#34;docker.io/openshift/&#34; \
-                 -e openshift_hosted_logging_hostname=&#34;kibana.127.0.0.1.nip.io&#34;           \
-                 -e openshift_logging_master_public_url=&#34;https://localhost:8443&#34;          \
-                 -e openshift_master_logging_public_url=&#34;https://kibana.127.0.0.1.nip.io&#34; \
+                 -e openshift_hosted_logging_hostname=&#34;kibana.\${public_ip}.xip.io&#34;            \
+                 -e openshift_logging_kibana_ops_hostname=&#34;kibana-ops.\${public_ip}.xip.io&#34;    \
+                 -e openshift_logging_master_public_url=&#34;https://\${public_hostname}:8443&#34;     \
+                 -e openshift_master_logging_public_url=&#34;https://kibana.\${public_ip}.xip.io&#34;  \
                  -e openshift_logging_use_mux=True                                        \
                  -e openshift_logging_mux_allow_external=True                             \
                  -e openshift_logging_es_allow_external=True                              \
                  -e openshift_logging_es_ops_allow_external=True                          \
-                 -e openshift_logging_install_eventrouter=True                            \
                  \${playbook} \
                  --skip-tags=update_master_config
 SCRIPT

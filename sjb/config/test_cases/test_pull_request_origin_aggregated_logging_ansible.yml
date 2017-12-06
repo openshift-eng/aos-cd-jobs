@@ -128,6 +128,9 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_logging_install_logging=False \
                          -e deployment_type=origin  \
+                         -e debug_level=2           \
+                         -e openshift_docker_log_driver=journald \
+                         -e openshift_docker_options="--log-driver=journald" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \

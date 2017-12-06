@@ -316,6 +316,14 @@ setup_dist_git() {
   fi
 
   rhpkg ${USER_USERNAME} clone "${ctype_prefix}${container}" &>${workingdir}/logs/${container}.output
+  if [ "$?" != "0" ]; then
+    sleep 60
+    rhpkg ${USER_USERNAME} clone "${ctype_prefix}${container}" &>${workingdir}/logs/${container}.output
+      if [ "$?" != "0" ]; then
+        sleep 60
+        rhpkg ${USER_USERNAME} clone "${ctype_prefix}${container}" &>${workingdir}/logs/${container}.output
+      fi
+  fi
   if [ -d ${container} ] ; then
     pushd ${container} >${workingdir}/logs/${container}.output
     rhpkg switch-branch "${branch}" &>${workingdir}/logs/${container}.output
@@ -690,6 +698,15 @@ merge_to_newest_dist_git() {
     git merge -m "Merge branch rhaos-${MAJOR_RELEASE_MINUS}-rhel-7 into rhaos-${MAJOR_RELEASE}-rhel-7" rhaos-${MAJOR_RELEASE_MINUS}-rhel-7 >/dev/null
     echo " Pushing to dist-git ..."
     rhpkg push  >/dev/null 2>&1
+      if [ "$?" != "0" ]; then
+        sleep 60
+        rhpkg push  >/dev/null 2>&1
+          if [ "$?" != "0" ]; then
+            sleep 60
+            rhpkg push  >/dev/null 2>&1
+          fi
+      fi
+
     echo " Fixing ose yum repo"
     sed -i "s|rhel-7-server-ose-${MAJOR_RELEASE_MINUS}-rpms|rhel-7-server-ose-${MAJOR_RELEASE}-rpms|g" Dockerfile
     echo " Fixing additional-tags"

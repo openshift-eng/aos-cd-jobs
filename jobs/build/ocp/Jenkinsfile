@@ -472,6 +472,15 @@ node(TARGET_NODE) {
                 throw oa_err
             }
         }
+        
+        stage( "build OIT rpms" ) {
+          buildlib.oit """
+--working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
+--sources ${env.WORKSPACE}/sources.yml
+rpms:build --version v${NEW_VERSION}
+--release ${NEW_DOCKERFILE_RELEASE}
+"""
+        }
 
         stage( "signing rpms" ) {
             if ( SIGN_RPMS ) {
@@ -512,7 +521,8 @@ node(TARGET_NODE) {
           buildlib.write_sources_file()
           buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
-distgits:rebase --sources ${env.WORKSPACE}/sources.yml --version v${NEW_VERSION}
+--sources ${env.WORKSPACE}/sources.yml
+images:rebase --version v${NEW_VERSION}
 --release ${NEW_DOCKERFILE_RELEASE}
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
 """
@@ -566,7 +576,7 @@ https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
             buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
-distgits:build-image
+images:build
 --push-to-defaults --repo-type unsigned
 """
         }

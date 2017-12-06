@@ -39,7 +39,7 @@ These instructions assume we are moving from release X.A to X.B and that origin#
     - Add 3.8 to version_trim_list
     - Assess whether anything in base group needs to change for X.B
 
-- Copy dist-git data from last version branches into new version branches using oit distgits:copy
+- Copy dist-git data from last version branches into new version branches using oit images:copy
 
 - In enterprise-images github repo:
   - Copy groups/openshift-X.A to groups/openshift-X.B

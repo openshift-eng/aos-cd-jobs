@@ -505,13 +505,13 @@ rpms:build --version v${NEW_VERSION}
         // TODO: Remove after new OIT version confirmed
         // Old method for most images
         stage( "compare dist-git" ) {
-            if ( BUILD_VERSION != "3.8" ) { // Trying to make all of 3.8 build with oit
+            if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" ) { // Trying to make all of 3.8/3.9 build with oit
                 sh "ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
             }
         }
 
         stage( "update dist-git" ) {
-            if ( BUILD_VERSION != "3.8" ) { // Trying to make all of 3.8 build with oit
+            if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" ) { // Trying to make all of 3.8/3.9 build with oit
                 sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_DOCKERFILE_RELEASE}' --version 'v${NEW_VERSION}'"
             }
         }
@@ -570,7 +570,7 @@ https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
         stage( "build images" ) {
             // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
-            if ( BUILD_VERSION != "3.8" ) { // Trying to move all 3.8 images to oit
+            if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" ) { // Trying to move all 3.8/3.9 images to oit
                 sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
             }
 
@@ -597,7 +597,7 @@ images:build
         stage( "push images" ) {
             dir( "${env.WORKSPACE}/build-scripts/ose_images" ) {
                 TAG_LATEST = IS_SOURCE_IN_MASTER?"":"--nolatest"
-                if ( BUILD_VERSION != "3.8" ) { // Trying to get all of 3.8 building with oit
+                if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" ) { // Trying to get all of 3.8/3.9 building with oit
                     sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
                 }
                 try {

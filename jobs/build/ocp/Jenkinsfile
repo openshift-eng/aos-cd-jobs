@@ -567,10 +567,10 @@ images:rebase --version v${NEW_VERSION}
                   echo "Failure sending email"
                   echo "${err}"
               }
-            } catch ( err ) {
+            } catch ( err_alias ) {
 
                 echo "Failure resolving alias for email"
-                echo "${err}"
+                echo "${err_alias}"
             }
           }
         }

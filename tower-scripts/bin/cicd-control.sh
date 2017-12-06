@@ -199,14 +199,9 @@ function pre-check() {
 
   # ONLINE PRE CHECK
   if [ "${DEPLOYMENT}" == "online" ]; then
-    # Get the version of RPMS that will be used
-    AOS_TMPDIR="${TMPTMP}/openshift-ansible_extract"
-    mkdir -p "${AOS_TMPDIR}"
 
     # get the latest openshift-ansible rpms
-    pushd "$GIT_ROOT/openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms" > /dev/null
-      /usr/bin/ansible-playbook get_openshift_ansible_rpms.yml -e cli_type=online -e cli_release=${oo_environment} -e cli_download_dir=${AOS_TMPDIR} &> /dev/null
-    popd > /dev/null
+    get_latest_openshift_ansible
     OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}-%{RELEASE}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
 
     MASTER="$(get_master_name)"

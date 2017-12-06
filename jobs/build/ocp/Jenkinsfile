@@ -542,30 +542,37 @@ images:rebase --version v${NEW_VERSION}
             distgit = distgit_notify[i][0]
             val = distgit_notify[i][1]
 
-            alias = val['source_alias']
-            dockerfile_url = ""
-            github_url = GITHUB_URLS[alias]
-            github_url = github_url.replace(".git", "")
-            github_url = github_url.replace("git@", "")
-            github_url = github_url.replaceFirst(":", "/")
-            dockerfile_sub_path = val['source_dockerfile_subpath']
-            dockerfile_url = "Source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] +"/" + dockerfile_sub_path
             try {
-              // always mail success list, val.owners will be comma delimited or empty
-              mail(to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,${val.owners}",
-                      from: "aos-cd@redhat.com",
-                      subject: "${val.image} Dockerfile reconciliation.",
-                      body: """
-OIT has detected a change in the Dockerfile for ${val.image}
-${dockerfile_url}
-This has been automatically reconciled and the new file can be seen here:
-https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
-              """);
-            } catch ( err ) {
+              alias = val['source_alias']
+              dockerfile_url = ""
+              github_url = GITHUB_URLS[alias]
+              github_url = github_url.replace(".git", "")
+              github_url = github_url.replace("git@", "")
+              github_url = github_url.replaceFirst(":", "/")
+              dockerfile_sub_path = val['source_dockerfile_subpath']
+              dockerfile_url = "Source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] +"/" + dockerfile_sub_path
+              try {
+                // always mail success list, val.owners will be comma delimited or empty
+                mail(to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,${val.owners}",
+                        from: "aos-cd@redhat.com",
+                        subject: "${val.image} Dockerfile reconciliation.",
+                        body: """
+  OIT has detected a change in the Dockerfile for ${val.image}
+  ${dockerfile_url}
+  This has been automatically reconciled and the new file can be seen here:
+  https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
+                """);
+              } catch ( err ) {
 
-                echo "Failure sending email"
-                echo "${err}"
+                  echo "Failure sending email"
+                  echo "${err}"
+              }
+            } catch ( err_alias ) {
+
+                echo "Failure resolving alias for email"
+                echo "${err_alias}"
             }
+          }
         }
 
         stage( "build images" ) {

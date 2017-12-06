@@ -572,7 +572,6 @@ images:rebase --version v${NEW_VERSION}
                 echo "Failure resolving alias for email"
                 echo "${err_alias}"
             }
-          }
         }
 
         stage( "build images" ) {

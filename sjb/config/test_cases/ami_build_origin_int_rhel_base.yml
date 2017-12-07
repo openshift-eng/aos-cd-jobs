@@ -67,6 +67,23 @@ actions:
       hack/build-base-images.sh
       make release
   - type: "script"
+    title: "determine the release commit for origin images and version for rpms"
+    timeout: 600
+    repository: "origin"
+    script: |-
+      jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
+      git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+      ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+  - type: "script"
+    title: "build the image registry container image"
+    repository: "image-registry"
+    timeout: 3600
+    script: |-
+      if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.8" ]]; then
+        make build-images
+        docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+      fi
+  - type: "script"
     title: "verify commit history"
     repository: "origin"
     script: |-

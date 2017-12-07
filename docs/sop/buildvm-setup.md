@@ -128,7 +128,12 @@ Host rcm-guest rcm-guest.app.eng.bos.redhat.com
   - You should use a production configuration of devicemapper/thinpool for docker with at least 150GB of storage in the VG
   - Edit /etc/sysconfig/docker and set the following: `INSECURE_REGISTRY='--insecure-registry brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888 --insecure-registry rcm-img-docker01.build.eng.bos.redhat.com:5001 --insecure-registry registry.access.stage.redhat.com'`
 - Configure tito
-  - Populate ~/.titorc with `RHPKG_USER=ocp-build`
+  - Create /home/jenkins/workspace/tito_tmp if it does not exist
+  - Populate ~/.titorc with:
+    ```
+    RHPKG_USER=ocp-build
+    RPMBUILD_BASEDIR=/home/jenkins/workspace/tito_tmp
+    ```
 - oct dependencies
   - Copy /home/jenkins/.aws/credentials from existing buildvm to target (needed for oct & dockertested job).
   - Copy libra.pem (from shared-secrets repo) to /home/jenkins/.ssh/devenv.pem .

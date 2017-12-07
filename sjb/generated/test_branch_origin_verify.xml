@@ -342,6 +342,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 # access to git; also explicitly force godeps verification
 branch=&#34;\$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )&#34;
 if [[ &#34;\${branch}&#34; == &#34;master&#34; ]]; then
+  OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/commitchecker hack/env make build WHAT=tools/rebasehelpers/commitchecker
   RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
 fi
 SCRIPT

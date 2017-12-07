@@ -608,6 +608,9 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e openshift_logging_install_logging=False \
                  -e deployment_type=origin  \
+                 -e debug_level=2           \
+                 -e openshift_docker_log_driver=journald \
+                 -e openshift_docker_options=&#34;--log-driver=journald&#34; \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \

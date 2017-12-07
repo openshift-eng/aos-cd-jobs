@@ -15,6 +15,7 @@ extensions:
         # access to git; also explicitly force godeps verification
         branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
         if [[ "${branch}" == "master" ]]; then
+          OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/commitchecker hack/env make build WHAT=tools/rebasehelpers/commitchecker
           RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
         fi
     - type: "script"

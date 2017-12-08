@@ -631,7 +631,7 @@ images:build
         buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", NEW_FULL_VERSION, BUILD_MODE )
 
         // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
-        OCP_PUDDLE = "${OCP_PUDDLE}_v${NEW_FULL_VERSION}"
+        OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
 
         if ( NEW_RELEASE != "1" ) {
             // If this is not a release candidate, push binary in a directory qualified with release field information

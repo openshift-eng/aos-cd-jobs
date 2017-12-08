@@ -619,18 +619,23 @@ ansible-playbook  -vv                \
                   --inventory sjb/inventory/ \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE) \
                   \${playbook}
+if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
+    playbook=&#34;\${playbook_base}deploy_cluster.yml&#34;
+else
+    playbook=&#34;\${playbook_base}byo/config.yml&#34;
+fi
 ansible-playbook  -vv                \
                   --become           \
                   --become-user root \
                   --connection local \
                   --inventory sjb/inventory/ \
-                  /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml \
                   -e openshift_pkg_version=&#34;-\${ORIGIN_INSTALL_VERSION}&#34;         \
                   -e openshift_release=&#34;3.\${ORIGIN_INSTALL_MINOR_VERSION}&#34;      \
                   -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34;                           \
                   -e deployment_type=\$( cat ./DEPLOYMENT_TYPE)                  \
                   -e openshift_node_port_range=&#39;30000-32000&#39;                    \
-                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;
+                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39; \
+                  \${playbook}
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

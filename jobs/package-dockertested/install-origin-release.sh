@@ -26,6 +26,11 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
                  ${playbook}
+if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
+    playbook="${playbook_base}deploy_cluster.yml"
+else
+    playbook="${playbook_base}byo/config.yml"
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
@@ -34,6 +39,6 @@ ansible-playbook -vv --become               \
                  -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                  -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                  -e openshift_disable_check=docker_image_availability,package_update,package_availability    \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+                 ${playbook}
 sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig

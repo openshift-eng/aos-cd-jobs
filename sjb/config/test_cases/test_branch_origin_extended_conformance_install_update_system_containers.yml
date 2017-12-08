@@ -155,6 +155,11 @@ extensions:
         sudo atomic pull --storage ostree docker:openshift/origin:$( cat ./ORIGIN_TAG )
         sudo atomic pull --storage ostree docker:openshift/openvswitch:$( cat ./ORIGIN_TAG )
         sudo atomic pull --storage ostree docker:openshift/node:$( cat ./ORIGIN_TAG )
+        if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
+            playbook="${playbook_base}deploy_cluster.yml"
+        else
+            playbook="${playbook_base}byo/config.yml"
+        fi
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
@@ -170,7 +175,7 @@ extensions:
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
                          -e openshift_node_port_range='30000-32000'                          \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
-                         /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+                         ${playbook}
     - type: "script"
       title: "ensure built version of origin is installed"
       timeout: 600

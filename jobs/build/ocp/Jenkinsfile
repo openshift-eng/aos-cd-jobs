@@ -330,13 +330,13 @@ node(TARGET_NODE) {
                             if ( ! IS_TEST_MODE ) {
                                 sh "git push"
                             }
-
-                            // Clean up any unstaged changes (e.g. .gitattributes)
-                            sh "git reset --hard HEAD"
                         }
 
                     }
                 }
+
+                // Clean up any unstaged changes (e.g. .gitattributes)
+                sh "git reset --hard HEAD"
             }
         }
 
@@ -354,8 +354,6 @@ node(TARGET_NODE) {
                 } else {
                     echo "No origin upstream in this build"
                 }
-                // Clean up .gitattributes since it prevents vendoring
-                sh "git reset --hard HEAD"
             }
         }
 

@@ -458,7 +458,7 @@ ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
 
 # push-to-mirrors.sh creates a symlink on rcm-guest with this new name and makes the
 # directory on the mirrors match this name.
-echo -n "${PUDDLE_NAME}_v${VERSION}" > "${RESULTS}/ose-puddle.name"
+echo -n "v${VERSION}_${PUDDLE_NAME}" > "${RESULTS}/ose-puddle.name"
 
 echo
 echo "=========="

@@ -354,6 +354,8 @@ node(TARGET_NODE) {
                 } else {
                     echo "No origin upstream in this build"
                 }
+                // Clean up .gitattributes since it prevents vendoring
+                sh "git reset --hard HEAD"
             }
         }
 
@@ -368,6 +370,11 @@ node(TARGET_NODE) {
                         returnStdout: true,
                         script: "GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
                 ).trim()
+
+                if ( VC_COMMIT == "" ) {
+                    sh( "GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null")
+                    error( "Unable to acquire VC_COMMIT" )
+                }
 
                 // Vendoring the console will rebuild this assets, so add them to the ose commit
                 sh """

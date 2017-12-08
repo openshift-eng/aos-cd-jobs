@@ -458,6 +458,11 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
                  \${playbook}
+if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
+    playbook=&#34;\${playbook_base}deploy_cluster.yml&#34;
+else
+    playbook=&#34;\${playbook_base}byo/config.yml&#34;
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
@@ -467,7 +472,7 @@ ansible-playbook -vv --become               \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
-                 /usr/share/ansible/openshift-ansible/playbooks/byo/config.yml
+                 \${playbook}
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

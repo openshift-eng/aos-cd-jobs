@@ -26,6 +26,8 @@ for node in $nodes; do
         ssh -o StrictHostKeyChecking=no "root@$node" "mount | grep /var/lib/origin/openshift.local.volumes | cut -d ' ' -f 3 | xargs --no-run-if-empty umount"
         ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/origin/openshift.local.volumes"
         ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/docker"
+        ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/cni/networks"  # https://bugzilla.redhat.com/show_bug.cgi?id=1518912
+        
         ssh -o StrictHostKeyChecking=no "root@$node" "docker-storage-setup --reset"
         ssh -o StrictHostKeyChecking=no "root@$node" "docker-storage-setup"
         ssh -o StrictHostKeyChecking=no "root@$node" "mkdir -p /var/lib/docker/volumes"  # An ops chattr drop in requires this

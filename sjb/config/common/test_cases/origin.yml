@@ -115,15 +115,15 @@ actions:
             sudo yum-config-manager --enable centos-paas-sig-openshift-origin37-rpms
             ;;
           release-* )
-            major="$( grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
-            minor="$( grep -Po "(?<=release-[0-9]\.)[0-9]" )"
+            major="$( echo "${branch}" | grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
+            minor="$( echo "${branch}" | grep -Po "(?<=release-[0-9]\.)[0-9]" )"
             previous="$(( minor - 1 ))"
             repo="centos-paas-sig-openshift-origin${major}${previous}-rpms"
             sudo yum-config-manager --enable "${repo}"
             ;;
           enterprise-* )
-            major="$( grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
-            minor="$( grep -Po "(?<=release-[0-9]\.)[0-9]" )"
+            major="$( echo "${branch}" | grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
+            minor="$( echo "${branch}" | grep -Po "(?<=release-[0-9]\.)[0-9]" )"
             previous="$(( minor - 1 ))"
             repo="centos-paas-sig-openshift-origin${major}${previous}-rpms"
             sudo yum-config-manager --enable "${repo}"

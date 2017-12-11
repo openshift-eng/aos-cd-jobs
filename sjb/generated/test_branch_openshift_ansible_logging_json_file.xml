@@ -352,15 +352,15 @@ if [[ &#34;\${JOB_NAME}&#34; == *update* ]]; then
       sudo yum-config-manager --enable centos-paas-sig-openshift-origin37-rpms
       ;;
     release-* )
-      major=&#34;\$( grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
-      minor=&#34;\$( grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
+      major=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
+      minor=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
       previous=&#34;\$(( minor - 1 ))&#34;
       repo=&#34;centos-paas-sig-openshift-origin\${major}\${previous}-rpms&#34;
       sudo yum-config-manager --enable &#34;\${repo}&#34;
       ;;
     enterprise-* )
-      major=&#34;\$( grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
-      minor=&#34;\$( grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
+      major=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
+      minor=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
       previous=&#34;\$(( minor - 1 ))&#34;
       repo=&#34;centos-paas-sig-openshift-origin\${major}\${previous}-rpms&#34;
       sudo yum-config-manager --enable &#34;\${repo}&#34;

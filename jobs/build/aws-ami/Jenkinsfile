@@ -15,8 +15,8 @@ properties(
                  parameterDefinitions:
                          [
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'kwoodson@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'kwoodson@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                                  [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force rebuild even if no changes are detected?', name: 'FORCE_REBUILD'],
                                  [$class: 'hudson.model.ChoiceParameterDefinition',
                                     choices: "openshift-enterprise\norigin",

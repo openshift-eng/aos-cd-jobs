@@ -48,3 +48,7 @@ These instructions assume we are moving from release X.A to X.B and that origin#
   - *Search the new openshift-X.B directory for X.A . At the moment, there is one hard coded reference in the jenkins image base to help migrate away from ose_image.sh.*
   
 - Create a new build/ose-X.B job to enable single click invocation of a build/ocp for the version
+
+# Before doing a deployment
+- Vendor the new openshift-ansible build into openshift-tools
+- Create X.B tech profiles (e.g. https://github.com/openshift/openshift-ansible-ops/pull/3584)

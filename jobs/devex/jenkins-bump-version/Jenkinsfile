@@ -1,0 +1,109 @@
+#!/usr/bin/env groovy
+
+properties(
+    [
+        [ $class : 'ParametersDefinitionProperty', parameterDefinitions: [
+                [
+                    name: 'JENKINS_VERSION',
+                    description: 'Jenkins version to update to. Example: 3.98.1',
+                    $class: 'hudson.model.StringParameterDefinition',
+                ],
+                [
+                    name: 'OCP_RELEASE',
+                    description: 'OCP target release',
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: ['rhaos-3.9-rhel-7', 'rhaos-3.8-rhel-7', 'rhaos-3.7-rhel-7', 'rhaos-3.6-rhel-7'].join('\n'),
+                    defaultValue: 'rhaos-3.7-rhel-7'
+                ],
+                [
+                    name: 'MAIL_LIST_SUCCESS',
+                    description: 'Success Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com'
+                ],
+                [
+                    name: 'MAIL_LIST_FAILURE',
+                    description: 'Failure Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com'
+                ],
+                [
+                    name: 'TARGET_NODE',
+                    description: 'Jenkins agent node',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1'
+                ],
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition', 
+                    defaultValue: false,
+                    description: 'Mock run to pickup new Jenkins parameters?', 
+                    name: 'MOCK'
+                ],            
+            ]
+        ],
+        disableConcurrentBuilds()
+    ]
+)
+
+def mail_success() {
+    distgit_link = "http://pkgs.devel.redhat.com/cgit/rpms/jenkins/?h=rhaos-${OCP_RELEASE}-rhel-7"
+
+    mail(
+        to: "${MAIL_LIST_SUCCESS}",
+        from: "aos-cd@redhat.com",
+        replyTo: 'jupierce@redhat.com',
+        subject: "jenkins RPM for OCP ${OCP_RELEASE} updated in dist-git",
+        body: """The Jenkins RPM for OCP ${OCP_RELEASE} has been updated in dist-git:
+${distgit_link}
+
+Jenkins version: ${JENKINS_VERSION}
+
+RPM update job: ${env.BUILD_URL}
+""");
+}
+
+def mail_failure(err) {
+
+    mail(
+        to: "${MAIL_LIST_FAILURE}",
+        from: "aos-cd@redhat.com",
+        replyTo: 'jupierce@redhat.com',
+        subject: "Error during jenkins RPM update on dist-git",
+        body: """The job to update the jenkins RPM in dist-git encountered an error:
+${err}
+
+Jenkins job: ${env.BUILD_URL}
+""");
+}
+
+node(TARGET_NODE) {
+
+    checkout scm
+
+    def buildlib = load( "pipeline-scripts/buildlib.groovy" )
+    buildlib.kinit()       // Sets up credentials for dist-git access
+
+    try {
+        stage ("prepare workspace") {
+
+            // Temporary file to write the plugin list to
+            tmpdir = pwd tmp:true
+            script_dir = "${env.WORKSPACE}/hacks/bump-jenkins-version"
+        }
+
+        stage ("bump jenkins version") {
+            withEnv(["PATH+SCRIPTS=${script_dir}"]) {
+                sh "bump-jenkins.sh ${JENKINS_VERSION} ${OCP_RELEASE}"
+            }
+        }
+
+        mail_success()
+
+    } catch (err) {
+
+        mail_failure(err)
+
+        // Re-throw the error in order to fail the job
+        throw err
+    }
+}

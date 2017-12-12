@@ -26,6 +26,7 @@
   - name: include git modules
     include_role:
       name: tools_roles/lib_git
+    static: true
 
   - name: clone the openshift-ansible-private
     git_clone:

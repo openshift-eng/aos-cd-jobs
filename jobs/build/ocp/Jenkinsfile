@@ -95,7 +95,7 @@ ${OA_CHANGELOG}
             timeout(3) {
                 sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
                         messageProperties: """build_mode=${BUILD_MODE}
-mirror_url=${mirrorURL}
+puddle_url=${mirrorURL}/${OCP_PUDDLE}
 image_registry_root=registry.reg-aws.openshift.com:443
 brew_task_url_openshift=${OSE_BREW_URL}
 brew_task_url_openshift_ansible=${OA_BREW_URL}

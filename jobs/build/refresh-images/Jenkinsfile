@@ -104,9 +104,6 @@ node('openshift-build-1') {
                     if ( ! VERSION_OVERRIDE.startsWith("v") ) {
                         error("Version overrides must start with 'v'")
                     }
-                    if ( OSE_GROUP != "base" ) {
-                        error( "You probably don't want to run with VERSION_OVERRIDE if group is not base" )
-                    }
                     if ( RELEASE_OVERRIDE == "" ) {
                         error( "RELEASE_OVERRIDE must be specified if VERSION_OVERRIDE is" )
                     }

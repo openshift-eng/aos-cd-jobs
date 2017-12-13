@@ -555,17 +555,37 @@ images:rebase --version v${NEW_VERSION}
               github_url = github_url.replace("git@", "")
               github_url = github_url.replaceFirst(":", "/")
               dockerfile_sub_path = val['source_dockerfile_subpath']
-              dockerfile_url = "Source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] +"/" + dockerfile_sub_path
+              dockerfile_url = "Upstream source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] +"/" + dockerfile_sub_path
               try {
                 // always mail success list, val.owners will be comma delimited or empty
                 mail(to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,${val.owners}",
                         from: "aos-cd@redhat.com",
-                        subject: "${val.image} Dockerfile reconciliation.",
+                        subject: "${val.image} Dockerfile reconciliation for OCP",
                         body: """
-  OIT has detected a change in the Dockerfile for ${val.image}
-  ${dockerfile_url}
-  This has been automatically reconciled and the new file can be seen here:
-  https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
+Why am I receiving this?
+You are receiving this message because you are listed as an owner for an OpenShift related image - or
+you recently made a modification to the definition of such an image in github. Upstream OpenShift Dockerfiles
+(e.g. those in the openshift/origin repository under images/*) are regularly pulled from their upstream
+source and used as an input to build our productized images - RHEL based OpenShift Container Platform (OCP) images.
+
+To serve as an input to RHEL/OCP images, upstream Dockerfiles are programmatically modified before they are checked
+into a downstream git repository which houses all Red Hat images: http://dist-git.host.prod.eng.bos.redhat.com/cgit/rpms/ .
+We call this programmatic modification "reconciliation" and you will receive an email each time the upstream
+Dockerfile changes so that you can review the differences between the upstream & downstream Dockerfiles.
+
+
+What do I need to do?
+You may want to look at the result of the reconciliation. Usually, reconciliation is transparent and safe.
+However, you may be interested in any changes being performed by the OCP build system.
+
+
+What changed this time?
+Reconciliation has just been performed for the image: ${val.image}
+${dockerfile_url}
+
+The reconciled (downstream OCP) Dockerfile can be view here: https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
+
+Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IRC).
                 """);
               } catch ( err ) {
 

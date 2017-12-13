@@ -634,7 +634,10 @@ update_dockerfile() {
   do
     if [ "${update_version}" == "TRUE" ] ; then
       sed -i -e "s/version=\".*\"/version=\"${version_version}\"/" ${line}
-      sed -i -e "s/FROM \(.*\):.*/FROM \1:${version_version}-${release_version}/" ${line}
+      grep "FROM .*openshift3/" ${line}
+      if [ "$?" == "0" ]; then   # Only upgrade versions that are not FROM rhel
+        sed -i -e "s/FROM \(.*\):.*/FROM \1:${version_version}-${release_version}/" ${line}
+      fi
     fi
     if [ "${update_release}" == "TRUE" ] ; then
       sed -i -e "s/release=\".*\"/release=\"${release_version}\"/" ${line}

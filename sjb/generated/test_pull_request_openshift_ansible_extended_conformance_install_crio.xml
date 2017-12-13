@@ -629,7 +629,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-crio_tag=&#34;\$( cat ./ORIGIN_PKG_VERSION | grep -Po &#39;\d.\d&#39; )&#34;
+crio_tag=&#34;\$( grep -Po &#34;(?&lt;=^-)[0-9]+\.[0-9]+&#34; ./ORIGIN_PKG_VERSION  )&#34;
 case \$crio_tag in
 &#34;3.7&#34;)
   crio_image=&#34;docker.io/runcom/cri-o-system-container:v3.7&#34;
@@ -678,7 +678,7 @@ if [[ -s &#34;\${playbook_base}/openshift-node/network_manager.yml&#34; ]]; then
 else
     playbook=&#34;\${playbook_base}byo/openshift-node/network_manager.yml&#34;
 fi
-crio_tag=&#34;\$( cat ./ORIGIN_PKG_VERSION | grep -Po &#39;\d.\d&#39; )&#34;
+crio_tag=&#34;\$( grep -Po &#34;(?&lt;=^-)[0-9]+\.[0-9]+&#34; ./ORIGIN_PKG_VERSION  )&#34;
 case \$crio_tag in
 &#34;3.7&#34;)
   crio_image=&#34;docker.io/runcom/cri-o-system-container:v3.7&#34;

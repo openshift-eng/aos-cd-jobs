@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release.yml'
+parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   junit_analysis: False
   sync_repos:
@@ -7,6 +7,7 @@ overrides:
       type: "pull_request"
     - name: "openshift-ansible"
     - name: "aos-cd-jobs"
+    - name: "image-registry"
 extensions:
   actions:
     - type: "script"

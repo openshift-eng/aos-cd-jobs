@@ -99,6 +99,7 @@ ${OA_CHANGELOG}
                         image_registry_root=registry.reg-aws.openshift.com:443
                         brew_task_url_openshift=${OSE_BREW_URL}
                         brew_task_url_openshift_ansible=${OA_BREW_URL}
+                        product=OpenShift Container Platform
                         """,
                         messageType: 'ProductBuildDone',
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],

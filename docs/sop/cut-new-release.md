@@ -20,7 +20,9 @@ These instructions assume we are moving from release X.A to X.B and that origin#
 
 - In ose#enterprise-X.A, make sure the release is to to "1%{?dist}" (unless it has already been changed to a non 0. value)
 
-- Create a new origin-web-console#enterprise-X.B from origin-web-console#master. At this point, the origin-web-console team will start merging X.A changes into origin-web-console#X.A  and changes for X.B into origin-web-console#master .
+- Create a new origin-web-console#enterprise-X.B from origin-web-console#master. At this point, the origin-web-console team will start merging X.A changes into origin-web-console#X.A  and changes for X.B into origin-web-console#master . They will also add a branding commit to enterprise-X.B after few days. The branding commit is done manually and not CD's responsibility.
+
+- Create a new origin-web-console-server#enterprise-X.B branch from origin-web-console-server#master. 
 
 - Add a X.B .tito/releasers.conf to ose#master and openshift-ansible#master
 

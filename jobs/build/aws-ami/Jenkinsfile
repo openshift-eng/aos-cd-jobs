@@ -36,6 +36,7 @@ properties(
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/', description: 'Base url for repository.', name: 'YUM_BASE_URL'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'False', description: 'Enable CRIO in Openshift for the AMI build.', name: 'USE_CRIO'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'docker.io/runcom/cri-o-system-container:v3.8', description: 'CRIO system container override image.', name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'master', description: 'openshift-ansible checkout point.', name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
                          ]
                 ],
         ]
@@ -54,6 +55,7 @@ node(TARGET_NODE) {
             buildlib = load('pipeline-scripts/buildlib.groovy')
             dir('openshift-ansible') {
                 git 'https://github.com/openshift/openshift-ansible.git'
+                sh "git checkout ${OPENSHIFT_ANSIBLE_CHECKOUT}"
             }
         }
         stage('venv') {

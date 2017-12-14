@@ -246,7 +246,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 ansible-playbook -vv --become  \
                  -i localhost, \
-                 --tags integration,e2e \
+                 --tags integration,critest,e2e \
                  --become-user root \
                  --connection local \
                  /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml

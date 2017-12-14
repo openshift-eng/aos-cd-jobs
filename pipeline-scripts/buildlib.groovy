@@ -107,6 +107,18 @@ def initialize_origin_web_console_dir() {
     echo "Initialized env.WEB_CONSOLE_DIR: ${env.WEB_CONSOLE_DIR}"
 }
 
+def initialize_origin_web_console_server_dir() {
+    this.initialize_openshift_dir()
+    dir( OPENSHIFT_DIR ) {
+        sh "git clone ${GITHUB_BASE}/origin-web-console-server.git"
+        GITHUB_URLS["origin-web-console-server"] = "${GITHUB_BASE}/origin-web-console-server.git"
+    }
+    WEB_CONSOLE_SERVER_DIR = "${OPENSHIFT_DIR}/origin-web-console-server"
+    GITHUB_BASE_PATHS["origin-web-console-server"] = WEB_CONSOLE_SERVER_DIR
+    env.WEB_CONSOLE_SERVER_DIR = WEB_CONSOLE_SERVER_DIR
+    echo "Initialized env.WEB_CONSOLE_SERVER_DIR: ${env.WEB_CONSOLE_SERVER_DIR}"
+}
+
 def initialize_openshift_ansible() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {

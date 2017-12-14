@@ -1,0 +1,27 @@
+---
+parent: 'common/test_cases/crio.yml'
+overrides:
+  provision:
+    os: "rhel"
+    stage: "crio"
+    provider: "aws"
+extensions:
+  actions:
+  - type: "forward_parameters"
+    parameters:
+      - PULL_BASE_SHA
+  - type: "script"
+    title: "clone cri-o and check out the correct refs"
+    script: |-
+      cd /go/src/github.com/kubernetes-incubator/cri-o
+      git fetch origin
+      git checkout "${PULL_BASE_SHA}"
+  - type: "script"
+    title: "run the cri-o e2e tests"
+    script: |-
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags e2e    \
+                       --become-user root \
+                       --connection local \
+                       /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml

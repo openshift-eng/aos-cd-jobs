@@ -59,7 +59,7 @@ extensions:
       script: |-
         ansible-playbook -vv --become  \
                          -i localhost, \
-                         --tags integration,e2e \
+                         --tags integration,critest,e2e \
                          --become-user root \
                          --connection local \
                          /go/src/github.com/kubernetes-incubator/cri-o/contrib/test/integration/main.yml

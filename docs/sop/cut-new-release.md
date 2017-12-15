@@ -14,6 +14,8 @@ These instructions assume we are moving from release X.A to X.B and that origin#
 
 - Create a new branch in openshift/jenkins: openshift-X.B
 
+- Remind jcantril that release cut is occuring so they can make branch for origin-aggregated-logging. 
+
 - In ose#master, set origin.spec "Version: X.B.0" and "Release: "0.0.0%{?dist}"
 
 - In openshift-anisble#master spec file specify version X.B.0 and Release "0.0.0%{?dist}"

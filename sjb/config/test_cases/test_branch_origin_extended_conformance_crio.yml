@@ -93,7 +93,7 @@ extensions:
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
       script: |-
-        crio_tag="$( cat ./ORIGIN_PKG_VERSION | grep -Po '\d.\d' )"
+        crio_tag="$( grep -Po "(?<=^-)[0-9]+\.[0-9]+" ./ORIGIN_PKG_VERSION  )"
         case $crio_tag in
         "3.7")
           crio_image="docker.io/runcom/cri-o-system-container:v3.7"
@@ -134,7 +134,7 @@ extensions:
         else
             playbook="${playbook_base}byo/openshift-node/network_manager.yml"
         fi
-        crio_tag="$( cat ./ORIGIN_PKG_VERSION | grep -Po '\d.\d' )"
+        crio_tag="$( grep -Po "(?<=^-)[0-9]+\.[0-9]+" ./ORIGIN_PKG_VERSION  )"
         case $crio_tag in
         "3.7")
           crio_image="docker.io/runcom/cri-o-system-container:v3.7"

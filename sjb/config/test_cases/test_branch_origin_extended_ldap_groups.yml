@@ -8,6 +8,8 @@ overrides:
     - deads2k@redhat.com
     - jliggitt@redhat.com
     - mkhan@redhat.com
+    - ssorce@redhat.com
+    - aos-security-team@redhat.com
 extensions:
   actions:
     - type: "script"

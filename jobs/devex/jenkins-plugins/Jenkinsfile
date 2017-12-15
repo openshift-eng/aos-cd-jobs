@@ -25,13 +25,13 @@ properties(
                     name: 'MAIL_LIST_SUCCESS',
                     description: 'Success Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com,pep@redhat.com'
+                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com'
                 ],
                 [
                     name: 'MAIL_LIST_FAILURE',
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com,pep@redhat.com'
+                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com'
                 ],
                 [
                     name: 'TARGET_NODE',

@@ -88,13 +88,21 @@ docker_options: ' --storage-driver=overlay2 --storage-opt=overlay2.override_kern
 openshift_use_crio: ${USE_CRIO}
 openshift_crio_systemcontainer_image_override: "${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"
 openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo',  'baseurl': '${env.YUM_BASE_URL}', 'enabled': 'yes', 'gpgcheck': 0, 'sslverify': 'no', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'sslclientkey': '/var/lib/yum/client-key.pem', 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted'},{'sslverify': False, 'name': 'fastdata', 'sslclientkey': '/var/lib/yum/client-key.pem', 'enabled': True, 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'baseurl': 'https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/', 'file': 'fastdata-ovs', 'gpgcheck': False, 'description': 'Fastdata provides the official builds of OVS OpenShift supports'}]
+oreg_url='registry.reg-aws.openshift.com:443/openshift3/ose-${component}:${version}'
 """)
             sh 'cat provisioning_vars.yml'
-            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ami-build-creds']]) {
-                withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
-                    sshagent([AWS_SSH_KEY_USER]) {
-                        buildlib.with_virtualenv('env') {
-                            sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',
+                              usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                sh 'oc login --config=.kube/reg-aws -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'
+                sh 'echo "oreg_auth_user=$USERNAME" >> provisioning_vars.yml'
+                sh 'echo "oreg_auth_password=$(oc --config=.kube/reg-aws whoami -t)" >> provisioning_vars.yml'
+
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ami-build-creds']]) {
+                    withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
+                        sshagent([AWS_SSH_KEY_USER]) {
+                            buildlib.with_virtualenv('env') {
+                                sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+                            }
                         }
                     }
                 }

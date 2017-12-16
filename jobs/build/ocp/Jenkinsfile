@@ -561,7 +561,7 @@ images:rebase --version v${NEW_VERSION}
                 // always mail success list, val.owners will be comma delimited or empty
                 mail(to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,${val.owners}",
                         from: "aos-cd@redhat.com",
-                        subject: "${val.image} Dockerfile reconciliation for OCP",
+                        subject: "${val.image} Dockerfile reconciliation for OCP v${BUILD_VERSION}",
                         body: """
 Why am I receiving this?
 You are receiving this message because you are listed as an owner for an OpenShift related image - or

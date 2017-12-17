@@ -8,6 +8,7 @@ overrides:
     - name: "openshift-ansible"
     - name: "aos-cd-jobs"
     - name: "image-registry"
+    - name: "kubernetes-metrics-server"
 extensions:
   actions:
     - type: "script"

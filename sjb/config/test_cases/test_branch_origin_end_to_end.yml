@@ -10,6 +10,8 @@ extensions:
       script: |-
         registry_repo="/data/src/github.com/openshift/image-registry/"
         git log -1 --pretty=%h >> "${registry_repo}/ORIGIN_COMMIT"
+        metrics_repo="/data/src/github.com/openshift/kubernetes-metrics-server/"
+        git log -1 --pretty=%h >> "${metrics_repo}/ORIGIN_COMMIT"
     - type: "script"
       title: "build the image registry container image"
       repository: "image-registry"
@@ -18,6 +20,15 @@ extensions:
         if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.8" ]]; then
           make build-images
           docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat ./ORIGIN_COMMIT )"
+        fi
+    - type: "script"
+      title: "build the kubernetes metrics server container image"
+      repository: "kubernetes-metrics-server"
+      timeout: 3600
+      script: |-
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+          make build-images
+          docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat ./ORIGIN_COMMIT )"
         fi
     - type: "script"
       title: "run end-to-end tests"

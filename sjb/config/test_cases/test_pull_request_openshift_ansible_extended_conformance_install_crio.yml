@@ -8,3 +8,4 @@ overrides:
       type: "pull_request"
     - name: "origin"
     - name: "image-registry"
+    - name: "kubernetes-metrics-server"

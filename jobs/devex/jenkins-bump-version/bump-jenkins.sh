@@ -5,6 +5,8 @@ set -euo pipefail
 
 
 JENKINS_DIST_GIT="jenkins"
+USER_USERNAME="--user=ocp-build"
+SCRIPTS_DIR="$(pwd)"
 
 usage() {
     echo >&2
@@ -17,24 +19,24 @@ usage() {
 # clone jenkins distgit
 # switch to latest branch 
 setup_dist_git() {
-  workingdir=$(dirname $(realpath $0))/working
+  workingdir="$SCRIPTS_DIR/working"
   rm -rf $workingdir
   mkdir -p $workingdir/logs
 
 
   if ! klist &>${workingdir}/logs/${JENKINS_DIST_GIT}.output ; then
-    echo "Error: Kerberos token not found." ; popd &>${workingdir}/logs/${JENKINS_DIST_GIT}.output ; exit 1
+    echo "Error: Kerberos token not found." ; 
+    exit 1
   fi
 
   cd ${workingdir}
   rhpkg ${USER_USERNAME} clone "${JENKINS_DIST_GIT}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
   if [ -d ${JENKINS_DIST_GIT} ] ; then
     cd ${JENKINS_DIST_GIT}
-    pushd ${JENKINS_DIST_GIT} >${workingdir}/logs/${JENKINS_DIST_GIT}.output
     rhpkg switch-branch "${BRANCH}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
-    popd >${workingdir}/logs/${JENKINS_DIST_GIT}.output
   else
     echo " Failed to clone package: ${JENKINS_DIST_GIT}"
+    exit 1
   fi
 }
 
@@ -47,7 +49,7 @@ prep_jenkins_war() {
 # update changelog
 update_dist_git () {
   rhpkg new-sources jenkins.${VERSION}.war
-  tito tag --offline --use-version="${VERSION}" --changelog="Update to ${VERSION}"
+  $SCRIPTS_DIR/rpm-bump-version.sh ${VERSION}
 }
 
 # rhpkg commit
@@ -73,3 +75,5 @@ BRANCH="$2"
 setup_dist_git
 prep_jenkins_war
 update_dist_git
+commit_and_push
+build_jenkins

@@ -48,6 +48,10 @@ prep_jenkins_war() {
 
 # update changelog
 update_dist_git () {
+  if [ ! -f *.spec ]; then
+        # Get the spec and supporting files from a prior release
+        git pull --no-edit origin rhaos-3.7-rhel-7
+  fi
   rhpkg new-sources jenkins.${VERSION}.war
   $SCRIPTS_DIR/rpm-bump-version.sh ${VERSION}
 }
@@ -60,7 +64,7 @@ commit_and_push() {
 
 # rhpkg build
 build_jenkins() {
-  rhpkg build
+  rhpkg build --skip-nvr-check
 }
 
 # Make sure they passed something in for us

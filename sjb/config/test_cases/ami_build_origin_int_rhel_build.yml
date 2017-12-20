@@ -11,7 +11,7 @@ actions:
   - type: "host_script"
     title: "bring source code up to date"
     script: |-
-      for repo in aos-cd-jobs origin origin-web-console openshift-ansible origin-aggregated-logging image-registry; do
+      for repo in aos-cd-jobs origin origin-web-console openshift-ansible origin-aggregated-logging image-registry kubernetes-metrics-server; do
         oct sync remote "${repo}"
       done
   - type: "script"
@@ -55,6 +55,13 @@ actions:
     script: |-
       make build-images
       docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+  - type: "script"
+    title: "build the kubernetes metrics server container image"
+    repository: "kubernetes-metrics-server"
+    timeout: 3600
+    script: |-
+      make build-images
+      docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
   - type: "script"
     title: "build an origin-aggregated-logging release"
     repository: "origin-aggregated-logging"

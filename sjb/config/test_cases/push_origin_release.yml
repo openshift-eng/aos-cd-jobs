@@ -31,8 +31,18 @@ extensions:
       script: |-
         make build-images
     - type: "script"
+      title: "build a kubernetes metrics server release"
+      repository: "kubernetes-metrics-server"
+      script: |-
+        make build-images
+    - type: "script"
       title: "push the image registry release"
       repository: "image-registry"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+    - type: "script"
+      title: "push the image registry release"
+      repository: "kubernetes-metrics-server"
       script: |-
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
     - type: "script"

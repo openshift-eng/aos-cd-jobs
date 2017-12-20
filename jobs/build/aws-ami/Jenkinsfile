@@ -56,6 +56,7 @@ node(TARGET_NODE) {
             dir('openshift-ansible') {
                 git 'https://github.com/openshift/openshift-ansible.git'
                 sh "git checkout ${OPENSHIFT_ANSIBLE_CHECKOUT}"
+                sh "git pull"
             }
         }
         stage('venv') {

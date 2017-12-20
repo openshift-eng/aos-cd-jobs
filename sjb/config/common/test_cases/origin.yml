@@ -25,6 +25,7 @@ provision:
 sync_repos:
   - name: "origin"
   - name: "image-registry"
+  - name: "kubernetes-metrics-server"
 actions:
   - type: "forward_parameters"
     parameters:

@@ -84,11 +84,14 @@ openshift_aws_ssh_key_name: ${AWS_SSH_KEY_USER}
 openshift_pkg_version: "-${RELEASE_VERSION}"
 openshift_cloudprovider_kind: aws
 openshift_aws_base_ami_name: ${BASE_AMI_NAME}
-docker_options: ' --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=true --graph=/var/lib/containers/docker '
 openshift_use_crio: ${USE_CRIO}
 openshift_crio_systemcontainer_image_override: "${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"
 openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo',  'baseurl': '${env.YUM_BASE_URL}', 'enabled': 'yes', 'gpgcheck': 0, 'sslverify': 'no', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'sslclientkey': '/var/lib/yum/client-key.pem', 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted'},{'sslverify': False, 'name': 'fastdata', 'sslclientkey': '/var/lib/yum/client-key.pem', 'enabled': True, 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'baseurl': 'https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/', 'file': 'fastdata-ovs', 'gpgcheck': False, 'description': 'Fastdata provides the official builds of OVS OpenShift supports'}]
 oreg_url: 'registry.reg-aws.openshift.com:443/openshift3/ose-\${component}:\${version}'
+container_runtime_docker_storage_type: overlay2
+container_runtime_docker_storage_setup_device: xvdb
+docker_storage_path: /var/lib/containers/docker
+docker_storage_size: 200G
 """)
             sh 'cat provisioning_vars.yml'
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',

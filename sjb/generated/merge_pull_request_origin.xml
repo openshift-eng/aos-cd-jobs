@@ -89,6 +89,11 @@
           <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>KUBERNETES_METRICS_SERVER_TARGET_BRANCH</name>
+          <description>The branch in the &lt;a href=&#34;https://github.com/openshift/kubernetes-metrics-server&#34;&gt;kubernetes-metrics-server&lt;/a&gt; repository to test against.</description>
+          <defaultValue>master</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>FOCUS</name>
           <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
           <defaultValue></defaultValue>

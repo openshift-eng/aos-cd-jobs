@@ -187,6 +187,21 @@ node(TARGET_NODE) {
             }
         }
 
+        stage( "origin-web-console-server repo" ) {
+            /**
+             * The origin-web-console-server repo/image was introduced in 3.9.
+             */
+            USE_WEB_CONSOLE_SERVER = false
+            if( BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 9 ){
+                USE_WEB_CONSOLE_SERVER = true
+                buildlib.initialize_origin_web_console_server_dir()
+                WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
+                dir( WEB_CONSOLE_SERVER_DIR ) {
+                    sh "git checkout ${WEB_CONSOLE_SERVER_BRANCH}"
+                }
+            }
+        }
+
         stage( "openshift-ansible repo" ) {
             buildlib.initialize_openshift_ansible()
         }
@@ -359,7 +374,15 @@ node(TARGET_NODE) {
         }
 
         stage( "merge web-console" ) {
-            dir( OSE_DIR ) {
+
+            // In OCP release < 3.9, web-console is vendored into OSE repo
+            TARGET_VENDOR_DIR = OSE_DIR
+            if ( USE_WEB_CONSOLE_SERVER ) {
+                // In OCP release > 3.9, web-console is vendored into origin-web-console-server
+                TARGET_VENDOR_DIR = WEB_CONSOLE_SERVER_DIR
+            }
+
+            dir( TARGET_VENDOR_DIR ) {
 
                 // Vendor a particular branch of the web console into our ose branch and capture the SHA we vendored in
                 // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
@@ -375,12 +398,18 @@ node(TARGET_NODE) {
                     error( "Unable to acquire VC_COMMIT" )
                 }
 
-                // Vendoring the console will rebuild this assets, so add them to the ose commit
+                // Vendoring the console will rebuild this assets, so add them to the commit
                 sh """
                     git add pkg/assets/bindata.go
                     git add pkg/assets/java/bindata.go
                 """
+
+                if ( USE_WEB_CONSOLE_SERVER && ! IS_TEST_MODE) {
+                    sh "git commit -m 'bump origin-web-console ${VC_COMMIT}'"
+                    sh "git push"
+                }
             }
+
         }
 
         stage( "ose tag" ) {
@@ -389,7 +418,14 @@ node(TARGET_NODE) {
                 buildlib.set_rpm_spec_version( "origin.spec", NEW_VERSION )
                 buildlib.set_rpm_spec_release_prefix( "origin.spec", NEW_RELEASE )
                 // Note that I did not use --use-release because it did not maintain variables like %{?dist}
-                sh "tito tag --accept-auto-changelog --keep-version --debug --changelog='Automatic commit of package [atomic-openshift] release [${NEW_VERSION}-${NEW_RELEASE}]; bump origin-web-console ${VC_COMMIT}'"
+
+                commit_msg = "Automatic commit of package [atomic-openshift] release [${NEW_VERSION}-${NEW_RELEASE}]"
+                if ( ! USE_WEB_CONSOLE_SERVER ) {
+                    // If vendoring web console into ose, include the VC_COMMIT information in the ose commit
+                    commit_msg = "${commit_msg} ; bump origin-web-console ${VC_COMMIT}"
+                }
+
+                sh "tito tag --accept-auto-changelog --keep-version --debug --changelog='${commit_msg}'"
                 if ( ! IS_TEST_MODE ) {
                     sh "git push"
                     sh "git push --tags"

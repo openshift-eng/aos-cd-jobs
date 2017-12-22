@@ -92,7 +92,6 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
-                         -e containerized=true      \
                          -e deployment_type=origin  \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"

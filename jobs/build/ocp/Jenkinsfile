@@ -405,7 +405,7 @@ node(TARGET_NODE) {
                 """
 
                 if ( USE_WEB_CONSOLE_SERVER && ! IS_TEST_MODE) {
-                    sh "git commit -m 'bump origin-web-console ${VC_COMMIT}'"
+                    sh "git commit -m 'bump origin-web-console ${VC_COMMIT}' --allow-empty"
                     sh "git push"
                 }
             }

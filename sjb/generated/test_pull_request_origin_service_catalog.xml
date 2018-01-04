@@ -477,7 +477,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog  bin/e2e.test
+NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog bin/e2e.test
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -508,7 +508,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 sudo chmod a+rw /var/lib/origin/openshift.local.config/master/admin.kubeconfig
 export KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
 ./_output/local/bin/linux/amd64/oc login -u system:admin
-SERVICECATALOGCONFIG=\$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test  -v 10 -alsologtostderr 
+SERVICECATALOGCONFIG=\$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

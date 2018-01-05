@@ -25,6 +25,7 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],
+                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: "", description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)', name: 'BUILD_EXCLUSIONS'],
                   ]
             ],
             disableConcurrentBuilds()
@@ -35,6 +36,12 @@ IS_TEST_MODE = TEST.toBoolean()
 BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
 BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 SIGN_RPMS = SIGN.toBoolean()
+
+if ( BUILD_EXCLUSIONS != "" ) {
+  // clean up string delimiting
+  BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.replaceAll(',', ' ')
+  BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
+}
 
 def mail_success( version ) {
 
@@ -56,11 +63,17 @@ def mail_success( version ) {
         inject_notes = "\n***Special notes associated with this build****\n${SPECIAL_NOTES.trim()}\n***********************************************\n"
     }
 
+    PARTIAL = " "
+    exclude_subject = ""
+    if ( BUILD_EXCLUSIONS != "" ) {      
+      PARTIAL = " PARTIAL "
+      exclude_subject = " [excluded images: ${BUILD_EXCLUSIONS}]"
+    }
     mail(
             to: "${MAIL_LIST_SUCCESS}",
             from: "aos-cd@redhat.com",
             replyTo: 'smunilla@redhat.com',
-            subject: "[aos-cicd] New build for OpenShift ${target}: ${version}",
+            subject: "[aos-cicd] New${PARTIAL}build for OpenShift ${target}: ${version}${exclude_subject}",
             body: """\
 OpenShift Version: v${version}
 ${inject_notes}
@@ -92,19 +105,21 @@ ${OA_CHANGELOG}
 """);
 
     try {
-            timeout(3) {
-                sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
-                        messageProperties: """build_mode=${BUILD_MODE}
-                        puddle_url=${mirrorURL}/${OCP_PUDDLE}
-                        image_registry_root=registry.reg-aws.openshift.com:443
-                        brew_task_url_openshift=${OSE_BREW_URL}
-                        brew_task_url_openshift_ansible=${OA_BREW_URL}
-                        product=OpenShift Container Platform
-                        """,
-                        messageType: 'ProductBuildDone',
-                        overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
-                        providerName: 'Red Hat UMB'
-                )
+            if ( BUILD_EXCLUSIONS == "" ) {
+              timeout(3) {
+                  sendCIMessage( messageContent: "New build for OpenShift ${target}: ${version}",
+                          messageProperties: """build_mode=${BUILD_MODE}
+                          puddle_url=${mirrorURL}/${OCP_PUDDLE}
+                          image_registry_root=registry.reg-aws.openshift.com:443
+                          brew_task_url_openshift=${OSE_BREW_URL}
+                          brew_task_url_openshift_ansible=${OA_BREW_URL}
+                          product=OpenShift Container Platform
+                          """,
+                          messageType: 'ProductBuildDone',
+                          overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
+                          providerName: 'Red Hat UMB'
+                  )
+              }
             }
     } catch ( mex ) {
             echo "Error while sending CI message: ${mex}"
@@ -642,11 +657,65 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
                 sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
             }
 
-            buildlib.oit """
+            waitUntil {
+              try {
+                exclude = ""
+                if ( BUILD_EXCLUSIONS != "" ) {
+                  exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                }
+                buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+${exclude}
 images:build
 --push-to-defaults --repo-type unsigned
 """
+                return true // finish waitUntil
+              }
+              catch ( err ) {
+                record_log = buildlib.parse_record_log( OIT_WORKING )
+                builds = record_log['build']
+                failed_map = [:]
+                for(i = 0; i < builds.size(); i++) {
+                  distgit = build[i]['distgit']
+                  if ( builds[i]['status'] == '-1' ){
+                    failed_map[distgit] = build[i]['task_url']
+                  }
+                  else {
+                    // build may have succeeded later. If so, remove.
+                    failed_map.remove(distgit)
+                  }
+                }
+                
+                mail(to: "${MAIL_LIST_FAILURE}",
+                        from: "aos-cd@redhat.com",
+                        subject: "RESUMABLE Error during Image Build for OCP v${BUILD_VERSION}",
+                        body: """Encountered an error: ${err}
+Input URL: ${env.BUILD_URL}input
+Jenkins job: ${env.BUILD_URL}
+
+FAILED BUILDS:
+${failed_map}
+""");
+                
+                def resp = input    message: "Error during Image Build for OCP v${BUILD_VERSION}",
+                                  parameters: [
+                                                  [$class: 'hudson.model.ChoiceParameterDefinition',
+                                                   choices: "RETRY\nCONTINUE\nABORT",
+                                                   description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).',
+                                                   name: 'action']
+                                  ]
+
+                if ( resp == "RETRY" ) {
+                    return false  // cause waitUntil to loop again
+                } else if ( resp == "CONTINUE" ) {
+                    echo "User chose to build fails are OK."
+                    BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
+                    return true // Terminate waitUntil
+                } else { // ABORT
+                    error( "User chose to abort pipeline because of image build failures" )
+                }
+              }
+            }
         }
 
         // Old method

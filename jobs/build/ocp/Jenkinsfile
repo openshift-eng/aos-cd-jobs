@@ -709,7 +709,7 @@ ${failed_map}
                     return false  // cause waitUntil to loop again
                 } else if ( resp == "CONTINUE" ) {
                     echo "User chose to build fails are OK."
-                    BUILD_EXCLUSIONS = failed_map.keySet() //will make email show PARTIAL
+                    BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
                     return true // Terminate waitUntil
                 } else { // ABORT
                     error( "User chose to abort pipeline because of image build failures" )

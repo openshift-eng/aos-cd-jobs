@@ -676,9 +676,10 @@ images:build
                 builds = record_log['build']
                 failed_map = [:]
                 for(i = 0; i < builds.size(); i++) {
-                  distgit = build[i]['distgit']
-                  if ( builds[i]['status'] == '-1' ){
-                    failed_map[distgit] = build[i]['task_url']
+                  bld = builds[i]
+                  distgit = bld['distgit']
+                  if ( bld['status'] == '-1' ){
+                    failed_map[distgit] = bld['task_url']
                   }
                   else {
                     // build may have succeeded later. If so, remove.

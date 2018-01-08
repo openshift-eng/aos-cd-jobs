@@ -129,8 +129,17 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
+                         -e openshift_use_system_containers=true \
+                         -e openshift_docker_systemcontainer_image_registry_override=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/rhel7 \
+                         -e system_images_registry=docker \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
+                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e openshift_node_port_range='30000-32000'                          \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -154,8 +163,17 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
+                         -e openshift_use_system_containers=true \
+                         -e openshift_docker_systemcontainer_image_registry_override=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/rhel7 \
+                         -e system_images_registry=docker \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
+                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e openshift_node_port_range='30000-32000'                          \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          ${playbook}
         # install atomic rpm
         sudo yum install atomic -y
@@ -176,7 +194,7 @@ extensions:
                          -e openshift_docker_systemcontainer_image_registry_override=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/rhel7 \
                          -e system_images_registry=docker \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \

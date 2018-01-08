@@ -13,7 +13,6 @@ properties(
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.9', description: 'OCP Version to build', name: 'BUILD_VERSION'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable intra-day build hack for CL team CI?', name: 'EARLY_LATEST_HACK'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "release\npre-release\nonline:int\nonline:stg", description:
 '''
 release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
@@ -651,6 +650,7 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
             }
         }
 
+        BUILD_CONTINUED = false
         stage( "build images" ) {
             // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
             if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" && BUILD_VERSION != "3.7" ) { // Trying to move all 3.7/3.8/3.9 images to oit
@@ -711,51 +711,34 @@ ${failed_map}
                 } else if ( resp == "CONTINUE" ) {
                     echo "User chose to build fails are OK."
                     BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
+                    BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
                     return true // Terminate waitUntil
                 } else { // ABORT
                     error( "User chose to abort pipeline because of image build failures" )
                 }
               }
             }
-        }
-
-        // Old method
-        if ( EARLY_LATEST_HACK.toBoolean() ) {
-            // Hack to keep from breaking openshift-ansible CI during US Eastern daylight builds. They need the latest puddle to exist
-            // before images are pushed to registry-ops in order for their current CI implementation to work.
-            OCP_PUDDLE = buildlib.build_puddle(
-                    PUDDLE_CONF,    // The puddle configuration file to use
-                    PUDDLE_SIGN_KEYS, // openshifthosted key
-                    "-b",   // do not fail if we are missing dependencies
-                    "-d",   // print debug information
-                    "-n"
-            )
-        }
-
-        stage( "push images" ) {
-            dir( "${env.WORKSPACE}/build-scripts/ose_images" ) {
-                TAG_LATEST = IS_SOURCE_IN_MASTER?"":"--nolatest"
-                if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" && BUILD_VERSION != "3.7" ) { // Trying to get all of 3.7/3.8/3.9 building with oit
-                    sh "sudo ./ose_images.sh --user ocp-build push_images ${TAG_LATEST} --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
-                }
-                try {
-                    buildlib.print_tags("openshift3/ose")
-                } catch ( cex ) {}
+            
+            if ( BUILD_CONTINUED ) {
+              buildlib.oit """
+--working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+${exclude} images:push --to-defaults --late-only
+"""
+// exclude is already set earlier in the main images:build flow
             }
         }
 
-        if ( ! EARLY_LATEST_HACK.toBoolean() ) {
-            // If we have not done so already, create the "latest" puddle
-            OCP_PUDDLE = buildlib.build_puddle(
-                    PUDDLE_CONF,    // The puddle configuration file to use
-                    PUDDLE_SIGN_KEYS, // openshifthosted key
-                    "-b",   // do not fail if we are missing dependencies
-                    "-d",   // print debug information
-                    "-n"
-            )
+        stage( "build final puddle" ) {
+          OCP_PUDDLE = buildlib.build_puddle(
+                  PUDDLE_CONF,    // The puddle configuration file to use
+                  PUDDLE_SIGN_KEYS, // openshifthosted key
+                  "-b",   // do not fail if we are missing dependencies
+                  "-d",   // print debug information
+                  "-n"
+          )
+          
+          echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
         }
-
-        echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
 
         NEW_FULL_VERSION="${NEW_VERSION}-${NEW_RELEASE}"
 

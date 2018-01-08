@@ -1,0 +1,110 @@
+---
+parameters:
+- name: buildId
+  description: "Unique build number for each run."
+- name: PULL_BASE_REF
+  description: "Ref name of the base branch."
+- name: PULL_BASE_SHA
+  description: "Git SHA of the base branch."
+- name: PULL_REFS
+  description: "All refs to test."
+- name: PULL_NUMBER
+  description: "Pull request number."
+- name: PULL_PULL_SHA
+  description: "Pull request head SHA."
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync_repos:
+  - name: "aos-cd-jobs"
+actions:
+  - type: "script"
+    title: "clone k8s and check out the correct refs"
+    script: |-
+      mkdir -p src/k8s.io/kubernetes
+      cd src/k8s.io
+      git clone https://github.com/kubernetes/kubernetes.git
+      cd kubernetes
+      git checkout master
+      # Take the latest commit of the master HEAD and store it into a file
+      git rev-parse HEAD > PULL_BASE_SHA
+
+      # Get version for the started.json
+      export KUBE_ROOT=.
+      export KUBE_GIT_TREE_STATE="clean"
+      source hack/lib/version.sh
+      kube::version::get_version_vars
+      echo $KUBE_GIT_VERSION > KUBE_GIT_VERSION
+  - type: "host_script"
+    title: "Get kubernetes PULL_BASE_SHA"
+    script: |-
+      SLAVE_HOME=$(ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c \"echo \${HOME}\"")
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:${SLAVE_HOME}/src/k8s.io/kubernetes/PULL_BASE_SHA PULL_BASE_SHA
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:${SLAVE_HOME}/src/k8s.io/kubernetes/KUBE_GIT_VERSION KUBE_GIT_VERSION
+  - type: "host_script"
+    title: "upload GCS starting metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/
+      cat <<STARTED >gcs/started.json
+      {
+        "timestamp": $( date +%s ),
+        "repos": {
+          "k8s.io/kubernetes": "master"
+        },
+        "version": "$(cat KUBE_GIT_VERSION)",
+        "repo-version": "$(cat KUBE_GIT_VERSION)"
+      }
+      STARTED
+
+      gsutil cp gcs/started.json "gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD_NUMBER}/started.json"
+post_actions:
+  - type: "forward_parameters"
+    parameters:
+      - BUILD_URL
+  - type: "host_script"
+    title: "assemble GCS output"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+
+      result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+      passed="true"
+      if [[ "${result}" != "SUCCESS" ]]; then
+        passed="false"
+      fi
+      cat <<FINISHED >gcs/finished.json
+      {
+        "timestamp": $( date +%s ),
+        "result": "${result}",
+        "version": "$(cat KUBE_GIT_VERSION)",
+        "passed": ${passed},
+        "metadata": {
+          "repo": "k8s.io/kubernetes",
+          "repos": { "k8s.io/kubernetes": "master" },
+          "repo-commit": "$(cat PULL_BASE_SHA)",
+          "version": "$(cat KUBE_GIT_VERSION)"
+        }
+      }
+      FINISHED
+
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+      cp artifacts/journals/* gcs/artifacts/journals/
+
+      gsutil -m cp -r gcs/* "gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD_NUMBER}/"
+artifacts:
+- "/data/src/github.com/openshift/origin/_output/scripts"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+  docker.config: 'sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+  pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
+system_journals:
+  - docker.service
+  - dnsmasq.service
+  - systemd-journald.service

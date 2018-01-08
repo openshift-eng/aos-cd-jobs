@@ -123,7 +123,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_logging_install_logging=False \
                          -e openshift_deployment_type=origin  \
-                         -e debug_level=2           \
+                         -e debug_level=5           \
                          -e openshift_docker_log_driver=journald \
                          -e openshift_docker_options="--log-driver=journald" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
@@ -147,7 +147,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_logging_install_logging=False \
                          -e openshift_deployment_type=origin  \
-                         -e debug_level=2           \
+                         -e debug_level=5           \
                          -e openshift_docker_log_driver=journald \
                          -e openshift_docker_options="--log-driver=journald" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
@@ -166,7 +166,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_logging_install_logging=False \
                          -e openshift_deployment_type=origin  \
-                         -e debug_level=2           \
+                         -e debug_level=5           \
                          -e openshift_docker_log_driver=journald \
                          -e openshift_docker_options="--log-driver=journald" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
@@ -208,7 +208,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
-                         -e debug_level=2           \
+                         -e debug_level=5           \
                          -e openshift_logging_install_logging=True \
                          -e openshift_logging_image_prefix="openshift/origin-" \
                          -e openshift_logging_elasticsearch_proxy_image_prefix="docker.io/openshift/" \

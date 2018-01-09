@@ -708,7 +708,7 @@ ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
+                 -e openshift_deployment_type=origin  \
                  -e openshift_use_crio=True   \
                  -e openshift_crio_systemcontainer_image_override=&#34;\${crio_image}&#34; \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
@@ -757,7 +757,7 @@ ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
+                 -e openshift_deployment_type=origin  \
                  \${playbook}
 if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
     playbook=&#34;\${playbook_base}deploy_cluster.yml&#34;
@@ -768,7 +768,7 @@ ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
+                 -e openshift_deployment_type=origin  \
                  -e openshift_use_crio=True   \
                  -e openshift_crio_systemcontainer_image_override=&#34;\${crio_image}&#34; \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \

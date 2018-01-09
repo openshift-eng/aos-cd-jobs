@@ -116,7 +116,7 @@ extensions:
                            --connection local         \
                            --inventory sjb/inventory/ \
                            -e containerized=true      \
-                           -e deployment_type=origin  \
+                           -e openshift_deployment_type=origin  \
                            /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
         fi
     - type: "script"
@@ -129,14 +129,14 @@ extensions:
         fi
         pkg_name=$( cat ./PKG_NAME )
         if [[ "${pkg_name}" == "origin" ]]; then
-            deployment_type="origin"
+            openshift_deployment_type="origin"
         elif [[ "${pkg_name}" == "atomic-openshift" ]]; then
-            deployment_type="openshift-enterprise"
+            openshift_deployment_type="openshift-enterprise"
         else
             echo "Can't determine deployment type"
             exit 1
         fi
-        echo "${deployment_type}" > DEPLOYMENT_TYPE
+        echo "${openshift_deployment_type}" > DEPLOYMENT_TYPE
         sudo python sjb/hack/determine_install_upgrade_version.py $( cat ORIGIN_BUILT_VERSION ) --dependency_branch ${OPENSHIFT_ANSIBLE_TARGET_BRANCH} > ORIGIN_VARS
         source ORIGIN_VARS
         source OPENSHIFT_ANSIBLE_VARS
@@ -152,7 +152,7 @@ extensions:
                           --become-user root \
                           --connection local \
                           --inventory sjb/inventory/ \
-                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE) \
+                          -e openshift_deployment_type=$( cat ./DEPLOYMENT_TYPE) \
                           ${playbook}
         if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
             playbook="${playbook_base}deploy_cluster.yml"
@@ -167,7 +167,7 @@ extensions:
                           -e openshift_pkg_version="-${ORIGIN_INSTALL_VERSION}"         \
                           -e openshift_release="3.${ORIGIN_INSTALL_MINOR_VERSION}"      \
                           -e etcd_data_dir="${ETCD_DATA_DIR}"                           \
-                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
+                          -e openshift_deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
                           -e openshift_node_port_range='30000-32000'                    \
                           -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \
                           ${playbook}
@@ -209,7 +209,7 @@ extensions:
                           -e etcd_data_dir="${ETCD_DATA_DIR}" \
                           -e openshift_pkg_version="-${ORIGIN_UPGRADE_RELEASE_VERSION}" \
                           -e openshift_release="3.${ORIGIN_UPGRADE_RELEASE_MINOR_VERSION}" \
-                          -e deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
+                          -e openshift_deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
                           -e openshift_node_port_range='30000-32000'                    \
                           -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \
                           -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"

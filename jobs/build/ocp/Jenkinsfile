@@ -299,7 +299,7 @@ node(TARGET_NODE) {
                     NEW_VERSION = spec.version   // Keep the existing spec's version
                     NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
 
-                    // Add a bumpable field for ose_images.sh to increment for image refreshes (i.e. REL.INT.STG.BUMP)
+                    // Add a bumpable field for OIT to increment for image refreshes (i.e. REL.INT.STG.BUMP)
                     NEW_DOCKERFILE_RELEASE = "${NEW_RELEASE}.0"
 
                 } else if ( BUILD_MODE == "release" || BUILD_MODE == "pre-release" ) {
@@ -588,21 +588,6 @@ rpms:build --version v${NEW_VERSION}
           )
         }
 
-        // TODO: Remove after new OIT version confirmed
-        // Old method for most images
-        stage( "compare dist-git" ) {
-            if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" && BUILD_VERSION != "3.7" ) { // Trying to make all of 3.7/3.8/3.9 build with oit
-                sh "ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base"
-            }
-        }
-
-        stage( "update dist-git" ) {
-            if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" && BUILD_VERSION != "3.7" ) { // Trying to make all of 3.7/3.8/3.9 build with oit
-                sh "ose_images.sh --user ocp-build update_docker --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --force --release '${NEW_DOCKERFILE_RELEASE}' --version 'v${NEW_VERSION}'"
-            }
-        }
-        // End old method
-
         stage( "update dist-git" ) {
           buildlib.write_sources_file()
           buildlib.oit """
@@ -682,11 +667,6 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
 
         BUILD_CONTINUED = false
         stage( "build images" ) {
-            // TODO: Create a dynamic .repo file pointing to the exact puddle we built instead of "building" so that we can run X.Y builds in parallel
-            if ( BUILD_VERSION != "3.8" && BUILD_VERSION != "3.9" && BUILD_VERSION != "3.7" ) { // Trying to move all 3.7/3.8/3.9 images to oit
-                sh "ose_images.sh --user ocp-build build_container --branch rhaos-${BUILD_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo"
-            }
-
             waitUntil {
               try {
                 exclude = ""

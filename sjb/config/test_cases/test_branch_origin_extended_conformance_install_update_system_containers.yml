@@ -131,7 +131,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -156,7 +156,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          ${playbook}
         # install atomic rpm
         sudo yum install atomic -y
@@ -177,7 +177,7 @@ extensions:
                          -e openshift_docker_systemcontainer_image_override=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/rhel7 \
                          -e system_images_registry=docker \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
@@ -218,7 +218,7 @@ extensions:
                          -e openshift_docker_systemcontainer_image_override=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/rhel7 \
                          -e system_images_registry=docker \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \

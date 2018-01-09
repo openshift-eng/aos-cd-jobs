@@ -117,7 +117,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -133,7 +133,7 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          -e debug_level=2           \
                          ${playbook}
         if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
@@ -146,7 +146,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_logging_install_logging=False \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          -e debug_level=2           \
                          -e openshift_docker_log_driver=journald \
                          -e openshift_docker_options="--log-driver=journald" \
@@ -187,7 +187,7 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          -e debug_level=2           \
                          -e openshift_logging_install_logging=True \
                          -e openshift_logging_image_prefix="openshift/origin-" \

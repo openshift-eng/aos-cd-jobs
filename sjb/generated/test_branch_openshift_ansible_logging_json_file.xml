@@ -530,7 +530,7 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e containerized=true      \
-                 -e deployment_type=origin  \
+                 -e openshift_deployment_type=origin  \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -555,7 +555,7 @@ ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
+                 -e openshift_deployment_type=origin  \
                  \${playbook}
 if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
     playbook=&#34;\${playbook_base}deploy_cluster.yml&#34;
@@ -566,7 +566,7 @@ ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
+                 -e openshift_deployment_type=origin  \
                  -e debug_level=2           \
                  -e openshift_logging_install_logging=False \
                  -e openshift_docker_log_driver=json-file \
@@ -635,7 +635,7 @@ ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
-                 -e deployment_type=origin  \
+                 -e openshift_deployment_type=origin  \
                  -e openshift_logging_install_logging=True \
                  -e debug_level=2           \
                  -e openshift_logging_image_prefix=&#34;openshift/origin-&#34; \

@@ -73,24 +73,24 @@ rm -rf online
 git clone git@github.com:openshift/online.git
 cd online/
 
+if [ "${BUILD_MODE}" == "online:int" ] ; then
+    SPEC_VERSION_COUNT=4
+elif [ "${BUILD_MODE}" == "online:stg" ] ; then
+    git checkout -q stage
+    SPEC_VERSION_COUNT=5
+elif [ "${BUILD_MODE}" == "pre-release" ] ; then
+    # pre-release assumes content is coming from master branch
+    SPEC_VERSION_COUNT=6
+elif [ "${BUILD_MODE}" == "release" ] ; then
+    git checkout -q "online-${RELEASE_VERSION}"
+    SPEC_VERSION_COUNT=6
+fi
+
 # Check to see if there have been any changes since the last tag
 if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_REBUILD}" != "true" ] ; then
     echo ; echo "No changes since last tagged build"
     echo "No need to build anything. Stopping."
 else
-
-    if [ "${BUILD_MODE}" == "online:int" ] ; then
-        SPEC_VERSION_COUNT=4
-    elif [ "${BUILD_MODE}" == "online:stg" ] ; then
-        git checkout -q stage
-        SPEC_VERSION_COUNT=5
-    elif [ "${BUILD_MODE}" == "pre-release" ] ; then
-        # pre-release assumes content is coming from master branch
-        SPEC_VERSION_COUNT=6
-    elif [ "${BUILD_MODE}" == "release" ] ; then
-        git checkout -q "online-${RELEASE_VERSION}"
-        SPEC_VERSION_COUNT=6
-    fi
 
     # Feeds into ose.conf in order to target correct Dockerfiles
     ONLINE_DOCKERFILE_BRANCH="$(git rev-parse --abbrev-ref HEAD)"

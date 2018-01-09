@@ -92,7 +92,7 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -108,7 +108,7 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          ${playbook}
         if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
             playbook="${playbook_base}deploy_cluster.yml"
@@ -119,7 +119,7 @@ extensions:
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
-                         -e deployment_type=origin  \
+                         -e openshift_deployment_type=origin  \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \

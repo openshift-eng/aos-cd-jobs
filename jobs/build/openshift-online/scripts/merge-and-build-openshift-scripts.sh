@@ -77,12 +77,14 @@ if [ "${BUILD_MODE}" == "online:int" ] ; then
     SPEC_VERSION_COUNT=4
 elif [ "${BUILD_MODE}" == "online:stg" ] ; then
     git checkout -q stage
+    FORCE_REBUILD="true"
     SPEC_VERSION_COUNT=5
 elif [ "${BUILD_MODE}" == "pre-release" ] ; then
     # pre-release assumes content is coming from master branch
     SPEC_VERSION_COUNT=6
 elif [ "${BUILD_MODE}" == "release" ] ; then
     git checkout -q "online-${RELEASE_VERSION}"
+    FORCE_REBUILD="true"
     SPEC_VERSION_COUNT=6
 fi
 

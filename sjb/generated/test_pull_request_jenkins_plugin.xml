@@ -412,7 +412,6 @@ ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
-                 -e containerized=true      \
                  -e openshift_deployment_type=origin  \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 SCRIPT

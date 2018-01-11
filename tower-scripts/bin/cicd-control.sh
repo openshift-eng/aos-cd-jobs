@@ -265,11 +265,18 @@ function storage-migration() {
   # Set some cluster vars
   setup_cluster_vars
   MASTER="$(get_master_name)"
+  is_running &
   mkdir -p "/home/opsmedic/upgrade_logs"
   SM_LOG="/home/opsmedic/upgrade_logs/${CLUSTERNAME}.storage.migrate.log"
   echo "Running storage migration and logging to: ${SM_LOG} on tower2"
-  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "oc adm migrate storage --include='*' --confirm --loglevel=8" > ${SM_LOG} 2>&1
-  exit $?
+  if /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "oc adm migrate storage --include='*' --confirm --loglevel=8" > ${SM_LOG} 2>&1 ; then
+      echo "Storage migration ran successfully"
+      exit 0
+  else
+    echo "Storage migration failed. Running tail of ${SM_LOG} for convenience, but you can see the full log on tower2."
+    tail -n 100 "${SM_LOG}"
+    exit 1
+  fi
 }
 
 ################################################

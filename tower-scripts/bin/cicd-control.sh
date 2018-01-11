@@ -259,6 +259,20 @@ function pre-check() {
 }
 
 ################################################
+# CLUSTER STORAGE MIGRATION
+################################################
+function storage-migration() {
+  # Set some cluster vars
+  setup_cluster_vars
+  MASTER="$(get_master_name)"
+  mkdir -p "/home/opsmedic/upgrade_logs"
+  SM_LOG="/home/opsmedic/upgrade_logs/${CLUSTERNAME}.storage.migrate.log"
+  echo "Running storage migration and logging to: ${SM_LOG} on tower2"
+  /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "oc adm migrate storage --include='*' --confirm --loglevel=8" > ${SM_LOG} 2>&1
+  exit $?
+}
+
+################################################
 # CLUSTER LOG GATHERING
 ################################################
 function gather_logs() {
@@ -474,6 +488,10 @@ case "$OPERATION" in
 
   smoketest)
     smoketest
+    ;;
+
+  storage-migration)
+    storage-migration
     ;;
 
   pre-check)

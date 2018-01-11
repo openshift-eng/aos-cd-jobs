@@ -265,6 +265,7 @@ function storage-migration() {
   # Set some cluster vars
   setup_cluster_vars
   MASTER="$(get_master_name)"
+  is_running &
   mkdir -p "/home/opsmedic/upgrade_logs"
   SM_LOG="/home/opsmedic/upgrade_logs/${CLUSTERNAME}.storage.migrate.log"
   echo "Running storage migration and logging to: ${SM_LOG} on tower2"

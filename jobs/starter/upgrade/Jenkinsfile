@@ -20,13 +20,28 @@ def mail_success(list,detail,warn) {
 // Ask the shared library which clusters this job should act on
 cluster_choice = aos_cd_ops_data.getClusterList("${env.BRANCH_NAME}").join("\n")  // Jenkins expects choice parameter to be linefeed delimited
 
+// Allows a user to override aos-cd-jobs-secrets with common repos.
+repo_setup_opts = [ "Default for cluster",
+    "online-int (non-ga build)",
+    "online-stg (non-ga build)",
+    "online-prod (non-ga build)",
+    "3.7 (latest non-ga build)",
+    "3.8 (latest non-ga build)",
+    "3.9 (latest non-ga build)",
+    "3.10 (latest non-ga build)",
+    "3.11 (latest non-ga build)",
+    "3.12 (latest non-ga build)",
+]
+
 properties(
         [[$class              : 'ParametersDefinitionProperty',
           parameterDefinitions:
                   [
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "${cluster_choice}", name: 'CLUSTER_SPEC', description: 'The specification of the cluster to affect'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "interactive\nquiet\nsilent\nautomatic", name: 'MODE', description: 'Select automatic to skip confirmation prompt. Select quiet to prevent aos-cicd emails. Select silent to prevent any success email.'],
+                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: repo_setup_opts.join("\n"), name: 'REPO_SETUP', description: 'Initializes the repo options for the job. User will be prompted to adjust/override before the job runs.'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
+
 
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-control-plane?', name: 'UPGRADE_CONTROL_PLANE'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run upgrade-jenkins-image-stream?', name: 'UPGRADE_JENKINS_IMAGE_STREAM'],
@@ -51,7 +66,21 @@ node('openshift-build-1') {
     // Get default values from aos-cd-jobs-secrets
     MAIL_LIST_SUCCESS = MAIL_LIST_SUCCESS_DEFAULT = aos_cd_ops_data.getMailingList("on_success", CLUSTER_SPEC)
     MAIL_LIST_FAILURE = MAIL_LIST_FAILURE_DEFAULT = aos_cd_ops_data.getMailingList("on_failure", CLUSTER_SPEC)
-    ADDITIONAL_OPTS = ADDITIONAL_OPTS_DEFAULT = aos_cd_ops_data.getOptionsList(CLUSTER_SPEC)
+
+    ADDITIONAL_OPTS_PREFS=[:]
+    if ( REPO_SETUP != repo_setup_opts[0] ) {
+        repo = REPO_SETUP.split(" ")[0]   // Anything after the first space is informational
+        ADDITIONAL_OPTS_PREFS = [
+            "cicd_yum_main_url" : "https://mirror.openshift.com/enterprise/${repo}/latest/x86_64/os",
+            "cicd_yum_openshift_ansible_url" : "https://mirror.openshift.com/enterprise/${repo}/latest/x86_64/os/Packages",
+        ]
+        if ( repo.contains(".") ) { // If the version if "3.X", go ahead and set the openshift version
+            ADDITIONAL_OPTS_PREFS["cicd_openshift_version"] = repo
+        }
+    }
+
+    ADDITIONAL_OPTS = ADDITIONAL_OPTS_DEFAULT = aos_cd_ops_data.getOptionsList(CLUSTER_SPEC, ADDITIONAL_OPTS_PREFS)
+
 
     if ( MODE != "automatic" ) {
         parms = input(

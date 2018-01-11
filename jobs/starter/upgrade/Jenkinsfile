@@ -93,6 +93,15 @@ node('openshift-build-1') {
                 deploylib.run("status")
             }
 
+            stage( "storage-migration" ) {
+                /**
+                 * The openshift-ansible control-plane upgrade playbooks will perform a storage migration.
+                 * However, it has had so many problems that retry&skip are necessary features. We therefore
+                 * disable it as part of the ugprade and run it as a separate pipeline step.
+                 */
+                deploylib.run("storage-migration")
+            }
+
             stage( "enable maintenance" ) {
                 deploylib.run( "enable-statuspage" )
                 deploylib.run( "enable-zabbix-maint" )

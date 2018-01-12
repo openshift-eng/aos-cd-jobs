@@ -71,8 +71,8 @@ node('openshift-build-1') {
     if ( REPO_SETUP != repo_setup_opts[0] ) {
         repo = REPO_SETUP.split(" ")[0]   // Anything after the first space is informational
         ADDITIONAL_OPTS_PREFS = [
-            "cicd_yum_main_url" : "https://mirror.openshift.com/enterprise/${repo}/latest/x86_64/os",
-            "cicd_yum_openshift_ansible_url" : "https://mirror.openshift.com/enterprise/${repo}/latest/x86_64/os/Packages",
+            "cicd_yum_main_url" : "https://mirror.openshift.com/enterprise/enterprise-${repo}/latest/x86_64/os",
+            "cicd_yum_openshift_ansible_url" : "https://mirror.openshift.com/enterprise/enterprise-${repo}/latest/x86_64/os/Packages",
         ]
         if ( repo.contains(".") ) { // If the version if "3.X", go ahead and set the openshift version
             ADDITIONAL_OPTS_PREFS["cicd_openshift_version"] = repo

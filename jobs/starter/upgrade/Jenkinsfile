@@ -43,6 +43,7 @@ properties(
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
 
 
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run storage-migration?', name: 'RUN_STORAGE_MIGRATION'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-control-plane?', name: 'UPGRADE_CONTROL_PLANE'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run upgrade-jenkins-image-stream?', name: 'UPGRADE_JENKINS_IMAGE_STREAM'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-nodes?', name: 'UPGRADE_NODES'],
@@ -128,7 +129,9 @@ node('openshift-build-1') {
                  * However, it has had so many problems that retry&skip are necessary features. We therefore
                  * disable it as part of the ugprade and run it as a separate pipeline step.
                  */
-                deploylib.run("storage-migration")
+                if ( RUN_STORAGE_MIGRATION.toBoolean() ) {
+                    deploylib.run("storage-migration")
+                }
             }
 
             stage( "enable maintenance" ) {

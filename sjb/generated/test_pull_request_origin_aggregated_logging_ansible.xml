@@ -438,6 +438,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin-aggregated-logging&#34;
+docker images | awk &#39;/logging/{print(\$3)}&#39; | xargs docker rmi -f || :
 hack/build-images.sh
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -12,6 +12,7 @@ extensions:
       title: "build an origin-aggregated-logging release"
       repository: "origin-aggregated-logging"
       script: |-
+        docker images | awk '/logging/{print($3)}' | xargs docker rmi -f || :
         hack/build-images.sh
     - type: "script"
       title: "build an openshift-ansible release"

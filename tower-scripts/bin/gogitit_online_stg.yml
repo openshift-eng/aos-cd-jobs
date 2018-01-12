@@ -1,0 +1,31 @@
+---
+output_dir: /home/opsmedic/aos-cd/vendored/gogitit-online
+repos:
+- id: online-analytics
+  #url: https://github.com/openshift/online-analytics.git
+  url: git@github.com:openshift/online-analytics.git
+  version: stg
+  copy:
+  - src: ansible/roles/oso_analytics/
+    dst: roles/oso_analytics/
+- id: online
+  #url: https://github.com/openshift/online.git
+  url: git@github.com:openshift/online.git
+  version: stg
+  copy:
+  # Copy all online roles with oso prefix. These roles are intended for
+  # formal consumption by ops/CD.
+  - src: ansible/roles/oso_*
+    dst: roles
+- id: online-archivist
+  url: https://github.com/openshift/online-archivist.git
+  version: stg
+  copy:
+  - src: ansible/roles/oc_start_build_check/
+    dst: roles/oc_start_build_check/
+- id: openshift-ansible
+  url: https://github.com/openshift/openshift-ansible.git
+  version: openshift-ansible-3.7.0-0.125.0
+  copy:
+  - src: roles/lib_openshift/
+    dst: roles/lib_openshift/

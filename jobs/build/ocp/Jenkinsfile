@@ -377,6 +377,13 @@ node(TARGET_NODE) {
         stage( "prep web-console-server" ) {
             if ( BUILD_MODE != "online:stg" && USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER ) {
                 dir( WEB_CONSOLE_SERVER_DIR ) {
+                    // Enable fake merge driver used in our .gitattributes
+                    sh "git config merge.ours.driver true"
+                    // Use fake merge driver on specific packages
+                    sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
+                    sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
+                        
+                        
                     sh """
                             # Pull content of master into enterprise branch
                             git merge master --no-commit --no-ff

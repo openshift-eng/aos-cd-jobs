@@ -209,7 +209,11 @@ node(TARGET_NODE) {
             if( BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 9 ){
                 USE_WEB_CONSOLE_SERVER = true
                 buildlib.initialize_origin_web_console_server_dir()
-                WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
+                if ( BUILD_MODE == "online:stg" ) {
+                    WEB_CONSOLE_SERVER_BRANCH = "stage"
+                } else {
+                    WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
+                }
                 dir( WEB_CONSOLE_SERVER_DIR ) {
                     sh "git checkout ${WEB_CONSOLE_SERVER_BRANCH}"
                 }
@@ -367,6 +371,25 @@ node(TARGET_NODE) {
 
                 // Clean up any unstaged changes (e.g. .gitattributes)
                 sh "git reset --hard HEAD"
+            }
+        }
+
+        stage( "prep web-console-server" ) {
+            if ( BUILD_MODE != "online:stg" && USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER ) {
+                dir( WEB_CONSOLE_SERVER_DIR ) {
+                    sh """
+                            # Pull content of master into enterprise branch
+                            git merge master --no-commit --no-ff
+                            git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
+                        """
+
+                    if ( ! IS_TEST_MODE ) {
+                        sh "git push"
+                    }
+
+                    // Clean up any unstaged changes (e.g. .gitattributes)
+                    sh "git reset --hard HEAD"
+                }
             }
         }
 

@@ -281,7 +281,7 @@ scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/start
 function gcs_path() {
   bucket=&#34;gs://origin-ci-test/&#34;
 
-  if [[ -z &#34;${buildId}&#34; ]]; then
+  if [[ -z &#34;${buildId:-}&#34; ]]; then
     echo &#34;Not a Prow job!&#34; 1&gt;&amp;2
     return 1
   fi

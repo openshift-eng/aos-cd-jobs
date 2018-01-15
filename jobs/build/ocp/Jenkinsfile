@@ -708,8 +708,11 @@ images:build
                 for(i = 0; i < builds.size(); i++) {
                   bld = builds[i]
                   distgit = bld['distgit']
-                  if ( bld['status'] == '-1' ){
+                  if ( bld['status'] != '0' ){
                     failed_map[distgit] = bld['task_url']
+                  }
+                  else if ( bld['push_status'] != '0' ){
+                    failed_map[distgit] = 'Failed to push built image. See debug.log'
                   }
                   else {
                     // build may have succeeded later. If so, remove.
@@ -724,7 +727,7 @@ images:build
 Input URL: ${env.BUILD_URL}input
 Jenkins job: ${env.BUILD_URL}
 
-FAILED BUILDS:
+BUILD / PUSH FAILURES:
 ${failed_map}
 """);
                 
@@ -739,7 +742,7 @@ ${failed_map}
                 if ( resp == "RETRY" ) {
                     return false  // cause waitUntil to loop again
                 } else if ( resp == "CONTINUE" ) {
-                    echo "User chose to build fails are OK."
+                    echo "User chose to continue. Build failures are non-fatal."
                     BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
                     BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
                     return true // Terminate waitUntil

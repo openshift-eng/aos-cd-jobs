@@ -79,7 +79,7 @@ ${inject_notes}
 Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0,3)}/${OCP_PUDDLE}
   - Mirror: ${mirrorURL}/${OCP_PUDDLE}
   - Images have been built for this puddle
-  - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull acceess [1])
+  - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
   [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user
 
 Brew:

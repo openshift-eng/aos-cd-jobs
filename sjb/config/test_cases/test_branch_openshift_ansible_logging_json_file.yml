@@ -11,6 +11,12 @@ extensions:
       title: "build an origin-aggregated-logging release"
       repository: "origin-aggregated-logging"
       script: |-
+        if [[ "${REPO_NAME:-}" == "openshift-ansible" ]]; then
+          if [[ -n "${PULL_REFS:-}" ]]; then
+            export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
+          fi
+          git checkout ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
+        fi
         hack/build-images.sh
     - type: "script"
       title: "build an openshift-ansible release"
@@ -68,6 +74,7 @@ extensions:
            pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
            # get repo ver from branch name
            repover=$( echo "${curbranch}" | sed -e 's/release-//' -e 's/[.]//' )
+           originver=$( echo "${curbranch}" | sed -e 's/release-//' )
            # get version from tag
            closest_tag=$( git describe --tags --abbrev=0 )
            # pkg ver is closest_tag with leading "-" instead of "v"
@@ -90,6 +97,7 @@ extensions:
            if [[ "${foundrepover:-false}" == true ]] ; then
               echo "${closest_tag}" > ${jobs_repo}/ORIGIN_COMMIT
               echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
+              echo "${originver}" > ${jobs_repo}/ORIGIN_RELEASE
               sudo yum-config-manager --disable origin-local-release > /dev/null
               if ( sudo yum install --assumeno origin${pkgver} 2>&1 || : ) | grep -q 'No package .* available' ; then
                   # just ask yum what the heck the version is
@@ -102,6 +110,7 @@ extensions:
               pushd "/data/src/github.com/openshift/origin/"
               git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
               ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+              ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
               popd
            fi
         else
@@ -150,6 +159,7 @@ extensions:
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
                          ${playbook}
     - type: "script"
       title: "expose the kubeconfig"

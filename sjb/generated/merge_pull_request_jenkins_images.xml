@@ -206,6 +206,10 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
+# purpose of this job is to build images that have subscriptions+necessary repos built in.
+# if you don&#39;t need a registry.access.redhat.com/rhel7 with such additions, don&#39;t use
+# this job as a parent
+
 # inside temporary directory create docker build context for the new base image
 contextdir=\$(mktemp -d)
 
@@ -280,6 +284,9 @@ docker build --rm -t registry.access.redhat.com/openshift3/ose:v3.6 \$contextdir
 
 # make sure the new image has valid certs
 docker run registry.access.redhat.com/openshift3/ose:v3.6 yum install -y tar
+# this docker tag is for the jenkins image repo 3.6 branch; we did not introduce
+# the use of the ose image until 3.7
+docker tag registry.access.redhat.com/openshift3/ose:v3.6 registry.access.redhat.com/rhel7
 
 # cleaning
 rm -rf \$contextdir

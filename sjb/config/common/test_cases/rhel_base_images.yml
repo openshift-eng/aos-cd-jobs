@@ -6,6 +6,10 @@ extensions:
       title: "build base rhel images"
       timeout: 3600
       script: |-
+        # purpose of this job is to build images that have subscriptions+necessary repos built in.
+        # if you don't need a registry.access.redhat.com/rhel7 with such additions, don't use
+        # this job as a parent
+        
         # inside temporary directory create docker build context for the new base image
         contextdir=$(mktemp -d)
 
@@ -80,6 +84,9 @@ extensions:
 
         # make sure the new image has valid certs
         docker run registry.access.redhat.com/openshift3/ose:v3.6 yum install -y tar
+        # this docker tag is for the jenkins image repo 3.6 branch; we did not introduce
+        # the use of the ose image until 3.7
+        docker tag registry.access.redhat.com/openshift3/ose:v3.6 registry.access.redhat.com/rhel7
 
         # cleaning
         rm -rf $contextdir

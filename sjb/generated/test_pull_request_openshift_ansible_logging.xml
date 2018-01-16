@@ -495,6 +495,7 @@ elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
    pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
    # get repo ver from branch name
    repover=\$( echo &#34;\${curbranch}&#34; | sed -e &#39;s/release-//&#39; -e &#39;s/[.]//&#39; )
+   originver=\$( echo &#34;\${curbranch}&#34; | sed -e &#39;s/release-//&#39; )
    # get version from tag
    closest_tag=\$( git describe --tags --abbrev=0 )
    # pkg ver is closest_tag with leading &#34;-&#34; instead of &#34;v&#34;
@@ -517,6 +518,7 @@ elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
    if [[ &#34;\${foundrepover:-false}&#34; == true ]] ; then
       echo &#34;\${closest_tag}&#34; &gt; \${jobs_repo}/ORIGIN_COMMIT
       echo &#34;\${pkgver}&#34; &gt; \${jobs_repo}/ORIGIN_PKG_VERSION
+      echo &#34;\${originver}&#34; &gt; \${jobs_repo}/ORIGIN_RELEASE
       sudo yum-config-manager --disable origin-local-release &gt; /dev/null
       if ( sudo yum install --assumeno origin\${pkgver} 2&gt;&amp;1 || : ) | grep -q &#39;No package .* available&#39; ; then
           # just ask yum what the heck the version is
@@ -529,6 +531,7 @@ elif [[ &#34;\${curbranch}&#34; =~ ^release-* ]] ; then
       pushd &#34;/data/src/github.com/openshift/origin/&#34;
       git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
       ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+      ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_RELEASE&#34;
       popd
    fi
 else

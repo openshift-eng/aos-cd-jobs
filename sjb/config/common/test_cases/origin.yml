@@ -55,7 +55,7 @@ actions:
       function gcs_path() {
         bucket="gs://origin-ci-test/"
 
-        if [[ -z "${buildId}" ]]; then
+        if [[ -z "${buildId:-}" ]]; then
           echo "Not a Prow job!" 1>&2
           return 1
         fi

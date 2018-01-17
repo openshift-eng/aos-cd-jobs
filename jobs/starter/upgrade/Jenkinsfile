@@ -183,15 +183,31 @@ node('openshift-build-1') {
                 deploylib.run( "run-config-loop" )
             }
 
-            stage( "disable maintenance" ) {
-                deploylib.run( "disable-zabbix-maint" )
-                deploylib.run( "disable-statuspage" )
-            }
-
             stage( "post-upgrade status" ) {
                 POST_STATUS = deploylib.run("status", null, true)
                 echo "Cluster status AFTER upgrade:"
                 echo POST_STATUS
+            }
+
+            stage( "disable maintenance" ) {
+
+                if ( CLUSTER_NAME != "free-int" && CLUSTER_NAME != "free-stg" ) {
+                    // Prevent a flood of issues from notifying SRE as soon as cluster comes out of maintenance
+                    mail(to: "jupierce@redhat.com, mwoodson@redhat.com, libra-ops@redhat.com",
+                            from: "aos-cd@redhat.com",
+                            subject: "Need permission to exit maintenance after upgrade: ${CLUSTER_NAME}",
+                            body: """Please review zabbix/clear issues and then click proceed. Anyone from CD or SRE with Jenkins credentials is permitted to perform this operation.
+
+Input URL: ${env.BUILD_URL}input
+
+Jenkins job: ${env.BUILD_URL}
+""");
+                    input "Cluster =====>${CLUSTER_NAME}<===== is ready to come out of upgrade maintenance; SRE should be notified before doing so."
+
+                }
+
+                deploylib.run( "disable-zabbix-maint" )
+                deploylib.run( "disable-statuspage" )
             }
 
             stage( "smoketest" ) {

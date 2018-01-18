@@ -15,7 +15,18 @@ docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-regi
 
 cd /data/src/github.com/openshift/aos-cd-jobs
 playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
-if [[ -s "${playbook_base}/openshift-node/network_manager.yml" ]]; then
+
+ansible-playbook -vv --become               \
+                 --become-user root         \
+                 --connection local         \
+                 --inventory sjb/inventory/ \
+                 -e deployment_type=origin  \
+                 -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                 -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                 -e openshift_disable_check=docker_image_availability,package_update,package_availability    \
+                 ${playbook_base}prerequisites.yml
+
+if [[ -s "${playbook_base}openshift-node/network_manager.yml" ]]; then
     playbook="${playbook_base}openshift-node/network_manager.yml"
 else
     playbook="${playbook_base}byo/openshift-node/network_manager.yml"

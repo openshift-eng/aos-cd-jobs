@@ -61,6 +61,9 @@ extensions:
             echo "[INFO] System containers are not supported, skipping."
             exit 0
         fi
+        if [[ "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.6" || "${PULL_BASE_REF}" == "release-3.5"  ]]; then
+          sudo yum downgrade -y ansible-2.3\*
+        fi
 
         last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
         last_commit="$( git log -n 1 --pretty=%h )"

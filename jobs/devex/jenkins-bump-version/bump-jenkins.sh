@@ -43,7 +43,7 @@ setup_dist_git() {
 # download jenkins war
 prep_jenkins_war() {
     wget https://updates.jenkins-ci.org/download/war/${VERSION}/jenkins.war
-    mv jenkins.war jenkins.${VERSION}.war
+    mv jenkins.war jenkins.${UVERSION}.war
 }
 
 # update changelog
@@ -52,11 +52,8 @@ update_dist_git () {
         # Get the spec and supporting files from a prior release
         git pull --no-edit origin rhaos-3.7-rhel-7
   fi
-  rhpkg new-sources jenkins.${VERSION}.war
-  # Create a version differentiated by the current date. Without this,
-  # if 3.6 uses Jenkins X.Y and then 3.7 tries to, it would find the build
-  # already complete and fail.
-  $SCRIPTS_DIR/rpm-bump-version.sh "${VERSION}.$(date +%s)"
+  rhpkg new-sources jenkins.${UVERSION}.war
+  $SCRIPTS_DIR/rpm-bump-version.sh "${UVERSION}"
 }
 
 # rhpkg commit
@@ -76,7 +73,13 @@ if [ "$#" -lt 2 ] ; then
   exit 1
 fi
 
+# Use timestamp to create a version differentiated by the current date. Without this,
+# if 3.6 uses Jenkins X.Y and then 3.7 tries to, it would find the build
+# already complete and fail.
+TSTAMP="$(date +%s)"
+
 VERSION="$1"
+UVERSION="$VERSION.$TSTAMP"
 OCP_VERSION="$2"
 BRANCH="rhaos-$2-rhel-7"
 

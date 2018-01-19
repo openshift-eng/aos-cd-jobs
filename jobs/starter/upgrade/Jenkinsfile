@@ -74,6 +74,8 @@ node('openshift-build-1') {
         if ( repo.contains(".") ) { // If the version if "3.X", go ahead and set the openshift version
             ADDITIONAL_OPTS_PREFS["cicd_openshift_version"] = repo
             repo = "enterprise-${repo}"  // the actual directory for the non "online-X" repos
+        } else {
+            ADDITIONAL_OPTS_PREFS["cicd_openshift_version"] = ""
         }
         ADDITIONAL_OPTS_PREFS["cicd_yum_main_url"] = "https://mirror.openshift.com/enterprise/${repo}/latest/x86_64/os"
         ADDITIONAL_OPTS_PREFS["cicd_yum_openshift_ansible_url"] = "https://mirror.openshift.com/enterprise/${repo}/latest/x86_64/os/Packages"

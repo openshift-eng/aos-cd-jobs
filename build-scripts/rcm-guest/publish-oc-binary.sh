@@ -12,7 +12,7 @@ extract() {
     mkdir macosx windows
     for arch in x86_64 ${ARCH}; do
         rpm=$(echo "$(rpm_name "${arch}")"*)
-        [ "${arch}" != x86_64 && ! -e "${rpm}" ] && continue
+        [ "${arch}" != x86_64 -a ! -e "${rpm}" ] && continue
         mkdir "${arch}"
         if [ "${arch}" != x86_64 ]; then
             rpm2cpio ${rpm}* | cpio -idm --quiet ./usr/bin/oc

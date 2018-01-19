@@ -54,5 +54,5 @@ These instructions assume we are moving from release X.A to X.B and that origin#
 - Create a new build/ose-X.B job to enable single click invocation of a build/ocp for the version
 
 # Before doing a deployment
-- Vendor the new openshift-ansible build into openshift-tools
+- Vendor the new openshift-ansible build into openshift-tools: https://github.com/openshift/ops-sop/blob/369828ae043abbb5031dabfbcde3c8ae3fdbbfa2/v3/vendoringopenshiftinstaller.asciidoc#getting-the-correct-rpms-for-online-beta-vendoring
 - Create X.B tech profiles (e.g. https://github.com/openshift/openshift-ansible-ops/pull/3584)

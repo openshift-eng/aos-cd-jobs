@@ -12,7 +12,7 @@ properties(
                     name: 'OCP_RELEASE',
                     description: 'OCP target release',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: ['3.9', '3.8', '3.7', '3.6'].join('\n'),
+                    choices: ['3.10', '3.9', '3.8', '3.7', '3.6'].join('\n'),
                     defaultValue: '3.7'
                 ],
                 [
@@ -88,7 +88,7 @@ node(TARGET_NODE) {
     try {
 
         stage ("bump jenkins version") {
-            sh "./bump-jenkins.sh ${JENKINS_VERSION} ${OCP_BRANCH}"
+            sh "./bump-jenkins.sh ${JENKINS_VERSION} ${OCP_RELEASE}"
         }
 
         mail_success()

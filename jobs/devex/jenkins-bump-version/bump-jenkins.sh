@@ -10,9 +10,9 @@ SCRIPTS_DIR="$(pwd)"
 
 usage() {
     echo >&2
-    echo "Usage `basename $0` <jenkins-war-version> <branch>" >&2
+    echo "Usage `basename $0` <jenkins-war-version> <ocp_major_minor>" >&2
     echo >&2
-    echo " Example: ./bump-jenkins.sh 2.73.1 rhaos-3.7-rhel-7" >&2
+    echo " Example: ./bump-jenkins.sh 2.73.1 3.7" >&2
     exit 1
 }
 
@@ -53,7 +53,10 @@ update_dist_git () {
         git pull --no-edit origin rhaos-3.7-rhel-7
   fi
   rhpkg new-sources jenkins.${VERSION}.war
-  $SCRIPTS_DIR/rpm-bump-version.sh ${VERSION}
+  # Create a version differentiated by the current date. Without this,
+  # if 3.6 uses Jenkins X.Y and then 3.7 tries to, it would find the build
+  # already complete and fail.
+  $SCRIPTS_DIR/rpm-bump-version.sh "${VERSION}.$(date +%s)"
 }
 
 # rhpkg commit
@@ -74,7 +77,8 @@ if [ "$#" -lt 2 ] ; then
 fi
 
 VERSION="$1"
-BRANCH="$2"
+OCP_VERSION="$2"
+BRANCH="rhaos-$2-rhel-7"
 
 setup_dist_git
 prep_jenkins_war

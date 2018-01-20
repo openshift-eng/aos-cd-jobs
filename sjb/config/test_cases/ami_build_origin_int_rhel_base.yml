@@ -43,6 +43,7 @@ actions:
     script: |-
       docker pull openshift/origin-release:golang-1.7
       docker pull openshift/origin-release:golang-1.8
+      docker pull openshift/origin-release:golang-1.9
       docker pull openshift/origin-gce:latest
   - type: "host_script"
     title: "package the AMI"

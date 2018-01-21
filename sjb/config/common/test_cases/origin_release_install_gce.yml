@@ -5,6 +5,7 @@ overrides:
 extensions:
   sync_repos:
     - name: "release"
+    - name: "openshift-ansible"
   parameters:
     - name: "FOCUS"
       description: "Literal string to pass to <code>--ginkgo.focus</code>"
@@ -42,6 +43,17 @@ extensions:
         - DOCKER_STORAGE_DRIVER
         - SUITE
         - FOCUS
+    - type: "script"
+      title: "build openshift-ansible image"
+      repository: "openshift-ansible"
+      timeout: 900
+      script: |-
+        if [[ -z "${OPENSHIFT_ANSIBLE_IMAGE-}" ]]; then
+          # TODO: Legacy code path, will be removed
+          echo "OPENSHIFT_ANSIBLE_IMAGE not specified, no action necessary"
+          exit 0
+        fi
+        hack/build-images.sh
     - type: "script"
       title: "build origin RPMs"
       repository: "origin"
@@ -123,14 +135,13 @@ extensions:
       script: |-
         sudo systemctl restart docker
         cd cluster/test-deploy/data/
-        if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE}" ]]; then
-          docker pull "${OPENSHIFT_ANSIBLE_IMAGE}"
-          docker tag "${OPENSHIFT_ANSIBLE_IMAGE}" "openshift/origin-gce:latest"
+        if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE-}" ]]; then
+          ../../bin/local.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/gcp/openshift-cluster/launch.yml
         else
+          # TODO: Legacy code path, will be removed
           docker pull openshift/origin-gce:latest
+          ../../bin/local.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
         fi
-
-        ../../bin/local.sh ansible-playbook -e "provision_gce_docker_storage_driver=${DOCKER_STORAGE_DRIVER}" -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
     - type: "script"
       title: "run extended tests"

@@ -19,36 +19,6 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>buildId</name>
-          <description>Unique build number for each run.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>REPO_OWNER</name>
-          <description>GitHub org that triggered the job.</description>
-          <defaultValue>openshift</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>REPO_NAME</name>
-          <description>GitHub repo that triggered the job.</description>
-          <defaultValue>origin-aggregated-logging</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>buildId</name>
-          <description>Unique build number for each run.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>REPO_OWNER</name>
-          <description>GitHub org that triggered the job.</description>
-          <defaultValue>openshift</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>REPO_NAME</name>
-          <description>GitHub repo that triggered the job.</description>
-          <defaultValue>origin</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>PULL_BASE_REF</name>
           <description>Ref name of the base branch.</description>
           <defaultValue></defaultValue>
@@ -56,11 +26,6 @@
         <hudson.model.StringParameterDefinition>
           <name>PULL_BASE_SHA</name>
           <description>Git SHA of the base branch.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PULL_REFS</name>
-          <description>All refs to test.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>

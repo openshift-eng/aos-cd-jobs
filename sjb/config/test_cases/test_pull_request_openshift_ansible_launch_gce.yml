@@ -4,8 +4,8 @@ overrides:
   junit_analysis: False
   sync_repos:
     - name: "openshift-ansible"
-    - name: "origin"
       type: "pull_request"
+    - name: "origin"
     - name: "release"
     - name: "image-registry"
     - name: "kubernetes-metrics-server"

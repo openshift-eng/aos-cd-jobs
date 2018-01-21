@@ -17,7 +17,7 @@ from actions.host_script import HostScriptAction
 from actions.multi_action import MultiAction
 from actions.multi_sync import MultiSyncAction
 from actions.oct_install import OCTInstallAction
-from actions.parameter import ParameterAction
+from actions.parameter import ParameterAction, reduce_parameters
 from actions.post_action import PostAction
 from actions.provision import ProvisionAction
 from actions.pull_request_sync import PullRequestSyncAction
@@ -80,12 +80,18 @@ debug("[INFO] Using configuration:\n{}".format(
 actions = []
 
 if job_type == "test":
-    for parameter in job_config.get("parameters", []):
-        actions.append(ParameterAction(
-            name=parameter.get("name"),
+    # the last parameter with a given name is used
+    existing_parameters = []
+    for parameter in reversed(job_config.get("parameters", [])):
+        parameter_name = parameter.get("name")
+        if parameter_name in existing_parameters:
+            continue
+        actions.insert(0, ParameterAction(
+            name=parameter_name,
             description=parameter.get("description"),
             default_value=parameter.get("default_value", ""),
         ))
+        existing_parameters.append(parameter_name)
 
     # all jobs will install the tool first
     actions.append(OCTInstallAction())
@@ -225,7 +231,7 @@ DEFAULT_DESCRIPTION = "<div style=\"font-size: 32px; line-height: 1.5em; backgro
 output_path = abspath(join(dirname(__file__), "generated", "{}.xml".format(job_name)))
 with open(output_path, "w") as output_file:
     output_file.write(env.get_template('test_case.xml').render(
-        parameters=generator.generate_parameters(),
+        parameters=reduce_parameters(generator.generate_parameters()),
         build_steps=generator.generate_build_steps(),
         post_build_steps=generator.generate_post_build_steps(),
         action=action,

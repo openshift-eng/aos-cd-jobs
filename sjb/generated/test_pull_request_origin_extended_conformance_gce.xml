@@ -441,6 +441,25 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD OPENSHIFT-ANSIBLE IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD OPENSHIFT-ANSIBLE IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [[ -z &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
+  # TODO: Legacy code path, will be removed
+  echo &#34;OPENSHIFT_ANSIBLE_IMAGE not specified, no action necessary&#34;
+  exit 0
+fi
+hack/build-images.sh
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 900 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD ORIGIN RPMS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD ORIGIN RPMS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
@@ -534,14 +553,13 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 sudo systemctl restart docker
 cd cluster/test-deploy/data/
-if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34; ]]; then
-  docker pull &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34;
-  docker tag &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34; &#34;openshift/origin-gce:latest&#34;
+if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
+  ../../bin/local.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/gcp/openshift-cluster/launch.yml
 else
+  # TODO: Legacy code path, will be removed
   docker pull openshift/origin-gce:latest
+  ../../bin/local.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/launch.yaml
 fi
-
-../../bin/local.sh ansible-playbook -e &#34;provision_gce_docker_storage_driver=\${DOCKER_STORAGE_DRIVER}&#34; -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/launch.yaml
 cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
 SCRIPT
 chmod +x &#34;${script}&#34;

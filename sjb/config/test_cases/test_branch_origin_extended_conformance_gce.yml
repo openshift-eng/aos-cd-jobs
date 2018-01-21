@@ -12,5 +12,8 @@ rectory to run."
       repository: "release"
       timeout: 900
       script: |-
+        if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "origin" ]]; then
+          exit 0
+        fi
         cd cluster/test-deploy/data
         ../../bin/local.sh ansible-playbook -e openshift_gcp_keep_images=5 -e openshift_gcp_target_image=origin-node playbooks/publish_image.yaml

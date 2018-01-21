@@ -64,12 +64,6 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>DOCKER_STORAGE_DRIVER</name>
-          <description>The storage driver to use when configuring the cluster. &#39;overlay2&#39; and &#39;devicemapper&#39; are allowed.
-</description>
-          <defaultValue>overlay2</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_IMAGE</name>
           <description>The image to install the cluster with. If set, defaults to the value defined by the &lt;a href=&#39;https://github.com/openshift/release/blob/master/cluster/bin/local.sh&#39;&gt;&lt;code&gt;cluster/bin/local.sh&lt;/code&gt;&lt;/a&gt; script.
 </description>
@@ -502,7 +496,6 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;ADDITIONAL_SKIP=${ADDITIONAL_SKIP:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;DOCKER_STORAGE_DRIVER=${DOCKER_STORAGE_DRIVER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;SUITE=${SUITE:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;FOCUS=${FOCUS:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
@@ -515,6 +508,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
+if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#34; != &#34;openshift-ansible&#34; ]]; then
+  exit 0
+fi
 if [[ -z &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
   # TODO: Legacy code path, will be removed
   echo &#34;OPENSHIFT_ANSIBLE_IMAGE not specified, no action necessary&#34;
@@ -534,6 +530,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#34; != &#34;origin&#34; ]]; then
+  # only build RPMs when the job is targeting origin
+  exit 0
+fi
+
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS=&#34;-e OS_VERSION_FILE= &#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local/releases/rpms:_output/local/bin&#34; hack/env make build-rpms BUILD_TESTS=1
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -543,6 +544,14 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE RPMS TO GCS REPO ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE RPMS TO GCS REPO [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+if [[ &#34;${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;${REPO_NAME-}&#34; != &#34;origin&#34; ]]; then
+  # use pre-built RPMs when the job is not targeting origin, or use master if nothing else is available
+  location_url=&#34;$(curl -q https://storage.googleapis.com/origin-ci-test/branch-logs/origin/${ORIGIN_TARGET_BRANCH:-master}/builds/.latest)/artifacts/rpms&#34;
+  # hack around forwarding this to the other machine
+  ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;location_url=${location_url:-}&#39; &gt;&gt; /etc/environment&#34;
+  exit 0
+fi
+
 pull_id=&#34;${ORIGIN_PULL_ID:-}&#34;
 target_branch=&#34;${ORIGIN_TARGET_BRANCH:-}&#34;
 if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then

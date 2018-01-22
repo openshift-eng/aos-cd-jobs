@@ -244,6 +244,11 @@ extensions:
       timeout: 900
       script: |-
         cd cluster/test-deploy/data
-        ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
+        if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE-}" ]]; then
+          ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/terminate.yml
+        else
+          # TODO: Legacy code path, will be removed
+          ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
+        fi
   artifacts:
     - "/tmp/artifacts"

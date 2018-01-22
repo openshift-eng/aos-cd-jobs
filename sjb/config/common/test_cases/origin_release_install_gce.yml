@@ -147,7 +147,7 @@ extensions:
         sudo systemctl restart docker
         cd cluster/test-deploy/data/
         if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE-}" ]]; then
-          ../../bin/local.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/gcp/openshift-cluster/launch.yml
+          ../../bin/ansible.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/gcp/openshift-cluster/launch.yml
         else
           # TODO: Legacy code path, will be removed
           docker pull openshift/origin-gce:latest

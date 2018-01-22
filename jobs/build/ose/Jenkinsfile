@@ -87,7 +87,6 @@ properties(
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable intra-day build hack for CL team CI?', name: 'EARLY_LATEST_HACK'],
                           [$class: 'hudson.model.ChoiceParameterDefinition', choices: "enterprise\nenterprise:pre-release\nonline:int\nonline:stg", description:
 '''
 enterprise                {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
@@ -109,7 +108,7 @@ if ( MOCK.toBoolean() ) {
 prev_build = "not defined yet"
 
 // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], BUILD_MODE:${BUILD_MODE}, EARLY_LATEST_HACK:${EARLY_LATEST_HACK}"
+echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], BUILD_MODE:${BUILD_MODE}"
 
 node(TARGET_NODE) {
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
@@ -157,7 +156,6 @@ node(TARGET_NODE) {
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
                 env.OSE_MASTER = "${OSE_MASTER}"
                 env.BUILD_MODE = "${BUILD_MODE}"
-                env.EARLY_LATEST_HACK = "${EARLY_LATEST_HACK}"
 
                 prev_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
 

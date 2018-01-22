@@ -1,12 +1,4 @@
 #!/usr/bin/env groovy
-final REPO_PREFIX = 'https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/'
-final REPOS = [
-    REPO_PREFIX + 'aos-unsigned-building.repo',
-    REPO_PREFIX + 'aos-unsigned-errata-building.repo',
-    REPO_PREFIX + 'aos-signed-building.repo',
-    REPO_PREFIX + 'aos-signed-building-betatest.repo'
-]
-final DEFAULT_REPO = REPOS[0]
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
@@ -25,10 +17,10 @@ def mail_success() {
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-cd@redhat.com",
         replyTo: 'smunilla@redhat.com',
-        subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR} ${OSE_GROUP}",
+        subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
         body: """\
 Jenkins job: ${env.BUILD_URL}
-${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO}
+${OSE_MAJOR}.${OSE_MINOR}
 """);
 }
 
@@ -43,23 +35,19 @@ node('openshift-build-1') {
                       [
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", defaultValue: '4', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "base\nall", defaultValue: 'base', description: 'Which group to refresh', name: 'OSE_GROUP'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optiontal version to use. (i.e. v3.6.173); leave blank to bump', name: 'VERSION_OVERRIDE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Image to use when FROM rhel; blank will not change', name: 'RHEL'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: REPOS.join('\n'), defaultValue: DEFAULT_REPO, description: 'Which repo to use', name: 'OSE_REPO'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
                               [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                       ]
              ]]
     )
 
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo "${OSE_MAJOR}.${OSE_MINOR}, Group:${OSE_GROUP}, Repo:${OSE_REPO} MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
+    echo "${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
 
-    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR} (${OSE_GROUP})"
+    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}"
 
     if ( MOCK.toBoolean() ) {
         error( "Ran in mock mode" )
@@ -81,14 +69,7 @@ node('openshift-build-1') {
     sh "mkdir -p ${OIT_WORKING}"
 
     stage('Refresh Images') {
-        try {
-            env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
-
-            rhel_arg = ""
-            if ( RHEL != "" ) {
-                rhel_arg = "--rhel ${RHEL}"
-            }
-    
+        try {    
             try{
                 // Clean up old images so that we don't run out of device mapper space
                 sh "docker rmi --force \$(docker images  | grep v${OSE_MAJOR}.${OSE_MINOR} | awk '{print \$3}')"
@@ -112,12 +93,6 @@ node('openshift-build-1') {
                 }
 
                 sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"
-
-                if ( "${OSE_MINOR}" != "8" && "${OSE_MINOR}" != "9" && "${OSE_MINOR}" != "7" ) { // Trying to get all images building with oit for 3.8 and 3.9
-                    sh "ose_images.sh --user ocp-build update_docker ${rhel_arg} ${update_docker_args} --force --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
-                    sh "ose_images.sh --user ocp-build build --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP} --repo ${OSE_REPO}"
-                    sh "sudo env \"PATH=${env.PATH}\" ose_images.sh push --branch rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7 --group ${OSE_GROUP}"
-                }
 
                 /**
                  * By default, do not specify a version or release for oit. This will preserve the version label and remove
@@ -147,7 +122,7 @@ images:build
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
-                    subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR} ${OSE_GROUP} ${OSE_REPO}",
+                    subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
                     body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
 
 

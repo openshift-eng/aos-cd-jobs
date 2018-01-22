@@ -364,13 +364,6 @@ ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
     sh -s -- --conf "${PUDDLE_CONF}" -b -d -n -s --label=building \
     < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
-
-echo
-echo "=========="
-echo "Sync git to dist-git repos"
-echo "=========="
-ose_images.sh --user ocp-build compare_nodocker --branch rhaos-${OSE_VERSION}-rhel-7 --group base
-
 echo
 echo "=========="
 echo "Run OIT rebase"
@@ -388,19 +381,6 @@ images:rebase --version v${VERSION} \
 --release 1 \
 --message "Updating Dockerfile version and release v${VERSION}-1" --push
 
-
-echo
-echo "=========="
-echo "Update Dockerfiles to new version"``
-echo "=========="
-ose_images.sh --user ocp-build update_docker --branch rhaos-${OSE_VERSION}-rhel-7 --group base --force --release 1 --version "v${VERSION}"
-
-echo
-echo "=========="
-echo "Build Images"
-echo "=========="
-ose_images.sh --user ocp-build build_container --branch rhaos-${OSE_VERSION}-rhel-7 --group base --repo https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/repo-conf/aos-unsigned-building.repo
-
 echo
 echo "=========="
 echo "Build OIT images"
@@ -410,30 +390,9 @@ ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKI
 images:build \
 --push-to-defaults --repo-type unsigned
 
-if [ "$EARLY_LATEST_HACK" == "true" ]; then
-    # Hack to keep from breaking openshift-ansible CI during daylight builds. They need the latest puddle to exist
-    # before images are pushed to registry-ops in order for their current CI implementation to work.
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s -- --conf "${PUDDLE_CONF}" -b -d -n \
-        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
-fi
-
-echo
-echo "=========="
-echo "Push Images"
-echo "=========="
-# Pass PATH to ensure that sudo inherits Jenkins setup of PATH environment variable.
-sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images ${PUSH_EXTRA} --branch rhaos-${OSE_VERSION}-rhel-7 --group base
-
-echo
-echo "=========="
-echo "Create latest puddle"
-echo "=========="
-if [ "$EARLY_LATEST_HACK" != "true" ]; then
-    ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-        sh -s -- --conf "${PUDDLE_CONF}" -b -d -n \
-        < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
-fi
+ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
+    sh -s -- --conf "${PUDDLE_CONF}" -b -d -n \
+    < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
 
 # Record the name of the puddle which was created
 PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/latest")

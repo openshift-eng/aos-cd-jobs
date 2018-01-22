@@ -818,7 +818,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 cd cluster/test-deploy/data
 if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
-  ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/terminate.yml
+  ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
 else
   # TODO: Legacy code path, will be removed
   ../../bin/local.sh ansible-playbook playbooks/terminate.yaml

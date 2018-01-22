@@ -5,7 +5,7 @@
   <keepDependencies>false</keepDependencies>
   <properties>
     <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
-      <autoRebuild>true</autoRebuild>
+      <autoRebuild>false</autoRebuild>
       <rebuildDisabled>false</rebuildDisabled>
     </com.sonyericsson.rebuild.RebuildSettings>
     <jenkins.model.BuildDiscarderProperty>
@@ -695,7 +695,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 sudo systemctl restart docker
 cd cluster/test-deploy/data/
 if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
-  ../../bin/local.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/gcp/openshift-cluster/launch.yml
+  ../../bin/ansible.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/gcp/openshift-cluster/launch.yml
 else
   # TODO: Legacy code path, will be removed
   docker pull openshift/origin-gce:latest

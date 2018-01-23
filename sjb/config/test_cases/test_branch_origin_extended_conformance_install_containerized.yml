@@ -46,6 +46,9 @@ extensions:
       script: |-
         last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
         last_commit="$( git log -n 1 --pretty=%h )"
+        if [[ "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.6" || "${PULL_BASE_REF}" == "release-3.5"  ]]; then
+          sudo yum downgrade -y ansible-2.3\*
+        fi
         sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
         rpm -V "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
     - type: "script"

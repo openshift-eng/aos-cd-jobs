@@ -413,6 +413,9 @@ if [[ &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#34; == &#34;release-1.5&#34; ]
     echo &#34;[INFO] System containers are not supported, skipping.&#34;
     exit 0
 fi
+if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.7&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.6&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.5&#34;  ]]; then
+  sudo yum downgrade -y ansible-2.3\*
+fi
 
 last_tag=&#34;\$( git describe --tags --abbrev=0 --exact-match HEAD )&#34;
 last_commit=&#34;\$( git log -n 1 --pretty=%h )&#34;

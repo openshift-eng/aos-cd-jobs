@@ -55,8 +55,8 @@ node(TARGET_NODE) {
             buildlib = load('pipeline-scripts/buildlib.groovy')
             dir('openshift-ansible') {
                 git 'https://github.com/openshift/openshift-ansible.git'
-                sh "git checkout ${OPENSHIFT_ANSIBLE_CHECKOUT}"
-                sh "git pull"
+                //sh "git checkout ${OPENSHIFT_ANSIBLE_CHECKOUT}"
+                //sh "git pull"
             }
         }
         stage('venv') {

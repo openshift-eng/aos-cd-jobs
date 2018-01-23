@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 set -eux
 
 rpm_name() {
     printf "${RPM}" "${arch}"
-    [ "${arch}" == x86_64 ] && printf %s -redistributable
+    [[ "${arch}" == x86_64 ]] && printf %s -redistributable
     printf %s "-${VERSION}"
 }
 
@@ -12,13 +12,13 @@ extract() {
     mkdir macosx windows
     for arch in x86_64 ${ARCH}; do
         rpm=$(echo "$(rpm_name "${arch}")"*)
-        [ "${arch}" != x86_64 -a ! -e "${rpm}" ] && continue
+        if [[ "${arch}" != x86_64 && ! -e "${rpm}" ]]; then continue; fi
         mkdir "${arch}"
-        if [ "${arch}" != x86_64 ]; then
-            rpm2cpio ${rpm}* | cpio -idm --quiet ./usr/bin/oc
+        if [[ "${arch}" != x86_64 ]]; then
+            rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/oc
             mv usr/bin/oc "${arch}"
         else
-            rpm2cpio ${rpm}* \
+            rpm2cpio "${rpm}" \
                 | cpio -idm --quiet \
                     ./usr/share/atomic-openshift/{linux,macosx}/oc \
                     ./usr/share/atomic-openshift/windows/oc.exe
@@ -52,7 +52,7 @@ OUTDIR=${TMPDIR}/${VERSION}
 cd "${TMPDIR}"
 extract
 mkdir "${OUTDIR}"
-for arch in ${ARCH}; do [ -e "${arch}" ] && pkg_tar "${arch}"; done
+for arch in ${ARCH}; do [[ -e "${arch}" ]] && pkg_tar "${arch}"; done
 pkg_tar x86_64
 pkg_tar macosx
 mkdir "${OUTDIR}/windows"

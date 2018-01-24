@@ -19,6 +19,11 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
+          <name>JOB_SPEC</name>
+          <description>JSON form of job specification.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>PULL_BASE_REF</name>
           <description>Ref name of the base branch.</description>
           <defaultValue></defaultValue>
@@ -146,6 +151,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_PULL_SHA=${PULL_PULL_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

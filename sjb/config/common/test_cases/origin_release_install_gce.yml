@@ -38,6 +38,7 @@ extensions:
         - BUILD_NUMBER
         - SUITE
         - FOCUS
+        - JOB_SPEC
     - type: "script"
       title: "build openshift-ansible image"
       repository: "openshift-ansible"

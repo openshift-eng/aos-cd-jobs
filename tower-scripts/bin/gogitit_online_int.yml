@@ -2,14 +2,12 @@
 output_dir: /home/opsmedic/aos-cd/vendored/gogitit-online
 repos:
 - id: online-analytics
-  #url: https://github.com/openshift/online-analytics.git
-  url: git@github.com:openshift/online-analytics.git
+  url: https://github.com/openshift/online-analytics.git
   version: master
   copy:
   - src: ansible/roles/oso_analytics/
     dst: roles/oso_analytics/
 - id: online
-  #url: https://github.com/openshift/online.git
   url: git@github.com:openshift/online.git
   version: master
   copy:
@@ -17,15 +15,21 @@ repos:
   # formal consumption by ops/CD.
   - src: ansible/roles/oso_*
     dst: roles
-- id: online-archivist
-  url: https://github.com/openshift/online-archivist.git
+- id: online-console-extensions
+  url: https://github.com/openshift/online-console-extensions.git
   version: master
   copy:
-  - src: ansible/roles/oc_start_build_check/
-    dst: roles/oc_start_build_check/
+  - src: ansible/roles/oso_console_extensions/
+    dst: roles/oso_console_extensions/
 - id: openshift-ansible
   url: https://github.com/openshift/openshift-ansible.git
-  version: openshift-ansible-3.7.0-0.125.0
+  version: openshift-ansible-3.9.0-0.22.0
   copy:
   - src: roles/lib_openshift/
     dst: roles/lib_openshift/
+  - src: roles/lib_utils/
+    dst: roles/lib_utils/
+  - src: roles/openshift_web_console/
+    dst: roles/openshift_web_console/
+  - src: roles/openshift_facts/
+    dst: roles/openshift_facts/

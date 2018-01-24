@@ -1,8 +1,5 @@
 ---
-# TODO for now we are just running build-images so we don't need to depend on a built origin AMI
-# but eventually we will need to change this back to do more interesting e2e tests
-# parent: 'common/test_cases/origin_built_release.yml'
-parent: 'common/test_cases/origin.yml'
+parent: 'common/test_cases/origin_built_release.yml'
 extensions:
   sync_repos:
     - name: "origin-web-console-server"
@@ -10,9 +7,17 @@ extensions:
     - type: "script"
       title: "build the web console container image"
       repository: "origin-web-console-server"
-      timeout: 3600
+      timeout: 1200
       script: |-
+        sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
         make build-images
-    # TODO deploy the image and validate it serves content
+    - type: "script"
+      title: "validate console starts"
+      repository: "origin-web-console-server"
+      timeout: 600
+      # TODO For now, run cluster up to verify the console starts, but
+      # eventually we will want to do more interesting e2e tests.
+      script: |-
+        oc cluster up --version=latest --public-hostname=localhost --loglevel=5
   system_journals:
     - systemd-journald.service

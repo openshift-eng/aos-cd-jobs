@@ -1,0 +1,13 @@
+---
+parent: 'common/test_cases/origin.yml'
+overrides:
+  sync_repos:
+    - name: "online-console-extensions"
+  junit_analysis: False
+extensions:
+  actions:
+    - type: "script"
+      title: "online-console-extensions generated template check"
+      repository: "online-console-extensions"
+      script: |-
+        ./hack/check-generated-templates.sh

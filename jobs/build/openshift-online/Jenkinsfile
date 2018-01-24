@@ -26,7 +26,7 @@ properties(
                                                     release         online/online-X.Y.Z -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>
                                                     ''',
                                     name: 'BUILD_MODE'],
-                                [$class: 'hudson.model.StringParameterDefinition', defaultValue: '3.6.0', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],
+                                [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.6.0", defaultValue: '3.6.0', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],
                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                          ]
                 ],
@@ -43,6 +43,13 @@ if ( MOCK.toBoolean() ) {
 node(TARGET_NODE) {
 
     set_workspace()
+    
+    // oit_working must be in WORKSPACE in order to have artifacts archived
+    OIT_WORKING = "${WORKSPACE}/oit_working"
+    env.OIT_WORKING = OIT_WORKING
+    //Clear out previous work
+    sh "rm -rf ${OIT_WORKING}"
+    sh "mkdir -p ${OIT_WORKING}"
 
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
@@ -60,7 +67,6 @@ node(TARGET_NODE) {
     stage('Merge and build') {
         try {
             checkout scm
-            env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
             env.BUILD_MODE = "${BUILD_MODE}"
             env.RELEASE_VERSION = "${RELEASE_VERSION}"
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed

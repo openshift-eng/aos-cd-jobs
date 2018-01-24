@@ -1,0 +1,43 @@
+---
+parent: 'common/test_cases/origin_release_install_gce.yml'
+extensions:
+  parameters:
+    - name: "OS_PUSH_TAG"
+      description: "The docker image tag to push to, defaults to :latest,:v3.X from the git tags"
+    - name: "SUITE"
+      description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
+rectory to run."
+      default_value: "conformance"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      description: >
+        The image to install the cluster with. If not set, the job will not build this image.
+      default_value: openshift/origin-ansible:latest
+  actions:
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "transfer docker config to remote host"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "forward_parameters"
+      parameters:
+        - OS_PUSH_TAG
+    - type: "script"
+      title: "push the release"
+      repository: "origin"
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        if [[ -z "${OS_PUSH_TAG-}" ]]; then
+          tag="$(git describe)"
+          version="${tag#openshift-ansible-}"
+          re='^(([0-9]+\.[0-9]+)\.([0-9]+))(-([0-9]))'
+          if ! [[ $version =~ $re ]]; then
+            echo "No OS_PUSH_TAG specified, unable to calculate a default from the git tag '${tag}'"
+            exit 1
+          fi
+          OS_PUSH_TAG="latest,v${BASH_REMATCH[1]},v${BASH_REMATCH[2]}" # vX.Y vX.Y.Z
+        fi
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh

@@ -70,7 +70,7 @@ node('openshift-build-1') {
             }
             
             sshagent(['openshift-bot']) { // errata puddle must run with the permissions of openshift-bot to succeed
-                sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com puddle -b -d /mnt/rcm-guest/puddles/RHAOS/conf/${puddle_command_conf} ${puddle_command_extras}"
+                sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com puddle -n -b -d /mnt/rcm-guest/puddles/RHAOS/conf/${puddle_command_conf} ${puddle_command_extras}"
                 sh "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com ls /mnt/rcm-guest/puddles/RHAOS/${puddle_path_dir}/${OSE_MAJOR}.${OSE_MINOR}/${PUDDLE_PURPOSE}${puddle_path_extras}/x86_64/os/Packages/{atomic-openshift,openshift-ansible}-${OSE_MAJOR}.${OSE_MINOR}*"
             }
 

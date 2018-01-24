@@ -88,6 +88,17 @@ elif [ "${BUILD_MODE}" == "release" ] ; then
     SPEC_VERSION_COUNT=6
 fi
 
+echo
+echo "=========="
+echo "Setup OIT stuff"
+echo "=========="
+
+OIT_DIR="${BUILDPATH}/enterprise-images/"
+rm -rf ${OIT_DIR}
+mkdir -p ${OIT_DIR}
+OIT_PATH="${OIT_DIR}/oit/oit.py"
+git clone git@github.com:openshift/enterprise-images.git ${OIT_DIR}
+
 # Check to see if there have been any changes since the last tag
 if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_REBUILD}" != "true" ] ; then
     echo ; echo "No changes since last tagged build"
@@ -163,26 +174,19 @@ else
     echo "=========="
     echo "Update Dockerfiles"
     echo "=========="ild
-    ose_images.sh --user ocp-build update_docker --branch libra-rhel-7 --group oso --force --release 1 --version "v${VERSION}"
-
-    echo
-    echo "=========="
-    echo "Sync distgit"
-    echo "=========="
-    ose_images.sh --user ocp-build compare_nodocker --branch libra-rhel-7 --group oso --force --message "MaxFileSize: 52428800"
+    ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
+    images:rebase --version v${VERSION} \
+    --release 1 \
+    --message "MaxFileSize: 52428800" --push
 
     echo
     echo "=========="
     echo "Build Images"
     echo "=========="
-    ose_images.sh --user ocp-build build_container --repo http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/repos/oso-building.repo --branch libra-rhel-7 --group oso
+    ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
+    images:build \
+    --push-to-defaults --repo-type unsigned
 
-    echo
-    echo "=========="
-    echo "Push Images"
-    echo "=========="
-    # Push to registry
-    sudo env "PATH=$PATH" ose_images.sh --user ocp-build push_images --branch libra-rhel-7 --group oso --release 1
     echo
     echo "=========="
     echo "Create latest puddle"

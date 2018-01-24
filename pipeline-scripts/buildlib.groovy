@@ -18,8 +18,6 @@ def initialize() {
 // Initialize $PATH and $GOPATH
 def path_setup() {
     echo "Adding git managed script directories to PATH"
-    // ose_images.sh
-    env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
 
     GOPATH = "${env.WORKSPACE}/go"
     env.GOPATH = GOPATH

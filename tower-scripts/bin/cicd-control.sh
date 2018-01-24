@@ -154,6 +154,7 @@ function update_ops_git_repos () {
 }
 
 function update-online-roles() {
+  echo "Using Online components from environment: ${oo_environment}."
   /usr/bin/ssh-agent bash -c "ssh-add /home/opsmedic/aos-cd/git/openshift-ansible-private/private_roles/aos-cicd/files/github_ops_bot_ssh_key.rsa; /usr/bin/gogitit sync -m ./gogitit_online_${oo_environment}.yml"
 
   export OPENSHIFT_ONLINE_ROLES=/home/opsmedic/aos-cd/vendored/gogitit-online/roles

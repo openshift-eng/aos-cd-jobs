@@ -1,5 +1,7 @@
 ---
 parameters:
+- name: JOB_SPEC
+  description: "JSON form of job specification."
 - name: buildId
   description: "Unique build number for each run."
 - name: REPO_OWNER
@@ -37,6 +39,7 @@ actions:
       - PULL_NUMBER
       - PULL_PULL_SHA
       - JOB_NAME
+      - JOB_SPEC
   - type: "script"
     title: "record the starting metadata"
     timeout: 300

@@ -96,7 +96,7 @@ extensions:
         cat <<REPO > /tmp/local.repo
         [origin-repo]
         name=Origin RPMs
-        baseurl=${location}
+        baseurl=${location_url}
         enabled=1
         gpgcheck=0
         REPO

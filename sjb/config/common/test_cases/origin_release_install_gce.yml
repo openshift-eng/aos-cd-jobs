@@ -38,11 +38,6 @@ extensions:
         if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "openshift-ansible" ]]; then
           exit 0
         fi
-        if [[ -z "${OPENSHIFT_ANSIBLE_IMAGE-}" ]]; then
-          # TODO: Legacy code path, will be removed
-          echo "OPENSHIFT_ANSIBLE_IMAGE not specified, no action necessary"
-          exit 0
-        fi
         hack/build-images.sh
     - type: "script"
       title: "build origin RPMs"
@@ -134,13 +129,7 @@ extensions:
       script: |-
         sudo systemctl restart docker
         cd cluster/test-deploy/data/
-        if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE-}" ]]; then
-          ../../bin/ansible.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/gcp/openshift-cluster/launch.yml
-        else
-          # TODO: Legacy code path, will be removed
-          docker pull openshift/origin-gce:latest
-          ../../bin/local.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/launch.yaml
-        fi
+        ../../bin/ansible.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/gcp/openshift-cluster/launch.yml
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
     - type: "script"
       title: "run extended tests"
@@ -234,11 +223,6 @@ extensions:
       timeout: 900
       script: |-
         cd cluster/test-deploy/data
-        if [[ -n "${OPENSHIFT_ANSIBLE_IMAGE-}" ]]; then
-          ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
-        else
-          # TODO: Legacy code path, will be removed
-          ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
-        fi
+        ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
   artifacts:
     - "/tmp/artifacts"

@@ -10,11 +10,6 @@ overrides:
     - name: "image-registry"
     - name: "kubernetes-metrics-server"
 extensions:
-  parameters:
-    - name: "OPENSHIFT_ANSIBLE_IMAGE"
-      description: >
-        The image to install the cluster with. If not set, the job will not build this image.
-      default_value: openshift/origin-ansible:latest
   actions:
     - type: "script"
       title: "hold for user action"

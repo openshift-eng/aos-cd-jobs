@@ -136,6 +136,21 @@ actions:
             ;;
         esac
       fi
+  - type: "script"
+    title: "enable docker tested repo"
+    timeout: 300
+    script: |-
+      sudo touch /etc/yum.repos.d/dockertested.repo
+      sudo chmod a+rw /etc/yum.repos.d/dockertested.repo
+      cat <<REPO >/etc/yum.repos.d/dockertested.repo
+      [dockertested]
+      name=dockertested
+      baseurl=https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/
+      enabled=1
+      sslclientcert=/var/lib/yum/client-cert.pem
+      sslclientkey=/var/lib/yum/client-key.pem
+      sslverify=0
+      REPO
 post_actions:
   - type: "forward_parameters"
     parameters:

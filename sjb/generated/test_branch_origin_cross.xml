@@ -333,6 +333,7 @@ rsync --archive --omit-dir-times --rsh &#34;ssh -F ./.config/origin-ci-tool/inve
 gsutil -m cp -r artifacts/zips &#34;gs://${location}&#34;
 
 ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
+echo &#34;${location_url}&#34; &gt; .latest-zips
 gsutil cp .latest-zips &#34;gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/.latest-zips&#34;</command>
         </hudson.tasks.Shell>
   </builders>

@@ -20,4 +20,5 @@ extensions:
         gsutil -m cp -r artifacts/zips "gs://${location}"
 
         ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
+        echo "${location_url}" > .latest-zips
         gsutil cp .latest-zips "gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/.latest-zips"

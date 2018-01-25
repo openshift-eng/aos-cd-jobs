@@ -9,6 +9,9 @@ set -o pipefail
 #    exit 1
 #fi
 
+read -sp password: PASSWORD
+export PASSWORD
+
 if [[ -n "$( git diff HEAD~1..HEAD --stat -- sjb/generated/ )" ]]; then
     updated_jobs=( $( git diff HEAD~1..HEAD --numstat -- sjb/generated/ | awk '{ print $3 }' ) )
     sjb/push-update.sh "${updated_jobs[@]}"

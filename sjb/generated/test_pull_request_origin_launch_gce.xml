@@ -19,11 +19,6 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>JOB_SPEC</name>
-          <description>JSON form of job specification.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>PULL_BASE_REF</name>
           <description>Ref name of the base branch.</description>
           <defaultValue></defaultValue>
@@ -460,9 +455,12 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+# only build RPMs when the job is targeting origin
 if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#34; != &#34;origin&#34; ]]; then
-  # only build RPMs when the job is targeting origin
-  exit 0
+  # allow a child to request explicit builds, only used by conformance_k8s
+  if [[ -z &#34;\${FORCE_BUILD-}&#34; ]]; then
+    exit 0
+  fi
 fi
 
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS=&#34;-e OS_VERSION_FILE= &#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local/releases/rpms:_output/local/bin&#34; hack/env make build-rpms BUILD_TESTS=1

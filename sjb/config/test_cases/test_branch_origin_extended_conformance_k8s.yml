@@ -22,4 +22,4 @@ rectory to run."
         ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
         target_branch="${ORIGIN_TARGET_BRANCH:-${ref}}"
         echo "${location_url}" > .latest-conformance
-        gsutil cp .latest-zips "gs://origin-ci-test/releases/openshift/origin/${target_branch}/.latest-conformance"
+        gsutil cp .latest-conformance "gs://origin-ci-test/releases/openshift/origin/${target_branch}/.latest-conformance"

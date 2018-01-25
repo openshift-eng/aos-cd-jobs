@@ -19,11 +19,6 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>JOB_SPEC</name>
-          <description>JSON form of job specification.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>buildId</name>
           <description>Unique build number for each run.</description>
           <defaultValue></defaultValue>

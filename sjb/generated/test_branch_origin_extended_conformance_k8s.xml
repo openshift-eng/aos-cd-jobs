@@ -373,6 +373,30 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ENABLE DOCKER TESTED REPO ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ENABLE DOCKER TESTED REPO [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+sudo touch /etc/yum.repos.d/dockertested.repo
+sudo chmod a+rw /etc/yum.repos.d/dockertested.repo
+cat &lt;&lt;REPO &gt;/etc/yum.repos.d/dockertested.repo
+[dockertested]
+name=dockertested
+baseurl=https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/
+enabled=1
+sslclientcert=/var/lib/yum/client-cert.pem
+sslclientkey=/var/lib/yum/client-key.pem
+sslverify=0
+REPO
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_IMAGE=${OPENSHIFT_ANSIBLE_IMAGE:-}&#39; &gt;&gt; /etc/environment&#34;
@@ -393,11 +417,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#34; != &#34;openshift-ansible&#34; ]]; then
-  exit 0
-fi
-if [[ -z &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
-  # TODO: Legacy code path, will be removed
-  echo &#34;OPENSHIFT_ANSIBLE_IMAGE not specified, no action necessary&#34;
   exit 0
 fi
 hack/build-images.sh
@@ -510,13 +529,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 sudo systemctl restart docker
 cd cluster/test-deploy/data/
-if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
-  ../../bin/ansible.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/gcp/openshift-cluster/launch.yml
-else
-  # TODO: Legacy code path, will be removed
-  docker pull openshift/origin-gce:latest
-  ../../bin/local.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/launch.yaml
-fi
+../../bin/ansible.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/gcp/openshift-cluster/launch.yml
 cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -578,10 +591,12 @@ SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &a
 location=&#34;origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/artifacts/scripts/conformance-k8s/artifacts&#34;
 location_url=&#34;https://storage.googleapis.com/${location}&#34;
 
-ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
-target_branch=&#34;${ORIGIN_TARGET_BRANCH:-${ref}}&#34;
+ref=&#34;${ORIGIN_TARGET_BRANCH-}&#34;
+if [[ -z &#34;${ref}&#34; &amp;&amp; -n &#34;${JOB_SPEC-}&#34; ]]; then
+  ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
+fi
 echo &#34;${location_url}&#34; &gt; .latest-conformance
-gsutil cp .latest-conformance &#34;gs://origin-ci-test/releases/openshift/origin/${target_branch}/.latest-conformance&#34;</command>
+gsutil cp .latest-conformance &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-conformance&#34;</command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>
@@ -755,12 +770,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 cd cluster/test-deploy/data
-if [[ -n &#34;\${OPENSHIFT_ANSIBLE_IMAGE-}&#34; ]]; then
-  ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
-else
-  # TODO: Legacy code path, will be removed
-  ../../bin/local.sh ansible-playbook playbooks/terminate.yaml
-fi
+../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

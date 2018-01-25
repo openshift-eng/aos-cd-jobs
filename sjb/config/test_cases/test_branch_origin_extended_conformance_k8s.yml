@@ -10,6 +10,8 @@ extensions:
       description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
 rectory to run."
       default_value: "conformance-k8s"
+    - name: FORCE_BUILD
+      default_value: "1"
   actions:
     - type: "host_script"
       title: "tag the latest conformance results"

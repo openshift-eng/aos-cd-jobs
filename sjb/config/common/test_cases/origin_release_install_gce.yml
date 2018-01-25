@@ -58,9 +58,12 @@ extensions:
       repository: "origin"
       timeout: 2400
       script: |-
+        # only build RPMs when the job is targeting origin
         if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "origin" ]]; then
-          # only build RPMs when the job is targeting origin
-          exit 0
+          # allow a child to request explicit builds, only used by conformance_k8s
+          if [[ -z "${FORCE_BUILD-}" ]]; then
+            exit 0
+          fi
         fi
 
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1

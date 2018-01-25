@@ -39,6 +39,11 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>JOB_SPEC</name>
+          <description>The job spec definition.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>FOCUS</name>
           <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
           <defaultValue></defaultValue>
@@ -427,6 +432,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;SUITE=${SUITE:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;FOCUS=${FOCUS:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -475,28 +481,27 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE RPMS TO GCS REPO ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE RPMS TO GCS REPO [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 if [[ &#34;${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;${REPO_NAME-}&#34; != &#34;origin&#34; ]]; then
   # use pre-built RPMs when the job is not targeting origin, or use master if nothing else is available
-  location_url=&#34;$(curl -q https://storage.googleapis.com/origin-ci-test/branch-logs/origin/${ORIGIN_TARGET_BRANCH:-master}/builds/.latest)/artifacts/rpms&#34;
+  location_url=&#34;$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-master}/.latest-rpms)&#34;
   # hack around forwarding this to the other machine
   ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;location_url=${location_url:-}&#39; &gt;&gt; /etc/environment&#34;
   exit 0
 fi
 
-pull_id=&#34;${ORIGIN_PULL_ID:-}&#34;
-target_branch=&#34;${ORIGIN_TARGET_BRANCH:-}&#34;
-if [[ -z &#34;${pull_id}&#34; &amp;&amp; -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-  pull_id=${PULL_NUMBER}
-  target_branch=&#34;${PULL_REFS%%:*}&#34;
-fi
-# pull_id will be 0 in case of a batch merge
-if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
-  location_base=&#34;origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/${BUILD_NUMBER}&#34;
-  location=&#34;${location_base}/artifacts/rpms&#34;
+type=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.type&#39; )&#34;
+if   [[ &#34;${type}&#34; == &#34;postsubmit&#34; ]]; then
+  location_base=&#34;origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
+elif [[ &#34;${type}&#34; == &#34;batch&#34; ]]; then
+  location_base=&#34;origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
+elif [[ &#34;${type}&#34; == &#34;presubmit&#34; ]]; then
+  location_base=&#34;origin-ci-test/pr-logs/pull/${PULL_NUMBER}/${JOB_NAME}/${BUILD_NUMBER}&#34;
 else
-  location_root=&#34;origin-ci-test/branch-logs/origin/${target_branch}/builds&#34;
-  location_base=&#34;${location_root}/${JOB_NAME}/${BUILD_NUMBER}&#34;
-  location=&#34;${location_base}/artifacts/rpms&#34;
-  base_location_url=&#34;https://storage.googleapis.com/${location_base}&#34;
+  echo &#34;unknown job type in ${JOB_SPEC}&#34;
+  exit 1
 fi
+
+location=&#34;${location_base}/artifacts/rpms&#34;
+location_url=&#34;https://storage.googleapis.com/${location}&#34;
+
 cat &lt;&lt;REPO &gt; /tmp/local.repo
 [origin-repo]
 name=Origin RPMs
@@ -504,29 +509,23 @@ baseurl=${location}
 enabled=1
 gpgcheck=0
 REPO
-location_url=&#34;https://storage.googleapis.com/${location}&#34;
-echo &#34;${JOB_NAME}/${BUILD_NUMBER}&#34; &gt; .build
+
 if gsutil ls &#34;gs://${location_base}&#34; &amp;&gt;/dev/null; then
   gsutil rm -rf &#34;gs://${location_base}&#34;
 fi
+
+echo &#34;${JOB_NAME}/${BUILD_NUMBER}&#34; &gt; .build
 gsutil cp .build &#34;gs://${location_base}/.build&#34;
 
 mkdir -p artifacts/rpms
 rsync --archive --omit-dir-times --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; --rsync-path=&#39;sudo rsync&#39; openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
 gsutil -m cp -r artifacts/rpms &#34;gs://${location}&#34;
-# pull_id will be 0 in case of a batch merge
-if [[ -n &#34;${pull_id:-}&#34; &amp;&amp; &#34;${pull_id:-}&#34; != &#34;0&#34; ]]; then
-  # if we&#39;ve built this PR before, remove older rpm artifact directories
-  # out=&#34;$( gsutil ls -d &#34;gs://origin-ci-test/pr-logs/pull/${pull_id}/${JOB_NAME}/*/artifacts/rpms&#34; | sort -n -t / -k 7 | head -n -2 )&#34;
-  # if [[ -n &#34;${out}&#34; ]]; then
-  #   echo &#34;${out}&#34; | xargs -L 1 gsutil rm -rf
-  # fi
-  echo &#34;Skip artifact cleanup&#34;
-else
-  # update the pointer to this location
-  echo &#34;${base_location_url}&#34; &gt; .latest
-  gsutil cp .latest &#34;gs://${location_root}/.latest&#34;
-  gsutil cp /tmp/local.repo &#34;gs://${location_root}/origin.repo&#34;
+if [[ &#34;${type}&#34; == &#34;postsubmit&#34; ]]; then
+  # update the pointer to this location to either ORIGIN_TARGET_BRANCH or the base ref branch
+  echo &#34;${location_url}&#34; &gt; .latest-rpms
+  ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
+  gsutil cp .latest-rpms &#34;gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/.latest-rpms&#34;
+  gsutil cp /tmp/local.repo &#34;gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/origin.repo&#34;
 fi
 
 # hack around forwarding this to the other machine

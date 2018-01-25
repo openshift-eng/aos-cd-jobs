@@ -44,6 +44,11 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>JOB_SPEC</name>
+          <description>The job spec definition.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>ORIGIN_WEB_CONSOLE_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&quot;https://github.com/openshift/origin-web-console&quot;&gt;origin-web-console&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>

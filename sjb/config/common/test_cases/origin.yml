@@ -20,6 +20,8 @@ parameters:
   description: "Pull request number."
 - name: PULL_PULL_SHA
   description: "Pull request head SHA."
+- name: JOB_SPEC
+  description: "The job spec definition."
 provision:
   os: "rhel"
   stage: "base"

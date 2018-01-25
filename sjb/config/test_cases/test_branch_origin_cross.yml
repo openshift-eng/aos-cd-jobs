@@ -19,6 +19,9 @@ extensions:
         rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/ ./artifacts/zips || true
         gsutil -m cp -r artifacts/zips "gs://${location}"
 
-        ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
+        ref="${ORIGIN_TARGET_BRANCH-}"
+        if [[ -z "${ref}" && -n "${JOB_SPEC-}" ]]; then
+          ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
+        fi
         echo "${location_url}" > .latest-zips
-        gsutil cp .latest-zips "gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/.latest-zips"
+        gsutil cp .latest-zips "gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-zips"

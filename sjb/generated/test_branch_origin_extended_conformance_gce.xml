@@ -460,7 +460,7 @@ location_url=&#34;https://storage.googleapis.com/${location}&#34;
 cat &lt;&lt;REPO &gt; /tmp/local.repo
 [origin-repo]
 name=Origin RPMs
-baseurl=${location}
+baseurl=${location_url}
 enabled=1
 gpgcheck=0
 REPO

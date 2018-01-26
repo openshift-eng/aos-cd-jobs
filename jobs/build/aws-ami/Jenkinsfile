@@ -93,6 +93,15 @@ container_runtime_docker_storage_type: overlay2
 container_runtime_docker_storage_setup_device: xvdb
 docker_storage_path: /var/lib/containers/docker
 docker_storage_size: 200G
+openshift_aws_node_group_config_node_volumes:
+- device_name: /dev/sda1
+  volume_size: 30
+  device_type: gp2
+  delete_on_termination: True
+- device_name: /dev/sdb
+  volume_size: 200
+  device_type: gp2
+  delete_on_termination: True
 """)
             sh 'cat provisioning_vars.yml'
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',

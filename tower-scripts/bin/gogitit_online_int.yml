@@ -1,6 +1,12 @@
 ---
 output_dir: /home/opsmedic/aos-cd/vendored/gogitit-online
 repos:
+- id: online-archivist
+  url: https://github.com/openshift/online-archivist.git
+  version: master
+  copy:
+  - src: ansible/roles/oc_start_build_check
+    dst: roles/oc_start_build_check
 - id: online-analytics
   url: https://github.com/openshift/online-analytics.git
   version: master

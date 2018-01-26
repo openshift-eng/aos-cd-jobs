@@ -40,6 +40,8 @@ extensions:
       timeout: 900
       script: |-
         if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "openshift-ansible" ]]; then
+          # ensure we get an update to date image
+          docker pull openshift/origin-ansible:latest
           exit 0
         fi
         hack/build-images.sh

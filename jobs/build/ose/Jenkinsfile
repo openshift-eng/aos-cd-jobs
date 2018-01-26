@@ -151,8 +151,6 @@ node(TARGET_NODE) {
 
             checkout scm
 
-            env.PATH = "${pwd()}/build-scripts/ose_images:${env.PATH}"
-
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
                 env.OSE_MASTER = "${OSE_MASTER}"
                 env.BUILD_MODE = "${BUILD_MODE}"

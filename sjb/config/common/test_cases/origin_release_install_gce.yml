@@ -7,6 +7,9 @@ extensions:
     - name: "release"
     - name: "openshift-ansible"
   parameters:
+    - name: "CLUSTER_PROFILE"
+      description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
+      default_value: "gcp"
     - name: "FOCUS"
       description: "Literal string to pass to <code>--ginkgo.focus</code>"
     - name: "OPENSHIFT_ANSIBLE_IMAGE"
@@ -30,12 +33,15 @@ extensions:
         - SUITE
         - FOCUS
         - JOB_SPEC
+        - CLUSTER_PROFILE
     - type: "script"
       title: "build openshift-ansible image"
       repository: "openshift-ansible"
       timeout: 900
       script: |-
         if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "openshift-ansible" ]]; then
+          # ensure we get an update to date image
+          docker pull openshift/origin-ansible:latest
           exit 0
         fi
         hack/build-images.sh
@@ -110,9 +116,9 @@ extensions:
     - type: "host_script"
       title: "move secrets to remote host"
       script: |-
-        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/data/
-        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/data/'
-        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/data/'
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
     - type: "host_script"
       title: "determine the instance prefix"
       script: |-
@@ -128,7 +134,7 @@ extensions:
       timeout: 2800
       script: |-
         sudo systemctl restart docker
-        cd cluster/test-deploy/data/
+        cd cluster/test-deploy/${CLUSTER_PROFILE}/
         ../../bin/ansible.sh ansible-playbook -e "openshift_test_repo=${location_url}" playbooks/gcp/openshift-cluster/launch.yml
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
     - type: "script"
@@ -148,7 +154,7 @@ extensions:
         export JUNIT_REPORT=true
         export TEST_EXTENDED_SKIP="\[local\]"
         TEST_EXTENDED_SKIP+="${ADDITIONAL_SKIP-}"
-        export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/data/gce.json"
+        export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/gce.json"
         export TEST_EXTENDED_ARGS='-provider=gce -gce-zone=us-central1-a -gce-project=openshift-gce-devel-ci'
 
         # test suites need oc and extended.test
@@ -222,7 +228,7 @@ extensions:
       repository: "release"
       timeout: 900
       script: |-
-        cd cluster/test-deploy/data
+        cd cluster/test-deploy/${CLUSTER_PROFILE}
         ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
   artifacts:
     - "/tmp/artifacts"

@@ -1,0 +1,20 @@
+---
+parent: 'common/test_cases/origin_release_install_gce.yml'
+overrides:
+  junit_analysis: False
+  sync_repos:
+    - name: "openshift-ansible"
+      type: "pull_request"
+    - name: "origin"
+    - name: "release"
+    - name: "image-registry"
+    - name: "kubernetes-metrics-server"
+extensions:
+  parameters:
+    - name: "CLUSTER_PROFILE"
+      description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
+      default_value: "gcp-ha"
+    - name: "SUITE"
+      description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
+rectory to run."
+      default_value: "conformance"

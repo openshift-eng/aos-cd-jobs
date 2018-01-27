@@ -56,11 +56,14 @@ class MultiSyncAction(Action):
         """
         parameter_names = []
         for parameter in self.generate_parameters():
-            parameter_names.append(
+            parameter_name = (
                 parseString(parameter).
-                    getElementsByTagName("hudson.model.StringParameterDefinition")[0].
-                    getElementsByTagName("name")[0].
-                    childNodes[0].nodeValue
+                getElementsByTagName("hudson.model.StringParameterDefinition")[0].
+                getElementsByTagName("name")[0].
+                childNodes[0].nodeValue
             )
+            if parameter_name in parameter_names:
+                continue
+            parameter_names.append(parameter_name)
 
         return ForwardParametersAction(parameter_names).generate_build_steps()

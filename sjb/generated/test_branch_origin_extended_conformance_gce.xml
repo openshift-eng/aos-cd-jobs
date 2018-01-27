@@ -580,7 +580,7 @@ if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#3
   exit 0
 fi
 cd cluster/test-deploy/\${CLUSTER_PROFILE}
-../../bin/ansible.sh ansible-playbook -e openshift_gcp_keep_images=5 -e openshift_gcp_target_image=origin-node playbooks/publish_image.yaml
+../../bin/ansible.sh ansible-playbook -e openshift_gcp_keep_images=5 -e openshift_gcp_target_image=origin-node playbooks/gcp/openshift-cluster/publish_image.yaml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

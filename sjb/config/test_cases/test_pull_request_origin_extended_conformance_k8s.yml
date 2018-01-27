@@ -1,9 +1,13 @@
 ---
-parent: 'test_cases/test_branch_origin_extended_conformance_gce.yml'
+parent: 'common/test_cases/origin_release_install_gce.yml'
 overrides:
   sync_repos:
     - name: "origin"
       type: "pull_request"
+    - name: "openshift-ansible"
+    - name: "aos-cd-jobs"
+    - name: "image-registry"
+    - name: "kubernetes-metrics-server"
     - name: "release"
 extensions:
   parameters:

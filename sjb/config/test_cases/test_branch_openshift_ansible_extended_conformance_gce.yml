@@ -23,7 +23,7 @@ rectory to run."
         - OS_PUSH_TAG
     - type: "script"
       title: "push the release"
-      repository: "origin"
+      repository: "openshift-ansible"
       script: |-
         sudo chmod a+rw /tmp/.docker/config.json
         if [[ -z "${OS_PUSH_TAG-}" ]]; then

@@ -607,7 +607,7 @@ script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 sudo chmod a+rw /tmp/.docker/config.json
 if [[ -z &#34;\${OS_PUSH_TAG-}&#34; ]]; then
   tag=&#34;\$(git describe)&#34;

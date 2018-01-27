@@ -16,4 +16,4 @@ rectory to run."
           exit 0
         fi
         cd cluster/test-deploy/${CLUSTER_PROFILE}
-        ../../bin/ansible.sh ansible-playbook -e openshift_gcp_keep_images=5 -e openshift_gcp_target_image=origin-node playbooks/publish_image.yaml
+        ../../bin/ansible.sh ansible-playbook -e openshift_gcp_keep_images=5 -e openshift_gcp_target_image=origin-node playbooks/gcp/openshift-cluster/publish_image.yaml

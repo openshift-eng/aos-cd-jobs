@@ -9,3 +9,4 @@ overrides:
     - name: "aos-cd-jobs"
     - name: "image-registry"
     - name: "kubernetes-metrics-server"
+    - name: "release"

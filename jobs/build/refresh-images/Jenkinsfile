@@ -80,7 +80,7 @@ node('openshift-build-1') {
             sshagent(['openshift-bot']) {
 
                 // default to using the atomic-openshift package version
-                // unless the calller provides a version and release
+                // unless the caller provides a version and release
                 if ( VERSION_OVERRIDE == "" ) {
                     oit_update_docker_args = "--version auto --repo-type signed"
                 } else {

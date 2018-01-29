@@ -33,6 +33,7 @@ node('openshift-build-1') {
                 [$class              : 'ParametersDefinitionProperty',
               parameterDefinitions:
                       [
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", defaultValue: '4', description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optiontal version to use. (i.e. v3.6.173); leave blank to bump', name: 'VERSION_OVERRIDE'],

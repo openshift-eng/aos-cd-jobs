@@ -482,6 +482,10 @@ if [[ &#34;${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;${REPO_NAME-}&#34;
   exit 0
 fi
 
+# Allows us to publish artifacts for tags, since we have no tag mechanism
+if [[ -z &#34;${JOB_SPEC}&#34; ]]; then
+  JOB_SPEC=&#39;{&#34;type&#34;:&#34;postsubmit&#34;,&#34;refs&#34;:{&#34;base_ref&#34;:&#34;${OPENSHIFT_TARGET_BRANCH}&#34;}}&#39;
+fi
 type=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.type&#39; )&#34;
 if   [[ &#34;${type}&#34; == &#34;postsubmit&#34; ]]; then
   location_base=&#34;origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
@@ -516,11 +520,11 @@ mkdir -p artifacts/rpms
 rsync --archive --omit-dir-times --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; --rsync-path=&#39;sudo rsync&#39; openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
 gsutil -m cp -r artifacts/rpms &#34;gs://${location}&#34;
 if [[ &#34;${type}&#34; == &#34;postsubmit&#34; ]]; then
-  # update the pointer to this location to either ORIGIN_TARGET_BRANCH or the base ref branch
+  # update the pointer to this location to the base ref branch
   echo &#34;${location_url}&#34; &gt; .latest-rpms
   ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
-  gsutil cp .latest-rpms &#34;gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/.latest-rpms&#34;
-  gsutil cp /tmp/local.repo &#34;gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/origin.repo&#34;
+  gsutil cp .latest-rpms &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-rpms&#34;
+  gsutil cp /tmp/local.repo &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/origin.repo&#34;
 fi
 
 # hack around forwarding this to the other machine
@@ -642,7 +646,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo c
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/node-metrics.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/master-metrics.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo df -T -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/filesystem.info&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo df -T -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs &amp;&amp; sudo findmnt --all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/filesystem.info&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo yum list installed 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/installed_packages.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl _PID=1 --no-pager --all --lines=all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/pid1.journal&#34; || true
 tree &#34;${ARTIFACT_DIR}&#34; </command>

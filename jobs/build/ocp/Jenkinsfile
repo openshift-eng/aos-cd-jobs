@@ -564,7 +564,7 @@ node(TARGET_NODE) {
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
 --sources ${env.WORKSPACE}/sources.yml
 rpms:build --version v${NEW_VERSION}
---release ${NEW_DOCKERFILE_RELEASE}
+--release ${NEW_RELEASE}
 """
         }
 

@@ -102,6 +102,11 @@ openshift_aws_node_group_config_node_volumes:
   volume_size: 200
   device_type: gp2
   delete_on_termination: True
+openshift_aws_ami_tags:
+  bootstrap: "true"
+  openshift-created: "true"
+  parent: "{{ openshift_aws_base_ami | default('unknown') }}"
+  openshift_version: ${RELEASE_VERSION}
 """)
             sh 'cat provisioning_vars.yml'
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',

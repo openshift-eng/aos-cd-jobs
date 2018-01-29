@@ -70,6 +70,10 @@ extensions:
           exit 0
         fi
         
+        # Allows us to publish artifacts for tags, since we have no tag mechanism
+        if [[ -z "${JOB_SPEC}" ]]; then
+          JOB_SPEC='{"type":"postsubmit","refs":{"base_ref":"${OPENSHIFT_TARGET_BRANCH}"}}'
+        fi
         type="$( echo "${JOB_SPEC}" | jq  -r '.type' )"
         if   [[ "${type}" == "postsubmit" ]]; then
           location_base="origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
@@ -104,11 +108,11 @@ extensions:
         rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
         gsutil -m cp -r artifacts/rpms "gs://${location}"
         if [[ "${type}" == "postsubmit" ]]; then
-          # update the pointer to this location to either ORIGIN_TARGET_BRANCH or the base ref branch
+          # update the pointer to this location to the base ref branch
           echo "${location_url}" > .latest-rpms
           ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
-          gsutil cp .latest-rpms "gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/.latest-rpms"
-          gsutil cp /tmp/local.repo "gs://origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-${ref}}/origin.repo"
+          gsutil cp .latest-rpms "gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-rpms"
+          gsutil cp /tmp/local.repo "gs://origin-ci-test/releases/openshift/origin/${ref}/origin.repo"
         fi
 
         # hack around forwarding this to the other machine

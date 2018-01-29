@@ -216,7 +216,7 @@ generated_artifacts:
   avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
   docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
   docker.config: 'sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service'
-  filesystem.info: 'sudo df -T -h && sudo pvs && sudo vgs && sudo lvs'
+  filesystem.info: 'sudo df -T -h && sudo pvs && sudo vgs && sudo lvs && sudo findmnt --all'
   pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
   master-metrics.log: 'oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig'
   node-metrics.log: 'oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig'

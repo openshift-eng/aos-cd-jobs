@@ -108,7 +108,7 @@ openshift_aws_ami_tags:
   openshift-created: "true"
   parent: "{{ openshift_aws_base_ami | default('unknown') }}"
   openshift_version: "${OPENSHIFT_VERSION}"
-  openshift_short_version: "{{ openshift_pkg_version[1:3] }}"
+  openshift_short_version: "{{ openshift_pkg_version[1:4] }}"
   openshift_release: "${OPENSHIFT_RELEASE}"
   openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
   build_date: "{{ lookup('pipe', 'date +%Y%m%d%H%M')}}"

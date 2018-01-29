@@ -82,15 +82,16 @@ node('openshift-build-1') {
                 // default to using the atomic-openshift package version
                 // unless the calller provides a version and release
                 if ( VERSION_OVERRIDE == "" ) {
-                    oit_update_docker_args = "--version auto --bumprelease"
+                    oit_update_docker_args = "--version auto --repo-type signed"
                 } else {
                     if ( ! VERSION_OVERRIDE.startsWith("v") ) {
                         error("Version overrides must start with 'v'")
                     }
-                    if ( RELEASE_OVERRIDE == "" ) {
-                        error( "RELEASE_OVERRIDE must be specified if VERSION_OVERRIDE is" )
-                    }
-                    oit_update_docker_args = "--version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE}"
+                    oit_update_docker_args = "--version ${VERSION_OVERRIDE}"
+                }
+
+                if ( RELEASE_OVERRIDE != "" ) {
+                    oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
                 }
 
                 sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"

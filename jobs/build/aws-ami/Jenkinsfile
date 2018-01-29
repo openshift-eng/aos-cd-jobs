@@ -28,7 +28,8 @@ properties(
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'cicd_build', description: 'Specify a name that will be used for the VPC. Also used for VPC and other settings', name: 'VPC_NAME'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'us-east-1c', description: 'Specify an availability zone for the AMI build instance to use.', name: 'AZ_NAME'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'default', description: 'Specify a security group name for the AMI build instance to use.', name: 'SG_NAME'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '3.8.18', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '3.9.0', description: 'Openshift Version (matches version in branch name for release builds)', name: 'OPENSHIFT_VERSION'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '0.0.0.git.0.1234567.el7', description: 'Release version (The release version number)', name: 'OPENSHIFT_RELEASE'],
                                  [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'ami-ac0863d6', description: 'Base AMI id to build from.', name: 'BASE_AMI_ID'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'cicd_openshift_node_ami_build', description: 'Base AMI instance name.', name: 'BASE_AMI_NAME'],
@@ -82,7 +83,7 @@ openshift_aws_build_ami_group: ${SG_NAME}
 openshift_aws_subnet_az: ${AZ_NAME}
 openshift_aws_base_ami: ${BASE_AMI_ID}
 openshift_aws_ssh_key_name: ${AWS_SSH_KEY_USER}
-openshift_pkg_version: "-${RELEASE_VERSION}"
+openshift_pkg_version: "-${OPENSHIFT_VERSION}"
 openshift_cloudprovider_kind: aws
 openshift_aws_base_ami_name: ${BASE_AMI_NAME}
 openshift_use_crio: ${USE_CRIO}
@@ -106,7 +107,11 @@ openshift_aws_ami_tags:
   bootstrap: "true"
   openshift-created: "true"
   parent: "{{ openshift_aws_base_ami | default('unknown') }}"
-  openshift_version: ${RELEASE_VERSION}
+  openshift_version: "${OPENSHIFT_VERSION}"
+  openshift_short_version: "{{ openshift_pkg_version[1:3] }}"
+  openshift_release: "${OPENSHIFT_RELEASE}"
+  openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
+  build_date: "{{ lookup('pipe', 'date +%Y%m%d%H%M')}}"
 """)
             sh 'cat provisioning_vars.yml'
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',

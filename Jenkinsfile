@@ -36,8 +36,8 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7", defaultValue: '4', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optiontal version to use. (i.e. v3.6.173); leave blank to bump', name: 'VERSION_OVERRIDE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specific release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'auto', description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"', name: 'VERSION_OVERRIDE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optional release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
@@ -80,17 +80,19 @@ node('openshift-build-1') {
             
             sshagent(['openshift-bot']) {
 
-                update_docker_args = "--bump_release"
-                oit_update_docker_args = ""
-                if ( VERSION_OVERRIDE != "" ) {
+                // default to using the atomic-openshift package version
+                // unless the caller provides a version and release
+                if ( VERSION_OVERRIDE == "auto" ) {
+                    oit_update_docker_args = "--version auto --repo-type signed"
+                } else {
                     if ( ! VERSION_OVERRIDE.startsWith("v") ) {
                         error("Version overrides must start with 'v'")
                     }
-                    if ( RELEASE_OVERRIDE == "" ) {
-                        error( "RELEASE_OVERRIDE must be specified if VERSION_OVERRIDE is" )
-                    }
-                    update_docker_args = "--version ${VERSION_OVERRIDE} --release ${RELEASE_OVERRIDE}"
-                    oit_update_docker_args = update_docker_args
+                    oit_update_docker_args = "--version ${VERSION_OVERRIDE}"
+                }
+
+                if ( RELEASE_OVERRIDE != "" ) {
+                    oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
                 }
 
                 sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"

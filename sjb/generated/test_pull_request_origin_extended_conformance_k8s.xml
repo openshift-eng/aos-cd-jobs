@@ -495,7 +495,7 @@ if [[ &#34;${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;${REPO_NAME-}&#34;
 fi
 
 # Allows us to publish artifacts for tags, since we have no tag mechanism
-if [[ -z &#34;${JOB_SPEC}&#34; ]]; then
+if [[ -z &#34;${JOB_SPEC-}&#34; ]]; then
   JOB_SPEC=&#39;{&#34;type&#34;:&#34;postsubmit&#34;,&#34;refs&#34;:{&#34;base_ref&#34;:&#34;${OPENSHIFT_TARGET_BRANCH}&#34;}}&#39;
 fi
 type=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.type&#39; )&#34;

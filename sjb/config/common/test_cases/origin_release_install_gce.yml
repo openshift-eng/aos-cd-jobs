@@ -71,7 +71,7 @@ extensions:
         fi
         
         # Allows us to publish artifacts for tags, since we have no tag mechanism
-        if [[ -z "${JOB_SPEC}" ]]; then
+        if [[ -z "${JOB_SPEC-}" ]]; then
           JOB_SPEC='{"type":"postsubmit","refs":{"base_ref":"${OPENSHIFT_TARGET_BRANCH}"}}'
         fi
         type="$( echo "${JOB_SPEC}" | jq  -r '.type' )"

@@ -112,6 +112,7 @@ openshift_aws_ami_tags:
   openshift_release: "${OPENSHIFT_RELEASE}"
   openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
   build_date: "{{ lookup('pipe', 'date +%Y%m%d%H%M')}}"
+openshift_aws_ami_name: "openshift-gi-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
 """)
             sh 'cat provisioning_vars.yml'
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',

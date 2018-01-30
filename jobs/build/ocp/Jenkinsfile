@@ -559,6 +559,8 @@ node(TARGET_NODE) {
             }
         }
         
+        buildlib.write_sources_file()
+
         stage( "build OIT rpms" ) {
           buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
@@ -589,7 +591,6 @@ rpms:build --version v${NEW_VERSION}
         }
 
         stage( "update dist-git" ) {
-          buildlib.write_sources_file()
           buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
 --sources ${env.WORKSPACE}/sources.yml

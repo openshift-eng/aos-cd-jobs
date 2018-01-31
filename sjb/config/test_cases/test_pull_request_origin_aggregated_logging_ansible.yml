@@ -120,6 +120,8 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
+                         -e openshift_docker_log_driver=journald \
+                         -e openshift_docker_options="--log-driver=journald" \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -137,6 +139,8 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
                          -e debug_level=2           \
+                         -e openshift_docker_log_driver=journald \
+                         -e openshift_docker_options="--log-driver=journald" \
                          ${playbook}
         if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
             playbook="${playbook_base}deploy_cluster.yml"

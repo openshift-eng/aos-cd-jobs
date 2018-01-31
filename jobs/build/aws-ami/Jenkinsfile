@@ -35,7 +35,7 @@ properties(
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'cicd_openshift_node_ami_build', description: 'Base AMI instance name.', name: 'BASE_AMI_NAME'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'ami_builder_key', description: 'Name of the AWS SSH key user to use.', name: 'AWS_SSH_KEY_USER'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/', description: 'Base url for repository.', name: 'YUM_BASE_URL'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'False', description: 'Enable CRIO in Openshift for the AMI build.', name: 'USE_CRIO'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: false, description: 'Enable CRIO in Openshift for the AMI build.', name: 'USE_CRIO'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'docker.io/runcom/cri-o-system-container:v3.8', description: 'CRIO system container override image.', name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'master', description: 'openshift-ansible checkout point.', name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
                          ]

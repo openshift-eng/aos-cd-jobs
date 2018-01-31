@@ -1,0 +1,16 @@
+node("openshift-build-1") {
+  try {
+    // If this script exits with an error an exception will be thrown.
+    // Script(s) should be checked in to the same directory as this Jenkinsfile.
+    sh "./jeffs-script.sh  arg1  arg2"
+  } catch (err) {
+    mail( to: "jcantril@redhat.com"
+          from: "aos-cd@redhat.com",
+          subject: "Error populating distgits from upstream",
+          body: """Encoutered an error populating distgit repositories: ${err}
+Jenkins job: ${env.BUILD_URL}
+""");
+            // Re-throw the error in order to fail the job
+            throw err    
+  }
+}

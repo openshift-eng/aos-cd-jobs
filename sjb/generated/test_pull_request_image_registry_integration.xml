@@ -347,7 +347,15 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-OS_BUILD_ENV_TMP_VOLUME=&#39;/tmp&#39; hack/env JUNIT_REPORT=&#39;true&#39; make test-integration
+# pick the origin image to run the integration tests against, based
+# on the release branch this image registry PR is for.
+ORIGIN_VERSION=latest
+if [[ -n &#34;\$PULL_BASE_REF&#34; &amp;&amp; \$PULL_BASE_REF != &#34;master&#34; ]]; then
+  ORIGIN_VERSION=v\${PULL_BASE_REF#release-}
+fi
+echo &#34;Running integration tests with origin image tag \&#34;\$ORIGIN_VERSION\&#34;&#34;
+
+OS_BUILD_ENV_TMP_VOLUME=&#39;/tmp&#39; hack/env ORIGIN_VERSION=\$ORIGIN_VERSION JUNIT_REPORT=&#39;true&#39; make test-integration
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

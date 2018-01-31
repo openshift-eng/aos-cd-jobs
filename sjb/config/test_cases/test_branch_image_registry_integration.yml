@@ -9,4 +9,12 @@ extensions:
       title: "run image-registry integration tests"
       repository: "image-registry"
       script: |-
-        OS_BUILD_ENV_TMP_VOLUME='/tmp' hack/env JUNIT_REPORT='true' make test-integration
+        # pick the origin image to run the integration tests against, based
+        # on the release branch this image registry PR is for.
+        ORIGIN_VERSION=latest
+        if [[ -n "$PULL_BASE_REF" && $PULL_BASE_REF != "master" ]]; then
+          ORIGIN_VERSION=v${PULL_BASE_REF#release-}
+        fi
+        echo "Running integration tests with origin image tag \"$ORIGIN_VERSION\""
+
+        OS_BUILD_ENV_TMP_VOLUME='/tmp' hack/env ORIGIN_VERSION=$ORIGIN_VERSION JUNIT_REPORT='true' make test-integration

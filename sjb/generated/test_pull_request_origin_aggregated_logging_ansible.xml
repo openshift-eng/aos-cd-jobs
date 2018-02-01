@@ -524,6 +524,8 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
+                 -e openshift_docker_log_driver=journald \
+                 -e openshift_docker_options=&#34;--log-driver=journald&#34; \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -550,6 +552,8 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
                  -e debug_level=2           \
+                 -e openshift_docker_log_driver=journald \
+                 -e openshift_docker_options=&#34;--log-driver=journald&#34; \
                  \${playbook}
 if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
     playbook=&#34;\${playbook_base}deploy_cluster.yml&#34;

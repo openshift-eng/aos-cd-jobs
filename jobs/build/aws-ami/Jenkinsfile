@@ -107,7 +107,7 @@ openshift_aws_node_group_config_node_volumes:
 openshift_aws_ami_tags:
   bootstrap: "true"
   openshift-created: "true"
-  parent: "${BASE_AMI_ID}
+  parent: "${BASE_AMI_ID}"
   openshift_version: "${OPENSHIFT_VERSION}"
   openshift_short_version: "${OPENSHIFT_VERSION.substring(0,3)}"
   openshift_release: "${OPENSHIFT_RELEASE}"

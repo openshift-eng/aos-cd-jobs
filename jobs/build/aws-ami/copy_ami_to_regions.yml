@@ -21,9 +21,6 @@
     - 'us-east-2'
     - 'us-west-1'
     - 'us-west-2'
-    g_play_search_tags:
-      openshift_version_release: "{{ g_cli_version_release }}"
-      build_date: "{{ g_cli_build_date }}"
 
   tasks:
   - name: Ensure needed variables are set
@@ -31,8 +28,7 @@
       msg: "Value {{ item }} is not set!"
     when: "{{ item }} is undefined"
     with_items:
-    - g_cli_build_date
-    - g_cli_version_release
+    - cli_ami_name
 
   - name: remove the current region from the list of regions to copy to
     set_fact:
@@ -45,7 +41,7 @@
   - name: find the newly built AMI
     ec2_ami_find:
       region: "{{ g_play_current_region }}"
-      ami_tags: "{{ g_play_search_tags }}"
+      name: "{{ cli_ami_name }}"
     register: ami_search
 
   - name: debug the ami find

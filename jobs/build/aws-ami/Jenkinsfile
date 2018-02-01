@@ -113,7 +113,7 @@ openshift_aws_ami_tags:
   openshift_release: "${OPENSHIFT_RELEASE}"
   openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
   build_date: "${build_date}"
-openshift_aws_ami_name: "openshift-gi-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}"
+openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}"
 """)
             sh 'cat provisioning_vars.yml'
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',
@@ -127,7 +127,7 @@ openshift_aws_ami_name: "openshift-gi-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.s
                         sshagent([AWS_SSH_KEY_USER]) {
                             buildlib.with_virtualenv('env') {
                                 sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
-                                sh 'ansible-playbook copy_ami_to_regions.yml -e g_cli_build_date="${build_date}" -e g_cli_version_release="${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}" -vvv'
+                                sh "ansible-playbook copy_ami_to_regions.yml -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -vvv"
                             }
                         }
                     }

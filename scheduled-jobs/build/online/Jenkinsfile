@@ -16,6 +16,14 @@ b = build       job: '../aos-cd-builds/build%2Fopenshift-online', propagate: fal
 description += "${b.displayName} - ${b.result}\n"
 failed |= (b.result != "SUCCESS")
 
+b = build       job: '../aos-cd-builds/build%2Fopenshift-online', propagate: false,
+                        parameters: [
+                                        [$class: 'StringParameterValue', name: 'BUILD_MODE', value: 'online:int'],
+                                        [$class: 'StringParameterValue', name: 'RELEASE_VERSION', value: '3.7.0'],
+                        ]
+description += "${b.displayName} - ${b.result}\n"
+failed |= (b.result != "SUCCESS")
+
 
 currentBuild.description = description.trim()
 currentBuild.result = failed?"FAILURE":"SUCCESS"

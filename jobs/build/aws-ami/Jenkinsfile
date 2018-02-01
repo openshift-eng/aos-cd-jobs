@@ -51,6 +51,7 @@ node(TARGET_NODE) {
     try {
         set_workspace()
         def buildlib = null
+        def build_date = new Date().format('yyyyMMddHHmm')
         stage('clone') {
             checkout scm
             buildlib = load('pipeline-scripts/buildlib.groovy')
@@ -106,12 +107,12 @@ openshift_aws_node_group_config_node_volumes:
 openshift_aws_ami_tags:
   bootstrap: "true"
   openshift-created: "true"
-  parent: "{{ openshift_aws_base_ami | default('unknown') }}"
+  parent: "${BASE_AMI_ID}
   openshift_version: "${OPENSHIFT_VERSION}"
-  openshift_short_version: "{{ openshift_pkg_version[1:4] }}"
+  openshift_short_version: "${OPENSHIFT_VERSION.substring(0,3)}"
   openshift_release: "${OPENSHIFT_RELEASE}"
   openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
-  build_date: "{{ lookup('pipe', 'date +%Y%m%d%H%M')}}"
+  build_date: "${build_date}"
 openshift_aws_ami_name: "openshift-gi-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}"
 """)
             sh 'cat provisioning_vars.yml'
@@ -126,6 +127,7 @@ openshift_aws_ami_name: "openshift-gi-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.s
                         sshagent([AWS_SSH_KEY_USER]) {
                             buildlib.with_virtualenv('env') {
                                 sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+                                sh 'ansible-playbook copy_ami_to_regions.yml -e g_cli_build_date="${build_date}" -e g_cli_version_release="${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}" -vvv'
                             }
                         }
                     }

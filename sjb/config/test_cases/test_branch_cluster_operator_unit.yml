@@ -5,7 +5,12 @@ overrides:
 extensions:
   actions:
     - type: "script"
-      title: "run unit tests"
+      title: "run code verification"
+      repository: "cluster-operator"
+      script: |-
+        make verify
+    - type: "script"
+      title: "run tests"
       repository: "cluster-operator"
       script: |-
         make test

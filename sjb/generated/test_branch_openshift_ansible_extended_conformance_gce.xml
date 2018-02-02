@@ -521,7 +521,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 sudo systemctl restart docker
 cd cluster/test-deploy/\${CLUSTER_PROFILE}/
-../../bin/ansible.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; playbooks/gcp/openshift-cluster/launch.yml
+../../bin/ansible.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; -e debug_level=5 playbooks/gcp/openshift-cluster/launch.yml
 cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
 SCRIPT
 chmod +x &#34;${script}&#34;

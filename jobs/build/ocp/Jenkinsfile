@@ -469,7 +469,8 @@ node(TARGET_NODE) {
                     commit_msg = "${commit_msg} ; bump origin-web-console ${VC_COMMIT}"
                 }
 
-                sh "tito tag --accept-auto-changelog --keep-version --debug --changelog='${commit_msg}'"
+                sh "git commit --allow-empty -m '${commit_msg}'" // add commit to capture our change message
+                sh "tito tag --accept-auto-changelog --keep-version --debug"
                 if ( ! IS_TEST_MODE ) {
                     sh "git push"
                     sh "git push --tags"

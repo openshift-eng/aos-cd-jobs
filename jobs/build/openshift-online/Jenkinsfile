@@ -26,7 +26,7 @@ properties(
                                                     release         online/online-X.Y.Z -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>
                                                     ''',
                                     name: 'BUILD_MODE'],
-                                [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.6.0", defaultValue: '3.6.0', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],
+                                [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.6.0\n3.7.0", defaultValue: '3.6.0', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],
                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                          ]
                 ],

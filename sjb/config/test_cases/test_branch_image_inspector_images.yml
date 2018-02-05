@@ -1,0 +1,20 @@
+---
+parameters: []
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync_repos:
+    - name: "image-inspector"
+actions:
+  - type: "script"
+    title: "build image-inspector"
+    timeout: 10000
+    repository: "image-inspector"
+    script: |-
+        for tag in v2.4.0 ; do
+          git checkout $tag
+          docker build . -t openshift/image-inspector:$tag
+        done
+        git checkout master
+

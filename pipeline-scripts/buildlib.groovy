@@ -75,10 +75,12 @@ def initialize_enterprise_images_dir() {
     echo "Initialized env.ENTERPRISE_IMAGES_DIR: ${env.ENTERPRISE_IMAGES_DIR}"
 }
 
-def oit( cmd ){
+def oit(cmd, opts=[:]){
     cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
-    sh "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}"
+    return sh(
+        returnStdout: opts.capture ?: false,
+        script: "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}")
 }
 
 def initialize_ose_dir() {
@@ -354,6 +356,53 @@ def build_puddle(conf_url, keys, Object...args) {
     return puddle_dir
 }
 
+def build_ami(major, minor, version, release, mail_list) {
+    if(major < 3 || (major == 3 && minor < 9))
+        return
+    final full_version = "${version}-${release}"
+    final param = { type, name, value ->
+        [$class: type + 'ParameterValue', name: name, value: value]
+    }
+    waitUntil {
+        try {
+            build(job: 'build%2Faws-ami', parameters: [
+                param('String', 'OPENSHIFT_VERSION', version),
+                param('String', 'OPENSHIFT_RELEASE', release),
+                param('Boolean', 'USE_CRIO', true),
+                param(
+                    'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
+                    'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
+                        + full_version)])
+        } catch(err) {
+            mail(
+                to: "${mail_list}",
+                from: "aos-cd@redhat.com",
+                subject: "RESUMABLE Error during AMI build for OCP v${full_version}",
+                body: [
+                    "Encountered an error: ${err}",
+                    "Input URL: ${env.BUILD_URL}input",
+                    "Jenkins job: ${env.BUILD_URL}"].join('\n'))
+            final resp = input(
+                message: "Error during AMI Build for OCP v${full_version}",
+                parameters: [[
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    name: 'action',
+                    choices: 'RETRY\nCONTINUE\nABORT',
+                    description: [
+                        'Retry (try the operation again).',
+                        'Continue (fails are OK, continue pipeline).',
+                        'Abort (terminate the pipeline).'].join(' ')]])
+            if(resp == 'RETRY') {
+                return false // cause waitUntil to loop again
+            } else if(resp == 'CONTINUE') {
+                echo 'User chose to continue. Build failures are non-fatal.'
+                return true // terminate waitUntil
+            } else { // ABORT
+                error('User chose to abort pipeline because of ami build failures')
+            }
+        }
+    }
+}
 
 def with_virtualenv(path, f) {
     final env = [

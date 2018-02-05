@@ -117,6 +117,18 @@ images:build
 """
             }
 
+            final version_release = buildlib.oit([
+                "--working-dir ${OIT_WORKING}",
+                "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
+                '--images openshift-enterprise-docker',
+                '--quiet',
+                'images:print --short {version}-{release}',
+            ].join(' '), [capture: true]).split('-') // ['v3.9.0', '0.34.0.0']
+            buildlib.build_ami(
+                OSE_MAJOR, OSE_MINOR,
+                version_release[0].substring(1), version_release[1],
+                MAIL_LIST_FAILURE)
+
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success()
 

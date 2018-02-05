@@ -760,6 +760,12 @@ ${exclude} images:push --to-defaults --late-only
         // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
         buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", NEW_FULL_VERSION, BUILD_MODE )
 
+        stage("ami") {
+            buildlib.build_ami(
+                BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
+                NEW_VERSION, NEW_RELEASE, MAIL_LIST_FAILURE)
+        }
+
         // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
         OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
 

@@ -5,7 +5,9 @@ set -e
 
 echo "====Cleaning up old tito files===="
 # leaving default tito tmp in case it is used manually
-sudo find /tmp/tito -type f -mtime +1 -exec rm -rf {} \;
+if [ -e /tmp/tito ]; then
+    sudo find /tmp/tito -type f -mtime +1 -exec rm -rf {} \;
+fi
 # new runs will use this as tito tmp
 sudo find /home/jenkins/workspace/tito_tmp -type f -mtime +1 -exec rm -rf {} \;
 

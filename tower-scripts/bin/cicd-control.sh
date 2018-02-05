@@ -4,7 +4,6 @@ START_DIR=$(dirname "${BASH_SOURCE[0]}")
 # Ensure ansible outputs ANSI color for Jenkins.
 export ANSIBLE_FORCE_COLOR=true
 
-ansible-playbook -i hosts site
 GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"

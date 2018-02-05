@@ -49,8 +49,9 @@
       var: ami_search
 
   - ec2_ami_copy:
+      name: "{{ ami_search['results'][0]['name'] }}"
       source_region: "{{ g_play_current_region }}"
       region: "{{ item }}"
       source_image_id: "{{ ami_search['results'][0]['ami_id'] }}"
       tags: "{{ ami_search['results'][0]['tags'] }}"
-    with_items: "{{ g_play_regions_to_copy }}"
+    with_items: "{{ l_regions_to_copy }}"

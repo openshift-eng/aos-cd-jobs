@@ -4,6 +4,7 @@ from actions.named_shell_task import render_task
 from .interface import Action
 
 _OCT_INSTALL_TITLE = "INSTALL THE ORIGIN-CI-TOOL"
+# N/B: Running inside bash with 'set -u'!
 _OCT_INSTALL_ACTION = """latest="$( readlink "${HOME}/origin-ci-tool/latest" )"
 touch "${latest}"
 cp "${latest}/bin/activate" "${WORKSPACE}/activate"
@@ -16,7 +17,10 @@ mkdir -p "${OCT_CONFIG_HOME}"
 rm -rf "${OCT_CONFIG_HOME}/origin-ci-tool"
 oct configure ansible-client verbosity 2
 oct configure aws-client 'keypair_name' 'libra'
-oct configure aws-client 'private_key_path' '/var/lib/jenkins/.ssh/devenv.pem'"""
+oct configure aws-client 'private_key_path' '/var/lib/jenkins/.ssh/devenv.pem'
+if [[ -n "${ROOT_VOLUME_SIZE:-}" ]] ; then
+    oct configure aws-defaults master_root_volume_size $ROOT_VOLUME_SIZE
+fi"""
 
 
 class OCTInstallAction(Action):

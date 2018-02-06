@@ -16,6 +16,9 @@ parameters:
     description: "Pull request number."
   - name: PULL_PULL_SHA
     description: "Pull request head SHA."
+  - name: ROOT_VOLUME_SIZE
+    description: "Size of the root volume in gigabytes"
+    default_value: "50"
 actions:
   - type: "host_script"
     title: "upload GCS starting metadata"

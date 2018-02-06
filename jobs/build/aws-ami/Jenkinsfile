@@ -126,8 +126,10 @@ openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.gi
                     withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
                         sshagent([AWS_SSH_KEY_USER]) {
                             buildlib.with_virtualenv('env') {
-                                sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
-                                sh "ansible-playbook copy_ami_to_regions.yml -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -vvv"
+                                ansiColor('xterm') {
+                                    sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+                                    sh "ansible-playbook copy_ami_to_regions.yml -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -vvv"
+                                }
                             }
                         }
                     }

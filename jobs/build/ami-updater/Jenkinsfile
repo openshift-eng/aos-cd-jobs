@@ -84,6 +84,7 @@ env/bin/pip install --upgrade ansible boto boto3
 '''
         }
         stage('build') {
+            checkout scm
             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ami-build-creds']]) {
                 withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
                     sshagent([AWS_SSH_KEY_USER]) {

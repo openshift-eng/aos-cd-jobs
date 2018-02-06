@@ -35,7 +35,7 @@ properties(
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'cicd_openshift_node_ami_build', description: 'Base AMI instance name.', name: 'BASE_AMI_NAME'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'ami_builder_key', description: 'Name of the AWS SSH key user to use.', name: 'AWS_SSH_KEY_USER'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/', description: 'Base url for repository.', name: 'YUM_BASE_URL'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: false, description: 'Enable CRIO in Openshift for the AMI build.', name: 'USE_CRIO'],
+                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable CRIO in Openshift for the AMI build.', name: 'USE_CRIO'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'docker.io/runcom/cri-o-system-container:v3.8', description: 'CRIO system container override image.', name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'master', description: 'openshift-ansible checkout point.', name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
                          ]
@@ -87,7 +87,7 @@ openshift_aws_ssh_key_name: ${AWS_SSH_KEY_USER}
 openshift_pkg_version: "-${OPENSHIFT_VERSION}"
 openshift_cloudprovider_kind: aws
 openshift_aws_base_ami_name: ${BASE_AMI_NAME}
-openshift_use_crio: ${USE_CRIO}
+openshift_use_crio: ${USE_CRIO.capitalize()}
 openshift_crio_systemcontainer_image_override: "${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"
 openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo',  'baseurl': '${env.YUM_BASE_URL}', 'enabled': 'yes', 'gpgcheck': 0, 'sslverify': 'no', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'sslclientkey': '/var/lib/yum/client-key.pem', 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted'},{'sslverify': False, 'name': 'fastdata', 'sslclientkey': '/var/lib/yum/client-key.pem', 'enabled': True, 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'baseurl': 'https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/', 'file': 'fastdata-ovs', 'gpgcheck': False, 'description': 'Fastdata provides the official builds of OVS OpenShift supports'}]
 oreg_url: 'registry.reg-aws.openshift.com:443/openshift3/ose-\${component}:\${version}'

@@ -1,0 +1,164 @@
+#!/usr/bin/ansible-playbook
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    g_play_region: us-east-1
+    g_play_ssh_key_name: ami_builder_key
+    g_play_sg_group_id: sg-133a6266
+    g_play_subnet_id: subnet-3786fb53
+    g_play_image_id: "{{ cli_image_id | default(None) }}"
+    g_play_build_date: "{{ lookup('pipe','date +%Y%m%d%H%M') }}"
+    g_play_operating_system: RedHat
+    g_play_ami_search_standard: "true"
+    g_play_ami_search_tags:
+      operating_system: "{{ g_play_operating_system }}"
+      standard: "{{ g_play_ami_search_standard | string }}"
+    g_play_ami_search_tags:
+
+  tasks:
+  # Attempt to find the right AMI, if no AMI (g_play_image_id) is set
+  - when: not g_play_image_id
+    block:
+    - name: Query AWS for AMI matching tags
+      ec2_ami_find:
+        region: "{{ g_play_region }}"
+        ami_tags: "{{ g_play_ami_search_tags }}"
+        no_result_action: fail
+        sort: creationDate
+        sort_order: descending
+      retries: 10
+      register: l_ami_search
+
+    - debug: var=l_ami_search
+    - name: Set image ID to the AMI we just searched for
+      set_fact:
+        g_play_image_id: "{{ l_ami_search['results'][0]['ami_id'] }}"
+
+  - debug: var=g_play_image_id
+
+  - name: create an instance for ami creation
+    ec2:
+      assign_public_ip: yes
+      instance_type: m4.xlarge
+      region: "{{ g_play_region }}"
+      key_name: "{{ g_play_ssh_key_name }}"
+      group_id: "{{ g_play_sg_group_id }}"
+      vpc_subnet_id: "{{ g_play_subnet_id }}"
+      image: "{{ g_play_image_id }}"
+      #volumes: "{{ volumes }}"
+      wait: yes
+      exact_count: 1
+      count_tag:
+        Name: "update-ami-{{ g_play_operating_system}}"
+        operating_system: "{{ g_play_operating_system }}"
+      instance_tags:
+        Name: "update-ami-{{ g_play_operating_system}}"
+        operating_system: "{{ g_play_operating_system }}"
+        build_date: "{{ g_play_build_date }}"
+
+  - name: fetch newly created instances
+    ec2_instance_facts:
+      region: "{{ g_play_region }}"
+      filters:
+        "tag:Name": "update-ami-{{ g_play_operating_system}}"
+        instance-state-name: running
+    register: l_instances_out
+    retries: 20
+    delay: 3
+    until: l_instances_out.instances|length > 0
+
+  - name: wait for ssh to become available
+    wait_for:
+      port: 22
+      host: "{{ l_instances_out.instances[0].public_ip_address }}"
+      timeout: 300
+      search_regex: OpenSSH
+
+  - name: add host to new_node
+    add_host:
+      groups: new_nodes
+      name: "{{ l_instances_out.instances[0].public_dns_name }}"
+
+- hosts: new_nodes
+  gather_facts: True
+  tasks:
+  - name: Make room for new kernel on /boot
+    command: /usr/bin/package-cleanup --oldkernels --count=2 -y
+
+  - name: update mount options for /var
+    include_role:
+      name: roles/fstab_mount_options
+    vars:
+      fmo_mount_point: /var
+      fmo_mount_options: rw,relatime,seclabel,attr2,inode64,grpquota
+
+  - name: Update all packages
+    yum:
+      name:  "*"
+      state: latest
+
+  - name: Restart server
+    shell: sleep 2 && shutdown -r now "Ansible updates triggered"
+    async: 1
+    poll: 0
+    ignore_errors: true
+
+  - debug: var=ansible_ssh_host
+
+  - name: wait for remote instance to become available
+    wait_for_connection:
+      timeout: 300
+      delay: 20
+      sleep: 5
+
+  - name: Run the setup module to gather facts
+    setup:
+
+  - name: set some variables so we can use them in tags
+    set_fact:
+      l_kernel_version: "{{ ansible_kernel }}"
+      l_operating_system: "{{ ansible_distribution }}"
+      l_operating_system_version: "{{ ansible_distribution_version }}"
+
+- hosts: localhost
+  connection: local
+  become: no
+  vars:
+    g_play_region: us-east-1
+    g_play_build_date: "{{ lookup('pipe','date +%Y%m%d%H%M') }}"
+    l_operating_system: "{{ hostvars[l_instances_out.instances[0].public_dns_name]['ansible_distribution'] }}"
+    l_operating_system_version: "{{ hostvars[l_instances_out.instances[0].public_dns_name]['ansible_distribution_version'] }}"
+    l_kernel_version: "{{ hostvars[l_instances_out.instances[0].public_dns_name]['ansible_kernel'] }}"
+    g_play_ami_tag_standard: "true"
+    g_play_ami_tags:
+      operating_system: "{{ l_operating_system }}"
+      standard: "{{ g_play_ami_tag_standard }}"
+      build_date: "{{ g_play_build_date }}"
+      version: "{{ l_operating_system_version }}"
+      kernel: "{{ l_kernel_version }}"
+    g_play_ami_additional_tags: "{{ cli_ami_additional_tags | default(None) }}"
+
+  tasks:
+  - name: set the additional tags, if any
+    set_fact:
+      g_play_ami_tags: "{{ g_play_ami_tags | combine(g_play_ami_additional_tags) }}"
+    when: g_play_ami_additional_tags
+
+  - name: bundle ami
+    ec2_ami:
+      instance_id: "{{ l_instances_out.instances.0.instance_id }}"
+      region: "{{ g_play_region }}"
+      state: present
+      description: "CICD built {{ ansible_date_time.iso8601 }}"
+      name: "cicd_{{ l_operating_system }}_{{ l_operating_system_version }}_{{ g_play_build_date }}"
+      tags: "{{ g_play_ami_tags }}"
+      wait: yes
+    register: l_ami_out
+
+  - name: terminate temporary instance
+    ec2:
+      state: absent
+      region: "{{ g_play_region }}"
+      instance_ids: "{{ l_instances_out.instances.0.instance_id }}"

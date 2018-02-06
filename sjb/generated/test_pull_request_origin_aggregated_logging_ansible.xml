@@ -458,7 +458,7 @@ pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
 curbranch=\$( git rev-parse --abbrev-ref HEAD )
 popd
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
-if [[ &#34;\${curbranch}&#34; == master ]] ; then
+if [[ &#34;\${curbranch}&#34; == master || &#34;\${curbranch}&#34; == es5.x ]] ; then
    # why is this appending?  Is there something already in the file?
    # Will it work if there is more than one line?  What will it do?
    git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
@@ -604,7 +604,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
 curbranch=\$( git rev-parse --abbrev-ref HEAD )
 popd
-if [[ &#34;\${curbranch}&#34; == master ]] ; then
+if [[ &#34;\${curbranch}&#34; == master || &#34;\${curbranch}&#34; == es5.x ]] ; then
    origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
    rpm -V &#34;\${origin_package}&#34;
 fi
@@ -627,6 +627,13 @@ if [[ -s &#34;\${playbook_base}openshift-logging/config.yml&#34; ]]; then
 else
     playbook=&#34;\${playbook_base}byo/openshift-cluster/openshift-logging.yml&#34;
 fi
+curbranch=\$( git rev-parse --abbrev-ref HEAD )
+if [[ &#34;\${curbranch}&#34; == es5.x ]]; then
+    logging_extras=&#34;-e openshift_logging_es5_techpreview=True \
+                    -e openshift_logging_image_version=latest&#34;
+else
+    logging_extras=&#34;&#34;
+fi
 #                          -e openshift_logging_install_eventrouter=True                            \
 # richm 20171205 - ansible &#34;too much recursion&#34; bug
 ansible-playbook -vv --become               \
@@ -645,6 +652,7 @@ ansible-playbook -vv --become               \
                  -e openshift_logging_mux_allow_external=True                             \
                  -e openshift_logging_es_allow_external=True                              \
                  -e openshift_logging_es_ops_allow_external=True                          \
+                 \${logging_extras}                                                        \
                  \${playbook} \
                  --skip-tags=update_master_config
 SCRIPT

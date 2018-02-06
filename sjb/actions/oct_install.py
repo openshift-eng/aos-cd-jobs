@@ -16,7 +16,8 @@ mkdir -p "${OCT_CONFIG_HOME}"
 rm -rf "${OCT_CONFIG_HOME}/origin-ci-tool"
 oct configure ansible-client verbosity 2
 oct configure aws-client 'keypair_name' 'libra'
-oct configure aws-client 'private_key_path' '/var/lib/jenkins/.ssh/devenv.pem'"""
+oct configure aws-client 'private_key_path' '/var/lib/jenkins/.ssh/devenv.pem'
+[ -z "$ROOT_VOLUME_SIZE" ] || oct configure aws-defaults master_root_volume_size $ROOT_VOLUME_SIZE"""
 
 
 class OCTInstallAction(Action):

@@ -58,6 +58,11 @@
           <description>Pull request head SHA.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ROOT_VOLUME_SIZE</name>
+          <description>Size of the root volume in gigabytes</description>
+          <defaultValue>50</defaultValue>
+        </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
@@ -98,7 +103,8 @@ mkdir -p &#34;${OCT_CONFIG_HOME}&#34;
 rm -rf &#34;${OCT_CONFIG_HOME}/origin-ci-tool&#34;
 oct configure ansible-client verbosity 2
 oct configure aws-client &#39;keypair_name&#39; &#39;libra&#39;
-oct configure aws-client &#39;private_key_path&#39; &#39;/var/lib/jenkins/.ssh/devenv.pem&#39;</command>
+oct configure aws-client &#39;private_key_path&#39; &#39;/var/lib/jenkins/.ssh/devenv.pem&#39;
+[ -z &#34;$ROOT_VOLUME_SIZE&#34; ] || oct configure aws-defaults master_root_volume_size $ROOT_VOLUME_SIZE</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

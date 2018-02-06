@@ -17,7 +17,7 @@ def convert_property_to_ansible_arg(String ansible_arg, String ansible_value) {
     return created_ansible_arg
 }
 
-def convert_bool_property_to_ansible_arg(String ansible_arg, Boolean ansible_value) {
+def convert_boolean_property_to_ansible_arg(String ansible_arg, Boolean ansible_value) {
     def created_ansible_arg = ''
     if (!ansible_value) {
         created_ansible_arg = " -e ${ansible_arg}=${String.valueOf(ansible_value)} "

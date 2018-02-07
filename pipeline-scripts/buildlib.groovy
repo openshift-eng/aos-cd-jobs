@@ -373,6 +373,7 @@ def build_ami(major, minor, version, release, mail_list) {
                     'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
                     'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
                         + full_version)])
+            return true
         } catch(err) {
             mail(
                 to: "${mail_list}",

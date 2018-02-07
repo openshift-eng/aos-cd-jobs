@@ -8,7 +8,7 @@ def set_workspace() {
     }
 }
 
-def convert_property_to_ansible_arg(String ansible_arg, String ansible_value) {
+def convert_property_to_ansible_arg(ansible_arg, ansible_value) {
     def created_ansible_arg = ''
     if (!ansible_value.isEmpty()) {
         created_ansible_arg = " -e ${ansible_arg}=${ansible_value} "
@@ -17,9 +17,9 @@ def convert_property_to_ansible_arg(String ansible_arg, String ansible_value) {
     return created_ansible_arg
 }
 
-def convert_boolean_property_to_ansible_arg(String ansible_arg, Boolean ansible_value) {
+def convert_boolean_property_to_ansible_arg(ansible_arg, ansible_value) {
     def created_ansible_arg = ''
-    if (!ansible_value) {
+    if (!ansible_value.toBoolean()) {
         created_ansible_arg = " -e ${ansible_arg}=${String.valueOf(ansible_value)} "
     }
 
@@ -27,7 +27,7 @@ def convert_boolean_property_to_ansible_arg(String ansible_arg, Boolean ansible_
 }
 
 @NonCPS
-def convert_string_to_json_ansible_arg(String, ansible_arg, String key_value_pairs) {
+def convert_string_to_json_ansible_arg(ansible_arg, key_value_pairs) {
     split_lines = key_value_pairs.split('\n')
     def output_map = [:]
     for (String item : split_lines) {

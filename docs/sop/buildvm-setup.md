@@ -28,6 +28,8 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - Role Based Authentication
     - Pipeline Utility Steps
     - Extra Columns Plugin (to disable projects)
+    - Parameter Separator Plugin
+    - ANSI Color Plugin
     - Install Red Hat CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  . Added update center manager plugin and then installed.
 
 # Jenkins Agent Setup

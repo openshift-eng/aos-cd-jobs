@@ -28,14 +28,17 @@ def convert_boolean_property_to_ansible_arg(ansible_arg, ansible_value) {
 
 @NonCPS
 def convert_string_to_json_ansible_arg(ansible_arg, key_value_pairs) {
-    split_lines = key_value_pairs.split('\n')
-    def output_map = [:]
-    for (String item : split_lines) {
-        split_item = item.split('=')
-        output_map[split_item[0]] = split_item[1]
-    }
+    def created_ansible_arg = ""
+    if (!ansible_value.isEmpty()) {
+        split_lines = key_value_pairs.split('\n')
+        def output_map = [:]
+        for (String item : split_lines) {
+            split_item = item.split('=')
+            output_map[split_item[0]] = split_item[1]
+        }
 
-    def created_ansible_arg = " -e ${ansible_arg}=${JsonOutput.toJson(output_map)} "
+        created_ansible_arg = " -e ${ansible_arg}=${JsonOutput.toJson(output_map)} "
+    }
 
     return created_ansible_arg
 }
@@ -91,16 +94,12 @@ env/bin/pip install --upgrade ansible boto boto3
                         buildlib.with_virtualenv('env') {
                             // we need to build the options to pass into the ansible script
                             def anible_arg_ami_id = convert_property_to_ansible_arg('cli_image_id', SOURCE_AMI_ID)
-                            def anible_arg_ami_standard = convert_property_to_ansible_arg('g_play_ami_search_standard', SOURCE_AMI_STANDARD)
-
                             def anible_arg_ami_search_standard = convert_boolean_property_to_ansible_arg('g_play_ami_search_standard', SOURCE_AMI_STANDARD)
                             def anible_arg_ami_tag_standard = convert_boolean_property_to_ansible_arg('g_play_ami_tag_standard', DEST_AMI_STANDARD)
                             def ansible_arg_ami_search_tags = convert_string_to_json_ansible_arg('g_play_ami_search_tags', SOURCE_AMI_SEARCH_TAGS)
                             def ansible_arg_ami_dest_additional_tags = convert_string_to_json_ansible_arg('cli_ami_additional_tags', DEST_AMI_ADDITIONAL_TAGS)
 
-                            def ansible_command = "ansible-playbook " + anible_arg_ami_id + anible_arg_ami_standard + anible_arg_ami_search_standard + anible_arg_ami_tag_standard + ansible_arg_ami_search_tags + ansible_arg_ami_dest_additional_tags + "update_base_ami.yml"
-
-
+                            def ansible_command = "ansible-playbook " + anible_arg_ami_id + anible_arg_ami_search_standard + anible_arg_ami_tag_standard + ansible_arg_ami_search_tags + ansible_arg_ami_dest_additional_tags + "update_base_ami.yml"
                             sh ansible_command
                         }
                     }

@@ -7,39 +7,195 @@ def set_workspace() {
     }
 }
 
+def build_aws_tag_args(ami_search_tags){
+    def tag_args = ''
+    if (!ami_search_tags.isEmpty()) {
+        def tmp_tag_args = ""
+        def split_lines = ami_search_tags.split('\n')
+        split_lines.each {
+            tmp_tag_args += " -t " + it
+        }
+        tag_args = tmp_tag_args
+     }
+
+    return tag_args
+}
+
+def build_aws_tag_args(ami_search_tags){
+    def tag_args = ''
+    def tag_list = []
+    if (!ami_search_tags.isEmpty()) {
+        split_lines = key_value_pairs.split('\n')
+        split_lines.each {
+            tag_list.add(it)
+        }
+        tag_args = tag_list.
+
+
+    return tag_args
+
+}
+
+def write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password){
+    // create the provisioning_vars.yml file to use as inventory
+    writeFile(file: 'provisioning_vars.yml', text: """---
+openshift_aws_base_ami: ${ami_id}
+openshift_node_use_instance_profiles: True
+openshift_aws_create_vpc: False
+openshift_deployment_type: ${DEPLOYMENT_TYPE}
+openshift_clusterid: default
+openshift_aws_vpc_name: ${VPC_NAME}
+openshift_aws_region: us-east-1
+openshift_aws_build_ami_ssh_user: root
+openshift_aws_build_ami_group: ${SG_NAME}
+openshift_aws_subnet_az: ${AZ_NAME}
+openshift_aws_base_ami: ${BASE_AMI_ID}
+openshift_aws_ssh_key_name: ${AWS_SSH_KEY_USER}
+openshift_pkg_version: "-${OPENSHIFT_VERSION}"
+openshift_cloudprovider_kind: aws
+openshift_aws_base_ami_name: ${BASE_AMI_NAME}
+openshift_use_crio: ${USE_CRIO}
+openshift_crio_systemcontainer_image_override: "${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"
+openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo',  'baseurl': '${env.YUM_BASE_URL}', 'enabled': 'yes', 'gpgcheck': 0, 'sslverify': 'no', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'sslclientkey': '/var/lib/yum/client-key.pem', 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted'},{'sslverify': False, 'name': 'fastdata', 'sslclientkey': '/var/lib/yum/client-key.pem', 'enabled': True, 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'baseurl': 'https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/', 'file': 'fastdata-ovs', 'gpgcheck': False, 'description': 'Fastdata provides the official builds of OVS OpenShift supports'}]
+oreg_url: 'registry.reg-aws.openshift.com:443/openshift3/ose-\${component}:\${version}'
+container_runtime_docker_storage_type: overlay2
+container_runtime_docker_storage_setup_device: xvdb
+docker_storage_path: /var/lib/containers/docker
+docker_storage_size: 200G
+openshift_aws_node_group_config_node_volumes:
+- device_name: /dev/sda1
+  volume_size: 30
+  device_type: gp2
+  delete_on_termination: True
+- device_name: /dev/sdb
+  volume_size: 200
+  device_type: gp2
+  delete_on_termination: True
+openshift_aws_ami_tags:
+  bootstrap: "true"
+  openshift-created: "true"
+  parent: "{{ openshift_aws_base_ami }}"
+  openshift_version: "${OPENSHIFT_VERSION}"
+  openshift_short_version: "${OPENSHIFT_VERSION.substring(0,3)}"
+  openshift_release: "${OPENSHIFT_RELEASE}"
+  openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
+  build_date: "${build_date}"
+openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}"
+oreg_auth_user=${jenkins_oreg_auth_user}
+oreg_auth_password=${jenkins_oreg_auth_password}
+""")
+
+    sh 'cat provisioning_vars.yml'
+}
+
 // Expose properties for a parameterized build
 properties(
         [
-                disableConcurrentBuilds(),
-                [$class: 'ParametersDefinitionProperty',
-                 parameterDefinitions:
-                         [
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force rebuild even if no changes are detected?', name: 'FORCE_REBUILD'],
-                                 [$class: 'hudson.model.ChoiceParameterDefinition',
-                                    choices: "openshift-enterprise\norigin",
-                                    defaultValue: 'openshift-enterprise',
-                                    description: '''origin                    Openshift origin  <br>
-                                                    openshift-enterprise      Openshift Enterpriseonline <br>
-                                    ''',
-                                    name: 'DEPLOYMENT_TYPE'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'cicd_build', description: 'Specify a name that will be used for the VPC. Also used for VPC and other settings', name: 'VPC_NAME'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'us-east-1c', description: 'Specify an availability zone for the AMI build instance to use.', name: 'AZ_NAME'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'default', description: 'Specify a security group name for the AMI build instance to use.', name: 'SG_NAME'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '3.9.0', description: 'Openshift Version (matches version in branch name for release builds)', name: 'OPENSHIFT_VERSION'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '0.0.0.git.0.1234567.el7', description: 'Release version (The release version number)', name: 'OPENSHIFT_RELEASE'],
-                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'ami-ac0863d6', description: 'Base AMI id to build from.', name: 'BASE_AMI_ID'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'cicd_openshift_node_ami_build', description: 'Base AMI instance name.', name: 'BASE_AMI_NAME'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'ami_builder_key', description: 'Name of the AWS SSH key user to use.', name: 'AWS_SSH_KEY_USER'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/', description: 'Base url for repository.', name: 'YUM_BASE_URL'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Enable CRIO in Openshift for the AMI build.', name: 'USE_CRIO'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'docker.io/runcom/cri-o-system-container:v3.8', description: 'CRIO system container override image.', name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'master', description: 'openshift-ansible checkout point.', name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
-                         ]
-                ],
+            disableConcurrentBuilds(),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions:
+                [
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'openshift-build-1',
+                     description: 'Jenkins agent node',
+                     name: 'TARGET_NODE'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'aos-cicd@redhat.com',
+                     description: 'Success Mailing List',
+                     name: 'MAIL_LIST_SUCCESS'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'jupierce@redhat.com,bbarcaro@redhat.com',
+                     description: 'Failure Mailing List',
+                     name: 'MAIL_LIST_FAILURE'],
+
+                    [$class: 'hudson.model.BooleanParameterDefinition',
+                     defaultValue: false,
+                     description: 'Force rebuild even if no changes are detected?',
+                     name: 'FORCE_REBUILD'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: '3.9.0',
+                     description: 'Openshift Version (matches version in branch name for release builds)',
+                     name: 'OPENSHIFT_VERSION'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: '0.0.0.git.0.1234567.el7',
+                     description: 'Release version (The release version number)',
+                     name: 'OPENSHIFT_RELEASE'],
+
+                    [$class: 'hudson.model.ChoiceParameterDefinition',
+                     choices: "openshift-enterprise\norigin",
+                     defaultValue: 'openshift-enterprise',
+                     description: 'origin - Openshift origin\nopenshift-enterprise - Openshift Enterpriseonline',
+                     name: 'DEPLOYMENT_TYPE'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/',
+                     description: 'Base url for repository.',
+                     name: 'YUM_BASE_URL'],
+
+                    [$class: 'hudson.model.BooleanParameterDefinition',
+                     defaultValue: false,
+                     description: 'Enable CRIO in Openshift for the AMI build.',
+                     name: 'USE_CRIO'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'docker.io/runcom/cri-o-system-container:v3.8',
+                     description: 'CRIO system container override image.',
+                     name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'master',
+                     description: 'openshift-ansible checkout point.',
+                     name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
+
+                    // Parameters to search for AMI to use
+                    [$class: 'hudson.model.TextParameterDefinition',
+                     defaultValue: 'operating_system=RedHat\nstandard=true',
+                     description: 'Line delimited tags (K=V) to use to find the Base AMI to use\nThis option is overrididen by specifying the BASE_AMI_ID ',
+                     name: 'AMI_SEARCH_TAGS'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: '',
+                     description: 'Base AMI id to build from.\nNOTE: By default the job will search for the latest AMI based on the AMI Search Tags. If this is provided, it will override the search tags provided',
+                     name: 'BASE_AMI_ID'],
+
+                    // AWS Settings, these probably shouldn't change too often
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'cicd_openshift_node_ami_build',
+                     description: 'Base AMI instance name.',
+                     name: 'BASE_AMI_NAME'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'ami_builder_key',
+                     description: 'Name of the AWS SSH key user to use.',
+                     name: 'AWS_SSH_KEY_USER'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'cicd_build',
+                     description: 'Specify a name that will be used for the VPC. Also used for VPC and other settings',
+                     name: 'VPC_NAME'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'us-east-1c',
+                     description: 'Specify an availability zone for the AMI build instance to use.',
+                     name: 'AZ_NAME'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'default',
+                     description: 'Specify a security group name for the AMI build instance to use.',
+                     name: 'SG_NAME'],
+
+                    // Mock
+                    [$class: 'BooleanParameterDefinition',
+                     defaultValue: false,
+                     description: 'Mock run to pickup new Jenkins parameters?.',
+                     name: 'MOCK'],
+                ]
+            ],
         ]
 )
 
@@ -69,67 +225,34 @@ env/bin/pip install --upgrade ansible boto boto3
 '''
         }
         stage('build') {
-            // create the provisioning_vars.yml file to use as inventory
-            writeFile(
-                file: 'provisioning_vars.yml',
-                text: """---
-openshift_node_use_instance_profiles: True
-openshift_aws_create_vpc: False
-openshift_deployment_type: ${DEPLOYMENT_TYPE}
-openshift_clusterid: default
-openshift_aws_vpc_name: ${VPC_NAME}
-openshift_aws_region: us-east-1
-openshift_aws_build_ami_ssh_user: root
-openshift_aws_build_ami_group: ${SG_NAME}
-openshift_aws_subnet_az: ${AZ_NAME}
-openshift_aws_base_ami: ${BASE_AMI_ID}
-openshift_aws_ssh_key_name: ${AWS_SSH_KEY_USER}
-openshift_pkg_version: "-${OPENSHIFT_VERSION}"
-openshift_cloudprovider_kind: aws
-openshift_aws_base_ami_name: ${BASE_AMI_NAME}
-openshift_use_crio: ${USE_CRIO.capitalize()}
-openshift_crio_systemcontainer_image_override: "${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"
-openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo',  'baseurl': '${env.YUM_BASE_URL}', 'enabled': 'yes', 'gpgcheck': 0, 'sslverify': 'no', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'sslclientkey': '/var/lib/yum/client-key.pem', 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted'},{'sslverify': False, 'name': 'fastdata', 'sslclientkey': '/var/lib/yum/client-key.pem', 'enabled': True, 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'baseurl': 'https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/', 'file': 'fastdata-ovs', 'gpgcheck': False, 'description': 'Fastdata provides the official builds of OVS OpenShift supports'}]
-oreg_url: 'registry.reg-aws.openshift.com:443/openshift3/ose-\${component}:\${version}'
-container_runtime_docker_storage_type: overlay2
-container_runtime_docker_storage_setup_device: xvdb
-docker_storage_path: /var/lib/containers/docker
-docker_storage_size: 200G
-openshift_aws_node_group_config_node_volumes:
-- device_name: /dev/sda1
-  volume_size: 30
-  device_type: gp2
-  delete_on_termination: True
-- device_name: /dev/sdb
-  volume_size: 200
-  device_type: gp2
-  delete_on_termination: True
-openshift_aws_ami_tags:
-  bootstrap: "true"
-  openshift-created: "true"
-  parent: "${BASE_AMI_ID}"
-  openshift_version: "${OPENSHIFT_VERSION}"
-  openshift_short_version: "${OPENSHIFT_VERSION.substring(0,3)}"
-  openshift_release: "${OPENSHIFT_RELEASE}"
-  openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
-  build_date: "${build_date}"
-openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}"
-""")
-            sh 'cat provisioning_vars.yml'
-            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',
-                              usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-                sh 'oc login --config=.kube/reg-aws -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'
-                sh 'echo "oreg_auth_user: $USERNAME" >> provisioning_vars.yml'
-                sh '#!/bin/sh -e\n' + 'echo "oreg_auth_password: $(oc --config=.kube/reg-aws whoami -t)" >> provisioning_vars.yml'
 
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ami-build-creds']]) {
-                    withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
-                        sshagent([AWS_SSH_KEY_USER]) {
-                            buildlib.with_virtualenv('env') {
-                                ansiColor('xterm') {
-                                    sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
-                                    sh "ansible-playbook copy_ami_to_regions.yml -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -vvv"
-                                }
+            // get the reg-aws credentials
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',
+                              usernameVariable: 'REG_AWS_USERNAME', passwordVariable: 'REG_AWS_PASSWORD']]) {
+                sh 'oc login --config=.kube/reg-aws -u $REG_AWS_USERNAME -p $REG_AWS_PASSWORD https://api.reg-aws.openshift.com'
+
+                jenkins_oreg_auth_user = env.REG_AWS_USERNAME
+                jenkins_oreg_auth_password = sh(returnStdout: true, script: 'oc --config=.kube/reg-aws whoami -t').trim()
+            }
+
+            // get the ami-id to use
+            def ami_id = ""
+            if (!BASE_AMI_ID.isEmpty()){
+                ami_id = BASE_AMI_ID
+            } else {
+                def tag_args = build_aws_tag_args(AMI_SEARCH_TAGS)
+                ami_id = sh(returnStdout: true, script: "./oo-ec2-find-ami.py ${tag_args}").trim()
+            }
+
+            write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password)
+
+            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ami-build-creds']]) {
+                withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
+                    sshagent([AWS_SSH_KEY_USER]) {
+                        buildlib.with_virtualenv('env') {
+                            ansiColor('xterm') {
+                                sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+                                sh "ansible-playbook copy_ami_to_regions.yml -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -vvv"
                             }
                         }
                     }

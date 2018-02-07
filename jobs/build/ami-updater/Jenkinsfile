@@ -29,7 +29,7 @@ def convert_boolean_property_to_ansible_arg(ansible_arg, ansible_value) {
 @NonCPS
 def convert_string_to_json_ansible_arg(ansible_arg, key_value_pairs) {
     def created_ansible_arg = ""
-    if (!ansible_value.isEmpty()) {
+    if (!key_value_pairs.isEmpty()) {
         split_lines = key_value_pairs.split('\n')
         def output_map = [:]
         for (String item : split_lines) {

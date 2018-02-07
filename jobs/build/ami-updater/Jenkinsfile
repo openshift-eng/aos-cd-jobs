@@ -37,7 +37,7 @@ def convert_string_to_json_ansible_arg(ansible_arg, key_value_pairs) {
             output_map[split_item[0]] = split_item[1]
         }
 
-        created_ansible_arg = " -e ${ansible_arg}=${JsonOutput.toJson(output_map)} "
+        created_ansible_arg = " -e ${ansible_arg}=\'${JsonOutput.toJson(output_map)}\' "
     }
 
     return created_ansible_arg
@@ -99,7 +99,18 @@ env/bin/pip install --upgrade ansible boto boto3
                             def ansible_arg_ami_search_tags = convert_string_to_json_ansible_arg('g_play_ami_search_tags', SOURCE_AMI_SEARCH_TAGS)
                             def ansible_arg_ami_dest_additional_tags = convert_string_to_json_ansible_arg('cli_ami_additional_tags', DEST_AMI_ADDITIONAL_TAGS)
 
-                            def ansible_command = "ansible-playbook " + anible_arg_ami_id + anible_arg_ami_search_standard + anible_arg_ami_tag_standard + ansible_arg_ami_search_tags + ansible_arg_ami_dest_additional_tags + "update_base_ami.yml"
+                            #def ansible_command = "ansible-playbook " + anible_arg_ami_id + anible_arg_ami_search_standard + anible_arg_ami_tag_standard + ansible_arg_ami_search_tags + ansible_arg_ami_dest_additional_tags + "update_base_ami.yml"
+                            // build the ansible_command
+                            // This build is necessary because of quoting issues
+                            def ansible_command = "ansible-playbook "
+                            [anible_arg_ami_id, anible_arg_ami_search_standard, anible_arg_ami_tag_standard, ansible_arg_ami_search_tags, ansible_arg_ami_dest_additional_tags].each {
+                                if (!it.isEmpty()) {
+                                    ansible_command += it
+                                }
+                            }
+                            ansible_command += "update_base_ami.yml"
+
+                            // run it, now that it's built
                             sh ansible_command
                         }
                     }

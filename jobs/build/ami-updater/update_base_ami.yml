@@ -22,6 +22,7 @@
     block:
     - name: Query AWS for AMI matching tags
       ec2_ami_find:
+        owner: self
         region: "{{ g_play_region }}"
         ami_tags: "{{ g_play_ami_search_tags }}"
         no_result_action: fail

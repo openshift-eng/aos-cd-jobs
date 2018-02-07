@@ -83,6 +83,7 @@
 
 - hosts: new_nodes
   gather_facts: True
+  remote_user: root
   tasks:
   - name: Make room for new kernel on /boot
     command: /usr/bin/package-cleanup --oldkernels --count=2 -y

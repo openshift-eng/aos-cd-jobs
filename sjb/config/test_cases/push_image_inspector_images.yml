@@ -1,0 +1,30 @@
+---
+parent: 'test_cases/test_branch_image_inspector_images.yml'
+overrides:
+  email:
+    - efreiber@redhat.com
+    - fsimonce@redhat.com
+  sync_repos:
+    - name: "image-inspector"
+extensions:
+  actions:
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "Copy docker credentials to instance"
+      timeout: 60
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "script"
+      title: "push the image-inspector images"
+      repository: "image-inspector"
+      timeout: 7200
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        export DOCKER_CONFIG=/tmp/.docker
+
+        docker tag openshift/image-inspector:v2.4.0 docker.io/openshift/image-inspector:v2.4.0
+        docker push docker.io/openshift/image-inspector:v2.4.0

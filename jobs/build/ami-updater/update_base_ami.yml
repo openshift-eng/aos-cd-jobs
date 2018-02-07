@@ -15,7 +15,6 @@
     g_play_ami_search_tags:
       operating_system: "{{ g_play_operating_system }}"
       standard: "{{ g_play_ami_search_standard | string }}"
-    g_play_ami_search_tags:
 
   tasks:
   # Attempt to find the right AMI, if no AMI (g_play_image_id) is set

@@ -260,7 +260,7 @@ env/bin/pip install --upgrade ansible boto boto3
 
                             ansiColor('xterm') {
                                 sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
-                                sh "ansible-playbook -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -e g_play_current_region='${AWS_REGION}' '${ansible_arg_aws_accounts}' copy_ami_to_regions.yml"
+                                sh "ansible-playbook -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -e g_play_current_region=${AWS_REGION} ${ansible_arg_aws_accounts} copy_ami_to_regions.yml"
                             }
                         }
                     }

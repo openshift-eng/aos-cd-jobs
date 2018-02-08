@@ -12,7 +12,7 @@ fi
 sudo find /home/jenkins/workspace/tito_tmp -type f -mtime +1 -exec rm -rf {} \;
 
 echo "====Cleaning up old ose_images.sh temporary directories===="
-sudo find /var/tmp/ose_images* -maxdepth 0 -mtime +1 -exec rm -rf {} \;
+sudo find /var/tmp/ -maxdepth 1 -name 'ose_images*' -mtime +1 -exec rm -rf {} +
 
 set +e   # docker rmi -f can fail if an image is in use, so ignore errors
 

@@ -58,12 +58,12 @@ properties(
 node('openshift-build-1') {
 
     checkout scm
-    
+
     def commonlib = load("pipeline-scripts/commonlib.groovy")
     commonlib.initialize()
 
     MAIL_LIST_SUCCESS_MINOR = "jupierce@redhat.com, mwoodson@redhat.com"
-    
+
     // Get default values from aos-cd-jobs-secrets
     MAIL_LIST_SUCCESS = MAIL_LIST_SUCCESS_DEFAULT = aos_cd_ops_data.getMailingList("on_success", CLUSTER_SPEC)
     MAIL_LIST_FAILURE = MAIL_LIST_FAILURE_DEFAULT = aos_cd_ops_data.getMailingList("on_failure", CLUSTER_SPEC)
@@ -174,7 +174,7 @@ node('openshift-build-1') {
                     deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity.
                 }
                 if ( UPGRADE_ONLINE_COMPONENTS.toBoolean()  ) {
-                    deploylib.run( "online-deployer" ) 
+                    deploylib.run( "online-deployer" )
                 }
             }
 
@@ -267,7 +267,7 @@ Jenkins job: ${env.BUILD_URL}
     }
 
 
-    if ( MODE != "silent" && "${env.BRANCH_NAME}".contains( "starter" )  ) {       
+    if ( MODE != "silent" && "${env.BRANCH_NAME}".contains( "starter" )  ) {
         try {
             // Send out a CI message for QE
             // Disbaling until our Jenkins instance is working with the UMB

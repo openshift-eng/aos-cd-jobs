@@ -30,10 +30,9 @@ def build_aws_tag_args(ami_search_tags){
             tag_list.add(it)
         }
         tag_args = tag_list.
-
+    }
 
     return tag_args
-
 }
 
 def write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password){
@@ -81,8 +80,8 @@ openshift_aws_ami_tags:
   openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
   build_date: "${build_date}"
 openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}"
-oreg_auth_user=${jenkins_oreg_auth_user}
-oreg_auth_password=${jenkins_oreg_auth_password}
+oreg_auth_user: ${jenkins_oreg_auth_user}
+oreg_auth_password: ${jenkins_oreg_auth_password}
 """)
 
     sh 'cat provisioning_vars.yml'
@@ -225,6 +224,8 @@ env/bin/pip install --upgrade ansible boto boto3
 '''
         }
         stage('build') {
+
+            currentBuild.displayName = "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
 
             // get the reg-aws credentials
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',

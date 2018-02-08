@@ -211,7 +211,7 @@ env/bin/pip install --upgrade ansible boto boto3
         }
         stage('build') {
 
-            currentBuild.displayName = "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
+            currentBuild.displayName = "#${currentBuild.number} - ${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
 
             // get the reg-aws credentials
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'pull-creds.reg-aws',
@@ -222,21 +222,22 @@ env/bin/pip install --upgrade ansible boto boto3
                 jenkins_oreg_auth_password = sh(returnStdout: true, script: 'oc --config=.kube/reg-aws whoami -t').trim()
             }
 
-            // get the ami-id to use
-            def ami_id = ""
-            if (!BASE_AMI_ID.isEmpty()){
-                ami_id = BASE_AMI_ID
-            } else {
-                def tag_args = build_aws_tag_args(AMI_SEARCH_TAGS)
-                ami_id = sh(returnStdout: true, script: "./oo-ec2-find-ami.py ${tag_args}").trim()
-            }
-
-            write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password)
-
             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ami-build-creds']]) {
                 withEnv(['ANSIBLE_HOST_KEY_CHECKING=False']) {
                     sshagent([AWS_SSH_KEY_USER]) {
                         buildlib.with_virtualenv('env') {
+
+                            // get the ami-id to use
+                            def ami_id = ""
+                            if (!BASE_AMI_ID.isEmpty()){
+                                ami_id = BASE_AMI_ID
+                            } else {
+                                def tag_args = build_aws_tag_args(AMI_SEARCH_TAGS)
+                                ami_id = sh(returnStdout: true, script: "./oo-ec2-find-ami.py ${tag_args}").trim()
+                            }
+
+                            write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password)
+
                             ansiColor('xterm') {
                                 sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
                                 sh "ansible-playbook copy_ami_to_regions.yml -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -vvv"

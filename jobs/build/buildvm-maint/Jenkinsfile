@@ -71,7 +71,7 @@ node('openshift-build-1') {
 
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-        mail(to: "jupierce@redhat.com",
+        mail(to: "jupierce@redhat.com,bbarcaro@redhat.com",
                 from: "aos-cd@redhat.com",
                 subject: "Error running buildvm maintenance",
                 body: """${err}

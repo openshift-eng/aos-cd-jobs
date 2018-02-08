@@ -5,6 +5,7 @@
   gather_facts: no
   vars:
     g_play_current_region: us-east-1
+    g_play_aws_share_accounts: "{{ cli_aws_share_accounts | default(None) }}"
     g_play_regions_to_copy:
     - 'ap-northeast-1'
     - 'ap-northeast-2'
@@ -47,6 +48,19 @@
   - name: debug the ami find
     debug:
       var: ami_search
+
+  - name: setup the variable to enable sharing the ami
+    set_fact:
+      l_dest_account_id:
+        user_ids: "{{ g_play_aws_share_accounts.split(',') }}"
+    when: g_play_aws_share_accounts
+
+  - name: Add launch and copy permissions to AMI to new aws account
+    ec2_ami:
+      region: "{{ g_play_current_region }}"
+      image_id: "{{ ami_search['results'][0]['ami_id'] }}"
+      launch_permissions: "{{ l_dest_account_id }}"
+    when: g_play_aws_share_accounts
 
   - ec2_ami_copy:
       name: "{{ ami_search['results'][0]['name'] }}"

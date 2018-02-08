@@ -7,6 +7,15 @@ def set_workspace() {
     }
 }
 
+def convert_aws_account_property_to_ansible_arg(ansible_arg, ansible_value) {
+    def created_ansible_arg = ''
+    if (!ansible_value.isEmpty()) {
+        created_ansible_arg = " -e ${ansible_arg}=${ansible_value.trim().replace('\n', ',')} "
+    }
+
+    return created_ansible_arg
+}
+
 def build_aws_tag_args(ami_search_tags){
     def tag_args = ''
     if (!ami_search_tags.isEmpty()) {
@@ -142,6 +151,12 @@ properties(
                      description: 'Line delimited tags (K=V) to use to find the Base AMI to use\nThis option is overrididen by specifying the BASE_AMI_ID ',
                      name: 'AMI_SEARCH_TAGS'],
 
+                    [$class: 'hudson.model.TextParameterDefinition',
+                     defaultValue: '531415883065\n704252977135',
+                     description: 'Line delimited list of AWS accounts the image with.\n  531415883065 - Openshift DevEnv AWS account\n  704252977135 - free-int AWS account',
+                     name: 'AMI_SHARE_ACCOUNTS'],
+
+
                     [$class: 'hudson.model.StringParameterDefinition',
                      defaultValue: '',
                      description: 'Base AMI id to build from.\nNOTE: By default the job will search for the latest AMI based on the AMI Search Tags. If this is provided, it will override the search tags provided',
@@ -237,9 +252,11 @@ env/bin/pip install --upgrade ansible boto boto3
 
                             write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password)
 
+                            def ansible_arg_aws_accounts = convert_aws_account_property_to_ansible_arg('cli_aws_share_accounts', AMI_SHARE_ACCOUNTS)
+
                             ansiColor('xterm') {
                                 sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
-                                sh "ansible-playbook copy_ami_to_regions.yml -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -vvv"
+                                sh "ansible-playbook -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' '${ansible_arg_aws_accounts}' copy_ami_to_regions.yml "
                             }
                         }
                     }

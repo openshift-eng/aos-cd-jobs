@@ -21,20 +21,6 @@ def build_aws_tag_args(ami_search_tags){
     return tag_args
 }
 
-def build_aws_tag_args(ami_search_tags){
-    def tag_args = ''
-    def tag_list = []
-    if (!ami_search_tags.isEmpty()) {
-        split_lines = key_value_pairs.split('\n')
-        split_lines.each {
-            tag_list.add(it)
-        }
-        tag_args = tag_list.
-    }
-
-    return tag_args
-}
-
 def write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password){
     // create the provisioning_vars.yml file to use as inventory
     writeFile(file: 'provisioning_vars.yml', text: """---

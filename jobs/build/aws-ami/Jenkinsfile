@@ -39,7 +39,7 @@ openshift_aws_create_vpc: False
 openshift_deployment_type: ${DEPLOYMENT_TYPE}
 openshift_clusterid: default
 openshift_aws_vpc_name: ${VPC_NAME}
-openshift_aws_region: us-east-1
+openshift_aws_region: ${AWS_REGION}
 openshift_aws_build_ami_ssh_user: root
 openshift_aws_build_ami_group: ${SG_NAME}
 openshift_aws_subnet_az: ${AZ_NAME}
@@ -148,21 +148,25 @@ properties(
                     // Parameters to search for AMI to use
                     [$class: 'hudson.model.TextParameterDefinition',
                      defaultValue: 'operating_system=RedHat\nstandard=true',
-                     description: 'Line delimited tags (K=V) to use to find the Base AMI to use\nThis option is overrididen by specifying the BASE_AMI_ID ',
+                     description: 'Line delimited tags (K=V) to use to find the base AMI to use\n  NOTE: This option is overrididen by specifying the BASE_AMI_ID ',
                      name: 'AMI_SEARCH_TAGS'],
-
-                    [$class: 'hudson.model.TextParameterDefinition',
-                     defaultValue: '531415883065\n704252977135',
-                     description: 'Line delimited list of AWS accounts the image with.\n  531415883065 - Openshift DevEnv AWS account\n  704252977135 - free-int AWS account',
-                     name: 'AMI_SHARE_ACCOUNTS'],
-
 
                     [$class: 'hudson.model.StringParameterDefinition',
                      defaultValue: '',
                      description: 'Base AMI id to build from.\nNOTE: By default the job will search for the latest AMI based on the AMI Search Tags. If this is provided, it will override the search tags provided',
                      name: 'BASE_AMI_ID'],
 
+                    [$class: 'hudson.model.TextParameterDefinition',
+                     defaultValue: '531415883065\n704252977135\n639866565627',
+                     description: 'Line delimited list of AWS accounts to share the image with.\nNOTE: Currently this only shares the AMI in the AWS_REGION defined.\n   531415883065 - Openshift DevEnv AWS Account\n   704252977135 - free-int AWS Account\n   639866565627 - Ops Test AWS Account',
+                     name: 'AMI_SHARE_ACCOUNTS'],
+
                     // AWS Settings, these probably shouldn't change too often
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'us-east-1',
+                     description: 'AWS Region to use',
+                     name: 'AWS_REGION'],
+
                     [$class: 'hudson.model.StringParameterDefinition',
                      defaultValue: 'cicd_openshift_node_ami_build',
                      description: 'Base AMI instance name.',
@@ -247,7 +251,7 @@ env/bin/pip install --upgrade ansible boto boto3
                                 ami_id = BASE_AMI_ID
                             } else {
                                 def tag_args = build_aws_tag_args(AMI_SEARCH_TAGS)
-                                ami_id = sh(returnStdout: true, script: "./oo-ec2-find-ami.py ${tag_args}").trim()
+                                ami_id = sh(returnStdout: true, script: "./oo-ec2-find-ami.py --region=${AWS_REGION} ${tag_args}").trim()
                             }
 
                             write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password)
@@ -256,7 +260,7 @@ env/bin/pip install --upgrade ansible boto boto3
 
                             ansiColor('xterm') {
                                 sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
-                                sh "ansible-playbook -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' '${ansible_arg_aws_accounts}' copy_ami_to_regions.yml "
+                                sh "ansible-playbook -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -e g_play_current_region='${AWS_REGION}' '${ansible_arg_aws_accounts}' copy_ami_to_regions.yml"
                             }
                         }
                     }

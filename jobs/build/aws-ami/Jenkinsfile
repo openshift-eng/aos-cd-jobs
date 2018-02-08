@@ -34,7 +34,6 @@ openshift_aws_region: us-east-1
 openshift_aws_build_ami_ssh_user: root
 openshift_aws_build_ami_group: ${SG_NAME}
 openshift_aws_subnet_az: ${AZ_NAME}
-openshift_aws_base_ami: ${BASE_AMI_ID}
 openshift_aws_ssh_key_name: ${AWS_SSH_KEY_USER}
 openshift_pkg_version: "-${OPENSHIFT_VERSION}"
 openshift_cloudprovider_kind: aws

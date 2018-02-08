@@ -43,6 +43,7 @@
     ec2_ami_find:
       region: "{{ g_play_current_region }}"
       name: "{{ cli_ami_name }}"
+      no_result_action: fail
     register: ami_search
 
   - name: debug the ami find

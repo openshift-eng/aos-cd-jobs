@@ -1,0 +1,130 @@
+---
+extensions:
+  actions:
+    - type: "script"
+      title: "update options for github ssh connections"
+      script: |-
+        cat <<CONF >>~/.ssh/config
+        Host github.com
+          HostName github.com
+          User git
+          UserKnownHostsFile /dev/null
+          StrictHostKeyChecking no
+        CONF
+        chmod g-w ~/.ssh/config
+    - type: "script"
+      title: "install system accounting rules"
+      script: |-
+        cat <<CONF >origin-ami-accounting.conf
+        [Manager]
+        DefaultCPUAccounting=yes
+        DefaultMemoryAccounting=yes
+        CONF
+        sudo mkdir -p /etc/systemd/system.conf.d/
+        sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
+    - type: "script"
+      title: "pre-pull infrastructure images"
+      script: |-
+        docker pull openshift/origin-release:golang-1.7
+        docker pull openshift/origin-release:golang-1.8
+        docker pull openshift/origin-gce:latest
+    - type: "script"
+      title: "use a ramdisk for etcd"
+      script: |-
+        sudo su root <<SUDO
+        mkdir -p /tmp
+        mount -t tmpfs -o size=8192m tmpfs /tmp
+        mkdir -p /tmp/etcd
+        chmod a+rwx /tmp/etcd
+        restorecon -R /tmp
+        echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
+        SUDO
+    - type: "script"
+      title: "get the correct code in place"
+      script: |-
+        git remote add upstream git@github.com:openshift/ose.git
+        git fetch upstream
+        git fetch upstream --tags --prune
+        git checkout upstream/master
+        git branch master
+        if [[ "${BRANCH}" != "master" ]]; then
+          git fetch upstream "${BRANCH}:${BRANCH}"
+        fi
+        git fetch upstream "pull/${OSE_PULL_ID}/head:pull-${OSE_PULL_ID}"
+        git branch target "${BRANCH}"
+        git checkout target
+        git merge "pull-${OSE_PULL_ID}"
+        # find the level of Origin we need to pull from
+        git remote add upstream-origin git@github.com:openshift/origin.git
+        git fetch upstream-origin
+        base="\$( git merge-base upstream-origin/master HEAD )"
+        pushd /data/src/github.com/openshift/origin
+        git checkout "\${base}"
+        popd
+        cp /data/src/github.com/openshift/origin/origin.spec ./
+        git add origin.spec
+        git commit -m "Overwrote .spec file from Origin at \${base}"
+    - type: "script"
+      title: "build an ose release"
+      script: |-
+        export OS_BUILD_IMAGE_ARGS=''
+        export OS_ONLY_BUILD_PLATFORMS="linux/amd64"
+        export OS_BUILD_ENV_PRESERVE="_output/local"
+        hack/build-base-images.sh
+        if [[ "${BRANCH}" == enterprise-3.[3-5] ]]; then
+          hack/build-release.sh
+          hack/build-images.sh
+          hack/extract-release.sh
+        else
+          OS_DEBUG=true OS_BUILD_ENV_PULL_IMAGE=true hack/env make release
+          sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+          sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+        fi
+        # docker seems to have a bunch of memory leaks, so let's
+        # give it a new address space before testing starts
+        sudo systemctl restart docker.service
+        # record the commit we're on for tagging
+        mkdir -p /data/src/github.com/openshift/image-registry
+        git log -n 1 --pretty=%h > /tmp/ORIGIN_COMMIT
+    - type: "script"
+      title: "build an image registry release"
+      script: |-
+        make build-images
+        docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:\$( cat /tmp/ORIGIN_COMMIT )"
+    - type: "script"
+      title: "verify commit history"
+      script: |-
+        if [[ "${BRANCH}" == "master" ]]; then
+          RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+        fi
+    - type: "script"
+      title: "run check and verify tasks"
+      script: |-
+        if [[ "${BRANCH}" == enterprise-3.3 ]]; then
+          TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+        else
+          OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+        fi
+    - type: "script"
+      title: "run integration and end-to-end tests"
+      script: |-
+        if [[ "${BRANCH}" == enterprise-3.[3-5] ]]; then
+          JUNIT_REPORT='true' make test-tools test-integration test-end-to-end
+        else
+          # docker takes up all the memory and kills our containers if we dont restart it
+          sudo systemctl restart docker
+          OS_BUILD_ENV_PULL_IMAGE=true hack/env JUNIT_REPORT='true' make test-tools test-integration
+          sudo systemctl restart docker
+          OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/end-to-end.test hack/env make build-router-e2e-test
+          OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/etcdhelper hack/env make build WHAT=tools/etcdhelper
+          OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-end-to-end -o build
+        fi
+    - type: "script"
+      title: "run extended conformance tests"
+      script: |-
+        JUNIT_REPORT='true' make test-extended SUITE=conformance
+    - type: "script"
+      title: "run extended networking tests"
+      script: |-
+        JUNIT_REPORT='true' make test-extended SUITE=networking-minimal
+        popd

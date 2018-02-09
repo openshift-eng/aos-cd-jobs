@@ -73,17 +73,11 @@ extensions:
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
       script: |-
-        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
-          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
-        else
-          evars=""
-        fi
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
-                         "${evars:-}" \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -108,11 +102,6 @@ extensions:
         else
             playbook="${playbook_base}byo/config.yml"
         fi
-        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
-          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
-        else
-          evars=""
-        fi
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
@@ -122,7 +111,6 @@ extensions:
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
-                         "${evars:-}" \
                          ${playbook}
     - type: "script"
       title: "expose the kubeconfig"

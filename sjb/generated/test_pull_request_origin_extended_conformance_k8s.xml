@@ -568,13 +568,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 sudo systemctl restart docker
-if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
-  evars=&#34;-e @sjb/inventory/\${PULL_BASE_REF}.cfg&#34;
-else
-  evars=&#34;&#34;
-fi
 cd cluster/test-deploy/\${CLUSTER_PROFILE}/
-../../bin/ansible.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; -e debug_level=5 playbooks/gcp/openshift-cluster/launch.yml &#34;\${evars:-}&#34;
+../../bin/ansible.sh ansible-playbook -e &#34;openshift_test_repo=\${location_url}&#34; -e debug_level=5 playbooks/gcp/openshift-cluster/launch.yml
 cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
 SCRIPT
 chmod +x &#34;${script}&#34;

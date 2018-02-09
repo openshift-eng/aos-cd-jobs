@@ -385,7 +385,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
-git checkout &#34;\${PULL_REFS%%:*}&#34;
+if [[ &#34;\${PULL_REFS%%:*}&#34; == es5.x ]]; then
+  git checkout &#34;\${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34;
+else
+  git checkout &#34;\${PULL_REFS%%:*}&#34;
+fi
 tito_tmp_dir=&#34;tito&#34;
 rm -rf &#34;\${tito_tmp_dir}&#34;
 mkdir -p &#34;\${tito_tmp_dir}&#34;
@@ -458,7 +462,7 @@ pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
 curbranch=\$( git rev-parse --abbrev-ref HEAD )
 popd
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
-if [[ &#34;\${curbranch}&#34; == master || &#34;\${curbranch}&#34; == es5.x ]] ; then
+if [[ &#34;\${curbranch}&#34; == master ]] ; then
    # why is this appending?  Is there something already in the file?
    # Will it work if there is more than one line?  What will it do?
    git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
@@ -599,7 +603,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 pushd &#34;/data/src/github.com/openshift/origin-aggregated-logging/&#34;
 curbranch=\$( git rev-parse --abbrev-ref HEAD )
 popd
-if [[ &#34;\${curbranch}&#34; == master || &#34;\${curbranch}&#34; == es5.x ]] ; then
+if [[ &#34;\${curbranch}&#34; == master ]] ; then
    origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
    rpm -V &#34;\${origin_package}&#34;
 fi
@@ -622,8 +626,7 @@ if [[ -s &#34;\${playbook_base}openshift-logging/config.yml&#34; ]]; then
 else
     playbook=&#34;\${playbook_base}byo/openshift-cluster/openshift-logging.yml&#34;
 fi
-curbranch=\$( git rev-parse --abbrev-ref HEAD )
-if [[ &#34;\${curbranch}&#34; == es5.x ]]; then
+if [[ &#34;\${PULL_REFS%%:*}&#34; == es5.x ]]; then
     logging_extras=&#34;-e openshift_logging_es5_techpreview=True \
                     -e openshift_logging_image_version=latest&#34;
 else

@@ -138,13 +138,8 @@ extensions:
       timeout: 2800
       script: |-
         sudo systemctl restart docker
-        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
-          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
-        else
-          evars=""
-        fi
         cd cluster/test-deploy/${CLUSTER_PROFILE}/
-        ../../bin/ansible.sh ansible-playbook -e "openshift_test_repo=${location_url}" -e debug_level=5 playbooks/gcp/openshift-cluster/launch.yml "${evars:-}"
+        ../../bin/ansible.sh ansible-playbook -e "openshift_test_repo=${location_url}" -e debug_level=5 playbooks/gcp/openshift-cluster/launch.yml
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
     - type: "script"
       title: "run extended tests"

@@ -754,7 +754,7 @@ rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/crio/crio.conf 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.conf&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.info&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo runc exec -t cri-o crio --version 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.commit&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo runc exec cri-o crio --version 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.commit&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.config&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /var/log/audit/audit.log 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/auditd.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/node-metrics.log&#34; || true

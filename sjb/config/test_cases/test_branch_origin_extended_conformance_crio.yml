@@ -211,7 +211,7 @@ extensions:
     - /etc/crio
     - /etc/systemd/system
   generated_artifacts:
-    crio.commit: "sudo runc exec -t cri-o crio --version"
+    crio.commit: "sudo runc exec cri-o crio --version"
     dmesg.log: "dmesg"
     journal_xe.log: "sudo journalctl -xe"
     avc_selinux_denials.log: 'sudo ausearch -m avc -ts recent'

@@ -13,6 +13,12 @@ repos:
   copy:
   - src: ansible/roles/oso_analytics/
     dst: roles/oso_analytics/
+- id: online-hibernation
+  url: https://github.com/openshift/online-hibernation.git
+  version: prod
+  copy:
+  - src: ansible/roles/oso_hibernation/
+    dst: roles/oso_hibernation/
 - id: online
   url: git@github.com:openshift/online.git
   version: prod

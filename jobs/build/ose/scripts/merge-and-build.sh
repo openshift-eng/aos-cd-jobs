@@ -127,7 +127,7 @@ pushd ${BUILDPATH}
 OIT_DIR="${BUILDPATH}/enterprise-images/"
 rm -rf ${OIT_DIR}
 mkdir -p ${OIT_DIR}
-OIT_PATH="${OIT_DIR}/oit/oit.py"
+OIT_PATH="${OIT_DIR}/tools/bin/oit"
 git clone git@github.com:openshift/enterprise-images.git ${OIT_DIR}
 popd
 

@@ -47,7 +47,7 @@ node('openshift-build-1') {
       buildlib.with_virtualenv("${pwd()}/env") {
         sh """\
 set -o pipefail
-sudo python oit/oit/oit.py \
+sudo python oit/tools/bin/oit \
   --metadata-dir oit/ \
   --group 'openshift-${BUILD_VERSION}' \
   images:scan-for-cves \

@@ -68,7 +68,7 @@ def initialize_enterprise_images_dir() {
     ENTERPRISE_IMAGES_DIR = "${env.WORKSPACE}/enterprise-images"
     sh "rm -rf ${ENTERPRISE_IMAGES_DIR}"  // Remove any cruft
     sh "mkdir -p ${ENTERPRISE_IMAGES_DIR}"
-    OIT_PATH = "${ENTERPRISE_IMAGES_DIR}/oit/oit.py"
+    OIT_PATH = "${ENTERPRISE_IMAGES_DIR}/tools/bin/oit"
     sh "git clone ${GITHUB_BASE}/enterprise-images.git ${ENTERPRISE_IMAGES_DIR}"
     env.ENTERPRISE_IMAGES_DIR = ENTERPRISE_IMAGES_DIR
     env.OIT_PATH = OIT_PATH
@@ -80,7 +80,7 @@ def oit(cmd, opts=[:]){
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
     return sh(
         returnStdout: opts.capture ?: false,
-        script: "${env.ENTERPRISE_IMAGES_DIR}/oit/oit.py --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}")
+        script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/oit --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}")
 }
 
 def initialize_ose_dir() {

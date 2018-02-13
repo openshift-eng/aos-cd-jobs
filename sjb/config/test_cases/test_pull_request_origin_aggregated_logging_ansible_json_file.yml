@@ -17,7 +17,11 @@ extensions:
       title: "build an openshift-ansible release"
       repository: "openshift-ansible"
       script: |-
-        git checkout "${PULL_REFS%%:*}"
+        if [[ "${PULL_REFS%%:*}" == es5.x ]]; then
+          git checkout "${OPENSHIFT_ANSIBLE_TARGET_BRANCH}"
+        else
+          git checkout "${PULL_REFS%%:*}"
+        fi
         tito_tmp_dir="tito"
         rm -rf "${tito_tmp_dir}"
         mkdir -p "${tito_tmp_dir}"
@@ -63,7 +67,7 @@ extensions:
         curbranch=$( git rev-parse --abbrev-ref HEAD )
         popd
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        if [[ "${curbranch}" == master || "${curbranch}" == es5.x ]] ; then
+        if [[ "${curbranch}" == master ]] ; then
            # why is this appending?  Is there something already in the file?
            # Will it work if there is more than one line?  What will it do?
            git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
@@ -168,7 +172,7 @@ extensions:
         pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
         curbranch=$( git rev-parse --abbrev-ref HEAD )
         popd
-        if [[ "${curbranch}" == master || "${curbranch}" == es5.x ]] ; then
+        if [[ "${curbranch}" == master ]] ; then
            origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
            rpm -V "${origin_package}"
         fi
@@ -182,8 +186,7 @@ extensions:
         else
             playbook="${playbook_base}byo/openshift-cluster/openshift-logging.yml"
         fi
-        curbranch=$( git rev-parse --abbrev-ref HEAD )
-        if [[ "${curbranch}" == es5.x ]]; then
+        if [[ "${PULL_REFS%%:*}" == es5.x ]]; then
             logging_extras="-e openshift_logging_es5_techpreview=True \
                             -e openshift_logging_image_version=latest"
         else

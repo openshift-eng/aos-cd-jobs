@@ -53,7 +53,9 @@ node('openshift-build-1') {
 
             try {
                 stage("legacy maint") {
-                    sh "./scripts/maintenance.sh"
+                    withEnv(["PATH=${env.PATH}:${pwd()}/build-scripts/ose_images"]) {
+                        sh "./scripts/maintenance.sh"
+                    }
                 }
             } catch ( ex2 ) {
                 e2 = ex2

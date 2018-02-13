@@ -5,6 +5,9 @@
 echo "This script is designed to be run from one of the cluster masters; make sure you are there!"
 read -p "Press enter to continue"
 
+echo "Do not run this unless your cluster is docker only (no cri-o). Or you can enhance it to exclude cri-o nodes.."
+read -p 
+
 set -o xtrace
 set -e
 nodes=$(oc get nodes -l type=compute -o=name)
@@ -27,7 +30,7 @@ for node in $nodes; do
         ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/origin/openshift.local.volumes"
         ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/docker"
         ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/cni/networks"  # https://bugzilla.redhat.com/show_bug.cgi?id=1518912
-        
+        ssh -o StrictHostKeyChecking=no "root@$node" "ovs-vsctl del-br br0"   # eparis recommended
         ssh -o StrictHostKeyChecking=no "root@$node" "docker-storage-setup --reset"
         ssh -o StrictHostKeyChecking=no "root@$node" "docker-storage-setup"
         ssh -o StrictHostKeyChecking=no "root@$node" "mkdir -p /var/lib/docker/volumes"  # An ops chattr drop in requires this

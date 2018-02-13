@@ -45,6 +45,8 @@
       name: "{{ cli_ami_name }}"
       no_result_action: fail
     register: ami_search
+    retries: 30
+    delay: 20
 
   - name: debug the ami find
     debug:
@@ -62,6 +64,8 @@
       image_id: "{{ ami_search['results'][0]['ami_id'] }}"
       launch_permissions: "{{ l_dest_account_id }}"
     when: g_play_aws_share_accounts
+    retries: 30
+    delay: 20
 
   - ec2_ami_copy:
       name: "{{ ami_search['results'][0]['name'] }}"

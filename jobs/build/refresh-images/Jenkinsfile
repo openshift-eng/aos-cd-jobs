@@ -70,14 +70,14 @@ node('openshift-build-1') {
     sh "mkdir -p ${OIT_WORKING}"
 
     stage('Refresh Images') {
-        try {    
+        try {
             try{
                 // Clean up old images so that we don't run out of device mapper space
                 sh "docker rmi --force \$(docker images  | grep v${OSE_MAJOR}.${OSE_MINOR} | awk '{print \$3}')"
             } catch ( cce ) {
                 echo "Error cleaning up old images: ${cce}"
-            }            
-            
+            }
+
             sshagent(['openshift-bot']) {
 
                 // default to using the atomic-openshift package version
@@ -110,11 +110,29 @@ images:update-dockerfile
   --push
   """
 
-              buildlib.oit """
+		buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
 images:build
 --push-to-defaults --repo-type signed
 """
+
+		try {
+		    buildlib.oit """
+--working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+images:verify
+--repo-type signed
+"""
+		} catch ( vererr ) {
+		    echo "Error verifying images: ${vererr}"
+		    mail(to: "${MAIL_LIST_FAILURE}",
+			 from: "aos-cd@redhat.com",
+			 subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
+			 body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
+
+
+Jenkins job: ${env.BUILD_URL}
+""");
+		}
             }
 
             final version_release = buildlib.oit([

@@ -131,19 +131,6 @@ def initialize_openshift_ansible() {
     echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
 }
 
-def initialize_openshift_jenkins() {
-    this.initialize_openshift_dir()
-    OPENSHIFT_JENKINS_DIR = "${OPENSHIFT_DIR}/jenkins"
-    dir( OPENSHIFT_DIR ) {
-        sh "git clone ${GITHUB_BASE}/jenkins.git"
-    }
-
-    GITHUB_URLS["jenkins"] = "${GITHUB_BASE}/jenkins.git"
-    GITHUB_BASE_PATHS["jenkins"] = OPENSHIFT_JENKINS_DIR
-    env.OPENSHIFT_JENKINS_DIR = OPENSHIFT_JENKINS_DIR
-    echo "Initialized env.OPENSHIFT_JENKINS_DIR: ${env.OPENSHIFT_JENKINS_DIR}"
-}
-
 /**
  * Returns up to 100 lines of passed in spec content
  * @param spec_filename The spec filename to read

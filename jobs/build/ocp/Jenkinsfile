@@ -175,20 +175,6 @@ node(TARGET_NODE) {
             IS_SOURCE_IN_MASTER = ( BUILD_VERSION == master_spec.major_minor )
         }
 
-        stage( "openshift-jenkins repo ") {
-          buildlib.initialize_openshift_jenkins()
-
-          JENKINS_SOURCE_BRANCH = "master"
-          dir( OPENSHIFT_JENKINS_DIR ) {
-              if ( ! IS_SOURCE_IN_MASTER ) {
-                  if(BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 6 ){
-                      JENKINS_SOURCE_BRANCH = "openshift-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
-                  }
-              }
-              sh "git checkout ${JENKINS_SOURCE_BRANCH}"
-          }
-        }
-
         stage( "origin-web-console repo" ) {
             sh "go get github.com/jteeuwen/go-bindata"
             buildlib.initialize_origin_web_console()
@@ -608,7 +594,6 @@ images:rebase --version v${NEW_VERSION}
 
         SOURCE_BRANCHES = [
           "ose": OSE_SOURCE_BRANCH,
-          "jenkins": JENKINS_SOURCE_BRANCH,
           "openshift-ansible": OPENSHIFT_ANSIBLE_SOURCE_BRANCH
         ]
         for(i = 0; i < distgit_notify.size(); i++) {

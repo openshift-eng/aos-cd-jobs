@@ -280,22 +280,6 @@ brew watch-task ${TASK_NUMBER}
 
 echo
 echo "=========="
-echo "Setup: openshift-jenkins"
-echo "=========="
-pushd ${WORKPATH}
-rm -rf jenkins
-git clone git@github.com:openshift/jenkins.git
-OPENSHIFT_JENKINS_DIR="${WORKPATH}/jenkins/"
-cd jenkins/
-if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-  if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -ge 6 ] ; then # 3.5 and below maps to "release-1.5"
-    git checkout -q openshift-${MAJOR}.${MINOR}
-  fi
-fi
-popd
-
-echo
-echo "=========="
 echo "Setup: openshift-ansible"
 echo "=========="
 pushd ${WORKPATH}
@@ -371,7 +355,6 @@ echo "=========="
 
 cat >"${OIT_WORKING}/sources.yml" <<EOF
 ose: ${OSE_DIR}
-jenkins: ${OPENSHIFT_JENKINS_DIR}
 openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
 EOF
 

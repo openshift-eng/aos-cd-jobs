@@ -1,0 +1,51 @@
+---
+parent: 'common/test_cases/ovn-kubernetes.yml'
+overrides:
+  timer: 'H H * * *'
+  provision:
+    os: "rhel"
+    stage: "bare"
+    provider: "aws"
+extensions:
+  actions:
+    - type: "host_script"
+      title: "install CI user account"
+      script: |-
+        oct prepare user
+        sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
+    - type: "host_script"
+      title: "bootstrap remote host"
+      script: |-
+        oct bootstrap host
+        oct bootstrap node
+    - type: "script"
+      title: "install git"
+      script: |-
+        sudo yum install -y git
+    - type: "script"
+      title: "set up ovn-kubernetes repository"
+      script: |-
+        sudo mkdir /go
+        sudo chmod a+rwx /go
+        sudo chmod o+rw /etc/environment
+        sudo echo "GOPATH=/go" >> /etc/environment
+        mkdir -p /go/src/github.com/openvswitch
+        cd /go/src/github.com/openvswitch
+        git clone https://github.com/openvswitch/ovn-kubernetes.git
+    - type: "script"
+      title: "set up ovn-kubernetes test dependencies"
+      script: |-
+        ansible-playbook -vv --become  \
+                         -i localhost, \
+                         --tags setup  \
+                         --become-user root \
+                         --connection local \
+                         /go/src/github.com/openvswitch/ovn-kubernetes/test/integration/main.yml
+    - type: "host_script"
+      title: "package the AMI"
+      script: |-
+        oct package ami --stage=ovn
+    - type: "host_script"
+      title: "release the AMI"
+      script: |-
+        oct package ami --mark-ready

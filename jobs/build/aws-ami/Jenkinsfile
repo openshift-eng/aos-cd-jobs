@@ -53,7 +53,7 @@ openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo', 
 oreg_url: 'registry.reg-aws.openshift.com:443/openshift3/ose-\${component}:\${version}'
 container_runtime_docker_storage_type: overlay2
 container_runtime_docker_storage_setup_device: xvdb
-docker_storage_path: /var/lib/containers/docker
+docker_storage_path: /var/lib/containers
 docker_storage_size: 200G
 openshift_aws_node_group_config_node_volumes:
 - device_name: /dev/sda1

@@ -485,7 +485,6 @@ def get_distgit_notify( record_log ) {
 
 def write_sources_file() {
   sources = """ose: ${env.OSE_DIR}
-jenkins: ${env.OPENSHIFT_JENKINS_DIR}
 openshift-ansible: ${env.OPENSHIFT_ANSIBLE_DIR}
   """
   writeFile(file: "${env.WORKSPACE}/sources.yml", text: sources)

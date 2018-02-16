@@ -654,6 +654,7 @@ rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.info&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.config&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/containers.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/node-metrics.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/master-metrics.log&#34; || true

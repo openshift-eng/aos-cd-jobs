@@ -207,3 +207,70 @@ sslverify=0
 sslclientcert=/var/lib/yum/client-cert.pem
 sslclientkey=/var/lib/yum/client-key.pem
 ```
+
+# Activity Logging (logwatch)
+
+Logwatch creates a daily snapshot summary of the security and
+operations activity of the system. It can be configured to email that
+report to the root user. In this case the root user is an alias list
+of the interested sysadmins.
+
+Set the `LOG_READERS` variable prior to running this change
+
+```
+#Install logwatch and send logs to the admin
+LOG_READERS="sysadmins@redhat.com"
+
+yum -y install logwatch
+cat <<EOF >> /etc/aliases
+root: ${LOGREADERS}
+EOF
+newaliases
+
+systemctl restart postfix
+```
+
+# Kerberos/LDAP Authentication
+
+It is desirable to be able to track the user activity on this host and
+to keep user processes and files separate from both the root/admin
+tasks and the Jenkins tasks and files. This procedure enables Red Hat
+users to log into the host using their LDAP/Kerberos credentials or
+SSH key. The logins are recorded and reported in the daily logs.
+
+```
+yum install -y krb5-workstation pam_krb5 sssd-krb5 \
+  nss-pam-ldapd oddjob-mkhomedir fprintd-pam
+
+#Enable KRB5 and LDAP
+
+authconfig --updateall \
+  --enablekrb5 \
+  --krb5realm=REDHAT.COM \
+  --krb5kdc=kerberos.corp.redhat.com \
+  --krb5admin=kerberos.corp.redhat.com \
+  --enableldap \
+  --ldapbasedn=dc=redhat,dc=com \
+  --ldapserver=ldap.corp.redhat.com \
+  --enablemkhomedir
+```
+
+# SUDO access for admin users
+
+On this host, admin users often must run processes as root or as the
+jenkins user. By adding them to the wheel group and enabling members
+of that group to use sudo, this sensitive activity can be logged and
+reported.
+
+Enable the wheel group by uncommenting this line in /etc/sudoers
+
+```
+%wheel	ALL=(ALL)	ALL
+```
+
+Set NEWUSER before running this snippet.
+
+```
+NEWUSER=username
+sed -i -e "/^wheel:/s/$/,${NEWUSER}/" /etc/group
+```

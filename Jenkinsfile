@@ -142,9 +142,11 @@ Jenkins job: ${env.BUILD_URL}
                 '--quiet',
                 'images:print --short {version}-{release}',
             ].join(' '), [capture: true]).split('-') // ['v3.9.0', '0.34.0.0']
+            final build_version = "${OSE_MAJOR}.${OSE_MINOR}"
             buildlib.build_ami(
                 OSE_MAJOR, OSE_MINOR,
                 version_release[0].substring(1), version_release[1],
+                "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/${build_version}/building/RH7-RHAOS-${build_version}/x86_64/os/",
                 MAIL_LIST_FAILURE)
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available

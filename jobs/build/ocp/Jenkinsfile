@@ -42,7 +42,7 @@ if ( BUILD_EXCLUSIONS != "" ) {
   BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
 }
 
-def mail_success( version ) {
+def mail_success( version, internal_puddle_url ) {
 
     def target = "(Release Candidate)"
     def mirrorURL = "https://mirror.openshift.com/enterprise/enterprise-${version.substring(0,3)}"
@@ -76,7 +76,7 @@ def mail_success( version ) {
             body: """\
 OpenShift Version: v${version}
 ${inject_notes}
-Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0,3)}/${OCP_PUDDLE}
+Puddle (internal): ${internal_puddle_url}
   - Mirror: ${mirrorURL}/${OCP_PUDDLE}
   - Images have been built for this puddle
   - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
@@ -745,14 +745,16 @@ ${exclude} images:push --to-defaults --late-only
         // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
         buildlib.invoke_on_rcm_guest( "push-to-mirrors.sh", "simple", NEW_FULL_VERSION, BUILD_MODE )
 
+        // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
+        OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
+        final internal_puddle_url = "http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
+
         stage("ami") {
             buildlib.build_ami(
                 BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
-                NEW_VERSION, NEW_RELEASE, MAIL_LIST_FAILURE)
+                NEW_VERSION, NEW_RELEASE, "${internal_puddle_url}/x86_64/os/",
+                MAIL_LIST_FAILURE)
         }
-
-        // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
-        OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
 
         if ( NEW_RELEASE != "1" ) {
             // If this is not a release candidate, push binary in a directory qualified with release field information
@@ -765,7 +767,7 @@ ${exclude} images:push --to-defaults --late-only
         echo "Finished building OCP ${NEW_FULL_VERSION}"
         PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
 
-        mail_success( NEW_FULL_VERSION )
+        mail_success( NEW_FULL_VERSION, internal_puddle_url )
         }
     } catch ( err ) {
 

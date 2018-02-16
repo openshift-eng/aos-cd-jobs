@@ -221,6 +221,7 @@ generated_artifacts:
   dmesg.log: 'sudo journalctl --dmesg --no-pager --all --lines=all'
   master-metrics.log: 'oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig'
   node-metrics.log: 'oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig'
+  containers.log: 'sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1'
 system_journals:
   - docker.service
   - dnsmasq.service

@@ -75,7 +75,9 @@ extensions:
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
         git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+        git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
     - type: "script"
       title: "build the image registry container image"
       repository: "image-registry"
@@ -130,7 +132,9 @@ extensions:
                          -e openshift_crio_systemcontainer_image_override="${crio_image}" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          -e openshift_node_port_range='30000-32000'                             \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \
@@ -182,7 +186,9 @@ extensions:
                          -e openshift_crio_systemcontainer_image_override="${crio_image}" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          -e openshift_node_port_range='30000-32000'                             \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \

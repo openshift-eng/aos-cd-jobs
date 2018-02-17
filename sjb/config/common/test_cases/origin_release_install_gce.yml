@@ -58,7 +58,7 @@ extensions:
           fi
         fi
 
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1 OS_BUILD_SRPM=1
     - type: "host_script"
       title: "move RPMs to GCS repo"
       script: |-

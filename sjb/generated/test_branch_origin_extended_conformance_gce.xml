@@ -424,7 +424,7 @@ if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#3
   fi
 fi
 
-OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS=&#34;-e OS_VERSION_FILE= &#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local/releases/rpms:_output/local/bin&#34; hack/env make build-rpms BUILD_TESTS=1
+OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS=&#34;-e OS_VERSION_FILE= &#34; OS_BUILD_ENV_PRESERVE=&#34;_output/local/releases/rpms:_output/local/bin&#34; hack/env make build-rpms BUILD_TESTS=1 OS_BUILD_SRPM=1
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

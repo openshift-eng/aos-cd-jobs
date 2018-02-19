@@ -13,8 +13,9 @@ _PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinitio
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
-_SYNC_ACTION_TEMPLATE = Template("""docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root /data --log /data/clone.json {% for repo in repos %}--repo {{repo}}{% endfor %}
-docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --log /data/clone.json --dry-run false --gcs-bucket origin-ci-test --gcs-credentials-file /data/credentials.json""")
+_SYNC_ACTION_TEMPLATE = Template("""JOB_SPEC="$( jq --compact-output ".buildid |= ${BUILD_NUMBER}" <<<"${JOB_SPEC}" )"
+docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json {% for repo in repos %}--repo {{repo}}{% endfor %}
+docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin""")
 
 
 class ClonerefsAction(Action):

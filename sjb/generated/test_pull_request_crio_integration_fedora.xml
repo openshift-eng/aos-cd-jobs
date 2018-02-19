@@ -298,26 +298,31 @@ cp -r artifacts/gathered/* gcs/artifacts/ || true
 cp artifacts/generated/* gcs/artifacts/generated/ || true
 cp artifacts/journals/* gcs/artifacts/journals/ || true
 
-bucket=&#34;gs://origin-federated-results/&#34;
-suffix=&#34;${JOB_NAME}/${BUILD_NUMBER}/&#34;
-if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
-  segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
-  if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-    prefix=&#34;pr-logs/pull/&#34;
-    segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r &#34;$( pwd )/gcs&#34; openshiftdevel:/data
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PUSH THE ARTIFACTS AND METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PUSH THE ARTIFACTS AND METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+trap &#39;exit 0&#39; EXIT
+if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
+  if [[ &#34;\$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34; =~ ^\&#34;[0-9]+\&#34;\$ ]]; then
+    echo &#34;Keeping BUILD_ID&#34;
   else
-    if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
-      prefix=&#34;pr-logs/pull/batch/&#34;
-    else
-      prefix=&#34;logs/&#34;
-    fi
+    echo &#34;Using BUILD_NUMBER&#34;
+    JOB_SPEC=&#34;\$( jq --compact-output &#34;.buildid |= \&#34;\${BUILD_NUMBER}\&#34;&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
   fi
-else
-  prefix=&#34;logs/&#34;
+  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/
 fi
-
-path=&#34;${bucket}${prefix}${segment:-}${suffix}&#34;
-gsutil -m cp -r gcs/* &#34;${path}&#34;</command>
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

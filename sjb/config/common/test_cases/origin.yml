@@ -42,6 +42,7 @@ actions:
       - PULL_PULL_SHA
       - JOB_NAME
       - JOB_SPEC
+      - BUILD_NUMBER
   - type: "script"
     title: "record the starting metadata"
     timeout: 300
@@ -174,40 +175,21 @@ post_actions:
       cp artifacts/journals/* gcs/artifacts/journals/
       cp -r artifacts/gathered/* gcs/artifacts/
 
-      function gcs_path() {
-        bucket="gs://origin-ci-test/"
-
-        if [[ -z "${buildId}" ]]; then
-          echo "Not a Prow job!" 1>&2
-          return 1
-        fi
-        suffix="${JOB_NAME}/${BUILD_NUMBER}/"
-        if [[ -n "${REPO_OWNER:-}" ]]; then
-          if [[ "${REPO_NAME:-}" != "origin" ]]; then
-            segment="${REPO_OWNER}_${REPO_NAME}/"
-          fi
-          if [[ -n "${PULL_NUMBER:-}" ]]; then
-            # this is a presubmit
-            prefix="pr-logs/pull/"
-            segment="${segment:-}${PULL_NUMBER}/"
-          else
-            if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
-              # this is a batch
-              prefix="pr-logs/pull/batch/"
-            else
-              # this is a postsubmit
-              prefix="logs/"
-            fi
-          fi
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+  - type: "script"
+    title: "push the artifacts and metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      if [[ -n "${JOB_SPEC:-}" ]]; then
+        if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+          echo "Keeping BUILD_ID"
         else
-          # this is a periodic
-          prefix="logs/"
+          echo "Using BUILD_NUMBER"
+          JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
         fi
-        echo "${bucket}${prefix}${segment:-}${suffix}"
-        return 0
-      }
-      if path="$( gcs_path )"; then
-        gsutil -m cp -r gcs/* "${path}"
+        docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/
       fi
 artifacts:
   - "/data/src/github.com/openshift/origin/_output/scripts"

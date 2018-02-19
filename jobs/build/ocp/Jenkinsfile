@@ -25,6 +25,7 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
                           [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],
                           [$class: 'hudson.model.StringParameterDefinition', defaultValue: "", description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)', name: 'BUILD_EXCLUSIONS'],
+                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
                   ]
             ],
             disableConcurrentBuilds()
@@ -750,6 +751,9 @@ ${exclude} images:push --to-defaults --late-only
         final internal_puddle_url = "http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
 
         stage("ami") {
+            if(!params.BUILD_AMI) {
+                return
+            }
             buildlib.build_ami(
                 BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
                 NEW_VERSION, NEW_RELEASE, "${internal_puddle_url}/x86_64/os/",

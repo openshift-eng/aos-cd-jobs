@@ -151,6 +151,21 @@ sync_repos:
     type: "" # 'pull_request' for a PR sync [optional]
 ```
 
+## `sync`
+
+`sync` is an optional field which declares which repositories are to be synced
+and how they are to be synced. This field will add build stages to sync the
+repository as well as update the job description with details about what repos
+the job instance is being run with. This stage makes use of Prow pod utilities
+for syncing and reporting sync results and therefore requires that the job is
+triggered by Prow. Either this option or `sync_repos` can be provided, but not
+both. The syntax is:
+
+```yaml
+sync:
+  - pullspec # format branch:branch-sha,[pull-number:pull-sha,...]
+```
+
 ## `actions`
 
 `actions` is an optional list of actions to take in the job. Each action will

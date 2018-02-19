@@ -84,26 +84,22 @@ post_actions:
       cp artifacts/generated/* gcs/artifacts/generated/ || true
       cp artifacts/journals/* gcs/artifacts/journals/ || true
 
-      bucket="gs://origin-federated-results/"
-      suffix="${JOB_NAME}/${BUILD_NUMBER}/"
-      if [[ -n "${REPO_OWNER:-}" ]]; then
-        segment="${REPO_OWNER}_${REPO_NAME}/"
-        if [[ -n "${PULL_NUMBER:-}" ]]; then
-          prefix="pr-logs/pull/"
-          segment="${segment:-}${PULL_NUMBER}/"
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+  - type: "script"
+    title: "push the artifacts and metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      if [[ -n "${JOB_SPEC:-}" ]]; then
+        if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+          echo "Keeping BUILD_ID"
         else
-          if [[ "${PULL_REFS}" =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
-            prefix="pr-logs/pull/batch/"
-          else
-            prefix="logs/"
-          fi
+          echo "Using BUILD_NUMBER"
+          JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
         fi
-      else
-        prefix="logs/"
+        docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/
       fi
-
-      path="${bucket}${prefix}${segment:-}${suffix}"
-      gsutil -m cp -r gcs/* "${path}"
 artifacts:
   - /go/src/k8s.io/kubernetes/artifacts
   - /go/src/k8s.io/kubernetes/e2e.log

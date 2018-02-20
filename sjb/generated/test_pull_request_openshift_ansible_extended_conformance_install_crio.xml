@@ -501,7 +501,9 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
+git describe --abbrev=0 &gt;&gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_RELEASE&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -590,7 +592,9 @@ ansible-playbook -vv --become               \
                  -e openshift_crio_systemcontainer_image_override=&#34;\${crio_image}&#34; \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
-                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
+                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;                      \
+                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
+                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                    \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
                  -e openshift_node_port_range=&#39;30000-32000&#39;                             \
                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;      \
@@ -650,7 +654,9 @@ ansible-playbook -vv --become               \
                  -e openshift_crio_systemcontainer_image_override=&#34;\${crio_image}&#34; \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
-                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
+                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;                      \
+                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
+                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                    \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
                  -e openshift_node_port_range=&#39;30000-32000&#39;                             \
                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;      \

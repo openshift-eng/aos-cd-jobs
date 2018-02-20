@@ -12,8 +12,8 @@ actions:
     timeout: 10000
     repository: "image-inspector"
     script: |-
-        for tag in v2.4.0 ; do
-          git checkout $tag
+        for tag in 2.4.0 ; do
+          git checkout v$tag
           docker build . -t openshift/image-inspector:$tag
         done
         git checkout master

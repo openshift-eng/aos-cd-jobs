@@ -43,19 +43,26 @@ if ( BUILD_EXCLUSIONS != "" ) {
   BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
 }
 
-def mail_success( version, internal_puddle_url ) {
+def get_mirror_url(build_mode, version) {
+    if ( build_mode == "online:int" ) {
+        return "https://mirror.openshift.com/enterprise/online-int"
+    }
+    if ( build_mode == "online:stg" ) {
+        return "https://mirror.openshift.com/enterprise/online-stg"
+    }
+    return "https://mirror.openshift.com/enterprise/enterprise-${version}"
+}
+
+def mail_success( version, mirrorURL ) {
 
     def target = "(Release Candidate)"
-    def mirrorURL = "https://mirror.openshift.com/enterprise/enterprise-${version.substring(0,3)}"
 
     if ( BUILD_MODE == "online:int" ) {
         target = "(Integration Testing)"
-        mirrorURL = "https://mirror.openshift.com/enterprise/online-int"
     }
 
     if ( BUILD_MODE == "online:stg" ) {
         target = "(Stage Testing)"
-        mirrorURL = "https://mirror.openshift.com/enterprise/online-stg"
     }
 
     def inject_notes = ""
@@ -77,7 +84,7 @@ def mail_success( version, internal_puddle_url ) {
             body: """\
 OpenShift Version: v${version}
 ${inject_notes}
-Puddle (internal): ${internal_puddle_url}
+Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0,3)}/${OCP_PUDDLE}
   - Mirror: ${mirrorURL}/${OCP_PUDDLE}
   - Images have been built for this puddle
   - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
@@ -748,7 +755,7 @@ ${exclude} images:push --to-defaults --late-only
 
         // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
         OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
-        final internal_puddle_url = "http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
+        final mirror_url = get_mirror_url(BUILD_MODE, BUILD_VERSION)
 
         stage("ami") {
             if(!params.BUILD_AMI) {
@@ -756,7 +763,8 @@ ${exclude} images:push --to-defaults --late-only
             }
             buildlib.build_ami(
                 BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
-                NEW_VERSION, NEW_RELEASE, "${internal_puddle_url}/x86_64/os/",
+                NEW_VERSION, NEW_RELEASE,
+                "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
                 MAIL_LIST_FAILURE)
         }
 
@@ -771,7 +779,7 @@ ${exclude} images:push --to-defaults --late-only
         echo "Finished building OCP ${NEW_FULL_VERSION}"
         PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
 
-        mail_success( NEW_FULL_VERSION, internal_puddle_url )
+        mail_success( NEW_FULL_VERSION, mirror_url )
         }
     } catch ( err ) {
 

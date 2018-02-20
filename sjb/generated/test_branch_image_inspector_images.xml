@@ -122,8 +122,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/image-inspector&#34;
-for tag in v2.4.0 ; do
-  git checkout \$tag
+for tag in 2.4.0 ; do
+  git checkout v\$tag
   docker build . -t openshift/image-inspector:\$tag
 done
 git checkout master

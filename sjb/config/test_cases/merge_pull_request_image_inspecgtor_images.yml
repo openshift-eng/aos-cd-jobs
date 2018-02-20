@@ -1,9 +1,0 @@
----
-parent: 'test_cases/push_image_inspector_images.yml'
-overrides:
-  email: []
-  sync_repos:
-    - name: "image-inspector"
-      type: "pull_request"
-  merge: "image-inspector"
-

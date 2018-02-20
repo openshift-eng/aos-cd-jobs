@@ -26,5 +26,8 @@ extensions:
         sudo chmod a+rw /tmp/.docker/config.json
         export DOCKER_CONFIG=/tmp/.docker
 
-        docker tag openshift/image-inspector:v2.4.0 docker.io/openshift/image-inspector:v2.4.0
-        docker push docker.io/openshift/image-inspector:v2.4.0
+        docker tag openshift/image-inspector:2.4.0 docker.io/openshift/image-inspector:2.4.0
+        docker push docker.io/openshift/image-inspector:2.4.0
+
+        docker tag openshift/image-inspector:2.4.0 docker.io/openshift/image-inspector:2.4
+        docker push docker.io/openshift/image-inspector:2.4

@@ -41,6 +41,8 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
+                              // TODO reenable when the mirrors have the necessary puddles
+                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
                       ]
              ]]
     )
@@ -135,19 +137,20 @@ Jenkins job: ${env.BUILD_URL}
 		}
             }
 
-            final version_release = buildlib.oit([
-                "--working-dir ${OIT_WORKING}",
-                "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
-                '--images openshift-enterprise-docker',
-                '--quiet',
-                'images:print --short {version}-{release}',
-            ].join(' '), [capture: true]).split('-') // ['v3.9.0', '0.34.0.0']
-            final build_version = "${OSE_MAJOR}.${OSE_MINOR}"
-            buildlib.build_ami(
-                OSE_MAJOR, OSE_MINOR,
-                version_release[0].substring(1), version_release[1],
-                "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/${build_version}/building/RH7-RHAOS-${build_version}/x86_64/os/",
-                MAIL_LIST_FAILURE)
+            if(params.BUILD_AMI) {
+                // e.g. version_release = ['v3.9.0', '0.34.0.0']
+                final version_release = buildlib.oit([
+                    "--working-dir ${OIT_WORKING}",
+                    "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
+                    '--images openshift-enterprise-docker',
+                    '--quiet',
+                    'images:print --short {version}-{release}',
+                ].join(' '), [capture: true]).split('-')
+                buildlib.build_ami(
+                    OSE_MAJOR, OSE_MINOR,
+                    version_release[0].substring(1), version_release[1],
+                    MAIL_LIST_FAILURE)
+            }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success()

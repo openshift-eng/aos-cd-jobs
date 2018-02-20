@@ -165,6 +165,9 @@ export DOCKER_CONFIG=/tmp/.docker
 
 docker tag openshift/image-inspector:2.4.0 docker.io/openshift/image-inspector:2.4.0
 docker push docker.io/openshift/image-inspector:2.4.0
+
+docker tag openshift/image-inspector:2.4.0 docker.io/openshift/image-inspector:2.4
+docker push docker.io/openshift/image-inspector:2.4
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -122,8 +122,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/image-inspector&#34;
-for tag in v2.4.0 ; do
-  git checkout \$tag
+for tag in 2.4.0 ; do
+  git checkout v\$tag
   docker build . -t openshift/image-inspector:\$tag
 done
 git checkout master
@@ -163,8 +163,11 @@ cd &#34;\${GOPATH}/src/github.com/openshift/image-inspector&#34;
 sudo chmod a+rw /tmp/.docker/config.json
 export DOCKER_CONFIG=/tmp/.docker
 
-docker tag openshift/image-inspector:v2.4.0 docker.io/openshift/image-inspector:v2.4.0
-docker push docker.io/openshift/image-inspector:v2.4.0
+docker tag openshift/image-inspector:2.4.0 docker.io/openshift/image-inspector:2.4.0
+docker push docker.io/openshift/image-inspector:2.4.0
+
+docker tag openshift/image-inspector:2.4.0 docker.io/openshift/image-inspector:2.4
+docker push docker.io/openshift/image-inspector:2.4
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -219,13 +219,14 @@ extensions:
             gcloud compute ssh "${instance}" -- sudo journalctl --unit dnsmasq.service      --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/dnsmasq.service"  || true
             gcloud compute ssh "${instance}" -- sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/systemd-journald.service"  || true
 
-            gcloud compute ssh "${instance}" -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                  2>&1 > "${artifact_dir}/generated/node-metrics.log"  || true
+            gcloud compute ssh "${instance}" -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                   2>&1 > "${artifact_dir}/generated/node-metrics.log"  || true
             gcloud compute ssh "${instance}" -- "sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a" 2>&1 > "${artifact_dir}/generated/docker.info"  || true
             gcloud compute ssh "${instance}" -- sudo yum history info origin                                                         2>&1 > "${artifact_dir}/generated/origin_package_history.log"  || true
             gcloud compute ssh "${instance}" -- "sudo df -h && sudo pvs && sudo vgs && sudo lvs"                                     2>&1 > "${artifact_dir}/generated/filesystem.info" || true
             gcloud compute ssh "${instance}" -- sudo yum list installed                                                              2>&1 > "${artifact_dir}/generated/installed_packages.log"  || true
             gcloud compute ssh "${instance}" -- sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC                                      2>&1 > "${artifact_dir}/generated/avc_denials.log" || true
             gcloud compute ssh "${instance}" -- sudo journalctl _PID=1 --no-pager --all --lines=all                                  2>&1 > "${artifact_dir}/generated/pid1.journal"  || true
+            gcloud compute ssh "${instance}" -- "sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1"          2>&1 > "${artifact_dir}/generated/containers.log"  || true
         done
     - type: "script"
       title: "deprovision test cluster"

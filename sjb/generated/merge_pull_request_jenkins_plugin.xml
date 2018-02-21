@@ -416,11 +416,17 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
+  evars=&#34;-e @sjb/inventory/\${PULL_BASE_REF}.cfg&#34;
+else
+  evars=&#34;-e @sjb/inventory/base.cfg&#34;
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
+                 &#34;\${evars:-}&#34; \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -453,6 +459,11 @@ if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
 else
     playbook=&#34;\${playbook_base}byo/config.yml&#34;
 fi
+if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
+  evars=&#34;-e @sjb/inventory/\${PULL_BASE_REF}.cfg&#34;
+else
+  evars=&#34;-e @sjb/inventory/base.cfg&#34;
+fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
@@ -462,6 +473,7 @@ ansible-playbook -vv --become               \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
+                 &#34;\${evars:-}&#34; \
                  \${playbook}
 SCRIPT
 chmod +x &#34;${script}&#34;

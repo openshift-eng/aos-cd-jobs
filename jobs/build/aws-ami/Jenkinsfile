@@ -77,6 +77,7 @@ openshift_aws_ami_tags:
 openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}"
 oreg_auth_user: ${jenkins_oreg_auth_user}
 oreg_auth_password: ${jenkins_oreg_auth_password}
+openshift_aws_copy_base_ami_tags: True
 """)
 
     sh 'cat provisioning_vars.yml'

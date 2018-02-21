@@ -771,13 +771,14 @@ for instance in $( gcloud compute instances list --regexp &#34;.*${INSTANCE_PREF
     gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit dnsmasq.service      --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/dnsmasq.service&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/systemd-journald.service&#34;  || true
 
-    gcloud compute ssh &#34;${instance}&#34; -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                  2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/node-metrics.log&#34;  || true
+    gcloud compute ssh &#34;${instance}&#34; -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                   2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/node-metrics.log&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a&#34; 2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/docker.info&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- sudo yum history info origin                                                         2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/origin_package_history.log&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- &#34;sudo df -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs&#34;                                     2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/filesystem.info&#34; || true
     gcloud compute ssh &#34;${instance}&#34; -- sudo yum list installed                                                              2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/installed_packages.log&#34;  || true
     gcloud compute ssh &#34;${instance}&#34; -- sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC                                      2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/avc_denials.log&#34; || true
     gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl _PID=1 --no-pager --all --lines=all                                  2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/pid1.journal&#34;  || true
+    gcloud compute ssh &#34;${instance}&#34; -- &#34;sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1&#34;          2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/containers.log&#34;  || true
 done</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

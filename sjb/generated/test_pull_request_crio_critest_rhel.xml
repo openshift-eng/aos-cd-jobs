@@ -317,7 +317,7 @@ if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
     echo &#34;Using BUILD_NUMBER&#34;
     JOB_SPEC=&#34;\$( jq --compact-output &#34;.buildid |= \&#34;\${BUILD_NUMBER}\&#34;&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
   fi
-  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/
+  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/*
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;

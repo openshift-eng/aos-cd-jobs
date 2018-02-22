@@ -4,6 +4,8 @@ from datetime import datetime
 from json import dump, load
 from urllib import urlopen
 
+from os import getenv
+
 result = load(urlopen("{}api/json".format(getenv("BUILD_URL"))))["result"]
 
 # we are following the k8s convention for the

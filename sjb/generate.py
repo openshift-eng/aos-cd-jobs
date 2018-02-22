@@ -83,12 +83,15 @@ debug("[INFO] Using configuration:\n{}".format(
 actions = []
 
 if job_type == "test":
+    debug("[INFO] Handling a test job")
     # the last parameter with a given name is used
     existing_parameters = []
     for parameter in reversed(job_config.get("parameters", [])):
         parameter_name = parameter.get("name")
         if parameter_name in existing_parameters:
             continue
+
+        debug("[INFO] Adding parameter: " + parameter_name)
         actions.insert(0, ParameterAction(
             name=parameter_name,
             description=parameter.get("description"),
@@ -137,25 +140,32 @@ if job_type == "test":
 
         for repository in job_config.get("sync_repos", []):
             if repository.get("type", None) == "pull_request":
+                debug("[INFO] Adding PR sync for : " + repository["name"])
                 sync_actions.append(PullRequestSyncAction(repository["name"]))
             else:
                 # if test is a PR, point to dependency repository to the PR's repository branch
+                debug("[INFO] Adding repo sync for : " + repository["name"])
                 dependency_repository = get_parent_repo(repository["name"]) if is_pull_request else repository["name"]
                 sync_actions.append(SyncAction(repository["name"], dependency_repository))
 
         if len(sync_actions) > 0:
+            debug("[INFO] Coalescing into multi sync")
             actions.append(MultiSyncAction(sync_actions))
     elif "sync" in job_config:
-        sync_actions.append(ClonerefsAction(job_config["sync"]))
+        debug("[INFO] Adding clonerefs")
+        actions.append(ClonerefsAction(job_config["sync"]))
 
 
     def parse_action(action):
         if action["type"] == "script":
+            debug("[INFO] Adding script action " + action.get("title", ""))
             return ScriptAction(action.get("repository", None), action["script"], action.get("title", None),
                                 action.get("timeout", None))
         elif action["type"] == "host_script":
+            debug("[INFO] Adding host script action " + action.get("title", ""))
             return HostScriptAction(action["script"], action.get("title", None))
         elif action["type"] == "forward_parameters":
+            debug("[INFO] Adding parameter forwarding action")
             return ForwardParametersAction(action.get("parameters", []))
         else:
             raise TypeError("Action type {} unknown".format(action["type"]))
@@ -167,14 +177,17 @@ if job_type == "test":
 
     # next, the job needs to retrieve artifacts
     if "artifacts" in job_config:
+        debug("[INFO] Adding artifact download")
         actions.append(DownloadArtifactsAction(job_config["artifacts"]))
 
     # some artifacts may not exist on the remote filesystem
     # but will need to be generated
     if "generated_artifacts" in job_config:
+        debug("[INFO] Adding artifact generation")
         actions.append(GenerateArtifactsAction(job_config["generated_artifacts"]))
 
     if "system_journals" in job_config:
+        debug("[INFO] Adding system journal harvest")
         actions.append(SystemdJournalAction(job_config["system_journals"]))
 
     for post_action in job_config.get("post_actions", []):

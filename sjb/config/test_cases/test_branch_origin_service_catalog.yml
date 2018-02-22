@@ -72,10 +72,13 @@ extensions:
       repository: "origin"
       timeout: 1800
       script: |-
-        sudo chmod a+rw /var/lib/origin/openshift.local.config/master/admin.kubeconfig
-        export KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
         ./_output/local/bin/linux/amd64/oc login -u system:admin
+        kubeconfig=$(mktemp)
+        ./_output/local/bin/linux/amd64/oc config view --raw > $kubeconfig
+        chmod a+rw $kubeconfig
+        export KUBECONFIG=$kubeconfig
         SERVICECATALOGCONFIG=$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
+        rm -f $kubeconfig
   system_journals:
     - origin-master.service
     - origin-master-api.service

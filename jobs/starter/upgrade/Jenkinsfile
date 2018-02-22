@@ -148,10 +148,11 @@ node('openshift-build-1') {
             }
 
             stage( "upgrade: nodes" ) {
+                // This should eventually be replaced by a post-control-plane online-deployer function
                 if (UPGRADE_JENKINS_IMAGE_STREAM.toBoolean()) {
                     deploylib.run("update-jenkins-imagestream")
                 }
-
+                
                 if (UPGRADE_NODES.toBoolean()) {
                     deploylib.run("upgrade-nodes")
                 }
@@ -160,6 +161,10 @@ node('openshift-build-1') {
             stage ( "upgrade: online-deployer" ) {
                 if ( UPGRADE_ONLINE_COMPONENTS.toBoolean()  ) {
                     deploylib.run( "online-deployer" )
+                }
+                // deployer presently reset jenkins imagestream; that should be fixed soon
+                if (UPGRADE_JENKINS_IMAGE_STREAM.toBoolean()) {
+                    deploylib.run("update-jenkins-imagestream")
                 }
             }            
             

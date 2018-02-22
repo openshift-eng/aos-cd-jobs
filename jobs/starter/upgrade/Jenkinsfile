@@ -157,6 +157,12 @@ node('openshift-build-1') {
                 }
             }
 
+            stage ( "upgrade: online-deployer" ) {
+                if ( UPGRADE_ONLINE_COMPONENTS.toBoolean()  ) {
+                    deploylib.run( "online-deployer" )
+                }
+            }            
+            
             stage ("upgrade: logging") {
                 if (UPGRADE_LOGGING.toBoolean()) {
                     deploylib.run("upgrade-logging")
@@ -173,11 +179,8 @@ node('openshift-build-1') {
                 if ( UPGRADE_NODES.toBoolean()  ) {
                     deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity.
                 }
-                if ( UPGRADE_ONLINE_COMPONENTS.toBoolean()  ) {
-                    deploylib.run( "online-deployer" )
-                }
-            }
-
+            }                 
+            
             stage( "config-loop" ) {
                 deploylib.run( "commit-config-loop" )
                 deploylib.run( "enable-config-loop" )

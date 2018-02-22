@@ -98,7 +98,7 @@ post_actions:
           echo "Using BUILD_NUMBER"
           JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
         fi
-        docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/
+        docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/*
       fi
 artifacts:
   - /go/src/k8s.io/kubernetes/artifacts

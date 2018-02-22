@@ -13,9 +13,14 @@ _PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinitio
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
-_SYNC_ACTION_TEMPLATE = Template("""JOB_SPEC="$( jq --compact-output ".buildid |= ${BUILD_NUMBER}" <<<"${JOB_SPEC}" )"
+_CLONEREFS_ACTION_TEMPLATE = Template("""if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+  echo "Keeping BUILD_ID"
+else
+  echo "Using BUILD_NUMBER"
+  JOB_SPEC="$( jq --compact-output '.buildid |= "'"${BUILD_NUMBER}"'"' <<<"${JOB_SPEC}" )"
+fi
 docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json {% for repo in repos %}--repo {{repo}}{% endfor %}
-docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin""")
+docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin""")
 
 
 class ClonerefsAction(Action):
@@ -47,8 +52,10 @@ class ClonerefsAction(Action):
             command="scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json"
         )] + ForwardParametersAction(
             parameters=['JOB_SPEC', 'buildId', 'BUILD_ID', 'REPO_OWNER', 'REPO_NAME', 'PULL_BASE_REF', 'PULL_BASE_SHA',
-                        'PULL_REFS', 'PULL_NUMBER', 'PULL_PULL_SHA', 'JOB_SPEC']
+                        'PULL_REFS', 'PULL_NUMBER', 'PULL_PULL_SHA', 'JOB_SPEC', 'BUILD_NUMBER']
         ).generate_build_steps() + ScriptAction(
+            repository=None,
             title="SYNC REPOSITORIES",
-            script=_SYNC_ACTION_TEMPLATE.render(repos=self.repos)
+            script=_CLONEREFS_ACTION_TEMPLATE.render(repos=self.repos),
+            timeout=None
         ).generate_build_steps()

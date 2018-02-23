@@ -74,6 +74,7 @@ openshift_aws_ami_tags:
   openshift_release: "${OPENSHIFT_RELEASE}"
   openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
   build_date: "${build_date}"
+  base_ami: "false"
 openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}"
 oreg_auth_user: ${jenkins_oreg_auth_user}
 oreg_auth_password: ${jenkins_oreg_auth_password}
@@ -149,8 +150,8 @@ properties(
 
                     // Parameters to search for AMI to use
                     [$class: 'hudson.model.TextParameterDefinition',
-                     defaultValue: 'operating_system=RedHat\nstandard=true',
-                     description: 'Line delimited tags (K=V) to use to find the base AMI to use\n  NOTE: This option is overrididen by specifying the BASE_AMI_ID ',
+                     defaultValue: 'operating_system=RedHat\nstandard=true\nbase_ami=true',
+                     description: 'Line delimited tags (K=V) to use to find the base AMI to use\n  NOTE: This option is overrididen by specifying the BASE_AMI_ID\n  NOTE: "base_ami=true" is probably necessary; otherwise a previous built ami will be used, and no packages will be updated!',
                      name: 'AMI_SEARCH_TAGS'],
 
                     [$class: 'hudson.model.StringParameterDefinition',

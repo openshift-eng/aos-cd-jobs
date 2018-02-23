@@ -140,7 +140,7 @@
       build_date: "{{ g_play_build_date }}"
       version: "{{ l_operating_system_version }}"
       kernel: "{{ l_kernel_version }}"
-      parent_ami: "{{ g_play_image_id }}"
+      parent: "{{ g_play_image_id }}"
       base_ami: "true"
     g_play_ami_additional_tags: "{{ cli_ami_additional_tags | default(None) }}"
 

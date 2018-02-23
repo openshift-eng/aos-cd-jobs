@@ -1,11 +1,9 @@
 ---
-parent: 'common/test_cases/origin_release.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 extensions:
   parameters:
     - name: "OS_PUSH_TAG"
       description: "The docker image tag to push to, defaults to :latest"
-  sync_repos:
-    - name: "origin-web-console-server"
   actions:
     - type: "script"
       title: "create directory for docker config"
@@ -26,16 +24,6 @@ extensions:
         sudo chmod a+rw /tmp/.docker/config.json
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
     - type: "script"
-      title: "build an image registry release"
-      repository: "image-registry"
-      script: |-
-        make build-images
-    - type: "script"
-      title: "build a kubernetes metrics server release"
-      repository: "kubernetes-metrics-server"
-      script: |-
-        make build-images
-    - type: "script"
       title: "push the image registry release"
       repository: "image-registry"
       script: |-
@@ -45,14 +33,9 @@ extensions:
       repository: "kubernetes-metrics-server"
       script: |-
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
-    - type: "script"
-      title: "build a web console release"
-      repository: "origin-web-console-server"
-      script: |-
-        make build-images
     - type: "script"
       title: "push the web console release"
       repository: "origin-web-console-server"
       script: |-
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh        
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
         sudo rm -rf /tmp/.docker

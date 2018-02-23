@@ -1,6 +1,8 @@
 ---
-parent: 'common/test_cases/origin_release.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 extensions:
+  sync:
+    - "openshift,openshift-ansible=master"
   actions:
     - type: "script"
       title: "build an openshift-ansible release"
@@ -51,24 +53,6 @@ extensions:
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
         git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
-    - type: "script"
-      title: "build the image registry container image"
-      repository: "image-registry"
-      timeout: 3600
-      script: |-
-        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.8" ]]; then
-          make build-images
-          docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
-        fi
-    - type: "script"
-      title: "build the kubernetes metrics server container image"
-      repository: "kubernetes-metrics-server"
-      timeout: 3600
-      script: |-
-        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
-          make build-images
-          docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
-        fi
     - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"

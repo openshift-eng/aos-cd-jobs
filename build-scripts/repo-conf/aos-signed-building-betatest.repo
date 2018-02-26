@@ -113,3 +113,9 @@ name = Red Hat Enterprise Linux 7.4 Extras
 baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/extras/os/
 enabled = 0
 gpgcheck = 1
+
+[rhel-7-server-ansible-2.4-rpms]
+name = Red Hat Ansible Engine 2.4 RPMs for Red Hat Enterprise Linux 7 Server
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/ansible/2.4/os/
+enabled = 0
+gpgcheck = 0

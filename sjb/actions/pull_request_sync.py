@@ -30,6 +30,12 @@ _BUILD_ID_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameter
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
+_PROW_JOB_ID_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinition>
+          <name>PROW_JOB_ID</name>
+          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>""")
+
 _PR_SYNC_TITLE_TEMPLATE = Template("SYNC {{ repository | upper }} PULL REQUEST ${{ '{' }}PULL_NUMBER:-}${{ '{' }}{{ repository | replace('-', '_') | upper }}_PULL_ID:-}")
 _PR_SYNC_ACTION_TEMPLATE = Template("""cat << SCRIPT > unravel-pull-refs.py
 #!/usr/bin/env python
@@ -85,6 +91,7 @@ class PullRequestSyncAction(Action):
             _PULL_NUMBER_PARAMETER_TEMPLATE.render(repository=self.repository),
             _PULL_REFS_PARAMETER_TEMPLATE.render(repository=self.repository),
             _BUILD_ID_PARAMETER_TEMPLATE.render(),
+            _PROW_JOB_ID_PARAMETER_TEMPLATE.render(),
         ]
 
     def generate_build_steps(self):

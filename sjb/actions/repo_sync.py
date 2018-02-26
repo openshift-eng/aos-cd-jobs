@@ -29,6 +29,12 @@ _POST_BUILD_ID_NEW_PARAMETER_TEMPLATE = Template("""        <hudson.model.String
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
+_PROW_JOB_ID_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinition>
+          <name>PROW_JOB_ID</name>
+          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>""")
+
 _REPO_OWNER_PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinition>
           <name>REPO_OWNER</name>
           <description>GitHub org that triggered the job.</description>
@@ -65,6 +71,7 @@ class SyncAction(Action):
             _POST_PULL_REFS_PARAMETER_TEMPLATE.render(),
             _POST_BUILD_ID_PARAMETER_TEMPLATE.render(),
             _POST_BUILD_ID_NEW_PARAMETER_TEMPLATE.render(),
+            _PROW_JOB_ID_PARAMETER_TEMPLATE.render(),
             _REPO_OWNER_PARAMETER_TEMPLATE.render(),
             _REPO_NAME_PARAMETER_TEMPLATE.render(),
         ]

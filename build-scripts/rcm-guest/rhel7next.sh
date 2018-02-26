@@ -48,6 +48,12 @@ cat > rhel7next.repo <<-'EOF'
 	enabled = 0
 	gpgcheck = 0
 
+	[rhel-7-server-ansible-2.4-rpms]
+	name = Red Hat Ansible Engine 2.4 RPMs for Red Hat Enterprise Linux 7 Server
+	baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/ansible/2.4/os/
+	enabled = 0
+	gpgcheck = 0
+
 	[rhel-7-server-ose-3.4-rpms]
 	name=rhel-7-server-ose-3.4-rpms
 	baseurl=http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/ose/3.4/os/
@@ -70,14 +76,16 @@ ${rsync} \
 _reposync rhel-7-fast-datapath-rpms
 _reposync rhel-7-fast-datapath-htb-rpms
 _reposync rhel-7-server-ose-3.4-rpms
+_reposync rhel-7-server-ansible-2.4-rpms
 # Rebuild repos with comp files
 _createrepo_comp "${PWD}/rhel-7-fast-datapath-rpms"
 _createrepo_comp "${PWD}/rhel-7-fast-datapath-htb-rpms"
+_createrepo_comp "${PWD}/rhel-7-server-ansible-2.4-rpms"
 # Rebuild repos without comp files
 _createrepo "${PWD}/rhel-7-server-ose-3.4-rpms"
 # rsync repos to os mirror
 ${rsync} \
-    rhel-7-{fast-datapath{,-htb},server-ose-3.4}-rpms \
+    rhel-7-{fast-datapath{,-htb},server-ose-3.4,server-ansible-2.4}-rpms \
     "${MIRROR}:${REMOTE_DIR}/"
 # push to all geos
 ssh "${MIRROR}" /usr/local/bin/push.enterprise.sh -v

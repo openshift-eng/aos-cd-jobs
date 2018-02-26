@@ -76,7 +76,7 @@ cd online/
 if [ "${BUILD_MODE}" == "online:int" ] ; then
     SPEC_VERSION_COUNT=4
 elif [ "${BUILD_MODE}" == "online:stg" ] ; then
-    git checkout -q stage
+    git checkout -q stg
     FORCE_REBUILD="true"
     SPEC_VERSION_COUNT=5
 elif [ "${BUILD_MODE}" == "pre-release" ] ; then

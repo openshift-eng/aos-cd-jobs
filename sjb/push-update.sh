@@ -12,6 +12,35 @@ else
 	exit 1
 fi
 
+function retry_post() {
+	local job_config="$1"
+	local url="$2"
+
+	for (( i = 0; i < 10; i++ )); do
+		response="$(
+			curl --request "POST"                  \
+				 --output /dev/null --silent       \
+				 --write-out "%{http_code}"        \
+				 --header "Content-Type: text/xml" \
+				 --data-binary "@${job_config}"    \
+				 --user "${USERNAME}:${PASSWORD}"  \
+				 "https://ci.openshift.redhat.com/jenkins/${url}"
+		)"
+
+		if [[ "${response}" == "200" ]]; then
+			break
+		elif [[ "$i" == 9 ]]; then
+			tput setaf 1
+			tput bold
+			echo "[ERROR] Failed to POST ${url}: ${response}"
+			tput sgr0
+			break
+		else
+			sleep 0.5 # we're probably failing due to 502 from load anyway...
+		fi
+	done
+}
+
 function update_config() {
 	job_config=$1
 
@@ -21,40 +50,10 @@ function update_config() {
 			  --user "${USERNAME}:${PASSWORD}"  \
 			  "https://ci.openshift.redhat.com/jenkins/job/${job}/config.xml" >/dev/null 2>&1; then
 		echo "[INFO] Creating ${job}..."
-		response="$(
-			curl --request "POST"                  \
-				 --output /dev/null --silent       \
-				 --write-out "%{http_code}"        \
-				 --header "Content-Type: text/xml" \
-				 --data-binary "@${job_config}"    \
-				 --user "${USERNAME}:${PASSWORD}"  \
-				 "https://ci.openshift.redhat.com/jenkins/createItem?name=${job}"
-		)"
-
-		if [[ "${response}" != "200" ]]; then
-			tput setaf 1
-			tput bold
-			echo "[ERROR] Failed to create ${job}: ${response}"
-			tput sgr0
-		fi
+		retry_post "${job_config}" "createItem?name=${job}"
 	else
 		echo "[INFO] Updating ${job}..."
-		response="$(
-			curl --request "POST"                  \
-				 --output /dev/null --silent       \
-				 --write-out "%{http_code}"        \
-				 --header "Content-Type: text/xml" \
-				 --data-binary "@${job_config}"    \
-				 --user "${USERNAME}:${PASSWORD}"  \
-				 "https://ci.openshift.redhat.com/jenkins/job/${job}/config.xml"
-		)"
-
-		if [[ "${response}" != "200" ]]; then
-			tput setaf 1
-			tput bold
-			echo "[ERROR] Failed to update ${job}: ${response}"
-			tput sgr0
-		fi
+		retry_post "${job_config}" "job/${job}/config.xml"
 	fi
 }
 

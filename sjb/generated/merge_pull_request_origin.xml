@@ -138,6 +138,11 @@ See also:
           <defaultValue>conformance</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>CLONEREFS_ARGS</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>MERGE_SEVERITY</name>
           <description>How important this pull request is.</description>
           <defaultValue>none</defaultValue>

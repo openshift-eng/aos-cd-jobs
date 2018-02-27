@@ -111,7 +111,10 @@ if job_type == "test":
 
     # next, repositories will be synced to the remote VM
     sync_actions = []
-    if "sync_repos" in job_config:
+    if "sync" in job_config:
+        debug("[INFO] Adding clonerefs")
+        actions.append(ClonerefsAction(job_config["sync"]))
+    elif "sync_repos" in job_config:
         repo_names = [repository["name"] for repository in job_config.get("sync_repos", [])]
 
         repo_dependencies = {
@@ -151,9 +154,6 @@ if job_type == "test":
         if len(sync_actions) > 0:
             debug("[INFO] Coalescing into multi sync")
             actions.append(MultiSyncAction(sync_actions))
-    elif "sync" in job_config:
-        debug("[INFO] Adding clonerefs")
-        actions.append(ClonerefsAction(job_config["sync"]))
 
 
     def parse_action(action):
@@ -208,7 +208,10 @@ elif job_type == "suite":
 
         for parameter_definition in child_config.getElementsByTagName("hudson.model.StringParameterDefinition"):
             parameter_name = parameter_definition.getElementsByTagName("name")[0].childNodes[0].nodeValue
-            parameter_description = parameter_definition.getElementsByTagName("description")[0].childNodes[0].nodeValue
+            if len(parameter_definition.getElementsByTagName("description")[0].childNodes) != 0:
+                parameter_description = parameter_definition.getElementsByTagName("description")[0].childNodes[0].nodeValue
+            else:
+                parameter_description = ""
             if len(parameter_definition.getElementsByTagName("defaultValue")[0].childNodes) != 0:
                 parameter_default_value = parameter_definition.getElementsByTagName("defaultValue")[0].childNodes[0].nodeValue
             else:

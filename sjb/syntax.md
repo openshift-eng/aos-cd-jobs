@@ -163,7 +163,7 @@ both. The syntax is:
 
 ```yaml
 sync:
-  - pullspec # format branch:branch-sha,[pull-number:pull-sha,...]
+  - pullspec # format org,repo=branch:branch-sha,[pull-number:pull-sha,...]
 ```
 
 ## `actions`

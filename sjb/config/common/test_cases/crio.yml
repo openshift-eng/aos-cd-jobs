@@ -73,6 +73,8 @@ actions:
         echo "${path%\/}" > "${BUILD}.txt"
         gsutil cp "${BUILD}.txt" "gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
       fi
+      echo ${BUILD} > latest-build.txt
+      gsutil cp latest-build.txt "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt"
 post_actions:
   - type: "host_script"
     title: "assemble GCS output"

@@ -158,23 +158,19 @@ actions:
       sslverify=0
       REPO
 post_actions:
-  - type: "forward_parameters"
-    parameters:
-      - BUILD_URL
-  - type: "script"
-    title: "record the ending metadata"
-    timeout: 300
-    repository: "aos-cd-jobs"
-    script: |-
-      trap 'exit 0' EXIT
-      sjb/gcs/finished.py
   - type: "host_script"
     title: "assemble GCS output"
     timeout: 300
     script: |-
       trap 'exit 0' EXIT
       mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
-      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/finished.json gcs/
+      result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+      cat <<FINISHED >gcs/finished.json
+      {
+        "timestamp": $( date +%s ),
+        "result": "${result}"
+      }
+      FINISHED
       cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
       cp artifacts/generated/* gcs/artifacts/generated/
       cp artifacts/journals/* gcs/artifacts/journals/

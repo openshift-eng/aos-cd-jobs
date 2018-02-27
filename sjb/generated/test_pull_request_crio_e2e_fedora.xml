@@ -155,7 +155,9 @@ gsutil cp gcs/started.json &#34;${path}started.json&#34;
 if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
   echo &#34;${path%\/}&#34; &gt; &#34;${BUILD}.txt&#34;
   gsutil cp &#34;${BUILD}.txt&#34; &#34;gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
-fi</command>
+fi
+echo ${BUILD} &gt; latest-build.txt
+gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

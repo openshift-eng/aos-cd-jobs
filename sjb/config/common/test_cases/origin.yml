@@ -61,11 +61,14 @@ actions:
       function gcs_path() {
         bucket="gs://origin-ci-test/"
 
-        if [[ -z "${buildId:-}" ]]; then
-          echo "Not a Prow job!" 1>&2
-          return 1
+        if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+          echo "Keeping BUILD_ID"
+          BUILD="${BUILD_ID}"
+        else
+          echo "Using BUILD_NUMBER"
+          BUILD="${BUILD_NUMBER}"
         fi
-        suffix="${JOB_NAME}/${BUILD_NUMBER}/"
+        suffix="${JOB_NAME}/${BUILD}/"
         if [[ -n "${REPO_OWNER:-}" ]]; then
           if [[ "${REPO_NAME}" != "origin" ]]; then
             segment="${REPO_OWNER}_${REPO_NAME}/"
@@ -93,8 +96,8 @@ actions:
       if path="$( gcs_path )"; then
         gsutil cp gcs/started.json "${path}started.json"
         if [[ -n "${PULL_NUMBER:-}" ]]; then
-          echo "${path%\/}" > "${BUILD_NUMBER}.txt"
-          gsutil cp "${BUILD_NUMBER}.txt" "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
+          echo "${path%\/}" > "${BUILD}.txt"
+          gsutil cp "${BUILD}.txt" "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD}.txt"
         fi
       fi
   - type: "script"

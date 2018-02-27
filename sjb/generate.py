@@ -208,7 +208,10 @@ elif job_type == "suite":
 
         for parameter_definition in child_config.getElementsByTagName("hudson.model.StringParameterDefinition"):
             parameter_name = parameter_definition.getElementsByTagName("name")[0].childNodes[0].nodeValue
-            parameter_description = parameter_definition.getElementsByTagName("description")[0].childNodes[0].nodeValue
+            if len(parameter_definition.getElementsByTagName("description")[0].childNodes) != 0:
+                parameter_description = parameter_definition.getElementsByTagName("description")[0].childNodes[0].nodeValue
+            else:
+                parameter_description = ""
             if len(parameter_definition.getElementsByTagName("defaultValue")[0].childNodes) != 0:
                 parameter_default_value = parameter_definition.getElementsByTagName("defaultValue")[0].childNodes[0].nodeValue
             else:

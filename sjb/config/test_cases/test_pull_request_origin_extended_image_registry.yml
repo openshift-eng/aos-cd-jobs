@@ -2,13 +2,6 @@
 parent: 'common/test_cases/origin_built_installed_release.yml'
 overrides:
   junit_analysis: True
-  sync_repos:
-    - name: "origin"
-      type: "pull_request"
-    - name: "openshift-ansible"
-    - name: "aos-cd-jobs"
-    - name: "image-registry"
-    - name: "kubernetes-metrics-server"
 extensions:
   actions:
     - type: "script"

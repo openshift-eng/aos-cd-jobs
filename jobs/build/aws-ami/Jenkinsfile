@@ -160,7 +160,7 @@ properties(
                      name: 'BASE_AMI_ID'],
 
                     [$class: 'hudson.model.TextParameterDefinition',
-                     defaultValue: '531415883065\n704252977135\n639866565627',
+                     defaultValue: '531415883065\n704252977135\n639866565627\n925374498059',
                      description: 'Line delimited list of AWS accounts to share the image with.\nNOTE: Currently this only shares the AMI in the AWS_REGION defined.\n   531415883065 - Openshift DevEnv AWS Account\n   704252977135 - free-int AWS Account\n   639866565627 - Ops Test AWS Account',
                      name: 'AMI_SHARE_ACCOUNTS'],
 

@@ -239,11 +239,14 @@ scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/start
 function gcs_path() {
   bucket=&#34;gs://origin-ci-test/&#34;
 
-  if [[ -z &#34;${buildId:-}&#34; ]]; then
-    echo &#34;Not a Prow job!&#34; 1&gt;&amp;2
-    return 1
+  if [[ &#34;$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;${JOB_SPEC}&#34; )&#34; =~ ^\&#34;[0-9]+\&#34;$ ]]; then
+    echo &#34;Keeping BUILD_ID&#34;
+    BUILD=&#34;${BUILD_ID}&#34;
+  else
+    echo &#34;Using BUILD_NUMBER&#34;
+    BUILD=&#34;${BUILD_NUMBER}&#34;
   fi
-  suffix=&#34;${JOB_NAME}/${BUILD_NUMBER}/&#34;
+  suffix=&#34;${JOB_NAME}/${BUILD}/&#34;
   if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
     if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
       segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
@@ -271,8 +274,8 @@ function gcs_path() {
 if path=&#34;$( gcs_path )&#34;; then
   gsutil cp gcs/started.json &#34;${path}started.json&#34;
   if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-    echo &#34;${path%\/}&#34; &gt; &#34;${BUILD_NUMBER}.txt&#34;
-    gsutil cp &#34;${BUILD_NUMBER}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt&#34;
+    echo &#34;${path%\/}&#34; &gt; &#34;${BUILD}.txt&#34;
+    gsutil cp &#34;${BUILD}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD}.txt&#34;
   fi
 fi</command>
         </hudson.tasks.Shell>

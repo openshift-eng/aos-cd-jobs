@@ -1,6 +1,6 @@
 ---
 parameters:
-- name: buildId
+- name: BUILD_ID
   description: "Unique build number for each run."
 - name: PULL_BASE_REF
   description: "Ref name of the base branch."
@@ -12,6 +12,8 @@ parameters:
   description: "Pull request number."
 - name: PULL_PULL_SHA
   description: "Pull request head SHA."
+- name: JOB_SPEC
+  description: "JSON form of job specification."
 provision:
   os: "rhel"
   stage: "base"
@@ -59,7 +61,17 @@ actions:
       }
       STARTED
 
-      gsutil cp gcs/started.json "gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD_NUMBER}/started.json"
+      if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+        echo "Keeping BUILD_ID"
+        BUILD="${BUILD_ID}"
+      else
+        echo "Using BUILD_NUMBER"
+        BUILD="${BUILD_NUMBER}"
+      fi
+
+      gsutil cp gcs/started.json "gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD}/started.json"
+      echo ${BUILD} > latest-build.txt
+      gsutil cp latest-build.txt "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt"
 post_actions:
   - type: "forward_parameters"
     parameters:

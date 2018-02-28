@@ -62,10 +62,10 @@ actions:
         bucket="gs://origin-ci-test/"
 
         if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
-          echo "Keeping BUILD_ID"
+          echo "Keeping BUILD_ID" >&2
           BUILD="${BUILD_ID}"
         else
-          echo "Using BUILD_NUMBER"
+          echo "Using BUILD_NUMBER" >&2
           BUILD="${BUILD_NUMBER}"
         fi
         suffix="${JOB_NAME}/${BUILD}/"

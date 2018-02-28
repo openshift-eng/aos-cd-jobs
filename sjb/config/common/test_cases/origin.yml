@@ -2,7 +2,7 @@
 parameters:
 - name: JOB_SPEC
   description: "JSON form of job specification."
-- name: buildId
+- name: BUILD_ID
   description: "Unique build number for each run."
 - name: REPO_OWNER
   description: "GitHub org that triggered the job."

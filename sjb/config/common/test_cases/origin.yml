@@ -58,16 +58,17 @@ actions:
       mkdir -p gcs/
       scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
 
+      if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+        echo "Keeping BUILD_ID"
+        BUILD="${BUILD_ID}"
+      else
+        echo "Using BUILD_NUMBER"
+        BUILD="${BUILD_NUMBER}"
+      fi
+
       function gcs_path() {
         bucket="gs://origin-ci-test/"
 
-        if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
-          echo "Keeping BUILD_ID"
-          BUILD="${BUILD_ID}"
-        else
-          echo "Using BUILD_NUMBER"
-          BUILD="${BUILD_NUMBER}"
-        fi
         suffix="${JOB_NAME}/${BUILD}/"
         if [[ -n "${REPO_OWNER:-}" ]]; then
           if [[ "${REPO_NAME}" != "origin" ]]; then

@@ -71,7 +71,7 @@ actions:
       gsutil cp gcs/started.json "${path}started.json"
       if [[ -n "${PULL_NUMBER:-}" ]]; then
         echo "${path%\/}" > "${BUILD}.txt"
-        gsutil cp "${BUILD}.txt" "gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/${BUILD_NUMBER}.txt"
+        gsutil cp "${BUILD}.txt" "gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/${BUILD}.txt"
       fi
       echo ${BUILD} > latest-build.txt
       gsutil cp latest-build.txt "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt"

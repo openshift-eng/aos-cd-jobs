@@ -29,6 +29,10 @@ git clone git@github.com:openshift/origin-web-console.git
 
 cd origin-web-console
 
+# Ignore generated resources during merge
+git config merge.ours.driver true
+echo 'dist/** merge=ours' >> .gitattributes
+
 git checkout -b enterprise-$MERGE_TO origin/enterprise-$MERGE_TO
 git merge master --no-commit --no-ff
 ./hack/install-deps.sh

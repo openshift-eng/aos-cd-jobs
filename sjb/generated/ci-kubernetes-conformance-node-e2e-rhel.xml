@@ -39,6 +39,11 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>JOB_SPEC</name>
+          <description>JSON form of job specification.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>AOS_CD_JOBS_TARGET_BRANCH</name>
           <description>The branch in the &lt;a href=&quot;https://github.com/openshift/aos-cd-jobs&quot;&gt;aos-cd-jobs&lt;/a&gt; repository to test against.</description>
           <defaultValue>master</defaultValue>
@@ -200,7 +205,17 @@ cat &lt;&lt;STARTED &gt;gcs/started.json
 }
 STARTED
 
-gsutil cp gcs/started.json &#34;gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD_NUMBER}/started.json&#34;</command>
+if [[ &#34;$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;${JOB_SPEC}&#34; )&#34; =~ ^\&#34;[0-9]+\&#34;$ ]]; then
+  echo &#34;Keeping BUILD_ID&#34;
+  BUILD=&#34;${BUILD_ID}&#34;
+else
+  echo &#34;Using BUILD_NUMBER&#34;
+  BUILD=&#34;${BUILD_NUMBER}&#34;
+fi
+
+gsutil cp gcs/started.json &#34;gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD}/started.json&#34;
+echo ${BUILD} &gt; latest-build.txt
+gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

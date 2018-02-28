@@ -1,6 +1,6 @@
 ---
 parameters:
-  - name: buildId
+  - name: BUILD_ID
     description: "Unique build number for each run."
   - name: REPO_OWNER
     description: "GitHub org that triggered the job."
@@ -16,6 +16,8 @@ parameters:
     description: "Pull request number."
   - name: PULL_PULL_SHA
     description: "Pull request head SHA."
+  - name: JOB_SPEC
+    description: "JSON form of job specification."
 actions:
   - type: "host_script"
     title: "upload GCS starting metadata"

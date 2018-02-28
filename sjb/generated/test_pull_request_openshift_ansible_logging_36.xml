@@ -154,7 +154,7 @@ else
   echo &#34;Using BUILD_NUMBER&#34;
   JOB_SPEC=&#34;\$( jq --compact-output &#39;.buildid |= &#34;&#39;&#34;\${BUILD_NUMBER}&#34;&#39;&#34;&#39; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
 fi
-docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json --repo=openshift,origin-aggregated-logging=release-3.6 \${CLONEREFS_ARGS:-} 
+docker run --user origin:origin-git -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json --repo=openshift,origin-aggregated-logging=release-3.6 \${CLONEREFS_ARGS:-} 
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 SCRIPT
 chmod +x &#34;${script}&#34;

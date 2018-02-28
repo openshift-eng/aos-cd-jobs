@@ -276,10 +276,10 @@ function gcs_path() {
   bucket=&#34;gs://origin-ci-test/&#34;
 
   if [[ &#34;$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;${JOB_SPEC}&#34; )&#34; =~ ^\&#34;[0-9]+\&#34;$ ]]; then
-    echo &#34;Keeping BUILD_ID&#34;
+    echo &#34;Keeping BUILD_ID&#34; &gt;&amp;2
     BUILD=&#34;${BUILD_ID}&#34;
   else
-    echo &#34;Using BUILD_NUMBER&#34;
+    echo &#34;Using BUILD_NUMBER&#34; &gt;&amp;2
     BUILD=&#34;${BUILD_NUMBER}&#34;
   fi
   suffix=&#34;${JOB_NAME}/${BUILD}/&#34;

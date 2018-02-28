@@ -54,7 +54,7 @@ actions:
     title: "enable docker tested repo"
     timeout: 300
     script: |-
-      if [[ "${PULL_BASE_REF:-master}" == "master" || "${PULL_BASE_REF:-master}" == "release-3.10" ]]; then
+      if [[ "${PULL_BASE_REF:-master}" == "master" || "${PULL_BASE_REF:-master}" == "release-3.9" || "${PULL_BASE_REF:-master}" == "release-3.10" ]]; then
         sudo touch /etc/yum.repos.d/dockertested.repo
         sudo chmod a+rw /etc/yum.repos.d/dockertested.repo
         cat <<REPO >/etc/yum.repos.d/dockertested.repo

@@ -19,7 +19,7 @@ cluster_choice = aos_cd_ops_data.getClusterList("${env.BRANCH_NAME}").join("\n")
 COMMON_OPTS= """cicd_openshift_version=
 cicd_docker_version=
 cicd_yum_openshift_ansible_url=
-cicd_yum_main_urls=
+cicd_yum_repo_urls=
 """
 
 properties(

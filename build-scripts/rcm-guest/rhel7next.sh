@@ -43,6 +43,12 @@ cat > rhel7next.repo <<-'EOF'
 	enabled = 0
 	gpgcheck = 0
 
+	[rhel-7-fast-datapath-stage-rpms]
+	name = Red Hat Enterprise Linux 7 Fast Datapath
+	baseurl = http://pulp.dist.stage.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/fast-datapath/os/
+	enabled = 0
+	gpgcheck = 0
+
 	[rhel-7-fast-datapath-htb-rpms]
 	name = Red Hat Enterprise Linux 7 Fast HTB Datapath
 	baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/htb/rhel/server/7/x86_64/fast-datapath/os/
@@ -76,6 +82,7 @@ ${rsync} \
 # reposync repos
 _reposync rhel-7-fast-datapath-rpms
 _reposync rhel-7-fast-datapath-htb-rpms
+_reposync rhel-7-fast-datapath-stage-rpms
 _reposync rhel-7-server-ose-3.4-rpms
 _reposync rhel-7-server-ansible-2.4-rpms
 # Rebuild repos with comp files

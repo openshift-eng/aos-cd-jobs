@@ -7,7 +7,6 @@ overrides:
     oct does not support non-openshift repository orgs.  openshift/sti-wildfly redirects to openshift-s2i/s2i-wildfly.
   email:
     - bparees@redhat.com
-    - cewong@redhat.com
     - gmontero@redhat.com
     - cdaley@redhat.com
     - jminter@redhat.com
@@ -50,3 +49,6 @@ extensions:
 
         docker tag openshift/wildfly-110-centos7 docker.io/openshift/wildfly-110-centos7
         docker push docker.io/openshift/wildfly-110-centos7
+
+        docker tag openshift/wildfly-120-centos7 docker.io/openshift/wildfly-120-centos7
+        docker push docker.io/openshift/wildfly-120-centos7

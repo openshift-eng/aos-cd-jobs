@@ -13,16 +13,17 @@ oc adm create-bootstrap-policy-file --filename=$F0
 # admin/edit/view were used on 3.7; the other roles are for when the cluster is using aggregation (e.g. 3.9).
 F="/tmp/reconcile_roles.cleaned"
 cat $F0 | jq '.objects = (.objects | 
-                map(    select(
-                                .metadata.name=="system:aggregate-to-admin" or
-                                .metadata.name=="system:aggregate-to-edit" or
-                                .metadata.name=="system:aggregate-to-view" or
-                                .metadata.name=="system:openshift:aggregate-to-admin" or
-                                .metadata.name=="system:openshift:aggregate-to-edit" or
-                                .metadata.name=="system:openshift:aggregate-to-view" or
-                                .metadata.name=="admin" or
-                                .metadata.name=="edit" or
-                                .metadata.name=="view" 
+                map(    select( .kind=="ClusterRole" and (
+                                  .metadata.name=="system:aggregate-to-admin" or
+                                  .metadata.name=="system:aggregate-to-edit" or
+                                  .metadata.name=="system:aggregate-to-view" or
+                                  .metadata.name=="system:openshift:aggregate-to-admin" or
+                                  .metadata.name=="system:openshift:aggregate-to-edit" or
+                                  .metadata.name=="system:openshift:aggregate-to-view" or
+                                  .metadata.name=="admin" or
+                                  .metadata.name=="edit" or
+                                  .metadata.name=="view" 
+                                )
                         )
                 )
         )' > $F

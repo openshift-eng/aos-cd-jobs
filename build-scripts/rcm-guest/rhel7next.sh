@@ -17,7 +17,7 @@ _reposync() {
     reposync \
         --config "${REPO_FILE}" \
         --download_path "${repoid}/" --repoid "${repoid}" \
-        --arch x86_64 --download-metadata --downloadcomps --delete --norepopath
+        --arch x86_64 --download-metadata --downloadcomps --delete --norepopath   || true   # Remove this soon; working around cache problem
 }
 
 _createrepo_comp() {

@@ -88,12 +88,13 @@ _reposync rhel-7-server-ansible-2.4-rpms
 # Rebuild repos with comp files
 _createrepo_comp "${PWD}/rhel-7-fast-datapath-rpms"
 _createrepo_comp "${PWD}/rhel-7-fast-datapath-htb-rpms"
+_createrepo_comp "${PWD}/rhel-7-fast-datapath-stage-rpms"
 _createrepo_comp "${PWD}/rhel-7-server-ansible-2.4-rpms"
 # Rebuild repos without comp files
 _createrepo "${PWD}/rhel-7-server-ose-3.4-rpms"
 # rsync repos to os mirror
 ${rsync} \
-    rhel-7-{fast-datapath{,-htb},server-ose-3.4,server-ansible-2.4}-rpms \
+    rhel-7-{fast-datapath{,-htb,-stage},server-ose-3.4,server-ansible-2.4}-rpms \
     "${MIRROR}:${REMOTE_DIR}/"
 # push to all geos
 ssh "${MIRROR}" /usr/local/bin/push.enterprise.sh -v

@@ -5,7 +5,7 @@ GIT_ROOT="/home/opsmedic/aos-cd/git"
 TMPDIR="$HOME/aos-cd/tmp"
 mkdir -p "${TMPDIR}"
 
-VALID_ARGUMENTS=(cicd_docker_version cicd_openshift_ansible_build cicd_openshift_version cli_yum_repo_urls cicd_yum_openshift_ansible_url)
+VALID_ARGUMENTS=(cicd_docker_version cicd_openshift_ansible_build cicd_openshift_version cicd_yum_repo_urls cicd_yum_openshift_ansible_url)
 
 # TMPTMP is a directory specific to each invocation. It will be
 # deleted when the script terminates.

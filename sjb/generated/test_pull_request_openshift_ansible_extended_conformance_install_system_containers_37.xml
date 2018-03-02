@@ -19,6 +19,11 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
+          <name>OSTREE_COPY</name>
+          <description>None</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>
           <description></description>
           <defaultValue></defaultValue>
@@ -161,10 +166,25 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json --repo=openshift,image-registry=master \${CLONEREFS_ARGS:-} --repo=openshift,openshift-ansible=master \${CLONEREFS_ARGS:-} --repo=openshift,kubernetes-metrics-server=master \${CLONEREFS_ARGS:-} --repo=openshift,origin-web-console-server=master \${CLONEREFS_ARGS:-} --repo=openshift,aos-cd-jobs=master \${CLONEREFS_ARGS:-} 
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json --repo=openshift,origin=release-3.7 \${CLONEREFS_ARGS:-} --repo=openshift,aos-cd-jobs=master \${CLONEREFS_ARGS:-} 
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 sudo chmod -R a+rwX /data
 sudo chown -R origin:origin-git /data
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RECORD EXTRA EVARS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RECORD EXTRA EVARS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+sudo chmod o+rw /etc/environment
+echo &#39;EXTRA_EVARS=&#34;-e openshift_use_system_containers=true -e openshift_docker_systemcontainer_image_registry_override=brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/rhel7 -e system_images_registry=docker -e containerized=true&#34;&#39; &gt;&gt; /etc/environment
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -599,7 +619,16 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
-OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
+# configure dnsmasq to forward requests to openhsift&#39;s DNS
+cat &lt;&lt;HEREDOC &gt; ci-dnsmasq.conf
+server=/local/127.0.0.1#8053
+server=/17.30.172.in-addr.arpa/127.0.0.1#8053
+HEREDOC
+sudo cp ci-dnsmasq.conf /etc/dnsmasq.d/ci-dnsmasq.conf
+sudo systemctl restart dnsmasq
+sudo systemctl status dnsmasq
+# run the tests with fingers crossed
+#OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; SUITE=conformance make test-extended TEST_EXTENDED_ARGS=&#34;-ginkgo.skip=should\sanswer\sendpoint\sand\swildcard\squeries\sfor\sthe\scluster|should\sprovide\sDNS\sfor\spods\sfor\sHostname\sand\sSubdomain\sAnnotation|should\sprovide\sDNS\sfor\sservices|should\sprovide\sDNS\sfor\sthe\scluster|should\sexpose\sthe\sprofiling\sendpoints&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -724,6 +753,12 @@ oct deprovision</command>
       <defaultExcludes>true</defaultExcludes>
       <caseSensitive>true</caseSensitive>
     </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
+      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</testResults>
+      <keepLongStdio>true</keepLongStdio>
+      <healthScaleFactor>1.0</healthScaleFactor>
+      <allowEmptyResults>true</allowEmptyResults>
+    </hudson.tasks.junit.JUnitResultArchiver>
     <hudson.plugins.s3.S3BucketPublisher plugin="s3@0.10.11-SNAPSHOT">
       <profileName>Jenkins-AWS</profileName>
       <entries>

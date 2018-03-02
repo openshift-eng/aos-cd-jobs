@@ -70,6 +70,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
                          "${evars:-}" \
+                         ${EXTRA_EVARS:-} \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -88,6 +89,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
+                         ${EXTRA_EVARS:-} \
                          ${playbook}
         if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
             playbook="${playbook_base}deploy_cluster.yml"
@@ -112,6 +114,7 @@ extensions:
                          -e openshift_node_port_range='30000-32000'                             \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \
                          "${evars:-}" \
+                         ${EXTRA_EVARS:-} \
                          ${playbook}
     - type: "script"
       title: "expose the kubeconfig"

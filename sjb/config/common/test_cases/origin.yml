@@ -100,8 +100,16 @@ actions:
           echo "${path%\/}" > "${BUILD}.txt"
           gsutil cp "${BUILD}.txt" "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD}.txt"
         fi
+
         echo ${BUILD} > latest-build.txt
-        gsutil cp latest-build.txt "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt"
+        job_type=$( jq --compact-output ".type" <<<${JOB_SPEC} )
+        if [[ $job_type =~ "presubmit" || $job_type =~ "batch" ]]; then
+          gsutil cp latest-build.txt "gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt"
+        elif [[ $job_type =~ "postsubmit" || $job_type =~ "periodic" ]]; then
+          gsutil cp latest-build.txt "gs://origin-ci-test/logs/${JOB_NAME}/latest-build.txt"
+        else
+          echo "Bad job type provided in JOB_SPEC: $job_type"
+        fi
       fi
   - type: "script"
     title: "use a ramdisk for etcd"

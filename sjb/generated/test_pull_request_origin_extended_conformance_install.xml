@@ -459,6 +459,7 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
                  &#34;\${evars:-}&#34; \
+                 \${EXTRA_EVARS:-} \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -485,6 +486,7 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
+                 \${EXTRA_EVARS:-} \
                  \${playbook}
 if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
     playbook=&#34;\${playbook_base}deploy_cluster.yml&#34;
@@ -509,6 +511,7 @@ ansible-playbook -vv --become               \
                  -e openshift_node_port_range=&#39;30000-32000&#39;                             \
                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;      \
                  &#34;\${evars:-}&#34; \
+                 \${EXTRA_EVARS:-} \
                  \${playbook}
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -12,6 +12,7 @@ from actions.child_jobs import ChildJobAction
 from actions.clonerefs import ClonerefsAction
 from actions.deprovision import DeprovisionAction
 from actions.download_artifacts import DownloadArtifactsAction
+from actions.evars import EvarsAction
 from actions.forward_parameter import ForwardParametersAction
 from actions.generate_artifacts import GenerateArtifactsAction
 from actions.host_script import HostScriptAction
@@ -155,6 +156,9 @@ if job_type == "test":
             debug("[INFO] Coalescing into multi sync")
             actions.append(MultiSyncAction(sync_actions))
 
+    # we need to expose the extra -e vars to the steps
+    if "evars" in job_config:
+        actions.append(EvarsAction(job_config["evars"]))
 
     def parse_action(action):
         if action["type"] == "script":

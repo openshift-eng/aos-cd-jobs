@@ -38,13 +38,9 @@ node('openshift-build-1') {
 
                 stage("push images") {
                     dir ( "enterprise-images" ) {
+                        sh './tools/bin/oit --user=ocp-build --group sync-3.9 images:push --to-defaults'
                         sh './tools/bin/oit --user=ocp-build --group sync-misc images:push --to-defaults'
                         sh './tools/bin/oit --user=ocp-build --group sync-3.7 images:push --to-defaults'
-                        try {
-                            sh './tools/bin/oit --user=ocp-build --group sync-3.8 images:push --to-defaults'
-                        } catch ( e38 ) {
-                            // need dist-git branches before this will work without exceptions; swallow for now
-                        }
                     }
                 }
             } catch ( ex1 ) {

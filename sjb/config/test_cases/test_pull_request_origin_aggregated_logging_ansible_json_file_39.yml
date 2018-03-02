@@ -3,4 +3,4 @@ parent: 'test_cases/test_pull_request_origin_aggregated_logging_ansible_json_fil
 overrides:
   sync_repos: []
   sync:
-    - "openshift,openshift-ansible=release-3.7"
+    - "openshift,openshift-ansible=release-3.9"

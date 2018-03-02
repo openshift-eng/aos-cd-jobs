@@ -215,7 +215,14 @@ fi
 
 gsutil cp gcs/started.json &#34;gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD}/started.json&#34;
 echo ${BUILD} &gt; latest-build.txt
-gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;</command>
+job_type=&#34;$( jq --compact-output &#34;.type&#34; &lt;&lt;&lt;&#34;${JOB_SPEC}&#34; )&#34;
+if [[ $job_type =~ &#34;presubmit&#34; || $job_type =~ &#34;batch&#34; ]]; then
+  gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;
+elif [[ $job_type =~ &#34;postsubmit&#34; || $job_type =~ &#34;periodic&#34; ]]; then
+  gsutil cp latest-build.txt &#34;gs://origin-ci-test/logs/${JOB_NAME}/latest-build.txt&#34;
+else
+  echo &#34;Bad job type provided in JOB_SPEC: $job_type&#34;
+fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

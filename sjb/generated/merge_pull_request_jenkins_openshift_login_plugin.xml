@@ -277,8 +277,16 @@ if path=&#34;$( gcs_path )&#34;; then
     echo &#34;${path%\/}&#34; &gt; &#34;${BUILD}.txt&#34;
     gsutil cp &#34;${BUILD}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD}.txt&#34;
   fi
+
   echo ${BUILD} &gt; latest-build.txt
-  gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;
+  job_type=$( jq --compact-output &#34;.type&#34; &lt;&lt;&lt;${JOB_SPEC} )
+  if [[ $job_type =~ &#34;presubmit&#34; || $job_type =~ &#34;batch&#34; ]]; then
+    gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;
+  elif [[ $job_type =~ &#34;postsubmit&#34; || $job_type =~ &#34;periodic&#34; ]]; then
+    gsutil cp latest-build.txt &#34;gs://origin-ci-test/logs/${JOB_NAME}/latest-build.txt&#34;
+  else
+    echo &#34;Bad job type provided in JOB_SPEC: $job_type&#34;
+  fi
 fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

@@ -166,6 +166,16 @@ sync:
   - pullspec # format org,repo=branch:branch-sha,[pull-number:pull-sha,...]
 ```
 
+## `evars`
+
+`evars` is an optional field which declares extra options to pass to the Ansible
+installer with `-e`. These will be exposed on the remote VM as `$EXTRA_EVARS`.
+The syntax is:
+
+```yaml
+evars: "-e a=b -e c=d" # needs to be broken on strings when used by the shell
+```
+
 ## `actions`
 
 `actions` is an optional list of actions to take in the job. Each action will

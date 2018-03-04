@@ -612,8 +612,11 @@ export TEST_ONLY=1
 export JUNIT_REPORT=true
 export TEST_EXTENDED_SKIP=&#34;\[local\]&#34;
 TEST_EXTENDED_SKIP+=&#34;\${ADDITIONAL_SKIP-}&#34;
+
+# TODO: eventually this shouldn&#39;t be specific to a particular provider
 export GOOGLE_APPLICATION_CREDENTIALS=&#34;/data/src/github.com/openshift/release/cluster/test-deploy/\${CLUSTER_PROFILE}/gce.json&#34;
-export TEST_EXTENDED_ARGS=&#39;-provider=gce -gce-zone=us-central1-a -gce-project=openshift-gce-devel-ci&#39;
+cp /data/src/github.com/openshift/release/cluster/test-deploy/\${CLUSTER_PROFILE}/ssh-privatekey ~/.ssh/google_compute_engine || true
+export TEST_EXTENDED_ARGS=&#39;-provider=gce -gce-zone=us-east1-c -gce-project=openshift-gce-devel-ci&#39;
 
 # test suites need oc and extended.test
 OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc

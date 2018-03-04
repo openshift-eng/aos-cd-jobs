@@ -166,6 +166,7 @@ extensions:
 
         # TODO: eventually this shouldn't be specific to a particular provider
         export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/gce.json"
+        export KUBE_SSH_USER=cloud-user
         cp /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/ssh-privatekey ~/.ssh/google_compute_engine || true
         export TEST_EXTENDED_ARGS='-provider=gce -gce-zone=us-east1-c -gce-project=openshift-gce-devel-ci'
 

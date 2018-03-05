@@ -1,4 +1,0 @@
----
-parent: 'test_cases/test_branch_origin_extended_networking_minimal.yml'
-overrides:
-  junit_analysis: False

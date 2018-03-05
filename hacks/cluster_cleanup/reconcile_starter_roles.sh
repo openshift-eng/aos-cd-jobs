@@ -51,3 +51,23 @@ done
 for r in system:aggregate-to-admin system:aggregate-to-edit system:aggregate-to-view system:openshift:aggregate-to-admin system:openshift:aggregate-to-edit system:openshift:aggregate-to-view admin edit view ; do 
         oc annotate clusterrole $r openshift.io/reconcile-protect=true --overwrite || true
 done
+
+
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: ClusterRole
+#metadata:
+#  name: system:openshift:cicd:aggregate-to-all-cronjobs-read-and-del
+#  labels:
+#    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+#    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+#    rbac.authorization.k8s.io/aggregate-to-view: "true"
+#rules:
+#- apiGroups:
+#  - batch
+#  resources:
+#  - cronjobs
+#  verbs:
+#  - get
+#  - list
+#  - watch
+#  - delete

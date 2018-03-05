@@ -56,7 +56,7 @@ done
 #apiVersion: rbac.authorization.k8s.io/v1
 #kind: ClusterRole
 #metadata:
-#  name: system:openshift:cicd:aggregate-to-all-cronjobs-read
+#  name: system:openshift:cicd:aggregate-to-all-cronjobs-read-and-del
 #  labels:
 #    rbac.authorization.k8s.io/aggregate-to-admin: "true"
 #    rbac.authorization.k8s.io/aggregate-to-edit: "true"
@@ -70,3 +70,4 @@ done
 #  - get
 #  - list
 #  - watch
+#  - delete

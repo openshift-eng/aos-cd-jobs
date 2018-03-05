@@ -60,7 +60,6 @@ done
 #  labels:
 #    rbac.authorization.k8s.io/aggregate-to-admin: "true"
 #    rbac.authorization.k8s.io/aggregate-to-edit: "true"
-#    rbac.authorization.k8s.io/aggregate-to-view: "true"
 #rules:
 #- apiGroups:
 #  - batch
@@ -71,3 +70,22 @@ done
 #  - list
 #  - watch
 #  - delete
+#  - deletecollection
+
+
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: ClusterRole
+#metadata:
+#  name: system:openshift:cicd:aggregate-to-all-cronjobs-read
+#  labels:
+#    rbac.authorization.k8s.io/aggregate-to-view: "true"
+#rules:
+#- apiGroups:
+#  - batch
+#  resources:
+#  - cronjobs
+#  verbs:
+#  - get
+#  - list
+#  - watch
+

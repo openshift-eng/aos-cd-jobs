@@ -71,3 +71,4 @@ done
 #  - list
 #  - watch
 #  - delete
+#  - deletecollection

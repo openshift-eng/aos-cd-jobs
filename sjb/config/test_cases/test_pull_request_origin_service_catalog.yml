@@ -9,27 +9,17 @@ extensions:
       repository: "origin"
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        git log -1 --pretty=%h > "${jobs_repo}/ORIGIN_COMMIT"
+        export ORIGIN_COMMIT=$(git log -1 --pretty=%h)
+        echo $ORIGIN_COMMIT > "${jobs_repo}/ORIGIN_COMMIT"
         source hack/lib/init.sh
-        os::build::rpm::format_nvra > "${jobs_repo}/ORIGIN_BUILT_VERSION"
+        export ORIGIN_BUILT_VERSION=$(os::build::rpm::format_nvra)
+        echo $ORIGIN_BUILT_VERSION > "${jobs_repo}/ORIGIN_BUILT_VERSION"
     - type: "script"
-      title: "build junitreport"
+      title: "build Origin"
       repository: "origin"
       timeout: 1800
       script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/junitreport hack/env make build WHAT=tools/junitreport
-    - type: "script"
-      title: "update bindata"
-      repository: "origin"
-      timeout: 1800
-      script: |-
-        hack/update-generated-bindata.sh
-    - type: "script"
-      title: "build Origin OC binary with latest RBAC"
-      repository: "origin"
-      timeout: 1800
-      script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build
     - type: "script"
       title: "build service-catalog user-broker image"
       repository: "origin"
@@ -55,6 +45,12 @@ extensions:
       script: |-
         hack/build-local-images.py service-catalog
     - type: "script"
+      title: "build origin images"
+      repository: "origin"
+      timeout: 1800
+      script: |-
+        hack/build-local-images.py
+    - type: "script"
       title: "build Service Catalog E2E test binary"
       repository: "origin"
       timeout: 1800
@@ -65,19 +61,23 @@ extensions:
       repository: "origin"
       timeout: 1800
       script: |-
-        ./_output/local/bin/linux/amd64/oc cluster up --version=latest --service-catalog
+        ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
+        ./_output/local/bin/linux/amd64/oc login -u system:admin
+        ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
     - type: "script"
       title: "Run Service Catalog E2E"
       repository: "origin"
       timeout: 1800
       script: |-
-        ./_output/local/bin/linux/amd64/oc login -u system:admin
         kubeconfig=$(mktemp)
         ./_output/local/bin/linux/amd64/oc config view --raw > $kubeconfig
         chmod a+rw $kubeconfig
         export KUBECONFIG=$kubeconfig
         SERVICECATALOGCONFIG=$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
         rm -f $kubeconfig
+  generated_artifacts:
+    catalog-apiserver.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/kubectl logs -n kube-service-catalog -lapp=apiserver -c apiserver'
+    catalog-controller.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/kubectl logs -n kube-service-catalog -lapp=controller-manager'
   system_journals:
     - origin-master.service
     - origin-master-api.service

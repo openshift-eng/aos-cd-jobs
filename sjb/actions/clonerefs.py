@@ -23,7 +23,7 @@ for image in 'registry.svc.ci.openshift.org/ci/clonerefs:latest' 'registry.svc.c
     for (( i = 0; i < 5; i++ )); do
         if docker pull "${image}"; then
             break
-        done
+        fi
     done
 done
 docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json {% for repo in repos %}--repo={{repo}} ${CLONEREFS_ARGS:-} {% endfor %}

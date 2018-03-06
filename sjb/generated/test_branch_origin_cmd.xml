@@ -158,7 +158,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
     for (( i = 0; i &lt; 5; i++ )); do
         if docker pull &#34;\${image}&#34;; then
             break
-        done
+        fi
     done
 done
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json 

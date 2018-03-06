@@ -53,39 +53,43 @@ for r in system:aggregate-to-admin system:aggregate-to-edit system:aggregate-to-
 done
 
 
-#apiVersion: rbac.authorization.k8s.io/v1
-#kind: ClusterRole
-#metadata:
-#  name: system:openshift:cicd:aggregate-to-all-cronjobs-read-and-del
-#  labels:
-#    rbac.authorization.k8s.io/aggregate-to-admin: "true"
-#    rbac.authorization.k8s.io/aggregate-to-edit: "true"
-#rules:
-#- apiGroups:
-#  - batch
-#  resources:
-#  - cronjobs
-#  verbs:
-#  - get
-#  - list
-#  - watch
-#  - delete
-#  - deletecollection
+# Without the following roles being aggregrated, "oc get all" will return "forbidden" when trying to get cronjobs.
 
+cat <<EOF | oc apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:openshift:cicd:aggregate-to-all-cronjobs-read-and-del
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+  - deletecollection
+EOF
 
-#apiVersion: rbac.authorization.k8s.io/v1
-#kind: ClusterRole
-#metadata:
-#  name: system:openshift:cicd:aggregate-to-all-cronjobs-read
-#  labels:
-#    rbac.authorization.k8s.io/aggregate-to-view: "true"
-#rules:
-#- apiGroups:
-#  - batch
-#  resources:
-#  - cronjobs
-#  verbs:
-#  - get
-#  - list
-#  - watch
-
+cat <<EOF | oc apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:openshift:cicd:aggregate-to-all-cronjobs-read
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - get
+  - list
+  - watch
+EOF

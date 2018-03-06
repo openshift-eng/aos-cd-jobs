@@ -19,6 +19,13 @@ else
   echo "Using BUILD_NUMBER"
   JOB_SPEC="$( jq --compact-output '.buildid |= "'"${BUILD_NUMBER}"'"' <<<"${JOB_SPEC}" )"
 fi
+for image in 'registry.svc.ci.openshift.org/ci/clonerefs:latest' 'registry.svc.ci.openshift.org/ci/initupload:latest'; do
+    for (( i = 0; i < 5; i++ )); do
+        if docker pull "${image}"; then
+            break
+        done
+    done
+done
 docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json {% for repo in repos %}--repo={{repo}} ${CLONEREFS_ARGS:-} {% endfor %}
 docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 sudo chmod -R a+rwX /data

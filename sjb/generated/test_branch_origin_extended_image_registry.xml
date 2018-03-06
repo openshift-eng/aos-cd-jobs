@@ -407,6 +407,7 @@ ansible-playbook -vv --become               \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
+                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_COMMIT )&#34;                      \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
                  &#34;\${evars:-}&#34; \
                  \${playbook}

@@ -1,0 +1,241 @@
+---
+parent: 'common/test_cases/origin.yml'
+overrides:
+  junit_analysis: False
+  timer: 'H H * * *'
+  email:
+    - decarr@redhat.com
+    - gscrivan@redhat.com
+    - mpatel@redhat.com
+    - amurdaca@redhat.com
+extensions:
+  sync_repos:
+    - name: "openshift-ansible"
+  actions:
+    - type: "script"
+      title: "build an origin release"
+      repository: "origin"
+      script: |-
+        hack/build-base-images.sh
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
+        sudo systemctl restart docker
+        hack/build-images.sh
+        sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
+        sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
+    - type: "script"
+      title: "build an openshift-ansible release"
+      repository: "openshift-ansible"
+      script: |-
+        tito_tmp_dir="tito"
+        mkdir -p "${tito_tmp_dir}"
+        tito tag --offline --accept-auto-changelog
+        tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
+        createrepo "${tito_tmp_dir}/noarch"
+        cat << EOR > ./openshift-ansible-local-release.repo
+        [openshift-ansible-local-release]
+        baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
+        gpgcheck = 0
+        name = OpenShift Ansible Release from Local Source
+        EOR
+        sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
+    - type: "script"
+      title: "install the openshift-ansible release"
+      repository: "openshift-ansible"
+      timeout: 3600
+      script: |-
+        last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
+        last_commit="$( git log -n 1 --pretty=%h )"
+        if [[ "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.6" || "${PULL_BASE_REF}" == "release-3.5"  ]]; then
+          sudo yum downgrade -y ansible-2.3\*
+        fi
+        sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+        rpm -V "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+    - type: "script"
+      title: "install skopeo"
+      timeout: 3600
+      script: |-
+        sudo yum install -y skopeo
+    - type: "script"
+      title: "install Ansible plugins"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        sudo chmod o+rw /etc/environment
+        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
+        sudo mkdir -p /usr/share/ansible/plugins/callback
+        for plugin in 'default_with_output_lists' 'generate_junit'; do
+           wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+           sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
+        done
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+    - type: "script"
+      title: "determine the release commit for origin images and version for rpms"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
+        git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
+        tag=$( source hack/lib/init.sh; os::build::version::get_vars; echo "v${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" )
+        if [[ "${tag}" =~ ^v3.(6|7|8|9)$ ]]; then
+          git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
+        else
+          echo "${tag}" >> "${jobs_repo}/ORIGIN_TAG"
+        fi
+    - type: "script"
+      title: "build the image registry container image"
+      repository: "image-registry"
+      timeout: 3600
+      script: |-
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.8" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+          make build-images
+          docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+        fi
+    - type: "script"
+      title: "build the kubernetes metrics server container image"
+      repository: "kubernetes-metrics-server"
+      timeout: 3600
+      script: |-
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+          make build-images
+          docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+        fi
+    - type: "script"
+      title: "copy openshift images from docker storage to CRI-O storage"
+      timeout: 10800
+      script: |-
+        for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v "<none>" | grep -v "latest" | grep "openshift\/origin"); do
+          sudo skopeo copy docker-daemon:$i containers-storage:\[overlay@/var/lib/containers/storage+/var/run/containers/storage:overlay.override_kernel_check=1\]$i
+        done
+    - type: "script"
+      title: "origin prerequisites"
+      repository: "aos-cd-jobs"
+      script: |-
+        crio_tag="$( grep -Po "(?<=^-)[0-9]+\.[0-9]+" ./ORIGIN_PKG_VERSION  )"
+        case $crio_tag in
+        "3.7")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.7"
+          ;;
+        "3.8")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.8"
+          ;;
+        "3.9")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.9"
+          ;;
+        ""|*)
+          crio_image="docker.io/runcom/cri-o-system-container:latest"
+          ;;
+        esac
+        local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e openshift_deployment_type=origin  \
+                         -e openshift_use_crio=True   \
+                         -e openshift_crio_use_rpm=True
+                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
+                         -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
+                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         -e openshift_node_port_range='30000-32000'                             \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \
+                         /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+    - type: "script"
+      title: "install origin"
+      timeout: 7200
+      repository: "aos-cd-jobs"
+      script: |-
+        playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
+        if [[ -s "${playbook_base}/openshift-node/network_manager.yml" ]]; then
+            playbook="${playbook_base}openshift-node/network_manager.yml"
+        else
+            playbook="${playbook_base}byo/openshift-node/network_manager.yml"
+        fi
+        crio_tag="$( grep -Po "(?<=^-)[0-9]+\.[0-9]+" ./ORIGIN_PKG_VERSION  )"
+        case $crio_tag in
+        "3.7")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.7"
+          ;;
+        "3.8")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.8"
+          ;;
+        "3.9")
+          crio_image="docker.io/runcom/cri-o-system-container:v3.9"
+          ;;
+        ""|*)
+          crio_image="docker.io/runcom/cri-o-system-container:latest"
+          ;;
+        esac
+        local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e openshift_deployment_type=origin  \
+                         ${playbook}
+        if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
+            playbook="${playbook_base}deploy_cluster.yml"
+        else
+            playbook="${playbook_base}byo/config.yml"
+        fi
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e openshift_deployment_type=origin  \
+                         -e openshift_use_crio=True   \
+                         -e openshift_crio_use_rpm=True
+                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
+                         -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
+                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         -e openshift_node_port_range='30000-32000'                             \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \
+                         ${playbook}
+    - type: "script"
+      title: "expose the kubeconfig"
+      timeout: 600
+      script: |-
+        sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
+        sudo chmod a+rw /etc/origin/master/admin.kubeconfig
+    - type: "script"
+      title: "ensure built version of origin is installed"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        rpm -V "${origin_package}"
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=conformance
+  artifacts:
+    - /var/log/pods
+    - /etc/crio
+    - /etc/systemd/system
+  generated_artifacts:
+    crio.commit: "sudo runc exec cri-o crio --version"
+    dmesg.log: "dmesg"
+    journal_xe.log: "sudo journalctl -xe"
+    avc_selinux_denials.log: 'sudo ausearch -m avc -ts recent'
+    auditd.log: 'sudo cat /var/log/audit/audit.log'
+    crio.conf: 'sudo cat /etc/crio/crio.conf'
+  system_journals:
+    - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
+    - origin-node.service
+    - openvswitch.service
+    - ovs-vswitchd.service
+    - ovsdb-server.service
+    - etcd.service
+    - cri-o.service
+    - systemd-journald.service

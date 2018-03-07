@@ -1,7 +1,4 @@
 ---
 parent: 'test_cases/test_branch_origin_web_console.yml'
 overrides:
-  sync_repos:
-    - name: "origin-web-console"
-      type: "pull_request"
   test: "origin-web-console"

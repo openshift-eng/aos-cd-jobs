@@ -18,7 +18,7 @@ PS4='${LINENO}: '
 set -o xtrace
 
 ## LOCAL VARIABLES ##
-MASTER_RELEASE="3.9"    # Update version_trim_list when this changes
+MASTER_RELEASE="3.10"    # Update version_trim_list when this changes
 MAJOR_RELEASE="${MASTER_RELEASE}"  # This is a default if --branch is not specified
 MINOR_RELEASE=$(echo ${MAJOR_RELEASE} | cut -d'.' -f2)
 

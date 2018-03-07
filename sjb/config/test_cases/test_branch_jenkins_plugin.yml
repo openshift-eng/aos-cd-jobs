@@ -1,8 +1,6 @@
 ---
 parent: 'common/test_cases/origin_installed_release.yml'
 extensions:
-  sync_repos:
-    - name: "jenkins-plugin"
   actions:
     - type: "script"
       title: "build the jenkins plugin and test image"

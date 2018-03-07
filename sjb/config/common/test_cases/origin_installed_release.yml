@@ -1,6 +1,8 @@
 ---
 parent: 'common/test_cases/origin_built_release.yml'
 extensions:
+  sync:
+    - "openshift,aos-cd-jobs=master"
   actions:
     - type: "script"
       title: "install the openshift-ansible release"
@@ -35,6 +37,7 @@ extensions:
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
         git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
     - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
@@ -50,6 +53,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
                          "${evars:-}" \
+                         ${EXTRA_EVARS:-} \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -68,6 +72,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
+                         ${EXTRA_EVARS:-} \
                          ${playbook}
         if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
             playbook="${playbook_base}deploy_cluster.yml"
@@ -87,9 +92,13 @@ extensions:
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
                          -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )"                      \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         -e openshift_node_port_range='30000-32000'                             \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \
                          "${evars:-}" \
+                         ${EXTRA_EVARS:-} \
                          ${playbook}
     - type: "script"
       title: "expose the kubeconfig"
@@ -114,3 +123,5 @@ extensions:
     - ovsdb-server.service
     - etcd.service
     - systemd-journald.service
+  generated_artifacts:
+    etcd.conf: 'sudo cat /etc/etcd/etcd.conf'

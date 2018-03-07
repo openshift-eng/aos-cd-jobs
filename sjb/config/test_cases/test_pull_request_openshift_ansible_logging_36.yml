@@ -1,6 +1,5 @@
 ---
 parent: 'test_cases/test_branch_openshift_ansible_logging.yml'
 overrides:
-  sync_repos: []
   sync:
     - "openshift,origin-aggregated-logging=release-3.6"

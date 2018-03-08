@@ -62,11 +62,7 @@ else
 fi
 
 OSE_VERSION="${MAJOR}.${MINOR}"
-PUSH_EXTRA=""
-
-if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-  PUSH_EXTRA="--nolatest"
-fi
+PUSH_EXTRA="--nolatest"
 
 if [ -z "$WORKSPACE" ]; then
     echo "WORKSPACE environment variable has not been set. Aborting."
@@ -106,17 +102,6 @@ if [ "${OSE_VERSION}" == "3.2" ] ; then
   exit 1
 fi # End check if we are version 3.2
 
-# Do a check to see if OSE_MASTER is incorrect.
-if [ ! -z "$(git ls-remote --heads git@github.com:openshift/origin.git release-${OSE_MASTER})" \
-    -o \
-     ! -z "$(git ls-remote --heads git@github.com:openshift/openshift-ansible.git release-${OSE_MASTER})" \
-   ]; then
-    echo "A release branch exists for the version claimed in OSE_MASTER=${OSE_MASTER}"
-    echo "Something is wrong. A new release branch was probably just cut and you need"
-    echo "to update OSE_MASTER in the Jenkinsfile."
-    exit 1
-fi
-
 echo
 echo "=========="
 echo "Setup OIT stuff"
@@ -145,24 +130,6 @@ if [ "${BUILD_MODE}" == "online:stg" ] ; then
 else
   WEB_CONSOLE_BRANCH="enterprise-${OSE_VERSION}"
   git checkout "${WEB_CONSOLE_BRANCH}"
-  if [ "${OSE_VERSION}" == "${OSE_MASTER}" ] ; then
-    # We will be re-generating the dist directory, so ignore it for the merge
-    echo 'dist/** merge=ours' >> .gitattributes
-    # Configure the merge driver for this repo
-    git config merge.ours.driver true
-    git merge master --no-commit --no-ff
-
-    # Use grunt to rebuild everything in the dist directory
-    ./hack/install-deps.sh
-    grunt build
-
-    git add dist
-    git commit -m "Merge master into enterprise-${OSE_VERSION}" --allow-empty
-
-    git push
-    # Clean up any unstaged changes (e.g. .gitattributes)
-    git reset --hard HEAD
-  fi
 fi
 
 echo
@@ -205,17 +172,8 @@ else
     UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
     SPEC_VERSION_COUNT=5
   else # Otherwise, online:int
-    # In general, online:int builds should be pulling from upstream/master. However,
-    # we may cut an origin release branch and want to use that branch for a time during
-    # online:int builds instead of master. We detect this window by checking the
-    # version of master versus the version passed in to the online:int build.
-    if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-        CURRENT_BRANCH="enterprise-${OSE_VERSION}"
-        UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
-    else
-        CURRENT_BRANCH="master"
-        UPSTREAM_BRANCH="upstream/master"
-    fi
+    CURRENT_BRANCH="enterprise-${OSE_VERSION}"
+    UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
     SPEC_VERSION_COUNT=3 # No need to change
   fi
 
@@ -290,12 +248,10 @@ cd openshift-ansible/
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
     git checkout -q stage
 else
-  if [ "${OSE_VERSION}" != "${OSE_MASTER}" ] ; then
-    if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
-      git checkout -q release-1.${MINOR}
-    else  # Afterwards, version maps directly; 3.5 => "release-3.5"
-      git checkout -q release-${OSE_VERSION}
-    fi
+  if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
+    git checkout -q release-1.${MINOR}
+  else  # Afterwards, version maps directly; 3.5 => "release-3.5"
+    git checkout -q release-${OSE_VERSION}
   fi
 fi
 

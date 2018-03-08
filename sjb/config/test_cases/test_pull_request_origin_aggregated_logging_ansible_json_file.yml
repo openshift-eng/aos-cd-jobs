@@ -1,11 +1,9 @@
 ---
 parent: 'common/test_cases/origin_built_release.yml'
 overrides:
-  sync_repos:
-    - name: "origin-aggregated-logging"
-      type: "pull_request"
-    - name: "openshift-ansible"
-    - name: "aos-cd-jobs"
+  sync:
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,openshift-ansible=master"
 extensions:
   actions:
     - type: "script"

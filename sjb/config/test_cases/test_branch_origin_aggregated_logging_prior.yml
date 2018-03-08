@@ -2,8 +2,6 @@
 parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   junit_analysis: False
-  sync_repos:
-    - name: "origin-aggregated-logging"
 extensions:
   actions:
     - type: "script"

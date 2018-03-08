@@ -1,8 +1,6 @@
 ---
 parent: 'common/test_cases/origin_built_release.yml'
 extensions:
-  sync_repos:
-    - name: "origin-web-console-server"
   actions:
     - type: "script"
       title: "build the web console container image"

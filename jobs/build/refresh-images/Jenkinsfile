@@ -42,7 +42,7 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                               // TODO reenable when the mirrors have the necessary puddles
-                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
+                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
                       ]
              ]]
     )

@@ -2,4 +2,9 @@
 parent: 'test_cases/test_branch_openshift_ansible_logging.yml'
 overrides:
   sync:
+    - "openshift,origin=release-3.9"
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,image-registry=release-3.9"
     - "openshift,origin-aggregated-logging=release-3.9"
+    - "openshift,kubernetes-metrics-server=release-3.9"
+    - "openshift,origin-web-console-server=release-3.9"

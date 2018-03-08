@@ -6,10 +6,10 @@ set -o pipefail
 
 pushd sjb >/dev/null
 for spec in config/test_cases/*.yml; do
-	python -m generate "${spec}" "test"
+	python -m generate "${spec}" "test" &
 done
 
-for spec in config/test_suites/*.yml; do
-	python -m generate "${spec}" "suite"
+for job in $( jobs -p ); do
+	wait "${job}"
 done
 popd >/dev/null

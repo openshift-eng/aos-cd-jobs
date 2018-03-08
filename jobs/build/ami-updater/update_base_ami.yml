@@ -8,7 +8,6 @@
     g_play_ssh_key_name: ami_builder_key
     g_play_sg_group_id: sg-133a6266
     g_play_subnet_id: subnet-3786fb53
-    g_play_image_id: "{{ cli_image_id | default(None) }}"
     g_play_build_date: "{{ lookup('pipe','date +%Y%m%d%H%M') }}"
     g_play_operating_system: RedHat
     g_play_ami_search_standard: "true"
@@ -18,6 +17,11 @@
       base_ami: "true"
 
   tasks:
+  # This needs to be set_fact or else it doesn't persist to the last play
+  - name: Set image ID to the AMI we just searched for
+    set_fact:
+      g_play_image_id: "{{ cli_image_id | default(None) }}"
+
   # Attempt to find the right AMI, if no AMI (g_play_image_id) is set
   - when: not g_play_image_id
     block:
@@ -33,6 +37,7 @@
       register: l_ami_search
 
     - debug: var=l_ami_search
+
     - name: Set image ID to the AMI we just searched for
       set_fact:
         g_play_image_id: "{{ l_ami_search['results'][0]['ami_id'] }}"

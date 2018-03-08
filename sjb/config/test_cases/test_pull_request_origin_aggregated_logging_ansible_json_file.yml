@@ -119,11 +119,19 @@ extensions:
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
       script: |-
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
+        logging_extras=""
+        if [[ "${curbranch}" == master ]] ; then
+           logging_extras="${logging_extras} -e openshift_install_examples=false"
+        elif [[ "${curbranch}" =~ ^release-* ]] ; then
+           logging_extras="${logging_extras} -e openshift_disable_check=* -e openshift_install_examples=false"
+        fi
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
+                         ${logging_extras}          \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
     - type: "script"
       title: "install origin"
@@ -146,6 +154,13 @@ extensions:
         else
             playbook="${playbook_base}byo/config.yml"
         fi
+        curbranch=$( git rev-parse --abbrev-ref HEAD )
+        logging_extras=""
+        if [[ "${curbranch}" == master ]] ; then
+           logging_extras="${logging_extras} -e openshift_install_examples=false"
+        elif [[ "${curbranch}" =~ ^release-* ]] ; then
+           logging_extras="${logging_extras} -e openshift_disable_check=* -e openshift_install_examples=false"
+        fi
         ansible-playbook -vv --become               \
                          --become-user root         \
                          --connection local         \
@@ -158,6 +173,7 @@ extensions:
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         ${logging_extras}          \
                          ${playbook}
     - type: "script"
       title: "expose the kubeconfig"
@@ -190,6 +206,11 @@ extensions:
         curbranch=$( git rev-parse --abbrev-ref HEAD )
         popd
         logging_extras=""
+        if [[ "${curbranch}" == master ]] ; then
+           logging_extras="${logging_extras} -e openshift_install_examples=false"
+        elif [[ "${curbranch}" =~ ^release-* ]] ; then
+           logging_extras="${logging_extras} -e openshift_disable_check=* -e openshift_install_examples=false"
+        fi
         if [[ "${PULL_REFS%%:*}" == es5.x ]]; then
             logging_extras="${logging_extras} -e openshift_logging_es5_techpreview=True \
                             -e openshift_logging_image_version=latest"

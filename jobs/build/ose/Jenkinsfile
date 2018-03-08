@@ -1,5 +1,9 @@
 #!/usr/bin/env groovy
 
+/**
+ * The build/ose job can no longer be used to build ose/master. The support to do so 
+ * has been removed. It is only designed to build 3.3 through 3.6. 
+ */
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {

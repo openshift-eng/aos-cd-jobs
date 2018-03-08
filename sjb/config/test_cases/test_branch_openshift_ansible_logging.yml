@@ -1,38 +1,20 @@
 ---
-parent: 'common/test_cases/origin_built_release.yml'
-extensions:
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
+overrides:
   sync:
+    - "openshift,origin=master"
     - "openshift,aos-cd-jobs=master"
+    - "openshift,image-registry=master"
     - "openshift,origin-aggregated-logging=master"
+    - "openshift,kubernetes-metrics-server=master"
+    - "openshift,origin-web-console-server=master"
+extensions:
   actions:
     - type: "script"
       title: "build an origin-aggregated-logging release"
       repository: "origin-aggregated-logging"
       script: |-
-        if [[ "${REPO_NAME:-}" == "openshift-ansible" ]]; then
-          if [[ -n "${PULL_REFS:-}" ]]; then
-            export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
-          fi
-          git checkout ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
-        fi
         hack/build-images.sh
-    - type: "script"
-      title: "build an openshift-ansible release"
-      repository: "openshift-ansible"
-      script: |-
-        tito_tmp_dir="tito"
-        rm -rf "${tito_tmp_dir}"
-        mkdir -p "${tito_tmp_dir}"
-        tito tag --offline --accept-auto-changelog
-        tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
-        createrepo "${tito_tmp_dir}/noarch"
-        cat << EOR > ./openshift-ansible-local-release.repo
-        [openshift-ansible-local-release]
-        baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
-        gpgcheck = 0
-        name = OpenShift Ansible Release from Local Source
-        EOR
-        sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
     - type: "script"
       title: "install the openshift-ansible release"
       repository: "openshift-ansible"

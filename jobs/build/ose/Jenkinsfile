@@ -1,7 +1,9 @@
 #!/usr/bin/env groovy
 
-// Update OSE_MASTER when the version in ose/master changes
-def OSE_MASTER = "3.10"
+/**
+ * The build/ose job can no longer be used to build ose/master. The support to do so 
+ * has been removed. It is only designed to build 3.3 through 3.6. 
+ */
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
@@ -124,7 +126,7 @@ node(TARGET_NODE) {
         '''
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'
-    } 
+    }
 
     if ( OSE_MINOR.toInteger() > 6 ) {
         error( "This pipeline is only designed for versions <= 3.6" )
@@ -136,7 +138,7 @@ node(TARGET_NODE) {
     } catch ( cce ) {
         echo "Error cleaning up old images: ${cce}"
     }
-    
+
     set_workspace()
 
     // oit_working must be in WORKSPACE in order to have artifacts archived
@@ -152,7 +154,6 @@ node(TARGET_NODE) {
             checkout scm
 
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
-                env.OSE_MASTER = "${OSE_MASTER}"
                 env.BUILD_MODE = "${BUILD_MODE}"
 
                 prev_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()

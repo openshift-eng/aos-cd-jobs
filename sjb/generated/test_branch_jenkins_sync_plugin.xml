@@ -19,63 +19,58 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>PULL_BASE_REF</name>
-          <description>Ref name of the base branch.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PULL_BASE_SHA</name>
-          <description>Git SHA of the base branch.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PULL_NUMBER</name>
-          <description>Pull request number.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PULL_PULL_SHA</name>
-          <description>Pull request head SHA.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>
-          <description>The job spec definition.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>JENKINS_SYNC_PLUGIN_TARGET_BRANCH</name>
-          <description>The branch in the &lt;a href=&quot;https://github.com/openshift/jenkins-sync-plugin&quot;&gt;jenkins-sync-plugin&lt;/a&gt; repository to test against.</description>
-          <defaultValue>master</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PULL_REFS</name>
-          <description>Used by prow. If this is not a pull request, it should at least contain the branch:hash of the HEAD being tested.</description>
+          <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>buildId</name>
-          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
+          <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>BUILD_ID</name>
-          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>PROW_JOB_ID</name>
-          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
+          <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>REPO_OWNER</name>
-          <description>GitHub org that triggered the job.</description>
+          <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>REPO_NAME</name>
-          <description>GitHub repo that triggered the job.</description>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_BASE_REF</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_BASE_SHA</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_REFS</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_NUMBER</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_PULL_SHA</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>CLONEREFS_ARGS</name>
+          <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
@@ -121,34 +116,18 @@ oct configure aws-client &#39;private_key_path&#39; &#39;/var/lib/jenkins/.ssh/d
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PROVISION CLOUD RESOURCES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PROVISION CLOUD RESOURCES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;build&#34; --provider &#34;aws&#34; --discrete-ssh-config --name &#34;${JOB_NAME}_${BUILD_NUMBER}&#34; </command>
         </hudson.tasks.Shell>
-    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
-      <regexp></regexp>
-      <description>&lt;div&gt;
-Using the &lt;a href=&#34;https://github.com/openshift/jenkins-sync-plugin/tree/${JENKINS_SYNC_PLUGIN_TARGET_BRANCH}&#34;&gt;jenkins-sync-plugin ${JENKINS_SYNC_PLUGIN_TARGET_BRANCH}&lt;/a&gt; branch.
-&lt;/div&gt;</description>
-    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC JENKINS-SYNC-PLUGIN REPOSITORY ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC JENKINS-SYNC-PLUGIN REPOSITORY [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-oct sync remote jenkins-sync-plugin --branch &#34;${JENKINS_SYNC_PLUGIN_TARGET_BRANCH}&#34; </command>
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD GCS CREDENTIALS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD GCS CREDENTIALS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JENKINS_SYNC_PLUGIN_TARGET_BRANCH=${JENKINS_SYNC_PLUGIN_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;buildId=${buildId:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_ID=${BUILD_ID:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PROW_JOB_ID=${PROW_JOB_ID:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
-</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_BASE_REF=${PULL_BASE_REF:-}&#39; &gt;&gt; /etc/environment&#34;
@@ -156,86 +135,48 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_PULL_SHA=${PULL_PULL_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;CLONEREFS_ARGS=${CLONEREFS_ARGS:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RECORD THE STARTING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RECORD THE STARTING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC REPOSITORIES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC REPOSITORIES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-trap &#39;exit 0&#39; EXIT
-sjb/gcs/started.py
+cd &#34;\${HOME}&#34;
+if [[ &#34;\$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34; =~ ^&#34;[0-9]+&#34;\$ ]]; then
+  echo &#34;Keeping BUILD_ID&#34;
+else
+  echo &#34;Using BUILD_NUMBER&#34;
+  JOB_SPEC=&#34;\$( jq --compact-output &#39;.buildid |= &#34;&#39;&#34;\${BUILD_NUMBER}&#34;&#39;&#34;&#39; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
+fi
+for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;registry.svc.ci.openshift.org/ci/initupload:latest&#39;; do
+    for (( i = 0; i &lt; 5; i++ )); do
+        if docker pull &#34;\${image}&#34;; then
+            break
+        fi
+    done
+done
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json --repo=openshift,aos-cd-jobs=master \${CLONEREFS_ARGS:-} 
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+sudo chmod -R a+rwX /data
+sudo chown -R origin:origin-git /data
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: UPLOAD GCS STARTING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPLOAD GCS STARTING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-trap &#39;exit 0&#39; EXIT
-mkdir -p gcs/
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
-
-if [[ &#34;$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;${JOB_SPEC}&#34; )&#34; =~ ^\&#34;[0-9]+\&#34;$ ]]; then
-  echo &#34;Keeping BUILD_ID&#34;
-  BUILD=&#34;${BUILD_ID}&#34;
-else
-  echo &#34;Using BUILD_NUMBER&#34;
-  BUILD=&#34;${BUILD_NUMBER}&#34;
-fi
-
-function gcs_path() {
-  bucket=&#34;gs://origin-ci-test/&#34;
-
-  suffix=&#34;${JOB_NAME}/${BUILD}/&#34;
-  if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
-    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
-      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
-    fi
-    if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-      # this is a presubmit
-      prefix=&#34;pr-logs/pull/&#34;
-      segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
-    else
-      if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
-        # this is a batch
-        prefix=&#34;pr-logs/pull/batch/&#34;
-      else
-        # this is a postsubmit
-        prefix=&#34;logs/&#34;
-      fi
-    fi
-  else
-    # this is a periodic
-    prefix=&#34;logs/&#34;
-  fi
-  echo &#34;${bucket}${prefix}${segment:-}${suffix}&#34;
-  return 0
-}
-if path=&#34;$( gcs_path )&#34;; then
-  gsutil cp gcs/started.json &#34;${path}started.json&#34;
-  if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-    echo &#34;${path%\/}&#34; &gt; &#34;${BUILD}.txt&#34;
-    gsutil cp &#34;${BUILD}.txt&#34; &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/${BUILD}.txt&#34;
-  fi
-
-  echo ${BUILD} &gt; latest-build.txt
-  job_type=$( jq --compact-output &#34;.type&#34; &lt;&lt;&lt;${JOB_SPEC} )
-  if [[ $job_type =~ &#34;presubmit&#34; || $job_type =~ &#34;batch&#34; ]]; then
-    gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;
-  elif [[ $job_type =~ &#34;postsubmit&#34; || $job_type =~ &#34;periodic&#34; ]]; then
-    gsutil cp latest-build.txt &#34;gs://origin-ci-test/logs/${JOB_NAME}/latest-build.txt&#34;
-  else
-    echo &#34;Bad job type provided in JOB_SPEC: $job_type&#34;
-  fi
-fi</command>
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -373,6 +314,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
 ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_RELEASE&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -397,6 +339,7 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
                  &#34;\${evars:-}&#34; \
+                 \${EXTRA_EVARS:-} \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -423,6 +366,7 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
+                 \${EXTRA_EVARS:-} \
                  \${playbook}
 if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then
     playbook=&#34;\${playbook_base}deploy_cluster.yml&#34;
@@ -442,9 +386,13 @@ ansible-playbook -vv --become               \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
+                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
                  -e openshift_image_tag=&#34;\$( cat ./ORIGIN_COMMIT )&#34;                      \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
+                 -e openshift_node_port_range=&#39;30000-32000&#39;                             \
+                 -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;      \
                  &#34;\${evars:-}&#34; \
+                 \${EXTRA_EVARS:-} \
                  \${playbook}
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -537,6 +485,7 @@ ARTIFACT_DIR=&#34;$( pwd )/artifacts/generated&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.info&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/etcd/etcd.conf 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/etcd.conf&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.config&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/containers.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/node-metrics.log&#34; || true

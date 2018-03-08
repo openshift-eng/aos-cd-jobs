@@ -1,7 +1,6 @@
 ---
-parent: 'common/test_cases/origin.yml'
+parent: 'common/test_cases/origin_minimal.yml'
 overrides:
-  sync_repos: []
   provision:
     os: "rhel"
     stage: "build"

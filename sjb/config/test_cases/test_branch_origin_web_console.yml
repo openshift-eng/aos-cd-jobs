@@ -1,8 +1,5 @@
 ---
 parent: 'common/test_cases/origin_built_release.yml'
-overrides:
-  sync_repos:
-    - name: "origin-web-console"
 extensions:
   actions:
     - type: "script"

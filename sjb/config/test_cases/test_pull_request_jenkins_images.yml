@@ -4,4 +4,3 @@ overrides:
   sync_repos:
     - name: "jenkins"
       type: "pull_request"
-  test: "jenkins"

@@ -3,14 +3,7 @@ parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   junit_analysis: False
 extensions:
-  sync_repos:
-    - name: "origin"
-      type: "pull_request"
   actions:
-    - type: "forward_parameters"
-      parameters:
-        - ORIGIN_TARGET_BRANCH
-        - OPENSHIFT_ANSIBLE_TARGET_BRANCH
     - type: "script"
       title: "determine the release commit for origin images"
       repository: "origin"

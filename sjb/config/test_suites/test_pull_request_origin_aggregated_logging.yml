@@ -1,4 +1,0 @@
----
-parent: "common/test_suites/origin_aggregated_logging.yml"
-overrides:
-  test: "origin-aggregated-logging"

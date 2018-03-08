@@ -1,7 +1,0 @@
----
-parent: 'test_cases/test_branch_jenkins_openshift_login_plugin.yml'
-overrides:
-  sync_repos:
-    - name: "jenkins-openshift-login-plugin"
-      type: "pull_request"
-  merge: "jenkins-openshift-login-plugin"

@@ -1,8 +1,6 @@
 ---
 parent: 'common/test_cases/origin_installed_release.yml'
 extensions:
-  sync_repos:
-    - name: "jenkins-openshift-login-plugin"
   actions:
     - type: "script"
       title: "build the jenkins login plugin and test image"

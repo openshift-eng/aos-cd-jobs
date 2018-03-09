@@ -39,6 +39,13 @@ extensions:
         git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
+        tag=$( source hack/lib/init.sh; os::build::version::get_vars; echo "v${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" )
+        if [[ "${tag}" =~ ^v3.(6|7|8|9)$ ]]; then
+          git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
+        else
+          echo "${tag}" >> "${jobs_repo}/ORIGIN_TAG"
+        fi
+        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_RPM_VERSION}" | cut -d'.' -f2 ) >> "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
     - type: "forward_parameters"
       parameters:
         - OSTREE_COPY
@@ -109,7 +116,6 @@ extensions:
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
-                         -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )"                      \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          -e openshift_node_port_range='30000-32000'                             \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \

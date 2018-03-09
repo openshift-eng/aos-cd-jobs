@@ -12,8 +12,6 @@ overrides:
     - miminar@redhat.com
     - obulatov@redhat.com
     - agladkov@redhat.com
-  sync_repos:
-    - name: "sti-wildfly"
 extensions:
   actions:
     - type: "script"

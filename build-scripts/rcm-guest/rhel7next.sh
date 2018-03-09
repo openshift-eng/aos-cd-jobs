@@ -13,10 +13,15 @@ rsync='rsync
 
 _reposync() {
     local repoid
+    local output_dir
     repoid=$1
+    output_dir="$2"
+    if [ "$output_dir" == "" ]; then
+    	output_dir="$1"
+    fi
     reposync \
         --config "${REPO_FILE}" \
-        --download_path "${repoid}/" --repoid "${repoid}" \
+        --download_path "${output_dir}/" --repoid "${repoid}" \
         --arch x86_64 --download-metadata --downloadcomps --delete --norepopath   || true   # Remove this soon; working around cache problem
 }
 
@@ -80,9 +85,9 @@ ${rsync} \
     "${LATEST_EXTRAS}/" \
     "${MIRROR}:${REMOTE_DIR}/rhel7next/extras/"
 # reposync repos
-_reposync rhel-7-fast-datapath-rpms
+_reposync rhel-7-fast-datapath-rpms-2 rhel-7-fast-datapath-rpms
 _reposync rhel-7-fast-datapath-htb-rpms
-_reposync rhel-7-fast-datapath-stage-rpms-2
+_reposync rhel-7-fast-datapath-stage-rpms
 _reposync rhel-7-server-ose-3.4-rpms
 _reposync rhel-7-server-ansible-2.4-rpms
 # Rebuild repos with comp files

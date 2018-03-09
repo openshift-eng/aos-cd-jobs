@@ -17,7 +17,7 @@ extensions:
       title: "Copy docker credentials to instance"
       timeout: 60
       script: |-
-        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
     - type: "script"
       title: "push the image-inspector images"
       repository: "image-inspector"

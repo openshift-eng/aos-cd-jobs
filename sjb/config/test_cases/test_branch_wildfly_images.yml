@@ -6,8 +6,6 @@ overrides:
     Builds the wildfly image from the openshift-s2i/s2i-wildfly repository.  References sti-wildfly as the repo because
     oct does not support non-openshift repository orgs.  openshift/sti-wildfly redirects to openshift-s2i/s2i-wildfly.
 extensions:
-  sync_repos:
-    - name: "sti-wildfly"
   actions:
     - type: "script"
       title: "build the wildfly images"

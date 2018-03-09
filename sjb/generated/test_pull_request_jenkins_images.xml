@@ -180,6 +180,8 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/source-to-image&#34;
 make build
 sudo cp /data/src/github.com/openshift/source-to-image/_output/local/bin/linux/amd64/s2i /usr/bin
+echo &#34;Printing s2i version&#34;
+s2i version
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

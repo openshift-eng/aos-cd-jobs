@@ -27,8 +27,8 @@ actions:
     title: "Get kubernetes PULL_BASE_SHA"
     script: |-
       SLAVE_HOME=$(ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c \"echo \${HOME}\"")
-      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:${SLAVE_HOME}/src/k8s.io/kubernetes/PULL_BASE_SHA PULL_BASE_SHA
-      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:${SLAVE_HOME}/src/k8s.io/kubernetes/KUBE_GIT_VERSION KUBE_GIT_VERSION
+      scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:${SLAVE_HOME}/src/k8s.io/kubernetes/PULL_BASE_SHA PULL_BASE_SHA
+      scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:${SLAVE_HOME}/src/k8s.io/kubernetes/KUBE_GIT_VERSION KUBE_GIT_VERSION
   - type: "host_script"
     title: "upload GCS starting metadata"
     timeout: 300

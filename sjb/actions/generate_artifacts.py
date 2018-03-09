@@ -11,7 +11,7 @@ ARTIFACT_DIR="$( pwd )/artifacts/generated"
 rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for name, action in artifacts.iteritems() %}
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "{{ action }} 2>&1" >> "${ARTIFACT_DIR}/{{ name }}" || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "{{ action }} 2>&1" >> "${ARTIFACT_DIR}/{{ name }}" || true
 {%- endfor %}
 tree "${ARTIFACT_DIR}" """)
 

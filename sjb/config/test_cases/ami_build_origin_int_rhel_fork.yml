@@ -60,7 +60,7 @@ actions:
 
       if [[ "${TARGET_ORIGIN_BRANCH}" =~ enterprise-3.[1-2] || "${TARGET_ORIGIN_BRANCH}" =~ release-1.[1-2] ]]; then
         chmod +x install-go-14.sh
-        scp -F ./.config/origin-ci-tool/inventory/.ssh_config install-go-14.sh openshiftdevel:install-go-14.sh
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config install-go-14.sh openshiftdevel:install-go-14.sh
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c install-go-14.sh"
         export OS_BUILD_ENV_IMAGE="openshift/origin-release:golang-1.4"
 
@@ -200,7 +200,7 @@ actions:
 
       if [[ "$RUN_EXTENDED" == "true" ]]; then
         chmod +x run_extended.sh
-        scp -F ./.config/origin-ci-tool/inventory/.ssh_config run_extended.sh openshiftdevel:run_extended.sh
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config run_extended.sh openshiftdevel:run_extended.sh
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel "bash -l -c run_extended.sh"
       fi
 artifacts:

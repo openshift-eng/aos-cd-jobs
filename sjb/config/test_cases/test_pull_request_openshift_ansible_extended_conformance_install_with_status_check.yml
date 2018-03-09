@@ -16,6 +16,6 @@ extensions:
         if [[ -n "${PULL_REFS:-}" ]]; then
           export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
         fi
-        scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/sjb/check-pull-request-status.py .
-        scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/sjb/test_status_config.yml .
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/sjb/check-pull-request-status.py .
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/sjb/test_status_config.yml .
         python check-pull-request-status.py "${OPENSHIFT_ANSIBLE_PULL_ID}" "${OPENSHIFT_ANSIBLE_TARGET_BRANCH}" /var/lib/jenkins/.config/hub test_status_config.yml

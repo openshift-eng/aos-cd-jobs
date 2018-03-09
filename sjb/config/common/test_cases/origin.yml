@@ -56,7 +56,7 @@ actions:
     script: |-
       trap 'exit 0' EXIT
       mkdir -p gcs/
-      scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
+      scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
 
       if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
         echo "Keeping BUILD_ID"
@@ -187,8 +187,8 @@ post_actions:
       cp artifacts/journals/* gcs/artifacts/journals/
       cp -r artifacts/gathered/* gcs/artifacts/
 
-      scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
-      scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+      scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+      scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
   - type: "script"
     title: "push the artifacts and metadata"
     timeout: 300

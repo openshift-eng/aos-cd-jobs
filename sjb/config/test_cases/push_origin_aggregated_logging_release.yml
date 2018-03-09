@@ -20,7 +20,7 @@ actions:
   - type: "host_script"
     title: "transfer docker config to remote host"
     script: |-
-      scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+      scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
   - type: "script"
     title: "push origin-aggregated-logging release"
     repository: "origin-aggregated-logging"

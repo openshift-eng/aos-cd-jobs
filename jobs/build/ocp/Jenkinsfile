@@ -84,7 +84,7 @@ def mail_success( version, mirrorURL ) {
             body: """\
 OpenShift Version: v${version}
 ${inject_notes}
-Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0,3)}/${OCP_PUDDLE}
+Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}
   - Mirror: ${mirrorURL}/${OCP_PUDDLE}
   - Images have been built for this puddle
   - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])

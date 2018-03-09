@@ -77,6 +77,7 @@ extensions:
         else
           echo "${tag}" >> "${jobs_repo}/ORIGIN_TAG"
         fi
+        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_RPM_VERSION}" | cut -d'.' -f2 ) >> "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
     - type: "script"
       title: "build the image registry container image"
       repository: "image-registry"

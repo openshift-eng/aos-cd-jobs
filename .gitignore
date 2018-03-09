@@ -97,3 +97,6 @@ ENV/
 # Ansible bits
 *.retry
 
+# Credentials
+.aws_credentials
+.libra.pem

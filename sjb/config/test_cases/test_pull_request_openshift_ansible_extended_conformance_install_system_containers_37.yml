@@ -1,0 +1,6 @@
+---
+parent: 'test_cases/test_pull_request_openshift_ansible_extended_conformance_install_system_containers.yml'
+overrides:
+  sync:
+    - "openshift,origin=release-3.7"
+    - "openshift,aos-cd-jobs=master"

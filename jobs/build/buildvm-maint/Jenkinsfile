@@ -56,6 +56,21 @@ node('openshift-build-1') {
             } catch ( ex2 ) {
                 e2 = ex2
             }
+            
+            try {
+                stage("snapshot system setup") {
+                    snapshot_diff = sh(returnStdout: true, script: "./scripts/snapshot.sh /home/jenkins").trim()
+                    if ( snapshot_diff != "") {
+                      def snapshot = readFile("/home/jenkins/new_snapshot.txt")
+                      mail(to: "jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com",
+                              from: "aos-cd@redhat.com",
+                              subject: "BuildVM Snapshot",
+                              body: "${snapshot}");
+                    }
+                }
+            } catch ( ex3 ) {
+                e3 = ex3
+            }
 
             if ( e1 != null ) {
                 throw e1
@@ -63,6 +78,10 @@ node('openshift-build-1') {
 
             if ( e2 != null ) {
                 throw e2
+            }
+            
+            if ( e3 != null ) {
+                throw e3
             }
 
         }

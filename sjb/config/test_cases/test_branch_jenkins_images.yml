@@ -1,8 +1,6 @@
 ---
 parent: 'common/test_cases/rhel_base_images.yml'
 extensions:
-  sync_repos:
-    - name: "jenkins"
   actions:
     - type: "script"
       title: "build the jenkins images"

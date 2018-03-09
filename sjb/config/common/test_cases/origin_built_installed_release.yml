@@ -36,8 +36,24 @@ extensions:
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
         git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+        git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
         ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
+    - type: "forward_parameters"
+      parameters:
+        - OSTREE_COPY
+    - type: "script"
+      title: "atomic ostree copies"
+      repository: "aos-cd-jobs"
+      script: |-
+        if [[ "${OSTREE_COPY:-}" == "true" ]]; then
+          # install atomic rpm
+          sudo yum install atomic -y
+          # only origin, openvswitch and node docker images are run as system containers
+          sudo atomic pull --storage ostree docker:openshift/origin:$( cat ./ORIGIN_TAG )
+          sudo atomic pull --storage ostree docker:openshift/openvswitch:$( cat ./ORIGIN_TAG )
+          sudo atomic pull --storage ostree docker:openshift/node:$( cat ./ORIGIN_TAG )
+        fi
     - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
@@ -113,6 +129,11 @@ extensions:
       script: |-
         origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
         rpm -V "${origin_package}"
+        if [[ "${OSTREE_COPY:-}" == "true" ]]; then
+          docker_image_tag="$( cat ./ORIGIN_TAG )"
+          docker_repository="${OS_IMAGE_PREFIX:-"openshift/origin"}"
+          [[ "$(sudo atomic containers list -n --no-trunc -f runtime=runc -f image=${docker_repository}:${docker_image_tag} --json | jq '.[0].running')" == "true" ]]
+        fi
   system_journals:
     - origin-master.service
     - origin-master-api.service

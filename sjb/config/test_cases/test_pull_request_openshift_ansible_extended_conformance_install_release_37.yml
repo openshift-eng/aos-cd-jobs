@@ -1,0 +1,7 @@
+---
+parent: 'test_cases/test_branch_origin_extended_conformance_install.yml'
+overrides:
+  junit_analysis: True
+  sync:
+    - "openshift,origin=release-3.7"
+    - "openshift,aos-cd-jobs=master"

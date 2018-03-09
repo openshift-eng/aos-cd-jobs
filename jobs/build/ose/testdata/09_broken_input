@@ -1,6 +1,0 @@
-pick 4365d5d [DROP][INVESTIGATE] Weird shell diffs
-pick c21ea24 [CARRY][BRANDING] OAuth server branding
-pick 975a829 [CARRY][BUILD_GEN] Specfile updates
-pick 22a76cd [DROP] bump origin-web-console 0c5b53c
-pick ba426b9 Automatic commit of package [atomic-openshift] release [3.5.0.50-1].
-pick runrunr [SQUASH][NEW] without a type

@@ -17,11 +17,11 @@ MAJOR_MINOR=$(echo "${FULL_VERSION}" | cut -d . -f 1-2)
 
 if [ "$BUILD_MODE" == "release" ] || [ "$BUILD_MODE" == "pre-release" ] || [ "$BUILD_MODE" == "" ]; then
     REPO="enterprise-${MAJOR_MINOR}"
-elif [ "$BUILD_MODE" == "online:int" ] || [ "$BUILD_MODE" == "online-int" ]; then  # Maintaining hyphen variant for build/ose job
+elif [ "$BUILD_MODE" == "online:int" ]; then
     REPO="online-int"
-elif [ "$BUILD_MODE" == "online:stg" ] || [ "$BUILD_MODE" == "online-stg" ]; then
+elif [ "$BUILD_MODE" == "online:stg" ]; then
     REPO="online-stg"
-elif [ "$BUILD_MODE" == "online:prod" ] || [ "$BUILD_MODE" == "online-prod" ]; then
+elif [ "$BUILD_MODE" == "online:prod" ]; then
     REPO="online-prod"
 else
     echo "Unknown BUILD_MODE: ${BUILD_MODE}"

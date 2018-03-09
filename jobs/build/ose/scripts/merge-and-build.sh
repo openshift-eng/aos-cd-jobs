@@ -45,8 +45,6 @@ echo
 echo "=========="
 echo "Making sure we have kerberos"
 echo "=========="
-# Old keytab for original OS1 build machine
-# kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM
 kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM
 
 # Path for merge-and-build script
@@ -92,15 +90,6 @@ echo "WORKPATH ${WORKPATH}"
 echo "BUILD_MODE ${BUILD_MODE}"
 
 go get github.com/jteeuwen/go-bindata
-
-if [ "${OSE_VERSION}" == "3.2" ] ; then
-  echo
-  echo "=========="
-  echo "OCP 3.2 builds will not work in this build environment."
-  echo "We are exiting now to save you problems later."
-  echo "Exiting ..."
-  exit 1
-fi # End check if we are version 3.2
 
 echo
 echo "=========="
@@ -150,46 +139,8 @@ git config merge.ours.driver true
 # The number of fields which should be present in the openshift.spec Version field
 SPEC_VERSION_COUNT=0
 
-if [ "${BUILD_MODE}" == "enterprise" ]; then
-
-  git checkout -q enterprise-${OSE_VERSION}
-  SPEC_VERSION_COUNT=5
-
-else
-
-  # If we are here, we are building master or stage for online
-
-  # Creating a target version allows online:int builds to resume where the last stage build left off in terms
-  # of versioning. This should not be necessary when we can safely use a different 'release' in the tito version.
-  export TITO_USE_VERSION="--use-version=$(get_post_stage_version origin.spec)"
-
-  if [ "${BUILD_MODE}" == "online:stg" ] ; then
-    CURRENT_BRANCH="stage"
-    UPSTREAM_BRANCH="upstream/stage"
-    SPEC_VERSION_COUNT=4
-  elif [ "${BUILD_MODE}" == "enterprise:pre-release" ] ; then
-    CURRENT_BRANCH="enterprise-${OSE_VERSION}"
-    UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
-    SPEC_VERSION_COUNT=5
-  else # Otherwise, online:int
-    CURRENT_BRANCH="enterprise-${OSE_VERSION}"
-    UPSTREAM_BRANCH="upstream/release-${OSE_VERSION}"
-    SPEC_VERSION_COUNT=3 # No need to change
-  fi
-
-  echo "Building from branch: ${CURRENT_BRANCH}"
-  git checkout -q ${CURRENT_BRANCH}
-
-  git remote add upstream git@github.com:openshift/origin.git --no-tags
-  git fetch --all
-
-  echo
-  echo "=========="
-  echo "Merge origin into ose stuff"
-  echo "=========="
-  git merge -m "Merge remote-tracking branch ${UPSTREAM_BRANCH}" "${UPSTREAM_BRANCH}"
-
-fi
+git checkout -q enterprise-${OSE_VERSION}
+SPEC_VERSION_COUNT=3
 
 VOUT="$(get_version_fields $SPEC_VERSION_COUNT)"
 if [ "$?" != "0" ]; then
@@ -207,11 +158,7 @@ VC_COMMIT="$(GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null | 
 git add pkg/assets/bindata.go
 git add pkg/assets/java/bindata.go
 set +e # Temporarily turn off errexit. THis is failing sometimes. Check with Troy if it is expected.
-if [ "${BUILD_MODE}" == "online:stg" ] ; then
-  git commit -m "Merge remote-tracking branch stage, bump origin-web-console ${VC_COMMIT}"
-else
-  git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
-fi
+git commit -m "Merge remote-tracking branch enterprise-${OSE_VERSION}, bump origin-web-console ${VC_COMMIT}"
 set -e
 
 # Put local rpm testing here
@@ -244,15 +191,12 @@ pushd ${WORKPATH}
 rm -rf openshift-ansible
 git clone git@github.com:openshift/openshift-ansible.git
 OPENSHIFT_ANSIBLE_DIR="${WORKPATH}/openshift-ansible/"
+
 cd openshift-ansible/
-if [ "${BUILD_MODE}" == "online:stg" ] ; then
-    git checkout -q stage
-else
-  if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
+if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
     git checkout -q release-1.${MINOR}
-  else  # Afterwards, version maps directly; 3.5 => "release-3.5"
+else  # Afterwards, version maps directly; 3.5 => "release-3.5"
     git checkout -q release-${OSE_VERSION}
-  fi
 fi
 
 echo
@@ -341,17 +285,8 @@ echo
 echo "=========="
 echo "Sync latest puddle to mirrors"
 echo "=========="
-PUDDLE_REPO=""
-case "${BUILD_MODE}" in
-online:int ) PUDDLE_REPO="online-int" ;;
-online:stg ) PUDDLE_REPO="online-stg" ;;
-enterprise ) PUDDLE_REPO="" ;;
-enterprise:pre-release ) PUDDLE_REPO="" ;;
-* ) echo "BUILD_MODE:${BUILD_MODE} did not match anything we know about, not pushing"
-esac
-
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-  sh -s "simple" "${VERSION}" "${PUDDLE_REPO}" \
+  sh -s "simple" "${VERSION}" "release"  \
   < "${WORKSPACE}/build-scripts/rcm-guest/push-to-mirrors.sh"
 
 # push-to-mirrors.sh creates a symlink on rcm-guest with this new name and makes the

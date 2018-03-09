@@ -1,0 +1,3 @@
+---
+parent: 'test_cases/test_branch_origin_aggregated_logging_json_file.yml'
+overrides: {}

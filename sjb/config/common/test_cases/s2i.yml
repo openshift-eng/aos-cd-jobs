@@ -14,6 +14,8 @@ actions:
     script: |-
       make build
       sudo cp /data/src/github.com/openshift/source-to-image/_output/local/bin/linux/amd64/s2i /usr/bin
+      echo "Printing s2i version"
+      s2i version
 post_actions:
   - type: "host_script"
     title: "assemble GCS output"

@@ -15,7 +15,7 @@ _reposync() {
     local repoid
     local output_dir
     repoid=$1
-    output_dir="$2"
+    output_dir="${2:-}"
     if [ "$output_dir" == "" ]; then
     	output_dir="$1"
     fi
@@ -41,14 +41,14 @@ _createrepo() {
 mkdir -p /mnt/rcm-guest/puddles/RHAOS/rhel7next/
 cd /mnt/rcm-guest/puddles/RHAOS/rhel7next/
 cat > rhel7next.repo <<-'EOF'
-	[rhel-7-fast-datapath-rpms]
+	[rhel-7-fast-datapath-rpms-2]
 	name = Red Hat Enterprise Linux 7 Fast Datapath
 	baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/fast-datapath/os/
 	# baseurl = http://pulp.dist.stage.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/fast-datapath/os/
 	enabled = 0
 	gpgcheck = 0
 
-	[rhel-7-fast-datapath-stage-rpms-2]
+	[rhel-7-fast-datapath-stage-rpms]
 	name = Red Hat Enterprise Linux 7 Fast Datapath
 	baseurl = http://pulp.dist.stage.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/fast-datapath/os/
 	enabled = 0

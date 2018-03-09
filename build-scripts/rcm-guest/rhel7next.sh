@@ -15,9 +15,9 @@ _reposync() {
     local repoid
     local output_dir
     repoid=$1
-    output_dir="$1"
-    if [ "$2" != "" ]; then
-    	output_dir="$2"
+    output_dir="${2:-}"
+    if [ "$output_dir" == "" ]; then
+    	output_dir="$1"
     fi
     reposync \
         --config "${REPO_FILE}" \

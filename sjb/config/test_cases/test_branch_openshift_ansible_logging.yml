@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release_with_ecosystem.yml'
+parent: 'common/test_cases/origin_built_installed_release.yml'
 overrides:
   sync:
     - "openshift,origin=master"
@@ -8,6 +8,7 @@ overrides:
     - "openshift,origin-aggregated-logging=master"
     - "openshift,kubernetes-metrics-server=master"
     - "openshift,origin-web-console-server=master"
+  evars: "-e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_install_examples=false"
 extensions:
   actions:
     - type: "script"
@@ -15,168 +16,6 @@ extensions:
       repository: "origin-aggregated-logging"
       script: |-
         hack/build-images.sh
-    - type: "script"
-      title: "install the openshift-ansible release"
-      repository: "openshift-ansible"
-      script: |-
-        last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
-        last_commit="$( git log -n 1 --pretty=%h )"
-        if [[ "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.6" || "${PULL_BASE_REF}" == "release-3.5"  ]]; then
-          sudo yum downgrade -y ansible-2.3\*
-        fi
-        sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
-        rpm -V "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
-    - type: "script"
-      title: "install Ansible plugins"
-      repository: "origin"
-      script: |-
-        sudo chmod o+rw /etc/environment
-        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
-        sudo mkdir -p /usr/share/ansible/plugins/callback
-        for plugin in 'default_with_output_lists' 'generate_junit'; do
-           wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
-           sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
-        done
-        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
-    - type: "script"
-      title: "determine the release commit for origin images and version for rpms"
-      repository: "origin"
-      script: |-
-        # is logging using master or a release branch?
-        pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
-        curbranch=$( git rev-parse --abbrev-ref HEAD )
-        popd
-        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        if [[ "${curbranch}" == master ]] ; then
-           # why is this appending?  Is there something already in the file?
-           # Will it work if there is more than one line?  What will it do?
-           git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
-           ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
-           ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
-        elif [[ "${curbranch}" =~ ^release-* ]] ; then
-           pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
-           # get repo ver from branch name
-           repover=$( echo "${curbranch}" | sed -e 's/release-//' -e 's/[.]//' )
-           originver=$( echo "${curbranch}" | sed -e 's/release-//' )
-           # get version from tag
-           closest_tag=$( git describe --tags --abbrev=0 )
-           # pkg ver is closest_tag with leading "-" instead of "v"
-           pkgver=$( echo "${closest_tag}" | sed 's/^v/-/' )
-           # disable all of the centos repos except for the one for the
-           # version being tested - this assumes a devenv environment where
-           # all of the repos are installed
-           foundrepover=false
-           for repo in $( sudo yum repolist all | awk '/^[!]?centos-paas-sig-openshift-origin/ {print gensub(/^!/,"",1,$1)}' ) ; do
-              case $repo in
-                 centos-paas-sig-openshift-origin${repover}-rpms)
-                   foundrepover=true # found a repo for this version
-                   sudo yum-config-manager --enable $repo > /dev/null ;;
-                 *)
-                   sudo yum-config-manager --disable $repo > /dev/null ;;
-              esac
-           done
-           # disable local origin repo if foundrepover is true - else, we do not have
-           # a release specific repo, use origin-local-release
-           if [[ "${foundrepover:-false}" == true ]] ; then
-              echo "${closest_tag}" > ${jobs_repo}/ORIGIN_COMMIT
-              echo "${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
-              echo "${originver}" > ${jobs_repo}/ORIGIN_RELEASE
-              sudo yum-config-manager --disable origin-local-release > /dev/null
-              if ( sudo yum install --assumeno origin${pkgver} 2>&1 || : ) | grep -q 'No package .* available' ; then
-                  # just ask yum what the heck the version is
-                  pkgver=$( ( sudo yum install --assumeno origin 2>&1 || : ) | awk '$1 == "x86_64" {print $2}' )
-                  echo "-${pkgver}" > ${jobs_repo}/ORIGIN_PKG_VERSION
-              else
-                  echo package origin${pkgver} is available
-              fi
-           else # use latest on machine
-              pushd "/data/src/github.com/openshift/origin/"
-              git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
-              ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
-              ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
-              popd
-           fi
-        else
-           echo Error: unknown base branch $curbranch: please resubmit PR on master or a release-x.y branch
-        fi
-    - type: "script"
-      title: "origin prerequisites"
-      repository: "aos-cd-jobs"
-      script: |-
-        ansible-playbook -vv --become               \
-                         --become-user root         \
-                         --connection local         \
-                         --inventory sjb/inventory/ \
-                         -e openshift_logging_install_logging=False \
-                         -e openshift_deployment_type=origin  \
-                         -e debug_level=5           \
-                         -e openshift_docker_log_driver=journald \
-                         -e openshift_docker_options="--log-driver=journald" \
-                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
-                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
-                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
-                         /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
-    - type: "script"
-      title: "install origin"
-      repository: "aos-cd-jobs"
-      script: |-
-        playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
-        if [[ -s "${playbook_base}/openshift-node/network_manager.yml" ]]; then
-            playbook="${playbook_base}openshift-node/network_manager.yml"
-        else
-            playbook="${playbook_base}byo/openshift-node/network_manager.yml"
-        fi
-        ansible-playbook -vv --become               \
-                         --become-user root         \
-                         --connection local         \
-                         --inventory sjb/inventory/ \
-                         -e openshift_logging_install_logging=False \
-                         -e openshift_deployment_type=origin  \
-                         -e debug_level=5           \
-                         -e openshift_docker_log_driver=journald \
-                         -e openshift_docker_options="--log-driver=journald" \
-                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
-                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
-                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
-                         ${playbook}
-        if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
-            playbook="${playbook_base}deploy_cluster.yml"
-        else
-            playbook="${playbook_base}byo/config.yml"
-        fi
-        ansible-playbook -vv --become               \
-                         --become-user root         \
-                         --connection local         \
-                         --inventory sjb/inventory/ \
-                         -e openshift_logging_install_logging=False \
-                         -e openshift_deployment_type=origin  \
-                         -e debug_level=5           \
-                         -e openshift_docker_log_driver=journald \
-                         -e openshift_docker_options="--log-driver=journald" \
-                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
-                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
-                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
-                         ${playbook}
-    - type: "script"
-      title: "expose the kubeconfig"
-      script: |-
-        sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
-        sudo chmod a+rw /etc/origin/master/admin.kubeconfig
-    - type: "script"
-      title: "ensure built version of origin is installed"
-      timeout: 600
-      repository: "origin"
-      script: |-
-        pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
-        curbranch=$( git rev-parse --abbrev-ref HEAD )
-        popd
-        if [[ "${curbranch}" == master ]] ; then
-           origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-           rpm -V "${origin_package}"
-        fi
     - type: "script"
       title: "install origin-aggregated-logging"
       repository: "aos-cd-jobs"
@@ -192,11 +31,7 @@ extensions:
         popd
         logging_extras=""
         if [[ "${PULL_REFS%%:*}" == es5.x ]]; then
-            logging_extras="${logging_extras} -e openshift_logging_es5_techpreview=True \
-                            -e openshift_logging_image_version=latest"
-        elif [[ "${curbranch}" == master ]]; then
-            # force image version/tag to be latest, otherwise it will use openshift_tag_version
-            logging_extras="${logging_extras} -e openshift_logging_image_version=latest"
+            logging_extras="${logging_extras} -e openshift_logging_es5_techpreview=True"
         fi
         #                          -e openshift_logging_install_eventrouter=True                            \
         # richm 20171205 - ansible "too much recursion" bug
@@ -218,6 +53,7 @@ extensions:
                          -e openshift_logging_es_ops_allow_external=True                          \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"                 \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                         \
+                         -e openshift_logging_image_version=latest \
                          ${logging_extras} \
                          ${playbook} \
                          --skip-tags=update_master_config

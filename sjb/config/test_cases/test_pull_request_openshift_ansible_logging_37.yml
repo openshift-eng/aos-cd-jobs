@@ -1,5 +1,5 @@
 ---
-parent: 'test_cases/test_branch_openshift_ansible_logging.yml'
+parent: 'test_cases/test_pull_request_openshift_ansible_logging.yml'
 overrides:
   sync:
     - "openshift,origin=release-3.7"

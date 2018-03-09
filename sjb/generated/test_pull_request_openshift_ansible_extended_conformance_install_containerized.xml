@@ -519,6 +519,7 @@ if [[ &#34;\${tag}&#34; =~ ^v3.(6|7|8|9)\$ ]]; then
 else
   echo &#34;\${tag}&#34; &gt;&gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 fi
+( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;\${OS_RPM_VERSION}&#34; | cut -d&#39;.&#39; -f2 ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_MINOR_VERSION&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

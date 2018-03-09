@@ -1,7 +1,3 @@
 ---
 parent: 'test_cases/test_branch_jenkins_images.yml'
-overrides:
-  sync_repos:
-    - name: "jenkins"
-      type: "pull-request"
-    - name: "source-to-image"
+overrides: {}

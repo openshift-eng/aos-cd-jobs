@@ -4,8 +4,8 @@ provision:
   os: "rhel"
   stage: "base"
   provider: "aws"
-sync_repos:
-    - name: "source-to-image"
+sync:
+  - "openshift,source-to-image=master"
 actions:
   - type: "script"
     title: "build and install s2i"
@@ -14,3 +14,38 @@ actions:
     script: |-
       make build
       sudo cp /data/src/github.com/openshift/source-to-image/_output/local/bin/linux/amd64/s2i /usr/bin
+post_actions:
+  - type: "host_script"
+    title: "assemble GCS output"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+      result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+      cat <<FINISHED >gcs/finished.json
+      {
+        "timestamp": $( date +%s ),
+        "result": "${result}"
+      }
+      FINISHED
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+      cp artifacts/generated/* gcs/artifacts/generated/
+      cp artifacts/journals/* gcs/artifacts/journals/
+      cp -r artifacts/gathered/* gcs/artifacts/
+
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+  - type: "script"
+    title: "push the artifacts and metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      if [[ -n "${JOB_SPEC:-}" ]]; then
+        if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+          echo "Keeping BUILD_ID"
+        else
+          echo "Using BUILD_NUMBER"
+          JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
+        fi
+        docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+      fi

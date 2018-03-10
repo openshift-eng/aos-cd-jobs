@@ -367,6 +367,16 @@ docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhe
 docker tag docker.io/openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
 
+docker tag registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7:\${version_tag}
+docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7:\${version_tag}
+docker tag docker.io/openshift/jenkins-agent-maven-35-centos7 docker.io/openshift/jenkins-agent-maven-35-centos7:\${version_tag}
+docker push docker.io/openshift/jenkins-agent-maven-35-centos7:\${version_tag}
+
+docker tag registry.access.redhat.com/openshift3/jenkins-agent-nodejs-8-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7:\${version_tag}
+docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7:\${version_tag}
+docker tag docker.io/openshift/jenkins-agent-nodejs-8-centos7 docker.io/openshift/jenkins-agent-nodejs-8-centos7:\${version_tag}
+docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7:\${version_tag}
+
 # only push to latest if we&#39;re building the master branch.
 if [ &#34;\${JENKINS_TARGET_BRANCH}&#34; = &#34;master&#34; ]; then
   docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
@@ -384,6 +394,14 @@ if [ &#34;\${JENKINS_TARGET_BRANCH}&#34; = &#34;master&#34; ]; then
   docker tag registry.access.redhat.com/openshift3/jenkins-slave-nodejs-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
   docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
   docker push docker.io/openshift/jenkins-slave-nodejs-centos7
+
+  docker tag registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7
+  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7
+  docker push docker.io/openshift/jenkins-agent-maven-35-centos7
+
+  docker tag registry.access.redhat.com/openshift3/jenkins-agent-nodejs-8-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7
+  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7
+  docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;

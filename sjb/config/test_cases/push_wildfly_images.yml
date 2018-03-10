@@ -13,6 +13,8 @@ overrides:
     - obulatov@redhat.com
     - agladkov@redhat.com
 extensions:
+  sync:
+    - "openshift-s2i,s2i-wildfly=master"
   actions:
     - type: "script"
       title: "create directory for docker config"

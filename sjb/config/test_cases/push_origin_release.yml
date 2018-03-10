@@ -1,6 +1,8 @@
 ---
 parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 extensions:
+  sync:
+    - "openshift,origin=master"
   parameters:
     - name: "OS_PUSH_TAG"
       description: "The docker image tag to push to, defaults to :latest"

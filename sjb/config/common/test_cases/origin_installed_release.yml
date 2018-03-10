@@ -100,7 +100,6 @@ extensions:
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
-                         -e openshift_image_tag="$( cat ./ORIGIN_COMMIT )"                      \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          -e openshift_node_port_range='30000-32000'                             \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \

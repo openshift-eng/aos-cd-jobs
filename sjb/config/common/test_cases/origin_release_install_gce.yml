@@ -1,11 +1,8 @@
 ---
-parent: 'common/test_cases/origin.yml'
-overrides:
-  junit_analysis: False
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 extensions:
-  sync_repos:
-    - name: "release"
-    - name: "openshift-ansible"
+  sync:
+    - "openshift,release=master"
   parameters:
     - name: "CLUSTER_PROFILE"
       description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
@@ -23,6 +20,10 @@ extensions:
         See also:
         <div>
         </div>
+    - name: "OS_PUSH_BASE_REGISTRY"
+      defaultValue: "registry.svc.ci.openshift.org/"
+    - name: "OS_PUSH_BASE_REPO"
+      defaultValue: "ci-pr-images/"
   actions:
     - type: "forward_parameters"
       parameters:
@@ -45,20 +46,22 @@ extensions:
           exit 0
         fi
         hack/build-images.sh
-    - type: "script"
-      title: "build origin RPMs"
-      repository: "origin"
-      timeout: 2400
-      script: |-
-        # only build RPMs when the job is targeting origin
-        if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "origin" ]]; then
-          # allow a child to request explicit builds, only used by conformance_k8s
-          if [[ -z "${FORCE_BUILD-}" ]]; then
-            exit 0
-          fi
-        fi
 
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_DOCKER_ARGS="-e OS_VERSION_FILE= " OS_BUILD_ENV_PRESERVE="_output/local/releases/rpms:_output/local/bin" hack/env make build-rpms BUILD_TESTS=1 OS_BUILD_SRPM=1
+    # calculate the instance prefix
+    - type: "host_script"
+      title: "determine the instance prefix"
+      script: |-
+        # we need a short but unique identifier, so we take the first 7 of SHA
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
+        # write the standard variables for reuse
+        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX:-}" >> INSTANCE_PREFIX
+        echo "OS_TAG=$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )" >> INSTANCE_PREFIX
+        echo "OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-" >> INSTANCE_PREFIX
+        # hack around forwarding this to the other machine
+        cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >> /etc/environment"
+
+    # publish artifacts
     - type: "host_script"
       title: "move RPMs to GCS repo"
       script: |-
@@ -117,26 +120,60 @@ extensions:
 
         # hack around forwarding this to the other machine
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "transfer docker config to remote host"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "forward_parameters"
+      parameters:
+        - OS_PUSH_TAG
+        - OS_PUSH_BASE_REPO
+        - OS_PUSH_BASE_REGISTRY
+    - type: "script"
+      title: "push the release"
+      repository: "origin"
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        source ./INSTANCE_PREFIX
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the image registry release"
+      repository: "image-registry"
+      script: |-
+        source ./INSTANCE_PREFIX
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the image registry release"
+      repository: "kubernetes-metrics-server"
+      script: |-
+        source ./INSTANCE_PREFIX
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the web console release"
+      repository: "origin-web-console-server"
+      script: |-
+        source ./INSTANCE_PREFIX
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        sudo rm -rf /tmp/.docker
+
     - type: "host_script"
       title: "move secrets to remote host"
       script: |-
         rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
-    - type: "host_script"
-      title: "determine the instance prefix"
-      script: |-
-        # we need a short but unique identifier, so we take the first 7 of SHA
-        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
-        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
-        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX:-}" >> INSTANCE_PREFIX
-        # hack around forwarding this to the other machine
-        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'INSTANCE_PREFIX=${INSTANCE_PREFIX:-}' >> /etc/environment"
+
     - type: "script"
       title: "provision test cluster"
       repository: "release"
       timeout: 2800
       script: |-
+        source ./INSTANCE_PREFIX
         sudo systemctl restart docker
         if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
           evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
@@ -144,7 +181,12 @@ extensions:
           evars="-e @sjb/inventory/base.cfg"
         fi
         cd cluster/test-deploy/${CLUSTER_PROFILE}/
-        ../../bin/ansible.sh ansible-playbook -e "openshift_test_repo=${location_url}" -e debug_level=5 playbooks/gcp/openshift-cluster/launch.yml "${evars:-}"
+        ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_test_repo=${location_url}" \
+          -e debug_level=5 \
+          -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}origin-\${component}:\${version}" \
+          playbooks/gcp/openshift-cluster/launch.yml \
+          "${evars:-}"
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
     - type: "script"
       title: "run extended tests"
@@ -244,5 +286,12 @@ extensions:
       script: |-
         cd cluster/test-deploy/${CLUSTER_PROFILE}
         ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
+    - type: "host_script"
+      title: "delete PR images"
+      repository: "release"
+      timeout: 900
+      script: |-
+        source ./INSTANCE_PREFIX
+        oc --config=/var/lib/jenkins/secrets/image-pr-push.kubeconfig get is -o name -n ci-pr-images | grep "${INSTANCE_PREFIX}" | xargs -r oc delete
   artifacts:
     - "/tmp/artifacts"

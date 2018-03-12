@@ -64,7 +64,7 @@ extensions:
         docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7:${version_tag}
 
         # only push to latest if we're building the master branch.
-        if [ "${JENKINS_TARGET_BRANCH}" = "master" ]; then
+        if [ "${PULL_BASE_REF}" = "master" ]; then
           docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
           docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
           docker push docker.io/openshift/jenkins-2-centos7

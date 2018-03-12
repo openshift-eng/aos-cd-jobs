@@ -470,6 +470,8 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;FOCUS=${FOCUS:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;CLUSTER_PROFILE=${CLUSTER_PROFILE:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REGISTRY=${OS_PUSH_BASE_REGISTRY:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -499,7 +501,7 @@ hashed_identifier=&#34;$( echo &#34;${JOB_NAME}&#34; | sha1sum )&#34;
 export INSTANCE_PREFIX=&#34;prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}&#34;
 # write the standard variables for reuse
 echo &#34;INSTANCE_PREFIX=${INSTANCE_PREFIX:-}&#34; &gt;&gt; INSTANCE_PREFIX
-echo &#34;OS_TAG=$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )&#34; &gt;&gt; INSTANCE_PREFIX
+echo &#34;OS_TAG=$( ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT&#34; )&#34; &gt;&gt; INSTANCE_PREFIX
 echo &#34;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-&#34; &gt;&gt; INSTANCE_PREFIX
 # hack around forwarding this to the other machine
 cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt; /etc/environment&#34;</command>

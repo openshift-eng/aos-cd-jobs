@@ -1,0 +1,43 @@
+---
+parent: 'common/test_cases/crio.yml'
+overrides:
+  provision:
+    os: "rhel"
+    stage: "build"
+    provider: "aws"
+  artifacts:
+    - /tmp/openshift-dind-cluster
+    - /tmp/artifacts
+  system_journals:
+    - systemd-journald.service
+extensions:
+  actions:
+  - type: "forward_parameters"
+    parameters:
+      - PULL_NUMBER
+      - PULL_BASE_SHA
+      - PULL_PULL_SHA
+  - type: "script"
+    title: "clone ovn-kubernetes and check out the correct refs"
+    script: |-
+      mkdir -p /data/src/github.com/openvswitch
+      cd /data/src/github.com/openvswitch
+      git clone https://github.com/openvswitch/ovn-kubernetes.git
+      cd /data/src/github.com/openvswitch/ovn-kubernetes
+      git fetch origin
+      git checkout master
+      git branch -D target || true
+      git branch -D pr || true
+      git branch target "${PULL_BASE_SHA}"
+      git checkout target
+      git fetch origin "pull/${PULL_NUMBER}/head:pr"
+      git merge "${PULL_PULL_SHA}"
+  - type: "script"
+    title: "run the ovn-kubernetes integration tests"
+    script: |-
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags integration \
+                       --become-user root \
+                       --connection local \
+                       /data/src/github.com/openvswitch/ovn-kubernetes/test/integration/main.yml

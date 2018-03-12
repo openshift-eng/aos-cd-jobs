@@ -1,14 +1,13 @@
 ---
 parent: 'common/test_cases/origin_release_install_gce.yml'
 overrides:
-  junit_analysis: False
-  sync_repos:
-    - name: "openshift-ansible"
-      type: "pull_request"
-    - name: "origin"
-    - name: "release"
-    - name: "image-registry"
-    - name: "kubernetes-metrics-server"
+  sync:
+    - "openshift,origin=master"
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,image-registry=master"
+    - "openshift,kubernetes-metrics-server=master"
+    - "openshift,origin-web-console-server=master"
+    - "openshift,release=master"
 extensions:
   parameters:
     - name: "SUITE"

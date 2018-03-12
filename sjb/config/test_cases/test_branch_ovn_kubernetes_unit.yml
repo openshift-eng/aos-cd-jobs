@@ -1,0 +1,30 @@
+---
+parent: 'common/test_cases/crio.yml'
+overrides:
+  provision:
+    os: "rhel"
+    stage: "build"
+    provider: "aws"
+extensions:
+  actions:
+  - type: "forward_parameters"
+    parameters:
+      - PULL_BASE_SHA
+  - type: "script"
+    title: "clone ovn-kubernetes and check out the correct refs"
+    script: |-
+      mkdir -p /data/src/github.com/openvswitch
+      cd /data/src/github.com/openvswitch
+      git clone https://github.com/openvswitch/ovn-kubernetes.git
+      cd /data/src/github.com/openvswitch/ovn-kubernetes
+      git fetch origin
+      git checkout "${PULL_BASE_SHA}"
+  - type: "script"
+    title: "run the ovn-kubernetes integration tests"
+    script: |-
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags integration \
+                       --become-user root \
+                       --connection local \
+                       /data/src/github.com/openvswitch/ovn-kubernetes/test/integration/main.yml

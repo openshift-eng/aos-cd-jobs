@@ -286,6 +286,7 @@ extensions:
       repository: "release"
       timeout: 900
       script: |-
+        trap 'exit 0' EXIT
         cd cluster/test-deploy/${CLUSTER_PROFILE}
         ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
     - type: "host_script"
@@ -293,6 +294,7 @@ extensions:
       repository: "release"
       timeout: 900
       script: |-
+        trap 'exit 0' EXIT
         source ./INSTANCE_PREFIX
         oc --config=/var/lib/jenkins/secrets/image-pr-push.kubeconfig get is -o name -n ci-pr-images | grep "${INSTANCE_PREFIX}" | xargs -r oc delete
   artifacts:

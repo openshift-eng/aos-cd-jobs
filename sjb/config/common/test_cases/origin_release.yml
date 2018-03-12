@@ -19,7 +19,7 @@ extensions:
           hack/extract-release.sh
         else
           # Catch-all for master and future release branches.
-          OS_BUILD_ENV_PULL_IMAGE=true hack/env make release
+          OS_BUILD_ENV_PULL_IMAGE=true hack/env make release BUILD_TESTS=1 OS_BUILD_SRPM=1
           sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
           sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
         fi

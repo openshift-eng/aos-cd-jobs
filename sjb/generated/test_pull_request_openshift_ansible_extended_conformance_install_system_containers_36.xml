@@ -302,7 +302,7 @@ if [[ &#34;\${ORIGIN_TARGET_BRANCH}&#34; == release-1.[4-5] ]]; then
   hack/extract-release.sh
 else
   # Catch-all for master and future release branches.
-  OS_BUILD_ENV_PULL_IMAGE=true hack/env make release
+  OS_BUILD_ENV_PULL_IMAGE=true hack/env make release BUILD_TESTS=1 OS_BUILD_SRPM=1
   sed -i &#39;s|go/src|data/src|&#39; _output/local/releases/rpms/origin-local-release.repo
   sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
 fi

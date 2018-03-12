@@ -35,6 +35,8 @@ extensions:
         - FOCUS
         - JOB_SPEC
         - CLUSTER_PROFILE
+        - OS_PUSH_BASE_REGISTRY
+        - OS_PUSH_BASE_REPO
     - type: "script"
       title: "build openshift-ansible image"
       repository: "openshift-ansible"
@@ -56,7 +58,7 @@ extensions:
         export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
         # write the standard variables for reuse
         echo "INSTANCE_PREFIX=${INSTANCE_PREFIX:-}" >> INSTANCE_PREFIX
-        echo "OS_TAG=$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )" >> INSTANCE_PREFIX
+        echo "OS_TAG=$( ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT" )" >> INSTANCE_PREFIX
         echo "OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-" >> INSTANCE_PREFIX
         # hack around forwarding this to the other machine
         cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >> /etc/environment"

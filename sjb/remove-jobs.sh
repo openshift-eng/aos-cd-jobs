@@ -45,7 +45,7 @@ function prune() {
 	fi
 }
 
-deleted_configs=( $( git log --all --pretty=format: --name-only --diff-filter=D -- sjb/generated/ | sort | uniq ) )
+deleted_configs=( $( git log --all --pretty=format: --name-only --diff-filter=DR -- sjb/generated/ | sort | uniq ) )
 to_remove=()
 for deleted_job_config in "${deleted_configs[@]}"; do
 	if [[ ! -s "${deleted_job_config}" ]]; then

@@ -291,6 +291,7 @@ extensions:
       script: |-
         trap 'exit 0' EXIT
         source ./INSTANCE_PREFIX
-        oc --config=/var/lib/jenkins/secrets/image-pr-push.kubeconfig get is -o name -n ci-pr-images | grep "${INSTANCE_PREFIX}" | xargs -r oc delete
+        export KUBECONFIG=/var/lib/jenkins/secrets/image-pr-push.kubeconfig
+        oc get is -o name -n ci-pr-images | grep "${INSTANCE_PREFIX}" | xargs -r oc delete
   artifacts:
     - "/tmp/artifacts"

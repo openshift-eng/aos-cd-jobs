@@ -603,7 +603,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 sudo chmod a+rw /tmp/.docker/config.json
-source ./INSTANCE_PREFIX
 DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -618,7 +617,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-source ./INSTANCE_PREFIX
 DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -633,7 +631,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/kubernetes-metrics-server&#34;
-source ./INSTANCE_PREFIX
 DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -648,7 +645,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin-web-console-server&#34;
-source ./INSTANCE_PREFIX
 DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
 sudo rm -rf /tmp/.docker
 SCRIPT
@@ -671,7 +667,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
-source ./INSTANCE_PREFIX
 sudo systemctl restart docker
 if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
   evars=&#34;-e @sjb/inventory/\${PULL_BASE_REF}.cfg&#34;

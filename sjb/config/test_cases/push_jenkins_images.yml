@@ -10,8 +10,6 @@ overrides:
     - obulatov@redhat.com
     - agladkov@redhat.com
 extensions:
-  sync:
-    - "openshift,jenkins=master"
   actions:
     - type: "script"
       title: "create directory for docker config"

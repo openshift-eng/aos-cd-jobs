@@ -1,25 +1,10 @@
 ---
-parameters:
-- name: BUILD_ID
-  description: "Unique build number for each run."
-- name: PULL_BASE_REF
-  description: "Ref name of the base branch."
-- name: PULL_BASE_SHA
-  description: "Git SHA of the base branch."
-- name: PULL_REFS
-  description: "All refs to test."
-- name: PULL_NUMBER
-  description: "Pull request number."
-- name: PULL_PULL_SHA
-  description: "Pull request head SHA."
-- name: JOB_SPEC
-  description: "JSON form of job specification."
 provision:
   os: "rhel"
   stage: "base"
   provider: "aws"
-sync_repos:
-  - name: "aos-cd-jobs"
+sync:
+  - openshift,aos-cd-jobs=master
 actions:
   - type: "script"
     title: "clone k8s and check out the correct refs"

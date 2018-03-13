@@ -18,7 +18,8 @@ function retry_delete() {
 				 "https://ci.openshift.redhat.com/jenkins/job/${job}/doDelete"
 		)"
 
-		if [[ "${response}" == "204" ]]; then
+		if [[ "${response}" == "302" ]]; then
+			# why does jenkins give us a redirect when we successfully delete? who knows...
 			break
 		elif [[ "$i" == 9 ]]; then
 			tput setaf 1

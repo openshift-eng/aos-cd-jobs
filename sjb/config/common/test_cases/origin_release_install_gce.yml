@@ -21,9 +21,9 @@ extensions:
         <div>
         </div>
     - name: "OS_PUSH_BASE_REGISTRY"
-      defaultValue: "registry.svc.ci.openshift.org/"
+      default_value: "registry.svc.ci.openshift.org/"
     - name: "OS_PUSH_BASE_REPO"
-      defaultValue: "ci-pr-images/"
+      default_value: "ci-pr-images/"
   actions:
     - type: "forward_parameters"
       parameters:

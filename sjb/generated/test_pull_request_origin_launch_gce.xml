@@ -580,7 +580,6 @@ scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/c
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_TAG=${OS_PUSH_TAG:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REGISTRY=${OS_PUSH_BASE_REGISTRY:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
@@ -663,11 +662,12 @@ if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
 else
   evars=&#34;-e @sjb/inventory/base.cfg&#34;
 fi
+suffix=&#39;origin-\${component}:\${version}&#39;
 cd cluster/test-deploy/\${CLUSTER_PROFILE}/
 ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_test_repo=\${location_url}&#34; \
   -e debug_level=5 \
-  -e &#34;oreg_url=\${OS_PUSH_BASE_REGISTRY}\${OS_PUSH_BASE_REPO}origin-\\${component}:\\${version}&#34; \
+  -e &#34;oreg_url=\${OS_PUSH_BASE_REGISTRY}\${OS_PUSH_BASE_REPO}\${suffix}&#34; \
   playbooks/gcp/openshift-cluster/launch.yml \
   &#34;\${evars:-}&#34;
 cp admin.kubeconfig /tmp/cluster-admin.kubeconfig

@@ -2,10 +2,7 @@
 parent: 'common/test_cases/kubernetes.yml'
 overrides:
   junit_analysis: False
-  timer: "H */2 * * *"
 extensions:
-  sync_repos:
-    - name: "aos-cd-jobs"
   actions:
     - type: "script"
       title: "Install go 1.9.1"

@@ -29,6 +29,8 @@ extensions:
         fi
         pushd "/data/src/github.com/openshift/origin-aggregated-logging/"
         curbranch=$( git rev-parse --abbrev-ref HEAD )
+        # os::build::image tags with both "latest" and the release_commit
+        release_commit="$( git log -1 --pretty=%h )"
         popd
         logging_extras=""
         if [[ "${PULL_REFS%%:*}" == es5.x ]]; then
@@ -44,7 +46,7 @@ extensions:
                          -e debug_level=2           \
                          -e openshift_logging_install_logging=True \
                          -e openshift_logging_image_prefix="openshift/origin-" \
-                         -e openshift_logging_image_version="latest" \
+                         -e openshift_logging_image_version="${release_commit:-latest}" \
                          -e openshift_logging_elasticsearch_proxy_image_prefix="docker.io/openshift/" \
                          -e openshift_hosted_logging_hostname="kibana.127.0.0.1.nip.io"           \
                          -e openshift_logging_master_public_url="https://localhost:8443"          \

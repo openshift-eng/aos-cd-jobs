@@ -1,7 +1,6 @@
 ---
 parent: 'common/test_cases/crio.yml'
 overrides:
-  timer: 'H H * * *'
   provision:
     os: "rhel"
     stage: "bare"

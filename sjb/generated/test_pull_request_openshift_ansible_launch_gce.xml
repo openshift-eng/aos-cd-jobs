@@ -45,12 +45,12 @@ See also:
         <hudson.model.StringParameterDefinition>
           <name>OS_PUSH_BASE_REGISTRY</name>
           <description>None</description>
-          <defaultValue></defaultValue>
+          <defaultValue>registry.svc.ci.openshift.org/</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>OS_PUSH_BASE_REPO</name>
           <description>None</description>
-          <defaultValue></defaultValue>
+          <defaultValue>ci-pr-images/</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>

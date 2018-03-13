@@ -1,0 +1,7 @@
+---
+parent: 'test_cases/test_branch_origin_aggregated_logging_json_file.yml'
+overrides:
+  sync:
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,origin=release-3.7"
+    - "openshift,openshift-ansible=release-3.7"

@@ -1,0 +1,10 @@
+---
+parent: 'test_cases/test_branch_openshift_ansible_logging_json_file.yml'
+overrides:
+  sync:
+    - "openshift,origin=master"
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,image-registry=master"
+    - "openshift,openshift-ansible=master"
+    - "openshift,kubernetes-metrics-server=master"
+    - "openshift,origin-web-console-server=master"

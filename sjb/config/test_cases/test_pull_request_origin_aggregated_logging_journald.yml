@@ -5,23 +5,18 @@ overrides:
     - "openshift,origin=master"
     - "openshift,aos-cd-jobs=master"
     - "openshift,image-registry=master"
-    - "openshift,origin-aggregated-logging=master"
+    - "openshift,openshift-ansible=master"
     - "openshift,kubernetes-metrics-server=master"
     - "openshift,origin-web-console-server=master"
-  evars: "-e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_docker_log_driver=json-file -e openshift_docker_options=--log-driver=json-file -e openshift_install_examples=false"
+  evars: "-e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_docker_log_driver=journald -e openshift_docker_options=--log-driver=journald -e openshift_install_examples=false"
 extensions:
   actions:
     - type: "script"
       title: "build an origin-aggregated-logging release"
       repository: "origin-aggregated-logging"
       script: |-
-        if [[ "${REPO_NAME:-}" == "openshift-ansible" ]]; then
-          if [[ -n "${PULL_REFS:-}" ]]; then
-            export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
-          fi
-          git checkout ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
-        fi
         hack/build-images.sh
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
     - type: "script"
       title: "install origin-aggregated-logging"
       repository: "aos-cd-jobs"
@@ -37,11 +32,7 @@ extensions:
         popd
         logging_extras=""
         if [[ "${PULL_REFS%%:*}" == es5.x ]]; then
-            logging_extras="${logging_extras} -e openshift_logging_es5_techpreview=True \
-                            -e openshift_logging_image_version=latest"
-        elif [[ "${curbranch}" == master ]]; then
-            # force image version/tag to be latest, otherwise it will use openshift_tag_version
-            logging_extras="${logging_extras} -e openshift_logging_image_version=latest"
+            logging_extras="${logging_extras} -e openshift_logging_es5_techpreview=True"
         fi
         #                          -e openshift_logging_install_eventrouter=True                            \
         # richm 20171205 - ansible "too much recursion" bug
@@ -50,8 +41,8 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
-                         -e openshift_logging_install_logging=True \
                          -e debug_level=2           \
+                         -e openshift_logging_install_logging=True \
                          -e openshift_logging_image_prefix="openshift/origin-" \
                          -e openshift_logging_elasticsearch_proxy_image_prefix="docker.io/openshift/" \
                          -e openshift_hosted_logging_hostname="kibana.127.0.0.1.nip.io"           \
@@ -61,8 +52,9 @@ extensions:
                          -e openshift_logging_mux_allow_external=True                             \
                          -e openshift_logging_es_allow_external=True                              \
                          -e openshift_logging_es_ops_allow_external=True                          \
+                         -e openshift_logging_image_version=latest                                \
+                         ${logging_extras}                                                        \
                          ${playbook} \
-                         ${logging_extras} \
                          --skip-tags=update_master_config
     - type: "script"
       title: "run logging tests"

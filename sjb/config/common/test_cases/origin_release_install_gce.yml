@@ -141,25 +141,21 @@ extensions:
       repository: "origin"
       script: |-
         sudo chmod a+rw /tmp/.docker/config.json
-        source ./INSTANCE_PREFIX
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
     - type: "script"
       title: "push the image registry release"
       repository: "image-registry"
       script: |-
-        source ./INSTANCE_PREFIX
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
     - type: "script"
       title: "push the image registry release"
       repository: "kubernetes-metrics-server"
       script: |-
-        source ./INSTANCE_PREFIX
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
     - type: "script"
       title: "push the web console release"
       repository: "origin-web-console-server"
       script: |-
-        source ./INSTANCE_PREFIX
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
         sudo rm -rf /tmp/.docker
 
@@ -175,7 +171,6 @@ extensions:
       repository: "release"
       timeout: 2800
       script: |-
-        source ./INSTANCE_PREFIX
         sudo systemctl restart docker
         if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
           evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"

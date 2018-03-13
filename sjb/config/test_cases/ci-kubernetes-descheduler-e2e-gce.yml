@@ -1,0 +1,92 @@
+---
+parent: 'common/test_cases/minimal.yml'
+extensions:
+  actions:
+    - type: "host_script"
+      title: "Copy GCE credentials into AWS instance"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/descheduler-credentials.json openshiftdevel:/data/gce-credentials.json
+    - type: "script"
+      title: "Setup GCE authentication"
+      script: |-
+        sudo tee -a /etc/yum.repos.d/google-cloud-sdk.repo << EOM
+        [google-cloud-sdk]
+        name=Google Cloud SDK
+        baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el7-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=1
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        EOM
+
+        sudo yum install -y google-cloud-sdk uuid
+        gcloud auth activate-service-account --key-file /data/gce-credentials.json
+        gcloud config set project openshift-descheduler-infra
+        gcloud config set compute/zone us-east1-b
+    - type: "script"
+      title: "Build descheduler"
+      script: |-
+        export GOPATH=/data
+        export PATH=$GOPATH:$PATH
+        cd $GOPATH/src/github.com/kubernetes-incubator/descheduler
+        hack/verify-gofmt.sh
+        make build
+    - type: "script"
+      title: "Provision GCE cluster"
+      script: |-
+        cd /data/src/github.com/kubernetes-incubator/descheduler
+        hack/e2e-gce/gcloud_create_cluster.sh
+    - type: "script"
+      title: "run descheduler tests"
+      script: |-
+        export GOPATH=/data
+        export PATH=$GOPATH:$PATH
+        cd $GOPATH/src/github.com/kubernetes-incubator/descheduler
+        make test-e2e
+  system_journals:
+    - systemd-journald.service
+overrides:
+  post_actions:
+    - type: "script"
+      title: "Tear down GCE cluster"
+      script: |-
+        cd /data/src/github.com/kubernetes-incubator/descheduler
+        if [[ -e hack/e2e-gce/delete_cluster.sh ]]; then
+          hack/e2e-gce/delete_cluster.sh
+        fi
+    - type: "host_script"
+      title: "assemble GCS output"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+        result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+        cat <<FINISHED >gcs/finished.json
+        {
+          "timestamp": $( date +%s ),
+          "result": "${result}"
+        }
+        FINISHED
+        cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+        cp artifacts/generated/* gcs/artifacts/generated/
+        cp artifacts/journals/* gcs/artifacts/journals/
+
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+    - type: "script"
+      title: "push the artifacts and metadata"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        if [[ -n "${JOB_SPEC:-}" ]]; then
+          if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
+            echo "Keeping BUILD_ID"
+          else
+            echo "Using BUILD_NUMBER"
+            JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
+          fi
+          gcloud auth activate-service-account --key-file /data/credentials.json
+          gcloud config set project openshift-gce-devel
+          docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+        fi

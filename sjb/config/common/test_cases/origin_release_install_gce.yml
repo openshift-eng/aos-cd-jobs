@@ -134,7 +134,6 @@ extensions:
     - type: "forward_parameters"
       parameters:
         - OS_PUSH_TAG
-        - OS_PUSH_BASE_REPO
         - OS_PUSH_BASE_REGISTRY
     - type: "script"
       title: "push the release"
@@ -177,11 +176,12 @@ extensions:
         else
           evars="-e @sjb/inventory/base.cfg"
         fi
+        suffix='origin-${component}:${version}'
         cd cluster/test-deploy/${CLUSTER_PROFILE}/
         ../../bin/ansible.sh ansible-playbook \
           -e "openshift_test_repo=${location_url}" \
           -e debug_level=5 \
-          -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}origin-\${component}:\${version}" \
+          -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
           playbooks/gcp/openshift-cluster/launch.yml \
           "${evars:-}"
         cp admin.kubeconfig /tmp/cluster-admin.kubeconfig

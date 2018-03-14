@@ -195,7 +195,8 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json --repo=openshift,origin=master --repo=openshift,aos-cd-jobs=master --repo=openshift,image-registry=master --repo=openshift,kubernetes-metrics-server=master --repo=openshift,origin-web-console-server=master --repo=openshift,release=master \${CLONEREFS_ARGS:-}
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,origin=master --repo=openshift,aos-cd-jobs=master --repo=openshift,image-registry=master --repo=openshift,kubernetes-metrics-server=master --repo=openshift,origin-web-console-server=master --repo=openshift,release=master }
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${CLONEREFS_ARGS}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 sudo chmod -R a+rwX /data
 sudo chown -R origin:origin-git /data
@@ -662,7 +663,8 @@ if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
 else
   evars=&#34;-e @sjb/inventory/base.cfg&#34;
 fi
-suffix=&#39;origin-\${component}:\${version}&#39;
+suffix=&#39;origin-\${component}&#39;
+suffix=&#34;\${suffix}:\$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )&#34;
 cd cluster/test-deploy/\${CLUSTER_PROFILE}/
 ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_test_repo=\${location_url}&#34; \

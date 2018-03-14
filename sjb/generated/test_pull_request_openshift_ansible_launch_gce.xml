@@ -663,7 +663,8 @@ if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
 else
   evars=&#34;-e @sjb/inventory/base.cfg&#34;
 fi
-suffix=&#39;origin-\${component}:\${version}&#39;
+suffix=&#39;origin-\${component}&#39;
+suffix=&#34;\${suffix}:\$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )&#34;
 cd cluster/test-deploy/\${CLUSTER_PROFILE}/
 ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_test_repo=\${location_url}&#34; \

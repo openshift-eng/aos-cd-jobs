@@ -137,7 +137,6 @@ extensions:
                          -e openshift_crio_systemcontainer_image_override="${crio_image}" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
@@ -191,7 +190,6 @@ extensions:
                          -e openshift_crio_systemcontainer_image_override="${crio_image}" \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \

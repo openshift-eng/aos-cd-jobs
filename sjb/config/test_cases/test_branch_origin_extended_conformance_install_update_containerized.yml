@@ -106,7 +106,6 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e openshift_deployment_type=origin  \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
@@ -126,7 +125,6 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e openshift_deployment_type=origin  \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          ${playbook}
@@ -141,7 +139,6 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e openshift_deployment_type=origin  \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
@@ -168,7 +165,6 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e openshift_deployment_type=origin                  \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )" \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \

@@ -149,6 +149,7 @@ Jenkins job: ${env.BUILD_URL}
                 buildlib.build_ami(
                     OSE_MAJOR, OSE_MINOR,
                     version_release[0].substring(1), version_release[1],
+                    "release-${OSE_MAJOR}.${OSE_MINOR}",
                     MAIL_LIST_FAILURE)
             }
 

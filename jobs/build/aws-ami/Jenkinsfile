@@ -220,9 +220,7 @@ node(TARGET_NODE) {
             checkout scm
             buildlib = load('pipeline-scripts/buildlib.groovy')
             dir('openshift-ansible') {
-                git 'https://github.com/openshift/openshift-ansible.git'
-                //sh "git checkout ${OPENSHIFT_ANSIBLE_CHECKOUT}"
-                //sh "git pull"
+                git url: 'https://github.com/openshift/openshift-ansible.git', branch: "${OPENSHIFT_ANSIBLE_CHECKOUT}"
             }
         }
         stage('venv') {

@@ -1,0 +1,15 @@
+---
+parent: 'common/test_cases/origin_release_install_gce_38.yml'
+overrides:
+  sync:
+    - "openshift,openshift-ansible=release-3.8"
+    - "openshift,image-registry=release-3.8"
+    - "openshift,origin-web-console-server=release-3.8"
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,release=master"
+extensions:
+  parameters:
+    - name: "SUITE"
+      description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
+rectory to run."
+      default_value: "conformance"

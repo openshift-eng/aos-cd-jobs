@@ -324,17 +324,19 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
-git describe --abbrev=0 &gt;&gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
-( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
-( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_RELEASE&#34;
-tag=\$( source hack/lib/init.sh; os::build::version::get_vars; echo &#34;v\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; )
+git log -1 --pretty=%h &gt; &#34;\${jobs_repo}/ORIGIN_COMMIT&#34;
+
+source hack/lib/init.sh
+os::build::rpm::get_nvra_vars
+echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; &gt; &#34;\${jobs_repo}/ORIGIN_PKG_VERSION&#34;
+echo &#34;\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; &gt; &#34;\${jobs_repo}/ORIGIN_RELEASE&#34;
+echo &#34;\${OS_RPM_VERSION}&#34; | cut -d&#39;.&#39; -f2 &gt; &#34;\${jobs_repo}/ORIGIN_PKG_MINOR_VERSION&#34;
+tag=&#34;\$( echo &#34;v\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; )&#34;
 if [[ &#34;\${tag}&#34; =~ ^v3.(6|7|8|9)\$ ]]; then
-  git describe --abbrev=0 &gt;&gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
+  git describe --abbrev=0 &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 else
-  echo &#34;\${tag}&#34; &gt;&gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
+  echo &#34;\${tag}&#34; &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 fi
-( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo &#34;\${OS_RPM_VERSION}&#34; | cut -d&#39;.&#39; -f2 ) &gt;&gt; &#34;\${jobs_repo}/ORIGIN_PKG_MINOR_VERSION&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

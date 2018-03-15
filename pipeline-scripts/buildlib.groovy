@@ -343,7 +343,7 @@ def build_puddle(conf_url, keys, Object...args) {
     return puddle_dir
 }
 
-def build_ami(major, minor, version, release, yum_base_url, mail_list) {
+def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail_list) {
     if(major < 3 || (major == 3 && minor < 9))
         return
     final full_version = "${version}-${release}"
@@ -356,6 +356,7 @@ def build_ami(major, minor, version, release, yum_base_url, mail_list) {
                 param('String', 'OPENSHIFT_VERSION', version),
                 param('String', 'OPENSHIFT_RELEASE', release),
                 param('String', 'YUM_BASE_URL', yum_base_url),
+                param('String', 'OPENSHIFT_ANSIBLE_CHECKOUT', ansible_branch),
                 param('Boolean', 'USE_CRIO', true),
                 param(
                     'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',

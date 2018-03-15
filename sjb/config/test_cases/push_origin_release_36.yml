@@ -1,0 +1,30 @@
+---
+parent: 'common/test_cases/origin_release_with_ecosystem_36.yml'
+extensions:
+  sync:
+    - "openshift,origin=release-3.6"
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,release=master"
+  parameters:
+    - name: "OS_PUSH_TAG"
+      description: "The docker image tag to push to, defaults to :latest"
+  actions:
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "transfer docker config to remote host"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "forward_parameters"
+      parameters:
+        - OS_PUSH_TAG
+    - type: "script"
+      title: "push the release"
+      repository: "origin"
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+        sudo rm -rf /tmp/.docker

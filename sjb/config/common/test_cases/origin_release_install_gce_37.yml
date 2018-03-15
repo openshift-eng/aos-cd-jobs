@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release_with_ecosystem.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem_37.yml'
 extensions:
   sync:
     - "openshift,release=master"
@@ -14,6 +14,7 @@ extensions:
         The image to install the cluster with. If set, defaults to the value defined by the
         <a href='https://github.com/openshift/release/blob/master/cluster/bin/local.sh'><code>cluster/bin/local.sh</code></a>
         script.
+      default_value: openshift/origin-ansible:v3.7
     - name: "ADDITIONAL_SKIP"
       description: |-
         Regular expression to filter additional tests from the conformance suite.
@@ -140,21 +141,6 @@ extensions:
       repository: "origin"
       script: |-
         sudo chmod a+rw /tmp/.docker/config.json
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
-    - type: "script"
-      title: "push the image registry release"
-      repository: "image-registry"
-      script: |-
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
-    - type: "script"
-      title: "push the kubernetes metrics server release"
-      repository: "kubernetes-metrics-server"
-      script: |-
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
-    - type: "script"
-      title: "push the web console release"
-      repository: "origin-web-console-server"
-      script: |-
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
         sudo rm -rf /tmp/.docker
 

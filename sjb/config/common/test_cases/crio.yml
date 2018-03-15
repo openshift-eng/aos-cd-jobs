@@ -131,6 +131,7 @@ artifacts:
   - /tmp/kube-proxy.log
   - /tmp/kube-proxy.yaml
   - /tmp/kube-scheduler.log
+  - /etc/crio/crio.conf
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
   avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'

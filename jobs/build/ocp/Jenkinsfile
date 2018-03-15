@@ -765,6 +765,7 @@ ${exclude} images:push --to-defaults --late-only
                 BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
                 NEW_VERSION, NEW_RELEASE,
                 "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
+                OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
                 MAIL_LIST_FAILURE)
         }
 

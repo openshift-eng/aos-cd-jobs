@@ -19,43 +19,9 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>CLUSTER_PROFILE</name>
-          <description>The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster.</description>
-          <defaultValue>gcp</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>FOCUS</name>
-          <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
+          <name>OS_PUSH_TAG</name>
+          <description>The docker image tag to push to, defaults to :latest</description>
           <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>OPENSHIFT_ANSIBLE_IMAGE</name>
-          <description>The image to install the cluster with. If set, defaults to the value defined by the &lt;a href=&#39;https://github.com/openshift/release/blob/master/cluster/bin/local.sh&#39;&gt;&lt;code&gt;cluster/bin/local.sh&lt;/code&gt;&lt;/a&gt; script.
-</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>ADDITIONAL_SKIP</name>
-          <description>Regular expression to filter additional tests from the conformance suite.
-See also:
-&lt;div&gt;
-&lt;/div&gt;</description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>OS_PUSH_BASE_REGISTRY</name>
-          <description>None</description>
-          <defaultValue>registry.svc.ci.openshift.org/</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>OS_PUSH_BASE_REPO</name>
-          <description>None</description>
-          <defaultValue>ci-pr-images/</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>SUITE</name>
-          <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
-          <defaultValue>conformance-k8s</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>
@@ -200,7 +166,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,aos-cd-jobs=master --repo=openshift,image-registry=master --repo=openshift,kubernetes-metrics-server=master --repo=openshift,origin-web-console-server=master --repo=openshift,release=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=release-3.7 --repo=openshift,origin=release-3.7 --repo=openshift,aos-cd-jobs=master --repo=openshift,release=master }
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 sudo chmod -R a+rwX /data
@@ -386,177 +352,6 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-registry_repo=&#34;/data/src/github.com/openshift/image-registry/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${registry_repo}/ORIGIN_COMMIT&#34;
-metrics_repo=&#34;/data/src/github.com/openshift/kubernetes-metrics-server/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${metrics_repo}/ORIGIN_COMMIT&#34;
-console_repo=&#34;/data/src/github.com/openshift/origin-web-console-server/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${console_repo}/ORIGIN_COMMIT&#34;
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD THE IMAGE REGISTRY CONTAINER IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD THE IMAGE REGISTRY CONTAINER IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-make build-images
-docker tag openshift/origin-docker-registry:latest &#34;openshift/origin-docker-registry:\$( cat ./ORIGIN_COMMIT )&#34;
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD THE KUBERNETES METRICS SERVER CONTAINER IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD THE KUBERNETES METRICS SERVER CONTAINER IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/kubernetes-metrics-server&#34;
-make build-images
-docker tag openshift/origin-metrics-server:latest &#34;openshift/origin-metrics-server:\$( cat ./ORIGIN_COMMIT )&#34;
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD THE ORIGIN WEB CONSOLE SERVER CONTAINER IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD THE ORIGIN WEB CONSOLE SERVER CONTAINER IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin-web-console-server&#34;
-make build-images
-docker tag openshift/origin-web-console:latest &#34;openshift/origin-web-console:\$( cat ./ORIGIN_COMMIT )&#34;
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_IMAGE=${OPENSHIFT_ANSIBLE_IMAGE:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;ADDITIONAL_SKIP=${ADDITIONAL_SKIP:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;SUITE=${SUITE:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;FOCUS=${FOCUS:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;CLUSTER_PROFILE=${CLUSTER_PROFILE:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REGISTRY=${OS_PUSH_BASE_REGISTRY:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO:-}&#39; &gt;&gt; /etc/environment&#34;
-</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD OPENSHIFT-ANSIBLE IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD OPENSHIFT-ANSIBLE IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
-if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#34; != &#34;openshift-ansible&#34; ]]; then
-  # ensure we get an update to date image
-  docker pull openshift/origin-ansible:latest
-  exit 0
-fi
-hack/build-images.sh
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 900 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE THE INSTANCE PREFIX ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE INSTANCE PREFIX [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-# we need a short but unique identifier, so we take the first 7 of SHA
-hashed_identifier=&#34;$( echo &#34;${JOB_NAME}&#34; | sha1sum )&#34;
-export INSTANCE_PREFIX=&#34;prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}&#34;
-# write the standard variables for reuse
-echo &#34;INSTANCE_PREFIX=${INSTANCE_PREFIX:-}&#34; &gt;&gt; INSTANCE_PREFIX
-echo &#34;OS_TAG=$( ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT&#34; )&#34; &gt;&gt; INSTANCE_PREFIX
-echo &#34;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-&#34; &gt;&gt; INSTANCE_PREFIX
-# hack around forwarding this to the other machine
-cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt; /etc/environment&#34;</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE RPMS TO GCS REPO ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE RPMS TO GCS REPO [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-if [[ &#34;${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;${REPO_NAME-}&#34; != &#34;origin&#34; ]]; then
-  # use pre-built RPMs when the job is not targeting origin, or use master if nothing else is available
-  location_url=&#34;$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-master}/.latest-rpms)&#34;
-  # hack around forwarding this to the other machine
-  ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;location_url=${location_url:-}&#39; &gt;&gt; /etc/environment&#34;
-  exit 0
-fi
-
-# Allows us to publish artifacts for tags, since we have no tag mechanism
-if [[ -z &#34;${JOB_SPEC-}&#34; ]]; then
-  JOB_SPEC=&#34;{\&#34;type\&#34;:\&#34;postsubmit\&#34;,\&#34;refs\&#34;:{\&#34;base_ref\&#34;:\&#34;${ORIGIN_TARGET_BRANCH}\&#34;}}&#34;
-fi
-type=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.type&#39; )&#34;
-if   [[ &#34;${type}&#34; == &#34;postsubmit&#34; ]]; then
-  location_base=&#34;origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
-elif [[ &#34;${type}&#34; == &#34;batch&#34; ]]; then
-  location_base=&#34;origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}&#34;
-elif [[ &#34;${type}&#34; == &#34;presubmit&#34; ]]; then
-  location_base=&#34;origin-ci-test/pr-logs/pull/${PULL_NUMBER}/${JOB_NAME}/${BUILD_NUMBER}&#34;
-else
-  echo &#34;unknown job type in ${JOB_SPEC}&#34;
-  exit 1
-fi
-
-location=&#34;${location_base}/artifacts/rpms&#34;
-location_url=&#34;https://storage.googleapis.com/${location}&#34;
-
-cat &lt;&lt;REPO &gt; /tmp/local.repo
-[origin-repo]
-name=Origin RPMs
-baseurl=${location_url}
-enabled=1
-gpgcheck=0
-REPO
-
-if gsutil ls &#34;gs://${location_base}&#34; &amp;&gt;/dev/null; then
-  gsutil rm -rf &#34;gs://${location_base}&#34;
-fi
-
-echo &#34;${JOB_NAME}/${BUILD_NUMBER}&#34; &gt; .build
-gsutil cp .build &#34;gs://${location_base}/.build&#34;
-
-mkdir -p artifacts/rpms
-rsync --archive --omit-dir-times --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; --rsync-path=&#39;sudo rsync&#39; openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
-gsutil -m cp -r artifacts/rpms &#34;gs://${location}&#34;
-if [[ &#34;${type}&#34; == &#34;postsubmit&#34; ]]; then
-  # update the pointer to this location to the base ref branch
-  echo &#34;${location_url}&#34; &gt; .latest-rpms
-  ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
-  gsutil cp .latest-rpms &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-rpms&#34;
-  gsutil cp /tmp/local.repo &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/origin.repo&#34;
-fi
-
-# hack around forwarding this to the other machine
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;location_url=${location_url:-}&#39; &gt;&gt; /etc/environment&#34;</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: CREATE DIRECTORY FOR DOCKER CONFIG ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CREATE DIRECTORY FOR DOCKER CONFIG [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
@@ -580,7 +375,6 @@ scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/c
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_TAG=${OS_PUSH_TAG:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REGISTRY=${OS_PUSH_BASE_REGISTRY:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -592,143 +386,12 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 sudo chmod a+rw /tmp/.docker/config.json
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PUSH THE IMAGE REGISTRY RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PUSH THE IMAGE REGISTRY RELEASE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PUSH THE KUBERNETES METRICS SERVER RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PUSH THE KUBERNETES METRICS SERVER RELEASE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/kubernetes-metrics-server&#34;
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PUSH THE WEB CONSOLE RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PUSH THE WEB CONSOLE RELEASE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin-web-console-server&#34;
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34; hack/push-release.sh
 sudo rm -rf /tmp/.docker
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE SECRETS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE SECRETS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-rsync --copy-links --omit-dir-times --archive --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/&#39;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/&#39;</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PROVISION TEST CLUSTER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PROVISION TEST CLUSTER [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
-sudo systemctl restart docker
-if [[ -f &#34;sjb/inventory/\${PULL_BASE_REF:-}.cfg&#34; ]]; then
-  evars=&#34;-e @sjb/inventory/\${PULL_BASE_REF}.cfg&#34;
-else
-  evars=&#34;-e @sjb/inventory/base.cfg&#34;
-fi
-suffix=&#39;origin-\${component}&#39;
-suffix=&#34;\${suffix}:\$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )&#34;
-cd cluster/test-deploy/\${CLUSTER_PROFILE}/
-../../bin/ansible.sh ansible-playbook \
-  -e &#34;openshift_test_repo=\${location_url}&#34; \
-  -e debug_level=5 \
-  -e &#34;oreg_url=\${OS_PUSH_BASE_REGISTRY}\${OS_PUSH_BASE_REPO}\${suffix}&#34; \
-  playbooks/gcp/openshift-cluster/launch.yml \
-  &#34;\${evars:-}&#34;
-cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 2800 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RUN EXTENDED TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN EXTENDED TESTS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-if [[ -z &#34;\${SUITE-}&#34; &amp;&amp; -z &#34;\${FOCUS-}&#34; ]]; then
-  echo &#34;No suite or focus, skipping test step&#34;
-  exit 0
-fi
-mkdir -p /tmp/artifacts/junit
-export KUBECONFIG=/tmp/cluster-admin.kubeconfig
-export PARALLEL_NODES=25
-export EXTENDED_TEST_PATH=test/extended
-export TEST_ONLY=1
-export JUNIT_REPORT=true
-export TEST_EXTENDED_SKIP=&#34;\[local\]&#34;
-TEST_EXTENDED_SKIP+=&#34;\${ADDITIONAL_SKIP-}&#34;
-
-# TODO: eventually this shouldn&#39;t be specific to a particular provider
-export GOOGLE_APPLICATION_CREDENTIALS=&#34;/data/src/github.com/openshift/release/cluster/test-deploy/\${CLUSTER_PROFILE}/gce.json&#34;
-export KUBE_SSH_USER=cloud-user
-cp /data/src/github.com/openshift/release/cluster/test-deploy/\${CLUSTER_PROFILE}/ssh-privatekey ~/.ssh/google_compute_engine || true
-export TEST_EXTENDED_ARGS=&#39;-provider=gce -gce-zone=us-east1-c -gce-project=openshift-gce-devel-ci&#39;
-
-# test suites need oc and extended.test
-OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
-OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
-
-function gather() {
-  set +e
-  export PATH=\$(pwd)/_output/local/bin/linux/amd64:\$PATH
-  oc get nodes --template &#39;{{ range .items }}{{ .metadata.name }}{{ &#34;\n&#34; }}{{ end }}&#39; | xargs -L 1 -I X bash -c &#39;oc get --raw /api/v1/nodes/X/proxy/metrics &gt; /tmp/artifacts/X.metrics&#39; &#39;&#39;
-  oc get --raw /metrics &gt; /tmp/artifacts/master.metrics
-  set -e
-}
-trap gather EXIT
-
-# rosie-bot does not know how to split suite and focus
-# so we need to detect that she is doing her best and
-# help her out by parsing the input she gives
-if [[ -z &#34;\${FOCUS:-}&#34; &amp;&amp; &#34;\${SUITE}&#34; =~ ^(.*)\((.*)\)\$ ]]; then
-  SUITE=&#34;\${BASH_REMATCH[1]}&#34;
-  FOCUS=&#34;\${BASH_REMATCH[2]}&#34;
-fi
-OPENSHIFT_SKIP_BUILD=&#39;true&#39; make test-extended SUITE=&#34;\${SUITE}&#34; FOCUS=&#34;\${FOCUS:-}&#34;
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 6000 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>
@@ -744,10 +407,6 @@ mkdir -p &#34;${ARTIFACT_DIR}&#34;
 if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /data/src/github.com/openshift/origin/_output/scripts; then
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin/_output/scripts
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin/_output/scripts &#34;${ARTIFACT_DIR}&#34;
-fi
-if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /tmp/artifacts; then
-    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/artifacts
-    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/artifacts &#34;${ARTIFACT_DIR}&#34;
 fi
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
@@ -824,75 +483,6 @@ SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: GATHER ARTIFACTS FROM TEST CLUSTER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: GATHER ARTIFACTS FROM TEST CLUSTER [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-trap &#39;exit 0&#39; EXIT
-base_artifact_dir=&#34;$(pwd)/artifacts&#34;
-source ./INSTANCE_PREFIX
-for instance in $( gcloud compute instances list --regexp &#34;.*${INSTANCE_PREFIX}.*&#34; --uri ); do
-    info=&#34;$( mktemp )&#34;
-    gcloud compute instances describe &#34;${instance}&#34; --format json &gt; &#34;${info}&#34;
-    name=&#34;$( jq &#39;.name&#39; --raw-output &#34;${info}&#34; | tail -c 5 )&#34;
-    if jq &#39;.tags.items | contains([&#34;ocp-master&#34;])&#39; --exit-status &#34;${info}&#34;; then
-        artifact_dir=&#34;${base_artifact_dir}/masters/${name}&#34;
-        mkdir -p &#34;${artifact_dir}&#34; &#34;${artifact_dir}/generated&#34; &#34;${artifact_dir}/journals&#34;
-        gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit origin-master.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/origin-master.service&#34; || true
-        gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit origin-master-api.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/origin-master-api.service&#34; || true
-        gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit origin-master-controllers.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/origin-master-controllers.service&#34; || true
-        gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit etcd.service          --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/etcd.service&#34;  || true
-
-        gcloud compute ssh &#34;${instance}&#34; -- oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/master-metrics.log&#34;  || true
-    elif jq &#39;.tags.items | contains([&#34;ocp-node&#34;])&#39; --exit-status &#34;${info}&#34;; then
-        artifact_dir=&#34;${base_artifact_dir}/nodes/${name}&#34;
-        mkdir -p &#34;${artifact_dir}&#34; &#34;${artifact_dir}/generated&#34; &#34;${artifact_dir}/journals&#34;
-    else
-        artifact_dir=&#34;${base_artifact_dir}/unknown/${name}&#34;
-        mkdir -p &#34;${artifact_dir}&#34; &#34;${artifact_dir}/generated&#34; &#34;${artifact_dir}/journals&#34;
-    fi
-
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit origin-node.service  --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/origin-node.service&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit openvswitch.service  --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/openvswitch.service&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/ovs-vswitchd.service&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/ovsdb-server.service&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit docker.service       --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/docker.service&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit dnsmasq.service      --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/dnsmasq.service&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all 2&gt;&amp;1 &gt; &#34;${artifact_dir}/journals/systemd-journald.service&#34;  || true
-
-    gcloud compute ssh &#34;${instance}&#34; -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                   2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/node-metrics.log&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a&#34; 2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/docker.info&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo yum history info origin                                                         2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/origin_package_history.log&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- &#34;sudo df -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs&#34;                                     2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/filesystem.info&#34; || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo yum list installed                                                              2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/installed_packages.log&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC                                      2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/avc_denials.log&#34; || true
-    gcloud compute ssh &#34;${instance}&#34; -- sudo journalctl _PID=1 --no-pager --all --lines=all                                  2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/pid1.journal&#34;  || true
-    gcloud compute ssh &#34;${instance}&#34; -- &#34;sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1&#34;          2&gt;&amp;1 &gt; &#34;${artifact_dir}/generated/containers.log&#34;  || true
-done</command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DEPROVISION TEST CLUSTER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DEPROVISION TEST CLUSTER [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
-trap &#39;exit 0&#39; EXIT
-cd cluster/test-deploy/\${CLUSTER_PROFILE}
-../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 900 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DELETE PR IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DELETE PR IMAGES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-trap &#39;exit 0&#39; EXIT
-source ./INSTANCE_PREFIX
-export KUBECONFIG=/var/lib/jenkins/secrets/image-pr-push.kubeconfig
-oc get is -o name -n ci-pr-images | grep &#34;${INSTANCE_PREFIX}&#34; | xargs -r oc delete</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

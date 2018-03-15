@@ -1,0 +1,22 @@
+---
+parent: 'common/test_cases/origin_release.yml'
+extensions:
+  sync:
+    - "openshift,openshift-ansible=release-3.6"
+  actions:
+    - type: "script"
+      title: "build an openshift-ansible release"
+      repository: "openshift-ansible"
+      script: |-
+        tito_tmp_dir="tito"
+        mkdir -p "${tito_tmp_dir}"
+        tito tag --offline --accept-auto-changelog
+        tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
+        createrepo "${tito_tmp_dir}/noarch"
+        cat << EOR > ./openshift-ansible-local-release.repo
+        [openshift-ansible-local-release]
+        baseurl = file://$( pwd )/${tito_tmp_dir}/noarch
+        gpgcheck = 0
+        name = OpenShift Ansible Release from Local Source
+        EOR
+        sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d

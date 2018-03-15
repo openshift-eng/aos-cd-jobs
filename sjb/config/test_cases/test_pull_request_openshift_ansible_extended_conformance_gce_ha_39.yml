@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release_install_gce.yml'
+parent: 'common/test_cases/origin_release_install_gce_39.yml'
 overrides:
   sync:
     - "openshift,origin=release-3.9"

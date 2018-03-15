@@ -411,10 +411,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.8&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.9&#34; ]]; then
-  make build-images
-  docker tag openshift/origin-docker-registry:latest &#34;openshift/origin-docker-registry:\$( cat ./ORIGIN_COMMIT )&#34;
-fi
+make build-images
+docker tag openshift/origin-docker-registry:latest &#34;openshift/origin-docker-registry:\$( cat ./ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -428,10 +426,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/kubernetes-metrics-server&#34;
-if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.9&#34; ]]; then
-  make build-images
-  docker tag openshift/origin-metrics-server:latest &#34;openshift/origin-metrics-server:\$( cat ./ORIGIN_COMMIT )&#34;
-fi
+make build-images
+docker tag openshift/origin-metrics-server:latest &#34;openshift/origin-metrics-server:\$( cat ./ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -445,10 +441,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin-web-console-server&#34;
-if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.9&#34; ]]; then
-  make build-images
-  docker tag openshift/origin-web-console:latest &#34;openshift/origin-web-console:\$( cat ./ORIGIN_COMMIT )&#34;
-fi
+make build-images
+docker tag openshift/origin-web-console:latest &#34;openshift/origin-web-console:\$( cat ./ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -136,7 +136,7 @@ properties(
                      name: 'YUM_BASE_URL'],
 
                     [$class: 'hudson.model.BooleanParameterDefinition',
-                     defaultValue: false,
+                     defaultValue: true,
                      description: 'Enable CRIO in Openshift for the AMI build.',
                      name: 'USE_CRIO'],
 

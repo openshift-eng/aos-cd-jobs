@@ -511,6 +511,9 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
+                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
+                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
+                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
                  &#34;\${evars:-}&#34; \
                  \${EXTRA_EVARS:-} \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
@@ -539,6 +542,9 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e openshift_deployment_type=origin  \
+                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
+                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
+                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
                  \${EXTRA_EVARS:-} \
                  \${playbook}
 if [[ -s &#34;\${playbook_base}deploy_cluster.yml&#34; ]]; then

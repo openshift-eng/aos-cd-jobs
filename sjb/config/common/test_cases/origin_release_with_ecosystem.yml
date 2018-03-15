@@ -38,7 +38,7 @@ extensions:
       repository: "image-registry"
       timeout: 3600
       script: |-
-        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.8" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.8" || "${PULL_BASE_REF}" == "release-3.9" || "${PULL_BASE_REF}" == "es5.x" ]]; then
           make build-images
           docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat ./ORIGIN_COMMIT )"
         fi
@@ -47,7 +47,7 @@ extensions:
       repository: "kubernetes-metrics-server"
       timeout: 3600
       script: |-
-        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" || "${PULL_BASE_REF}" == "es5.x" ]]; then
           make build-images
           docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat ./ORIGIN_COMMIT )"
         fi
@@ -56,7 +56,7 @@ extensions:
       repository: "origin-web-console-server"
       timeout: 3600
       script: |-
-        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" || "${PULL_BASE_REF}" == "es5.x" ]]; then
           make build-images
           docker tag openshift/origin-web-console:latest "openshift/origin-web-console:$( cat ./ORIGIN_COMMIT )"
         fi

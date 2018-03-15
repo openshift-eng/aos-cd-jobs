@@ -131,11 +131,13 @@ artifacts:
   - /tmp/kube-proxy.log
   - /tmp/kube-proxy.yaml
   - /tmp/kube-scheduler.log
+  - /etc/crio/crio.conf
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
   avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
   filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
   pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
+  system.journal: 'sudo journalctl --no-pager --no-hostname --boot'
 system_journals:
   - crio.service
   - customcluster.service

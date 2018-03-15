@@ -205,7 +205,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,image-registry=master --repo=openshift,openshift-ansible=master --repo=openshift,kubernetes-metrics-server=master --repo=openshift,origin-web-console-server=master --repo=openshift,release=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,origin=master --repo=openshift,image-registry=master --repo=openshift,kubernetes-metrics-server=master --repo=openshift,origin-web-console-server=master --repo=openshift,aos-cd-jobs=master --repo=openshift,release=master }
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 sudo chmod -R a+rwX /data
@@ -356,11 +356,7 @@ echo &#34;-\${OS_RPM_VERSION}-\${OS_RPM_RELEASE}&#34; &gt; &#34;\${jobs_repo}/OR
 echo &#34;\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; &gt; &#34;\${jobs_repo}/ORIGIN_RELEASE&#34;
 echo &#34;\${OS_RPM_VERSION}&#34; | cut -d&#39;.&#39; -f2 &gt; &#34;\${jobs_repo}/ORIGIN_PKG_MINOR_VERSION&#34;
 tag=&#34;\$( echo &#34;v\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}&#34; | sed &#34;s/+//&#34; )&#34;
-if [[ &#34;\${tag}&#34; =~ ^v3.(6|7|8|9)\$ ]]; then
-  git describe --abbrev=0 &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
-else
-  echo &#34;\${tag}&#34; &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
-fi
+echo &#34;\${tag}&#34; &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

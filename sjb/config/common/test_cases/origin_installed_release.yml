@@ -35,18 +35,18 @@ extensions:
       repository: "origin"
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+        git log -1 --pretty=%h > "${jobs_repo}/ORIGIN_COMMIT"
 
         source hack/lib/init.sh
         os::build::rpm::get_nvra_vars
-        echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" >> "${jobs_repo}/ORIGIN_PKG_VERSION"
-        echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" >> "${jobs_repo}/ORIGIN_RELEASE"
-        echo "${OS_RPM_VERSION}" | cut -d'.' -f2 >> "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
+        echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" > "${jobs_repo}/ORIGIN_PKG_VERSION"
+        echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" > "${jobs_repo}/ORIGIN_RELEASE"
+        echo "${OS_RPM_VERSION}" | cut -d'.' -f2 > "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
         tag="$( echo "v${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" )"
         if [[ "${tag}" =~ ^v3.(6|7|8|9)$ ]]; then
-          git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
+          git describe --abbrev=0 > "${jobs_repo}/ORIGIN_TAG"
         else
-          echo "${tag}" >> "${jobs_repo}/ORIGIN_TAG"
+          echo "${tag}" > "${jobs_repo}/ORIGIN_TAG"
         fi
     - type: "script"
       title: "origin prerequisites"

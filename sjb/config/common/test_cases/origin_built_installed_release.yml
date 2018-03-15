@@ -58,6 +58,9 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          "${evars:-}" \
                          ${EXTRA_EVARS:-} \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
@@ -78,6 +81,9 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                          ${EXTRA_EVARS:-} \
                          ${playbook}
         if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then

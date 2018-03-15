@@ -1,10 +1,6 @@
 ---
 parent: 'common/test_cases/origin_release.yml'
 extensions:
-  sync:
-    - "openshift,image-registry=release-3.8"
-    - "openshift,openshift-ansible=release-3.8"
-    - "openshift,origin-web-console-server=release-3.8"
   actions:
     - type: "script"
       title: "build an openshift-ansible release"

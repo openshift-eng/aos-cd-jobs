@@ -2,10 +2,9 @@
 parent: 'common/test_cases/origin_release.yml'
 extensions:
   sync:
-    - "openshift,image-registry=master"
-    - "openshift,openshift-ansible=master"
-    - "openshift,kubernetes-metrics-server=master"
-    - "openshift,origin-web-console-server=master"
+    - "openshift,image-registry=release-3.8"
+    - "openshift,openshift-ansible=release-3.8"
+    - "openshift,origin-web-console-server=release-3.8"
   actions:
     - type: "script"
       title: "build an openshift-ansible release"
@@ -29,8 +28,6 @@ extensions:
       script: |-
         registry_repo="/data/src/github.com/openshift/image-registry/"
         git log -1 --pretty=%h >> "${registry_repo}/ORIGIN_COMMIT"
-        metrics_repo="/data/src/github.com/openshift/kubernetes-metrics-server/"
-        git log -1 --pretty=%h >> "${metrics_repo}/ORIGIN_COMMIT"
         console_repo="/data/src/github.com/openshift/origin-web-console-server/"
         git log -1 --pretty=%h >> "${console_repo}/ORIGIN_COMMIT"
     - type: "script"
@@ -40,13 +37,6 @@ extensions:
       script: |-
         make build-images
         docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat ./ORIGIN_COMMIT )"
-    - type: "script"
-      title: "build the kubernetes metrics server container image"
-      repository: "kubernetes-metrics-server"
-      timeout: 3600
-      script: |-
-        make build-images
-        docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat ./ORIGIN_COMMIT )"
     - type: "script"
       title: "build the origin web console server container image"
       repository: "origin-web-console-server"

@@ -2,10 +2,10 @@
 parent: 'common/test_cases/origin_release.yml'
 extensions:
   sync:
-    - "openshift,image-registry=master"
-    - "openshift,openshift-ansible=master"
-    - "openshift,kubernetes-metrics-server=master"
-    - "openshift,origin-web-console-server=master"
+    - "openshift,image-registry=release-3.9"
+    - "openshift,openshift-ansible=release-3.9"
+    - "openshift,kubernetes-metrics-server=release-3.9"
+    - "openshift,origin-web-console-server=release-3.9"
   actions:
     - type: "script"
       title: "build an openshift-ansible release"

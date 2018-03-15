@@ -2,7 +2,6 @@
 parent: 'common/test_cases/origin_release_with_ecosystem_38.yml'
 overrides:
   sync:
-    - "openshift,origin=release-3.8"
     - "openshift,openshift-ansible=release-3.8"
     - "openshift,image-registry=release-3.8"
     - "openshift,origin-web-console-server=release-3.8"

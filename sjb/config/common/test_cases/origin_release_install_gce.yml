@@ -145,17 +145,23 @@ extensions:
       title: "push the image registry release"
       repository: "image-registry"
       script: |-
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.8" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+          DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        fi
     - type: "script"
       title: "push the image registry release"
       repository: "kubernetes-metrics-server"
       script: |-
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+          DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        fi
     - type: "script"
       title: "push the web console release"
       repository: "origin-web-console-server"
       script: |-
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+          DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        fi
         sudo rm -rf /tmp/.docker
 
     - type: "host_script"

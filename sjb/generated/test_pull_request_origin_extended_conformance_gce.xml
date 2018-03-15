@@ -612,7 +612,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.8&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.9&#34; ]]; then
+  DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -626,7 +628,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/kubernetes-metrics-server&#34;
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.9&#34; ]]; then
+  DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -640,7 +644,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin-web-console-server&#34;
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.9&#34; ]]; then
+  DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+fi
 sudo rm -rf /tmp/.docker
 SCRIPT
 chmod +x &#34;${script}&#34;

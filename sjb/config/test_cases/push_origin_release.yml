@@ -2,7 +2,6 @@
 parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 overrides:
   sync:
-    - "openshift,origin=master"
     - "openshift,openshift-ansible=master"
     - "openshift,image-registry=master"
     - "openshift,kubernetes-metrics-server=master"

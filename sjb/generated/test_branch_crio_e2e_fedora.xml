@@ -268,6 +268,10 @@ if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo sta
     ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/kube-scheduler.log
     scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/tmp/kube-scheduler.log &#34;${ARTIFACT_DIR}&#34;
 fi
+if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /etc/crio/crio.conf; then
+    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /etc/crio/crio.conf
+    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/etc/crio/crio.conf &#34;${ARTIFACT_DIR}&#34;
+fi
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

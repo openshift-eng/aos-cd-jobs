@@ -673,7 +673,7 @@ if [[ -z &#34;\${OS_PUSH_TAG-}&#34; ]]; then
   fi
   OS_PUSH_TAG=&#34;latest,v\${BASH_REMATCH[1]},v\${BASH_REMATCH[2]}&#34; # vX.Y vX.Y.Z
 fi
-DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34; hack/push-release.sh
+DOCKER_CONFIG=/tmp/.docker OS_TAG=latest OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34; hack/push-release.sh
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

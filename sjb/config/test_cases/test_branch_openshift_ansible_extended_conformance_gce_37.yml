@@ -41,4 +41,4 @@ rectory to run."
           fi
           OS_PUSH_TAG="latest,v${BASH_REMATCH[1]},v${BASH_REMATCH[2]}" # vX.Y vX.Y.Z
         fi
-        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+        DOCKER_CONFIG=/tmp/.docker OS_TAG=latest OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh

@@ -2,7 +2,7 @@
 parent: 'common/test_cases/origin_release_install_gce.yml'
 overrides:
   sync:
-    - "openshift,origin=master"
+    - "openshift,openshift-ansible=master"
     - "openshift,image-registry=master"
     - "openshift,kubernetes-metrics-server=master"
     - "openshift,origin-web-console-server=master"

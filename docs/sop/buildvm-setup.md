@@ -30,7 +30,7 @@ If the build system is to run a Jenkins master (https://wiki.jenkins.io/display/
     - Extra Columns Plugin (to disable projects)
     - Parameter Separator Plugin
     - ANSI Color Plugin
-    - Install Red Hat CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  . Added update center manager plugin and then installed.
+    - Install Red Hat CI messaging plugin: https://docs.engineering.redhat.com/display/CentralCI/Jenkins+CI+Plugin#JenkinsCIPlugin-InstallingtheCIPlugin  . Added update center manager plugin and then installed. For our old version of Jenkins, I actually had to download hpi from artifactory: http://artifactory.rhev-ci-vms.eng.rdu2.redhat.com:8081/artifactory/ci-ops-releases-local/com/redhat/jenkins/plugins/redhat-ci-plugin/ (grabbing 1.5.5 at the time of this writing). 
 
 # Jenkins Agent Setup
 - Copy slave.jar into place onto agent at /home/jenkins/slave.jar (e.g. wget --no-check-certificate https://buildvm.openshift.eng.bos.redhat.com:8443/jnlpJars/slave.jar )

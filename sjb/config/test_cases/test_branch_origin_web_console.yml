@@ -3,13 +3,46 @@ parent: 'common/test_cases/origin_built_release.yml'
 extensions:
   actions:
     - type: "script"
+      title: "determine binary and image version"
+      repository: "origin"
+      script: |-
+        if [[ "${PULL_BASE_REF}" = "enterprise-"* ]]; then
+          case $PULL_BASE_REF in
+          enterprise-3.[2-5])
+            echo "IMAGE_VERSION=${PULL_BASE_REF/enterprise-3/v1}.1" > IMAGE_VERSION_VAR
+            ;;
+          enterprise-3.1)
+            echo "IMAGE_VERSION=v1.1.6" > IMAGE_VERSION_VAR
+            ;;
+          *)
+            echo "IMAGE_VERSION=${PULL_BASE_REF/enterprise-/v}" > IMAGE_VERSION_VAR
+            ;;
+          esac
+        else
+          echo "IMAGE_VERSION=latest" > IMAGE_VERSION_VAR
+        fi
+        source IMAGE_VERSION_VAR
+        sudo docker pull openshift/origin:"${IMAGE_VERSION}"
+        sudo docker create --name temp-container openshift/origin:"${IMAGE_VERSION}"
+        sudo docker cp temp-container:/usr/bin/oc ./
+        sudo docker rm temp-container
+        sudo mv -f ./oc /bin/oc
+    - type: "script"
       title: "start openshift server"
       repository: "origin"
       script: |-
-        sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
         wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
         sudo yum install ./google-chrome-stable_current_*.rpm -y
-        oc cluster up --version=latest --public-hostname=localhost --loglevel=5 --server-loglevel=5
+        source IMAGE_VERSION_VAR
+        oc version
+        # If the version is not specified for the 3.9 and 3.10(latest) images, the oc binary will use download will fail to start the cluster,
+        # since both of those image versions currently contain bug, so we have to specify the version. Once the bug is fixed and the image is
+        # rebuilt, we can remove this statement.
+        if [ "${IMAGE_VERSION}" == "v3.9" ] || [ "${IMAGE_VERSION}" == "latest" ]; then
+          oc cluster up --version="${IMAGE_VERSION}" --public-hostname=localhost --loglevel=5 --server-loglevel=5
+        else
+          oc cluster up --public-hostname=localhost --loglevel=5 --server-loglevel=5
+        fi
     - type: "script"
       title: "run web console tests"
       repository: "origin-web-console"

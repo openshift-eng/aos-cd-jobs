@@ -265,16 +265,58 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE BINARY AND IMAGE VERSION ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE BINARY AND IMAGE VERSION [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+if [[ &#34;\${PULL_BASE_REF}&#34; = &#34;enterprise-&#34;* ]]; then
+  case \$PULL_BASE_REF in
+  enterprise-3.[2-5])
+    echo &#34;IMAGE_VERSION=\${PULL_BASE_REF/enterprise-3/v1}.1&#34; &gt; IMAGE_VERSION_VAR
+    ;;
+  enterprise-3.1)
+    echo &#34;IMAGE_VERSION=v1.1.6&#34; &gt; IMAGE_VERSION_VAR
+    ;;
+  *)
+    echo &#34;IMAGE_VERSION=\${PULL_BASE_REF/enterprise-/v}&#34; &gt; IMAGE_VERSION_VAR
+    ;;
+  esac
+else
+  echo &#34;IMAGE_VERSION=latest&#34; &gt; IMAGE_VERSION_VAR
+fi
+source IMAGE_VERSION_VAR
+sudo docker pull openshift/origin:&#34;\${IMAGE_VERSION}&#34;
+sudo docker create --name temp-container openshift/origin:&#34;\${IMAGE_VERSION}&#34;
+sudo docker cp temp-container:/usr/bin/oc ./
+sudo docker rm temp-container
+sudo mv -f ./oc /bin/oc
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: START OPENSHIFT SERVER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: START OPENSHIFT SERVER [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-sudo yum --disablerepo=\* --enablerepo=origin-local-release,oso-rhui-rhel-server-releases install -y origin-clients
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
 sudo yum install ./google-chrome-stable_current_*.rpm -y
-oc cluster up --version=latest --public-hostname=localhost --loglevel=5 --server-loglevel=5
+source IMAGE_VERSION_VAR
+oc version
+# If the version is not specified for the 3.9 and 3.10(latest) images, the oc binary will use download will fail to start the cluster,
+# since both of those image versions currently contain bug, so we have to specify the version. Once the bug is fixed and the image is
+# rebuilt, we can remove this statement.
+if [ &#34;\${IMAGE_VERSION}&#34; == &#34;v3.9&#34; ] || [ &#34;\${IMAGE_VERSION}&#34; == &#34;latest&#34; ]; then
+  oc cluster up --version=&#34;\${IMAGE_VERSION}&#34; --public-hostname=localhost --loglevel=5 --server-loglevel=5
+else
+  oc cluster up --public-hostname=localhost --loglevel=5 --server-loglevel=5
+fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

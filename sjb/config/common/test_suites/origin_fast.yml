@@ -5,4 +5,3 @@ children:
   # - "test_pull_request_origin_extended_conformance_install"
   - "test_pull_request_origin_extended_conformance_install_update"
   - "test_pull_request_origin_extended_conformance_gce"
-  - "test_pull_request_origin_extended_networking_minimal"

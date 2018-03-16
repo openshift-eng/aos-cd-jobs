@@ -81,6 +81,10 @@ openshift_aws_ami_name: "aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.gi
 oreg_auth_user: ${jenkins_oreg_auth_user}
 oreg_auth_password: ${jenkins_oreg_auth_password}
 openshift_aws_copy_base_ami_tags: True
+container_runtime_oci_umounts:
+- '/var/lib/containers/storage/*'
+- '/run/containers/storage/*'
+- '/var/lib/origin/*'
 """)
 
     sh 'cat provisioning_vars.yml'
@@ -146,8 +150,13 @@ properties(
                      name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE'],
 
                     [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'https://github.com/openshift/openshift-ansible.git',
+                     description: 'openshift-ansible repo URL.',
+                     name: 'OPENSHIFT_ANSIBLE_REPO_URL'],
+
+                    [$class: 'hudson.model.StringParameterDefinition',
                      defaultValue: 'master',
-                     description: 'openshift-ansible checkout point.',
+                     description: 'openshift-ansible checkout reference.',
                      name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
 
                     // Parameters to search for AMI to use
@@ -220,7 +229,7 @@ node(TARGET_NODE) {
             checkout scm
             buildlib = load('pipeline-scripts/buildlib.groovy')
             dir('openshift-ansible') {
-                git url: 'https://github.com/openshift/openshift-ansible.git', branch: "${OPENSHIFT_ANSIBLE_CHECKOUT}"
+                git url: "${OPENSHIFT_ANSIBLE_REPO_URL}", branch: "${OPENSHIFT_ANSIBLE_CHECKOUT}"
             }
         }
         stage('venv') {

@@ -137,7 +137,7 @@ generated_artifacts:
   avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
   filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
   pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
-  system.journal: 'sudo journalctl --no-pager --no-hostname --boot'
+  system.journal: 'sudo journalctl --no-pager --boot'
 system_journals:
   - crio.service
   - customcluster.service

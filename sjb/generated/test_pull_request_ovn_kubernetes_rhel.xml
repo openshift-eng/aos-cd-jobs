@@ -255,7 +255,7 @@ mkdir &#34;${ARTIFACT_DIR}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo df -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/filesystem.info&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo yum list installed 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/installed_packages.log&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl --no-pager --no-hostname --boot 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/system.journal&#34; || true
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl --no-pager --boot 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/system.journal&#34; || true
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl _PID=1 --no-pager --all --lines=all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/pid1.journal&#34; || true
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>

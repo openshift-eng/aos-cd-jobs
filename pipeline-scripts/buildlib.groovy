@@ -352,16 +352,18 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
     }
     waitUntil {
         try {
-            build(job: 'build%2Faws-ami', parameters: [
-                param('String', 'OPENSHIFT_VERSION', version),
-                param('String', 'OPENSHIFT_RELEASE', release),
-                param('String', 'YUM_BASE_URL', yum_base_url),
-                param('String', 'OPENSHIFT_ANSIBLE_CHECKOUT', ansible_branch),
-                param('Boolean', 'USE_CRIO', true),
-                param(
-                    'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
-                    'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
-                        + full_version)])
+            timeout(120) {
+                build(job: 'build%2Faws-ami', parameters: [
+                    param('String', 'OPENSHIFT_VERSION', version),
+                    param('String', 'OPENSHIFT_RELEASE', release),
+                    param('String', 'YUM_BASE_URL', yum_base_url),
+                    param('String', 'OPENSHIFT_ANSIBLE_CHECKOUT', ansible_branch),
+                    param('Boolean', 'USE_CRIO', true),
+                    param(
+                        'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
+                        'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
+                            + full_version)])
+            }
             return true
         } catch(err) {
             mail(

@@ -1,0 +1,193 @@
+---
+parameters:
+- name: buildId
+  description: "Unique build number for each run."
+- name: CI_CONCURRENT_JOBS
+  default_value: 1
+  description: "Number of allowed CI stacks on openstack host cloud."
+- name: OS_AUTH_URL
+  default_value: "none"
+  descriprion: "Openstack host cloud creds."
+- name: OS_TENANT_ID
+  descriprion: "Openstack host cloud creds."
+- name: OS_TENANT_NAME
+  descriprion: "Openstack host cloud creds."
+- name: OS_USERNAME
+  descriprion: "Openstack host cloud creds."
+- name: OS_PASSWORD
+  descriprion: "Openstack host cloud creds."
+- name: OS_REGION_NAME
+  default: "regionOne"
+  descriprion: "Openstack host cloud creds."
+- name: OS_ENDPOINT_TYPE
+  default: "publicURL"
+  descriprion: "Openstack host cloud creds."
+- name: OS_IDENTITY_API_VERSION
+  default: 2
+  descriprion: "Openstack host cloud creds."
+- name: IMAGE_NAME
+  description: "Openstack host cloud image name."
+- name: EXT_NET_NAME
+  descritpion: "Openstack host cloud external/floating network name."
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+junit_analysis: False
+sync_repos:
+  - name: "openshift-ansible"
+actions:
+  - type: "script"
+    title: "skip openstack provider CI on unrelated changes or missing creds"
+    repository: "openshift-ansible"
+    script: |-
+      [ "${OS_AUTH_URL}" = "none" ] && exit 0
+      files='^(roles\/openshift_openstack|playbooks\/openstack)'
+      git --no-pager diff --name-only master | grep -qE "$files" || exit 0
+  - type: "script"
+    title: "openstack provider prerequisites"
+    repository: "openshift-ansible"
+    script: |-
+      sudo pip install -U ansible shade dnspython python-openstackclient python-heatclient
+  - type: "script"
+    title: "exit if no capacity"
+    repository: "openshift-ansible"
+    script: |-
+      if hash openstack &>/dev/null; then
+          stack_count="$(openstack stack list -f value | grep -cv ${buildId}.local || true)"
+      else
+          stack_count=0
+      fi
+      if [ "$stack_count" -ge "${CI_CONCURRENT_JOBS}" ]; then
+          echo "Openstack provider CI is over capacity, skipping the end-end test."
+          exit 1
+      fi
+  - type: "script"
+    title: "setup teardown hook"
+    repository: "openshift-ansible"
+    script: |-
+      teardown(){
+          openstack keypair delete "${buildId}" || true
+          openstack stack delete --wait --yes "${buildId}.local" || true
+      }
+      trap teardown EXIT
+  - type: "script"
+    title: "install origin on openstack"
+    repository: "openshift-ansible"
+    script: |-
+      access_ip="$(curl --silent https://api.ipify.org)"
+      openstack keypair create "${buildId}" > ~/.ssh/id_rsa
+      chmod 600 ~/.ssh/id_rsa
+
+      cat > ansible.cfg << EOF_CAT
+      [defaults]
+      ansible_user = openshift
+      forks = 50
+      timeout = 180
+      host_key_checking = false
+      inventory = playbooks/openstack/sample-inventory
+      inventory_ignore_extensions = secrets.py, .pyc, .cfg, .crt
+      gathering = smart
+      retry_files_enabled = false
+      fact_caching = jsonfile
+      fact_caching_connection = .ansible/cached_facts
+      fact_caching_timeout = 900
+      stdout_callback = skippy
+      callback_whitelist = profile_tasks
+      [ssh_connection]
+      ssh_args = -o ControlMaster=auto -o ControlPersist=900s -o GSSAPIAuthentication=no
+      control_path = /var/tmp/%%h-%%r
+      pipelining = True
+      EOF_CAT
+
+      cat > extra-vars.yaml << EOF_CAT
+      openshift_master_unsupported_embedded_etcd: True
+      openshift_repos_enable_testing: True
+      openshift_openstack_ephemeral_volumes: True
+      rhsm_register: False
+      openshift_openstack_num_masters: 1
+      openshift_openstack_num_infra: 1
+      openshift_openstack_num_nodes: 1
+      openshift_openstack_num_etcd: 0
+      openshift_openstack_external_network_name: $EXT_NET_NAME
+      openshift_openstack_default_image_name: $IMAGE_NAME
+      openshift_openstack_node_ingress_cidr: "${access_ip}/32"
+      openshift_openstack_ssh_ingress_cidr: "${access_ip}/32"
+      openshift_openstack_lb_ingress_cidr: "${access_ip}/32"
+      openshift_openstack_keypair_name: $buildId
+      openshift_openstack_clusterid: $buildId
+      openshift_openstack_public_dns_domain: local
+      openshift_openstack_dns_nameservers:
+        - 208.67.222.220
+        - 38.145.32.66
+      openshift_master_identity_providers:
+      - name: 'htpasswd_auth'
+        login: 'true'
+        challenge: 'true'
+        kind: 'HTPasswdPasswordIdentityProvider'
+        filename: '/etc/origin/master/htpasswd'
+      openshift_master_htpasswd_users:
+        test: '\$apr1\$vUfm7jQS\$C6Vn0GDScgOjzvk1PSHe1/'
+      openshift_disable_check: disk_availability,memory_availability,docker_storage
+      EOF
+
+      ansible-playbook -v playbooks/openstack/openshift-cluster/provision_install.yaml -e@extra-vars.yaml
+  - type: "script"
+    title: "validate installation with cake-php app"
+    repository: "openshift-ansible"
+    script: |-
+      master_ip=$(openstack server show master-0.${buildId}.local --format value --column addresses | awk '{print $2}')
+      infra_ip=$(openstack server show infra-node-0.${buildId}.local --format value --column addresses | awk '{print $2}')
+      echo "$master_ip console.${buildId}.local" | sudo tee -a /etc/hosts
+      echo "$infra_ip cakephp-mysql-example-test.apps.${buildId}.local" | sudo tee -a /etc/hosts
+
+      mkdir -p bin
+      scp -o "StrictHostKeyChecking no" -o "UserKnownHostsFile /dev/null" openshift@console.${buildId}.local:/usr/bin/oc bin/
+
+      export PATH="$PWD/bin:$PATH"
+
+      oc login --insecure-skip-tls-verify=true https://console.${buildId}.local:8443 -u test -p password
+      oc new-project test
+      oc new-app --template=cakephp-mysql-example
+
+      set +x
+
+      echo Waiting for the pods to come up
+
+      STATUS=timeout
+      for i in $(seq 600); do
+          if [ "$(oc status -v | grep 'deployment.*deployed' | wc -l)" -eq 2 ]; then
+              STATUS=success
+              echo Both pods were deployed
+              break
+          elif [ "$(oc status -v | grep -i 'error\|fail' | wc -l)" -gt 0 ]; then
+              STATUS=error
+              echo "ERROR: The deployment failed"
+              break
+          else
+              printf .
+              sleep 15
+          fi
+      done
+
+      if [ "$STATUS" = timeout ]; then
+          echo "ERROR: Timed out waiting for the pods"
+      fi
+
+      echo 'Output of `oc status -v`:'
+      oc status -v
+
+      echo
+      echo 'Output of `oc logs bc/cakephp-mysql-example`:'
+      oc logs bc/cakephp-mysql-example
+
+      if [ "$STATUS" != success ]; then
+          echo "ERROR: The deployment didn't succeed"
+          exit 1
+      fi
+
+      set -o pipefail
+
+      curl "http://cakephp-mysql-example-test.apps.${buildId}.local" | grep 'Welcome to your CakePHP application on OpenShift'
+
+      echo "SUCCESS \o/"

@@ -24,12 +24,6 @@
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>OPENSHIFT_ANSIBLE_IMAGE</name>
-          <description>The image to install the cluster with. If set, defaults to the value defined by the &lt;a href=&#39;https://github.com/openshift/release/blob/master/cluster/bin/local.sh&#39;&gt;&lt;code&gt;cluster/bin/local.sh&lt;/code&gt;&lt;/a&gt; script.
-</description>
-          <defaultValue>openshift/origin-ansible:v3.9</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>ADDITIONAL_SKIP</name>
           <description>Regular expression to filter additional tests from the conformance suite.
 See also:
@@ -56,6 +50,11 @@ See also:
           <name>SUITE</name>
           <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
           <defaultValue>conformance</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>OPENSHIFT_ANSIBLE_IMAGE</name>
+          <description>None</description>
+          <defaultValue>openshift/origin-ansible:latest</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>
@@ -472,7 +471,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#34; != &#34;openshift-ansible&#34; ]]; then
   # ensure we get an update to date image
-  docker pull openshift/origin-ansible:latest
+  docker pull &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34;
   exit 0
 fi
 hack/build-images.sh

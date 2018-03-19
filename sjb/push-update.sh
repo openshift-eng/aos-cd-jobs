@@ -12,6 +12,11 @@ else
 	exit 1
 fi
 
+if [[ -z "${PASSWORD:-}" ]]; then
+    read -sp password: PASSWORD
+    export PASSWORD
+fi
+
 function retry_post() {
 	local job_config="$1"
 	local url="$2"

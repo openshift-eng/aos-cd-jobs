@@ -3,36 +3,7 @@ provision:
   os: "rhel"
   stage: "base"
   provider: "aws"
-timer: 'H H * * *'
-parameters:
-  - name: buildId
-    description: "Unique build number for each run."
-  - name: REPO_OWNER
-    description: "GitHub org that triggered the job."
-    default_value: openshift
-  - name: REPO_NAME
-    description: "GitHub repo that triggered the job."
-    default_value: origin-metrics
-  - name: buildId
-    description: "Unique build number for each run."
-  - name: REPO_OWNER
-    description: "GitHub org that triggered the job."
-    default_value: openshift
-  - name: REPO_NAME
-    description: "GitHub repo that triggered the job."
-    default_value: origin
-  - name: PULL_BASE_REF
-    description: "Ref name of the base branch."
-  - name: PULL_BASE_SHA
-    description: "Git SHA of the base branch."
-  - name: PULL_REFS
-    description: "All refs to test."
-  - name: PULL_NUMBER
-    description: "Pull request number."
-  - name: PULL_PULL_SHA
-    description: "Pull request head SHA."
-sync_repos:
-  - name: "origin-metrics"
+sync: []
 actions:
   - type: "script"
     title: "build origin-metrics release"

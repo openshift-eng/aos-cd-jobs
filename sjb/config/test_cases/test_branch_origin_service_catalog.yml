@@ -2,7 +2,6 @@
 parent: 'common/test_cases/origin.yml'
 overrides:
   junit_analysis: False
-  timer: 'H H * * *'
   email:
     - jpeeler@redhat.com
 extensions:

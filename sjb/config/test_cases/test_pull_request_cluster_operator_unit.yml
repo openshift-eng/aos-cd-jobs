@@ -1,7 +1,2 @@
 ---
 parent: 'test_cases/test_branch_cluster_operator_unit.yml'
-overrides:
-  junit_analysis: False
-  sync_repos:
-    - name: "cluster-operator"
-      type: "pull_request"

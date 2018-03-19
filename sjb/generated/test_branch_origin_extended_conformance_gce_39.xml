@@ -472,7 +472,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 if [[ &#34;\${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;\${REPO_NAME-}&#34; != &#34;openshift-ansible&#34; ]]; then
   # ensure we get an update to date image
-  docker pull openshift/origin-ansible:latest
+  docker pull &#34;\${OPENSHIFT_ANSIBLE_IMAGE}&#34;
   exit 0
 fi
 hack/build-images.sh

@@ -2,7 +2,7 @@
 parent: 'common/test_cases/origin_release_install_gce_38.yml'
 overrides:
   sync:
-    - "openshift,openshift-ansible=release-3.8"
+    - "openshift,openshift-ansible=release-3.9"
     - "openshift,image-registry=release-3.8"
     - "openshift,origin-web-console-server=release-3.8"
     - "openshift,aos-cd-jobs=master"

@@ -1,6 +1,2 @@
 ---
 parent: 'test_cases/test_branch_kubernetes_metrics_server_unit.yml'
-overrides:
-  sync_repos:
-    - name: "kubernetes-metrics-server"
-      type: "pull_request"

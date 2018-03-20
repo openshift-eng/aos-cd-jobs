@@ -230,7 +230,13 @@ function pre-check() {
     fi
 
     oo_version_short=$(echo ${cicd_openshift_version} | /usr/bin/cut -c 1-3)
-    VENDORED_OPENSHIFT_ANSIBLE_VERSION=$(/usr/bin/basename $(/usr/bin/readlink -f ../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version_short}))
+
+    # we aren't using vendor anymore
+    #VENDORED_OPENSHIFT_ANSIBLE_VERSION=$(/usr/bin/basename $(/usr/bin/readlink -f ../../../openshift-tools/openshift/installer/atomic-openshift-${oo_version_short}))
+
+    # get the latest openshift-ansible rpms
+    get_latest_openshift_ansible
+    OS_RPM_VERSION=$(rpm -qp --queryformat "%{VERSION}-%{RELEASE}\n" ${AOS_TMPDIR}/rpms/*rpm | sort | uniq )
 
     MASTER="$(get_master_name)"
     /usr/local/bin/autokeys_loader ossh -l root "${MASTER}" -c "/usr/bin/yum clean all" > /dev/null
@@ -244,7 +250,7 @@ function pre-check() {
     else
       echo
       echo
-      echo Openshift Ansible Vendored Version: ${VENDORED_OPENSHIFT_ANSIBLE_VERSION}
+      echo Openshift Ansible RPM Version: ${OS_RPM_VERSION}
       echo Openshift RPMs Found:
       echo "$OPENSHIFT_VERSIONS_FOUND"
       echo
@@ -423,16 +429,16 @@ function cluster_operation() {
     # For now, let's skip statuspage operations
     export SKIP_STATUS_PAGE="true"
 
-    # Get the latest openshift-ansible rpms
-    LATEST_ANSIBLE_OPERATIONS=(install upgrade upgrade-control-plane upgrade-nodes upgrade-metrics upgrade-logging)
-
-    if [[ " ${LATEST_ANSIBLE_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
-      get_latest_openshift_ansible ${oo_environment}
-    fi
-
     if [[ "${CLUSTER_OPERATION}" == online-* ]]; then
       update-online-roles
     fi
+  fi
+
+  # Get the latest openshift-ansible rpms
+  LATEST_ANSIBLE_OPERATIONS=(install upgrade upgrade-control-plane upgrade-nodes upgrade-metrics upgrade-logging)
+
+  if [[ " ${LATEST_ANSIBLE_OPERATIONS[*]} " == *" ${CLUSTER_OPERATION} "* ]]; then
+    get_latest_openshift_ansible ${oo_environment}
   fi
 
   # Run the operation

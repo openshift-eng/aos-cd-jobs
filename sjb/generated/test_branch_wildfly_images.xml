@@ -197,7 +197,8 @@ script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/sti-wildfly&#34;
+cd &#34;\${HOME}&#34;
+cd /data/src/github.com/openshift-s2i/s2i-wildfly
 make build TARGET=centos7
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -211,7 +212,8 @@ script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/sti-wildfly&#34;
+cd &#34;\${HOME}&#34;
+cd /data/src/github.com/openshift-s2i/s2i-wildfly
 make test TARGET=centos7 TAG_ON_SUCCESS=true
 SCRIPT
 chmod +x &#34;${script}&#34;

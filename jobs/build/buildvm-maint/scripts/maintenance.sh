@@ -41,6 +41,9 @@ echo "====Cleaning up older docker images===="
         done
 } | sort | awk '{ print $2 }' | uniq | head -n -100 | xargs --no-run-if-empty sudo docker rmi -f
 
+# Clean up exited containers - this also contributes to docker storage use
+docker rm $(docker ps -qa --no-trunc --filter "status=exited")
+
 FINAL_EXIT=0
 
 echo "====Pushing etc..===="

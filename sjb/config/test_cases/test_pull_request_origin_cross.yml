@@ -2,9 +2,6 @@
 parent: 'common/test_cases/origin.yml'
 overrides:
   junit_analysis: False
-  sync_repos:
-    - name: "origin"
-      type: "pull_request"
 extensions:
   actions:
     - type: "script"

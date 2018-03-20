@@ -1,9 +1,7 @@
 ---
-parent: 'common/test_cases/origin.yml'
+parent: 'common/test_cases/origin_minimal.yml'
 overrides:
   junit_analysis: False
-  sync_repos:
-    - name: "origin-web-console-server"
 extensions:
   actions:
     - type: "script"

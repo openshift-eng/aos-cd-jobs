@@ -1,6 +1,2 @@
 ---
 parent: 'test_cases/test_branch_online_hibernation_unit.yml'
-overrides:
-  sync_repos:
-    - name: "online-hibernation"
-      type: "pull_request"

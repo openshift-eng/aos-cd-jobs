@@ -2,6 +2,3 @@
 parent: 'test_cases/test_branch_origin_web_console_server_check.yml'
 overrides:
   junit_analysis: False
-  sync_repos:
-    - name: "origin-web-console-server"
-      type: "pull_request"

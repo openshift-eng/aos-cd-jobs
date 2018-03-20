@@ -9,13 +9,13 @@ extensions:
   actions:
     - type: "script"
       title: "build the wildfly images"
-      repository: "sti-wildfly"
       timeout: 10800
       script: |-
+        cd /data/src/github.com/openshift-s2i/s2i-wildfly
         make build TARGET=centos7
     - type: "script"
       title: "test the wildfly images"
-      repository: "sti-wildfly"
       timeout: 7200
       script: |-
+        cd /data/src/github.com/openshift-s2i/s2i-wildfly
         make test TARGET=centos7 TAG_ON_SUCCESS=true

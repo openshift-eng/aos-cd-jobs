@@ -1,6 +1,2 @@
 ---
 parent: 'test_cases/test_branch_image_registry_integration.yml'
-overrides:
-  sync_repos:
-    - name: "image-registry"
-      type: "pull_request"

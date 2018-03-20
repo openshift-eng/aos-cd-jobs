@@ -102,10 +102,19 @@ extensions:
           docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
         fi
     - type: "script"
+      title: "build the origin web console server container image"
+      repository: "origin-web-console-server"
+      timeout: 3600
+      script: |-
+        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
+          make build-images
+          docker tag openshift/origin-web-console:latest "openshift/origin-web-console:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+        fi
+    - type: "script"
       title: "copy openshift images from docker storage to CRI-O storage"
       timeout: 10800
       script: |-
-        for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v "<none>" | grep -v "latest" | grep "openshift\/origin"); do
+        for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v "<none>" | grep -v "latest" | grep "openshift\/"); do
           sudo skopeo copy docker-daemon:$i containers-storage:\[overlay@/var/lib/containers/storage+/var/run/containers/storage:overlay.override_kernel_check=1\]$i
         done
     - type: "script"

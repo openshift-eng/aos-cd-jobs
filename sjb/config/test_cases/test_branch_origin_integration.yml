@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin.yml'
+parent: 'common/test_cases/origin_minimal.yml'
 overrides:
   junit_analysis: False
 extensions:

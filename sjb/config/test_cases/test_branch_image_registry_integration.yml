@@ -1,8 +1,5 @@
 ---
-parent: 'common/test_cases/origin.yml'
-overrides:
-  sync_repos:
-    - name: "image-registry"
+parent: 'common/test_cases/origin_minimal.yml'
 extensions:
   actions:
     - type: "script"

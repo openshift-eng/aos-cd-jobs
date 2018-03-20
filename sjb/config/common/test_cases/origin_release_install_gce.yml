@@ -103,13 +103,6 @@ extensions:
         gpgcheck=0
         REPO
 
-        if gsutil ls "gs://${location_base}" &>/dev/null; then
-          gsutil rm -rf "gs://${location_base}"
-        fi
-
-        echo "${JOB_NAME}/${BUILD_NUMBER}" > .build
-        gsutil cp .build "gs://${location_base}/.build"
-
         mkdir -p artifacts/rpms
         rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
         gsutil -m cp -r artifacts/rpms "gs://${location}"

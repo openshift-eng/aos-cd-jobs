@@ -676,6 +676,7 @@ ansible-playbook -vv --become               \
                  -e openshift_logging_mux_allow_external=True                             \
                  -e openshift_logging_es_allow_external=True                              \
                  -e openshift_logging_es_ops_allow_external=True                          \
+                 \${EXTRA_EVARS:-} \
                  \${playbook} \
                  \${logging_extras} \
                  --skip-tags=update_master_config

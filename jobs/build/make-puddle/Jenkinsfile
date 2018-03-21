@@ -35,7 +35,7 @@ node('openshift-build-1') {
               parameterDefinitions:
                       [
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7\n8\n9", description: 'OSE Minor Version', name: 'OSE_MINOR'],
+                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\12\n13\n14\n15", description: 'OSE Minor Version', name: 'OSE_MINOR'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "building\nlatest", description: 'What is it for', name: 'PUDDLE_PURPOSE'],
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "simple\nerrata\nsigned", description: 'What type to make (CURRENTLY ONLY WORKS WITH simple)', name: 'PUDDLE_TYPE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],

@@ -13,6 +13,8 @@ extensions:
       description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
 rectory to run."
       default_value: "conformance"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      default_value: openshift/origin-ansible:latest
   actions:
     - type: "script"
       title: "create directory for docker config"

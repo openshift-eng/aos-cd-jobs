@@ -1,12 +1,2 @@
 ---
 parent: 'test_cases/test_branch_origin_extended_conformance_install_update.yml'
-overrides:
-  junit_analysis: False
-  sync_repos:
-    - name: "aos-cd-jobs"
-    - name: "openshift-ansible"
-    - name: "origin"
-      type: "pull_request"
-    - name: "image-registry"
-    - name: "kubernetes-metrics-server"
-    - name: "release"

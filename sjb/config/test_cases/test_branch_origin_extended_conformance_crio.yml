@@ -1,16 +1,18 @@
 ---
-parent: 'common/test_cases/origin.yml'
+parent: 'common/test_cases/origin_minimal.yml'
 overrides:
   junit_analysis: False
-  timer: 'H H * * *'
   email:
     - decarr@redhat.com
     - gscrivan@redhat.com
     - mpatel@redhat.com
     - amurdaca@redhat.com
 extensions:
-  sync_repos:
-    - name: "openshift-ansible"
+  sync:
+    - openshift,aos-cd-jobs=master
+    - openshift,image-registry=master
+    - openshift,kubernetes-metrics-server=master
+    - openshift,openshift-ansible=master
   actions:
     - type: "script"
       title: "build an origin release"

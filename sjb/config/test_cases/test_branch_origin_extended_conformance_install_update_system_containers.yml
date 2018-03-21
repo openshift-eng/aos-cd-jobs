@@ -1,9 +1,11 @@
 ---
-parent: 'common/test_cases/origin.yml'
+parent: 'common/test_cases/origin_minimal.yml'
 extensions:
-  sync_repos:
-    - name: "openshift-ansible"
-    - name: "aos-cd-jobs"
+  sync:
+    - openshift,aos-cd-jobs=master
+    - openshift,image-registry=master
+    - openshift,kubernetes-metrics-server=master
+    - openshift,origin=master
   actions:
     - type: "script"
       title: "build an origin release"

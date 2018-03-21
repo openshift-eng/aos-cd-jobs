@@ -55,6 +55,7 @@ extensions:
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                         \
                          -e openshift_logging_image_version=latest \
                          ${logging_extras} \
+                         ${EXTRA_EVARS:-} \
                          ${playbook} \
                          --skip-tags=update_master_config
     - type: "script"

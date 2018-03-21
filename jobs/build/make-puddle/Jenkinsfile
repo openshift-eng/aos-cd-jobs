@@ -83,7 +83,7 @@ node('openshift-build-1') {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
-                    subject: "Error creating puddles: ${OSE_MAJOR}.${OSE_MINOR} ${OSE_GROUP} ${OSE_REPO}",
+                    subject: "Error creating puddles: ${OSE_MAJOR}.${OSE_MINOR}",
                     body: """Encoutered an error while creating puddles: ${err}
 
 

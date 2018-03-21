@@ -1,10 +1,2 @@
 ---
 parent: 'test_cases/test_branch_origin_extended_conformance_install_update_system_containers.yml'
-overrides:
-  sync_repos:
-    - name: "aos-cd-jobs"
-    - name: "openshift-ansible"
-      type: "pull_request"
-    - name: "origin"
-    - name: "image-registry"
-    - name: "kubernetes-metrics-server"

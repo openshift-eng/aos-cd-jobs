@@ -48,6 +48,10 @@ node('openshift-build-1') {
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, Group:${PUDDLE_PURPOSE}, Repo:${PUDDLE_TYPE} MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:[${MOCK}]"
 
+    if ( MOCK.toBoolean() ) {
+        error( "Ran in mock mode to pick up any new parameters" )
+    }    
+    
     set_workspace()
     stage('Make Puddle') {
         try {

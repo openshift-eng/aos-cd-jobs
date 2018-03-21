@@ -11,6 +11,8 @@ overrides:
     - miminar@redhat.com
     - obulatov@redhat.com
     - agladkov@redhat.com
+    - jwozniak@redhat.com
+    - adkaplan@redhat.com
 extensions:
   actions:
     - type: "script"

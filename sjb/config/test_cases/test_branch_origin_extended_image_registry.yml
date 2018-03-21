@@ -4,12 +4,13 @@ overrides:
   junit_analysis: True
   email:
     - bparees@redhat.com
-    - cewong@redhat.com
     - gmontero@redhat.com
     - cdaley@redhat.com
     - miminar@redhat.com
     - obulatov@redhat.com
     - agladkov@redhat.com
+    - jwozniak@redhat.com
+    - adkaplan@redhat.com
 extensions:
   actions:
     - type: "script"

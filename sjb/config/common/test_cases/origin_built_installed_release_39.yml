@@ -1,0 +1,143 @@
+---
+parent: 'common/test_cases/origin_release_with_ecosystem_39.yml'
+extensions:
+  sync:
+    - "openshift,aos-cd-jobs=master"
+  actions:
+    - type: "script"
+      title: "install the openshift-ansible release"
+      repository: "openshift-ansible"
+      timeout: 3600
+      script: |-
+        last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
+        last_commit="$( git log -n 1 --pretty=%h )"
+        if [[ "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.6" || "${PULL_BASE_REF}" == "release-3.5"  ]]; then
+          sudo yum downgrade -y ansible-2.3\*
+        fi
+        sudo yum install -y "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+        rpm -V "atomic-openshift-utils${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+    - type: "script"
+      title: "install Ansible plugins"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        sudo chmod o+rw /etc/environment
+        echo "ANSIBLE_JUNIT_DIR=$( pwd )/_output/scripts/ansible_junit" >> /etc/environment
+        sudo mkdir -p /usr/share/ansible/plugins/callback
+        for plugin in 'default_with_output_lists' 'generate_junit'; do
+           wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
+           sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
+        done
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+    - type: "forward_parameters"
+      parameters:
+        - OSTREE_COPY
+    - type: "script"
+      title: "atomic ostree copies"
+      repository: "aos-cd-jobs"
+      script: |-
+        if [[ "${OSTREE_COPY:-}" == "true" ]]; then
+          # install atomic rpm
+          sudo yum install atomic -y
+          # only origin, openvswitch and node docker images are run as system containers
+          sudo atomic pull --storage ostree docker:openshift/origin:$( cat ./ORIGIN_TAG )
+          sudo atomic pull --storage ostree docker:openshift/openvswitch:$( cat ./ORIGIN_TAG )
+          sudo atomic pull --storage ostree docker:openshift/node:$( cat ./ORIGIN_TAG )
+        fi
+    - type: "script"
+      title: "origin prerequisites"
+      repository: "aos-cd-jobs"
+      script: |-
+        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
+          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
+        else
+          evars="-e @sjb/inventory/base.cfg"
+        fi
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e openshift_deployment_type=origin  \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         "${evars:-}" \
+                         ${EXTRA_EVARS:-} \
+                         /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
+    - type: "script"
+      title: "install origin"
+      timeout: 7200
+      repository: "aos-cd-jobs"
+      script: |-
+        playbook_base='/usr/share/ansible/openshift-ansible/playbooks/'
+        if [[ -s "${playbook_base}/openshift-node/network_manager.yml" ]]; then
+            playbook="${playbook_base}openshift-node/network_manager.yml"
+        else
+            playbook="${playbook_base}byo/openshift-node/network_manager.yml"
+        fi
+        local_ip="$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )"
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e openshift_deployment_type=origin  \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         ${EXTRA_EVARS:-} \
+                         ${playbook}
+        if [[ -s "${playbook_base}deploy_cluster.yml" ]]; then
+            playbook="${playbook_base}deploy_cluster.yml"
+        else
+            playbook="${playbook_base}byo/config.yml"
+        fi
+        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
+          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
+        else
+          evars="-e @sjb/inventory/base.cfg"
+        fi
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e openshift_deployment_type=origin  \
+                         -e etcd_data_dir="${ETCD_DATA_DIR}" \
+                         -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         -e openshift_node_port_range='30000-32000'                             \
+                         -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'      \
+                         "${evars:-}" \
+                         ${EXTRA_EVARS:-} \
+                         ${playbook}
+    - type: "script"
+      title: "expose the kubeconfig"
+      timeout: 600
+      script: |-
+        sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
+        sudo chmod a+rw /etc/origin/master/admin.kubeconfig
+    - type: "script"
+      title: "ensure built version of origin is installed"
+      timeout: 600
+      repository: "origin"
+      script: |-
+        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        rpm -V "${origin_package}"
+        if [[ "${OSTREE_COPY:-}" == "true" ]]; then
+          docker_image_tag="$( cat ./ORIGIN_TAG )"
+          docker_repository="${OS_IMAGE_PREFIX:-"openshift/origin"}"
+          [[ "$(sudo atomic containers list -n --no-trunc -f runtime=runc -f image=${docker_repository}:${docker_image_tag} --json | jq '.[0].running')" == "true" ]]
+        fi
+  system_journals:
+    - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
+    - origin-node.service
+    - openvswitch.service
+    - ovs-vswitchd.service
+    - ovsdb-server.service
+    - etcd.service
+    - systemd-journald.service
+  generated_artifacts:
+    etcd.conf: 'sudo cat /etc/etcd/etcd.conf'

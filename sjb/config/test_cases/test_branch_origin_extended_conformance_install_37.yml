@@ -1,0 +1,12 @@
+---
+parent: 'common/test_cases/origin_built_installed_release_37.yml'
+overrides:
+  junit_analysis: False
+extensions:
+  actions:
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+        OPENSHIFT_SKIP_BUILD='true' KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY='true' JUNIT_REPORT='true' make test-extended SUITE=conformance

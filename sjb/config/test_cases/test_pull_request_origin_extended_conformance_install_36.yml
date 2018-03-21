@@ -1,0 +1,7 @@
+---
+parent: 'test_cases/test_branch_origin_extended_conformance_install_36.yml'
+overrides:
+  sync:
+    - "openshift,openshift-ansible=release-3.6"
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,release=master"

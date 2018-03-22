@@ -6,7 +6,7 @@ echo "This script is designed to be run from one of the cluster masters; make su
 read -p "Press enter to continue"
 
 echo "Do not run this unless your cluster is docker only (no cri-o). Or you can enhance it to exclude cri-o nodes.."
-read -p 
+read -p "Press enter to continue"
 
 set -o xtrace
 set -e

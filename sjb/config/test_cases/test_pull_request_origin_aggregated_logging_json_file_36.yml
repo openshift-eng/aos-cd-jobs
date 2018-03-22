@@ -5,3 +5,4 @@ overrides:
     - "openshift,origin=release-3.6"
     - "openshift,aos-cd-jobs=master"
     - "openshift,openshift-ansible=release-3.6"
+  evars: "-e openshift_logging_image_version=latest -e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_install_examples=false"

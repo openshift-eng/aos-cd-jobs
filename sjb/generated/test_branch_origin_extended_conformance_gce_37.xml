@@ -435,7 +435,7 @@ cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config open
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE RPMS TO GCS REPO ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE RPMS TO GCS REPO [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 if [[ &#34;${REPO_OWNER-}&#34; != &#34;openshift&#34; || &#34;${REPO_NAME-}&#34; != &#34;origin&#34; ]]; then
   # use pre-built RPMs when the job is not targeting origin, or use master if nothing else is available
-  location_url=&#34;$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-master}/.latest-rpms)&#34;
+  location_url=&#34;$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-release-3.7}/.latest-rpms)&#34;
   # hack around forwarding this to the other machine
   ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;location_url=${location_url:-}&#39; &gt;&gt; /etc/environment&#34;
   exit 0

@@ -20,15 +20,15 @@ for node in $nodes; do
         node=$(echo $node | cut -d / -f 2) #  node/xyz to "xyz"
 
         echo "Processing node: $node"
-        oadm manage-node --schedulable=false "$node"
-        oadm drain --delete-local-data --force --ignore-daemonsets "$node"
+        oc adm manage-node --schedulable=false "$node"
+        oc adm drain --delete-local-data --force --ignore-daemonsets "$node"
         ssh -o StrictHostKeyChecking=no "root@$node" "systemctl stop atomic-openshift-node"
         ssh -o StrictHostKeyChecking=no "root@$node" "systemctl stop docker"
         sleep 20  # Wait for docker to truly stop
         ssh -o StrictHostKeyChecking=no "root@$node" "/usr/bin/chattr -i /var/lib/docker/volumes || true"
         ssh -o StrictHostKeyChecking=no "root@$node" "mount | grep /var/lib/origin/openshift.local.volumes | cut -d ' ' -f 3 | xargs --no-run-if-empty umount"
         ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/origin/openshift.local.volumes"
-        ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/docker"
+        ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/docker/*"
         ssh -o StrictHostKeyChecking=no "root@$node" "rm -rf /var/lib/cni/networks"  # https://bugzilla.redhat.com/show_bug.cgi?id=1518912
         ssh -o StrictHostKeyChecking=no "root@$node" "ovs-vsctl del-br br0"   # eparis recommended
         ssh -o StrictHostKeyChecking=no "root@$node" "docker-storage-setup --reset"
@@ -38,6 +38,6 @@ for node in $nodes; do
         ssh -o StrictHostKeyChecking=no "root@$node" "systemctl start docker"
         ssh -o StrictHostKeyChecking=no "root@$node" "systemctl start atomic-openshift-node"
 
-        oadm manage-node --schedulable "$node"
+        oc adm manage-node --schedulable "$node"
 
 done

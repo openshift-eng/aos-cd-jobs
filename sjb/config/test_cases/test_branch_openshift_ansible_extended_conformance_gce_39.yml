@@ -44,6 +44,6 @@ rectory to run."
             echo "No OS_PUSH_TAG specified, unable to calculate a default from the git tag '${tag}'"
             exit 1
           fi
-          OS_PUSH_TAG="latest,v${BASH_REMATCH[1]},v${BASH_REMATCH[2]}" # vX.Y vX.Y.Z
+          OS_PUSH_TAG="v${BASH_REMATCH[1]},v${BASH_REMATCH[2]}" # vX.Y vX.Y.Z
         fi
         DOCKER_CONFIG=/tmp/.docker OS_TAG=latest OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh

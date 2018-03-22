@@ -70,7 +70,7 @@ extensions:
       script: |-
         if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "origin" ]]; then
           # use pre-built RPMs when the job is not targeting origin, or use master if nothing else is available
-          location_url="$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-master}/.latest-rpms)"
+          location_url="$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-release-3.9}/.latest-rpms)"
           # hack around forwarding this to the other machine
           ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
           exit 0

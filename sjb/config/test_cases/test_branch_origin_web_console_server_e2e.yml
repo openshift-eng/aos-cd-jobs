@@ -16,6 +16,6 @@ extensions:
       # TODO For now, run cluster up to verify the console starts, but
       # eventually we will want to do more interesting e2e tests.
       script: |-
-        oc cluster up --version=latest --public-hostname=localhost --loglevel=5
+        oc cluster up --tag=latest --public-hostname=localhost --loglevel=5
   system_journals:
     - systemd-journald.service

@@ -35,11 +35,8 @@ extensions:
         sudo yum install ./google-chrome-stable_current_*.rpm -y
         source IMAGE_VERSION_VAR
         oc version
-        # If the version is not specified for the 3.9 and 3.10(latest) images, the oc binary will use download will fail to start the cluster,
-        # since both of those image versions currently contain bug, so we have to specify the version. Once the bug is fixed and the image is
-        # rebuilt, we can remove this statement.
-        if [ "${IMAGE_VERSION}" == "v3.9" ] || [ "${IMAGE_VERSION}" == "latest" ]; then
-          oc cluster up --version="${IMAGE_VERSION}" --public-hostname=localhost --loglevel=5 --server-loglevel=5
+        if [ "${IMAGE_VERSION}" == "latest" ]; then
+          oc cluster up --tag="${IMAGE_VERSION}" --public-hostname=localhost --loglevel=5 --server-loglevel=5
         else
           oc cluster up --public-hostname=localhost --loglevel=5 --server-loglevel=5
         fi

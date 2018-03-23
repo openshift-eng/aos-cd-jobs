@@ -61,7 +61,7 @@ extensions:
       repository: "origin"
       timeout: 1800
       script: |-
-        ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
+        ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --service-catalog
         ./_output/local/bin/linux/amd64/oc login -u system:admin
         ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
     - type: "script"

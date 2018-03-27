@@ -130,11 +130,15 @@ echo "DEPLOYMENT: ${DEPLOYMENT}" >&2
 echo >&2
 
 function is_running(){
+  mkdir -p "/home/opsmedic/upgrade_logs"
+  TOP_LOG="/home/opsmedic/upgrade_logs/${CLUSTERNAME}.top.log"
+  top -b > $TOP_LOG &
+
   # Output to prevent ssh timeouts. Appears to timeout
   # After about an hour of inactivity.
   while true; do
     echo >&2
-    echo ".... cicd-control still running: $(date) ...." >&2
+    echo ".... cicd-control still running: $(date) .... $TOP_LOG" >&2
     sleep 600
   done
 }

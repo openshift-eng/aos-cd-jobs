@@ -109,7 +109,7 @@ properties(
                      name: 'MAIL_LIST_SUCCESS'],
 
                     [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'jupierce@redhat.com,bbarcaro@redhat.com',
+                     defaultValue: 'jupierce@redhat.com,bbarcaro@redhat.com,mwoodson@redhat.com',
                      description: 'Failure Mailing List',
                      name: 'MAIL_LIST_FAILURE'],
 

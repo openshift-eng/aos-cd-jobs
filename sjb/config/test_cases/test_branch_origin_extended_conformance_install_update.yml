@@ -55,9 +55,9 @@ extensions:
         name = OpenShift Ansible Release from Local Source
         EOR
         sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
-        basename "${tito_tmp_dir}"/noarch/atomic-openshift-utils*.rpm .rpm > /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_ANSIBLE_BUILT_VERSION
+        basename "${tito_tmp_dir}"/noarch/openshift-ansible*.rpm .rpm > /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_ANSIBLE_BUILT_VERSION
     - type: "script"
-      title: "install ansible atomic-openshift-utils"
+      title: "install ansible openshift-ansible"
       repository: "aos-cd-jobs"
       timeout: 600
       script: |-
@@ -77,7 +77,7 @@ extensions:
         do
           versioned_packages_to_install+=" ${pkg}-${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION}"
         done
-        echo "=== Installing atomic-openshift-utils-${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION} packages ==="
+        echo "=== Installing openshift-ansible-${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION} packages ==="
         sudo yum install -y ${versioned_packages_to_install}
     - type: "script"
       title: "install Ansible plugins"

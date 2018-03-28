@@ -357,7 +357,7 @@ NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/s
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 1800 ${script}\&#34;&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 2700 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -409,7 +409,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --service-catalog
+if [[ &#34;\${PULL_BASE_REF:-master}&#34; == &#34;release-3.9&#34; ]]; then
+  ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
+else
+  ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --service-catalog
+fi
 ./_output/local/bin/linux/amd64/oc login -u system:admin
 ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
 SCRIPT

@@ -3,6 +3,7 @@ parent: 'common/test_cases/origin_release_with_ecosystem_39.yml'
 extensions:
   sync:
     - "openshift,release=master"
+    - "openshift,descheduler=master"
   parameters:
     - name: "CLUSTER_PROFILE"
       description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
@@ -38,6 +39,20 @@ extensions:
         - CLUSTER_PROFILE
         - OS_PUSH_BASE_REGISTRY
         - OS_PUSH_BASE_REPO
+    - type: "script"
+      title: "build descheduler"
+      repository: "descheduler"
+      timeout: 900
+      script: |-
+        export GOPATH=/data
+        export PATH=$GOPATH:$PATH
+        cd $GOPATH/src/github.com/openshift/descheduler
+        mkdir -p $GOPATH/src/github.com/kubernetes-incubator
+        ln -s $GOPATH/src/github.com/openshift/descheduler $GOPATH/src/github.com/kubernetes-incubator/descheduler
+        hack/verify-gofmt.sh
+        make build
+        # just build the e2e test to verify it compiles before provisioning the GCE cluster
+        go test -c github.com/kubernetes-incubator/descheduler/test/e2e
     - type: "script"
       title: "build openshift-ansible image"
       repository: "openshift-ansible"
@@ -159,6 +174,29 @@ extensions:
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
 
+    - type: "host_script"
+      title: "Copy GCE credentials into AWS instance"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/descheduler-credentials.json openshiftdevel:/data/gce-credentials.json
+    - type: "script"
+      title: "Setup GCE authentication"
+      script: |-
+        sudo tee -a /etc/yum.repos.d/google-cloud-sdk.repo << EOM
+        [google-cloud-sdk]
+        name=Google Cloud SDK
+        baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el7-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=1
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        EOM
+
+        sudo yum install -y google-cloud-sdk uuid
+        gcloud auth activate-service-account --key-file /data/gce-credentials.json
+        gcloud config set project openshift-descheduler-infra
+        gcloud config set compute/zone us-east1-b
+
     - type: "script"
       title: "provision test cluster"
       repository: "release"
@@ -179,52 +217,15 @@ extensions:
           -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
           playbooks/gcp/openshift-cluster/launch.yml \
           "${evars:-}"
-        cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
+        cp admin.kubeconfig /tmp/admin.conf
     - type: "script"
-      title: "run extended tests"
-      repository: "origin"
+      title: "run descheduler e2e"
+      repository: "descheduler"
       timeout: 6000
       script: |-
-        if [[ -z "${SUITE-}" && -z "${FOCUS-}" ]]; then
-          echo "No suite or focus, skipping test step"
-          exit 0
-        fi
-        mkdir -p /tmp/artifacts/junit
-        export KUBECONFIG=/tmp/cluster-admin.kubeconfig
-        export PARALLEL_NODES=25
-        export EXTENDED_TEST_PATH=test/extended
-        export TEST_ONLY=1
-        export JUNIT_REPORT=true
-        export TEST_EXTENDED_SKIP="\[local\]"
-        TEST_EXTENDED_SKIP+="${ADDITIONAL_SKIP-}"
-
-        # TODO: eventually this shouldn't be specific to a particular provider
-        export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/gce.json"
-        export KUBE_SSH_USER=cloud-user
-        cp /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/ssh-privatekey ~/.ssh/google_compute_engine || true
-        export TEST_EXTENDED_ARGS='-provider=gce -gce-zone=us-east1-c -gce-project=openshift-gce-devel-ci'
-
-        # test suites need oc and extended.test
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
-        OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
-
-        function gather() {
-          set +e
-          export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
-          oc get nodes --template '{{ range .items }}{{ .metadata.name }}{{ "\n" }}{{ end }}' | xargs -L 1 -I X bash -c 'oc get --raw /api/v1/nodes/X/proxy/metrics > /tmp/artifacts/X.metrics' ''
-          oc get --raw /metrics > /tmp/artifacts/master.metrics
-          set -e
-        }
-        trap gather EXIT
-
-        # rosie-bot does not know how to split suite and focus
-        # so we need to detect that she is doing her best and
-        # help her out by parsing the input she gives
-        if [[ -z "${FOCUS:-}" && "${SUITE}" =~ ^(.*)\((.*)\)$ ]]; then
-          SUITE="${BASH_REMATCH[1]}"
-          FOCUS="${BASH_REMATCH[2]}"
-        fi
-        OPENSHIFT_SKIP_BUILD='true' make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"
+        export GOPATH=/data
+        export PATH=$GOPATH:$PATH
+        make test-e2e
   post_actions:
     - type: "host_script"
       title: "gather artifacts from test cluster"
@@ -277,6 +278,10 @@ extensions:
       timeout: 900
       script: |-
         trap 'exit 0' EXIT
+        # The credentials are set to default so let's switch back to ours
+        gcloud auth activate-service-account --key-file /data/gce-credentials.json
+        gcloud config set project openshift-descheduler-infra
+        gcloud config set compute/zone us-east1-b
         cd cluster/test-deploy/${CLUSTER_PROFILE}
         ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
     - type: "host_script"

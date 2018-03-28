@@ -269,10 +269,11 @@ env/bin/pip install --upgrade ansible boto boto3
                             write_ansible_var_file(build_date, ami_id, jenkins_oreg_auth_user, jenkins_oreg_auth_password)
 
                             def ansible_arg_aws_accounts = convert_aws_account_property_to_ansible_arg('cli_aws_share_accounts', AMI_SHARE_ACCOUNTS)
-
-                            ansiColor('xterm') {
-                                sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
-                                sh "ansible-playbook -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -e g_play_current_region=${AWS_REGION} ${ansible_arg_aws_accounts} copy_ami_to_regions.yml"
+                            timeout(120) {
+                                ansiColor('xterm') {
+                                    sh 'ansible-playbook openshift-ansible/playbooks/aws/openshift-cluster/build_ami.yml -e @provisioning_vars.yml -vvv'
+                                    sh "ansible-playbook -e cli_ami_name='aos-${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE.split('.git')[0]}-${build_date}' -e g_play_current_region=${AWS_REGION} ${ansible_arg_aws_accounts} copy_ami_to_regions.yml"
+                                }
                             }
                         }
                     }

@@ -426,9 +426,8 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e containerized=true      \
                  -e openshift_deployment_type=origin  \
-                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
-                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                    \
-                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_TAG )&#34; \
+                 -e openshift_release=&#34;3.9&#34;                    \
+                 -e oreg_url=&#39;openshift/origin-\${component}:v3.9&#39; \
                  -e openshift_node_port_range=&#39;30000-32000&#39;                          \
                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;   \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
@@ -457,9 +456,8 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e containerized=true      \
                  -e openshift_deployment_type=origin  \
-                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
-                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                    \
-                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_TAG )&#34; \
+                 -e openshift_release=&#34;3.9&#34;                    \
+                 -e oreg_url=&#39;openshift/origin-\${component}:v3.9&#39; \
                  -e openshift_node_port_range=&#39;30000-32000&#39;                          \
                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;   \
                  \${playbook}
@@ -474,9 +472,8 @@ ansible-playbook -vv --become               \
                  --inventory sjb/inventory/ \
                  -e containerized=true      \
                  -e openshift_deployment_type=origin  \
-                 -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
-                 -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                    \
-                 -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_TAG )&#34; \
+                 -e openshift_release=&#34;3.9&#34;                    \
+                 -e oreg_url=&#39;openshift/origin-\${component}:v3.9&#39; \
                  -e openshift_node_port_range=&#39;30000-32000&#39;                          \
                  -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39;   \
                  \${playbook}

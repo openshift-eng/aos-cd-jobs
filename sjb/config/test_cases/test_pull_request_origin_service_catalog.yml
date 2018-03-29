@@ -22,28 +22,28 @@ extensions:
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build
     - type: "script"
       title: "build service-catalog user-broker image"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        REGISTRY=openshift/ NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog user-broker-image
+        REGISTRY=openshift/ NO_DOCKER=1 make user-broker-image
     - type: "script"
       title: "build Service Catalog binary"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-go.sh
+        unset GOPATH; hack/build-go.sh
     - type: "script"
       title: "run Service Catalog unit tests"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog test-unit
+        NO_DOCKER=1 make test-unit
     - type: "script"
       title: "build Service Catalog image"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        hack/build-local-images.py service-catalog
+        make build-images
     - type: "script"
       title: "build origin images"
       repository: "origin"
@@ -52,28 +52,29 @@ extensions:
         hack/build-local-images.py
     - type: "script"
       title: "build Service Catalog E2E test binary"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog bin/e2e.test
+        NO_DOCKER=1 make bin/e2e.test
     - type: "script"
       title: "start cluster with Service Catalog"
       repository: "origin"
       timeout: 1800
       script: |-
+        # TODO: will cluster up change?
         ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --service-catalog
         ./_output/local/bin/linux/amd64/oc login -u system:admin
         ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
-    - type: "script"
-      title: "Run Service Catalog E2E"
-      repository: "origin"
-      timeout: 1800
-      script: |-
         kubeconfig=$(mktemp)
         ./_output/local/bin/linux/amd64/oc config view --raw > $kubeconfig
         chmod a+rw $kubeconfig
         export KUBECONFIG=$kubeconfig
-        SERVICECATALOGCONFIG=$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
+    - type: "script"
+      title: "Run Service Catalog E2E"
+      repository: "service-catalog"
+      timeout: 1800
+      script: |-
+        SERVICECATALOGCONFIG=$KUBECONFIG bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
         rm -f $kubeconfig
   generated_artifacts:
     catalog-apiserver.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/kubectl logs -n kube-service-catalog -lapp=apiserver -c apiserver'

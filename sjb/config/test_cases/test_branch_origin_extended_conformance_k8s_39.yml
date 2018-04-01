@@ -2,6 +2,7 @@
 parent: 'common/test_cases/origin_release_install_gce_39.yml'
 overrides:
   sync:
+    - "openshift,origin=release-3.9" # this is a periodic job and so must set branches
     - "openshift,openshift-ansible=release-3.9"
     - "openshift,image-registry=release-3.9"
     - "openshift,kubernetes-metrics-server=release-3.9"

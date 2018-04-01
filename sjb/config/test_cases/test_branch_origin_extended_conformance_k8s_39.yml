@@ -1,11 +1,11 @@
 ---
-parent: 'common/test_cases/origin_release_install_gce.yml'
+parent: 'common/test_cases/origin_release_install_gce_39.yml'
 overrides:
   sync:
-    - "openshift,openshift-ansible=master"
-    - "openshift,image-registry=master"
-    - "openshift,kubernetes-metrics-server=master"
-    - "openshift,origin-web-console-server=master"
+    - "openshift,openshift-ansible=release-3.9"
+    - "openshift,image-registry=release-3.9"
+    - "openshift,kubernetes-metrics-server=release-3.9"
+    - "openshift,origin-web-console-server=release-3.9"
     - "openshift,aos-cd-jobs=master"
     - "openshift,release=master"
   email:

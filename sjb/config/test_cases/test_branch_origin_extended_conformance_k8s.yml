@@ -2,6 +2,7 @@
 parent: 'common/test_cases/origin_release_install_gce.yml'
 overrides:
   sync:
+    - "openshift,origin=master" # this is a periodic job and so must set branches
     - "openshift,openshift-ansible=master"
     - "openshift,image-registry=master"
     - "openshift,kubernetes-metrics-server=master"

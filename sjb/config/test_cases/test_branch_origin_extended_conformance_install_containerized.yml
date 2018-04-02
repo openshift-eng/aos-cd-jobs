@@ -5,26 +5,8 @@ overrides:
 extensions:
   sync:
     - openshift,aos-cd-jobs=master
-    - openshift,image-registry=master
-    - openshift,kubernetes-metrics-server=master
     - openshift,origin=master
   actions:
-    - type: "script"
-      title: "build an origin release"
-      repository: "origin"
-      script: |-
-        if [[ -n "${PULL_REFS:-}" ]]; then
-          export OPENSHIFT_ANSIBLE_TARGET_BRANCH="${PULL_REFS%%:*}"
-        fi
-        git checkout ${OPENSHIFT_ANSIBLE_TARGET_BRANCH}
-        hack/build-base-images.sh
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local hack/env OS_ONLY_BUILD_PLATFORMS='linux/amd64' hack/build-rpm-release.sh
-        sudo systemctl restart docker
-        git describe --abbrev=0 >> "ORIGIN_TAG"
-        cat ORIGIN_TAG > _output/local/releases/.commit
-        hack/build-images.sh
-        sed -i 's|go/src|data/src|' _output/local/releases/rpms/origin-local-release.repo
-        sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
     - type: "script"
       title: "build an openshift-ansible release"
       repository: "openshift-ansible"
@@ -66,39 +48,6 @@ extensions:
         done
         sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
     - type: "script"
-      title: "determine the release commit for origin images and version for rpms"
-      repository: "origin"
-      script: |-
-        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
-        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
-        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" ) >> "${jobs_repo}/ORIGIN_RELEASE"
-        tag=$( source hack/lib/init.sh; os::build::version::get_vars; echo "v${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" )
-        if [[ "${tag}" =~ ^v3.(6|7|8|9)$ ]]; then
-          git describe --abbrev=0 >> "${jobs_repo}/ORIGIN_TAG"
-        else
-          echo "${tag}" >> "${jobs_repo}/ORIGIN_TAG"
-        fi
-        ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "${OS_RPM_VERSION}" | cut -d'.' -f2 ) >> "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
-    - type: "script"
-      title: "build the image registry container image"
-      repository: "image-registry"
-      timeout: 3600
-      script: |-
-        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.8" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
-          make build-images
-          docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
-        fi
-    - type: "script"
-      title: "build the kubernetes metrics server container image"
-      repository: "kubernetes-metrics-server"
-      timeout: 3600
-      script: |-
-        if [[ "${PULL_BASE_REF}" == "master" || "${PULL_BASE_REF}" == "release-3.9" ]]; then
-          make build-images
-          docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
-        fi
-    - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
       script: |-
@@ -108,9 +57,8 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e openshift_deployment_type=origin  \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
-                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
-                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e openshift_release="3.9"                    \
+                         -e oreg_url='openshift/origin-${component}:v3.9' \
                          -e openshift_node_port_range='30000-32000'                          \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
@@ -130,9 +78,8 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e openshift_deployment_type=origin  \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
-                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
-                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e openshift_release="3.9"                    \
+                         -e oreg_url='openshift/origin-${component}:v3.9' \
                          -e openshift_node_port_range='30000-32000'                          \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          ${playbook}
@@ -147,9 +94,8 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e containerized=true      \
                          -e openshift_deployment_type=origin  \
-                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
-                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
-                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e openshift_release="3.9"                    \
+                         -e oreg_url='openshift/origin-${component}:v3.9' \
                          -e openshift_node_port_range='30000-32000'                          \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          ${playbook}

@@ -1,10 +1,14 @@
 ---
-parent: 'common/test_cases/origin_minimal.yml'
+parent: 'common/test_cases/origin.yml'
 overrides:
   junit_analysis: False
   email:
     - jpeeler@redhat.com
+    - jaboyd@redhat.com
 extensions:
+  sync_repos:
+    - name: "origin"
+    - name: "service-catalog"
   actions:
     - type: "script"
       title: "determine the release commit for origin images"
@@ -24,41 +28,43 @@ extensions:
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64 hack/env make build
     - type: "script"
       title: "build service-catalog user-broker image"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        REGISTRY=openshift/ NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog user-broker-image
+        REGISTRY=openshift/ make -f Makefile.sc user-broker-image
     - type: "script"
       title: "build Service Catalog binary"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-go.sh
+        hack/env make build
     - type: "script"
       title: "run Service Catalog unit tests"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog test-unit
+        # the preserve directory is not used here, so include a constant file to avoid copy failures
+        OS_BUILD_ENV_PRESERVE="Makefile" hack/env NO_DOCKER=1 make -f Makefile.sc test-unit
     - type: "script"
-      title: "run Service Catalog integration tests"
-      repository: "origin"
+      title: "build Service Catalog integration test binary"
+      repository: "service-catalog"
+      timeout: 1800
+      script: |-
+        OS_BUILD_ENV_PRESERVE=integration.test hack/env NO_DOCKER=1 make -f Makefile.sc build-integration
+    - type: "script"
+      title: "Run Service Catalog integration tests"
+      repository: "service-catalog"
       timeout: 2700
       script: |-
         sudo yum -y install etcd
-        # switch to wget since curl is using NSS - https://github.com/kubernetes/kubernetes/pull/59966 (can be removed once 0.1.9+ vendored)
-        curl --version
-        wget --version
-        sed -i 's/curl --cacert/wget --ca-certificate/' cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/contrib/hack/start-server.sh
-        # reduces flakes - can be removed once 0.1.9+ is vendored
-        sed -i -r 's/(.*)(wait.ForeverTestTimeout)(.*)/\1\2*5\3/' cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/test/util/util.go
-        NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog scBuildImageTarget=.scBuildImage test-integration
+        ./integration.test -test.v -alsologtostderr -v 9
     - type: "script"
       title: "build Service Catalog image"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        hack/build-local-images.py service-catalog
+        hack/env hack/build-source-image.sh
+        hack/env make build-images
     - type: "script"
       title: "build origin images"
       repository: "origin"
@@ -67,10 +73,11 @@ extensions:
         hack/build-local-images.py
     - type: "script"
       title: "build Service Catalog E2E test binary"
-      repository: "origin"
+      repository: "service-catalog"
       timeout: 1800
       script: |-
-        NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog bin/e2e.test
+        sudo chown $USER:$USER bin
+        OS_BUILD_ENV_PRESERVE=bin/ hack/env NO_DOCKER=1 make -f Makefile.sc bin/e2e.test
     - type: "script"
       title: "start cluster with Service Catalog"
       repository: "origin"
@@ -79,21 +86,24 @@ extensions:
         if [[ "${PULL_BASE_REF:-master}" == "release-3.9" ]]; then
           ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
         else
-          ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --service-catalog
+          ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --enable=service-catalog
         fi
         ./_output/local/bin/linux/amd64/oc login -u system:admin
         ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
     - type: "script"
       title: "Run Service Catalog E2E"
-      repository: "origin"
-      timeout: 1800
+      repository: "service-catalog"
+      timeout: 900
       script: |-
-        kubeconfig=$(mktemp)
-        ./_output/local/bin/linux/amd64/oc config view --raw > $kubeconfig
-        chmod a+rw $kubeconfig
-        export KUBECONFIG=$kubeconfig
-        SERVICECATALOGCONFIG=$KUBECONFIG cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
-        rm -f $kubeconfig
+        export KUBECONFIG=~/.kube/config
+        SERVICECATALOGCONFIG=$KUBECONFIG bin/e2e.test -v 10 -alsologtostderr -broker-image openshift/user-broker:canary
+  post_actions:
+    - type: "script"
+      title: "grab container logs"
+      repository: "origin"
+      script: |
+        trap 'exit 0' EXIT
+        ( source hack/lib/init.sh; os::cleanup::dump_container_logs )
   generated_artifacts:
     catalog-apiserver.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/kubectl logs -n kube-service-catalog -lapp=apiserver -c apiserver'
     catalog-controller.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/kubectl logs -n kube-service-catalog -lapp=controller-manager'

@@ -8,6 +8,7 @@ overrides:
     - "openshift,origin-web-console-server=master"
     - "openshift,aos-cd-jobs=master"
     - "openshift,release=master"
+    - "openshift,service-catalog=master"
 extensions:
   parameters:
     - name: "OS_PUSH_TAG"
@@ -46,4 +47,10 @@ extensions:
       repository: "origin-web-console-server"
       script: |-
         DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+    - type: "script"
+      title: "push the image service-catalog release"
+      repository: "service-catalog"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+        # (!)Note: the following command always needs to be LAST in the file, so move if additional scripts are added
         sudo rm -rf /tmp/.docker

@@ -94,6 +94,11 @@ post_actions:
     script: |-
       trap 'exit 0' EXIT
       if [[ -n "${JOB_SPEC:-}" ]]; then
+        # Set the original GCE SA and project to openshift-gce-devel that can upload results to GCS bucket
+        # in case different SA was used to provision/teardown GCE cluster
+        gcloud auth activate-service-account --key-file /data/credentials.json
+        gcloud config set project openshift-gce-devel
+
         if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
           echo "Keeping BUILD_ID"
         else

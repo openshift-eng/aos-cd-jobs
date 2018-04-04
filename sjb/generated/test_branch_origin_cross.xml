@@ -372,6 +372,11 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
 if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
+  # Set the original GCE SA and project to openshift-gce-devel that can upload results to GCS bucket
+  # in case different SA was used to provision/teardown GCE cluster
+  gcloud auth activate-service-account --key-file /data/credentials.json
+  gcloud config set project openshift-gce-devel
+
   if [[ &#34;\$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34; =~ ^\&#34;[0-9]+\&#34;\$ ]]; then
     echo &#34;Keeping BUILD_ID&#34;
   else

@@ -1,0 +1,297 @@
+---
+parent: 'common/test_cases/origin_release_with_ecosystem_39.yml'
+extensions:
+  sync:
+    - "openshift,release=master"
+    - "openshift,descheduler=master"
+  parameters:
+    - name: "CLUSTER_PROFILE"
+      description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
+      default_value: "gcp"
+    - name: "FOCUS"
+      description: "Literal string to pass to <code>--ginkgo.focus</code>"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      description: >
+        The image to install the cluster with. If set, defaults to the value defined by the
+        <a href='https://github.com/openshift/release/blob/master/cluster/bin/local.sh'><code>cluster/bin/local.sh</code></a>
+        script.
+      default_value: openshift/origin-ansible:v3.9
+    - name: "ADDITIONAL_SKIP"
+      description: |-
+        Regular expression to filter additional tests from the conformance suite.
+        See also:
+        <div>
+        </div>
+    - name: "OS_PUSH_BASE_REGISTRY"
+      default_value: "registry.svc.ci.openshift.org/"
+    - name: "OS_PUSH_BASE_REPO"
+      default_value: "ci-pr-images/"
+  actions:
+    - type: "forward_parameters"
+      parameters:
+        - OPENSHIFT_ANSIBLE_IMAGE
+        - ADDITIONAL_SKIP
+        - JOB_NAME
+        - BUILD_NUMBER
+        - SUITE
+        - FOCUS
+        - JOB_SPEC
+        - CLUSTER_PROFILE
+        - OS_PUSH_BASE_REGISTRY
+        - OS_PUSH_BASE_REPO
+    - type: "script"
+      title: "build descheduler"
+      repository: "descheduler"
+      timeout: 900
+      script: |-
+        export GOPATH=/data
+        export PATH=$GOPATH:$PATH
+        cd $GOPATH/src/github.com/openshift/descheduler
+        mkdir -p $GOPATH/src/github.com/kubernetes-incubator
+        ln -s $GOPATH/src/github.com/openshift/descheduler $GOPATH/src/github.com/kubernetes-incubator/descheduler
+        hack/verify-gofmt.sh
+        make build
+        # just build the e2e test to verify it compiles before provisioning the GCE cluster
+        go test -c github.com/kubernetes-incubator/descheduler/test/e2e
+    - type: "script"
+      title: "build openshift-ansible image"
+      repository: "openshift-ansible"
+      timeout: 900
+      script: |-
+        if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "openshift-ansible" ]]; then
+          # ensure we get an update to date image
+          docker pull "${OPENSHIFT_ANSIBLE_IMAGE}"
+          exit 0
+        fi
+        hack/build-images.sh
+
+    # calculate the instance prefix
+    - type: "host_script"
+      title: "determine the instance prefix"
+      script: |-
+        # we need a short but unique identifier, so we take the first 7 of SHA
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
+        # write the standard variables for reuse
+        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX:-}" >> INSTANCE_PREFIX
+        echo "OS_TAG=$( ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT" )" >> INSTANCE_PREFIX
+        echo "OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-" >> INSTANCE_PREFIX
+        # hack around forwarding this to the other machine
+        cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >> /etc/environment"
+
+    # publish artifacts
+    - type: "host_script"
+      title: "move RPMs to GCS repo"
+      script: |-
+        if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "origin" ]]; then
+          # use pre-built RPMs when the job is not targeting origin, or use master if nothing else is available
+          location_url="$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-release-3.9}/.latest-rpms)"
+          # hack around forwarding this to the other machine
+          ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
+          exit 0
+        fi
+
+        # Allows us to publish artifacts for tags, since we have no tag mechanism
+        if [[ -z "${JOB_SPEC-}" ]]; then
+          JOB_SPEC="{\"type\":\"postsubmit\",\"refs\":{\"base_ref\":\"${ORIGIN_TARGET_BRANCH}\"}}"
+        fi
+        type="$( echo "${JOB_SPEC}" | jq  -r '.type' )"
+        if   [[ "${type}" == "postsubmit" ]]; then
+          location_base="origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
+        elif [[ "${type}" == "batch" ]]; then
+          location_base="origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
+        elif [[ "${type}" == "presubmit" ]]; then
+          location_base="origin-ci-test/pr-logs/pull/${PULL_NUMBER}/${JOB_NAME}/${BUILD_NUMBER}"
+        else
+          echo "unknown job type in ${JOB_SPEC}"
+          exit 1
+        fi
+
+        location="${location_base}/artifacts/rpms"
+        location_url="https://storage.googleapis.com/${location}"
+
+        cat <<REPO > /tmp/local.repo
+        [origin-repo]
+        name=Origin RPMs
+        baseurl=${location_url}
+        enabled=1
+        gpgcheck=0
+        REPO
+
+        mkdir -p artifacts/rpms
+        rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
+        gsutil -m cp -r artifacts/rpms "gs://${location}"
+        if [[ "${type}" == "postsubmit" ]]; then
+          # update the pointer to this location to the base ref branch
+          echo "${location_url}" > .latest-rpms
+          ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
+          gsutil cp .latest-rpms "gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-rpms"
+          gsutil cp /tmp/local.repo "gs://origin-ci-test/releases/openshift/origin/${ref}/origin.repo"
+        fi
+
+        # hack around forwarding this to the other machine
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "transfer docker config to remote host"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "forward_parameters"
+      parameters:
+        - OS_PUSH_TAG
+        - OS_PUSH_BASE_REGISTRY
+    - type: "script"
+      title: "push the release"
+      repository: "origin"
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the image registry release"
+      repository: "image-registry"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the kubernetes metrics server release"
+      repository: "kubernetes-metrics-server"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the web console release"
+      repository: "origin-web-console-server"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        sudo rm -rf /tmp/.docker
+
+    - type: "host_script"
+      title: "move secrets to remote host"
+      script: |-
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+
+    - type: "host_script"
+      title: "Copy GCE credentials into AWS instance"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/descheduler-credentials.json openshiftdevel:/data/gce-credentials.json
+    - type: "script"
+      title: "Setup GCE authentication"
+      script: |-
+        sudo tee -a /etc/yum.repos.d/google-cloud-sdk.repo << EOM
+        [google-cloud-sdk]
+        name=Google Cloud SDK
+        baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el7-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=1
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+        EOM
+
+        sudo yum install -y google-cloud-sdk uuid
+        gcloud auth activate-service-account --key-file /data/gce-credentials.json
+        gcloud config set project openshift-descheduler-infra
+        gcloud config set compute/zone us-east1-b
+
+    - type: "script"
+      title: "provision test cluster"
+      repository: "release"
+      timeout: 2800
+      script: |-
+        sudo systemctl restart docker
+        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
+          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
+        else
+          evars="-e @sjb/inventory/base.cfg"
+        fi
+        suffix='origin-${component}'
+        suffix="${suffix}:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )"
+        cd cluster/test-deploy/${CLUSTER_PROFILE}/
+        ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_test_repo=${location_url}" \
+          -e debug_level=5 \
+          -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
+          playbooks/gcp/openshift-cluster/launch.yml \
+          "${evars:-}"
+        cp admin.kubeconfig /tmp/admin.conf
+    - type: "script"
+      title: "run descheduler e2e"
+      repository: "descheduler"
+      timeout: 6000
+      script: |-
+        export GOPATH=/data
+        export PATH=$GOPATH:$PATH
+        make test-e2e
+  post_actions:
+    - type: "host_script"
+      title: "gather artifacts from test cluster"
+      timeout: 900
+      script: |-
+        trap 'exit 0' EXIT
+        base_artifact_dir="$(pwd)/artifacts"
+        source ./INSTANCE_PREFIX
+        for instance in $( gcloud compute instances list --regexp ".*${INSTANCE_PREFIX}.*" --uri ); do
+            info="$( mktemp )"
+            gcloud compute instances describe "${instance}" --format json > "${info}"
+            name="$( jq '.name' --raw-output "${info}" | tail -c 5 )"
+            if jq '.tags.items | contains(["ocp-master"])' --exit-status "${info}"; then
+                artifact_dir="${base_artifact_dir}/masters/${name}"
+                mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master.service" || true
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master-api.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master-api.service" || true
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-master-controllers.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-master-controllers.service" || true
+                gcloud compute ssh "${instance}" -- sudo journalctl --unit etcd.service          --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/etcd.service"  || true
+
+                gcloud compute ssh "${instance}" -- oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2>&1 > "${artifact_dir}/generated/master-metrics.log"  || true
+            elif jq '.tags.items | contains(["ocp-node"])' --exit-status "${info}"; then
+                artifact_dir="${base_artifact_dir}/nodes/${name}"
+                mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
+            else
+                artifact_dir="${base_artifact_dir}/unknown/${name}"
+                mkdir -p "${artifact_dir}" "${artifact_dir}/generated" "${artifact_dir}/journals"
+            fi
+
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit origin-node.service  --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/origin-node.service"  || true
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit openvswitch.service  --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/openvswitch.service"  || true
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/ovs-vswitchd.service"  || true
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/ovsdb-server.service"  || true
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit docker.service       --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/docker.service"  || true
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit dnsmasq.service      --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/dnsmasq.service"  || true
+            gcloud compute ssh "${instance}" -- sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all 2>&1 > "${artifact_dir}/journals/systemd-journald.service"  || true
+
+            gcloud compute ssh "${instance}" -- oc get --raw /metrics --server=https://$( uname --nodename ):10250                   2>&1 > "${artifact_dir}/generated/node-metrics.log"  || true
+            gcloud compute ssh "${instance}" -- "sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a" 2>&1 > "${artifact_dir}/generated/docker.info"  || true
+            gcloud compute ssh "${instance}" -- sudo yum history info origin                                                         2>&1 > "${artifact_dir}/generated/origin_package_history.log"  || true
+            gcloud compute ssh "${instance}" -- "sudo df -h && sudo pvs && sudo vgs && sudo lvs"                                     2>&1 > "${artifact_dir}/generated/filesystem.info" || true
+            gcloud compute ssh "${instance}" -- sudo yum list installed                                                              2>&1 > "${artifact_dir}/generated/installed_packages.log"  || true
+            gcloud compute ssh "${instance}" -- sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC                                      2>&1 > "${artifact_dir}/generated/avc_denials.log" || true
+            gcloud compute ssh "${instance}" -- sudo journalctl _PID=1 --no-pager --all --lines=all                                  2>&1 > "${artifact_dir}/generated/pid1.journal"  || true
+            gcloud compute ssh "${instance}" -- "sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1"          2>&1 > "${artifact_dir}/generated/containers.log"  || true
+        done
+    - type: "script"
+      title: "deprovision test cluster"
+      repository: "release"
+      timeout: 900
+      script: |-
+        trap 'exit 0' EXIT
+        # The credentials are set to default so let's switch back to ours
+        gcloud auth activate-service-account --key-file /data/gce-credentials.json
+        gcloud config set project openshift-descheduler-infra
+        gcloud config set compute/zone us-east1-b
+        cd cluster/test-deploy/${CLUSTER_PROFILE}
+        ../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
+    - type: "host_script"
+      title: "delete PR images"
+      repository: "release"
+      timeout: 900
+      script: |-
+        trap 'exit 0' EXIT
+        source ./INSTANCE_PREFIX
+        export KUBECONFIG=/var/lib/jenkins/secrets/image-pr-push.kubeconfig
+        oc get is -o name -n ci-pr-images | grep "${INSTANCE_PREFIX}" | xargs -r oc delete
+  artifacts:
+    - "/tmp/artifacts"

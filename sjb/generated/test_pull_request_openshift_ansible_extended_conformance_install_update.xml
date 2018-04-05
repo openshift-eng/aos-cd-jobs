@@ -342,7 +342,7 @@ gpgcheck = 0
 name = OpenShift Ansible Release from Local Source
 EOR
 sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
-basename &#34;\${tito_tmp_dir}&#34;/noarch/atomic-openshift-utils*.rpm .rpm &gt; /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_ANSIBLE_BUILT_VERSION
+basename &#34;\${tito_tmp_dir}&#34;/noarch/openshift-ansible*.rpm .rpm &gt; /data/src/github.com/openshift/aos-cd-jobs/OPENSHIFT_ANSIBLE_BUILT_VERSION
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -350,7 +350,7 @@ ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bas
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL ANSIBLE ATOMIC-OPENSHIFT-UTILS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE ATOMIC-OPENSHIFT-UTILS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL ANSIBLE OPENSHIFT-ANSIBLE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL ANSIBLE OPENSHIFT-ANSIBLE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
@@ -372,7 +372,7 @@ for pkg in &#34;\${packages_to_install[@]}&#34;
 do
   versioned_packages_to_install+=&#34; \${pkg}-\${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION}&#34;
 done
-echo &#34;=== Installing atomic-openshift-utils-\${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION} packages ===&#34;
+echo &#34;=== Installing openshift-ansible-\${ATOMIC_OPENSHIFT_UTILS_INSTALL_VERSION} packages ===&#34;
 sudo yum install -y \${versioned_packages_to_install}
 SCRIPT
 chmod +x &#34;${script}&#34;

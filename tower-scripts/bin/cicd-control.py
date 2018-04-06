@@ -28,7 +28,7 @@ from openshift_tools.utils.ssh_agent import SshAgent
 
 
 OPERATIONS = []
-AUTOKEYS_PATH = '/home/mwoodson/tmp/oo_autokeys'
+AUTOKEYS_PATH = '/var/local/oo_autokeys'
 AUTOKEYS_PREFIX = 'root_autokey'
 
 def command(func):
@@ -218,10 +218,6 @@ class CICDControl(object):
 
         # get the latest openshift-ansible rpms
         openshift_ansible_dir = self.get_latest_openshift_ansible()
-
-        # FIXME
-        # TEMP HACK
-        openshift_ansible_dir = "/tmp/mwoodson/openshift-ansible"
 
         # Find the version of openshift-ansible
         osa_rpm_versions = subprocess.check_output(['rpm', '-qp', '--queryformat', '%{VERSION}-%{RELEASE}\n',

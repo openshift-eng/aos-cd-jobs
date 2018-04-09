@@ -1,0 +1,41 @@
+---
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+parameters:
+- name: "GIT_URL"
+  description: "The github URL for the project."
+  default_value: "https://github.com/kargakis/acs-engine"
+- name: "GIT_BRANCH"
+  description: "The git branch in which to build."
+  default_value: "master"
+actions:
+- type: forward_parameters
+  parameters:
+  - JOB_NAME
+  - BUILD_NUMBER
+  - GIT_URL
+  - GIT_BRANCH
+
+- type: script
+  title: build acs-engine
+  script: |-
+    sudo yum install golang -y
+    mkdir ~/artifacts
+    mkdir ~/go
+    export GOPATH=~/go
+    export PATH=$PATH:${GOPATH}/bin
+    go version
+    mkdir -p $GOPATH/src/github.com/Azure
+    pushd $GOPATH/src/github.com/Azure
+    git clone --branch ${GIT_BRANCH} ${GIT_URL}
+    cd acs-engine
+    export PATH=$PATH:$(pwd)/bin
+    make
+    #tar czvf ~/artifacts/acsengine-$(git rev-parse ${GIT_BRANCH} | cut -c 1-8).tar.gz bin/acs-engine
+    tar czvf ~/artifacts/acsengine.tar.gz bin/acs-engine
+    popd
+
+artifacts:
+- /home/origin/artifacts

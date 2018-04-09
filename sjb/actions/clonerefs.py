@@ -61,7 +61,11 @@ class ClonerefsAction(Action):
     def generate_build_steps(self):
         return [render_task(
             title="FORWARD GCS CREDENTIALS TO REMOTE HOST",
-            command="scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json"
+            command="""for (( i = 0; i < 10; i++ )); do
+    if scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
+        break
+    fi
+done"""
         )] + ForwardParametersAction(
             parameters=['JOB_SPEC', 'buildId', 'BUILD_ID', 'REPO_OWNER', 'REPO_NAME', 'PULL_BASE_REF', 'PULL_BASE_SHA',
                         'PULL_REFS', 'PULL_NUMBER', 'PULL_PULL_SHA', 'JOB_SPEC', 'BUILD_NUMBER', 'CLONEREFS_ARGS']

@@ -171,9 +171,8 @@ class CICDControl(object):
         """ This is a function to just run while """
 
         while True:
+            time.sleep(600)
             now = datetime.datetime.now()
-            #FIXME
-            time.sleep(20)
             print(".... cicd-control still running: {} ....".format(now), file=sys.stderr)
 
     @command

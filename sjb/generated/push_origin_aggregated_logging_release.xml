@@ -224,6 +224,9 @@ git_branch=\$( git rev-parse --abbrev-ref HEAD )
 if [[ \$git_branch == master ]]; then
   echo &#34;Pushing origin-aggregated images release git branch:&#39;\${git_branch}&#39;, docker tag:&#39;latest&#39;&#34;
   OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34; DOCKER_CONFIG=/tmp/.docker hack/push-release.sh
+elif [[ \$git_branch == es5.x ]]; then
+  echo &#34;Pushing origin-aggregated images release git branch:&#39;\${git_branch}&#39;, docker tag:&#39;latest&#39;&#34;
+  OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34; DOCKER_CONFIG=/tmp/.docker hack/push-release.sh
 elif [[ \$git_branch =~ release-* ]]; then
   echo &#34;Pushing origin-aggregated images release git branch:&#39;\${git_branch}&#39;, docker tag:&#39;v\${git_branch#release-}&#39;&#34;
   OS_PUSH_BASE_REGISTRY=&#34;docker.io/&#34; DOCKER_CONFIG=/tmp/.docker OS_PUSH_TAG=&#34;v\${git_branch#release-}&#34; hack/push-release.sh

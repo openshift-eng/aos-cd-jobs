@@ -30,6 +30,9 @@ actions:
       if [[ $git_branch == master ]]; then
         echo "Pushing origin-aggregated images release git branch:'${git_branch}', docker tag:'latest'"
         OS_PUSH_BASE_REGISTRY="docker.io/" DOCKER_CONFIG=/tmp/.docker hack/push-release.sh
+      elif [[ $git_branch == es5.x ]]; then
+        echo "Pushing origin-aggregated images release git branch:'${git_branch}', docker tag:'latest'"
+        OS_PUSH_BASE_REGISTRY="docker.io/" DOCKER_CONFIG=/tmp/.docker hack/push-release.sh
       elif [[ $git_branch =~ release-* ]]; then
         echo "Pushing origin-aggregated images release git branch:'${git_branch}', docker tag:'v${git_branch#release-}'"
         OS_PUSH_BASE_REGISTRY="docker.io/" DOCKER_CONFIG=/tmp/.docker OS_PUSH_TAG="v${git_branch#release-}" hack/push-release.sh

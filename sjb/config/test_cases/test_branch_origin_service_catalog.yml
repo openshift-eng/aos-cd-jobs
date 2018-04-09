@@ -43,7 +43,7 @@ extensions:
     - type: "script"
       title: "run Service Catalog integration tests"
       repository: "origin"
-      timeout: 1800
+      timeout: 2700
       script: |-
         sudo yum -y install etcd
         # switch to wget since curl is using NSS - https://github.com/kubernetes/kubernetes/pull/59966 (can be removed once 0.1.9+ vendored)
@@ -76,7 +76,11 @@ extensions:
       repository: "origin"
       timeout: 1800
       script: |-
-        ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --service-catalog
+        if [[ "${PULL_BASE_REF:-master}" == "release-3.9" ]]; then
+          ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
+        else
+          ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --service-catalog
+        fi
         ./_output/local/bin/linux/amd64/oc login -u system:admin
         ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
     - type: "script"

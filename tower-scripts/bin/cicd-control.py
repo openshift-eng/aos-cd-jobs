@@ -201,7 +201,9 @@ class CICDControl(object):
 
         openshift_ansible_dir = tempfile.mkdtemp(prefix=os.path.join(self.tmp_dir, "openshift-ansible-"))
 
-        pbe = PlaybookExecutor(self.git_dir + 'openshift-ansible-ops/playbooks/adhoc/get_openshift_ansible_rpms')
+        pbe = PlaybookExecutor(os.path.join(self.git_dir, 'openshift-ansible-ops', 'playbooks', 'adhoc',
+                                            'get_openshift_ansible_rpms'))
+
         pbe('extract_openshift_ansible_rpms.yml', {'cli_download_link' : self.extra_args['yum_openshift_ansible_url'],
                                                    'cli_download_dir' : openshift_ansible_dir})
 

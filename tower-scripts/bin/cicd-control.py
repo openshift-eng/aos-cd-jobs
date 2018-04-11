@@ -100,8 +100,6 @@ class CICDControl(object):
             if extra_args[k] is not None:
                 self.extra_args[k] = extra_args[k]
 
-        print(self.extra_args)
-
     def main(self):
         """ main function of the class """
 
@@ -326,10 +324,10 @@ class CICDControl(object):
     def cluster_operation(self):
         """ Call the cicd-operations.py script """
 
+        self.update_ops_git_repos()
         openshift_ansible_operations = ['install', 'upgrade', 'upgrade_control_plane', 'upgrade_nodes',
                                         'upgrade_metrics', 'upgrade_logging']
 
-        self.update_ops_git_repos()
         print(self.operation)
         if self.operation in openshift_ansible_operations:
             self.get_latest_openshift_ansible()

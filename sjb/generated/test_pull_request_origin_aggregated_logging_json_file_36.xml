@@ -184,7 +184,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo chmod o+rw /etc/environment
-echo &#39;EXTRA_EVARS=&#34;-e openshift_logging_image_version=latest -e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_install_examples=false&#34;&#39; &gt;&gt; /etc/environment
+echo &#39;EXTRA_EVARS=&#34;-e openshift_logging_image_version=latest -e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_install_examples=false -e debug_level=2&#34;&#39; &gt;&gt; /etc/environment
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

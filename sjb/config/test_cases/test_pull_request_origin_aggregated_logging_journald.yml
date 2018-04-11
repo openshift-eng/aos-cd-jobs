@@ -8,7 +8,7 @@ overrides:
     - "openshift,openshift-ansible=master"
     - "openshift,kubernetes-metrics-server=master"
     - "openshift,origin-web-console-server=master"
-  evars: "-e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_docker_log_driver=journald -e openshift_docker_options=--log-driver=journald -e openshift_install_examples=false"
+  evars: "-e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_docker_log_driver=journald -e openshift_docker_options=--log-driver=journald -e openshift_install_examples=false -e debug_level=2"
 extensions:
   actions:
     - type: "script"

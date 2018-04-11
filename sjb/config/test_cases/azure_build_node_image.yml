@@ -66,7 +66,6 @@ actions:
         -e "openshift_azure_image=openshift-gi-${INSTANCE_PREFIX}" \
         -e "openshift_azure_clusterid=magentaciimages" \
         playbooks/${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
-      cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
       popd
 
   - type: "script"
@@ -77,5 +76,4 @@ actions:
         -e "openshift_azure_image=openshift-gi-${INSTANCE_PREFIX}" \
         -e "openshift_azure_clusterid=magentaciimages" \
         playbooks/${CLUSTER_PROFILE}/openshift-cluster/remove_instance.yml
-      cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
       popd

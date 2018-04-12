@@ -4,7 +4,7 @@ set -eu
 BASE_DIR=/mnt/redhat
 REMOTE_DIR=/srv/enterprise/rhel
 LATEST_RHEL_COMPOSE=${BASE_DIR}/nightly/latest-RHEL-7
-LATEST_EXTRAS=${BASE_DIR}/nightly/EXTRAS-RHEL-7.4/latest-EXTRAS-7-RHEL-7/compose/Server/x86_64/os
+LATEST_EXTRAS=${BASE_DIR}/nightly/EXTRAS-RHEL-7.5/latest-EXTRAS-7-RHEL-7/compose/Server/x86_64/os
 REPO_FILE=rhel7next.repo
 MIRROR=use-mirror-upload.ops.rhcloud.com
 rsync='rsync

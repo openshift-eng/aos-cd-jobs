@@ -62,7 +62,6 @@ actions:
         -e "openshift_test_repo=https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.9/origin.repo" \
         -e "debug_level=5" \
         -e "openshift_azure_base_image_ns=magentaciimages" \
-        -e "openshift_azure_base_image=rhel7.4-base-20180411121740" \
         -e "openshift_azure_image=openshift-gi-${INSTANCE_PREFIX}" \
         -e "openshift_azure_clusterid=magentaciimages" \
         playbooks/${CLUSTER_PROFILE}/openshift-cluster/build_image.yml

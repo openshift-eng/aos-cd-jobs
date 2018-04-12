@@ -158,7 +158,11 @@ oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;base&#34; --pro
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD GCS CREDENTIALS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD GCS CREDENTIALS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json</command>
+for (( i = 0; i &lt; 10; i++ )); do
+    if scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
+        break
+    fi
+done</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -667,17 +671,17 @@ pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
 TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_test_repo=\${location_url}&#34; \
   -e &#34;debug_level=5&#34; \
-  -e &#34;openshift_azure_base_image_ns=opstest&#34; \
-  -e &#34;openshift_azure_base_image=rhel7.4_base-20180323133134&#34; \
+  -e &#34;openshift_azure_base_image_ns=magentaciimages&#34; \
+  -e &#34;openshift_azure_base_image=openshift-gi-20180411151240&#34; \
   -e &#34;openshift_azure_image=\${INSTANCE_PREFIX}-openshift-gi&#34; \
-  -e &#34;openshift_azure_clusterid=magentaci\${INSTANCE_PREFIX}&#34; \
-  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
+  -e &#34;openshift_azure_clusterid=magentaci\${INSTANCE_PREFIX//-}&#34; \
+  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/launch.yml
 cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
 popd
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 2800 ${script}\&#34;&#34; </command>
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 900 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -783,6 +787,25 @@ SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DEPROVISION TEST CLUSTER ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DEPROVISION TEST CLUSTER [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+trap &#39;exit 0&#39; EXIT
+pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
+TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_azure_clusterid=magentaci\${INSTANCE_PREFIX//-}&#34; \
+  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/deprovision.yml
+popd
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 900 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

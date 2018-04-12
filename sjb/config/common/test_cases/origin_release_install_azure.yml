@@ -162,6 +162,19 @@ extensions:
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
 
     - type: "script"
+      title: "build node image"
+      script: |-
+        pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
+        TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_test_repo=${location_url}" \
+          -e "debug_level=5" \
+          -e "openshift_azure_base_image_ns=magentaciimages" \
+          -e "openshift_azure_image=openshift-gi-$(date +%Y%m%d%H%M%S)" \
+          -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
+          playbooks/${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
+        popd
+
+    - type: "script"
       title: "provision test cluster"
       timeout: 900
       script: |-
@@ -173,8 +186,7 @@ extensions:
         TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
           -e "openshift_test_repo=${location_url}" \
           -e "debug_level=5" \
-          -e "openshift_azure_base_image_ns=magentaciimages" \
-          -e "openshift_azure_base_image=openshift-gi-20180411151240" \
+          -e "openshift_azure_base_image_ns=magentaci${INSTANCE_PREFIX//-}" \
           -e "openshift_azure_image=${INSTANCE_PREFIX}-openshift-gi" \
           -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
           playbooks/${CLUSTER_PROFILE}/openshift-cluster/launch.yml

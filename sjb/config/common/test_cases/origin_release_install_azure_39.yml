@@ -178,7 +178,6 @@ extensions:
           -e "openshift_azure_image=${INSTANCE_PREFIX}-openshift-gi" \
           -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
           playbooks/${CLUSTER_PROFILE}/openshift-cluster/launch.yml
-        cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
         popd
   post_actions:
     - type: "script"

@@ -330,7 +330,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
 OPENSHIFT_SKIP_BUILD=&#39;true&#39; JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=ldap_groups
 SCRIPT
 chmod +x &#34;${script}&#34;

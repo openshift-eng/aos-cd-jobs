@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_built_release.yml'
+parent: 'common/test_cases/origin_release.yml'
 overrides:
   junit_analysis: False
   email:
@@ -17,5 +17,4 @@ extensions:
       title: "run extended tests"
       repository: "origin"
       script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
         OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-extended SUITE=ldap_groups

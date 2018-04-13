@@ -21,6 +21,7 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
+                 -e openshift_image_tag="$( cat ./ORIGIN_RELEASE )" \
                  -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                  -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                  -e openshift_disable_check=docker_image_availability,package_update,package_availability    \
@@ -47,6 +48,7 @@ ansible-playbook -vv --become               \
                  --connection local         \
                  --inventory sjb/inventory/ \
                  -e deployment_type=origin  \
+                 -e openshift_image_tag="$( cat ./ORIGIN_RELEASE )" \
                  -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                  -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
                  -e openshift_disable_check=docker_image_availability,package_update,package_availability    \

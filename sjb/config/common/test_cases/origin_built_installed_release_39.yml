@@ -58,6 +58,7 @@ extensions:
                          --connection local         \
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
+                         -e openshift_image_tag="$( cat ./ORIGIN_RELEASE )" \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \

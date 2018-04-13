@@ -9,6 +9,8 @@ overrides:
     - mkhan@redhat.com
     - ssorce@redhat.com
     - aos-security-team@redhat.com
+  sync:
+    - "openshift,origin=master"
 extensions:
   actions:
     - type: "script"

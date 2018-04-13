@@ -1,0 +1,371 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<com.tikal.jenkins.plugins.multijob.MultiJobProject plugin="jenkins-multijob-plugin@1.21">
+  <actions/>
+  <description>&lt;div style=&#34;font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;&#34;&gt;WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. MAKE CHANGES TO THE JOB DEFINITIONS IN THE &lt;a href=&#34;https://github.com/openshift/aos-cd-jobs/tree/master/sjb&#34;&gt;openshift/aos-cd-jobs&lt;/a&gt; REPOSITORY INSTEAD.&lt;/div&gt;</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>7</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>CLUSTER_PROFILE</name>
+          <description>The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster.</description>
+          <defaultValue>azure</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>OPENSHIFT_ANSIBLE_IMAGE</name>
+          <description>The image to install the cluster with. If set, defaults to the value defined by the &lt;a href=&#39;https://github.com/openshift/release/blob/master/cluster/bin/local.sh&#39;&gt;&lt;code&gt;cluster/bin/local.sh&lt;/code&gt;&lt;/a&gt; script.
+</description>
+          <defaultValue>openshift/origin-ansible:latest</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>JOB_SPEC</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>buildId</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>BUILD_ID</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>REPO_OWNER</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>REPO_NAME</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_BASE_REF</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_BASE_SHA</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_REFS</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_NUMBER</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PULL_PULL_SHA</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>CLONEREFS_ARGS</name>
+          <description></description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@1.9.0">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>0</maxConcurrentTotal>
+      <categories class="java.util.concurrent.CopyOnWriteArrayList"/>
+      <throttleEnabled>false</throttleEnabled>
+      <throttleOption>project</throttleOption>
+      <limitOneJobWithMatchingParams>false</limitOneJobWithMatchingParams>
+      <paramsToUseForLimit></paramsToUseForLimit>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <authToken>origin1</authToken>
+  <triggers/>
+  <concurrentBuild>true</concurrentBuild>
+  <builders>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL THE ORIGIN-CI-TOOL ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL THE ORIGIN-CI-TOOL [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+latest=&#34;$( readlink &#34;${HOME}/origin-ci-tool/latest&#34; )&#34;
+touch &#34;${latest}&#34;
+cp &#34;${latest}/bin/activate&#34; &#34;${WORKSPACE}/activate&#34;
+cat &gt;&gt; &#34;${WORKSPACE}/activate&#34; &lt;&lt;EOF
+export OCT_CONFIG_HOME=&#34;${WORKSPACE}/.config&#34;
+EOF
+
+source &#34;${WORKSPACE}/activate&#34;
+mkdir -p &#34;${OCT_CONFIG_HOME}&#34;
+rm -rf &#34;${OCT_CONFIG_HOME}/origin-ci-tool&#34;
+oct configure ansible-client verbosity 2
+oct configure aws-client &#39;keypair_name&#39; &#39;libra&#39;
+oct configure aws-client &#39;private_key_path&#39; &#39;/var/lib/jenkins/.ssh/devenv.pem&#39;</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PROVISION CLOUD RESOURCES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PROVISION CLOUD RESOURCES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+oct provision remote all-in-one --os &#34;rhel&#34; --stage &#34;base&#34; --provider &#34;aws&#34; --discrete-ssh-config --name &#34;${JOB_NAME}_${BUILD_NUMBER}&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD GCS CREDENTIALS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD GCS CREDENTIALS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+for (( i = 0; i &lt; 10; i++ )); do
+    if scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
+        break
+    fi
+done</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;buildId=${buildId:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_ID=${BUILD_ID:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_BASE_REF=${PULL_BASE_REF:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_BASE_SHA=${PULL_BASE_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_PULL_SHA=${PULL_PULL_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;CLONEREFS_ARGS=${CLONEREFS_ARGS:-}&#39; &gt;&gt; /etc/environment&#34;
+</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: SYNC REPOSITORIES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: SYNC REPOSITORIES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+if [[ &#34;\$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34; =~ ^&#34;[0-9]+&#34;\$ ]]; then
+  echo &#34;Keeping BUILD_ID&#34;
+else
+  echo &#34;Using BUILD_NUMBER&#34;
+  JOB_SPEC=&#34;\$( jq --compact-output &#39;.buildid |= &#34;&#39;&#34;\${BUILD_NUMBER}&#34;&#39;&#34;&#39; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
+fi
+for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;registry.svc.ci.openshift.org/ci/initupload:latest&#39;; do
+    for (( i = 0; i &lt; 5; i++ )); do
+        if docker pull &#34;\${image}&#34;; then
+            break
+        fi
+    done
+done
+clonerefs_args=\${CLONEREFS_ARGS:-}
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${clonerefs_args}
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+sudo chmod -R a+rwX /data
+sudo chown -R origin:origin-git /data
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;CLUSTER_PROFILE=${CLUSTER_PROFILE:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_IMAGE=${OPENSHIFT_ANSIBLE_IMAGE:-}&#39; &gt;&gt; /etc/environment&#34;
+</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE THE INSTANCE PREFIX ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE INSTANCE PREFIX [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+# date is enough for building image
+export INSTANCE_PREFIX=$(date +%Y%m%d%H%M%S)
+# write the standard variables for reuse
+echo &#34;INSTANCE_PREFIX=${INSTANCE_PREFIX:-}&#34; &gt;&gt; INSTANCE_PREFIX
+# hack around forwarding this to the other machine
+cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt; /etc/environment&#34;</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: CLONE REPOS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CLONE REPOS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+git clone --branch azure_provisioning https://github.com/kwoodson/openshift-ansible.git
+git clone --branch azure https://github.com/pschiffe/release.git
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD OPENSHIFT INSTALLER IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD OPENSHIFT INSTALLER IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+pushd openshift-ansible
+docker build -f images/installer/Dockerfile -t openshift/origin-ansible:latest .
+popd
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE SECRETS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE SECRETS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+rsync --copy-links --omit-dir-times --archive --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; /var/lib/jenkins/.azure/* openshiftdevel:/home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chown -R origin:origin-git /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/&#39;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/&#39;</command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD NODE IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD NODE IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
+TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_test_repo=https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.9/origin.repo&#34; \
+  -e &#34;debug_level=5&#34; \
+  -e &#34;openshift_azure_base_image_ns=magentaciimages&#34; \
+  -e &#34;openshift_azure_image=openshift-gi-\${INSTANCE_PREFIX}&#34; \
+  -e &#34;openshift_azure_clusterid=magentaciimages&#34; \
+  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
+popd
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: CLEAN UP RESOURCES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CLEAN UP RESOURCES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
+TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_azure_image=openshift-gi-\${INSTANCE_PREFIX}&#34; \
+  -e &#34;openshift_azure_clusterid=magentaciimages&#34; \
+  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/remove_instance.yml
+popd
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
+      <buildSteps>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DEPROVISION CLOUD RESOURCES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DEPROVISION CLOUD RESOURCES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+oct deprovision</command>
+        </hudson.tasks.Shell>
+      </buildSteps>
+      <scriptOnlyIfSuccess>false</scriptOnlyIfSuccess>
+      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
+      <markBuildUnstable>false</markBuildUnstable>
+    </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</artifacts>
+      <allowEmptyArchive>true</allowEmptyArchive>
+      <onlyIfSuccessful>false</onlyIfSuccessful>
+      <fingerprint>false</fingerprint>
+      <defaultExcludes>true</defaultExcludes>
+      <caseSensitive>true</caseSensitive>
+    </hudson.tasks.ArtifactArchiver>
+    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
+      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</testResults>
+      <keepLongStdio>true</keepLongStdio>
+      <healthScaleFactor>1.0</healthScaleFactor>
+      <allowEmptyResults>true</allowEmptyResults>
+    </hudson.tasks.junit.JUnitResultArchiver>
+    <hudson.plugins.s3.S3BucketPublisher plugin="s3@0.10.11-SNAPSHOT">
+      <profileName>Jenkins-AWS</profileName>
+      <entries>
+        <hudson.plugins.s3.Entry>
+          <bucket>aos-ci/jenkinsorigin</bucket>
+          <sourceFile>artifacts/**, .config/origin-ci-tool/**</sourceFile>
+          <excludedFile></excludedFile>
+          <storageClass>STANDARD</storageClass>
+          <selectedRegion>us-east-1</selectedRegion>
+          <noUploadOnFailure>false</noUploadOnFailure>
+          <uploadFromSlave>false</uploadFromSlave>
+          <managedArtifacts>true</managedArtifacts>
+          <useServerSideEncryption>false</useServerSideEncryption>
+          <flatten>false</flatten>
+          <gzipFiles>false</gzipFiles>
+          <showDirectlyInBrowser>false</showDirectlyInBrowser>
+          <keepForever>false</keepForever>
+        </hudson.plugins.s3.Entry>
+      </entries>
+      <dontWaitForConcurrentBuildCompletion>true</dontWaitForConcurrentBuildCompletion>
+      <consoleLogLevel>
+        <name>WARNING</name>
+        <value>900</value>
+        <resourceBundleName>sun.util.logging.resources.logging</resourceBundleName>
+      </consoleLogLevel>
+      <pluginFailureResultConstraint>
+        <name>SUCCESS</name>
+        <ordinal>0</ordinal>
+        <color>BLUE</color>
+        <completeBuild>true</completeBuild>
+      </pluginFailureResultConstraint>
+      <userMetadata/>
+    </hudson.plugins.s3.S3BucketPublisher>
+    <hudson.plugins.ws__cleanup.WsCleanup plugin="ws-cleanup@0.34">
+      <patterns class="empty-list"/>
+      <deleteDirs>false</deleteDirs>
+      <skipWhenFailed>false</skipWhenFailed>
+      <cleanWhenSuccess>true</cleanWhenSuccess>
+      <cleanWhenUnstable>true</cleanWhenUnstable>
+      <cleanWhenFailure>true</cleanWhenFailure>
+      <cleanWhenNotBuilt>true</cleanWhenNotBuilt>
+      <cleanWhenAborted>true</cleanWhenAborted>
+      <notFailBuild>false</notFailBuild>
+      <cleanupMatrixParent>false</cleanupMatrixParent>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.WsCleanup>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.32">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+  <pollSubjobs>false</pollSubjobs>
+</com.tikal.jenkins.plugins.multijob.MultiJobProject>

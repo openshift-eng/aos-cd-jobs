@@ -1,7 +1,15 @@
 ---
 parent: 'common/test_cases/origin_release_prepare.yml'
 extensions:
+  parameters:
+    - name: "UPGRADE_CLUSTER_PROFILE"
+      description: "The subdirectory of openshift/release cluster/test-deploy to use for upgrading the cluster. Defaults to CLUSTER_PROFILE"
+      default_value: ""
   actions:
+    - type: "forward_parameters"
+      parameters:
+        - UPGRADE_CLUSTER_PROFILE
+
     - type: "host_script"
       title: "move secrets to remote host"
       script: |-
@@ -9,8 +17,12 @@ extensions:
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
 
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/${UPGRADE_CLUSTER_PROFILE}/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${UPGRADE_CLUSTER_PROFILE}/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${UPGRADE_CLUSTER_PROFILE}/'
+
     - type: "script"
-      title: "provision test cluster"
+      title: "provision previous release cluster"
       repository: "release"
       timeout: 2800
       script: |-
@@ -22,14 +34,27 @@ extensions:
         fi
         suffix='origin-${component}'
         suffix="${suffix}:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )"
-        cd cluster/test-deploy/${CLUSTER_PROFILE}/
-        ../../bin/ansible.sh ansible-playbook \
-          -e "openshift_test_repo=${location_url}" \
-          -e debug_level=5 \
-          -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
-          playbooks/gcp/openshift-cluster/launch.yml \
-          "${evars:-}"
-        cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
+        cd cluster/test-deploy/
+        # clear the image so the make script picks the correct release image
+        export OPENSHIFT_ANSIBLE_IMAGE=""
+        make up WHAT=${INSTANCE_PREFIX} PROFILE=${CLUSTER_PROFILE} REF=release-3.9
+        cp "${CLUSTER_PROFILE}/admin.kubeconfig" /tmp/cluster-admin.kubeconfig
+
+    - type: "script"
+      title: "upgrade cluster"
+      repository: "release"
+      timeout: 2800
+      script: |-
+        sudo systemctl restart docker
+        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
+          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
+        else
+          evars="-e @sjb/inventory/base.cfg"
+        fi
+        suffix='origin-${component}'
+        suffix="${suffix}:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )"
+        cd cluster/test-deploy/
+        make upgrade WHAT=${INSTANCE_PREFIX} PROFILE=${UPGRADE_CLUSTER_PROFILE:-$CLUSTER_PROFILE}
 
     - type: "script"
       title: "run extended tests"

@@ -1,0 +1,22 @@
+---
+parent: 'common/test_cases/origin_release_install_upgrade_gce.yml'
+overrides:
+  sync:
+    - "openshift,origin=master"
+    - "openshift,aos-cd-jobs=master"
+    - "openshift,image-registry=master"
+    - "openshift,kubernetes-metrics-server=master"
+    - "openshift,origin-web-console-server=master"
+    - "openshift,release=master"
+extensions:
+  parameters:
+    - name: "SUITE"
+      description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
+rectory to run."
+      default_value: "conformance"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      default_value: openshift/origin-ansible:latest
+    - name: "CLUSTER_PROFILE"
+      default_value: gcp-ha-static
+    - name: "UPGRADE_CLUSTER_PROFILE"
+      default_value: gcp-ha

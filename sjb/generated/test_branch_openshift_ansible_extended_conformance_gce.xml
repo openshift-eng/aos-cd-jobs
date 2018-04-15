@@ -930,8 +930,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 trap &#39;exit 0&#39; EXIT
-cd cluster/test-deploy/\${CLUSTER_PROFILE}
-../../bin/ansible.sh ansible-playbook playbooks/gcp/openshift-cluster/deprovision.yml
+cd cluster/test-deploy/
+make down WHAT=\${INSTANCE_PREFIX} PROFILE=\${CLUSTER_PROFILE}
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

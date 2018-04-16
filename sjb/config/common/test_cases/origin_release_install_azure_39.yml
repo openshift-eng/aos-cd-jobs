@@ -1,0 +1,202 @@
+---
+parent: 'common/test_cases/origin_release_with_ecosystem_39.yml'
+extensions:
+  sync:
+    - "openshift,release=master"
+  parameters:
+    - name: "CLUSTER_PROFILE"
+      description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
+      default_value: "azure"
+    - name: "FOCUS"
+      description: "Literal string to pass to <code>--ginkgo.focus</code>"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      description: >
+        The image to install the cluster with. If set, defaults to the value defined by the
+        <a href='https://github.com/openshift/release/blob/master/cluster/bin/local.sh'><code>cluster/bin/local.sh</code></a>
+        script.
+      default_value: "openshift/origin-ansible:latest"
+    - name: "ADDITIONAL_SKIP"
+      description: |-
+        Regular expression to filter additional tests from the conformance suite.
+        See also:
+        <div>
+        </div>
+    - name: "OS_PUSH_BASE_REGISTRY"
+      default_value: "registry.svc.ci.openshift.org/"
+    - name: "OS_PUSH_BASE_REPO"
+      default_value: "ci-pr-images/"
+  actions:
+    - type: "forward_parameters"
+      parameters:
+        - OPENSHIFT_ANSIBLE_IMAGE
+        - ADDITIONAL_SKIP
+        - JOB_NAME
+        - BUILD_NUMBER
+        - SUITE
+        - FOCUS
+        - JOB_SPEC
+        - CLUSTER_PROFILE
+        - OS_PUSH_BASE_REGISTRY
+        - OS_PUSH_BASE_REPO
+    - type: "script"
+      title: "clone custom repositories for now"
+      script: |-
+        git clone --branch azure_provisioning https://github.com/kwoodson/openshift-ansible.git
+        git clone --branch azure https://github.com/pschiffe/release.git
+
+    - type: "script"
+      title: "build openshift-ansible image"
+      timeout: 900
+      script: |-
+        pushd openshift-ansible
+        docker build -f images/installer/Dockerfile -t openshift/origin-ansible:latest .
+        popd
+
+    # calculate the instance prefix
+    - type: "host_script"
+      title: "determine the instance prefix"
+      script: |-
+        # we need a short but unique identifier, so we take the first 7 of SHA
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export INSTANCE_PREFIX="prtest-${hashed_identifier:0:7}-${BUILD_NUMBER}"
+        # write the standard variables for reuse
+        echo "INSTANCE_PREFIX=${INSTANCE_PREFIX:-}" >> INSTANCE_PREFIX
+        echo "OS_TAG=$( ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT" )" >> INSTANCE_PREFIX
+        echo "OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-" >> INSTANCE_PREFIX
+        # hack around forwarding this to the other machine
+        cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >> /etc/environment"
+
+    # publish artifacts
+    - type: "host_script"
+      title: "move RPMs to GCS repo"
+      script: |-
+        if [[ "${REPO_OWNER-}" != "openshift" || "${REPO_NAME-}" != "origin" ]]; then
+          # use pre-built RPMs when the job is not targeting origin, or use master if nothing else is available
+          location_url="$(curl -q https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/${ORIGIN_TARGET_BRANCH:-master}/.latest-rpms)"
+          # hack around forwarding this to the other machine
+          ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
+          exit 0
+        fi
+
+        # Allows us to publish artifacts for tags, since we have no tag mechanism
+        if [[ -z "${JOB_SPEC-}" ]]; then
+          JOB_SPEC="{\"type\":\"postsubmit\",\"refs\":{\"base_ref\":\"${ORIGIN_TARGET_BRANCH}\"}}"
+        fi
+        type="$( echo "${JOB_SPEC}" | jq  -r '.type' )"
+        if   [[ "${type}" == "postsubmit" ]]; then
+          location_base="origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
+        elif [[ "${type}" == "batch" ]]; then
+          location_base="origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}"
+        elif [[ "${type}" == "presubmit" ]]; then
+          location_base="origin-ci-test/pr-logs/pull/${PULL_NUMBER}/${JOB_NAME}/${BUILD_NUMBER}"
+        else
+          echo "unknown job type in ${JOB_SPEC}"
+          exit 1
+        fi
+
+        location="${location_base}/artifacts/rpms"
+        location_url="https://storage.googleapis.com/${location}"
+
+        cat <<REPO > /tmp/local.repo
+        [origin-repo]
+        name=Origin RPMs
+        baseurl=${location_url}
+        enabled=1
+        gpgcheck=0
+        REPO
+
+        mkdir -p artifacts/rpms
+        rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
+        gsutil -m cp -r artifacts/rpms "gs://${location}"
+        if [[ "${type}" == "postsubmit" ]]; then
+          # update the pointer to this location to the base ref branch
+          echo "${location_url}" > .latest-rpms
+          ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
+          gsutil cp .latest-rpms "gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-rpms"
+          gsutil cp /tmp/local.repo "gs://origin-ci-test/releases/openshift/origin/${ref}/origin.repo"
+        fi
+
+        # hack around forwarding this to the other machine
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "transfer docker config to remote host"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "forward_parameters"
+      parameters:
+        - OS_PUSH_TAG
+        - OS_PUSH_BASE_REGISTRY
+    - type: "script"
+      title: "push the release"
+      repository: "origin"
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the image registry release"
+      repository: "image-registry"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the kubernetes metrics server release"
+      repository: "kubernetes-metrics-server"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+    - type: "script"
+      title: "push the web console release"
+      repository: "origin-web-console-server"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 hack/push-release.sh
+        sudo rm -rf /tmp/.docker
+
+    - type: "host_script"
+      title: "move secrets to remote host"
+      script: |-
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+
+    - type: "script"
+      title: "build node image"
+      script: |-
+        pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
+        TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_test_repo=${location_url}" \
+          -e "debug_level=5" \
+          -e "openshift_azure_base_image_ns=magentaciimages" \
+          -e "openshift_azure_image=openshift-gi-$(date +%Y%m%d%H%M%S)" \
+          -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
+          playbooks/${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
+        popd
+
+    - type: "script"
+      title: "provision test cluster"
+      timeout: 900
+      script: |-
+        sudo systemctl restart docker
+
+        suffix='origin-${component}'
+        suffix="${suffix}:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )"
+        pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
+        TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_test_repo=${location_url}" \
+          -e "debug_level=5" \
+          -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
+          playbooks/${CLUSTER_PROFILE}/openshift-cluster/launch.yml
+        popd
+  post_actions:
+    - type: "script"
+      title: "deprovision test cluster"
+      timeout: 900
+      script: |-
+        trap 'exit 0' EXIT
+        pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
+        TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
+          playbooks/${CLUSTER_PROFILE}/openshift-cluster/deprovision.yml
+        popd

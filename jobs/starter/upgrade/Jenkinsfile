@@ -136,7 +136,6 @@ node('openshift-build-1') {
             }
 
             stage( "enable maintenance" ) {
-                deploylib.run( "enable-statuspage" )
                 deploylib.run( "enable-zabbix-maint" )
                 deploylib.run( "disable-config-loop" )
             }
@@ -216,7 +215,6 @@ Jenkins job: ${env.BUILD_URL}
                 }
 
                 deploylib.run( "disable-zabbix-maint" )
-                deploylib.run( "disable-statuspage" )
             }
 
             stage( "smoketest" ) {

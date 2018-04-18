@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 overrides:
   junit_analysis: False
 extensions:

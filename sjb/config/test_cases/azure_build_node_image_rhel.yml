@@ -59,8 +59,6 @@ actions:
     script: |-
       pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
       TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-        -e "openshift_test_repo=https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.9/origin.repo" \
-        -e "debug_level=5" \
         -e "openshift_azure_base_image_ns=magentaciimages" \
         -e "openshift_azure_image=openshift-gi-${INSTANCE_PREFIX}" \
         -e "openshift_azure_clusterid=magentaciimages" \

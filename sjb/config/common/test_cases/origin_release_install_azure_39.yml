@@ -170,7 +170,7 @@ extensions:
           -e "debug_level=5" \
           -e "openshift_azure_base_image_ns=magentaciimages" \
           -e "openshift_azure_image=openshift-gi-$(date +%Y%m%d%H%M%S)" \
-          -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
+          -e "openshift_azure_clusterid=ci${INSTANCE_PREFIX//-}" \
           playbooks/${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
         popd
 
@@ -186,7 +186,7 @@ extensions:
         TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
           -e "openshift_test_repo=${location_url}" \
           -e "debug_level=5" \
-          -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
+          -e "openshift_azure_clusterid=ci${INSTANCE_PREFIX//-}" \
           playbooks/${CLUSTER_PROFILE}/openshift-cluster/launch.yml
         popd
   post_actions:
@@ -197,6 +197,6 @@ extensions:
         trap 'exit 0' EXIT
         pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
         TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-          -e "openshift_azure_clusterid=magentaci${INSTANCE_PREFIX//-}" \
+          -e "openshift_azure_clusterid=ci${INSTANCE_PREFIX//-}" \
           playbooks/${CLUSTER_PROFILE}/openshift-cluster/deprovision.yml
         popd

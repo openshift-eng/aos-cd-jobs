@@ -669,7 +669,7 @@ TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
   -e &#34;debug_level=5&#34; \
   -e &#34;openshift_azure_base_image_ns=magentaciimages&#34; \
   -e &#34;openshift_azure_image=openshift-gi-\$(date +%Y%m%d%H%M%S)&#34; \
-  -e &#34;openshift_azure_clusterid=magentaci\${INSTANCE_PREFIX//-}&#34; \
+  -e &#34;openshift_azure_clusterid=ci\${INSTANCE_PREFIX//-}&#34; \
   playbooks/\${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
 popd
 SCRIPT
@@ -693,7 +693,7 @@ pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
 TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_test_repo=\${location_url}&#34; \
   -e &#34;debug_level=5&#34; \
-  -e &#34;openshift_azure_clusterid=magentaci\${INSTANCE_PREFIX//-}&#34; \
+  -e &#34;openshift_azure_clusterid=ci\${INSTANCE_PREFIX//-}&#34; \
   playbooks/\${CLUSTER_PROFILE}/openshift-cluster/launch.yml
 popd
 SCRIPT
@@ -817,7 +817,7 @@ cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
 pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
 TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-  -e &#34;openshift_azure_clusterid=magentaci\${INSTANCE_PREFIX//-}&#34; \
+  -e &#34;openshift_azure_clusterid=ci\${INSTANCE_PREFIX//-}&#34; \
   playbooks/\${CLUSTER_PROFILE}/openshift-cluster/deprovision.yml
 popd
 SCRIPT

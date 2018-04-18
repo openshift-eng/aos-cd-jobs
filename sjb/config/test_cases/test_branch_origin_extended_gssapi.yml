@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_built_release.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 overrides:
   junit_analysis: False
   email:
@@ -7,11 +7,12 @@ overrides:
     - jliggitt@redhat.com
     - ssorce@redhat.com
     - aos-security-team@redhat.com
+  sync:
+    - "openshift,origin=master"
 extensions:
   actions:
     - type: "script"
       title: "run extended tests"
       repository: "origin"
       script: |-
-        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
         OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-extended SUITE=gssapi

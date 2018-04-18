@@ -57,7 +57,7 @@
 {%- else %}
   <triggers/>
 {%- endif %}
-  <concurrentBuild>true</concurrentBuild>
+  <concurrentBuild>{%- if concurrent -%}true{%- else -%}false{%- endif -%}</concurrentBuild>
   <builders>
 {%- if action == "merge" %}
         <hudson.tasks.Shell>

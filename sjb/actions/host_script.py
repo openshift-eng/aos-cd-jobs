@@ -14,7 +14,7 @@ class HostScriptAction(Action):
 
     def __init__(self, script, title):
         self.script = script
-        if title == None:
+        if title is None:
             title = _HOST_SCRIPT_TITLE
         self.title = title
 

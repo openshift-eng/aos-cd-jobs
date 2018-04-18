@@ -29,6 +29,15 @@ is:
 children: [] # a list of job names (YAML filenames without extension under sjb/config/test_cases)
 ```
 
+## `concurrent`
+
+`concurrent` enables or disables concurrent builds. Defaults to `True`
+The syntax is:
+
+```yaml
+concurrent: True # or False
+```
+
 ## `parent`
 
 `parent` is an optional string field that takes already existing
@@ -129,7 +138,11 @@ parameters:
 ## `provision`
 
 `provision` is a required field which gives the options for provisioning a VM
-in AWS EC2 for the job. The syntax is:
+in AWS EC2 for the job.
+
+The `validate` flag toggles behavior specific to image validation jobs. When `True`, the job will provision an instance from the newest matching image **only if** that image **is not** tagged `ready` = `yes`. When `False`, the job will provision an instance from the newest matching image that **is** tagged `ready` = `yes`.
+
+The syntax is:
 
 ```yaml
 provision:
@@ -137,6 +150,7 @@ provision:
   stage: ""         # image stage. one of ['bare', 'base', 'build', 'install', 'fork']
   provider: ""      # cloud provider. only 'aws' is supported
   instance_type: "" # instance type to provision in the cloud [optional]
+  validate: False   # boolean flag - True for image validation jobs. defaults to False
 ```
 
 ## `sync_repos`

@@ -1,0 +1,23 @@
+---
+provision:
+  os: "rhel"
+  stage: "bare"
+  provider: "aws"
+parameters:
+  - name: "GRANT_LAUNCH_OPTS"
+    description: "AWS Account ID to grant launch permissions to when building images."
+    default_value: "--grant-launch 460538899914"
+artifacts:
+  - "/data/src/github/openshift/origin/_output/scripts"
+generated_artifacts:
+  installed_packages.log: 'sudo yum list installed'
+  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR'
+  docker.info: 'sudo docker version && sudo docker info && sudo docker images && sudo docker ps -a'
+  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+system_journals:
+  - docker.service
+  - origin-master.service
+  - origin-master-api.service
+  - origin-master-controllers.service
+  - origin-node.service
+  - systemd-journald.service

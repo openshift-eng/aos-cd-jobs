@@ -254,8 +254,6 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
 TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-  -e &#34;openshift_test_repo=https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.9/origin.repo&#34; \
-  -e &#34;debug_level=5&#34; \
   -e &#34;openshift_azure_base_image_ns=magentaciimages&#34; \
   -e &#34;openshift_azure_image=openshift-gi-\${INSTANCE_PREFIX}&#34; \
   -e &#34;openshift_azure_clusterid=magentaciimages&#34; \

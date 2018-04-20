@@ -200,3 +200,12 @@ extensions:
           -e "openshift_azure_clusterid=ci${INSTANCE_PREFIX//-}" \
           playbooks/${CLUSTER_PROFILE}/openshift-cluster/deprovision.yml
         popd
+    - type: "host_script"
+      title: "delete PR images"
+      repository: "release"
+      timeout: 900
+      script: |-
+        trap 'exit 0' EXIT
+        source ./INSTANCE_PREFIX
+        export KUBECONFIG=/var/lib/jenkins/secrets/image-pr-push.kubeconfig
+        oc get is -o name -n ci-pr-images | grep "${INSTANCE_PREFIX}" | xargs -r oc delete

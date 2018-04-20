@@ -30,17 +30,20 @@ actions:
       ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/azure/'
 
   - type: "script"
-    title: "build base image"
+    title: "build node image"
     script: |-
       cd release/cluster/test-deploy/azure
       TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
         -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
         -e "openshift_azure_resource_location=eastus" \
         -e "openshift_azure_input_image_ns=images" \
-        -e "openshift_azure_input_image_prefix=rhel7-root" \
+        -e "openshift_azure_input_image_prefix=centos7-base" \
         -e "openshift_azure_output_image_ns=images" \
-        -e "openshift_azure_output_image_prefix=rhel7-base" \
-        playbooks/azure/openshift-cluster/build_base_image.yml
+        -e "openshift_azure_output_image_prefix=centos7" \
+        -e "openshift_azure_storage_account=openshiftimages" \
+        -e "openshift_azure_storage_account_ns=images" \
+        -e "openshift_azure_container=images" \
+        playbooks/azure/openshift-cluster/build_node_image.yml
 
 post_actions:
   - type: "script"

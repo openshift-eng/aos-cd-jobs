@@ -8,6 +8,8 @@ overrides:
     - "openshift,origin-web-console-server=release-3.9"
     - "openshift,aos-cd-jobs=master"
     - "openshift,release=master"
+  email:
+  - aos-azure@redhat.com
 extensions:
   parameters:
     - name: "SUITE"

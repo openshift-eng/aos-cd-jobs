@@ -4,17 +4,8 @@ extensions:
   sync:
     - "openshift,release=master"
   parameters:
-    - name: "CLUSTER_PROFILE"
-      description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
-      default_value: "azure"
     - name: "FOCUS"
       description: "Literal string to pass to <code>--ginkgo.focus</code>"
-    - name: "OPENSHIFT_ANSIBLE_IMAGE"
-      description: >
-        The image to install the cluster with. If set, defaults to the value defined by the
-        <a href='https://github.com/openshift/release/blob/master/cluster/bin/local.sh'><code>cluster/bin/local.sh</code></a>
-        script.
-      default_value: "openshift/origin-ansible:latest"
     - name: "ADDITIONAL_SKIP"
       description: |-
         Regular expression to filter additional tests from the conformance suite.
@@ -28,29 +19,27 @@ extensions:
   actions:
     - type: "forward_parameters"
       parameters:
-        - OPENSHIFT_ANSIBLE_IMAGE
         - ADDITIONAL_SKIP
         - JOB_NAME
         - BUILD_NUMBER
         - SUITE
         - FOCUS
         - JOB_SPEC
-        - CLUSTER_PROFILE
         - OS_PUSH_BASE_REGISTRY
         - OS_PUSH_BASE_REPO
+
     - type: "script"
       title: "clone custom repositories for now"
       script: |-
-        git clone --branch azure_provisioning https://github.com/kwoodson/openshift-ansible.git
-        git clone --branch azure https://github.com/pschiffe/release.git
+        git clone --branch release-3.9 https://github.com/openshift/openshift-ansible.git
+        git clone --branch azure https://github.com/jim-minter/release.git
 
     - type: "script"
       title: "build openshift-ansible image"
       timeout: 900
       script: |-
-        pushd openshift-ansible
+        cd openshift-ansible
         docker build -f images/installer/Dockerfile -t openshift/origin-ansible:latest .
-        popd
 
     # calculate the instance prefix
     - type: "host_script"
@@ -65,6 +54,10 @@ extensions:
         echo "OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-" >> INSTANCE_PREFIX
         # hack around forwarding this to the other machine
         cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >> /etc/environment"
+        job=$JOB_NAME
+        job=${job/pull_request/pr}
+        job=${job/conformance/c}
+        echo "RESOURCE_GROUP=ci-$job-$BUILD_NUMBER" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
 
     # publish artifacts
     - type: "host_script"
@@ -157,49 +150,48 @@ extensions:
     - type: "host_script"
       title: "move secrets to remote host"
       script: |-
-        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/
-        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
-        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/home/origin/release/cluster/test-deploy/azure/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /home/origin/release/cluster/test-deploy/azure/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/azure/'
 
     - type: "script"
       title: "build node image"
       script: |-
-        pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
-        TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-          -e "openshift_test_repo=${location_url}" \
-          -e "debug_level=4" \
-          -e "openshift_azure_base_image_ns=magentaciimages" \
-          -e "openshift_azure_image=openshift-gi-$(date +%Y%m%d%H%M%S)" \
-          -e "openshift_azure_clusterid=ci${INSTANCE_PREFIX//-}" \
-          playbooks/${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
-        popd
+        suffix='origin-${component}'
+        suffix="${suffix}:$(cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG)"
+        cd release/cluster/test-deploy/azure
+        TYPE=azure ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
+          -e "openshift_azure_resource_location=eastus" \
+          -e "openshift_azure_input_image_ns=images" \
+          -e "openshift_azure_input_image_prefix=centos7-base" \
+          -e "openshift_azure_output_image_ns=$RESOURCE_GROUP" \
+          -e "openshift_azure_output_image_prefix=centos7" \
+          -e "openshift_azure_install_repo=$location_url" \
+          -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
+          playbooks/azure/openshift-cluster/build_node_image.yml
 
     - type: "script"
       title: "provision test cluster"
-      timeout: 900
       script: |-
-        sudo systemctl restart docker
+        cd release/cluster/test-deploy/azure
+        TYPE=azure ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
+          -e "openshift_azure_resource_location=eastus" \
+          -e "openshift_azure_input_image_ns=$RESOURCE_GROUP" \
+          -e "openshift_azure_input_image_prefix=centos7" \
+          playbooks/azure/openshift-cluster/launch.yml
 
-        suffix='origin-${component}'
-        suffix="${suffix}:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )"
-        pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
-        TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-          -e "openshift_test_repo=${location_url}" \
-          -e "debug_level=4" \
-          -e "openshift_azure_clusterid=ci${INSTANCE_PREFIX//-}" \
-          playbooks/${CLUSTER_PROFILE}/openshift-cluster/launch.yml
-        popd
   post_actions:
     - type: "script"
       title: "deprovision test cluster"
-      timeout: 900
       script: |-
         trap 'exit 0' EXIT
-        pushd release/cluster/test-deploy/${CLUSTER_PROFILE}
-        TYPE=$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-          -e "openshift_azure_clusterid=ci${INSTANCE_PREFIX//-}" \
-          playbooks/${CLUSTER_PROFILE}/openshift-cluster/deprovision.yml
-        popd
+        cd release/cluster/test-deploy/azure
+        TYPE=azure ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
+          playbooks/azure/openshift-cluster/deprovision.yml
+
     - type: "host_script"
       title: "delete PR images"
       repository: "release"

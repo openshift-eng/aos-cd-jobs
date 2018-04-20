@@ -19,20 +19,9 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>CLUSTER_PROFILE</name>
-          <description>The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster.</description>
-          <defaultValue>azure</defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
           <name>FOCUS</name>
           <description>Literal string to pass to &lt;code&gt;--ginkgo.focus&lt;/code&gt;</description>
           <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>OPENSHIFT_ANSIBLE_IMAGE</name>
-          <description>The image to install the cluster with. If set, defaults to the value defined by the &lt;a href=&#39;https://github.com/openshift/release/blob/master/cluster/bin/local.sh&#39;&gt;&lt;code&gt;cluster/bin/local.sh&lt;/code&gt;&lt;/a&gt; script.
-</description>
-          <defaultValue>openshift/origin-ansible:latest</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>ADDITIONAL_SKIP</name>
@@ -455,14 +444,12 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_IMAGE=${OPENSHIFT_ANSIBLE_IMAGE:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;ADDITIONAL_SKIP=${ADDITIONAL_SKIP:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;SUITE=${SUITE:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;FOCUS=${FOCUS:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;CLUSTER_PROFILE=${CLUSTER_PROFILE:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REGISTRY=${OS_PUSH_BASE_REGISTRY:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
@@ -475,8 +462,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-git clone --branch azure_provisioning https://github.com/kwoodson/openshift-ansible.git
-git clone --branch azure https://github.com/pschiffe/release.git
+git clone --branch release-3.9 https://github.com/openshift/openshift-ansible.git
+git clone --branch azure https://github.com/jim-minter/release.git
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -490,9 +477,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-pushd openshift-ansible
+cd openshift-ansible
 docker build -f images/installer/Dockerfile -t openshift/origin-ansible:latest .
-popd
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -509,7 +495,11 @@ echo &#34;INSTANCE_PREFIX=${INSTANCE_PREFIX:-}&#34; &gt;&gt; INSTANCE_PREFIX
 echo &#34;OS_TAG=$( ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT&#34; )&#34; &gt;&gt; INSTANCE_PREFIX
 echo &#34;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO}${INSTANCE_PREFIX}-&#34; &gt;&gt; INSTANCE_PREFIX
 # hack around forwarding this to the other machine
-cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt; /etc/environment&#34;</command>
+cat INSTANCE_PREFIX | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt; /etc/environment&#34;
+job=$JOB_NAME
+job=${job/pull_request/pr}
+job=${job/conformance/c}
+echo &#34;RESOURCE_GROUP=ci-$job-$BUILD_NUMBER&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -652,9 +642,9 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE SECRETS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE SECRETS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-rsync --copy-links --omit-dir-times --archive --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; /var/lib/jenkins/.azure/* openshiftdevel:/home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chown -R origin:origin-git /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/&#39;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/${CLUSTER_PROFILE}/&#39;</command>
+rsync --copy-links --omit-dir-times --archive --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; /var/lib/jenkins/.azure/* openshiftdevel:/home/origin/release/cluster/test-deploy/azure/
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chown -R origin:origin-git /home/origin/release/cluster/test-deploy/azure/&#39;
+ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/azure/&#39;</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -664,15 +654,19 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
-TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-  -e &#34;openshift_test_repo=\${location_url}&#34; \
-  -e &#34;debug_level=4&#34; \
-  -e &#34;openshift_azure_base_image_ns=magentaciimages&#34; \
-  -e &#34;openshift_azure_image=openshift-gi-\$(date +%Y%m%d%H%M%S)&#34; \
-  -e &#34;openshift_azure_clusterid=ci\${INSTANCE_PREFIX//-}&#34; \
-  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/build_image.yml
-popd
+suffix=&#39;origin-\${component}&#39;
+suffix=&#34;\${suffix}:\$(cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG)&#34;
+cd release/cluster/test-deploy/azure
+TYPE=azure ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
+  -e &#34;openshift_azure_resource_location=eastus&#34; \
+  -e &#34;openshift_azure_input_image_ns=images&#34; \
+  -e &#34;openshift_azure_input_image_prefix=centos7-base&#34; \
+  -e &#34;openshift_azure_output_image_ns=\$RESOURCE_GROUP&#34; \
+  -e &#34;openshift_azure_output_image_prefix=centos7&#34; \
+  -e &#34;openshift_azure_install_repo=\$location_url&#34; \
+  -e &#34;oreg_url=\${OS_PUSH_BASE_REGISTRY}\${OS_PUSH_BASE_REPO}\${suffix}&#34; \
+  playbooks/azure/openshift-cluster/build_node_image.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -686,21 +680,17 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-sudo systemctl restart docker
-
-suffix=&#39;origin-\${component}&#39;
-suffix=&#34;\${suffix}:\$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )&#34;
-pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
-TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-  -e &#34;openshift_test_repo=\${location_url}&#34; \
-  -e &#34;debug_level=4&#34; \
-  -e &#34;openshift_azure_clusterid=ci\${INSTANCE_PREFIX//-}&#34; \
-  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/launch.yml
-popd
+cd release/cluster/test-deploy/azure
+TYPE=azure ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
+  -e &#34;openshift_azure_resource_location=eastus&#34; \
+  -e &#34;openshift_azure_input_image_ns=\$RESOURCE_GROUP&#34; \
+  -e &#34;openshift_azure_input_image_prefix=centos7&#34; \
+  playbooks/azure/openshift-cluster/launch.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 900 ${script}\&#34;&#34; </command>
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -816,15 +806,14 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
-pushd release/cluster/test-deploy/\${CLUSTER_PROFILE}
-TYPE=\$CLUSTER_PROFILE ../../bin/ansible.sh ansible-playbook \
-  -e &#34;openshift_azure_clusterid=ci\${INSTANCE_PREFIX//-}&#34; \
-  playbooks/\${CLUSTER_PROFILE}/openshift-cluster/deprovision.yml
-popd
+cd release/cluster/test-deploy/azure
+TYPE=azure ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
+  playbooks/azure/openshift-cluster/deprovision.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 900 ${script}\&#34;&#34; </command>
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

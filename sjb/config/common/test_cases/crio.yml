@@ -86,6 +86,23 @@ actions:
       fi
 post_actions:
   - type: "host_script"
+    title: "Produce and Retrieve artifacts from sequence of commands"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      DESTDIR="${WORKSPACE}/artifacts/generated"
+      set +e
+      SSH="ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel"
+      mkdir -p "$DESTDIR"
+      $SSH 'sudo yum list installed' &> "$DESTDIR/installed_packages.log"
+      $SSH 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC' &> "$DESTDIR/avc_denials.log"
+      $SSH 'sudo journalctl _PID=1 --no-pager --all --lines=all' &> "$DESTDIR/pid1.journal"
+      $SSH 'sudo journalctl --no-pager --boot' &> "$DESTDIR/system.journal"
+      $SSH 'sudo df -h' &> "$DESTDIR/filesystem.info"
+      $SSH 'sudo pvs' &>> "$DESTDIR/filesystem.info"
+      $SSH 'sudo vgs' &>> "$DESTDIR/filesystem.info"
+      $SSH 'sudo lvs' &>> "$DESTDIR/filesystem.info"
+  - type: "host_script"
     title: "assemble GCS output"
     timeout: 300
     script: |-
@@ -102,7 +119,6 @@ post_actions:
       cp -r artifacts/gathered/* gcs/artifacts/ || true
       cp artifacts/generated/* gcs/artifacts/generated/ || true
       cp artifacts/journals/* gcs/artifacts/journals/ || true
-
       scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
       scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
   - type: "script"
@@ -124,7 +140,6 @@ artifacts:
   - /go/src/k8s.io/kubernetes/e2e.log
   - /go/src/github.com/kubernetes-incubator/cri-o/testout.txt
   - /go/src/github.com/kubernetes-incubator/cri-o/reports
-  - /tmp/artifacts
   - /tmp/kubelet.log
   - /tmp/kube-apiserver.log
   - /tmp/kube-controller-manager.log
@@ -132,12 +147,6 @@ artifacts:
   - /tmp/kube-proxy.yaml
   - /tmp/kube-scheduler.log
   - /etc/crio/crio.conf
-generated_artifacts:
-  installed_packages.log: 'sudo yum list installed'
-  avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
-  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
-  pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
-  system.journal: 'sudo journalctl --no-pager --boot'
 system_journals:
   - crio.service
   - customcluster.service

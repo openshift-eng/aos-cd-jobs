@@ -136,6 +136,6 @@ $MIRROR_SSH sh -s <<-EOF
   ln -sfn ${MIRROR_PATH}/${VERSIONED_DIR} latest
 
   # Synchronize the changes to the mirrors
-  /usr/local/bin/push.enterprise.sh ${REPO} -v
-  /usr/local/bin/push.enterprise.sh all -v
+  timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v || timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v
+  timeout 1h /usr/local/bin/push.enterprise.sh all -v || timeout 1h /usr/local/bin/push.enterprise.sh all -v
 EOF

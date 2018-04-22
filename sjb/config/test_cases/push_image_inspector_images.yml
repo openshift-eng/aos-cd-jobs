@@ -4,8 +4,6 @@ overrides:
   email:
     - efreiber@redhat.com
     - fsimonce@redhat.com
-  sync_repos:
-    - name: "image-inspector"
 extensions:
   actions:
     - type: "script"

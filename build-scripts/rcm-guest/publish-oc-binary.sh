@@ -64,4 +64,4 @@ rsync \
     use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v3/clients/
 ssh -l jenkins_aos_cd_bot -o StrictHostKeychecking=no \
     use-mirror-upload.ops.rhcloud.com \
-    /usr/local/bin/push.pub.sh openshift-v3 -v
+    timeout 15m /usr/local/bin/push.pub.sh openshift-v3 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v3 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v3 -v

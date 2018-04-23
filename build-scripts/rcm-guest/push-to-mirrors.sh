@@ -135,7 +135,7 @@ $MIRROR_SSH sh -s <<-EOF
   # Replace any existing latest directory to point to the last build.
   ln -sfn ${MIRROR_PATH}/${VERSIONED_DIR} latest
 
-  # Synchronize the changes to the mirrors
-  timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v || timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v
-  timeout 1h /usr/local/bin/push.enterprise.sh all -v || timeout 1h /usr/local/bin/push.enterprise.sh all -v
+  # Synchronize the changes to the mirrors; retry to workaround current ops mirror flakes
+  timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v || timeout 30m /usr/local/bin/push.enterprise.sh ${REPO} -v || timeout 30m /usr/local/bin/push.enterprise.sh ${REPO} -v
+  timeout 1h /usr/local/bin/push.enterprise.sh all -v || timeout 30m /usr/local/bin/push.enterprise.sh all -v || timeout 30m /usr/local/bin/push.enterprise.sh all -v
 EOF

@@ -1,2 +1,7 @@
 ---
 parent: 'test_cases/test_branch_origin_service_catalog.yml'
+overrides:
+  sync_repos:
+    - name: "origin"
+      type: "pull_request"
+    - name: "service-catalog"

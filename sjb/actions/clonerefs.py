@@ -13,6 +13,9 @@ _PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinitio
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
+_GCS_UPLOAD = """docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+"""
+
 _CLONEREFS_ACTION_TEMPLATE = Template("""if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
   echo "Keeping BUILD_ID"
 else
@@ -28,7 +31,7 @@ for image in 'registry.svc.ci.openshift.org/ci/clonerefs:latest' 'registry.svc.c
 done
 clonerefs_args=${CLONEREFS_ARGS:-{% for repo in repos %}--repo={{repo}} {% endfor %}}
 docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json ${clonerefs_args}
-docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+{{upload_to_gcs_step}}
 sudo chmod -R a+rwX /data
 sudo chown -R origin:origin-git /data
 """)
@@ -59,19 +62,37 @@ class ClonerefsAction(Action):
         ]
 
     def generate_build_steps(self):
-        return [render_task(
-            title="FORWARD GCS CREDENTIALS TO REMOTE HOST",
-            command="""for (( i = 0; i < 10; i++ )); do
-    if scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
-        break
-    fi
-done"""
-        )] + ForwardParametersAction(
+        steps = []
+        upload_to_gcs_step = ""
+        if self.output_format == "xml":
+            steps = [render_task(
+                    title="FORWARD GCS CREDENTIALS TO REMOTE HOST",
+                    command="""for (( i = 0; i < 10; i++ )); do
+            if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
+                break
+            fi
+        done""",
+                    output_format=self.output_format
+                )
+            ]
+            upload_to_gcs_step = _GCS_UPLOAD
+
+
+
+        forward_action = ForwardParametersAction(
             parameters=['JOB_SPEC', 'buildId', 'BUILD_ID', 'REPO_OWNER', 'REPO_NAME', 'PULL_BASE_REF', 'PULL_BASE_SHA',
-                        'PULL_REFS', 'PULL_NUMBER', 'PULL_PULL_SHA', 'JOB_SPEC', 'BUILD_NUMBER', 'CLONEREFS_ARGS']
-        ).generate_build_steps() + ScriptAction(
+            'PULL_REFS', 'PULL_NUMBER', 'PULL_PULL_SHA', 'JOB_SPEC', 'BUILD_NUMBER', 'CLONEREFS_ARGS']
+        )
+        forward_action.output_format = self.output_format
+        steps += forward_action.generate_build_steps()
+
+        script_action = ScriptAction(
             repository=None,
             title="SYNC REPOSITORIES",
-            script=_CLONEREFS_ACTION_TEMPLATE.render(repos=self.repos),
+            script=_CLONEREFS_ACTION_TEMPLATE.render(repos=self.repos, upload_to_gcs_step=upload_to_gcs_step),
             timeout=None
-        ).generate_build_steps()
+        )
+        script_action.output_format = self.output_format
+        steps += script_action.generate_build_steps()
+
+        return steps

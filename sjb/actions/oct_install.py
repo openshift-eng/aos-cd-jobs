@@ -30,5 +30,6 @@ class OCTInstallAction(Action):
     def generate_build_steps(self):
         return [render_task(
             title=_OCT_INSTALL_TITLE,
-            command=_OCT_INSTALL_ACTION
+            command=_OCT_INSTALL_ACTION,
+            output_format=self.output_format
         )]

@@ -222,36 +222,36 @@ oct sync remote kubernetes-metrics-server --branch &#34;${KUBERNETES_METRICS_SER
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;AOS_CD_JOBS_TARGET_BRANCH=${AOS_CD_JOBS_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;buildId=${buildId:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_ID=${BUILD_ID:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PROW_JOB_ID=${PROW_JOB_ID:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_TARGET_BRANCH=${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_PULL_ID=${OPENSHIFT_ANSIBLE_PULL_ID:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;ORIGIN_TARGET_BRANCH=${ORIGIN_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;IMAGE_REGISTRY_TARGET_BRANCH=${IMAGE_REGISTRY_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;KUBERNETES_METRICS_SERVER_TARGET_BRANCH=${KUBERNETES_METRICS_SERVER_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;AOS_CD_JOBS_TARGET_BRANCH=${AOS_CD_JOBS_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;buildId=${buildId:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_ID=${BUILD_ID:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PROW_JOB_ID=${PROW_JOB_ID:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_TARGET_BRANCH=${OPENSHIFT_ANSIBLE_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OPENSHIFT_ANSIBLE_PULL_ID=${OPENSHIFT_ANSIBLE_PULL_ID:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;ORIGIN_TARGET_BRANCH=${ORIGIN_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;IMAGE_REGISTRY_TARGET_BRANCH=${IMAGE_REGISTRY_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;KUBERNETES_METRICS_SERVER_TARGET_BRANCH=${KUBERNETES_METRICS_SERVER_TARGET_BRANCH:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_BASE_REF=${PULL_BASE_REF:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_BASE_SHA=${PULL_BASE_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_PULL_SHA=${PULL_PULL_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_OWNER=${REPO_OWNER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;REPO_NAME=${REPO_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_BASE_REF=${PULL_BASE_REF:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_BASE_SHA=${PULL_BASE_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_REFS=${PULL_REFS:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_NUMBER=${PULL_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PULL_PULL_SHA=${PULL_PULL_SHA:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_NAME=${JOB_NAME:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -266,15 +266,15 @@ trap &#39;exit 0&#39; EXIT
 sjb/gcs/started.py
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: UPLOAD GCS STARTING METADATA ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPLOAD GCS STARTING METADATA [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 trap &#39;exit 0&#39; EXIT
 mkdir -p gcs/
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/started.json gcs/
 
 if [[ &#34;$( jq --compact-output &#34;.buildid&#34; &lt;&lt;&lt;&#34;${JOB_SPEC}&#34; )&#34; =~ ^\&#34;[0-9]+\&#34;$ ]]; then
   echo &#34;Keeping BUILD_ID&#34;
@@ -348,8 +348,8 @@ echo &#34;ETCD_DATA_DIR=/tmp/etcd&#34; &gt;&gt; /etc/environment
 SUDO
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -385,8 +385,8 @@ if [[ &#34;\${JOB_NAME}&#34; == *update* ]]; then
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -411,8 +411,8 @@ REPO
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -430,8 +430,8 @@ sed -i &#39;s|go/src|data/src|&#39; _output/local/releases/rpms/origin-local-rel
 sudo cp _output/local/releases/rpms/origin-local-release.repo /etc/yum.repos.d/
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -455,8 +455,8 @@ EOR
 sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -475,8 +475,8 @@ sudo yum install -y &#34;openshift-ansible\${last_tag/openshift-ansible}.git.0.\
 rpm -V &#34;openshift-ansible\${last_tag/openshift-ansible}.git.0.\${last_commit}.el7&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -489,8 +489,8 @@ cd &#34;\${HOME}&#34;
 sudo yum install -y skopeo
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -510,8 +510,8 @@ done
 sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_whitelist.*/callback_whitelist = generate_junit/&#39; /etc/ansible/ansible.cfg
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -533,8 +533,8 @@ else
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -550,8 +550,8 @@ if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -567,8 +567,8 @@ if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;master&#34; || &#34;\${PULL_BASE_REF}&
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -583,8 +583,8 @@ for i in \$(docker images --format &#39;{{.Repository}}:{{.Tag}}&#39; | grep -v 
 done
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 10800 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 10800 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -628,8 +628,8 @@ ansible-playbook -vv --become               \
                  /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -690,8 +690,8 @@ ansible-playbook -vv --become               \
                  \${playbook}
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 7200 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 7200 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -705,8 +705,8 @@ sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
 sudo chmod a+rw /etc/origin/master/admin.kubeconfig
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -720,8 +720,8 @@ origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#
 rpm -V &#34;\${origin_package}&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 600 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -735,8 +735,8 @@ OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64
 OPENSHIFT_SKIP_BUILD=&#39;true&#39; KUBECONFIG=/etc/origin/master/admin.kubeconfig TEST_ONLY=true JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=conformance
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>
@@ -749,21 +749,21 @@ trap &#39;exit 0&#39; EXIT
 ARTIFACT_DIR=&#34;$( pwd )/artifacts/gathered&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir -p &#34;${ARTIFACT_DIR}&#34;
-if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /data/src/github.com/openshift/origin/_output/scripts; then
-    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin/_output/scripts
-    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin/_output/scripts &#34;${ARTIFACT_DIR}&#34;
+if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /data/src/github.com/openshift/origin/_output/scripts; then
+    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /data/src/github.com/openshift/origin/_output/scripts
+    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/origin/_output/scripts &#34;${ARTIFACT_DIR}&#34;
 fi
-if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /var/log/pods; then
-    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /var/log/pods
-    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/var/log/pods &#34;${ARTIFACT_DIR}&#34;
+if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /var/log/pods; then
+    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /var/log/pods
+    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/var/log/pods &#34;${ARTIFACT_DIR}&#34;
 fi
-if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /etc/crio; then
-    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /etc/crio
-    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/etc/crio &#34;${ARTIFACT_DIR}&#34;
+if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /etc/crio; then
+    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /etc/crio
+    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/etc/crio &#34;${ARTIFACT_DIR}&#34;
 fi
-if ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /etc/systemd/system; then
-    ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /etc/systemd/system
-    scp -r -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/etc/systemd/system &#34;${ARTIFACT_DIR}&#34;
+if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /etc/systemd/system; then
+    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /etc/systemd/system
+    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/etc/systemd/system &#34;${ARTIFACT_DIR}&#34;
 fi
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
@@ -774,21 +774,21 @@ trap &#39;exit 0&#39; EXIT
 ARTIFACT_DIR=&#34;$( pwd )/artifacts/generated&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/crio/crio.conf 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.conf&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.info&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo runc exec cri-o crio --version 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.commit&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.config&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /var/log/audit/audit.log 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/auditd.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/containers.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/node-metrics.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m avc -ts recent 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_selinux_denials.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/master-metrics.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo df -T -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs &amp;&amp; sudo findmnt --all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/filesystem.info&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl -xe 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/journal_xe.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo yum list installed 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/installed_packages.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;dmesg 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/dmesg.log&#34; || true
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl _PID=1 --no-pager --all --lines=all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/pid1.journal&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/crio/crio.conf 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.conf&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo docker version &amp;&amp; sudo docker info &amp;&amp; sudo docker images &amp;&amp; sudo docker ps -a 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.info&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo runc exec cri-o crio --version 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/crio.commit&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /etc/sysconfig/docker /etc/sysconfig/docker-network /etc/sysconfig/docker-storage /etc/sysconfig/docker-storage-setup /etc/systemd/system/docker.service 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/docker.config&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo cat /var/log/audit/audit.log 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/auditd.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo find /var/lib/docker/containers -name *.log | sudo xargs tail -vn +1 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/containers.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --server=https://\$( uname --nodename ):10250 --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/node-metrics.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_denials.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo ausearch -m avc -ts recent 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/avc_selinux_denials.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;oc get --raw /metrics --config=/etc/origin/master/admin.kubeconfig 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/master-metrics.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo df -T -h &amp;&amp; sudo pvs &amp;&amp; sudo vgs &amp;&amp; sudo lvs &amp;&amp; sudo findmnt --all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/filesystem.info&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl -xe 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/journal_xe.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo yum list installed 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/installed_packages.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;dmesg 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/dmesg.log&#34; || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;sudo journalctl _PID=1 --no-pager --all --lines=all 2&gt;&amp;1&#34; &gt;&gt; &#34;${ARTIFACT_DIR}/pid1.journal&#34; || true
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -798,19 +798,19 @@ trap &#39;exit 0&#39; EXIT
 ARTIFACT_DIR=&#34;$( pwd )/artifacts/journals&#34;
 rm -rf &#34;${ARTIFACT_DIR}&#34;
 mkdir &#34;${ARTIFACT_DIR}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit docker.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/docker.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit dnsmasq.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/dnsmasq.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/systemd-journald.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master-api.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master-api.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master-controllers.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master-controllers.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-node.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-node.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit openvswitch.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/openvswitch.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovs-vswitchd.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovsdb-server.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit etcd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/etcd.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit cri-o.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/cri-o.service&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/systemd-journald.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit docker.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/docker.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit dnsmasq.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/dnsmasq.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/systemd-journald.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master-api.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master-api.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-master-controllers.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-master-controllers.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit origin-node.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/origin-node.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit openvswitch.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/openvswitch.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovs-vswitchd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovs-vswitchd.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit ovsdb-server.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/ovsdb-server.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit etcd.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/etcd.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit cri-o.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/cri-o.service&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo journalctl --unit systemd-journald.service --no-pager --all --lines=all &gt;&gt; &#34;${ARTIFACT_DIR}/systemd-journald.service&#34;
 tree &#34;${ARTIFACT_DIR}&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -830,8 +830,8 @@ cp artifacts/generated/* gcs/artifacts/generated/
 cp artifacts/journals/* gcs/artifacts/journals/
 cp -r artifacts/gathered/* gcs/artifacts/
 
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r &#34;$( pwd )/gcs&#34; openshiftdevel:/data
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json</command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -r &#34;$( pwd )/gcs&#34; openshiftdevel:/data
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -853,8 +853,8 @@ if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;
-scp -F ./.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

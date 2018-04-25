@@ -97,3 +97,9 @@ ENV/
 # Ansible bits
 *.retry
 
+# Credentials
+.aws_credentials
+.libra.pem
+
+# Generated shell files
+sjb/generated/*.sh

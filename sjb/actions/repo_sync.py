@@ -79,7 +79,8 @@ class SyncAction(Action):
     def generate_build_steps(self):
         return [render_task(
             title=_SYNC_TITLE_TEMPLATE.render(repository=self.repository),
-            command=_SYNC_ACTION_TEMPLATE.render(repository=self.repository, dependency_repository=self.dependency_repository)
+            command=_SYNC_ACTION_TEMPLATE.render(repository=self.repository, dependency_repository=self.dependency_repository),
+            output_format=self.output_format
         )]
 
     def description(self):

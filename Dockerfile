@@ -47,7 +47,7 @@ ENV CLONEREFS_ARGS ''
 # env
 ENV WORKSPACE /code
 ENV JOB_NAME "vrutkovs"
-ENV TEST "test_pull_request_openshift_ansible_extended_conformance_install"
+ENV TEST "test_pull_request_openshift_ansible_extended_conformance_install_system_containers_39"
 
 ADD . /code
 WORKDIR /code

@@ -32,7 +32,7 @@ RUN mkdir -p /root/oct-venv/bin && \
 # oct
 ENV ANSIBLE_ROLES_PATH /usr/lib/python2.7/site-packages/oct/ansible/oct/roles
 # Job specific
-ENV BUILD_NUMBER "41"
+ENV BUILD_NUMBER "release39-system-containersflake"
 ENV JOB_SPEC '{"type":"presubmit","job":"test_pull_request_openshift_ansible_extended_conformance_install_system_containers_39","buildid":"b4fde4ea-4885-11e8-bde9-0a58ac1004b5","refs":{"org":"openshift","repo":"openshift-ansible","base_ref":"release-3.9","base_sha":"52a8a84d00bd0b27b9d82ce87febfb409f86775b","pulls":[{"number":8106,"author":"vrutkovs","sha":"78668485c896643140261078210d2cf151903e98"}]}}'
 ENV buildId 'b4fde4ea-4885-11e8-bde9-0a58ac1004b5'
 ENV BUILD_ID 'b4fde4ea-4885-11e8-bde9-0a58ac1004b5'

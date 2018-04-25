@@ -158,7 +158,7 @@ if job_type == "test":
 
         if len(sync_actions) > 0:
             debug("[INFO] Coalescing into multi sync")
-            actions.append(MultiSyncAction(sync_actions))
+            actions.append(MultiSyncAction(output_format, sync_actions))
 
     # we need to expose the extra -e vars to the steps
     if "evars" in job_config:

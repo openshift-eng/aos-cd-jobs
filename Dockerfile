@@ -33,16 +33,16 @@ RUN mkdir -p /root/oct-venv/bin && \
 ENV ANSIBLE_ROLES_PATH /usr/lib/python2.7/site-packages/oct/ansible/oct/roles
 # Job specific
 ENV BUILD_NUMBER "41"
-ENV JOB_SPEC '{"type":"presubmit","job":"test_pull_request_openshift_ansible_logging_37","buildid":"e9ef0abe-22e7-11e8-80e2-0a58ac100e53","refs":{"org":"openshift","repo":"openshift-ansible","base_ref":"release-3.7","base_sha":"10251ac2b0f0172c9fcefa4de3b265fe6c0ca507","pulls":[{"number":7360,"author":"vrutkovs","sha":"49d7822fea0c4bccce6c80cd027517c9a222211b"}]}}'
-ENV buildId 'e9ef0abe-22e7-11e8-80e2-0a58ac100e53'
-ENV BUILD_ID 'e9ef0abe-22e7-11e8-80e2-0a58ac100e53'
+ENV JOB_SPEC '{"type":"presubmit","job":"test_pull_request_openshift_ansible_extended_conformance_install_system_containers_39","buildid":"b4fde4ea-4885-11e8-bde9-0a58ac1004b5","refs":{"org":"openshift","repo":"openshift-ansible","base_ref":"release-3.9","base_sha":"52a8a84d00bd0b27b9d82ce87febfb409f86775b","pulls":[{"number":8106,"author":"vrutkovs","sha":"78668485c896643140261078210d2cf151903e98"}]}}'
+ENV buildId 'b4fde4ea-4885-11e8-bde9-0a58ac1004b5'
+ENV BUILD_ID 'b4fde4ea-4885-11e8-bde9-0a58ac1004b5'
 ENV REPO_OWNER 'openshift'
 ENV REPO_NAME 'openshift-ansible'
-ENV PULL_BASE_REF 'release-3.7'
-ENV PULL_BASE_SHA '10251ac2b0f0172c9fcefa4de3b265fe6c0ca507'
-ENV PULL_REFS 'release-3.7:10251ac2b0f0172c9fcefa4de3b265fe6c0ca507,7360:49d7822fea0c4bccce6c80cd027517c9a222211b'
-ENV PULL_NUMBER '7360'
-ENV PULL_PULL_SHA '49d7822fea0c4bccce6c80cd027517c9a222211b'
+ENV PULL_BASE_REF 'release-3.9'
+ENV PULL_BASE_SHA '52a8a84d00bd0b27b9d82ce87febfb409f86775b'
+ENV PULL_REFS 'release-3.9:52a8a84d00bd0b27b9d82ce87febfb409f86775b,8106:78668485c896643140261078210d2cf151903e98'
+ENV PULL_NUMBER '8106'
+ENV PULL_PULL_SHA '78668485c896643140261078210d2cf151903e98'
 ENV CLONEREFS_ARGS ''
 # env
 ENV WORKSPACE /code

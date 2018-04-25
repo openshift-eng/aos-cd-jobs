@@ -10,15 +10,13 @@ trap 'set +o xtrace; SCRIPT_END_TIME="$( date +%s )"; ELAPSED_TIME="$(( SCRIPT_E
 set -o errexit -o nounset -o pipefail -o xtrace
 if [[ -s "${WORKSPACE}/activate" ]]; then source "${WORKSPACE}/activate"; fi""")
 
-_NAMED_SHELL_TASK_SH_TEMPLATE = Template("""
-{{ preamble }}
+_NAMED_SHELL_TASK_SH_TEMPLATE = Template("""{{ preamble }}
 {{ command }}
 """)
 
 _NAMED_SHELL_TASK_XML_TEMPLATE = Template("""        <hudson.tasks.Shell>
-          <command>
-          #!/bin/bash
-          {{ shell_command | escape }}</command>
+          <command>#!/bin/bash
+{{ shell_command | escape }}</command>
         </hudson.tasks.Shell>""")
 
 def render_task(title, command, output_format):

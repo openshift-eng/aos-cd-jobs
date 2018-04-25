@@ -30,7 +30,7 @@ class ScriptAction(Action):
     the repository as the working directory.
     """
 
-    def __init__(self, repository, script, title, timeout):
+    def __init__(self, repository, script, title, timeout, output_format):
         self.repository = repository
         self.script = script
         if title == None:
@@ -39,6 +39,7 @@ class ScriptAction(Action):
             timeout = 14400
         self.title = title
         self.timeout = timeout
+        self.output_format = output_format
 
     def generate_build_steps(self):
         return [render_task(

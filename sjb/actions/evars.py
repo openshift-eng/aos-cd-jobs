@@ -15,8 +15,9 @@ class EvarsAction(Action):
     records extra -e vars for the Ansible install
     """
 
-    def __init__(self, evars):
+    def __init__(self, evars, output_format):
         self.evars = evars
+        self.output_format = output_format
 
     def generate_parameters(self):
         return []
@@ -26,5 +27,6 @@ class EvarsAction(Action):
             repository=None,
             title="RECORD EXTRA EVARS",
             script=_EVARS_ACTION_TEMPLATE.render(evars=self.evars),
-            timeout=None
+            timeout=None,
+            output_format = self.output_format
         ).generate_build_steps()

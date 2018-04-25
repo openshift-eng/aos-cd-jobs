@@ -1,0 +1,94 @@
+#!/usr/bin/python
+#
+# Analyzes an upgrade log and produces a summary of high-level
+# operations, Ansible plays, and input requests; with the line
+# numbers from the upgrade log for further details.
+#
+
+import argparse
+import datetime
+import dateutil.parser
+import re
+import sys
+
+class Line(object):
+
+    MIN_DURATION_SECONDS = 10
+
+    def __init__(self, lineno, message):
+        self.lineno = lineno
+        self.message = message
+        self.timestamp = None
+        self.duration = datetime.timedelta()
+
+    def __str__(self):
+        string = '{0: >6} : {1}'.format(self.lineno, self.message)
+        if self.timestamp:
+            string += self.timestamp.strftime(' (%H:%M:%S %Z)')
+        if self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
+            string += ' took {0}s'.format(self.duration)
+        return string
+
+
+def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('infile', nargs='?',
+                        type=argparse.FileType('r'),
+                        default=sys.stdin)
+    args = parser.parse_args(sys.argv[1:])
+
+    linebuffer = []
+    lineno = 0
+    saw_task_start = False
+    saw_input_requested = False
+
+    # Compile regexp patterns
+    re_operation = re.compile('Running operation: [a-z-]+')
+    re_play      = re.compile('PLAY \[.*\]')
+    re_timestamp = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
+
+    for line in args.infile:
+        line = line.rstrip()
+        lineno += 1
+
+        if line.startswith('Input requested'):
+            linebuffer.append(Line(lineno, line))
+            saw_input_requested = True
+
+        elif saw_input_requested:
+            linebuffer[-1].message += ' - ' + line
+            saw_input_requested = False
+
+        elif line.startswith('TASK ['):
+            saw_task_start = True
+
+        elif saw_task_start:
+            result = re_timestamp.match(line)
+            if result:
+                if not linebuffer[-1].timestamp:
+                    timestamp = dateutil.parser.parse(result.group(1))
+                    linebuffer[-1].timestamp = timestamp
+                duration = datetime.timedelta(
+                    hours=int(result.group(2)),
+                    minutes=int(result.group(3)),
+                    seconds=int(result.group(4)))
+                linebuffer[-1].duration += duration
+            saw_task_start = False
+
+        else:
+            result = re_operation.match(line)
+            if result:
+                linebuffer.append(Line(lineno, result.group()))
+                continue
+
+            result = re_play.match(line)
+            if result:
+                linebuffer.append(Line(lineno, '  ' + result.group()))
+                continue
+
+    while linebuffer:
+        print linebuffer.pop(0)
+
+if __name__ == '__main__':
+    main()

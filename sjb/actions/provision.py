@@ -27,5 +27,6 @@ class ProvisionAction(Action):
                 os=self.os,
                 stage=self.stage,
                 provider=self.provider,
-            )
+            ),
+            output_format=self.output_format
         )]

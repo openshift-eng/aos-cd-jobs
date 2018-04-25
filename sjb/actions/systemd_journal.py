@@ -29,5 +29,6 @@ class SystemdJournalAction(Action):
     def generate_post_build_steps(self):
         return [render_task(
             title=_FETCH_SYSTEMD_JOURNAL_TITLE,
-            command=_FETCH_SYSTEMD_JOURNAL_ACTION_TEMPLATE.render(units=self.units)
+            command=_FETCH_SYSTEMD_JOURNAL_ACTION_TEMPLATE.render(units=self.units),
+            output_format=self.output_format
         )]

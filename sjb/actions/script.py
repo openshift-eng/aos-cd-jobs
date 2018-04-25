@@ -47,5 +47,6 @@ class ScriptAction(Action):
                 repository=self.repository,
                 command=self.script,
                 timeout=self.timeout
-            )
+            ),
+            output_format=self.output_format
         )]

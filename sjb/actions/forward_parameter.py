@@ -24,5 +24,6 @@ class ForwardParametersAction(Action):
     def generate_build_steps(self):
         return [render_task(
             title=_FORWARD_PARAMETERS_TITLE,
-            command=_FORWARD_PARAMETERS_ACTION_TEMPLATE.render(parameters=self.parameters)
+            command=_FORWARD_PARAMETERS_ACTION_TEMPLATE.render(parameters=self.parameters),
+            output_format=self.output_format
         )]

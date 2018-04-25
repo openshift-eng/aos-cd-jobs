@@ -100,3 +100,6 @@ ENV/
 # Credentials
 .aws_credentials
 .libra.pem
+
+# Generated shell files
+sjb/generated/*.sh

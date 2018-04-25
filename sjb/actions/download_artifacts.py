@@ -32,5 +32,6 @@ class DownloadArtifactsAction(Action):
     def generate_post_build_steps(self):
         return [render_task(
             title=_DOWNLOAD_ARTIFACTS_TITLE,
-            command=_DOWNLOAD_ARTIFACTS_ACTION_TEMPLATE.render(artifacts=self.artifacts)
+            command=_DOWNLOAD_ARTIFACTS_ACTION_TEMPLATE.render(artifacts=self.artifacts),
+            output_format=self.output_format
         )]

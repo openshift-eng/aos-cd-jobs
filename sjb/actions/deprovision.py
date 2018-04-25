@@ -16,5 +16,6 @@ class DeprovisionAction(Action):
     def generate_post_build_steps(self):
         return [render_task(
             title=_DEPROVISION_TITLE,
-            command=_DEPROVISION_ACTION
+            command=_DEPROVISION_ACTION,
+            output_format=self.output_format
         )]

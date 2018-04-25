@@ -98,7 +98,8 @@ class PullRequestSyncAction(Action):
         return self.parent_sync.generate_build_steps() + [
             render_task(
                 title=_PR_SYNC_TITLE_TEMPLATE.render(repository=self.repository),
-                command=_PR_SYNC_ACTION_TEMPLATE.render(repository=self.repository)
+                command=_PR_SYNC_ACTION_TEMPLATE.render(repository=self.repository),
+                output_format=self.output_format
             )
         ]
 

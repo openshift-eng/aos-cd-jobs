@@ -11,7 +11,7 @@ ARTIFACT_DIR="$( pwd )/artifacts/generated"
 rm -rf "${ARTIFACT_DIR}"
 mkdir "${ARTIFACT_DIR}"
 {%- for name, action in artifacts.iteritems() %}
-ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "{{ action }} 2>&1" >> "${ARTIFACT_DIR}/{{ name }}" || true
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "{{ action }} 2>&1" >> "${ARTIFACT_DIR}/{{ name }}" || true
 {%- endfor %}
 tree "${ARTIFACT_DIR}" """)
 
@@ -31,5 +31,6 @@ class GenerateArtifactsAction(Action):
     def generate_post_build_steps(self):
         return [render_task(
             title=_GENERATE_ARTIFACTS_TITLE,
-            command=_GENERATE_ARTIFACTS_ACTION_TEMPLATE.render(artifacts=self.artifacts)
+            command=_GENERATE_ARTIFACTS_ACTION_TEMPLATE.render(artifacts=self.artifacts),
+            output_format=self.output_format
         )]

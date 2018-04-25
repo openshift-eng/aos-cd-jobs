@@ -21,9 +21,10 @@ class MultiSyncAction(Action):
     setting build step.
     """
 
-    def __init__(self, children):
-        self.multi = MultiAction(children)
+    def __init__(self, output_format, children):
+        self.multi = MultiAction(output_format, children)
         self.children = children
+        self.output_format = output_format
 
     def generate_parameters(self):
         return self.multi.generate_parameters()

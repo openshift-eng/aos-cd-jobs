@@ -6,8 +6,8 @@ from actions.named_shell_task import render_task
 from .interface import Action
 
 _FORWARD_PARAMETERS_TITLE = "FORWARD PARAMETERS TO THE REMOTE HOST"
-_FORWARD_PARAMETERS_ACTION_TEMPLATE = Template("""ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
-{% for parameter in parameters %}ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo '{{ parameter }}=${{ '{' }}{{ parameter }}:-{{ '}' }}' >> /etc/environment"
+_FORWARD_PARAMETERS_ACTION_TEMPLATE = Template("""ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
+{% for parameter in parameters %}ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo '{{ parameter }}=${{ '{' }}{{ parameter }}:-{{ '}' }}' >> /etc/environment"
 {% endfor %}""")
 
 
@@ -24,5 +24,6 @@ class ForwardParametersAction(Action):
     def generate_build_steps(self):
         return [render_task(
             title=_FORWARD_PARAMETERS_TITLE,
-            command=_FORWARD_PARAMETERS_ACTION_TEMPLATE.render(parameters=self.parameters)
+            command=_FORWARD_PARAMETERS_ACTION_TEMPLATE.render(parameters=self.parameters),
+            output_format=self.output_format
         )]

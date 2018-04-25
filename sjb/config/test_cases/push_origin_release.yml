@@ -22,7 +22,7 @@ extensions:
     - type: "host_script"
       title: "transfer docker config to remote host"
       script: |-
-        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
     - type: "forward_parameters"
       parameters:
         - OS_PUSH_TAG

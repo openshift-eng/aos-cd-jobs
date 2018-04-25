@@ -21,5 +21,6 @@ class HostScriptAction(Action):
     def generate_build_steps(self):
         return [render_task(
             title=self.title,
-            command=self.script
+            command=self.script,
+            output_format=self.output_format
         )]

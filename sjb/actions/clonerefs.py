@@ -90,9 +90,9 @@ class ClonerefsAction(Action):
             repository=None,
             title="SYNC REPOSITORIES",
             script=_CLONEREFS_ACTION_TEMPLATE.render(repos=self.repos, upload_to_gcs_step=upload_to_gcs_step),
-            timeout=None
+            timeout=None,
+            output_format=self.output_format
         )
-        script_action.output_format = self.output_format
         steps += script_action.generate_build_steps()
 
         return steps

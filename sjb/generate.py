@@ -162,13 +162,13 @@ if job_type == "test":
 
     # we need to expose the extra -e vars to the steps
     if "evars" in job_config:
-        actions.append(EvarsAction(job_config["evars"]))
+        actions.append(EvarsAction(job_config["evars"], output_format))
 
     def parse_action(action):
         if action["type"] == "script":
             debug("[INFO] Adding script action " + action.get("title", ""))
             return ScriptAction(action.get("repository", None), action["script"], action.get("title", None),
-                                action.get("timeout", None))
+                                action.get("timeout", None), output_format)
         elif action["type"] == "host_script":
             debug("[INFO] Adding host script action " + action.get("title", ""))
             return HostScriptAction(action["script"], action.get("title", None))

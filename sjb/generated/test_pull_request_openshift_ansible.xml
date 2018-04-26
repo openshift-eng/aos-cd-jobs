@@ -165,7 +165,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,origin=master --repo=openshift,aos-cd-jobs=master --repo=openshift,image-registry=master --repo=openshift,kubernetes-metrics-server=master --repo=openshift,origin-web-console-server=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,origin=master --repo=openshift,aos-cd-jobs=master }
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
@@ -460,16 +460,6 @@ chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: CHECK OTHER JOB STATUSES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CHECK OTHER JOB STATUSES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-if [[ -n &#34;${PULL_REFS:-}&#34; ]]; then
-  export OPENSHIFT_ANSIBLE_TARGET_BRANCH=&#34;${PULL_REFS%%:*}&#34;
-fi
-scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/sjb/check-pull-request-status.py .
-scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/data/src/github.com/openshift/aos-cd-jobs/sjb/test_status_config.yml .
-python check-pull-request-status.py &#34;${OPENSHIFT_ANSIBLE_PULL_ID}&#34; &#34;${OPENSHIFT_ANSIBLE_TARGET_BRANCH}&#34; /var/lib/jenkins/.config/hub test_status_config.yml</command>
-        </hudson.tasks.Shell>
   </builders>
   <publishers>
     <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
@@ -589,12 +579,6 @@ oct deprovision</command>
       <defaultExcludes>true</defaultExcludes>
       <caseSensitive>true</caseSensitive>
     </hudson.tasks.ArtifactArchiver>
-    <hudson.tasks.junit.JUnitResultArchiver plugin="junit@1.13">
-      <testResults>.config/origin-ci-tool/logs/junit/*.xml,artifacts/**/*.xml</testResults>
-      <keepLongStdio>true</keepLongStdio>
-      <healthScaleFactor>1.0</healthScaleFactor>
-      <allowEmptyResults>true</allowEmptyResults>
-    </hudson.tasks.junit.JUnitResultArchiver>
     <hudson.plugins.s3.S3BucketPublisher plugin="s3@0.10.11-SNAPSHOT">
       <profileName>Jenkins-AWS</profileName>
       <entries>

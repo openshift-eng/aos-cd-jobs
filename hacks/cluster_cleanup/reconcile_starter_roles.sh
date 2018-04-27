@@ -5,6 +5,8 @@
 
 set -o xtrace
 
+oc project default
+
 # Create a file that has all desired bootstrap policies
 F0="/tmp/reconcile_roles.tmp"
 oc adm create-bootstrap-policy-file --filename=$F0

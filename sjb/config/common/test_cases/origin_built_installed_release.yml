@@ -118,12 +118,12 @@ extensions:
         sudo chmod a+x /etc/ /etc/origin/ /etc/origin/master/
         sudo chmod a+rw /etc/origin/master/admin.kubeconfig
     - type: "script"
-      title: "ensure built version of origin is installed"
+      title: "pull ostree images"
       timeout: 600
       repository: "origin"
       script: |-
-        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        rpm -V "${origin_package}"
+        # origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        # rpm -V "${origin_package}"
         if [[ "${OSTREE_COPY:-}" == "true" ]]; then
           docker_image_tag="$( cat ./ORIGIN_TAG )"
           docker_repository="${OS_IMAGE_PREFIX:-"openshift/origin"}"

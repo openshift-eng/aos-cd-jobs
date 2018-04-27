@@ -332,7 +332,7 @@ if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.7&#34; || &#34;\${PULL_BASE_
   sudo yum downgrade -y ansible-2.3\*
 fi
 sudo yum install -y &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
-rpm -V &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
+rpm -q &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

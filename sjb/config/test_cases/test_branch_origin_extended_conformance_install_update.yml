@@ -192,7 +192,7 @@ extensions:
       script: |-
         last_tag="$( git describe --tags --abbrev=0 --exact-match HEAD )"
         last_commit="$( git log -n 1 --pretty=%h )"
-        rpm -V "${last_tag}.git.0.${last_commit}.el7"
+        rpm -q "${last_tag}.git.0.${last_commit}.el7"
     - type: "script"
       title: "update origin to release"
       repository: "aos-cd-jobs"
@@ -224,8 +224,8 @@ extensions:
       timeout: 600
       repository: "origin"
       script: |-
-        # origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        # rpm -V "${origin_package}"
+        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        rpm -q "${origin_package}"
     - type: "script"
       title: "run extended tests"
       repository: "origin"

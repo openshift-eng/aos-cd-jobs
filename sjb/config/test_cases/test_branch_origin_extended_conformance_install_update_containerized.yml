@@ -52,7 +52,7 @@ extensions:
           sudo yum downgrade -y ansible-2.3\*
         fi
         sudo yum install -y "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
-        rpm -V "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+        rpm -q "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
     - type: "script"
       title: "install Ansible plugins"
       repository: "origin"

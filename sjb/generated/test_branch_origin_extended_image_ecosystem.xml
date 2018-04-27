@@ -282,7 +282,7 @@ if [[ &#34;\${PULL_BASE_REF}&#34; == &#34;release-3.7&#34; || &#34;\${PULL_BASE_
   sudo yum downgrade -y ansible-2.3\*
 fi
 sudo yum install -y &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
-rpm -V &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
+rpm -q &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -433,8 +433,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-# origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
-# rpm -V &#34;\${origin_package}&#34;
+origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
+rpm -q &#34;\${origin_package}&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

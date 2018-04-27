@@ -224,8 +224,8 @@ extensions:
       timeout: 600
       repository: "origin"
       script: |-
-        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        rpm -V "${origin_package}"
+        # origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        # rpm -V "${origin_package}"
     - type: "script"
       title: "run extended tests"
       repository: "origin"

@@ -352,7 +352,7 @@ fi
 last_tag=&#34;\$( git describe --tags --abbrev=0 --exact-match HEAD )&#34;
 last_commit=&#34;\$( git log -n 1 --pretty=%h )&#34;
 sudo yum install -y &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
-rpm -V &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
+rpm -q &#34;openshift-ansible\${last_tag/openshift-ansible/}.git.0.\${last_commit}.el7&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

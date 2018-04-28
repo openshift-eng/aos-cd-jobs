@@ -15,7 +15,7 @@ extensions:
           sudo yum downgrade -y ansible-2.3\*
         fi
         sudo yum install -y "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
-        rpm -V "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+        rpm -q "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
     - type: "script"
       title: "install Ansible plugins"
       timeout: 600
@@ -122,8 +122,8 @@ extensions:
       timeout: 600
       repository: "origin"
       script: |-
-        # origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        # rpm -V "${origin_package}"
+        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        rpm -q "${origin_package}"
         if [[ "${OSTREE_COPY:-}" == "true" ]]; then
           docker_image_tag="$( cat ./ORIGIN_TAG )"
           docker_repository="${OS_IMAGE_PREFIX:-"openshift/origin"}"

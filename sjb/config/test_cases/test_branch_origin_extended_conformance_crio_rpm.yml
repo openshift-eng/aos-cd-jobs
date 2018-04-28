@@ -49,7 +49,7 @@ extensions:
           sudo yum downgrade -y ansible-2.3\*
         fi
         sudo yum install -y "openshift-ansible${last_tag/openshift-ansible}.git.0.${last_commit}.el7"
-        rpm -V "openshift-ansible${last_tag/openshift-ansible}.git.0.${last_commit}.el7"
+        rpm -q "openshift-ansible${last_tag/openshift-ansible}.git.0.${last_commit}.el7"
     - type: "script"
       title: "install skopeo"
       timeout: 3600
@@ -209,8 +209,8 @@ extensions:
       timeout: 600
       repository: "origin"
       script: |-
-        # origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
-        # rpm -V "${origin_package}"
+        origin_package="$( source hack/lib/init.sh; os::build::rpm::format_nvra )"
+        rpm -q "${origin_package}"
     - type: "script"
       title: "run extended tests"
       repository: "origin"

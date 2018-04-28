@@ -543,7 +543,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/openshift-ansible&#34;
 last_tag=&#34;\$( git describe --tags --abbrev=0 --exact-match HEAD )&#34;
 last_commit=&#34;\$( git log -n 1 --pretty=%h )&#34;
-rpm -V &#34;\${last_tag}.git.0.\${last_commit}.el7&#34;
+rpm -q &#34;\${last_tag}.git.0.\${last_commit}.el7&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -601,8 +601,8 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-# origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
-# rpm -V &#34;\${origin_package}&#34;
+origin_package=&#34;\$( source hack/lib/init.sh; os::build::rpm::format_nvra )&#34;
+rpm -q &#34;\${origin_package}&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

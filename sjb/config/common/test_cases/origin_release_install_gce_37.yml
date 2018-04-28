@@ -160,7 +160,7 @@ extensions:
         cd cluster/test-deploy/${CLUSTER_PROFILE}/
         ../../bin/ansible.sh ansible-playbook \
           -e "openshift_test_repo=${location_url}" \
-          -e debug_level=5 \
+          -e debug_level=4 \
           -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
           playbooks/gcp/openshift-cluster/launch.yml \
           "${evars:-}"

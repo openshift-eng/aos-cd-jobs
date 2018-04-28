@@ -662,7 +662,7 @@ suffix=&#34;\${suffix}:\$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN
 cd cluster/test-deploy/\${CLUSTER_PROFILE}/
 ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_test_repo=\${location_url}&#34; \
-  -e debug_level=5 \
+  -e debug_level=4 \
   -e &#34;oreg_url=\${OS_PUSH_BASE_REGISTRY}\${OS_PUSH_BASE_REPO}\${suffix}&#34; \
   playbooks/gcp/openshift-cluster/launch.yml \
   &#34;\${evars:-}&#34;

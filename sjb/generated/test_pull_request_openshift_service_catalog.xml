@@ -534,7 +534,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 if [[ &#34;\${PULL_BASE_REF:-master}&#34; == &#34;release-3.9&#34; ]]; then
   ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
 else
-  ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --enable=service-catalog
+  ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --image=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; --enable=service-catalog
 fi
 ./_output/local/bin/linux/amd64/oc login -u system:admin
 ./_output/local/bin/linux/amd64/oc describe po --all-namespaces

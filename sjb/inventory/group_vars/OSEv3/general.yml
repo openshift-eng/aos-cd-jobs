@@ -1,5 +1,5 @@
 ---
-debug_level: 5
+debug_level: 4
 osm_default_node_selector: "region=infra"
 osm_controller_args:
   enable-hostpath-provisioner:

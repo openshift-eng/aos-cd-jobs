@@ -736,13 +736,8 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: TAG THE LATEST CONFORMANCE RESULTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: TAG THE LATEST CONFORMANCE RESULTS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 location=&#34;origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/artifacts/scripts/conformance-k8s/artifacts&#34;
 location_url=&#34;https://storage.googleapis.com/${location}&#34;
-
-ref=&#34;${ORIGIN_TARGET_BRANCH-}&#34;
-if [[ -z &#34;${ref}&#34; &amp;&amp; -n &#34;${JOB_SPEC-}&#34; ]]; then
-  ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
-fi
 echo &#34;${location_url}&#34; &gt; .latest-conformance
-gsutil cp .latest-conformance &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-conformance&#34;</command>
+gsutil cp .latest-conformance &#34;gs://origin-ci-test/releases/openshift/origin/release-3.9/.latest-conformance&#34;</command>
         </hudson.tasks.Shell>
   </builders>
   <publishers>

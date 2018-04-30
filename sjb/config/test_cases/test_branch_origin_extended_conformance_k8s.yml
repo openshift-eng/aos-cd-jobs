@@ -25,10 +25,5 @@ rectory to run."
       script: |-
         location="origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/artifacts/scripts/conformance-k8s/artifacts"
         location_url="https://storage.googleapis.com/${location}"
-
-        ref="${ORIGIN_TARGET_BRANCH-}"
-        if [[ -z "${ref}" && -n "${JOB_SPEC-}" ]]; then
-          ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
-        fi
         echo "${location_url}" > .latest-conformance
-        gsutil cp .latest-conformance "gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-conformance"
+        gsutil cp .latest-conformance "gs://origin-ci-test/releases/openshift/origin/master/.latest-conformance"

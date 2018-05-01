@@ -54,3 +54,10 @@ extensions:
       script: |-
         make build-images
         docker tag openshift/origin-web-console:latest "openshift/origin-web-console:$( cat ./ORIGIN_COMMIT )"
+    - type: "script"
+      title: "build the service catalog container image"
+      repository: "service-catalog"
+      timeout: 3600
+      script: |-
+        make build-images
+        docker tag openshift/origin-service-catalog:latest "openshift/origin-service-catalog:$( cat ./ORIGIN_COMMIT )"

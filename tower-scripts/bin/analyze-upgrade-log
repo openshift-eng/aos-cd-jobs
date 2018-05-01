@@ -21,13 +21,21 @@ class Line(object):
         self.timestamp = None
         self.duration = datetime.timedelta()
 
-    def __str__(self):
-        string = '{0: >6} : {1}'.format(self.lineno, self.message)
+    def write_lineno(self, stream):
+        stream.write('{0: >6}'.format(self.lineno))
+        stream.write(' : ')
+
+    def write_message(self, stream):
+        stream.write(self.message)
         if self.timestamp:
-            string += self.timestamp.strftime(' (%H:%M:%S %Z)')
+            stream.write(self.timestamp.strftime(' (%H:%M:%S %Z)'))
         if self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
-            string += ' took {0}s'.format(self.duration)
-        return string
+            stream.write(' took {0}s'.format(self.duration))
+
+    def write(self, stream):
+        self.write_lineno(stream)
+        self.write_message(stream)
+        stream.write('\n')
 
 
 def main():
@@ -88,7 +96,7 @@ def main():
                 continue
 
     while linebuffer:
-        print linebuffer.pop(0)
+        linebuffer.pop(0).write(sys.stdout)
 
 if __name__ == '__main__':
     main()

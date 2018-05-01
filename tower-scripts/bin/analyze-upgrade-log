@@ -105,6 +105,9 @@ def main():
     re_timestamp   = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
     re_host_result = re.compile('^(ok|changed|skipping): \[(.*?)( .*?)?\]')
 
+    timestamp_init = None
+    timestamp_last = None
+
     for line in args.infile:
         line = line.rstrip()
         lineno += 1
@@ -123,9 +126,12 @@ def main():
             # 1st line after TASK is timestamp
             result = re_timestamp.match(line)
             if result:
+                timestamp = dateutil.parser.parse(result.group(1))
                 if not play.timestamp:
-                    timestamp = dateutil.parser.parse(result.group(1))
                     play.timestamp = timestamp
+                if not timestamp_init:
+                    timestamp_init = timestamp
+                timestamp_last = timestamp
                 duration = datetime.timedelta(
                     hours=int(result.group(2)),
                     minutes=int(result.group(3)),
@@ -167,6 +173,8 @@ def main():
 
     while linebuffer:
         linebuffer.pop(0).write(sys.stdout)
+
+    print '\nTotal time: {0}'.format(timestamp_last - timestamp_init)
 
 if __name__ == '__main__':
     main()

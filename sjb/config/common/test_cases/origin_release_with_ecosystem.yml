@@ -33,6 +33,8 @@ extensions:
         git log -1 --pretty=%h >> "${metrics_repo}/ORIGIN_COMMIT"
         console_repo="/data/src/github.com/openshift/origin-web-console-server/"
         git log -1 --pretty=%h >> "${console_repo}/ORIGIN_COMMIT"
+        catalog_repo="/data/src/github.com/openshift/service-catalog/"
+        git log -1 --pretty=%h >> "${catalog_repo}/ORIGIN_COMMIT"
     - type: "script"
       title: "build the image registry container image"
       repository: "image-registry"

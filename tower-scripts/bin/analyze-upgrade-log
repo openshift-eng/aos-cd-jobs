@@ -11,6 +11,25 @@ import dateutil.parser
 import re
 import sys
 
+def common_prefix(strings):
+    """
+    Find the longest string that is a prefix of all the strings.
+    """
+    if not strings:
+        return ''
+    prefix = strings[0]
+    for s in strings:
+        if len(s) < len(prefix):
+            prefix = prefix[:len(s)]
+        if not prefix:
+            return ''
+        for i in range(len(prefix)):
+            if prefix[i] != s[i]:
+                prefix = prefix[:i]
+                break
+    return prefix
+
+
 class Line(object):
 
     MIN_DURATION_SECONDS = 10
@@ -38,9 +57,20 @@ class PlayLine(Line):
         super(PlayLine, self).__init__(lineno, message)
         self.timestamp = None
         self.duration = datetime.timedelta()
+        self.hosts = set()
 
     def write_message(self, stream):
         stream.write('  PLAY [{0}]'.format(self.message))
+        self.hosts.discard('localhost')
+        n_hosts = len(self.hosts)
+        if n_hosts == 1:
+            stream.write(' [{0}]'.format(self.hosts.pop()))
+        elif n_hosts > 1:
+            prefix = common_prefix(list(self.hosts))
+            if prefix:
+                stream.write(' [{0}* x {1}]'.format(prefix, n_hosts))
+            else:
+                stream.write(' [{0} hosts]'.format(n_hosts))
         if self.timestamp:
             stream.write(self.timestamp.strftime(' (%H:%M:%S %Z)'))
         if self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
@@ -61,9 +91,10 @@ def main():
     saw_input_requested = False
 
     # Compile regexp patterns
-    re_operation = re.compile('Running operation: [a-z-]+')
-    re_play      = re.compile('PLAY \[(.*)\]')
-    re_timestamp = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
+    re_operation   = re.compile('Running operation: [a-z-]+')
+    re_play        = re.compile('PLAY \[(.*)\]')
+    re_timestamp   = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
+    re_host_result = re.compile('^(ok|changed|skipping): \[(.*?)( .*?)?\]')
 
     for line in args.infile:
         line = line.rstrip()
@@ -81,17 +112,29 @@ def main():
             saw_task_start = True
 
         elif saw_task_start:
+            play = linebuffer[-1]
+
+            # 1st line after TASK is timestamp
             result = re_timestamp.match(line)
             if result:
-                if not linebuffer[-1].timestamp:
+                if not play.timestamp:
                     timestamp = dateutil.parser.parse(result.group(1))
-                    linebuffer[-1].timestamp = timestamp
+                    play.timestamp = timestamp
                 duration = datetime.timedelta(
                     hours=int(result.group(2)),
                     minutes=int(result.group(3)),
                     seconds=int(result.group(4)))
-                linebuffer[-1].duration += duration
-            saw_task_start = False
+                play.duration += duration
+
+            # Subsequent lines are host results
+            result = re_host_result.match(line)
+            if result:
+                host = result.group(2)
+                play.hosts.add(host)
+
+            # TASK data ends with blank line
+            if play.hosts and not line:
+                saw_task_start = False
 
         else:
             result = re_operation.match(line)

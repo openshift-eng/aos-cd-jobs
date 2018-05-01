@@ -18,8 +18,6 @@ class Line(object):
     def __init__(self, lineno, message):
         self.lineno = lineno
         self.message = message
-        self.timestamp = None
-        self.duration = datetime.timedelta()
 
     def write_lineno(self, stream):
         stream.write('{0: >6}'.format(self.lineno))
@@ -27,15 +25,26 @@ class Line(object):
 
     def write_message(self, stream):
         stream.write(self.message)
-        if self.timestamp:
-            stream.write(self.timestamp.strftime(' (%H:%M:%S %Z)'))
-        if self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
-            stream.write(' took {0}s'.format(self.duration))
 
     def write(self, stream):
         self.write_lineno(stream)
         self.write_message(stream)
         stream.write('\n')
+
+
+class PlayLine(Line):
+
+    def __init__(self, lineno, message):
+        super(PlayLine, self).__init__(lineno, message)
+        self.timestamp = None
+        self.duration = datetime.timedelta()
+
+    def write_message(self, stream):
+        stream.write('  PLAY [{0}]'.format(self.message))
+        if self.timestamp:
+            stream.write(self.timestamp.strftime(' (%H:%M:%S %Z)'))
+        if self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
+            stream.write(' took {0}s'.format(self.duration))
 
 
 def main():
@@ -53,7 +62,7 @@ def main():
 
     # Compile regexp patterns
     re_operation = re.compile('Running operation: [a-z-]+')
-    re_play      = re.compile('PLAY \[.*\]')
+    re_play      = re.compile('PLAY \[(.*)\]')
     re_timestamp = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
 
     for line in args.infile:
@@ -92,7 +101,7 @@ def main():
 
             result = re_play.match(line)
             if result:
-                linebuffer.append(Line(lineno, '  ' + result.group()))
+                linebuffer.append(PlayLine(lineno, result.group(1)))
                 continue
 
     while linebuffer:

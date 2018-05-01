@@ -48,7 +48,7 @@ extensions:
       title: "tag openshift/origin for system containers"
       repository: "aos-cd-jobs"
       script: |-
-        sudo docker tag openshift/origin:$( cat ./ORIGIN_TAG ) openshift/origin:$( cat ./ORIGIN_TAG ).$(cat ORIGIN_PKG_VERSION | grep -Po "^\-\w\.\w\.(\w)" | cut -d '.' -f 3)
+        sudo docker tag openshift/origin:$( cat ./ORIGIN_TAG ) openshift/origin:$( cat ./ORIGIN_TAG ).$(cat ORIGIN_PKG_VERSION | grep -Po "^\-\w\.\w\.(\w)" | cut -d '.' -f 3) || true
     - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"

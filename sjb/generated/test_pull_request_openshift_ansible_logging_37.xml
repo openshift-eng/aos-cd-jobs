@@ -521,7 +521,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
-sudo docker tag openshift/origin:\$( cat ./ORIGIN_TAG ) openshift/origin:\$( cat ./ORIGIN_TAG ).\$(cat ORIGIN_PKG_VERSION | grep -Po &#34;^\-\w\.\w\.(\w)&#34; | cut -d &#39;.&#39; -f 3)
+sudo docker tag openshift/origin:\$( cat ./ORIGIN_TAG ) openshift/origin:\$( cat ./ORIGIN_TAG ).\$(cat ORIGIN_PKG_VERSION | grep -Po &#34;^\-\w\.\w\.(\w)&#34; | cut -d &#39;.&#39; -f 3) || true
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

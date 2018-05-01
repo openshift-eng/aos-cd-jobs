@@ -6,6 +6,7 @@
 #
 
 import argparse
+import colorama
 import datetime
 import dateutil.parser
 import re
@@ -30,20 +31,86 @@ def common_prefix(strings):
     return prefix
 
 
+class BaseStyle(object):
+    def __init__(self, stream, stack):
+        self.stream = stream
+        self.stack = stack
+        self.style = None
+
+    def __enter__(self):
+        if self.style and sys.stdout.isatty():
+            self.stream.write(self.style)
+            self.stack.append(self.style)
+        return None
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.style and sys.stdout.isatty():
+            self.stack.pop()
+            if self.stack:
+                self.stream.write(self.stack[-1])
+            else:
+                self.stream.write(colorama.Fore.RESET)
+                self.stream.write(colorama.Style.NORMAL)
+
+
+class LinenoStyle(BaseStyle):
+    def __init__(self, stream, stack):
+        super(LinenoStyle, self).__init__(stream, stack)
+        self.style = colorama.Fore.BLUE
+
+
+class MessageStyle(BaseStyle):
+    def __init__(self, stream, stack):
+        super(MessageStyle, self).__init__(stream, stack)
+        if len(stack) == 0:
+            self.style = colorama.Fore.GREEN + colorama.Style.BRIGHT
+
+
+class HostsStyle(BaseStyle):
+    def __init__(self, stream, stack):
+        super(HostsStyle, self).__init__(stream, stack)
+        if len(stack) == 0:
+            self.style = colorama.Fore.YELLOW
+
+
+class InformationStyle(BaseStyle):
+    def __init__(self, stream, stack):
+        super(InformationStyle, self).__init__(stream, stack)
+        if len(stack) == 0:
+            self.style = colorama.Fore.BLUE
+
+
+class WarningStyle(BaseStyle):
+    def __init__(self, stream, stack):
+        super(WarningStyle, self).__init__(stream, stack)
+        if len(stack) == 0:
+            self.style = colorama.Fore.RED + colorama.Style.BRIGHT
+
+
+class SkippedStyle(BaseStyle):
+    def __init__(self, stream, stack):
+        super(SkippedStyle, self).__init__(stream, stack)
+        self.style = colorama.Fore.BLACK
+
+
 class Line(object):
 
     MIN_DURATION_SECONDS = 10
+    WARN_DURATION_SECONDS = (60 * 60)  # 1 hour
 
     def __init__(self, lineno, message):
+        self.styles = []
         self.lineno = lineno
         self.message = message
 
     def write_lineno(self, stream):
-        stream.write('{0: >6}'.format(self.lineno))
+        with LinenoStyle(stream, self.styles):
+            stream.write('{0: >6}'.format(self.lineno))
         stream.write(' : ')
 
     def write_message(self, stream):
-        stream.write(self.message)
+        with MessageStyle(stream, self.styles):
+            stream.write(self.message)
 
     def write(self, stream):
         self.write_lineno(stream)
@@ -65,23 +132,31 @@ class PlayLine(Line):
         self.skipped = None
 
     def write_message(self, stream):
-        stream.write('  PLAY [{0}]'.format(self.message))
-        self.hosts.discard('localhost')
-        n_hosts = len(self.hosts)
-        if n_hosts == 1:
-            stream.write(' [{0}]'.format(self.hosts.pop()))
-        elif n_hosts > 1:
-            prefix = common_prefix(list(self.hosts))
-            if prefix:
-                stream.write(' [{0}* x {1}]'.format(prefix, n_hosts))
-            else:
-                stream.write(' [{0} hosts]'.format(n_hosts))
-        if self.timestamp:
-            stream.write(self.timestamp.strftime(' (%H:%M:%S %Z)'))
-        if self.skipped:
-            stream.write(' skipped')
-        elif self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
-            stream.write(' took {0}s'.format(self.duration))
+        style_class = SkippedStyle if self.skipped else BaseStyle
+        with style_class(stream, self.styles):
+            stream.write('  PLAY [{0}]'.format(self.message))
+            with HostsStyle(stream, self.styles):
+                self.hosts.discard('localhost')
+                n_hosts = len(self.hosts)
+                if n_hosts == 1:
+                    stream.write(' [{0}]'.format(self.hosts.pop()))
+                elif n_hosts > 1:
+                    prefix = common_prefix(list(self.hosts))
+                    if prefix:
+                        stream.write(' [{0}* x {1}]'.format(prefix, n_hosts))
+                    else:
+                        stream.write(' [{0} hosts]'.format(n_hosts))
+            with InformationStyle(stream, self.styles):
+                if self.timestamp:
+                    stream.write(self.timestamp.strftime(' (%H:%M:%S %Z)'))
+            if self.skipped:
+                stream.write(' skipped')
+            elif self.duration.total_seconds() >= self.WARN_DURATION_SECONDS:
+                with WarningStyle(stream, self.styles):
+                    stream.write(' took {0}s'.format(self.duration))
+            elif self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
+                with InformationStyle(stream, self.styles):
+                    stream.write(' took {0}s'.format(self.duration))
 
 
 def main():

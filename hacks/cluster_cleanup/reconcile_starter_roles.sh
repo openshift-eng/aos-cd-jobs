@@ -4,6 +4,7 @@
 # re-enabling scheduledjob/cronjob/custom-host creation on the starter clusters.
 
 set -o xtrace
+set -o pipefail
 
 oc project default
 

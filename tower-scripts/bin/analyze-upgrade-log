@@ -59,6 +59,11 @@ class PlayLine(Line):
         self.duration = datetime.timedelta()
         self.hosts = set()
 
+        # None  = unknown
+        # True  = all hosts in all tasks skipped
+        # False = at least one task did something
+        self.skipped = None
+
     def write_message(self, stream):
         stream.write('  PLAY [{0}]'.format(self.message))
         self.hosts.discard('localhost')
@@ -73,7 +78,9 @@ class PlayLine(Line):
                 stream.write(' [{0} hosts]'.format(n_hosts))
         if self.timestamp:
             stream.write(self.timestamp.strftime(' (%H:%M:%S %Z)'))
-        if self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
+        if self.skipped:
+            stream.write(' skipped')
+        elif self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
             stream.write(' took {0}s'.format(self.duration))
 
 
@@ -87,12 +94,14 @@ def main():
 
     linebuffer = []
     lineno = 0
+    task_name = ''
     saw_task_start = False
     saw_input_requested = False
 
     # Compile regexp patterns
     re_operation   = re.compile('Running operation: [a-z-]+')
     re_play        = re.compile('PLAY \[(.*)\]')
+    re_task        = re.compile('TASK \[(.*)\]')
     re_timestamp   = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
     re_host_result = re.compile('^(ok|changed|skipping): \[(.*?)( .*?)?\]')
 
@@ -107,9 +116,6 @@ def main():
         elif saw_input_requested:
             linebuffer[-1].message += ' - ' + line
             saw_input_requested = False
-
-        elif line.startswith('TASK ['):
-            saw_task_start = True
 
         elif saw_task_start:
             play = linebuffer[-1]
@@ -131,6 +137,12 @@ def main():
             if result:
                 host = result.group(2)
                 play.hosts.add(host)
+                if task_name != 'Gathering Facts':
+                    skipped = (result.group(1) == 'skipping')
+                    if play.skipped is None:
+                        play.skipped = skipped
+                    else:
+                        play.skipped &= skipped
 
             # TASK data ends with blank line
             if play.hosts and not line:
@@ -145,6 +157,12 @@ def main():
             result = re_play.match(line)
             if result:
                 linebuffer.append(PlayLine(lineno, result.group(1)))
+                continue
+
+            result = re_task.match(line)
+            if result:
+                task_name = result.group(1)
+                saw_task_start = True
                 continue
 
     while linebuffer:

@@ -406,6 +406,8 @@ metrics_repo=&#34;/data/src/github.com/openshift/kubernetes-metrics-server/&#34;
 git log -1 --pretty=%h &gt;&gt; &#34;\${metrics_repo}/ORIGIN_COMMIT&#34;
 console_repo=&#34;/data/src/github.com/openshift/origin-web-console-server/&#34;
 git log -1 --pretty=%h &gt;&gt; &#34;\${console_repo}/ORIGIN_COMMIT&#34;
+catalog_repo=&#34;/data/src/github.com/openshift/service-catalog/&#34;
+git log -1 --pretty=%h &gt;&gt; &#34;\${catalog_repo}/ORIGIN_COMMIT&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

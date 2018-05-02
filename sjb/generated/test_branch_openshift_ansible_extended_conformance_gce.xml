@@ -258,6 +258,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo yum-config-manager --disable centos-paas-sig-openshift-origin\*-rpms
 sudo yum-config-manager --disable origin-deps-rhel7\* || true
+sudo yum-config-manager --disable rhel-7-server-ose\* || true
 
 if [[ &#34;\${JOB_NAME}&#34; == *update* ]]; then
   branch=&#34;\${PULL_BASE_REF:-&#34;master&#34;}&#34;

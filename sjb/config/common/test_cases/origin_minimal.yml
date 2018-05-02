@@ -28,6 +28,7 @@ actions:
     script: |-
       sudo yum-config-manager --disable centos-paas-sig-openshift-origin\*-rpms
       sudo yum-config-manager --disable origin-deps-rhel7\* || true
+      sudo yum-config-manager --disable rhel-7-server-ose\* || true
 
       if [[ "${JOB_NAME}" == *update* ]]; then
         branch="${PULL_BASE_REF:-"master"}"

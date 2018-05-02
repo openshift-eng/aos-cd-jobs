@@ -326,7 +326,7 @@ class CICDControl(object):
 
         self.update_ops_git_repos()
         openshift_ansible_operations = ['install', 'upgrade', 'upgrade_control_plane', 'upgrade_nodes',
-                                        'upgrade_metrics', 'upgrade_logging']
+                                        'upgrade_metrics', 'upgrade_logging', 'upgrade_nodes_aws_scalegroup']
 
         print(self.operation)
         if self.operation in openshift_ansible_operations:

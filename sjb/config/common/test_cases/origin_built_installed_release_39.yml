@@ -45,6 +45,12 @@ extensions:
           sudo atomic pull --storage ostree docker:openshift/node:$( cat ./ORIGIN_TAG )
         fi
     - type: "script"
+      title: "add an additional tag for the image for system-containers test"
+      repository: "aos-cd-jobs"
+      script: |-
+        sudo docker tag openshift/origin:$( cat ./ORIGIN_COMMIT ) openshift/origin:$( cat ./ORIGIN_TAG )
+        sudo docker tag openshift/origin:$( cat ./ORIGIN_COMMIT ) openshift/origin:$( cat ./ORIGIN_TAG ).$(cat ORIGIN_PKG_VERSION | grep -Po "^\-\w\.\w\.(\w)" | cut -d '.' -f 3) || true
+    - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"
       script: |-

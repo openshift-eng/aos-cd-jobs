@@ -10,7 +10,7 @@ def set_workspace() {
 def convert_aws_account_property_to_ansible_arg(ansible_arg, ansible_value) {
     def created_ansible_arg = ''
     if (!ansible_value.isEmpty()) {
-        created_ansible_arg = " -e ${ansible_arg}=${ansible_value.trim().replace('\n', ',')} "
+        created_ansible_arg = " -e ${ansible_arg}=${ansible_value.trim()} "
     }
 
     return created_ansible_arg
@@ -20,8 +20,8 @@ def build_aws_tag_args(ami_search_tags){
     def tag_args = ''
     if (!ami_search_tags.isEmpty()) {
         def tmp_tag_args = ""
-        def split_lines = ami_search_tags.split('\n')
-        split_lines.each {
+        def split_args = ami_search_tags.split(',')
+        split_args.each {
             tmp_tag_args += " -t " + it
         }
         tag_args = tmp_tag_args
@@ -160,9 +160,9 @@ properties(
                      name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
 
                     // Parameters to search for AMI to use
-                    [$class: 'hudson.model.TextParameterDefinition',
-                     defaultValue: 'operating_system=RedHat\nstandard=true\nbase_ami=true',
-                     description: 'Line delimited tags (K=V) to use to find the base AMI to use\n  NOTE: This option is overrididen by specifying the BASE_AMI_ID\n  NOTE: "base_ami=true" is probably necessary; otherwise a previous built ami will be used, and no packages will be updated!',
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: 'operating_system=RedHat,standard=true,base_ami=true',
+                     description: 'Comma delimited tags (K=V) to use to find the base AMI to use\n  NOTE: This option is overrididen by specifying the BASE_AMI_ID\n  NOTE: "base_ami=true" is probably necessary; otherwise a previous built ami will be used, and no packages will be updated!',
                      name: 'AMI_SEARCH_TAGS'],
 
                     [$class: 'hudson.model.StringParameterDefinition',
@@ -170,9 +170,9 @@ properties(
                      description: 'Base AMI id to build from.\nNOTE: By default the job will search for the latest AMI based on the AMI Search Tags. If this is provided, it will override the search tags provided',
                      name: 'BASE_AMI_ID'],
 
-                    [$class: 'hudson.model.TextParameterDefinition',
-                     defaultValue: '531415883065\n704252977135\n639866565627\n925374498059',
-                     description: 'Line delimited list of AWS accounts to share the image with.\nNOTE: Currently this only shares the AMI in the AWS_REGION defined.\n   531415883065 - Openshift DevEnv AWS Account\n   704252977135 - free-int AWS Account\n   639866565627 - Ops Test AWS Account\n   925374498059 - Perf Testing Account',
+                    [$class: 'hudson.model.StringParameterDefinition',
+                     defaultValue: '531415883065,704252977135,639866565627,925374498059',
+                     description: 'Comma delimited list of AWS accounts to share the image with.\nNOTE: Currently this only shares the AMI in the AWS_REGION defined.\n   531415883065 - Openshift DevEnv AWS Account\n   704252977135 - free-int AWS Account\n   639866565627 - Ops Test AWS Account\n   925374498059 - Perf Testing Account',
                      name: 'AMI_SHARE_ACCOUNTS'],
 
                     // AWS Settings, these probably shouldn't change too often

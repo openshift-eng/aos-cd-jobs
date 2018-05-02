@@ -23,10 +23,11 @@ actions:
       echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
       SUDO
   - type: "script"
-    title: "turn off unnecessary CentOS PaaS SIG repos"
+    title: "turn off unnecessary RPM repos"
     timeout: 300
     script: |-
       sudo yum-config-manager --disable centos-paas-sig-openshift-origin\*-rpms
+      sudo yum-config-manager --disable origin-deps-rhel7\* || true
 
       if [[ "${JOB_NAME}" == *update* ]]; then
         branch="${PULL_BASE_REF:-"master"}"

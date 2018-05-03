@@ -2,7 +2,7 @@
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
-    if(env.WORKSPACE == null) {
+    if (env.WORKSPACE == null) {
         env.WORKSPACE = pwd()
     }
 }
@@ -14,11 +14,11 @@ def version(f) {
 
 def mail_success() {
     mail(
-        to: "${MAIL_LIST_SUCCESS}",
-        from: "aos-cd@redhat.com",
-        replyTo: 'smunilla@redhat.com',
-        subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
-        body: """\
+            to: "${MAIL_LIST_SUCCESS}",
+            from: "aos-cd@redhat.com",
+            replyTo: 'smunilla@redhat.com',
+            subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
+            body: """\
 Jenkins job: ${env.BUILD_URL}
 ${OSE_MAJOR}.${OSE_MINOR}
 """);
@@ -29,8 +29,8 @@ node('openshift-build-1') {
 
     // Expose properties for a parameterized build
     properties(
-            [   buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
-                [$class              : 'ParametersDefinitionProperty',
+            [buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
+             [$class              : 'ParametersDefinitionProperty',
               parameterDefinitions:
                       [
                               [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
@@ -52,16 +52,16 @@ node('openshift-build-1') {
 
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}"
 
-    if ( MOCK.toBoolean() ) {
-        error( "Ran in mock mode" )
+    if (MOCK.toBoolean()) {
+        error("Ran in mock mode")
     }
 
     set_workspace()
 
-    def buildlib = load( "pipeline-scripts/buildlib.groovy")
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize()
 
-    stage( "enterprise-images repo" ) {
+    stage("enterprise-images repo") {
         buildlib.initialize_enterprise_images_dir()
     }
 
@@ -73,10 +73,10 @@ node('openshift-build-1') {
 
     stage('Refresh Images') {
         try {
-            try{
+            try {
                 // Clean up old images so that we don't run out of device mapper space
                 sh "docker rmi --force \$(docker images  | grep v${OSE_MAJOR}.${OSE_MINOR} | awk '{print \$3}')"
-            } catch ( cce ) {
+            } catch (cce) {
                 echo "Error cleaning up old images: ${cce}"
             }
 
@@ -84,16 +84,16 @@ node('openshift-build-1') {
 
                 // default to using the atomic-openshift package version
                 // unless the caller provides a version and release
-                if ( VERSION_OVERRIDE == "auto" ) {
+                if (VERSION_OVERRIDE == "auto") {
                     oit_update_docker_args = "--version auto --repo-type signed"
                 } else {
-                    if ( ! VERSION_OVERRIDE.startsWith("v") ) {
+                    if (!VERSION_OVERRIDE.startsWith("v")) {
                         error("Version overrides must start with 'v'")
                     }
                     oit_update_docker_args = "--version ${VERSION_OVERRIDE}"
                 }
 
-                if ( RELEASE_OVERRIDE != "" ) {
+                if (RELEASE_OVERRIDE != "") {
                     oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
                 }
 
@@ -112,52 +112,52 @@ images:update-dockerfile
   --push
   """
 
-		buildlib.oit """
+                buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
 images:build
 --repo-type signed
 """
 
-		try {
-		    buildlib.oit """
+                try {
+                    buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
 images:verify
 --repo-type signed
 """
-		} catch ( vererr ) {
-		    echo "Error verifying images: ${vererr}"
-		    mail(to: "${MAIL_LIST_FAILURE}",
-			 from: "aos-cd@redhat.com",
-			 subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
-			 body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
+                } catch (vererr) {
+                    echo "Error verifying images: ${vererr}"
+                    mail(to: "${MAIL_LIST_FAILURE}",
+                            from: "aos-cd@redhat.com",
+                            subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
+                            body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
 
 
 Jenkins job: ${env.BUILD_URL}
 """);
-		}
+                }
             }
 
-            if(params.BUILD_AMI) {
+            if (params.BUILD_AMI) {
                 // e.g. version_release = ['v3.9.0', '0.34.0.0']
                 final version_release = buildlib.oit([
-                    "--working-dir ${OIT_WORKING}",
-                    "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
-                    '--images openshift-enterprise-docker',
-                    '--quiet',
-                    'images:print --short {version}-{release}',
+                        "--working-dir ${OIT_WORKING}",
+                        "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
+                        '--images openshift-enterprise-docker',
+                        '--quiet',
+                        'images:print --short {version}-{release}',
                 ].join(' '), [capture: true]).split('-')
                 buildlib.build_ami(
-                    OSE_MAJOR, OSE_MINOR,
-                    version_release[0].substring(1), version_release[1],
-                    "release-${OSE_MAJOR}.${OSE_MINOR}",
-                    MAIL_LIST_FAILURE)
+                        OSE_MAJOR, OSE_MINOR,
+                        version_release[0].substring(1), version_release[1],
+                        "release-${OSE_MAJOR}.${OSE_MINOR}",
+                        MAIL_LIST_FAILURE)
             }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success()
 
 
-        } catch ( err ) {
+        } catch (err) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cd@redhat.com",
@@ -173,7 +173,8 @@ Jenkins job: ${env.BUILD_URL}
             try {
                 archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
                 archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
-            } catch( aae ) {}
+            } catch (aae) {
+            }
         }
 
     }

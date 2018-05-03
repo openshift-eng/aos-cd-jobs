@@ -60,7 +60,7 @@ def sprint_announce(phase, body) {
 
     mail(
             to: "${MAIL_LIST_ANNOUNCE}",
-            from: "aos-cd@redhat.com",
+            from: "aos-cicd@redhat.com",
             replyTo: 'jupierce@redhat.com',
             subject: "[aos-announce] Sprint Phase: ${phase} (Sprint ${SPRINT_ID})",
             body: "${body}");
@@ -74,7 +74,7 @@ def release_announce(phase, body) {
 
     mail(
             to: "${MAIL_LIST_ANNOUNCE}",
-            from: "aos-cd@redhat.com",
+            from: "aos-cicd@redhat.com",
             replyTo: 'jupierce@redhat.com',
             subject: "[aos-announce] Release Phase: ${phase}",
             body: "${body}");
@@ -85,7 +85,7 @@ def mail_leads(body) {
 
     mail(
             to: "${MAIL_LIST_LEADS}",
-            from: "aos-cd@redhat.com",
+            from: "aos-cicd@redhat.com",
             replyTo: 'jupierce@redhat.com',
             subject: "[aos-leads] Online First Support Assignments (Sprint ${SPRINT_ID})",
             body: "${body}");
@@ -94,7 +94,7 @@ def mail_leads(body) {
 def remind_me(msg) {
     mail(
             to: "jupierce@redhat.com",
-            from: "aos-cd@redhat.com",
+            from: "aos-cicd@redhat.com",
             replyTo: 'jupierce@redhat.com',
             subject: "${msg}",
             body: "${msg}");
@@ -218,7 +218,7 @@ node(TARGET_NODE) {
 
     } catch ( err ) {
         mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error running sprint control",
                 body: """${err}
 

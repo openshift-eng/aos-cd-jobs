@@ -109,7 +109,7 @@ node(TARGET_NODE) {
 
     } catch ( err ) {
         mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error running sprint control",
                 body: """${err}
 

@@ -8,7 +8,7 @@ def mail_success(list,detail,warn) {
     body += "\n${detail}\n\nJenkins job: ${env.BUILD_URL}\n"
     mail(
         to: "${list}",
-        from: "aos-cd@redhat.com",
+        from: "aos-cicd@redhat.com",
         replyTo: 'jupierce@redhat.com',
         subject: "[aos-cicd] Cluster upgrade complete: ${CLUSTER_NAME}",
         body: body
@@ -202,7 +202,7 @@ node('openshift-build-1') {
                 if ( CLUSTER_NAME != "free-int" && CLUSTER_NAME != "free-stg" ) {
                     // Prevent a flood of issues from notifying SRE as soon as cluster comes out of maintenance
                     mail(to: "jupierce@redhat.com, mwoodson@redhat.com, libra-ops@redhat.com",
-                            from: "aos-cd@redhat.com",
+                            from: "aos-cicd@redhat.com",
                             subject: "Need permission to exit maintenance after upgrade: ${CLUSTER_NAME}",
                             body: """Please review zabbix/clear issues and then click proceed. Anyone from CD or SRE with Jenkins credentials is permitted to perform this operation.
 
@@ -262,7 +262,7 @@ Jenkins job: ${env.BUILD_URL}
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
         mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error during upgrade on cluster ${CLUSTER_NAME}",
                 body: """Encountered an error: ${err}
 
@@ -283,7 +283,7 @@ Jenkins job: ${env.BUILD_URL}
                     ]
         } catch ( err2 ) {
             mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cd@redhat.com",
+                    from: "aos-cicd@redhat.com",
                     subject: "Error sending CI msg for cluster ${CLUSTER_NAME}",
                     body: """Encountered an error: ${err2}
 

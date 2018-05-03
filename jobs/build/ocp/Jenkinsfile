@@ -72,6 +72,9 @@ def mail_success(version, mirrorURL) {
         inject_notes = "\n***Special notes associated with this build****\n${SPECIAL_NOTES.trim()}\n***********************************************\n"
     }
 
+    def timing_report = get_build_timing_report()
+    def image_list = get_image_build_report()
+
     PARTIAL = " "
     exclude_subject = ""
     if (BUILD_EXCLUSIONS != "") {
@@ -79,10 +82,12 @@ def mail_success(version, mirrorURL) {
         exclude_subject = " [excluded images: ${BUILD_EXCLUSIONS}]"
     }
 
-    image_details = """
+    image_details = """${timing_report}
 Images:
   - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
-    [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user"""
+    [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user
+${image_list}
+"""
 
     mail_list = MAIL_LIST_SUCCESS
     if (!BUILD_CONTAINER_IMAGES) {
@@ -109,7 +114,6 @@ Brew:
   - OpenShift Ansible: ${OA_BREW_URL}
 
 Jenkins job: ${env.BUILD_URL}
-
 
 Are your Atomic OpenShift changes in this build? Check here:
 https://github.com/openshift/ose/commits/v${NEW_VERSION}-${NEW_RELEASE}/
@@ -145,6 +149,44 @@ ${OA_CHANGELOG}
     } catch (mex) {
         echo "Error while sending CI message: ${mex}"
     }
+}
+
+// extract timing information from the record_log and write a report string
+// the timing record log entry has this form:
+// image_build_metrics|elapsed_total_minutes={d}|task_count={d}|elapsed_wait_minutes={d}|
+def get_build_timing_report() {
+
+    record_log = buildlib.parse_record_log(OIT_WORKING)
+    metrics = record_log['image_build_metrics']
+    if metrics == null || metrics.size == 0 {
+	return ""
+    }
+
+    return """
+Images built: ${metrics[0]['task_count']}
+Elapsed image build time: ${metrics[0]['elapsed_total_minutes']} minutes
+Time spent waiting for OSBS capacity: ${metrics[0]['elapsed_wait_minutes']} minutes
+"""
+}
+
+// get the list of images built
+def get_image_build_report() {
+
+    record_log = buildlib.parse_record_log(OIT_WORKING)
+    builds = record_log['build']
+
+    Set image_set = []
+    for (i = 0; i < builds.size(); i++) {
+        bld = builds[i]
+        if (bld['status'] == "0" && bld['push_status'] == "0") {
+            image_spec_string =
+                "${bld['image']}:${bld['version']}-${bld['release']}"
+            image_set << image_spec_string
+        }
+    }
+
+    return "Images included in build:\n    " +
+        image_set.toSorted().join("\n    ")
 }
 
 // Will be used to track which atomic-openshift build was tagged before we ran.

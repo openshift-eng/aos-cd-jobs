@@ -7,7 +7,7 @@
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
-    if(env.WORKSPACE == null) {
+    if (env.WORKSPACE == null) {
         env.WORKSPACE = pwd()
     }
 }
@@ -16,14 +16,14 @@ def set_workspace() {
 @NonCPS
 def version_parse(spec_content) {
     def matcher = spec_content =~ /Version:\s*([.0-9]+)/
-    if ( ! matcher ) {
-        error( "Unable to extract RPM spec Version" )
+    if (!matcher) {
+        error("Unable to extract RPM spec Version")
     }
     def ver = matcher[0][1]
     // Extract "Release" field as well, but do not include %{?dist} type variables
     matcher = spec_content =~ /Release:\s*([.a-zA-Z0-9+-]+)/
-    if ( ! matcher ) {
-        error( "Unable to extract RPM spec Release" )
+    if (!matcher) {
+        error("Unable to extract RPM spec Release")
     }
     def rel = matcher[0][1]
     return ver + "-" + rel
@@ -36,14 +36,14 @@ def version(spec_file) {
 def mail_success(version) {
 
     def target = "(Release Candidate)"
-    def mirrorURL = "https://mirror.openshift.com/enterprise/enterprise-${version.substring(0,3)}"
+    def mirrorURL = "https://mirror.openshift.com/enterprise/enterprise-${version.substring(0, 3)}"
 
-    if ( BUILD_MODE == "online:int" ) {
+    if (BUILD_MODE == "online:int") {
         target = "(Integration Testing)"
         mirrorURL = "https://mirror.openshift.com/enterprise/online-int"
     }
 
-    if ( BUILD_MODE == "online:stg" ) {
+    if (BUILD_MODE == "online:stg") {
         target = "(Stage Testing)"
         mirrorURL = "https://mirror.openshift.com/enterprise/online-stg"
     }
@@ -54,14 +54,14 @@ def mail_success(version) {
     def changelogs = readFile("results/changelogs.txt")
 
     mail(
-        to: "${MAIL_LIST_SUCCESS}",
-        from: "aos-cd@redhat.com",
-        replyTo: 'smunilla@redhat.com',
-        subject: "[aos-cicd] New build for OpenShift ${target}: ${version}",
-        body: """\
+            to: "${MAIL_LIST_SUCCESS}",
+            from: "aos-cd@redhat.com",
+            replyTo: 'smunilla@redhat.com',
+            subject: "[aos-cicd] New build for OpenShift ${target}: ${version}",
+            body: """\
 OpenShift Version: v${version}
 
-Puddle: http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0,3)}/${puddleName}
+Puddle: http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0, 3)}/${puddleName}
   - Mirror: ${mirrorURL}/${puddleName}
   - Images have been built for this puddle
   - Images have been pushed to registry.reg-aws.openshift.com:443         (Get pull acceess [1])
@@ -80,31 +80,31 @@ ${changelogs}
 // Expose properties for a parameterized build
 properties(
         [
-            buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
-            [$class : 'ParametersDefinitionProperty',
-          parameterDefinitions:
-                  [
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                          [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                          [$class: 'hudson.model.ChoiceParameterDefinition', choices: "enterprise\nenterprise:pre-release\nonline:int\nonline:stg", description:
-'''
+                buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
+                [$class              : 'ParametersDefinitionProperty',
+                 parameterDefinitions:
+                         [
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Major Version', name: 'OSE_MAJOR'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'OSE Minor Version', name: 'OSE_MINOR'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
+                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                                 [$class             : 'hudson.model.ChoiceParameterDefinition', choices: "enterprise\nenterprise:pre-release\nonline:int\nonline:stg", description:
+                                         '''
 enterprise                {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
 enterprise:pre-release    {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
-                          [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
-                  ]
-            ],
-            disableConcurrentBuilds()
+                                 [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
+                         ]
+                ],
+                disableConcurrentBuilds()
         ]
 )
 
-if ( MOCK.toBoolean() ) {
-    error( "Ran in mock mode to pick up any new parameters" )
+if (MOCK.toBoolean()) {
+    error("Ran in mock mode to pick up any new parameters")
 }
 
 prev_build = "not defined yet"
@@ -116,26 +116,26 @@ node(TARGET_NODE) {
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
 
     // Login to new registry.ops to enable pushes
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
+    withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
         sh 'oc login -u $USERNAME -p $PASSWORD https://api.reg-aws.openshift.com'
 
         // Writing the file out is all to avoid displaying the token in the Jenkins console
-        writeFile file:"docker_login.sh", text:'''#!/bin/bash
+        writeFile file: "docker_login.sh", text: '''#!/bin/bash
         sudo docker login -u $USERNAME -p $(oc whoami -t) registry.reg-aws.openshift.com:443
         '''
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'
     }
 
-    if ( OSE_MINOR.toInteger() > 6 ) {
-        error( "This pipeline is only designed for versions <= 3.6" )
+    if (OSE_MINOR.toInteger() > 6) {
+        error("This pipeline is only designed for versions <= 3.6")
     }
 
-    try{
+    try {
         // Clean up old images so that we don't run out of device mapper space
         sh "docker rmi --force \$(docker images  | grep v${OSE_MAJOR}.${OSE_MINOR} | awk '{print \$3}')"
-    } catch ( cce ) {
+    } catch (cce) {
         echo "Error cleaning up old images: ${cce}"
     }
 
@@ -168,18 +168,18 @@ node(TARGET_NODE) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail_success(thisBuildVersion)
 
-        } catch ( err ) {
+        } catch (err) {
 
-            ATTN=""
+            ATTN = ""
             try {
                 new_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
                 echo "Comparing new_build (" + new_build + ") and prev_build (" + prev_build + ")"
-                if ( new_build != prev_build ) {
+                if (new_build != prev_build) {
                     // Untag anything tagged by this build if an error occured at any point
                     sh "brew --user=ocp-build untag-build rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate ${new_build}"
                 }
-            } catch ( err2 ) {
-                ATTN=" - UNABLE TO UNTAG!"
+            } catch (err2) {
+                ATTN = " - UNABLE TO UNTAG!"
             }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
@@ -196,7 +196,8 @@ Jenkins job: ${env.BUILD_URL}
             try {
                 archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
                 archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
-            } catch( aae ) {}
+            } catch (aae) {
+            }
         }
 
     }

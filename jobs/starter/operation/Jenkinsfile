@@ -3,7 +3,7 @@
 def mail_success(list) {
     mail(
         to: "${list}",
-        from: "aos-cd@redhat.com",
+        from: "aos-cicd@redhat.com",
         replyTo: 'jupierce@redhat.com',
         subject: "[aos-cicd] Cluster ${OPERATION} complete: ${CLUSTER_NAME}",
         body: """\
@@ -79,7 +79,7 @@ node('openshift-build-1') {
 
     } catch ( err ) {
         mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error during ${OPERATION} on cluster ${CLUSTER_NAME}",
                 body: """Encountered an error: ${err}
 

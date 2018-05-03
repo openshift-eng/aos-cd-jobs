@@ -3,7 +3,7 @@
 def mail_success(list) {
     mail(
         to: "${list}",
-        from: "aos-cd@redhat.com",
+        from: "aos-cicd@redhat.com",
         replyTo: 'jupierce@redhat.com',
         subject: "Cluster Performance Test(${OPERATION}) complete: ${CLUSTER_NAME}",
         body: """\
@@ -69,7 +69,7 @@ node('openshift-build-1') {
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
         mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error during ${OPERATION} on cluster ${CLUSTER_NAME}",
                 body: """Encoutered an error: ${err}
 

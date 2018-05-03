@@ -76,7 +76,7 @@ node(TARGET_NODE) {
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cd@redhat.com",
+                    from: "aos-cicd@redhat.com",
                     subject: "Error building openshift-online",
                     body: """Encoutered an error while running merge-and-build-openshift-scripts.sh: ${err}
 

@@ -15,7 +15,7 @@ def version(f) {
 def mail_success() {
     mail(
             to: "${MAIL_LIST_SUCCESS}",
-            from: "aos-cd@redhat.com",
+            from: "aos-cicd@redhat.com",
             replyTo: 'smunilla@redhat.com',
             subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
             body: """\
@@ -127,7 +127,7 @@ images:verify
                 } catch (vererr) {
                     echo "Error verifying images: ${vererr}"
                     mail(to: "${MAIL_LIST_FAILURE}",
-                            from: "aos-cd@redhat.com",
+                            from: "aos-cicd@redhat.com",
                             subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
                             body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
 
@@ -160,7 +160,7 @@ Jenkins job: ${env.BUILD_URL}
         } catch (err) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cd@redhat.com",
+                    from: "aos-cicd@redhat.com",
                     subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
                     body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
 

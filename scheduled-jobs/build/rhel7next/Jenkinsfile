@@ -26,7 +26,7 @@ node('openshift-build-1') {
     }
   } catch(err) {
     mail(
-      from: 'aos-cd@redhat.com', to: 'bbarcaro@redhat.com',
+      from: 'aos-cicd@redhat.com', to: 'bbarcaro@redhat.com',
       subject: 'rhel7next job: error',
       body: """\
 Encoutered an error while running the rhel7next job: ${err}\n\n

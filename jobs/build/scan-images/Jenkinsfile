@@ -1,4 +1,4 @@
-final MAIL_FROM = 'aos-cd@redhat.com'
+final MAIL_FROM = 'aos-cicd@redhat.com'
 final MAILING_LIST_CVE = ['bbarcaro@redhat.com']
 final MAILING_LIST_ERR = ['bbarcaro@redhat.com']
 

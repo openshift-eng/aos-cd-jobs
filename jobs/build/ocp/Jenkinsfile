@@ -25,6 +25,7 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
                                  [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
                                  [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: "", description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)', name: 'BUILD_EXCLUSIONS'],
+                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build container images?', name: 'BUILD_CONTAINER_IMAGES'],
                                  [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
                          ]
                 ],
@@ -36,6 +37,7 @@ IS_TEST_MODE = TEST.toBoolean()
 BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
 BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 SIGN_RPMS = SIGN.toBoolean()
+BUILD_CONTAINER_IMAGES = BUILD_CONTAINER_IMAGES.toBoolean()
 
 if (BUILD_EXCLUSIONS != "") {
     // clean up string delimiting
@@ -76,19 +78,31 @@ def mail_success(version, mirrorURL) {
         PARTIAL = " PARTIAL "
         exclude_subject = " [excluded images: ${BUILD_EXCLUSIONS}]"
     }
+
+    image_details = """
+Images:
+  - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
+    [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user"""
+
+    mail_list = MAIL_LIST_SUCCESS
+    if (!BUILD_CONTAINER_IMAGES) {
+        PARTIAL = " RPM ONLY "
+        image_details = ""
+        // Just inform key folks about RPM only build; this is just prepping for an advisory.
+        mail_list = MAIL_LIST_FAILURE
+    }
+
     mail(
-            to: "${MAIL_LIST_SUCCESS}",
-            from: "aos-cd@redhat.com",
-            replyTo: 'smunilla@redhat.com',
+            to: "${mail_list}",
+            from: "aos-cicd@redhat.com",
             subject: "[aos-cicd] New${PARTIAL}build for OpenShift ${target}: ${version}${exclude_subject}",
             body: """\
 OpenShift Version: v${version}
 ${inject_notes}
-Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}
-  - Mirror: ${mirrorURL}/${OCP_PUDDLE}
-  - Images have been built for this puddle
-  - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
-  [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user
+RPMs:
+    Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}
+    Exernal Mirror: ${mirrorURL}/${OCP_PUDDLE}
+${image_details}
 
 Brew:
   - Openshift: ${OSE_BREW_URL}
@@ -112,7 +126,7 @@ ${OA_CHANGELOG}
 """);
 
     try {
-        if (BUILD_EXCLUSIONS == "") {
+        if (BUILD_EXCLUSIONS == "" && BUILD_CONTAINER_IMAGES) {
             timeout(3) {
                 sendCIMessage(messageContent: "New build for OpenShift ${target}: ${version}",
                         messageProperties: """build_mode=${BUILD_MODE}
@@ -620,7 +634,7 @@ images:rebase --version v${NEW_VERSION}
                     try {
                         // always mail success list, val.owners will be comma delimited or empty
                         mail(to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,${val.owners}",
-                                from: "aos-cd@redhat.com",
+                                from: "aos-cicd@redhat.com",
                                 subject: "${val.image} Dockerfile reconciliation for OCP v${BUILD_VERSION}",
                                 body: """
 Why am I receiving this?
@@ -662,75 +676,78 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
 
             BUILD_CONTINUED = false
             stage("build images") {
-                waitUntil {
-                    try {
-                        exclude = ""
-                        if (BUILD_EXCLUSIONS != "") {
-                            exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                if (BUILD_CONTAINER_IMAGES) {
+
+                    waitUntil {
+                        try {
+                            exclude = ""
+                            if (BUILD_EXCLUSIONS != "") {
+                                exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                            }
+                            buildlib.oit """
+    --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+    ${exclude}
+    images:build
+    --push-to-defaults --repo-type unsigned
+    """
+                            return true // finish waitUntil
                         }
-                        buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
-${exclude}
-images:build
---push-to-defaults --repo-type unsigned
-"""
-                        return true // finish waitUntil
-                    }
-                    catch (err) {
-                        record_log = buildlib.parse_record_log(OIT_WORKING)
-                        builds = record_log['build']
-                        failed_map = [:]
-                        for (i = 0; i < builds.size(); i++) {
-                            bld = builds[i]
-                            distgit = bld['distgit']
-                            if (bld['status'] != '0') {
-                                failed_map[distgit] = bld['task_url']
-                            } else if (bld['push_status'] != '0') {
-                                failed_map[distgit] = 'Failed to push built image. See debug.log'
-                            } else {
-                                // build may have succeeded later. If so, remove.
-                                failed_map.remove(distgit)
+                        catch (err) {
+                            record_log = buildlib.parse_record_log(OIT_WORKING)
+                            builds = record_log['build']
+                            failed_map = [:]
+                            for (i = 0; i < builds.size(); i++) {
+                                bld = builds[i]
+                                distgit = bld['distgit']
+                                if (bld['status'] != '0') {
+                                    failed_map[distgit] = bld['task_url']
+                                } else if (bld['push_status'] != '0') {
+                                    failed_map[distgit] = 'Failed to push built image. See debug.log'
+                                } else {
+                                    // build may have succeeded later. If so, remove.
+                                    failed_map.remove(distgit)
+                                }
+                            }
+
+                            mail(to: "${MAIL_LIST_FAILURE}",
+                                    from: "aos-cicd@redhat.com",
+                                    subject: "RESUMABLE Error during Image Build for OCP v${BUILD_VERSION}",
+                                    body: """Encountered an error: ${err}
+    Input URL: ${env.BUILD_URL}input
+    Jenkins job: ${env.BUILD_URL}
+
+    BUILD / PUSH FAILURES:
+    ${failed_map}
+    """);
+
+                            def resp = input message: "Error during Image Build for OCP v${BUILD_VERSION}",
+                                    parameters: [
+                                            [$class     : 'hudson.model.ChoiceParameterDefinition',
+                                             choices    : "RETRY\nCONTINUE\nABORT",
+                                             description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).',
+                                             name       : 'action']
+                                    ]
+
+                            if (resp == "RETRY") {
+                                return false  // cause waitUntil to loop again
+                            } else if (resp == "CONTINUE") {
+                                echo "User chose to continue. Build failures are non-fatal."
+                                BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
+                                BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
+                                return true // Terminate waitUntil
+                            } else { // ABORT
+                                error("User chose to abort pipeline because of image build failures")
                             }
                         }
-
-                        mail(to: "${MAIL_LIST_FAILURE}",
-                                from: "aos-cd@redhat.com",
-                                subject: "RESUMABLE Error during Image Build for OCP v${BUILD_VERSION}",
-                                body: """Encountered an error: ${err}
-Input URL: ${env.BUILD_URL}input
-Jenkins job: ${env.BUILD_URL}
-
-BUILD / PUSH FAILURES:
-${failed_map}
-""");
-
-                        def resp = input message: "Error during Image Build for OCP v${BUILD_VERSION}",
-                                parameters: [
-                                        [$class     : 'hudson.model.ChoiceParameterDefinition',
-                                         choices    : "RETRY\nCONTINUE\nABORT",
-                                         description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).',
-                                         name       : 'action']
-                                ]
-
-                        if (resp == "RETRY") {
-                            return false  // cause waitUntil to loop again
-                        } else if (resp == "CONTINUE") {
-                            echo "User chose to continue. Build failures are non-fatal."
-                            BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
-                            BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
-                            return true // Terminate waitUntil
-                        } else { // ABORT
-                            error("User chose to abort pipeline because of image build failures")
-                        }
                     }
-                }
 
-                if (BUILD_CONTINUED) {
-                    buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
-${exclude} images:push --to-defaults --late-only
-"""
-// exclude is already set earlier in the main images:build flow
+                    if (BUILD_CONTINUED) {
+                        buildlib.oit """
+    --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+    ${exclude} images:push --to-defaults --late-only
+    """
+                        // exclude is already set earlier in the main images:build flow
+                    }
                 }
             }
 
@@ -794,7 +811,7 @@ ${exclude} images:push --to-defaults --late-only
         }
 
         mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error building OSE: ${BUILD_VERSION}${ATTN}",
                 body: """Encountered an error while running OCP pipeline: ${err}
 

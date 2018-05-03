@@ -325,9 +325,11 @@ echo "=========="
 echo "Build OIT images"
 echo "=========="
 
-${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+if [ "$BUILD_CONTAINER_IMAGES" != "false" ]; then
+    ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
 images:build \
 --push-to-defaults --repo-type unsigned
+fi
 
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
     sh -s -- --conf "${PUDDLE_CONF}" -b -d -n \

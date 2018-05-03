@@ -63,7 +63,7 @@ node('openshift-build-1') {
                     if ( snapshot_diff != "") {
                       def snapshot = readFile("/home/jenkins/new_snapshot.txt")
                       mail(to: "jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com",
-                              from: "aos-cd@redhat.com",
+                              from: "aos-cicd@redhat.com",
                               subject: "BuildVM Snapshot",
                               body: "${snapshot}");
                     }
@@ -89,7 +89,7 @@ node('openshift-build-1') {
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
         mail(to: "jupierce@redhat.com,bbarcaro@redhat.com",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error running buildvm maintenance",
                 body: """${err}
 

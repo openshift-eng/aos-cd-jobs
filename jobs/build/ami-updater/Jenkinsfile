@@ -119,7 +119,7 @@ env/bin/pip install --upgrade ansible boto boto3
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
         mail(to: "${MAIL_LIST_FAILURE}",
-                from: 'aos-cd@redhat.com',
+                from: 'aos-cicd@redhat.com',
                 subject: "Error building aws ami",
                 body: """Encoutered an error while running build_ami.yml: ${err}
 

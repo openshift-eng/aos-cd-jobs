@@ -53,19 +53,31 @@ def mail_success(version) {
     def puddleName = readFile("results/ose-puddle.name")
     def changelogs = readFile("results/changelogs.txt")
 
+    PARTIAL = " "
+    image_details = """
+Images:
+  - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
+    [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user"""
+
+    mail_list = MAIL_LIST_SUCCESS
+    if (!BUILD_CONTAINER_IMAGES) {
+        PARTIAL = " RPM ONLY "
+        image_details = ""
+        // Just inform key folks about RPM only build; this is just prepping for an advisory.
+        mail_list = MAIL_LIST_FAILURE
+    }
+
     mail(
-            to: "${MAIL_LIST_SUCCESS}",
-            from: "aos-cd@redhat.com",
-            replyTo: 'smunilla@redhat.com',
-            subject: "[aos-cicd] New build for OpenShift ${target}: ${version}",
+            to: "${mail_list}",
+            from: "aos-cicd@redhat.com",
+            subject: "[aos-cicd] New${PARTIAL}build for OpenShift ${target}: ${version}",
             body: """\
 OpenShift Version: v${version}
 
-Puddle: http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0, 3)}/${puddleName}
-  - Mirror: ${mirrorURL}/${puddleName}
-  - Images have been built for this puddle
-  - Images have been pushed to registry.reg-aws.openshift.com:443         (Get pull acceess [1])
-  [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user
+RPMs:
+    Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.substring(0, 3)}/${puddleName}
+    External Mirror: ${mirrorURL}/${puddleName}
+${image_details}
 
 Brew:
   - Openshift: ${oseBrewURL}
@@ -96,6 +108,7 @@ enterprise:pre-release    {origin,origin-web-console,openshift-ansible}/release-
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
+                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build container images?', name: 'BUILD_CONTAINER_IMAGES'],
                                  [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                          ]
                 ],
@@ -106,6 +119,8 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
 if (MOCK.toBoolean()) {
     error("Ran in mock mode to pick up any new parameters")
 }
+
+BUILD_CONTAINER_IMAGES = BUILD_CONTAINER_IMAGES.toBoolean()
 
 prev_build = "not defined yet"
 
@@ -155,6 +170,7 @@ node(TARGET_NODE) {
 
             sshagent(['openshift-bot']) { // merge-and-build must run with the permissions of openshift-bot to succeed
                 env.BUILD_MODE = "${BUILD_MODE}"
+                env.BUILD_CONTAINER_IMAGES = "${BUILD_CONTAINER_IMAGES}"
 
                 prev_build = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${OSE_MAJOR}.${OSE_MINOR}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
 
@@ -184,7 +200,7 @@ node(TARGET_NODE) {
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cd@redhat.com",
+                    from: "aos-cicd@redhat.com",
                     subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}${ATTN}",
                     body: """Encoutered an error while running merge-and-build.sh: ${err}
 

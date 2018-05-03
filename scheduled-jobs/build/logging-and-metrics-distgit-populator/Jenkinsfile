@@ -5,7 +5,7 @@ node("openshift-build-1") {
     sh "./jeffs-script.sh  arg1  arg2"
   } catch (err) {
     mail( to: "jcantril@redhat.com"
-          from: "aos-cd@redhat.com",
+          from: "aos-cicd@redhat.com",
           subject: "Error populating distgits from upstream",
           body: """Encoutered an error populating distgit repositories: ${err}
 Jenkins job: ${env.BUILD_URL}

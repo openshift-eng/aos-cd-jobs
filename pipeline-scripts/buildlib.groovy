@@ -366,7 +366,7 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
         } catch(err) {
             mail(
                 to: "${mail_list}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "RESUMABLE Error during AMI build for OCP v${full_version}",
                 body: [
                     "Encountered an error: ${err}",

@@ -18,7 +18,7 @@ def version(f) {
 def mail_success() {
     mail(
         to: "${MAIL_LIST_SUCCESS}",
-        from: "aos-cd@redhat.com",
+        from: "aos-cicd@redhat.com",
         replyTo: 'smunilla@redhat.com',
         subject: "Puddle has been created: ${OSE_MAJOR}.${OSE_MINOR} ${PUDDLE_TYPE}:${PUDDLE_PURPOSE}",
         body: """\
@@ -86,7 +86,7 @@ node('openshift-build-1') {
         } catch ( err ) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cd@redhat.com",
+                    from: "aos-cicd@redhat.com",
                     subject: "Error creating puddles: ${OSE_MAJOR}.${OSE_MINOR}",
                     body: """Encoutered an error while creating puddles: ${err}
 

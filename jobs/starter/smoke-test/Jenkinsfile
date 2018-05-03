@@ -66,7 +66,7 @@ node('openshift-build-1') {
         if ( MAIL_RESULTS.toBoolean() ) {
             mail(
                 to: "${MAIL_LIST_SUCCESS}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 replyTo: 'jupierce@redhat.com',
                 subject: "Cluster smoke test succeeded: ${CLUSTER_NAME}",
                 body: """\
@@ -81,7 +81,7 @@ ${smoketest}
     } catch ( err ) {
         if ( MAIL_RESULTS.toBoolean() ) {
             mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cd@redhat.com",
+                from: "aos-cicd@redhat.com",
                 subject: "Error during smoke test on cluster ${CLUSTER_NAME}",
                 body: """Encountered an error: ${err}
 

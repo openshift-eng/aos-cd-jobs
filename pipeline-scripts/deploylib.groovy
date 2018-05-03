@@ -87,7 +87,7 @@ def run( operation_name, opts = [:], capture_stdout=false, interactive_retry=tru
 
             try {
                 mail(to: "${MAIL_LIST_FAILURE}",
-                        from: "aos-cd@redhat.com",
+                        from: "aos-cicd@redhat.com",
                         subject: "RESUMABLE Error during ${operation_name} on cluster ${CLUSTER_NAME}",
                         body: """Encountered an error: ${rerr}
 

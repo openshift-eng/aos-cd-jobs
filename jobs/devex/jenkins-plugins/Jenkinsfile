@@ -59,7 +59,7 @@ def mail_success() {
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",
-        from: "aos-cd@redhat.com",
+        from: "aos-cicd@redhat.com",
         replyTo: 'jupierce@redhat.com',
         subject: "jenkins plugins RPM for OCP ${OCP_RELEASE} updated in dist-git",
         body: """The Jenkins plugins RPM for OCP ${OCP_RELEASE} has been updated in dist-git:
@@ -78,7 +78,7 @@ def mail_failure(err) {
 
     mail(
         to: "${MAIL_LIST_FAILURE}",
-        from: "aos-cd@redhat.com",
+        from: "aos-cicd@redhat.com",
         replyTo: 'jupierce@redhat.com',
         subject: "Error during jenkins plugin RPM update on dist-git",
         body: """The job to update the jenkins plugins RPM in dist-git encountered an error:

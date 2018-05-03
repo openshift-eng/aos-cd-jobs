@@ -109,7 +109,7 @@ git push origin HEAD:rotating_keys
 
     } catch ( err ) {
         mail(to: "${MAIL_LIST_FAILURE}",
-            from: "aos-cd@redhat.com",
+            from: "aos-cicd@redhat.com",
             subject: "Error during SSH key rotation for cluster log collection",
             body: """Encoutered an error: ${err}
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-MAIL_FROM = 'aos-cd@redhat.com'
+MAIL_FROM = 'aos-cicd@redhat.com'
 REPLY_TO = 'jupierce@redhat.com'
 
 repos = [

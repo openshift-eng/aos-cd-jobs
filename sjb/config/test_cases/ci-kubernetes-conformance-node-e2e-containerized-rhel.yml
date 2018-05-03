@@ -5,16 +5,16 @@ overrides:
 extensions:
   actions:
     - type: "script"
-      title: "Install go 1.9.1"
+      title: "Install go 1.10.1"
       script: |-
         mkdir -p ~/bin
         curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
         chmod +x ~/bin/gimme
-        gimme 1.9.1
+        gimme 1.10.1
     - type: "script"
       title: "Build hyperkube image"
       script: |-
-        source ~/.gimme/envs/go1.9.1.env
+        source ~/.gimme/envs/go1.10.1.env
         # The docker run command run by the systemd-run can get longer than 2048 characters,
         # causing the systemd-run command to fail. Thus, in order to minimize the
         # length of all arguments, we need to replace /home/origin with /go prefix path.
@@ -30,13 +30,13 @@ extensions:
         make WHAT="cmd/hyperkube"
         cd cluster/images/hyperkube
         export REGISTRY=registry.access.redhat.com
-        export HYPERKUBE_BIN="_output/local/bin/linux/amd64/hyperkube"
+        export HYPERKUBE_BIN="../../../_output/local/bin/linux/amd64/hyperkube"
         IMAGE_TAG=$(git describe --abbrev=0)
         make build VERSION=${IMAGE_TAG} ARCH=amd64 BASEIMAGE=rhel7
     - type: "script"
       title: "Run node e2e tests over containerized Kubelet"
       script: |-
-        source ~/.gimme/envs/go1.9.1.env
+        source ~/.gimme/envs/go1.10.1.env
         export GOPATH=/go
         cd /go/src/k8s.io/kubernetes
         IMAGE_TAG=$(git describe --abbrev=0)

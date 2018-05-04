@@ -158,7 +158,7 @@ def get_build_timing_report() {
 
     record_log = buildlib.parse_record_log(OIT_WORKING)
     metrics = record_log['image_build_metrics']
-    if metrics == null || metrics.size == 0 {
+    if (metrics == null || metrics.size == 0) {
 	return ""
     }
 

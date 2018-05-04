@@ -133,9 +133,10 @@ in AWS EC2 for the job. The syntax is:
 
 ```yaml
 provision:
-  os: ""       # operating system. only 'rhel' is supported
-  stage: ""    # image stage. one of ['bare', 'base', 'build', 'install', 'fork']
-  provider: "" # cloud provider. only 'aws' is supported
+  os: ""            # operating system. only 'rhel' is supported
+  stage: ""         # image stage. one of ['bare', 'base', 'build', 'install', 'fork']
+  provider: ""      # cloud provider. only 'aws' is supported
+  instance_type: "" # instance type to provision in the cloud [optional]
 ```
 
 ## `sync_repos`

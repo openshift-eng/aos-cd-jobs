@@ -773,15 +773,14 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
             final mirror_url = get_mirror_url(BUILD_MODE, BUILD_VERSION)
 
             stage("ami") {
-                if (!params.BUILD_AMI) {
-                    return
+                if (params.BUILD_AMI && BUILD_CONTAINER_IMAGES) {
+                        buildlib.build_ami(
+                                BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
+                                NEW_VERSION, NEW_RELEASE,
+                                "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
+                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
+                                MAIL_LIST_FAILURE)
                 }
-                buildlib.build_ami(
-                        BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
-                        NEW_VERSION, NEW_RELEASE,
-                        "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
-                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
-                        MAIL_LIST_FAILURE)
             }
 
             if (NEW_RELEASE != "1") {

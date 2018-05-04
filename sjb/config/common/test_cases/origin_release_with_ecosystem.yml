@@ -6,6 +6,7 @@ extensions:
     - "openshift,openshift-ansible=master"
     - "openshift,kubernetes-metrics-server=master"
     - "openshift,origin-web-console-server=master"
+    - "openshift,service-catalog=master"
   actions:
     - type: "script"
       title: "build an openshift-ansible release"

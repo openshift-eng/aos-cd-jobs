@@ -112,6 +112,7 @@ if job_type == "test":
         os=job_config["provision"]["os"],
         stage=job_config["provision"]["stage"],
         provider=job_config["provision"]["provider"],
+        instance_type=job_config["provision"].get("instance_type", None)
     ))
 
     # next, repositories will be synced to the remote VM

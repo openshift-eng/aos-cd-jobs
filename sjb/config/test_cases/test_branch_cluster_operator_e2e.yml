@@ -1,0 +1,115 @@
+---
+parent: 'common/test_cases/origin_built_release.yml'
+overrides:
+  sync: []
+extensions:
+
+  actions:
+    - type: "script"
+      title: "setup prerequisites"
+      script: |-
+        sudo pip install openshift
+        sudo pip install --upgrade awscli
+        cd /tmp
+        wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+        sudo yum -y install epel-release-latest-7.noarch.rpm
+        sudo yum --disablerepo="*" --enablerepo=epel -y update ansible
+        sudo yum --disablerepo="*" --enablerepo=epel -y install jq
+        sudo env GOPATH=/data go get -u github.com/cloudflare/cfssl/cmd/...
+        mkdir -p /tmp/.aws
+        mkdir -p /tmp/.ssh
+    - type: "host_script"
+      title: "transfer aws credentials to remote host"
+      script: |-
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config ~/.aws/clusteroperator-credentials openshiftdevel:/tmp/.aws/credentials
+    - type: "script"
+      title: "build cluster operator images"
+      repository: "cluster-operator"
+      script: |-
+        sudo env "PWD=$(pwd)" make build images
+    - type: "script"
+      title: "start cluster up environment"
+      timeout: 600
+      script: |-
+        export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64"
+        sudo mkdir -p /var/lib/origin
+        cd /var/lib/origin
+        sudo env "PATH=${PATH}" oc cluster up --tag=latest
+        sudo env "PATH=${PATH}" oc login -u system:admin
+        sudo env "PATH=${PATH}" oc adm policy add-cluster-role-to-user cluster-admin developer
+        sudo env "PATH=${PATH}" oc login -u developer
+    - type: "script"
+      title: "push locally built images"
+      timeout: 600
+      script: |-
+        export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64"
+        cd /data/src/github.com/openshift/cluster-operator
+        sudo env "PATH=${PATH}" oc rollout status deploymentconfig/docker-registry -n default
+        sudo env "PATH=${PATH}" oc create namespace openshift-cluster-operator
+        sudo env "PATH=${PATH}" make integrated-registry-push
+        sudo env "PATH=${PATH}" oc project myproject
+    - type: "script"
+      title: "Deploy Cluster Operator"
+      repository: "cluster-operator"
+      script: |-
+        export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin"
+        sudo env "PATH=${PATH}" ansible-playbook ./contrib/ansible/deploy-devel-playbook.yml
+    - type: "script"
+      title: "Create Cluster"
+      repository: "cluster-operator"
+      timeout: 2400
+      script: |-
+        # Allow some time for the API server to be registered
+        sleep 20
+
+        # Create a unique name for the new cluster
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export CLUSTER_NAME="co-${hashed_identifier:0:7}-${BUILD_NUMBER}"
+
+        # Set up a new keypair for the cluster
+        sudo env HOME=/tmp CLUSTER_NAME="${CLUSTER_NAME}" aws ec2 create-key-pair --region us-east-1 --key-name "${CLUSTER_NAME}" | jq -r ".KeyMaterial" > /tmp/.ssh/sshkey.pem
+
+        export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin:$(pwd)/bin"
+        sudo env "PATH=${PATH}" ansible-playbook \
+            -e cluster_name=${CLUSTER_NAME} \
+            -e cluster_version=origin-v3-10 \
+            -e aws_creds_file=/tmp/.aws/credentials \
+            -e ssh_priv_key=/tmp/.ssh/sshkey.pem \
+            -e aws_ssh_keypair=${CLUSTER_NAME} \
+            ./contrib/ansible/create-cluster-playbook.yml
+        sudo env "PATH=${PATH}" wait-for-cluster-ready ${CLUSTER_NAME}
+        sudo env "PATH=${PATH}" oc get secret "${CLUSTER_NAME}-kubeconfig" -o jsonpath="{ .data.kubeconfig }" | base64 -d > /tmp/admin.kubeconfig
+
+        # Validate that the server has the number of nodes we expect
+        NODE_COUNT=$(sudo env "PATH=${PATH}" "KUBECONFIG=/tmp/admin.kubeconfig" oc get nodes -o name | wc -l | tr -d '[:space:]')
+        if [[ "${NODE_COUNT}" != "3" ]]; then
+          exit 1;
+        fi
+
+  post_actions:
+    - type: "script"
+      title: "deprovision target cluster"
+      timeout: 1000
+      script: |-
+        export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64"
+        if sudo env "PATH=${PATH}" oc delete cluster --all; then
+          # Wait for cluster to be cleaned up
+          cluster_count="1"
+          while [[ "${cluster_count}" != "0" ]]; do
+            sleep 20
+            cluster_count="$(sudo env "PATH=${PATH}" oc get clusters -o name | wc -l | tr -d " ")"
+          done
+        fi
+    - type: "script"
+      title: "Remove AWS SSH key pair"
+      timeout: 600
+      script: |-
+        hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
+        export CLUSTER_NAME="co-${hashed_identifier:0:7}-${BUILD_NUMBER}"
+        sudo env "HOME=/tmp" aws ec2 delete-key-pair --region us-east-1 --key-name "${CLUSTER_NAME}"
+
+    - type: "script"
+      title: "shutdown cluster up"
+      script: |-
+        export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64"
+        sudo env "PATH=${PATH}" oc cluster down

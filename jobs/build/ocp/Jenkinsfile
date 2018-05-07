@@ -157,7 +157,7 @@ ${OA_CHANGELOG}
 def get_build_timing_report(record_log) {
     metrics = record_log['image_build_metrics']
 
-    if (metrics == null || metrics.size == 0) {
+    if (metrics == null || metrics.size() == 0) {
         return ""
     }
 

@@ -382,8 +382,11 @@ node(TARGET_NODE) {
                         error("Unknown BUILD_MODE: ${BUILD_MODE}")
                     }
 
-                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE})"
-
+                    rpmOnlyTag = ""
+                    if (!BUILD_CONTAINER_IMAGES) {
+                        rpmOnlyTag = " (RPM ONLY)"
+                    }
+                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE}${rpmOnlyTag})"
                 }
             }
 

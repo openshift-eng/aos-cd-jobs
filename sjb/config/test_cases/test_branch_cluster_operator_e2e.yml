@@ -92,12 +92,12 @@ extensions:
       timeout: 1000
       script: |-
         export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64"
-        if sudo env "PATH=${PATH}" oc delete cluster --all; then
+        if sudo env "PATH=${PATH}" oc delete cluster.v1alpha1.clusteroperator.openshift.io --all; then
           # Wait for cluster to be cleaned up
           cluster_count="1"
           while [[ "${cluster_count}" != "0" ]]; do
             sleep 20
-            cluster_count="$(sudo env "PATH=${PATH}" oc get clusters -o name | wc -l | tr -d " ")"
+            cluster_count="$(sudo env "PATH=${PATH}" oc get cluster.v1alpha1.clusteroperator.openshift.io -o name | wc -l | tr -d " ")"
           done
         fi
     - type: "script"

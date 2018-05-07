@@ -55,7 +55,7 @@ def get_mirror_url(build_mode, version) {
     return "https://mirror.openshift.com/enterprise/enterprise-${version}"
 }
 
-def mail_success(version, mirrorURL) {
+def mail_success(version, mirrorURL, buildlib) {
 
     def target = "(Release Candidate)"
 
@@ -72,8 +72,8 @@ def mail_success(version, mirrorURL) {
         inject_notes = "\n***Special notes associated with this build****\n${SPECIAL_NOTES.trim()}\n***********************************************\n"
     }
 
-    def timing_report = get_build_timing_report()
-    def image_list = get_image_build_report()
+    def timing_report = get_build_timing_report(buildlib)
+    def image_list = get_image_build_report(buildlib)
 
     PARTIAL = " "
     exclude_subject = ""
@@ -154,7 +154,7 @@ ${OA_CHANGELOG}
 // extract timing information from the record_log and write a report string
 // the timing record log entry has this form:
 // image_build_metrics|elapsed_total_minutes={d}|task_count={d}|elapsed_wait_minutes={d}|
-def get_build_timing_report() {
+def get_build_timing_report(buildlib) {
 
     record_log = buildlib.parse_record_log(OIT_WORKING)
     metrics = record_log['image_build_metrics']
@@ -170,7 +170,7 @@ Time spent waiting for OSBS capacity: ${metrics[0]['elapsed_wait_minutes']} minu
 }
 
 // get the list of images built
-def get_image_build_report() {
+def get_image_build_report(buildlib) {
 
     record_log = buildlib.parse_record_log(OIT_WORKING)
     builds = record_log['build']
@@ -836,7 +836,7 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
 
-            mail_success(NEW_FULL_VERSION, mirror_url)
+            mail_success(NEW_FULL_VERSION, mirror_url, buildlib)
         }
     } catch (err) {
 

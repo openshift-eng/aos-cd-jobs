@@ -226,6 +226,9 @@ rm -rf \$contextdir/repos/local_epel.repo
 
 # remove the now defunct openshift rhel-7 mirrors
 rm -rf \$contextdir/repos/openshift-rhel7-dependencies.repo
+rm -rf \$contextdir/repos/centos-paas-sig-openshift*
+rm -rf \$contextdir/repos/rhel-7-server-ose-*
+
 
 # Add the online-int repo which has the latest jenkins rpms
 cat &lt;&lt;EOF &gt; \$contextdir/repos/rhel-7-server-ose-onlineint-rpms.repo

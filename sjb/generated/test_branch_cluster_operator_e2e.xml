@@ -360,7 +360,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/cluster-operator&#34;
 export PATH=&#34;\${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin&#34;
-sudo env &#34;PATH=\${PATH}&#34; ansible-playbook ./contrib/ansible/deploy-devel-playbook.yml
+sudo env &#34;PATH=\${PATH}&#34; ansible-playbook ./contrib/ansible/deploy-devel-playbook.yml -e push_images=False
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

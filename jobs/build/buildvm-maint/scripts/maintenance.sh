@@ -46,10 +46,6 @@ docker rm $(docker ps -qa --no-trunc --filter "status=exited")
 
 FINAL_EXIT=0
 
-echo "====Pushing etc..===="
-sudo env "PATH=$PATH" ose_images.sh push_images --branch rhscl-3.0-rh-nodejs6-rhel-7 --package rh-nodejs6-docker
-FINAL_EXIT=$(($FINAL_EXIT | $?))  # bitwise OR to collect errors
-
 echo "====Docker statistics===="
 # Print out a report for the Jenkins job
 sudo docker info

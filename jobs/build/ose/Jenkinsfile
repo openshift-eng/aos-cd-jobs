@@ -128,7 +128,11 @@ prev_build = "not defined yet"
 echo "${TARGET_NODE}, ${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], BUILD_MODE:${BUILD_MODE}"
 
 node(TARGET_NODE) {
-    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE})"
+    rpmOnlyTag = ""
+    if (!BUILD_CONTAINER_IMAGES) {
+        rpmOnlyTag = " (RPM ONLY)"
+    }
+    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}.?? (${BUILD_MODE}${rpmOnlyTag})"
 
     // Login to new registry.ops to enable pushes
     withCredentials([[$class          : 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',

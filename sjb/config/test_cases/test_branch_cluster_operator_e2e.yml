@@ -53,7 +53,7 @@ extensions:
       repository: "cluster-operator"
       script: |-
         export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin"
-        sudo env "PATH=${PATH}" ansible-playbook ./contrib/ansible/deploy-devel-playbook.yml
+        sudo env "PATH=${PATH}" ansible-playbook ./contrib/ansible/deploy-devel-playbook.yml -e push_images=False
     - type: "script"
       title: "Create Cluster"
       repository: "cluster-operator"

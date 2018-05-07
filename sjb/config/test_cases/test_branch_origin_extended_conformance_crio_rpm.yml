@@ -39,6 +39,36 @@ extensions:
         EOR
         sudo cp ./openshift-ansible-local-release.repo /etc/yum.repos.d
     - type: "script"
+      title: "turn off unnecessary RPM repos"
+      timeout: 300
+      script: |-
+        sudo yum-config-manager --disable centos-paas-sig-openshift-origin\*-rpms
+        sudo yum-config-manager --disable origin-deps-rhel7\* || true
+        sudo yum-config-manager --disable rhel-7-server-ose\* || true
+
+        branch="${PULL_BASE_REF:-"master"}"
+        case "${branch}" in
+          master )
+            # 3.10
+            major=3
+            minor=10
+            ;;
+          release-* )
+            major="$( echo "${branch}" | grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
+            minor="$( echo "${branch}" | grep -Po "(?<=release-[0-9]\.)[0-9]" )"
+            ;;
+          enterprise-* )
+            major="$( echo "${branch}" | grep -Po "(?<=release-)[0-9](?=\.[0-9])" )"
+            minor="$( echo "${branch}" | grep -Po "(?<=release-[0-9]\.)[0-9]" )"
+            ;;
+        esac
+        previous="$(( minor -1))"
+        sudo yum-config-manager --enable "rhel-7-server-ose-${major}.${minor}-rpms"
+        if [[ "${JOB_NAME}" == *update* ]]; then
+          sudo yum-config-manager --enable "rhel-7-server-ose-${major}.${previous}-rpms"
+        fi
+        sudo yum repolist
+    - type: "script"
       title: "install the openshift-ansible release"
       repository: "openshift-ansible"
       timeout: 3600
@@ -137,7 +167,6 @@ extensions:
                          -e openshift_crio_use_rpm=True \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
@@ -191,7 +220,6 @@ extensions:
                          -e openshift_crio_use_rpm=True \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
-                         -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \

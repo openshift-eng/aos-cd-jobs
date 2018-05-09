@@ -42,6 +42,15 @@ def command(func):
 
     return func
 
+def str_to_bool(bool_str):
+    ''' simple function to convert string to bool '''
+    if bool_str.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif bool_str.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def parse_args():
     """ parse args """
 
@@ -58,11 +67,13 @@ def parse_args():
     parser.add_argument('--yum-repo-urls', help='List of comma seperated YUM URLS to add to the cluster')
     parser.add_argument('--scalegroup-ami', help='AMI to use for scaling up nodes with scalegroupis')
     parser.add_argument('--yum-openshift-ansible-url', help='Yum URL for openshift-ansible')
-
     parser.add_argument('--skip-statuspage', action='store_true', help='skip Status Page steps')
     parser.add_argument('--skip-zabbix', action='store_true', help='skip Zabbix Maintenance steps')
     parser.add_argument('--skip-config-loop', action='store_true', help='skip Config Loop steps')
     parser.add_argument('--test-cluster', action='store_true', help='Is this a test cluster')
+    parser.add_argument('--ansible-verbose', nargs='?', const=True, type=str_to_bool, default=False,
+                        help='Run Ansible playbooks with -vvv')
+
 
     args = parser.parse_args()
 
@@ -93,12 +104,12 @@ class CICDControl(object):
         self.tmp_dir = os.path.realpath(os.path.join(aos_dir, 'tmp'))
         self.upgrade_log_path = os.path.realpath(os.path.join(home_dir, 'upgrade_logs', self.cluster.name))
 
-        self.playbook_executor = PlaybookExecutor(self.bin_dir)
-
         self.extra_args = {}
         for k in extra_args:
             if extra_args[k] is not None:
                 self.extra_args[k] = extra_args[k]
+
+        self.playbook_executor = PlaybookExecutor(self.bin_dir)
 
     def main(self):
         """ main function of the class """

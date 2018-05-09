@@ -10,7 +10,7 @@ if [ -z "$OSE_VERSION" ]; then
     exit 1
 fi
 
-pkgs=/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/$OSE_VERSION/latest/x86_64/os/Packages
+pkgs=/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/$OSE_VERSION/building/x86_64/os/Packages
 openshift_rpm=$(ls "${pkgs}/atomic-openshift-$OSE_VERSION"*.rpm)
 ansible_rpm=$(ls "${pkgs}/openshift-ansible-$OSE_VERSION"*.rpm)
 

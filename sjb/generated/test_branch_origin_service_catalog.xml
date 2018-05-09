@@ -461,7 +461,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/service-catalog&#34;
-sudo yum -y install etcd
+sudo yum -y --disablerepo=* --enablerepo=oso-rhui-rhel-server-extras install etcd
 ./integration.test -test.v -alsologtostderr -v 9
 SCRIPT
 chmod +x &#34;${script}&#34;

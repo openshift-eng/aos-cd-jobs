@@ -42,7 +42,7 @@ pkg_tar() {
 
 OSE_VERSION=$1
 VERSION=$2
-RPM=/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/latest/%s
+RPM=/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/building/%s
 RPM=${RPM}/os/Packages/atomic-openshift-clients
 ARCH='aarch64 ppc64le s390x'
 TMPDIR=$(mktemp -dt ocbinary.XXXXXXXXXX)

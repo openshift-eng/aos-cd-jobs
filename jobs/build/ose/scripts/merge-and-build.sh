@@ -122,7 +122,7 @@ echo "Setup origin-web-console stuff"
 echo "=========="
 cd ${WORKPATH}
 rm -rf origin-web-console
-git clone git@github.com:openshift/origin-web-console.git
+git clone --depth 1 git@github.com:openshift/origin-web-console.git
 cd origin-web-console/
 if [ "${BUILD_MODE}" == "online:stg" ] ; then
   WEB_CONSOLE_BRANCH="stage"
@@ -138,7 +138,7 @@ echo "Setup ose stuff"
 echo "=========="
 cd ${WORKPATH}
 rm -rf ose
-git clone git@github.com:openshift/ose.git
+git clone --depth 1 git@github.com:openshift/ose.git
 cd ose
 
 OSE_DIR="${WORKPATH}/ose/"
@@ -242,7 +242,7 @@ echo "Setup: openshift-ansible"
 echo "=========="
 pushd ${WORKPATH}
 rm -rf openshift-ansible
-git clone git@github.com:openshift/openshift-ansible.git
+git clone --depth 1 git@github.com:openshift/openshift-ansible.git
 OPENSHIFT_ANSIBLE_DIR="${WORKPATH}/openshift-ansible/"
 cd openshift-ansible/
 if [ "${BUILD_MODE}" == "online:stg" ] ; then

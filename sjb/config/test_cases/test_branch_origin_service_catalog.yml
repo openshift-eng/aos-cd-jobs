@@ -56,7 +56,7 @@ extensions:
       repository: "service-catalog"
       timeout: 2700
       script: |-
-        sudo yum -y install etcd
+        sudo yum -y --disablerepo=* --enablerepo=oso-rhui-rhel-server-extras install etcd
         ./integration.test -test.v -alsologtostderr -v 9
     - type: "script"
       title: "build Service Catalog image"

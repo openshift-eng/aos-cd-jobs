@@ -87,8 +87,8 @@ echo "Sync latest puddle to mirrors"
 echo "=========="
 echo "Not run due to permission problems"
 echo "Log into rcm-guest and run"
-echo "/mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}"
-#ssh user@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh simple ${OSE_VERSION}"
+echo "/mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh latest ${OSE_VERSION}"
+#ssh user@rcm-guest.app.eng.bos.redhat.com " /mnt/rcm-guest/puddles/RHAOS/scripts/push-to-mirrors.sh latest ${OSE_VERSION}"
 
 echo
 echo

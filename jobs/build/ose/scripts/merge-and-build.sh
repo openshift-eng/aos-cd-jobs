@@ -331,17 +331,13 @@ images:build \
 --push-to-defaults --repo-type unsigned
 fi
 
-ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-    sh -s -- --conf "${PUDDLE_CONF}" -b -d -n \
-    < "${WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh"
-
 # Record the name of the puddle which was created
-PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/latest")
+PUDDLE_NAME=$(ssh ocp-build@rcm-guest.app.eng.bos.redhat.com readlink "/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/building")
 echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/${PUDDLE_NAME}"
 
 echo
 echo "=========="
-echo "Sync latest puddle to mirrors"
+echo "Sync building puddle to mirrors"
 echo "=========="
 PUDDLE_REPO=""
 case "${BUILD_MODE}" in
@@ -352,8 +348,16 @@ enterprise:pre-release ) PUDDLE_REPO="" ;;
 * ) echo "BUILD_MODE:${BUILD_MODE} did not match anything we know about, not pushing"
 esac
 
+if [ "$BUILD_CONTAINER_IMAGES" != "false" ]; then
+    SYMLINK_NAME="latest"
+else
+    # If no images are being built, do not link as 'latest' as this will throw
+    # off CI and dev workflows which will assume images are present for latest.
+    SYMLINK_NAME="no-image-latest"
+fi
+
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
-  sh -s "simple" "${VERSION}" "${PUDDLE_REPO}" \
+  sh -s "${SYMLINK_NAME}" "${VERSION}" "${PUDDLE_REPO}" \
   < "${WORKSPACE}/build-scripts/rcm-guest/push-to-mirrors.sh"
 
 # push-to-mirrors.sh creates a symlink on rcm-guest with this new name and makes the
@@ -381,7 +385,7 @@ echo "Gather changelogs"
 echo "=========="
 ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
     sh -s "$OSE_VERSION" \
-    < "$WORKSPACE/scripts/rcm-guest-print-latest-changelog-report.sh" > "${RESULTS}/changelogs.txt"
+    < "$WORKSPACE/scripts/rcm-guest-print-building-changelog-report.sh" > "${RESULTS}/changelogs.txt"
 
 echo
 echo

@@ -13,7 +13,7 @@ _PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinitio
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
-_GCS_UPLOAD = """docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-bucket=origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+_GCS_UPLOAD = """docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 """
 
 _CLONEREFS_ACTION_TEMPLATE = Template("""if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then

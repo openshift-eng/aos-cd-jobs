@@ -15,8 +15,8 @@ properties(
                                  [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                                  [$class             : 'hudson.model.ChoiceParameterDefinition', choices: "release\npre-release\nonline:int\nonline:stg", description:
                                          '''
-release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
-pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/latest/<br>
+release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
+pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''', name: 'BUILD_MODE'],
@@ -793,22 +793,15 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
                 }
             }
 
-            stage("build final puddle") {
-                OCP_PUDDLE = buildlib.build_puddle(
-                        PUDDLE_CONF,    // The puddle configuration file to use
-                        PUDDLE_SIGN_KEYS, // openshifthosted key
-                        "-b",   // do not fail if we are missing dependencies
-                        "-d",   // print debug information
-                        "-n"
-                )
-
-                echo "Created puddle on rcm-guest: /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}"
-            }
-
             NEW_FULL_VERSION = "${NEW_VERSION}-${NEW_RELEASE}"
 
-            // Push the latest puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
-            buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", "simple", NEW_FULL_VERSION, BUILD_MODE)
+            SYMLINK_NAME = "latest"
+            if (!BUILD_CONTAINER_IMAGES) {
+                SYMLINK_NAME = "no-image-latest"
+            }
+
+            // Push the building puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
+            buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", SYMLINK_NAME, NEW_FULL_VERSION, BUILD_MODE)
 
             // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
             OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"

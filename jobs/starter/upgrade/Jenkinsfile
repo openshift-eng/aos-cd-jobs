@@ -273,7 +273,7 @@ Jenkins job: ${env.BUILD_URL}
     }
 
 
-    if ( MODE != "silent" && "${env.BRANCH_NAME}".contains( "starter" )  ) {
+    if ( MODE != "silent" ) {
         try {
             // Send out a CI message for QE
             build job: 'starter%2Fsend-ci-msg',

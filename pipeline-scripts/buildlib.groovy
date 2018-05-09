@@ -74,7 +74,7 @@ def initialize_enterprise_images_dir() {
     sh "rm -rf ${ENTERPRISE_IMAGES_DIR}"  // Remove any cruft
     sh "mkdir -p ${ENTERPRISE_IMAGES_DIR}"
     OIT_PATH = "${ENTERPRISE_IMAGES_DIR}/tools/bin/oit"
-    sh "git clone ${GITHUB_BASE}/enterprise-images.git ${ENTERPRISE_IMAGES_DIR}"
+    sh "git clone --depth 1 ${GITHUB_BASE}/enterprise-images.git ${ENTERPRISE_IMAGES_DIR}"
     env.ENTERPRISE_IMAGES_DIR = ENTERPRISE_IMAGES_DIR
     env.OIT_PATH = OIT_PATH
     echo "Initialized env.ENTERPRISE_IMAGES_DIR: ${env.ENTERPRISE_IMAGES_DIR}"
@@ -91,7 +91,7 @@ def oit(cmd, opts=[:]){
 def initialize_ose_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
-        sh "git clone ${GITHUB_BASE}/ose.git"
+        sh "git clone --depth 1 ${GITHUB_BASE}/ose.git"
         GITHUB_URLS["ose"] = "${GITHUB_BASE}/ose.git"
     }
     OSE_DIR = "${OPENSHIFT_DIR}/ose"
@@ -103,7 +103,7 @@ def initialize_ose_dir() {
 def initialize_origin_web_console_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
-        sh "git clone ${GITHUB_BASE}/origin-web-console.git"
+        sh "git clone --depth 1 ${GITHUB_BASE}/origin-web-console.git"
         GITHUB_URLS["origin-web-console"] = "${GITHUB_BASE}/origin-web-console.git"
     }
     WEB_CONSOLE_DIR = "${OPENSHIFT_DIR}/origin-web-console"
@@ -115,7 +115,7 @@ def initialize_origin_web_console_dir() {
 def initialize_origin_web_console_server_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
-        sh "git clone ${GITHUB_BASE}/origin-web-console-server.git"
+        sh "git clone --depth 1 ${GITHUB_BASE}/origin-web-console-server.git"
         GITHUB_URLS["origin-web-console-server"] = "${GITHUB_BASE}/origin-web-console-server.git"
     }
     WEB_CONSOLE_SERVER_DIR = "${OPENSHIFT_DIR}/origin-web-console-server"
@@ -127,7 +127,7 @@ def initialize_origin_web_console_server_dir() {
 def initialize_openshift_ansible() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {
-        sh "git clone ${GITHUB_BASE}/openshift-ansible.git"
+        sh "git clone --depth 1 ${GITHUB_BASE}/openshift-ansible.git"
         GITHUB_URLS["openshift-ansible"] = "${GITHUB_BASE}/openshift-ansible.git"
     }
     OPENSHIFT_ANSIBLE_DIR = "${OPENSHIFT_DIR}/openshift-ansible"

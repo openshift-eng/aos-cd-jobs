@@ -630,7 +630,7 @@ rpms:build --version v${NEW_VERSION}
             }
 
             stage("puddle: ose 'building'") {
-                buildlib.build_puddle(
+                OCP_PUDDLE = buildlib.build_puddle(
                         PUDDLE_CONF,    // The puddle configuration file to use
                         PUDDLE_SIGN_KEYS, // openshifthosted key
                         "-b",   // do not fail if we are missing dependencies

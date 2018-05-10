@@ -182,7 +182,7 @@ def get_image_build_report(record_log) {
         }
     }
 
-    return "Images included in build:\n    " +
+    return "\nImages included in build:\n    " +
         image_set.toSorted().join("\n    ")
 }
 

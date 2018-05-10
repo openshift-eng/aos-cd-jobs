@@ -30,7 +30,7 @@ for image in 'registry.svc.ci.openshift.org/ci/clonerefs:latest' 'registry.svc.c
     done
 done
 clonerefs_args=${CLONEREFS_ARGS:-{% for repo in repos %}--repo={{repo}} {% endfor %}}
-docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json --repo=${REPO_OWNER},${REPO_NAME}=${PULL_REFS} ${clonerefs_args}
+docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json ${PULL_REFS:+--repo=${REPO_OWNER},${REPO_NAME}=${PULL_REFS}} ${clonerefs_args}
 {{upload_to_gcs_step}}
 sudo chmod -R a+rwX /data
 sudo chown -R origin:origin-git /data

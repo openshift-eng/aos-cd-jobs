@@ -2,40 +2,125 @@
 
 // Expose properties for a parameterized build
 properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '1000'
+            )
+        ),
         [
-                buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '1000')),
-                [$class              : 'ParametersDefinitionProperty',
-                 parameterDefinitions:
-                         [
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                                 [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
-                                 [$class: 'hudson.model.ChoiceParameterDefinition', choices: "openshift-bot\naos-cd-test\njupierce-aos-cd-bot\nadammhaile-aos-cd-bot", defaultValue: 'aos-cd-test', description: 'SSH credential id to use', name: 'SSH_KEY_ID'],
-                                 [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3", defaultValue: '3.10', description: 'OCP Version to build', name: 'BUILD_VERSION'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                                 [$class             : 'hudson.model.ChoiceParameterDefinition', choices: "release\npre-release\nonline:int\nonline:stg", description:
-                                         '''
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions:
+                [
+                [
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1',
+                    description: 'Jenkins agent node',
+                    name: 'TARGET_NODE'
+                ],
+                [
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot",
+                    defaultValue: 'git@github.com:openshift',
+                    description: 'Github base for repos',
+                    name: 'GITHUB_BASE'
+                ],
+                [
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: "openshift-bot\naos-cd-test\njupierce-aos-cd-bot\nadammhaile-aos-cd-bot",
+                    defaultValue: 'aos-cd-test',
+                    description: 'SSH credential id to use',
+                    name: 'SSH_KEY_ID'
+                ],
+                [
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: "3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
+                    defaultValue: '3.10',
+                    description: 'OCP Version to build',
+                    name: 'BUILD_VERSION'
+                ],
+                [
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com,jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com',
+                    description: 'Success Mailing List',
+                    name: 'MAIL_LIST_SUCCESS'
+                ],
+                [
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,bbarcaro@redhat.com',
+                    description: 'Failure Mailing List',
+                    name: 'MAIL_LIST_FAILURE'
+                ],
+                [
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: "release\npre-release\nonline:int\nonline:stg",
+                    description: '''
 release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
 online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
-''', name: 'BUILD_MODE'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Sign RPMs with openshifthosted?', name: 'SIGN'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run as much code as possible without pushing / building?', name: 'TEST'],
-                                 [$class: 'hudson.model.TextParameterDefinition', defaultValue: "", description: 'Include special notes in the build email?', name: 'SPECIAL_NOTES'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: "", description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)', name: 'BUILD_EXCLUSIONS'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build container images?', name: 'BUILD_CONTAINER_IMAGES'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
-                         ]
+''',
+                    name: 'BUILD_MODE'
                 ],
-                disableConcurrentBuilds()
-        ]
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
+                    description: 'Sign RPMs with openshifthosted?',
+                    name: 'SIGN'
+                ],
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
+                    description: 'Mock run to pickup new Jenkins parameters?',
+                    name: 'MOCK'
+                ],
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
+                    description: 'Run as much code as possible without pushing / building?',
+                    name: 'TEST'
+                ],
+                [
+                    $class: 'hudson.model.TextParameterDefinition',
+                    defaultValue: "",
+                    description: 'Include special notes in the build email?',
+                    name: 'SPECIAL_NOTES'
+                ],
+                [
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: "",
+                    description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
+                    name: 'BUILD_EXCLUSIONS'
+                ],
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: true,
+                    description: 'Build container images?',
+                    name: 'BUILD_CONTAINER_IMAGES'
+                ],
+                [
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: true,
+                    description: 'Build golden image after building images?',
+                    name: 'BUILD_AMI'
+                ],
+            ]
+        ],
+        disableConcurrentBuilds()
+    ]
 )
 
+// ---------------------------------------------------------------------------
+// Convert input strings to useful types
+// ---------------------------------------------------------------------------
 IS_TEST_MODE = TEST.toBoolean()
-BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
-BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
+// extract the major and minor numbers for numerical comparison
+BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger()
+BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger()
+
 SIGN_RPMS = SIGN.toBoolean()
 BUILD_CONTAINER_IMAGES = BUILD_CONTAINER_IMAGES.toBoolean()
 

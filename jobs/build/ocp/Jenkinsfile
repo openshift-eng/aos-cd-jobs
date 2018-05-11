@@ -130,27 +130,26 @@ if (BUILD_EXCLUSIONS != "") {
     BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
 }
 
-def get_mirror_url(build_mode, version) {
-    if (build_mode == "online:int") {
-        return "https://mirror.openshift.com/enterprise/online-int"
-    }
-    if (build_mode == "online:stg") {
-        return "https://mirror.openshift.com/enterprise/online-stg"
-    }
-    return "https://mirror.openshift.com/enterprise/enterprise-${version}"
-}
+// The URL containing the RPM repos for each type of build
+MIRROR_URL_MAP = [
+    "release": "https://mirror.openshift.com/enterprise/enterprise-${BUILD_VERSION}",
+    "pre-release": "https://mirror.openshift.com/enterprise/enterprise-${BUILD_VERSION}",
+    "online:int": "https://mirror.openshift.com/enterprise/online-int",
+    "online:stg": "https://mirror.openshift.com/enterprise/online-stg"
+]
+
+// Human reportable indication of the build target
+TARGET_STRING = [
+    "release": "(Release Candidate)",
+    "pre-release": "(Release Candidate)",
+    "online:int": "(Integration Testing)",
+    "online:stg": "(Stage Testing)"
+]
+
 
 def mail_success(version, mirrorURL, record_log) {
 
-    def target = "(Release Candidate)"
-
-    if (BUILD_MODE == "online:int") {
-        target = "(Integration Testing)"
-    }
-
-    if (BUILD_MODE == "online:stg") {
-        target = "(Stage Testing)"
-    }
+    def target = TARGET_STRING[BUILD_MODE]
 
     def inject_notes = ""
     if (SPECIAL_NOTES.trim() != "") {
@@ -890,7 +889,7 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
 
             // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
             OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
-            final mirror_url = get_mirror_url(BUILD_MODE, BUILD_VERSION)
+            final mirror_url = MIRROR_URL_MAP[BUILD_MODE]
 
             stage("ami") {
                 if (params.BUILD_AMI && BUILD_CONTAINER_IMAGES) {

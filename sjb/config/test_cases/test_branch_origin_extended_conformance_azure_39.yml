@@ -1,13 +1,6 @@
 ---
 parent: 'common/test_cases/origin_release_install_azure_39.yml'
 overrides:
-  sync:
-    - "openshift,openshift-ansible=release-3.9"
-    - "openshift,image-registry=release-3.9"
-    - "openshift,kubernetes-metrics-server=release-3.9"
-    - "openshift,origin-web-console-server=release-3.9"
-    - "openshift,aos-cd-jobs=master"
-    - "openshift,release=master"
   email:
   - aos-azure@redhat.com
 extensions:
@@ -18,8 +11,7 @@ rectory to run."
       default_value: "conformance"
   actions:
     - type: "script"
-      title: "publish Azure image"
-      repository: "release"
+      title: "run tests"
       timeout: 900
       script: |-
         exit 0

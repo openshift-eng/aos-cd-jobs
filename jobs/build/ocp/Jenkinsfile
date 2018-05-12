@@ -171,6 +171,10 @@ Time spent waiting for OSBS capacity: ${metrics[0]['elapsed_wait_minutes']} minu
 // get the list of images built
 def get_image_build_report(record_log) {
     builds = record_log['build']
+        
+    if ( builds == null ) {
+        return ""
+    }
 
     Set image_set = []
     for (i = 0; i < builds.size(); i++) {

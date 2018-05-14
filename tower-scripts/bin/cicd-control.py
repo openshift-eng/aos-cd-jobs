@@ -122,7 +122,7 @@ class CICDControl(object):
         atexit.register(self.atexit_cleanup)
         self.setup_log_dir()
 
-        if self.operation.startswith('online-'):
+        if self.operation.startswith('online'):
             self.update_online_roles()
 
         valid_methods = [m[0] for m in inspect.getmembers(self) if inspect.ismethod(m[1])]

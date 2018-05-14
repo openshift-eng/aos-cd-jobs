@@ -73,6 +73,8 @@ def parse_args():
     parser.add_argument('--test-cluster', action='store_true', help='Is this a test cluster')
     parser.add_argument('--ansible-verbose', nargs='?', const=True, type=str_to_bool, default=False,
                         help='Run Ansible playbooks with -vvv')
+    parser.add_argument('--no-ops-clone', nargs='?', const=True, type=str_to_bool, default=False,
+                        help='Disable the Ops Repo Clone')
 
 
     args = parser.parse_args()
@@ -188,10 +190,11 @@ class CICDControl(object):
     def update_ops_git_repos(self):
         """ update the ops git repos """
 
-        print("\nUpdating the Ops Git Repos\n")
-
-        self.playbook_executor('clone_ops_git_repos.yml')
-
+        if self.extra_args["no_ops_clone"]:
+            print("\nSkipping update of the Ops Git Repos\n")
+        else:
+            print("\nUpdating the Ops Git Repos\n")
+            self.playbook_executor('clone_ops_git_repos.yml')
 
     @command
     def update_online_roles(self):
@@ -202,7 +205,8 @@ class CICDControl(object):
         subprocess.check_output(["/usr/bin/ssh-agent", "bash", "-c", "ssh-add "
                                  "{}/openshift-ansible-private/private_roles/aos-cicd/files/"
                                  "github_ops_bot_ssh_key.rsa; /usr/bin/gogitit sync -m "
-                                 "./gogitit_online_{}.yml".format(self.git_dir, self.cluster.environment)])
+                                 "{}/aos-cd-jobs/tower-scripts/bin/gogitit_online_{}.yml".
+                                 format(self.git_dir, self.git_dir, self.cluster.environment)])
 
     def get_latest_openshift_ansible(self):
         """ Download and extract the latest openshift-ansible """

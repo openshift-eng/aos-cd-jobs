@@ -205,7 +205,8 @@ class CICDControl(object):
         subprocess.check_output(["/usr/bin/ssh-agent", "bash", "-c", "ssh-add "
                                  "{}/openshift-ansible-private/private_roles/aos-cicd/files/"
                                  "github_ops_bot_ssh_key.rsa; /usr/bin/gogitit sync -m "
-                                 "./gogitit_online_{}.yml".format(self.git_dir, self.cluster.environment)])
+                                 "{}/aos-cd-jobs/tower-scripts/bin/gogitit_online_{}.yml".
+                                 format(self.git_dir, self.git_dir, self.cluster.environment)])
 
     def get_latest_openshift_ansible(self):
         """ Download and extract the latest openshift-ansible """

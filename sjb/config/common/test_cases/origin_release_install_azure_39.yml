@@ -2,7 +2,7 @@
 parent: 'common/test_cases/origin_release_with_ecosystem_39.yml'
 extensions:
   sync:
-    - "openshift,release=master"
+    - openshift,release=master
   parameters:
     - name: "FOCUS"
       description: "Literal string to pass to <code>--ginkgo.focus</code>"
@@ -29,16 +29,10 @@ extensions:
         - OS_PUSH_BASE_REPO
 
     - type: "script"
-      title: "clone custom repositories for now"
-      script: |-
-        git clone --branch release-3.9 https://github.com/openshift/openshift-ansible.git
-        git clone --branch azure https://github.com/jim-minter/release.git
-
-    - type: "script"
       title: "build openshift-ansible image"
       timeout: 900
+      repository: openshift-ansible
       script: |-
-        cd openshift-ansible
         docker build -f images/installer/Dockerfile -t openshift/origin-ansible:latest .
 
     # calculate the instance prefix
@@ -150,16 +144,17 @@ extensions:
     - type: "host_script"
       title: "move secrets to remote host"
       script: |-
-        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/home/origin/release/cluster/test-deploy/azure/
-        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /home/origin/release/cluster/test-deploy/azure/'
-        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /home/origin/release/cluster/test-deploy/azure/'
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/azure/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
 
     - type: "script"
       title: "build node image"
+      repository: "release"
       script: |-
         suffix='origin-${component}'
         suffix="${suffix}:$(cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG)"
-        cd release/cluster/test-deploy/azure
+        cd cluster/test-deploy/azure
         TYPE=azure ../../bin/ansible.sh ansible-playbook \
           -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
           -e "openshift_azure_resource_location=eastus" \
@@ -173,8 +168,9 @@ extensions:
 
     - type: "script"
       title: "provision test cluster"
+      repository: "release"
       script: |-
-        cd release/cluster/test-deploy/azure
+        cd cluster/test-deploy/azure
         TYPE=azure ../../bin/ansible.sh ansible-playbook \
           -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
           -e "openshift_azure_resource_location=eastus" \
@@ -185,9 +181,10 @@ extensions:
   post_actions:
     - type: "script"
       title: "deprovision test cluster"
+      repository: "release"
       script: |-
         trap 'exit 0' EXIT
-        cd release/cluster/test-deploy/azure
+        cd cluster/test-deploy/azure
         TYPE=azure ../../bin/ansible.sh ansible-playbook \
           -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
           playbooks/azure/openshift-cluster/deprovision.yml

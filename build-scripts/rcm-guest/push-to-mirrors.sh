@@ -36,10 +36,10 @@ fi
 
 usage() {
   echo >&2
-  echo "Usage `basename $0` [type] [version] <build_mode>" >&2
+  echo "Usage `basename $0` [link_name] [version] <build_mode>" >&2
   echo >&2
-  echo "type: simple errata" >&2
-  echo "  type of puddle we are pushing" >&2
+  echo "link_name: latest" >&2
+  echo "  symlink filename to establish to the puddle on rcm-guest/mirror" >&2
   echo "version: e.g. 3.7.0-0.143.7" >&2
   echo "  What version we are pulling from" >&2
   echo "  For enterprise repos, which release we are pushing to" >&2
@@ -75,7 +75,12 @@ LASTDIR=$(readlink --verbose "${PUDDLEDIR}/building")
 VERSIONED_DIR="v${FULL_VERSION}_${LASTDIR}"  # e.g. v3.7.0-0.173.0_2017-06-09.4
 ln -sfn "${LASTDIR}" "${PUDDLEDIR}/${VERSIONED_DIR}"
 
-echo "Pushing puddle: $LASTDIR"
+# Create the symlink on rcm-guest. QE appears to use 'latest' here instead of on mirrors.
+pushd "$PUDDLEDIR"
+ln -sfn "$VERSIONED_DIR"  "$SYMLINK_NAME"
+popd
+
+echo "Pushing puddle: $LASTDIR   ($VERSIONED_DIR)"
 
 MIRROR_SSH_SERVER="use-mirror-upload.ops.rhcloud.com"
 MIRROR_SSH_BASE="ssh ${BOT_USER} -o StrictHostKeychecking=no"

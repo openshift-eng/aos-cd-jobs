@@ -5,52 +5,52 @@ overrides:
     os: "rhel"
     stage: "bare"
     provider: "aws"
-timer: "H H/12 * * *"
-concurrent: False
-actions:
-  - type: "host_script"
-    title: "install CI user account"
-    script: |-
-      oct prepare user
-      sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
-  - type: "host_script"
-    title: "install base dependencies"
-    script: |-
-      oct prepare dependencies
-  - type: "host_script"
-    title: "install golang"
-    script: |-
-      oct prepare golang --version '1.9.2' --repourl 'https://cbs.centos.org/repos/paas7-openshift-origin39-candidate/x86_64/os/'
-  - type: "host_script"
-    title: "install docker"
-    script: |-
-      oct prepare docker --repourl "https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/" --repo 'oso-rhui-rhel-server-*'
-  - type: "host_script"
-    title: "prepare repositories"
-    script: |-
-      oct prepare repositories
-  - type: "script"
-    title: "install system accounting rules"
-    script: |-
-      cat <<CONF >origin-ami-accounting.conf
-      [Manager]
-      DefaultCPUAccounting=yes
-      DefaultMemoryAccounting=yes
-      CONF
-      sudo mkdir -p /etc/systemd/system.conf.d/
-      sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
-      sudo systemctl daemon-reexec
-  - type: "script"
-    title: "pre-pull infrastructure images"
-    script: |-
-      docker pull openshift/origin-release:golang-1.7
-      docker pull openshift/origin-release:golang-1.8
-      docker pull openshift/origin-gce:latest
-  - type: "host_script"
-    title: "package the AMI"
-    script: |-
-      oct package ami --stage=next
-      if [[ -n "${GRANT_LAUNCH_OPTS}" ]]
-      then
-        oct package ami ${GRANT_LAUNCH_OPTS}
-      fi
+  timer: "H H/12 * * *"
+  concurrent: False
+  actions:
+    - type: "host_script"
+      title: "install CI user account"
+      script: |-
+        oct prepare user
+        sed -i 's/User ec2-user/User origin/g' ./.config/origin-ci-tool/inventory/.ssh_config
+    - type: "host_script"
+      title: "install base dependencies"
+      script: |-
+        oct prepare dependencies
+    - type: "host_script"
+      title: "install golang"
+      script: |-
+        oct prepare golang --version '1.9.2' --repourl 'https://cbs.centos.org/repos/paas7-openshift-origin39-candidate/x86_64/os/'
+    - type: "host_script"
+      title: "install docker"
+      script: |-
+        oct prepare docker --repourl "https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/" --repo 'oso-rhui-rhel-server-*'
+    - type: "host_script"
+      title: "prepare repositories"
+      script: |-
+        oct prepare repositories
+    - type: "script"
+      title: "install system accounting rules"
+      script: |-
+        cat <<CONF >origin-ami-accounting.conf
+        [Manager]
+        DefaultCPUAccounting=yes
+        DefaultMemoryAccounting=yes
+        CONF
+        sudo mkdir -p /etc/systemd/system.conf.d/
+        sudo mv origin-ami-accounting.conf /etc/systemd/system.conf.d/
+        sudo systemctl daemon-reexec
+    - type: "script"
+      title: "pre-pull infrastructure images"
+      script: |-
+        docker pull openshift/origin-release:golang-1.7
+        docker pull openshift/origin-release:golang-1.8
+        docker pull openshift/origin-gce:latest
+    - type: "host_script"
+      title: "package the AMI"
+      script: |-
+        oct package ami --stage=next
+        if [[ -n "${GRANT_LAUNCH_OPTS}" ]]
+        then
+          oct package ami ${GRANT_LAUNCH_OPTS}
+        fi

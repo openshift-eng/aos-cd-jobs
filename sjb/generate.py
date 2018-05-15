@@ -112,7 +112,8 @@ if job_type == "test":
         os=job_config["provision"]["os"],
         stage=job_config["provision"]["stage"],
         provider=job_config["provision"]["provider"],
-        instance_type=job_config["provision"].get("instance_type", None)
+        instance_type=job_config["provision"].get("instance_type", None),
+        validate=job_config["provision"].get("validate", False)
     ))
 
     # next, repositories will be synced to the remote VM
@@ -272,6 +273,7 @@ with open(output_path, "w") as output_file:
         post_build_steps=generator.generate_post_build_steps(),
         action=action,
         target_repo=target_repo,
+        concurrent=job_config.get("concurrent", True),
         timer=job_config.get("timer", None),
         email=job_config.get("email", None),
         junit_analysis=job_config.get("junit_analysis", True),

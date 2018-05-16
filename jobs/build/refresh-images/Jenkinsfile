@@ -171,6 +171,7 @@ Jenkins job: ${env.BUILD_URL}
             throw err
         } finally {
             try {
+                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/verify_fail_log.yml"
                 archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
                 archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
             } catch (aae) {

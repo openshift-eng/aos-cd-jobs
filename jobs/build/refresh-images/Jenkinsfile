@@ -67,7 +67,8 @@ node('openshift-build-1') {
                               // TODO reenable when the mirrors have the necessary puddles
                               [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: "", description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)', name: 'BUILD_EXCLUSIONS'],
-                ]
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Advisory Number to attach new images to', name: 'ADVISORY_ID'],
+                      ]
              ]]
     )
 
@@ -287,5 +288,28 @@ Jenkins job: ${env.BUILD_URL}
             }
         }
 
+    }
+
+    stage ('Attach Images') {
+        if (ADVISORY_ID != "") {
+            try {
+                buildlib.elliott """
+ --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+ advisory:find-builds
+ --kind image
+ --attach ${ADVISORY_ID}
+"""
+            } catch {
+                // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
+                mail(to: "${MAIL_LIST_FAILURE}",
+                    from: "aos-cicd@redhat.com",
+                    subject: "Error Attaching ${OSE_MAJOR}.${OSE_MINOR} images to ${ADVISORY_ID}","""
+
+
+Jenkins job: ${env.BUILD_URL}
+""");
+            }
+    } else {
+        echo 'Skipping stage...'
     }
 }

@@ -38,9 +38,9 @@ stage ('openshift_scaleup') {
                         println "IMAGE_SERVER: '${image_server}'"
                         println "IMAGE_USER: '${image_user}'"
                         println "BRANCH: '${branch}'"
-			println "OPENSHIFT_NODE_TARGET: '${openshift_node_target}'"
-			println "TIME_SERVERS: '${time_servers}'"
-			println "JENKINS_SLAVE_LABEL: '${jenkins_slave_label}'"
+                        println "OPENSHIFT_NODE_TARGET: '${openshift_node_target}'"
+                        println "TIME_SERVERS: '${time_servers}'"
+                        println "JENKINS_SLAVE_LABEL: '${jenkins_slave_label}'"
                         println "-------------------------------------------------"
                         println "-------------------------------------------------"	
 		
@@ -48,12 +48,12 @@ stage ('openshift_scaleup') {
 			try {
 			    scaleup_build = build job: 'scale-ci_ScaleUp_OpenShift',
 				parameters: [   [$class: 'LabelParameterValue', name: 'node', label: node_label ],
-						[$class: 'StringParameterValue', name: 'OPENSTACK_SERVER', value: openstack_server ],
-						[$class: 'StringParameterValue', name: 'OPENSTACK_USER', value: openstack_user ],
-						[$class: 'StringParameterValue', name: 'IMAGE_SERVER', value: image_server ],
-						[$class: 'StringParameterValue', name: 'IMAGE_USER', value: image_user ],
-						[$class: 'StringParameterValue', name: 'branch', value: branch ],
-						[$class: 'StringParameterValue', name: 'OPENSHIFT_NODE_TARGET', value: openshift_node_target ],
+                                                [$class: 'StringParameterValue', name: 'OPENSTACK_SERVER', value: openstack_server ],
+                                                [$class: 'StringParameterValue', name: 'OPENSTACK_USER', value: openstack_user ],
+                                                [$class: 'StringParameterValue', name: 'IMAGE_SERVER', value: image_server ],
+                                                [$class: 'StringParameterValue', name: 'IMAGE_USER', value: image_user ],
+                                                [$class: 'StringParameterValue', name: 'branch', value: branch ],
+                                                [$class: 'StringParameterValue', name: 'OPENSHIFT_NODE_TARGET', value: openshift_node_target ],
                                                 [$class: 'StringParameterValue', name: 'scale_block_size', value: block_size ],
                                                 [$class: 'StringParameterValue', name: 'time_servers', value: time_servers ],
                                                 [$class: 'StringParameterValue', name: 'JENKINS_SLAVE_LABEL', value: jenkins_slave_label ]]

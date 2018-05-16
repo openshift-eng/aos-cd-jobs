@@ -3,14 +3,8 @@ parent: 'common/test_cases/origin_built_release.yml'
 overrides:
   junit_analysis: True
   email:
-    - bparees@redhat.com
-    - gmontero@redhat.com
-    - cdaley@redhat.com
-    - miminar@redhat.com
-    - obulatov@redhat.com
-    - agladkov@redhat.com
-    - jwozniak@redhat.com
-    - adkaplan@redhat.com
+    - mfojtik@redhat.com
+    - deads@redhat.com
 extensions:
   actions:
     - type: "script"

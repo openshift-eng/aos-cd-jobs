@@ -23,28 +23,28 @@ stage('mastervertical_scale_test') {
                         def jump_host = mastervertical_properties['JUMP_HOST']
                         def user = mastervertical_properties['USER']
                         def tooling_inventory_path = mastervertical_properties['TOOLING_INVENTORY']
-			def clear_results = mastervertical_properties['CLEAR_RESULTS']
-			def move_results = mastervertical_properties['MOVE_RESULTS']
-			def containerized = mastervertical_properties['CONTAINERIZED']
-			def use_proxy = mastervertical_properties['USE_PROXY']
-			def proxy_user = mastervertical_properties['PROXY_USER']
-			def proxy_host = mastervertical_properties['PROXY_HOST']
-			def projects = mastervertical_properties['PROJECTS']
-			def setup_pbench = mastervertical_properties['SETUP_PBENCH']
-			def first_run = mastervertical_properties['FIRST_RUN_PROJECTS']
-			def second_run = mastervertical_properties['SECOND_RUN_PROJECTS']
-			def third_run = mastervertical_properties['THIRD_RUN_PROJECTS']
+                        def clear_results = mastervertical_properties['CLEAR_RESULTS']
+                        def move_results = mastervertical_properties['MOVE_RESULTS']
+                        def containerized = mastervertical_properties['CONTAINERIZED']
+                        def use_proxy = mastervertical_properties['USE_PROXY']
+                        def proxy_user = mastervertical_properties['PROXY_USER']
+                        def proxy_host = mastervertical_properties['PROXY_HOST']
+                        def projects = mastervertical_properties['PROJECTS']
+                        def setup_pbench = mastervertical_properties['SETUP_PBENCH']
+                        def first_run = mastervertical_properties['FIRST_RUN_PROJECTS']
+                        def second_run = mastervertical_properties['SECOND_RUN_PROJECTS']
+                        def third_run = mastervertical_properties['THIRD_RUN_PROJECTS']
 
                         // debug info
                         println "JUMP_HOST: '${jump_host}'"
                         println "USER: '${user}'"
                         println "TOOLING_INVENTORY_PATH: '${tooling_inventory_path}'"
-			println "CLEAR_RESULTS: '${clear_results}'"
-			println "MOVE_RESULTS: '${move_results}'"
-			println "CONTAINERIZED: '${containerized}'"
-			println "PROXY_USER: '${proxy_user}'"
-			println "PROXY_HOST: '${proxy_host}'"
-			println "PROJECTS: '${projects}'"
+                        println "CLEAR_RESULTS: '${clear_results}'"
+                        println "MOVE_RESULTS: '${move_results}'"
+                        println "CONTAINERIZED: '${containerized}'"
+                        println "PROXY_USER: '${proxy_user}'"
+                        println "PROXY_HOST: '${proxy_host}'"
+                        println "PROJECTS: '${projects}'"
 
                         // Run mastervertical job
                         try {
@@ -58,10 +58,10 @@ stage('mastervertical_scale_test') {
                                                 [$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ],
                                                 [$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
                                                 [$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
-						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
-						[$class: 'BooleanParameterValue', name: 'SETUP_PBENCH', value: Boolean.valueOf(setup_pbench) ],
-						[$class: 'StringParameterValue', name: 'FIRST_RUN_PROJECTS', value: first_run ],
-                                           	[$class: 'StringParameterValue', name: 'SECOND_RUN_PROJECTS', value: second_run ],
+                                                [$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
+                                                [$class: 'BooleanParameterValue', name: 'SETUP_PBENCH', value: Boolean.valueOf(setup_pbench) ],
+                                                [$class: 'StringParameterValue', name: 'FIRST_RUN_PROJECTS', value: first_run ],
+                                                [$class: 'StringParameterValue', name: 'SECOND_RUN_PROJECTS', value: second_run ],
                                                 [$class: 'StringParameterValue', name: 'THIRD_RUN_PROJECTS', value: third_run ]]
                         } catch ( Exception e) {
                        	echo "MASTERVERTICAL-SCALE-TEST Job failed with the following error: "

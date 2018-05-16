@@ -17,14 +17,14 @@ stage ('conformance') {
 				sh "rm conformance.properties"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/conformance.properties"
-			sh "wget ${CONFORMANCE_PROPERTY_FILE}"
-			sh "cat conformance.properties"
-			def conformance_properties = readProperties file: "conformance.properties"
-			def master_hostname = conformance_properties['MASTER_HOSTNAME']
-			def user = conformance_properties['USER']
-			def enable_pbench = conformance_properties['ENABLE_PBENCH']
-		        def use_proxy = conformance_properties['USE_PROXY']
+                        //sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/conformance.properties"
+                        sh "wget ${CONFORMANCE_PROPERTY_FILE} -O conformance.properties"
+                        sh "cat conformance.properties"
+                        def conformance_properties = readProperties file: "conformance.properties"
+                        def master_hostname = conformance_properties['MASTER_HOSTNAME']
+                        def user = conformance_properties['USER']
+                        def enable_pbench = conformance_properties['ENABLE_PBENCH']
+                        def use_proxy = conformance_properties['USE_PROXY']
                         def proxy_user = conformance_properties['PROXY_USER']
                         def proxy_host = conformance_properties['PROXY_HOST']
 

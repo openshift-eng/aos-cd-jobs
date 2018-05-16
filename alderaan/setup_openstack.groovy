@@ -45,7 +45,8 @@ stage ('openstack_install') {
 			def extra_vars = openstack_properties['EXTRA_VARS']
 			//def private_lan = openstack_properties['DEPLOY_EXTERNAL_PRIVATE_LAN']
 			//def private_nat = openstack_properties['DEPLOY_EXTERNAL_PRIVATE_NAT']
-                        // debug info
+                        
+			// debug info
                         println "----------USER DEFINED OPTIONS-------------------"
                         println "-------------------------------------------------"
                         println "-------------------------------------------------"

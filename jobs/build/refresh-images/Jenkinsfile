@@ -24,33 +24,134 @@ ${OSE_MAJOR}.${OSE_MINOR}
 """);
 }
 
+//
+// Search the build log for 
+//
+def get_failed_builds(log_dir) {
+    record_log = buildlib.parse_record_log(log_dir)
+    builds = record_log['build']
+    failed_map = [:]
+    for (i = 0; i < builds.size(); i++) {
+        bld = builds[i]
+        distgit = bld['distgit']
+        if (bld['status'] != '0') {
+            failed_map[distgit] = bld['task_url']
+        } else if (bld['push_status'] != '0') {
+            failed_map[distgit] = 'Failed to push built image. See debug.log'
+        } else {
+            // build may have succeeded later. If so, remove.
+            failed_map.remove(distgit)
+        }
+    }
+
+    return failed_map
+}
+
+
 node('openshift-build-1') {
     checkout scm
 
     // Expose properties for a parameterized build
     properties(
-            [buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
-             [$class              : 'ParametersDefinitionProperty',
-              parameterDefinitions:
-                      [
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15", defaultValue: '9', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'auto', description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"', name: 'VERSION_OVERRIDE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optional release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                              [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
-                              // TODO reenable when the mirrors have the necessary puddles
-                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
-                      ]
-             ]]
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '720'
+                )
+            ),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions:[
+                    [
+                        name: 'GITHUB_BASE',
+                        description: 'Github base for repos',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "git@github.com:openshift",
+                            "git@github.com:jupierce",
+                            "git@github.com:jupierce-aos-cd-bot",
+                            "git@github.com:adammhaile-aos-cd-bot"
+                        ].join("\n"),
+                        defaultValue: 'git@github.com:openshift'
+                    ],
+                    [
+                        name: 'OSE_MAJOR',
+                        description: 'OSE Major Version',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "3",
+                        defaultValue: '3'
+                    ],
+                    [
+                        name: 'OSE_MINOR',
+                        description: 'OSE Minor Version',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15",
+                        defaultValue: '9'
+                    ],
+                    [
+                        name: 'VERSION_OVERRIDE',
+                        description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: 'auto'
+                    ],
+                    [
+                        name: 'RELEASE_OVERRIDE',
+                        description: 'Optional release to use. Must be > 1 (i.e. 2)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ''
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'jupierce@redhat.com',
+                            'ahaile@redhat.com',
+                            'smunilla@redhat.com',
+                            'bbarcaro@redhat.com'
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'jupierce@redhat.com',
+                            'ahaile@redhat.com',
+                            'smunilla@redhat.com',
+                            'bbarcaro@redhat.com'
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MOCK',
+                        description: 'Mock run to pickup new Jenkins parameters?.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    // TODO reenable when the mirrors have the necessary puddles
+                    [
+                        name: 'BUILD_AMI',
+                        description: 'Build golden image after building images?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                ]
+            ]
+        ]
     )
 
-    // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
-    echo "${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
+    // Force Jenkins to fail early if this is the first time this job has been
+    // run/and or new parameters have not been discovered.
+    echo "${OSE_MAJOR}.${OSE_MINOR}, " +
+        "MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], " +
+        "MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], " +
+        "MOCK:${MOCK}"
 
-    currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}"
+    currentBuild.displayName =
+        "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}"
 
     if (MOCK.toBoolean()) {
         error("Ran in mock mode")
@@ -73,9 +174,13 @@ node('openshift-build-1') {
 
     stage('Refresh Images') {
         try {
-            try {
-                // Clean up old images so that we don't run out of device mapper space
-                sh "docker rmi --force \$(docker images  | grep v${OSE_MAJOR}.${OSE_MINOR} | awk '{print \$3}')"
+            // all refresh steps
+            // Clean up old images to conserve device mapper space
+             try {
+                sh "docker rmi --force " +
+                    "\$(docker images  | " +
+                    "grep v${OSE_MAJOR}.${OSE_MINOR} | " +
+                    "awk '{print \$3}')"
             } catch (cce) {
                 echo "Error cleaning up old images: ${cce}"
             }
@@ -94,42 +199,138 @@ node('openshift-build-1') {
                 }
 
                 if (RELEASE_OVERRIDE != "") {
-                    oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
+                    oit_update_docker_args =
+                        "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
                 }
 
-                sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"
+                // operations with brew require kerberos auth
+                buildlib.kinit()
 
                 /**
-                 * By default, do not specify a version or release for oit. This will preserve the version label and remove
-                 * the release label. OSBS now chooses a viable release label to prevent conflicting with pre-existing
+                 * By default, do not specify a version or release for oit.
+                 * This will preserve the version label and remove
+                 * the release label. OSBS now chooses a viable release label
+                 * to prevent conflicting with pre-existing
                  * builds. Let's use that fact to our advantage.
                  */
-                buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
-images:update-dockerfile
-  ${oit_update_docker_args}
-  --message 'Updating for image refresh'
-  --push
-  """
+                buildlib.oit(
+                    [
+                        "--working-dir ${OIT_WORKING}",
+                        "--group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'",
+                        "images:update-dockerfile",
+                        "${oit_update_docker_args}",
+                        "--message 'Updating for image refresh'",
+                        "--push"
+                    ].join(' ')
+                )
 
-                buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-images:build
---push-to-defaults --repo-type signed
-"""
+                // The image build can fail and still be acceptble.
+                // The waitUntil wrapper allows the user to respond and
+                // accept, retry or abort the build process and the task
+                BUILD_CONTINUED = false
+                waitUntil {
+                    try {
+
+                        // intially build everything.  Retrys will ignore
+                        // failed builds and only rebuild untried images
+                        exclude = ""
+                        if (BUILD_EXCLUSIONS != "") {
+                            exclude =
+                                "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                        }
+
+                        buildlib.oit(
+                            [
+                                "--working-dir ${OIT_WORKING}",
+                                "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
+                                exclude,
+                                "images:build",
+                                "--push-to-defaults --repo-type signed"
+                            ].join(' ')
+                        )
+                    }
+                    catch (err) {
+
+                        failed_builds = get_failed_builds(OIT_WORKING)
+
+                        mail(
+                            to: "${MAIL_LIST_FAILURE}",
+                            from: "aos-cicd@redhat.com",
+                            subject: "RESUMABLE Error during Refresh Images for OCP v${BUILD_VERSION}",
+                            body: """Encountered an error: ${err}
+    Input URL: ${env.BUILD_URL}input
+    Jenkins job: ${env.BUILD_URL}
+
+    BUILD / PUSH FAILURES:
+    ${failed_builds}
+    """)
+
+                        def resp = input message: "Error during Image Build for OCP v${BUILD_VERSION}",
+                        parameters: [
+                            [
+                                name: 'action',
+                                description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).',
+                                $class: 'hudson.model.ChoiceParameterDefinition',
+                                choices: [
+                                    "RETRY",
+                                    "CONTINUE",
+                                    "ABORT"
+                                ].join(',')
+                            ]
+                        ]
+
+                        switch (resp) {
+                            case "RETRY":
+                                // cause waitUntil to loop again
+                                return false
+                            case "CONTINUE":
+                                echo "User chose continue. Build failures are non-fatal."
+                                //will make email show PARTIAL
+                                // don't try to rebuild failures, only unbuilt
+                                BUILD_EXCLUSIONS =
+                                    failed_builds.keySet().join(",")
+                                //simply setting flag to keep required work
+                                // out of input flow
+                                BUILD_CONTINUED = true
+                                return true // Terminate waitUntil
+                            default: // ABORT
+                                error("User chose to abort pipeline because of image build failures")
+                        }
+                    }
+
+                }
+
+                if (BUILD_CONTINUED) {
+                    buildlib.oit(
+                        [
+                            "--working-dir ${OIT_WORKING}",
+                            "--group openshift-${BUILD_VERSION}",
+                            exclude,
+                            "images:push",
+                            "--to-defaults",
+                            "--late-only"
+                        ]
+                    )
+                    // exclude is set earlier in the main images:build flow
+                }
 
                 try {
-                    buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-images:verify
---repo-type signed
-"""
+                    buildlib.oit(
+                        [
+                            "--working-dir ${OIT_WORKING}",
+                            "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
+                            "images:verify",
+                            "--repo-type signed"
+                        ]
+                    )
+
                 } catch (vererr) {
                     echo "Error verifying images: ${vererr}"
-                    mail(to: "${MAIL_LIST_FAILURE}",
-                            from: "aos-cicd@redhat.com",
-                            subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
-                            body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
+                    mail(
+                        to: "${MAIL_LIST_FAILURE}",
+                        from: "aos-cicd@redhat.com",
+                        subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
+                        body: """Encountered an error while running ${env.JOB_NAME}: ${vererr}
 
 
 Jenkins job: ${env.BUILD_URL}
@@ -153,16 +354,21 @@ Jenkins job: ${env.BUILD_URL}
                         MAIL_LIST_FAILURE)
             }
 
-            // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
+            // Replace flow control with:
+            // https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/
+            // when available
             mail_success()
 
 
-        } catch (err) {
-            // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cicd@redhat.com",
-                    subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
-                    body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
+        } catch (err) { // all refresh steps
+            // Replace flow control with:
+            // https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/
+            // when available
+            mail(
+                to: "${MAIL_LIST_FAILURE}",
+                from: "aos-cicd@redhat.com",
+                subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
+                body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}

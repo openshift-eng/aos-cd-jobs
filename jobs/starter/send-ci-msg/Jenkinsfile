@@ -28,7 +28,7 @@ node('openshift-build-1') {
             msg = deploylib.run("build-ci-msg", null, true, false)
             echo "Sending CI Message:\n${msg}"
                 timeout(3) {
-                        sendCIMessage messageContent: '',
+                        sendCIMessage messageContent: msg,
                                 messageProperties: msg,
                                 messageType: 'ComponentBuildDone',
                                 overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],

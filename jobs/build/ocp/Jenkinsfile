@@ -891,7 +891,7 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
                                             "RETRY",
                                             "CONTINUE",
                                             "ABORT"
-                                        ],join("\n")
+                                        ].join("\n")
                                     ]
                                 ]
                             )

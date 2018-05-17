@@ -29,6 +29,7 @@ node('openshift-build-1') {
             // Capture exceptions and don't let one problem stop other cleanup from executing
             e1 = null
             e2 = null
+            e3 = null        
 
             try {
                 stage("oit setup"){

@@ -5,10 +5,9 @@ overrides:
   timer: 'H H * * *'
   email:
     - ernelson@redhat.com
-  sync:
-    - "openshift,ansible-service-broker=master"
-    - "rthallisey,service-broker-ci=master"
 extensions:
+  sync_repos:
+    - name: "ansible-service-broker"
   actions:
     - type: "script"
       title: "install asb to cluster"
@@ -30,7 +29,7 @@ extensions:
       # repository: "origin" # TODO: Doesn't appear to be a way to cd into non-openshift org?
       timeout: 1800
       script: |-
-        cd $GOPATH/src/github.com/rthallisey/service-broker-ci && make install
+        go get github.com/rthallisey/service-broker-ci
     - type: "script"
       title: "run ASB ci"
       repository: "ansible-service-broker"

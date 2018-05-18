@@ -1,0 +1,44 @@
+---
+parent: 'test_cases/test_branch_cluster_operator_unit.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "build images"
+      repository: "cluster-operator"
+      script: |-
+        make images
+        sudo mkdir -p $(pwd)/bin/cluster-api
+        sudo chmod 777 $(pwd)/bin/cluster-api
+        make kubernetes-cluster-api
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "Copy docker credentials to instance"
+      timeout: 60
+      script: |-
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/co-config.json openshiftdevel:/tmp/.docker/config.json
+    - type: "script"
+      repository: "cluster-operator"
+      title: "push the cluster operator images"
+      timeout: 7200
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        export DOCKER_CONFIG=/tmp/.docker
+
+        docker tag cluster-operator:canary registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator:latest
+        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator:latest
+
+        docker tag cluster-operator-ansible:canary registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+
+        docker tag cluster-operator-ansible:v3.10 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
+        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+
+        docker tag cluster-operator-ansible:v3.9 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9
+        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+
+        docker tag clusterapi:latest registry.svc.ci.openshift.org/openshift-cluster-operator/kubernetes-cluster-api:latest
+        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/kubernetes-cluster-api:latest

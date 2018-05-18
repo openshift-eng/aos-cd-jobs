@@ -24,6 +24,29 @@ ${OSE_MAJOR}.${OSE_MINOR}
 """);
 }
 
+//
+// Search the build log for 
+//
+def get_failed_builds(log_dir) {
+    record_log = buildlib.parse_record_log(log_dir)
+    builds = record_log['build']
+    failed_map = [:]
+    for (i = 0; i < builds.size(); i++) {
+        bld = builds[i]
+        distgit = bld['distgit']
+        if (bld['status'] != '0') {
+            failed_map[distgit] = bld['task_url']
+        } else if (bld['push_status'] != '0') {
+            failed_map[distgit] = 'Failed to push built image. See debug.log'
+        } else {
+            // build may have succeeded later. If so, remove.
+            failed_map.remove(distgit)
+        }
+    }
+
+    return failed_map
+}
+
 node('openshift-build-1') {
     checkout scm
 
@@ -43,9 +66,16 @@ node('openshift-build-1') {
                               [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                               // TODO reenable when the mirrors have the necessary puddles
                               [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
-                      ]
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: "", description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)', name: 'BUILD_EXCLUSIONS'],
+                ]
              ]]
     )
+
+    if (BUILD_EXCLUSIONS != "") {
+        // clean up string delimiting
+        BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.replaceAll(',', ' ')
+        BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
+    }
 
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
@@ -129,29 +159,91 @@ images:update-dockerfile
   --push
   """
 
-                buildlib.oit """
+//
+// start retry region
+//
+                BUILD_CONTINUED = false
+                waitUntil {
+                    try {
+                        exclude = ""
+                        if (BUILD_EXCLUSIONS != "") {
+                            exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                        }
+
+                        buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+${exclude}
 images:build
 --push-to-defaults --repo-type signed
 """
+                        return true  // finish waitUntil
+                    } catch (err) {
+                        failed_builds = get_failed_builds(OIT_WORKING)
 
-                try {
+                        mail(
+                            to: "${MAIL_LIST_FAILURE}",
+                            from: "aos-cicd@redhat.com",
+                            subject: "RESUMABLE Error during Refresh Images for OCP v${OSE_MAJOR}.${OSE_MINOR}",
+                            body: """Encountered an error: ${err}
+Input URL: ${env.BUILD_URL}input
+Jenkins job: ${env.BUILD_URL}
+
+BUILD / PUSH FAILURES:
+${failed_builds}
+""")
+
+                        def resp = input message: "Error during Image Build for OCP v${OSE_MAJOR}.${OSE_MINOR}",
+                        parameters: [
+                            [$class: 'hudson.model.ChoiceParameterDefinition',choices: "RETRY\nCONTINUE\nABORT", name: 'action', description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).']
+                        ]
+
+                        switch (resp) {
+                            case "RETRY":
+                                // cause waitUntil to loop again
+                                return false
+                            case "CONTINUE":
+                                echo "User chose continue. Build failures are non-fatal."
+                                //will make email show PARTIAL, don't try to rebuild failures, only unbuilt
+                                BUILD_EXCLUSIONS = failed_builds.keySet().join(",")
+                                //simply setting flag to keep required work out of input flow
+                                BUILD_CONTINUED = true
+                                return true // Terminate waitUntil
+                            default: // ABORT
+                                error("User chose to abort pipeline because of image build failures")
+                        }
+
+                    }
+
+                }
+
+                // a failed build won't push. If continued, do that now
+                if (BUILD_CONTINUED) {
                     buildlib.oit """
 --working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+${exclude}
+images:push
+--to-defaults --late-only"""
+                    // exclude is already set earlier in the main images:build flow
+                }
+            }
+
+            try {
+                buildlib.oit """
+--working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+${exclude}
 images:verify
 --repo-type signed
 """
-                } catch (vererr) {
-                    echo "Error verifying images: ${vererr}"
-                    mail(to: "${MAIL_LIST_FAILURE}",
-                            from: "aos-cicd@redhat.com",
-                            subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
-                            body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
+            } catch (vererr) {
+                echo "Error verifying images: ${vererr}"
+                mail(to: "${MAIL_LIST_FAILURE}",
+                     from: "aos-cicd@redhat.com",
+                     subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
+                     body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
 
 
 Jenkins job: ${env.BUILD_URL}
 """);
-                }
             }
 
             if (params.BUILD_AMI) {

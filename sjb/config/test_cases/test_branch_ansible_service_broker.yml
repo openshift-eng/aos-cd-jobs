@@ -1,0 +1,48 @@
+---
+parent: 'test_cases/test_branch_origin_service_catalog.yml'
+overrides:
+  junit_analysis: False
+  timer: 'H H * * *'
+  email:
+    - ernelson@redhat.com
+  sync:
+    - "openshift,ansible-service-broker=master"
+    - "rthallisey,service-broker-ci=master"
+extensions:
+  actions:
+    - type: "script"
+      title: "install asb to cluster"
+      repository: "ansible-service-broker"
+      timeout: 1800
+      script: |-
+        export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
+        oc create project ansible-service-broker
+        oc process ./templates/deploy-ansible-service-broker.template.yaml -p BROKER_CA_CERT=$(oc get secret -n kube-service-catalog -o go-template=\'{{ range .items }}{{ if eq .type \"kubernetes.io/service-account-token\" }}{{ index .data \"service-ca.crt\" }}{{end}}{{\"\\n\"}}{{end}}\' | tail -n 1) | oc create -n ansible-service-broker -f -'
+    - type: "script"
+      title: "relist Catalog to pickup new clusterserviceclasses"
+      repository: "origin"
+      timeout: 1800
+      script: |-
+        # relistRequets is intially zero, and to trigger relist, need to increment. Patch it to force 1.
+        ./_output/local/bin/linux/amd64/oc patch clusterservicebroker ansible-service-broker -p '{"spec":{"relistRequests":1}}'
+    - type: "script"
+      title: "install ASB ci"
+      # repository: "origin" # TODO: Doesn't appear to be a way to cd into non-openshift org?
+      timeout: 1800
+      script: |-
+        cd $GOPATH/src/github.com/rthallisey/service-broker-ci && make install
+    - type: "script"
+      title: "run ASB ci"
+      repository: "ansible-service-broker"
+      timeout: 1800
+      script: |-
+        $GOPATH/bin/ci
+  system_journals:
+    - origin-master.service
+    - origin-master-api.service
+    - origin-master-controllers.service
+    - origin-node.service
+    - openvswitch.service
+    - ovs-vswitchd.service
+    - ovsdb-server.service
+    - etcd.service

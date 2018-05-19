@@ -56,11 +56,11 @@ for cluster in $clusters ; do
                     # cri-o nodes have no hostname
                     if [ ! -z "$tower_node" ]; then
                             autokeys_loader ssh -o StrictHostKeyChecking=no root@$tower_node "reboot" || true
+                            echo "Waiting for COMPUTE node to reboot before moving on"
+                            wait_on_host $tower_node
                     fi
+                    
                     $master_cmd "oc adm manage-node --schedulable=true $node"
-
-                    echo "Waiting for COMPUTE node to reboot before moving on"
-                    wait_on_host $tower_node
             done
         fi
 

@@ -73,49 +73,83 @@ approve.sh {{ target_repo }} &quot;${{ '{' }}{{ target_repo | replace('-', '_') 
   </builders>
   <publishers>
 {%- if post_build_steps %}
-    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
-      <buildSteps>
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@2.2.1">
+      <config>
+        <scriptFiles/>
+        <groovyScripts/>
+        <buildSteps>
 {%- for post_build_step in post_build_steps %}
+          <org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
+            <results>
+              <string>SUCCESS</string>
+              <string>NOT_BUILT</string>
+              <string>ABORTED</string>
+              <string>FAILURE</string>
+              <string>UNSTABLE</string>
+            </results>
+            <role>BOTH</role>
+            <buildSteps>
 {{ post_build_step }}
+            </buildSteps>
+          </org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
 {%- endfor %}
-      </buildSteps>
-      <scriptOnlyIfSuccess>false</scriptOnlyIfSuccess>
-      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
-      <markBuildUnstable>false</markBuildUnstable>
+        </buildSteps>
+        <markBuildUnstable>false</markBuildUnstable>
+      </config>
     </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
 {%- endif %}
 {%- if action == "test" %}
-    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
-      <buildSteps>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@2.2.1">
+      <config>
+        <scriptFiles/>
+        <groovyScripts/>
+        <buildSteps>
+          <org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
+            <results>
+              <string>SUCCESS</string>
+            </results>
+            <role>BOTH</role>
+            <buildSteps>
+              <hudson.tasks.Shell>
+                <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
   test_pull_requests --mark_test_success &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json || true
 fi
-          </command>
-        </hudson.tasks.Shell>
-      </buildSteps>
-      <scriptOnlyIfSuccess>true</scriptOnlyIfSuccess>
-      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
-      <markBuildUnstable>false</markBuildUnstable>
+                </command>
+              </hudson.tasks.Shell>
+            </buildSteps>
+          </org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
+        </buildSteps>
+        <markBuildUnstable>false</markBuildUnstable>
+      </config>
     </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
 {%- endif %}
 {%- if action == "merge" %}
-    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@0.17">
-      <buildSteps>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
+    <org.jenkinsci.plugins.postbuildscript.PostBuildScript plugin="postbuildscript@2.2.1">
+      <config>
+        <scriptFiles/>
+        <groovyScripts/>
+        <buildSteps>
+          <org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
+            <results>
+              <string>SUCCESS</string>
+            </results>
+            <role>BOTH</role>
+            <buildSteps>
+              <hudson.tasks.Shell>
+                <command>#!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 if [[ -z &quot;${PULL_REFS:-}&quot; ]]; then
   test_pull_requests --merge_pull_request &quot;${{ '{' }}{{ target_repo | replace('-', '_') | upper }}_PULL_ID}&quot; --repo {{ target_repo }} --config ~/test_pull_requests/{{ target_repo }}.json
 fi
-          </command>
-        </hudson.tasks.Shell>
-      </buildSteps>
-      <scriptOnlyIfSuccess>true</scriptOnlyIfSuccess>
-      <scriptOnlyIfFailure>false</scriptOnlyIfFailure>
-      <markBuildUnstable>false</markBuildUnstable>
+                </command>
+              </hudson.tasks.Shell>
+            </buildSteps>
+          </org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
+        </buildSteps>
+        <markBuildUnstable>false</markBuildUnstable>
+      </config>
     </org.jenkinsci.plugins.postbuildscript.PostBuildScript>
 {%- endif %}
     <hudson.tasks.ArtifactArchiver>

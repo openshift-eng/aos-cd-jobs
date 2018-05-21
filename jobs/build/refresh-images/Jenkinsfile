@@ -102,16 +102,13 @@ images:query-rpm-version
 --repo-type signed
 """, [capture: true]).split(' ').last()
 
-                def proceed = input(
+                input(
                     message: """\
 Remember to rebuild signed puddles before proceeding. 
 You have specified version: ${VERSION_OVERRIDE}
 oit has detected the signed puddle contains: ${detected_version}
 Proceed?
 """)
-                if (!proceed) {
-                    error("User aborted refresh: Detected Version ${detected_version}, Specified Version: ${VERSION_OVERRIDE}")                           
-                }
 
                 if (RELEASE_OVERRIDE != "") {
                     oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"

@@ -574,6 +574,7 @@ ansible-playbook  -vv                    \
                   -e openshift_deployment_type=\$( cat ./DEPLOYMENT_TYPE)                  \
                   -e openshift_node_port_range=&#39;30000-32000&#39;                    \
                   -e &#39;osm_controller_args={&#34;enable-hostpath-provisioner&#34;:[&#34;true&#34;]}&#39; \
+                  -e system_images_registry=docker                                       \
                   -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -111,6 +111,7 @@ extensions:
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e system_images_registry=docker                                       \
                          -e openshift_node_port_range='30000-32000'                          \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml
@@ -133,6 +134,7 @@ extensions:
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e system_images_registry=docker                                       \
                          -e openshift_node_port_range='30000-32000'                          \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          ${playbook}
@@ -150,6 +152,7 @@ extensions:
                          -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"            \
                          -e openshift_release="$( cat ./ORIGIN_RELEASE )"                    \
                          -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_TAG )" \
+                         -e system_images_registry=docker                                       \
                          -e openshift_node_port_range='30000-32000'                          \
                          -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}'   \
                          ${playbook}

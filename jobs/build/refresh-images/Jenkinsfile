@@ -39,7 +39,7 @@ node('openshift-build-1') {
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'auto', description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"', name: 'VERSION_OVERRIDE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optional release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
                               [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
+                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com,mlamouri@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
                               [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
                               // TODO reenable when the mirrors have the necessary puddles
                               [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Build golden image after building images?', name: 'BUILD_AMI'],

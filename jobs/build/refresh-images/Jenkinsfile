@@ -114,7 +114,7 @@ Proceed?
                     oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
                 }
 
-                sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"
+                buildlib.kinit() // Sets up credentials for dist-git access
 
                 /**
                  * By default, do not specify a version or release for oit. This will preserve the version label and remove

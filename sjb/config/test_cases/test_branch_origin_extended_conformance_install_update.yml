@@ -213,6 +213,7 @@ extensions:
                           -e openshift_deployment_type=$( cat ./DEPLOYMENT_TYPE)                  \
                           -e openshift_node_port_range='30000-32000'                    \
                           -e 'osm_controller_args={"enable-hostpath-provisioner":["true"]}' \
+                          -e system_images_registry=docker                                       \
                           -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )"
     - type: "script"
       title: "expose the kubeconfig"

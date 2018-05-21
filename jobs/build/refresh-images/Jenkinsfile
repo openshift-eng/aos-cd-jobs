@@ -93,6 +93,23 @@ node('openshift-build-1') {
                     oit_update_docker_args = "--version ${VERSION_OVERRIDE}"
                 }
 
+                // Get the OCP version from the current build
+                // query-rpm-version returns "version: v3.10.0" for example
+                def detected_version = buildlib.oit("""
+--working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+--quiet
+images:query-rpm-version
+--repo-type signed
+""", [capture: true]).split(' ').last()
+
+                input(
+                    message: """\
+Remember to rebuild signed puddles before proceeding. 
+You have specified version: ${VERSION_OVERRIDE}
+oit has detected the signed puddle contains: ${detected_version}
+Proceed?
+""")
+
                 if (RELEASE_OVERRIDE != "") {
                     oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
                 }

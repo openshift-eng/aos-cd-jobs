@@ -299,7 +299,7 @@ Jenkins job: ${env.BUILD_URL}
  --kind image
  --attach ${ADVISORY_ID}
 """
-            } catch {
+            } catch ( attach_err ) {
                 // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
                 mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cicd@redhat.com",

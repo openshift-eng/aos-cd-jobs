@@ -58,7 +58,7 @@ extensions:
     - type: "script"
       title: "Create Cluster"
       repository: "cluster-operator"
-      timeout: 2400
+      timeout: 5400
       script: |-
         # Allow some time for the API server to be registered
         sleep 20
@@ -90,7 +90,7 @@ extensions:
   post_actions:
     - type: "script"
       title: "deprovision target cluster"
-      timeout: 1000
+      timeout: 2400
       script: |-
         export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64"
         if sudo env "PATH=${PATH}" oc delete cluster.v1alpha1.clusteroperator.openshift.io --all; then

@@ -309,7 +309,8 @@ Jenkins job: ${env.BUILD_URL}
 Jenkins job: ${env.BUILD_URL}
 """);
             }
-    } else {
-        echo 'Skipping stage...'
+        } else {
+            echo 'Skipping stage...'
+        }
     }
 }

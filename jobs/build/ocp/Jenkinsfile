@@ -833,6 +833,34 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
 
+            // Don't make an github release unless this build it from the actual ose repo
+            if ( GITHUB_BASE == "git@github.com:openshift" ) {
+                try {
+                    withCredentials([string(credentialsId: 'github_token_ose', variable: 'GITHUB_TOKEN')]) {
+                        httpRequest(    consoleLogResponseBody: true,
+                                        httpMode: 'POST',
+                                        ignoreSslErrors: true,
+                                        responseHandle: 'NONE',
+                                        url: "https://api.github.com/repos/openshift/ose/releases?access_token=${GITHUB_TOKEN}",
+                                        requestBody: """{"tag_name": "v${NEW_VERSION}-${NEW_RELEASE}",
+"target_commitish": "${OSE_SOURCE_BRANCH}",
+"name": "v${NEW_VERSION}-${NEW_RELEASE}",
+"draft": true,
+"prerelease": false
+"body": "Release of OpenShift Container Platform v${NEW_VERSION}-${NEW_RELEASE}\\nPuddle: ${mirror_url}/${OCP_PUDDLE}",
+}""" )
+                    }
+
+                } catch( release_ex ) {
+                    mail(to: "jupierce@redhat.com",
+                            from: "aos-cicd@redhat.com",
+                            subject: "Error creating ose release in github",
+                            body: """
+Jenkins job: ${env.BUILD_URL}
+""");
+                }
+            }
+
             record_log = buildlib.parse_record_log(OIT_WORKING)
             mail_success(NEW_FULL_VERSION, mirror_url, record_log)
         }

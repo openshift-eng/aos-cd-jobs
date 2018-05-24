@@ -739,21 +739,7 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
                             return true // finish waitUntil
                         }
                         catch (err) {
-                            record_log = buildlib.parse_record_log(OIT_WORKING)
-                            builds = record_log['build']
-                            failed_map = [:]
-                            for (i = 0; i < builds.size(); i++) {
-                                bld = builds[i]
-                                distgit = bld['distgit']
-                                if (bld['status'] != '0') {
-                                    failed_map[distgit] = bld['task_url']
-                                } else if (bld['push_status'] != '0') {
-                                    failed_map[distgit] = 'Failed to push built image. See debug.log'
-                                } else {
-                                    // build may have succeeded later. If so, remove.
-                                    failed_map.remove(distgit)
-                                }
-                            }
+                            failed_map = buildlib.get_failed_builds(OIT_WORKING)
 
                             mail(to: "${MAIL_LIST_FAILURE}",
                                     from: "aos-cicd@redhat.com",

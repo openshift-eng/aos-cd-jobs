@@ -846,8 +846,8 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
 "target_commitish": "${OSE_SOURCE_BRANCH}",
 "name": "v${NEW_VERSION}-${NEW_RELEASE}",
 "draft": true,
-"prerelease": false
-"body": "Release of OpenShift Container Platform v${NEW_VERSION}-${NEW_RELEASE}\\nPuddle: ${mirror_url}/${OCP_PUDDLE}",
+"prerelease": false,
+"body": "Release of OpenShift Container Platform v${NEW_VERSION}-${NEW_RELEASE}\\nPuddle: ${mirror_url}/${OCP_PUDDLE}"
 }""" )
                     }
 

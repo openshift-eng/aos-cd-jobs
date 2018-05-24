@@ -45,30 +45,68 @@ def convert_string_to_json_ansible_arg(ansible_arg, key_value_pairs) {
 
 // Expose properties for a parameterized build
 properties(
+    [
+        disableConcurrentBuilds(),
         [
-                disableConcurrentBuilds(),
-                [$class: 'ParametersDefinitionProperty',
-                 parameterDefinitions:
-                         [
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Specify only if the updater should run against a specific AMI without using tags to locate it.', name: 'SOURCE_AMI_ID'],
-
-                                 [$class: 'hudson.model.TextParameterDefinition', defaultValue: '', description: 'Line delimited tags (K=V) to use to find the AMI to update (the latest AMI with these tags will be located)', name: 'SOURCE_AMI_SEARCH_TAGS'],
-
-                                 [$class: 'BooleanParameterDefinition', defaultValue: true, description: 'Select if search should find standard AMIs?.', name: 'SOURCE_AMI_STANDARD'],
-
-                                 [$class: 'hudson.model.TextParameterDefinition', defaultValue: '', description: 'Line delimited tags (K=V) to add to the resultant AMI (in addition to those from the source AMI)', name: 'DEST_AMI_ADDITIONAL_TAGS'],
-
-                                 [$class: 'BooleanParameterDefinition', defaultValue: true, description: 'Select if destination AMI to be labeled standard', name: 'DEST_AMI_STANDARD'],
-
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
-                         ]
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                [
+                    name: 'TARGET_NODE',
+                    description: 'Jenkins agent node',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1'
                 ],
-        ]
+                [
+                    name: 'MAIL_LIST_SUCCESS',
+                    description: 'Success Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'aos-cicd@redhat.com'
+                ],
+                [
+                    name: 'MAIL_LIST_FAILURE',
+                    description: 'Failure Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'jupierce@redhat.com'
+                ],
+                [
+                    name: 'SOURCE_AMI_ID',
+                    description: 'Specify only if the updater should run against a specific AMI without using tags to locate it.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: ''
+                ],
+                [
+                    name: 'SOURCE_AMI_SEARCH_TAGS',
+                    description: 'Line delimited tags (K=V) to use to find the AMI to update (the latest AMI with these tags will be located)',
+                    $class: 'hudson.model.TextParameterDefinition',
+                    defaultValue: ''
+                ],
+                [
+                    name: 'SOURCE_AMI_STANDARD',
+                    description: 'Select if search should find standard AMIs?.',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: true
+                ],
+                [
+                    name: 'DEST_AMI_ADDITIONAL_TAGS',
+                    description: 'Line delimited tags (K=V) to add to the resultant AMI (in addition to those from the source AMI)',
+                    $class: 'hudson.model.TextParameterDefinition',
+                    defaultValue: ''
+                ],
+                [
+                    name: 'DEST_AMI_STANDARD',
+                    description: 'Select if destination AMI to be labeled standard',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: true
+                ],
+                [
+                    name: 'MOCK',
+                    description: 'Mock run to pickup new Jenkins parameters?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+            ]
+        ],
+    ]
 )
 
 if ( MOCK.toBoolean() ) {

@@ -1,16 +1,28 @@
 
 
 properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '360'
+            )
+        ),
         [
-                buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
-                [$class : 'ParametersDefinitionProperty',
-                 parameterDefinitions:
-                         [
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
-                         ]
+            $class : 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                [
+                    name: 'MOCK'
+                    description: 'Mock run to pickup new Jenkins parameters?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
                 ],
-                disableConcurrentBuilds()
-        ]
+            ]
+        ],
+        disableConcurrentBuilds()
+    ]
 )
 
 node('openshift-build-1') {

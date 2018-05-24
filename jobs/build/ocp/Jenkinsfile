@@ -314,6 +314,11 @@ node(TARGET_NODE) {
                     spec = buildlib.read_spec_info("origin.spec")
                     rel_fields = spec.release.tokenize(".")
 
+                    if (! spec.version.startsWith("${BUILD_VERSION}.")) {
+                        // Looks like pipeline thinks we are building something we aren't. Abort.
+                        error("Expected version consistent with ${BUILD_VERSION}.* but found: ${spec.version}")
+                    }
+
 
                     if (BUILD_MODE == "online:int" || BUILD_MODE == "online:stg") {
                         /**

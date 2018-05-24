@@ -52,24 +52,92 @@ node('openshift-build-1') {
 
     // Expose properties for a parameterized build
     properties(
-            [buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '720')),
-             [$class              : 'ParametersDefinitionProperty',
-              parameterDefinitions:
-                      [
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot", defaultValue: 'git@github.com:openshift', description: 'Github base for repos', name: 'GITHUB_BASE'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", defaultValue: '3', description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15", defaultValue: '9', description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'auto', description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"', name: 'VERSION_OVERRIDE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Optional release to use. Must be > 1 (i.e. 2)', name: 'RELEASE_OVERRIDE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com,mlamouri@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                              [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
-                              // TODO reenable when the mirrors have the necessary puddles
-                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Build golden image after building images?', name: 'BUILD_AMI'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: "", description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)', name: 'BUILD_EXCLUSIONS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: '', description: 'Advisory Number to attach new images to', name: 'ADVISORY_ID'],
-                      ]
-             ]]
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '720'
+                )
+            ),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    [
+                        name: 'GITHUB_BASE',
+                        description: 'Github base for repos',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot",
+                        defaultValue: 'git@github.com:openshift'
+                    ],
+                    [
+                        name: 'OSE_MAJOR',
+                        description: 'OSE Major Version',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "3",
+                        defaultValue: '3'
+                    ],
+                    [
+                        name: 'OSE_MINOR',
+                        description: 'OSE Minor Version',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15",
+                        defaultValue: '9'
+                    ],
+                    [
+                        name: 'VERSION_OVERRIDE',
+                        description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: 'auto'
+                    ],
+
+                    [
+                        name: 'RELEASE_OVERRIDE',
+                        description: 'Optional release to use. Must be > 1 (i.e. 2)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ''
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com'
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List'
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com,mlamouri@redhat.com'
+                    ],
+                    [
+                        name: 'MOCK',
+                        description: 'Mock run to pickup new Jenkins parameters?.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    // TODO reenable when the mirrors have the necessary puddles
+                    [
+                        name: 'BUILD_AMI',
+                        description: 'Build golden image after building images?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                        name: 'BUILD_EXCLUSIONS',
+                        description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'ADVISORY_ID',
+                        description: 'Advisory Number to attach new images to',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ''
+                    ]
+                ]
+            ]
+        ]
     )
 
     if (BUILD_EXCLUSIONS != "") {

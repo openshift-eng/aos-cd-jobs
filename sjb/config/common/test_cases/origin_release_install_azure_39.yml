@@ -84,24 +84,9 @@ extensions:
         location="${location_base}/artifacts/rpms"
         location_url="https://storage.googleapis.com/${location}"
 
-        cat <<REPO > /tmp/local.repo
-        [origin-repo]
-        name=Origin RPMs
-        baseurl=${location_url}
-        enabled=1
-        gpgcheck=0
-        REPO
-
         mkdir -p artifacts/rpms
         rsync --archive --omit-dir-times --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" --rsync-path='sudo rsync' openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
         gsutil -m cp -r artifacts/rpms "gs://${location}"
-        if [[ "${type}" == "postsubmit" ]]; then
-          # update the pointer to this location to the base ref branch
-          echo "${location_url}" > .latest-rpms
-          ref="$( echo "${JOB_SPEC}" | jq  -r '.refs.base_ref' )"
-          gsutil cp .latest-rpms "gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-rpms"
-          gsutil cp /tmp/local.repo "gs://origin-ci-test/releases/openshift/origin/${ref}/origin.repo"
-        fi
 
         # hack around forwarding this to the other machine
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "echo 'location_url=${location_url:-}' >> /etc/environment"

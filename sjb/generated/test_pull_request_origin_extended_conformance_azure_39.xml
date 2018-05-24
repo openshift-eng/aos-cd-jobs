@@ -517,24 +517,9 @@ fi
 location=&#34;${location_base}/artifacts/rpms&#34;
 location_url=&#34;https://storage.googleapis.com/${location}&#34;
 
-cat &lt;&lt;REPO &gt; /tmp/local.repo
-[origin-repo]
-name=Origin RPMs
-baseurl=${location_url}
-enabled=1
-gpgcheck=0
-REPO
-
 mkdir -p artifacts/rpms
 rsync --archive --omit-dir-times --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; --rsync-path=&#39;sudo rsync&#39; openshiftdevel:/data/src/github.com/openshift/origin/_output/local/releases/rpms ./artifacts/ || true
 gsutil -m cp -r artifacts/rpms &#34;gs://${location}&#34;
-if [[ &#34;${type}&#34; == &#34;postsubmit&#34; ]]; then
-  # update the pointer to this location to the base ref branch
-  echo &#34;${location_url}&#34; &gt; .latest-rpms
-  ref=&#34;$( echo &#34;${JOB_SPEC}&#34; | jq  -r &#39;.refs.base_ref&#39; )&#34;
-  gsutil cp .latest-rpms &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/.latest-rpms&#34;
-  gsutil cp /tmp/local.repo &#34;gs://origin-ci-test/releases/openshift/origin/${ref}/origin.repo&#34;
-fi
 
 # hack around forwarding this to the other machine
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;location_url=${location_url:-}&#39; &gt;&gt; /etc/environment&#34;</command>

@@ -1,5 +1,20 @@
 #!/usr/bin/env groovy
 
+OCP_VERSIONS = [
+        "3.11",
+        "3.10",
+        "3.9",
+        "3.8",
+        "3.7",
+        "3.6",
+        "3.5",
+        "3.4",
+        "3.3",
+        "3.2",
+        "3.1",
+]
+
+
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
 def set_workspace() {
     if (env.WORKSPACE == null) {
@@ -72,18 +87,11 @@ node('openshift-build-1') {
                         defaultValue: 'git@github.com:openshift'
                     ],
                     [
-                        name: 'OSE_MAJOR',
-                        description: 'OSE Major Version',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: "3",
-                        defaultValue: '3'
-                    ],
-                    [
-                        name: 'OSE_MINOR',
-                        description: 'OSE Minor Version',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15",
-                        defaultValue: '9'
+                            name: 'BUILD_VERSION',
+                            description: 'OSE Version',
+                            $class: 'hudson.model.ChoiceParameterDefinition',
+                            choices: OCP_VERSIONS.join('\n'),
+                            defaultValue: '3.9'
                     ],
                     [
                         name: 'VERSION_OVERRIDE',
@@ -106,7 +114,7 @@ node('openshift-build-1') {
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
-                        description: 'Failure Mailing List'
+                        description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: 'jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,bbarcaro@redhat.com,mlamouri@redhat.com'
                     ],
@@ -139,6 +147,9 @@ node('openshift-build-1') {
             ]
         ]
     )
+
+    OSE_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
+    OSE_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 
     if (BUILD_EXCLUSIONS != "") {
         // clean up string delimiting

@@ -39,29 +39,6 @@ ${OSE_MAJOR}.${OSE_MINOR}
 """);
 }
 
-//
-// Search the build log for 
-//
-def get_failed_builds(log_dir) {
-    record_log = buildlib.parse_record_log(log_dir)
-    builds = record_log['build']
-    failed_map = [:]
-    for (i = 0; i < builds.size(); i++) {
-        bld = builds[i]
-        distgit = bld['distgit']
-        if (bld['status'] != '0') {
-            failed_map[distgit] = bld['task_url']
-        } else if (bld['push_status'] != '0') {
-            failed_map[distgit] = 'Failed to push built image. See debug.log'
-        } else {
-            // build may have succeeded later. If so, remove.
-            failed_map.remove(distgit)
-        }
-    }
-
-    return failed_map
-}
-
 node('openshift-build-1') {
     checkout scm
 
@@ -259,7 +236,7 @@ images:build
 """
                         return true  // finish waitUntil
                     } catch (err) {
-                        failed_builds = get_failed_builds(OIT_WORKING)
+                        failed_builds = buildlib.get_failed_builds(OIT_WORKING)
 
                         mail(
                             to: "${MAIL_LIST_FAILURE}",

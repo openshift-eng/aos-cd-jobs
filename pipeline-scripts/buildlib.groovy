@@ -447,11 +447,11 @@ def parse_record_log( working_dir ) {
         }
         record = [:]
         for ( f = 1; f < fields.size(); f++ ){
-            entry = fields[f].tokenize("=")
+            // limit split to 2 in case value contains =
+            entry = fields[f].split("=", 2)
             if ( entry.size() == 1 ){
                 record[entry[0]] = null
-            }
-            else {
+            } else {
                 record[entry[0]] = entry[1]
             }
         }
@@ -461,6 +461,26 @@ def parse_record_log( working_dir ) {
     return result
 }
 
+// Search the build log for failed builds
+def get_failed_builds(log_dir) {
+    record_log = parse_record_log(log_dir)
+    builds = record_log['build']
+    failed_map = [:]
+    for (i = 0; i < builds.size(); i++) {
+        bld = builds[i]
+        distgit = bld['distgit']
+        if (bld['status'] != '0') {
+            failed_map[distgit] = bld['task_url']
+        } else if (bld['push_status'] != '0') {
+            failed_map[distgit] = 'Failed to push built image. See debug.log'
+        } else {
+            // build may have succeeded later. If so, remove.
+            failed_map.remove(distgit)
+        }
+    }
+
+    return failed_map
+}
 
 // gets map of emails to notify from output of parse_record_log
 // map formatted as below:

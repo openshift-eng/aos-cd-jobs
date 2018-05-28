@@ -18,7 +18,7 @@ node {
     deleteDir()
 
     // clone aos-cd-jobs repo where all the pipeline scripts exist
-    sh "git clone https://github.com/chaitanyaenr/aos-cd-jobs.git aos-cd-jobs; cd aos-cd-jobs; git checkout tooling"
+    sh "git clone https://github.com/chaitanyaenr/aos-cd-jobs.git"
 
     // stage to install openstack
     if (install_openstack == "TRUE") {
@@ -76,7 +76,7 @@ node {
     }
 
     mail(
-    	to: 'aos-scalability@redhat.com',
+    	to: 'nelluri@redhat.com',
         subject: 'Scale-ci pipeline completed successfully',
         body: """\
         Jenkins job: ${env.BUILD_URL}

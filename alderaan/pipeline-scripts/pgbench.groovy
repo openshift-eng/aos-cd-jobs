@@ -17,12 +17,10 @@ stage ('pgbench_scale_test') {
                         }
                         // get properties file - from test location
                         // in SCALE-CI there will be defined PGBENCH_SCALE_TEST_PROPERTY_FILE
-                        // for now just keep it as is --
-
-                        sh "wget https://raw.githubusercontent.com/ekuric/openshift/master/postgresql/pgbench.properties"
-                        // sh "wget ${PGBENCH_SCALE_TEST_PROPERTY_FILE}"
+                        //sh "wget https://raw.githubusercontent.com/ekuric/openshift/master/postgresql/pgbench.properties"
+                        sh "wget ${PGBENCH_SCALE_TEST_PROPERTY_FILE}"
                         sh "cat pgbench.properties"
-			                  def pgbench_scale_test_properties = readProperties file: "pgbench.properties"
+                        def pgbench_scale_test_properties = readProperties file: "pgbench.properties"
                         def NAMESPACE = pgbench_scale_test_properties['NAMESPACE']
                         def TRANSACTIONS = pgbench_scale_test_properties['TRANSACTIONS']
                         def TEMPLATE = pgbench_scale_test_properties['TEMPLATE']
@@ -35,8 +33,6 @@ stage ('pgbench_scale_test') {
                         def SCALING = pgbench_scale_test_properties['SCALING']
                         def PBENCHCONFIG = pgbench_scale_test_properties['PBENCHCONFIG']
                         def STORAGECLASS = pgbench_scale_test_properties['STORAGECLASS']
-
-
 
                         // debug info
                         println "----------USER DEFINED OPTIONS-------------------"
@@ -54,7 +50,6 @@ stage ('pgbench_scale_test') {
                         println "SCALING: '${SCALING}'"
                         println "PBENCHCONFIG: '${PBENCHCONFIG}'"
                         println "STORAGECLASS: '${STORAGECLASS}'"
-
                         println "-------------------------------------------------"
                         println "-------------------------------------------------"
 
@@ -79,7 +74,7 @@ stage ('pgbench_scale_test') {
                         } catch ( Exception e) {
                         echo "PGBENCH_SCALE_TEST Job failed with the following error: "
                         echo "${e.getMessage()}"
-			                     echo "Sending an email"
+                        echo "Sending an email"
                         mail(
                                 to: 'ekuric@redhat.com',
                                 subject: 'pgbench-scale-test job failed',

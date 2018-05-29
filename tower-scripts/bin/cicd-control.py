@@ -284,7 +284,7 @@ class CICDControl(object):
         else:
             print("\nStorage migration failed...")
             print("Printing last 100 lines of the log for convenience.")
-            print("To see the full log, view '{}' on tower2.\n\n".format(storage_migration_log))
+            print("To see the full log, view '{}' on bastion2.\n\n".format(storage_migration_log))
 
             with open(storage_migration_log, 'r') as log_file:
                 log_file_contents = log_file.readlines()

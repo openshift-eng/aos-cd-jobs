@@ -30,7 +30,7 @@
 
   - name: clone the openshift-ansible-private
     git_clone:
-      repo: use-tower1.ops.rhcloud.com:/srv/git/openshift-ansible-private
+      repo: bastion-nasa-1.ops.openshift.com:/srv/git/openshift-ansible-private
       dest: /home/opsmedic/aos-cd/git/openshift-ansible-private
       branch: prod
 

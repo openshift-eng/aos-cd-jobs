@@ -40,7 +40,7 @@ def initialize(cluster_spec, opts_string="") {
 
 /**
  * Iterates through a map and flattens it into -e key1=value1 -e key2=value2...
- * Appropriate for passing in as tower operation
+ * Appropriate for passing in as bastion operation
  * @param map The map to process
  * @return A string of flattened key value properties
  */
@@ -71,7 +71,7 @@ def run( operation_name, opts = [:], capture_stdout=false, interactive_retry=tru
     waitUntil {
         try {
             // -t is necessary for cicd-control.sh to be terminated by Jenkins job terminating ssh early: https://superuser.com/questions/20679/why-does-my-remote-process-still-run-after-killing-an-ssh-session
-            cmd = "ssh -t -o StrictHostKeyChecking=no opsmedic@use-tower2.ops.rhcloud.com -- -d ${CLUSTER_GROUP} -c ${CLUSTER_NAME} -o ${operation_name} ${this.map_to_string(opts)}"
+            cmd = "ssh -t -o StrictHostKeyChecking=no opsmedic@bastion-nasa-2.ops.openshift.com -- -d ${CLUSTER_GROUP} -c ${CLUSTER_NAME} -o ${operation_name} ${this.map_to_string(opts)}"
             ansiColor('xterm') {
                 output = sh(
                         returnStdout: capture_stdout,

@@ -3,7 +3,7 @@
   - [ ] Setup tech profile: https://github.com/openshift/openshift-ansible-ops/pull/2431/files
 - [ ] If the cluster has not been upgraded before
   - [ ] Ensure that there is an ssh key for the cluster in Jenkins
-  - [ ] Setup tower authorized_keys for the ssh key
+  - [ ] Setup bastion authorized_keys for the ssh key
   - [ ] Create the template directory for the cluster (including upgrading the private AWS information for the cluster)
   - [ ] If the job is an upgrade, log into the cluster and remove any legacy yum repos
   - [ ] Set the annotation `openshift.io/node-selector: ""` on the logging project. 

@@ -9,7 +9,7 @@ node('openshift-build-1') {
                         $class: 'hudson.model.StringParameterDefinition',
                         name: 'BASTION_HOST',
                         description: 'Bastion host\'s hostname',
-                        defaultValue: 'use-tower2.ops.rhcloud.com'
+                        defaultValue: 'bastion-nasa-2.ops.openshift.com'
                     ],
                     [
                         $class: 'hudson.model.StringParameterDefinition',

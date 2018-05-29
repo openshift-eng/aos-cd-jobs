@@ -94,14 +94,15 @@ container_runtime_oci_umounts:
 properties(
     [
         disableConcurrentBuilds(),
-            [
+        [
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [
                 [
-                    name: 'TARGET_NODE'],
+                    name: 'TARGET_NODE',
                     description: 'Jenkins agent node',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: 'openshift-build-1'
+                ],
                 [
                     name: 'MAIL_LIST_SUCCESS',
                     description: 'Success Mailing List',
@@ -181,7 +182,7 @@ openshift-enterprise - Openshift Enterprise online""",
                     description: """Comma delimited tags (K=V) to use to find the base AMI to use
 NOTE: This option is overridden by specifying the BASE_AMI_ID
 NOTE: "base_ami=true" is probably necessary; otherwise a previous built ami
-      will be used, and no packages will be updated!""",
+  will be used, and no packages will be updated!""",
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
                         'operating_system=RedHat',
@@ -202,10 +203,10 @@ If the AMI ID is specfied, it will override the search tags provided""",
                     name: 'AMI_SHARE_ACCOUNTS',
                     description: """Comma delimited list of AWS accounts to share the image with.
 NOTE: Currently this only shares the AMI in the AWS_REGION defined.
-   531415883065 - Openshift DevEnv AWS Account
-   704252977135 - free-int AWS Account
-   639866565627 - Ops Test AWS Account
-   925374498059 - Perf Testing Account""",
+531415883065 - Openshift DevEnv AWS Account
+704252977135 - free-int AWS Account
+639866565627 - Ops Test AWS Account
+925374498059 - Perf Testing Account""",
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
                         '531415883065',
@@ -261,7 +262,7 @@ NOTE: Currently this only shares the AMI in the AWS_REGION defined.
                     defaultValue: false
                 ],
             ]
-        ],
+        ]
     ]
 )
 

@@ -65,7 +65,7 @@ The `gather-logs.sh` helper script in the `shared-secrets` repo just makes sure 
 If you want you can use ssh directly, taking care of argument separation. This is an example invocation via direct ssh, equivalent to the example above:
 
     ````
-    $ ssh -i online/logs_access_key opsmedic@use-tower2.ops.rhcloud.com \
+    $ ssh -i online/logs_access_key opsmedic@bastion-nasa-2.ops.openshift.com \
           -- -u YourKerberosID  -c free-stg                 \
              -n ip-172-31-65-74.us-east-2.compute.internal  \
                 ip-172-31-69-53.us-east-2.compute.internal  \

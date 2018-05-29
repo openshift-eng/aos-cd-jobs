@@ -92,128 +92,177 @@ container_runtime_oci_umounts:
 
 // Expose properties for a parameterized build
 properties(
-        [
-            disableConcurrentBuilds(),
+    [
+        disableConcurrentBuilds(),
             [
-                $class: 'ParametersDefinitionProperty',
-                parameterDefinitions:
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
                 [
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'openshift-build-1',
-                     description: 'Jenkins agent node',
-                     name: 'TARGET_NODE'],
+                    name: 'TARGET_NODE'],
+                    description: 'Jenkins agent node',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1'
+                [
+                    name: 'MAIL_LIST_SUCCESS',
+                    description: 'Success Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'aos-cicd@redhat.com'
+                ],
+                [
+                    name: 'MAIL_LIST_FAILURE',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    description: 'Failure Mailing List',
+                    defaultValue: [
+                        'jupierce@redhat.com',
+                        'bbarcaro@redhat.com',
+                        'mwoodson@redhat.com'
+                    ].join(',')
+                ],
+                [
+                    name: 'FORCE_REBUILD',
+                    description: 'Force rebuild even if no changes are detected?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+                [
+                    name: 'OPENSHIFT_VERSION',
+                    description: 'Openshift Version (matches version in branch name for release builds)',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: '3.9.0'
+                ],
+                [
+                    name: 'OPENSHIFT_RELEASE',
+                    description: 'Release version (The release version number)',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: '0.0.0.git.0.1234567.el7'
+                ],
+                [
+                    name: 'DEPLOYMENT_TYPE',
+                    description: """origin - Openshift origin
+openshift-enterprise - Openshift Enterprise online""",
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: "openshift-enterprise\norigin",
+                    defaultValue: 'openshift-enterprise'
+                ],
+                [
+                    name: 'YUM_BASE_URL',
+                    description: 'Base url for repository.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/'
+                ],
+                [
+                    name: 'USE_CRIO',
+                    description: 'Enable CRIO in Openshift for the AMI build.',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: true
+                ],
+                [
+                    name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
+                    description: 'CRIO system container override image.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'docker.io/runcom/cri-o-system-container:v3.8'
+                ],
+                [
+                    name: 'OPENSHIFT_ANSIBLE_REPO_URL',
+                    description: 'openshift-ansible repo URL.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'https://github.com/openshift/openshift-ansible.git'
+                ],
+                [
+                    name: 'OPENSHIFT_ANSIBLE_CHECKOUT',
+                    description: 'openshift-ansible checkout reference.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'master'
+                ],
 
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'aos-cicd@redhat.com',
-                     description: 'Success Mailing List',
-                     name: 'MAIL_LIST_SUCCESS'],
+                // Parameters to search for AMI to use
+                [
+                    name: 'AMI_SEARCH_TAGS',
+                    description: """Comma delimited tags (K=V) to use to find the base AMI to use
+NOTE: This option is overridden by specifying the BASE_AMI_ID
+NOTE: "base_ami=true" is probably necessary; otherwise a previous built ami
+      will be used, and no packages will be updated!""",
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+                        'operating_system=RedHat',
+                        'standard=true',
+                        'base_ami=true'
+                    ].join(',')
+                ],
+                [
+                    name: 'BASE_AMI_ID',
+                    description: """Base AMI id to build from.
+NOTE: By default this job searches for the latest AMI based on AMI Search Tags.
+If the AMI ID is specfied, it will override the search tags provided""",
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: ''
+                ],
 
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'jupierce@redhat.com,bbarcaro@redhat.com,mwoodson@redhat.com',
-                     description: 'Failure Mailing List',
-                     name: 'MAIL_LIST_FAILURE'],
+                [
+                    name: 'AMI_SHARE_ACCOUNTS',
+                    description: """Comma delimited list of AWS accounts to share the image with.
+NOTE: Currently this only shares the AMI in the AWS_REGION defined.
+   531415883065 - Openshift DevEnv AWS Account
+   704252977135 - free-int AWS Account
+   639866565627 - Ops Test AWS Account
+   925374498059 - Perf Testing Account""",
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+                        '531415883065',
+                        '704252977135',
+                        '639866565627',
+                        '925374498059'
+                    ].join(',')
+                ],
 
-                    [$class: 'hudson.model.BooleanParameterDefinition',
-                     defaultValue: false,
-                     description: 'Force rebuild even if no changes are detected?',
-                     name: 'FORCE_REBUILD'],
+                // AWS Settings, these probably shouldn't change too often
+                [
+                    name: 'AWS_REGION',
+                    description: 'AWS Region to use',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'us-east-1'
+                ],
+                [
+                    name: 'BASE_AMI_NAME',
+                    description: 'Base AMI instance name.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'cicd_openshift_node_ami_build'
+                ],
+                [
+                    name: 'AWS_SSH_KEY_USER',
+                    description: 'Name of the AWS SSH key user to use.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'ami_builder_key'
+                ],
+                [
+                    name: 'VPC_NAME',
+                    description: 'Specify a name that will be used for the VPC. Also used for VPC and other settings',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'cicd_build'
+                ],
+                [
+                    name: 'AZ_NAME',
+                    description: 'Specify an availability zone for the AMI build instance to use.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'us-east-1c'
+                ],
+                [
+                    name: 'SG_NAME',
+                    description: 'Specify a security group name for the AMI build instance to use.',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'default'
+                ],
 
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: '3.9.0',
-                     description: 'Openshift Version (matches version in branch name for release builds)',
-                     name: 'OPENSHIFT_VERSION'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: '0.0.0.git.0.1234567.el7',
-                     description: 'Release version (The release version number)',
-                     name: 'OPENSHIFT_RELEASE'],
-
-                    [$class: 'hudson.model.ChoiceParameterDefinition',
-                     choices: "openshift-enterprise\norigin",
-                     defaultValue: 'openshift-enterprise',
-                     description: 'origin - Openshift origin\nopenshift-enterprise - Openshift Enterpriseonline',
-                     name: 'DEPLOYMENT_TYPE'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/',
-                     description: 'Base url for repository.',
-                     name: 'YUM_BASE_URL'],
-
-                    [$class: 'hudson.model.BooleanParameterDefinition',
-                     defaultValue: true,
-                     description: 'Enable CRIO in Openshift for the AMI build.',
-                     name: 'USE_CRIO'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'docker.io/runcom/cri-o-system-container:v3.8',
-                     description: 'CRIO system container override image.',
-                     name: 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'https://github.com/openshift/openshift-ansible.git',
-                     description: 'openshift-ansible repo URL.',
-                     name: 'OPENSHIFT_ANSIBLE_REPO_URL'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'master',
-                     description: 'openshift-ansible checkout reference.',
-                     name: 'OPENSHIFT_ANSIBLE_CHECKOUT'],
-
-                    // Parameters to search for AMI to use
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'operating_system=RedHat,standard=true,base_ami=true',
-                     description: 'Comma delimited tags (K=V) to use to find the base AMI to use\n  NOTE: This option is overrididen by specifying the BASE_AMI_ID\n  NOTE: "base_ami=true" is probably necessary; otherwise a previous built ami will be used, and no packages will be updated!',
-                     name: 'AMI_SEARCH_TAGS'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: '',
-                     description: 'Base AMI id to build from.\nNOTE: By default the job will search for the latest AMI based on the AMI Search Tags. If this is provided, it will override the search tags provided',
-                     name: 'BASE_AMI_ID'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: '531415883065,704252977135,639866565627,925374498059',
-                     description: 'Comma delimited list of AWS accounts to share the image with.\nNOTE: Currently this only shares the AMI in the AWS_REGION defined.\n   531415883065 - Openshift DevEnv AWS Account\n   704252977135 - free-int AWS Account\n   639866565627 - Ops Test AWS Account\n   925374498059 - Perf Testing Account',
-                     name: 'AMI_SHARE_ACCOUNTS'],
-
-                    // AWS Settings, these probably shouldn't change too often
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'us-east-1',
-                     description: 'AWS Region to use',
-                     name: 'AWS_REGION'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'cicd_openshift_node_ami_build',
-                     description: 'Base AMI instance name.',
-                     name: 'BASE_AMI_NAME'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'ami_builder_key',
-                     description: 'Name of the AWS SSH key user to use.',
-                     name: 'AWS_SSH_KEY_USER'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'cicd_build',
-                     description: 'Specify a name that will be used for the VPC. Also used for VPC and other settings',
-                     name: 'VPC_NAME'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'us-east-1c',
-                     description: 'Specify an availability zone for the AMI build instance to use.',
-                     name: 'AZ_NAME'],
-
-                    [$class: 'hudson.model.StringParameterDefinition',
-                     defaultValue: 'default',
-                     description: 'Specify a security group name for the AMI build instance to use.',
-                     name: 'SG_NAME'],
-
-                    // Mock
-                    [$class: 'BooleanParameterDefinition',
-                     defaultValue: false,
-                     description: 'Mock run to pickup new Jenkins parameters?.',
-                     name: 'MOCK'],
-                ]
-            ],
-        ]
+                // Mock
+                [
+                    name: 'MOCK',
+                    description: 'Mock run to pickup new Jenkins parameters?.',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+            ]
+        ],
+    ]
 )
 
 if ( MOCK.toBoolean() ) {

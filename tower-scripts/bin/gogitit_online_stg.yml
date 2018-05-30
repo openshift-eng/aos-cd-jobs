@@ -35,7 +35,7 @@ repos:
     dst: roles/oso_console_extensions/
 - id: openshift-ansible
   url: https://github.com/openshift/openshift-ansible.git
-  version: openshift-ansible-3.9.0-0.22.0
+  version: openshift-ansible-3.10.0-0.50.0
   copy:
   - src: roles/lib_openshift/
     dst: roles/lib_openshift/

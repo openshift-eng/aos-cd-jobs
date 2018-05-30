@@ -45,7 +45,6 @@ properties(
 
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run storage-migration?', name: 'RUN_STORAGE_MIGRATION'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-control-plane?', name: 'UPGRADE_CONTROL_PLANE'],
-                          [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Run upgrade-jenkins-image-stream?', name: 'UPGRADE_JENKINS_IMAGE_STREAM'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-nodes?', name: 'UPGRADE_NODES'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-logging?', name: 'UPGRADE_LOGGING'],
                           [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: true, description: 'Run upgrade-metrics?', name: 'UPGRADE_METRICS'],
@@ -147,11 +146,6 @@ node('openshift-build-1') {
             }
 
             stage( "upgrade: nodes" ) {
-                // This should eventually be replaced by a post-control-plane online-deployer function
-                if (UPGRADE_JENKINS_IMAGE_STREAM.toBoolean()) {
-                    deploylib.run("update-jenkins-imagestream")
-                }
-                
                 if (UPGRADE_NODES.toBoolean()) {
                     deploylib.run("upgrade-nodes")
                 }
@@ -161,11 +155,7 @@ node('openshift-build-1') {
                 if ( UPGRADE_ONLINE_COMPONENTS.toBoolean()  ) {
                     deploylib.run( "online-deployer" )
                 }
-                // deployer presently reset jenkins imagestream; that should be fixed soon
-                if (UPGRADE_JENKINS_IMAGE_STREAM.toBoolean()) {
-                    deploylib.run("update-jenkins-imagestream")
-                }
-            }            
+            }
             
             stage ("upgrade: logging") {
                 if (UPGRADE_LOGGING.toBoolean()) {

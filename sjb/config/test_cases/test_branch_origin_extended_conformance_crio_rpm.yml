@@ -134,7 +134,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
                          -e openshift_use_crio=True   \
-                         -e openshift_crio_use_rpm=True
+                         -e openshift_crio_use_rpm=True \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \
@@ -188,7 +188,7 @@ extensions:
                          --inventory sjb/inventory/ \
                          -e openshift_deployment_type=origin  \
                          -e openshift_use_crio=True   \
-                         -e openshift_crio_use_rpm=True
+                         -e openshift_crio_use_rpm=True \
                          -e etcd_data_dir="${ETCD_DATA_DIR}" \
                          -e openshift_master_default_subdomain="${local_ip}.nip.io"             \
                          -e openshift_image_tag="$( cat ./ORIGIN_TAG )"                      \

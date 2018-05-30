@@ -15,14 +15,16 @@ BUILD_MODE="${3}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
 MAJOR_MINOR=$(echo "${FULL_VERSION}" | cut -d . -f 1-2)
 
+REPO="enterprise-${MAJOR_MINOR}"
+
 if [ "$BUILD_MODE" == "release" ] || [ "$BUILD_MODE" == "pre-release" ] || [ "$BUILD_MODE" == "" ]; then
-    REPO="enterprise-${MAJOR_MINOR}"
-elif [ "$BUILD_MODE" == "online:int" ] || [ "$BUILD_MODE" == "online-int" ]; then  # Maintaining hyphen variant for build/ose job
-    REPO="online-int"
-elif [ "$BUILD_MODE" == "online:stg" ] || [ "$BUILD_MODE" == "online-stg" ]; then
-    REPO="online-stg"
-elif [ "$BUILD_MODE" == "online:prod" ] || [ "$BUILD_MODE" == "online-prod" ]; then
-    REPO="online-prod"
+    LINK_FROM=""
+elif [ "$BUILD_MODE" == "online:int" ] ; then
+    LINK_FROM="online-int"
+elif [ "$BUILD_MODE" == "online:stg" ] ; then
+    LINK_FROM="online-stg"
+elif [ "$BUILD_MODE" == "online:prod" ] ; then
+    LINK_FROM="online-prod"
 else
     echo "Unknown BUILD_MODE: ${BUILD_MODE}"
     exit 1
@@ -86,6 +88,7 @@ MIRROR_SSH_SERVER="use-mirror-upload.ops.rhcloud.com"
 MIRROR_SSH_BASE="ssh ${BOT_USER} -o StrictHostKeychecking=no"
 MIRROR_SSH="${MIRROR_SSH_BASE} ${MIRROR_SSH_SERVER}"
 MIRROR_PATH="/srv/enterprise/${REPO}"
+LINK_FROM_PATH="/srv/enterprise/${LINK_FROM}"
 ALL_DIR="/srv/enterprise/all/${MAJOR_MINOR}"
 
 $MIRROR_SSH sh -s <<-EOF
@@ -113,6 +116,7 @@ rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX -e 
 $MIRROR_SSH sh -s <<-EOF
   set -e
   set -o xtrace
+
   cd "${MIRROR_PATH}"
 
   # Replace current symlink with new puddle content
@@ -124,7 +128,17 @@ $MIRROR_SSH sh -s <<-EOF
   # e.g. https://euw-mirror1.ops.rhcloud.com/enterprise/enterprise-3.3/latest/RH7-RHAOS-3.3/x86_64/os
   ln -s mash/rhaos-${MAJOR_MINOR}-rhel-7-candidate RH7-RHAOS-${MAJOR_MINOR}
 
-  # All builds should be tracked in this repository.
+  if [ ! -z "$LINK_FROM" ]; then
+      # Historical note: Some CI systems use online-int to pull artifacts associated with builds from master.
+      mkdir -p ${LINK_FROM_PATH}
+      cd "${LINK_FROM_PATH}"
+      # Symlink new build into the directory associated with the BUILD_MODE
+      ln -s ${MIRROR_PATH}/${VERSIONED_DIR}
+      # Replace any existing latest directory to point to the last build.
+      ln -sfn ${MIRROR_PATH}/${VERSIONED_DIR} ${SYMLINK_NAME}
+  fi
+
+  # All builds should be tracked in this directory for legacy reasons.
   mkdir -p ${ALL_DIR}
   cd "${ALL_DIR}"
 
@@ -134,6 +148,13 @@ $MIRROR_SSH sh -s <<-EOF
   ln -sfn ${MIRROR_PATH}/${VERSIONED_DIR} ${SYMLINK_NAME}
 
   # Synchronize the changes to the mirrors; If this fails, ops mirrors are usually full.
+
   timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v
+
   timeout 1h /usr/local/bin/push.enterprise.sh all -v
+
+  if [ ! -z "$LINK_FROM" ]; then
+      timeout 1h /usr/local/bin/push.enterprise.sh ${LINK_FROM} -v
+  fi
+
 EOF

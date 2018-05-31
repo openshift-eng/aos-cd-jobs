@@ -181,6 +181,7 @@ node('openshift-build-1') {
                 if ( UPGRADE_NODES.toBoolean()  ) {
                     deploylib.run( "unschedule-extra-nodes" ) // Used to scale down dedicated instance if extra node is created prior to upgrade to ensure capacity.
                 }
+                deploylib.run( "delete-yum-repos" )
             }                 
             
             stage( "config-loop" ) {

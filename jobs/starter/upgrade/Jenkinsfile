@@ -80,15 +80,15 @@ node('openshift-build-1') {
         ADDITIONAL_OPTS_PREFS["cicd_yum_openshift_ansible_url"] = "https://mirror.openshift.com/enterprise/${repo}/latest/x86_64/os/Packages"
     }
 
-    ADDITIONAL_OPTS = ADDITIONAL_OPTS_DEFAULT = aos_cd_ops_data.getOptionsList(CLUSTER_SPEC, ADDITIONAL_OPTS_PREFS)
+    ADDITIONAL_OPTS_DEFAULT = aos_cd_ops_data.getOptionsList(CLUSTER_SPEC, ADDITIONAL_OPTS_PREFS)
 
     // Add override repos which can be used to promote packages prior to release for starter clusters.
     if ( CLUSTER_SPEC == "online:int:free-int" ) {
-        ADDITIONAL_OPTS["cicd_yum_openshift_ansible_url"] += ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-int/x86_64/os/"
+        ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] += ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-int/x86_64/os/"
     } else if ( CLUSTER_SPEC == "online:stg:free-stg" ) {
-        ADDITIONAL_OPTS["cicd_yum_openshift_ansible_url"] += ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-stg/x86_64/os/"
+        ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] += ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-stg/x86_64/os/"
     } else if ( CLUSTER_SPEC.startsWith("online:prod:starter-" ) ) {
-        ADDITIONAL_OPTS["cicd_yum_openshift_ansible_url"] += ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-prod/x86_64/os/"
+        ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] += ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-prod/x86_64/os/"
     }
 
     if ( MODE != "automatic" ) {
@@ -105,6 +105,8 @@ node('openshift-build-1') {
         MAIL_LIST_SUCCESS = parms.MAIL_LIST_SUCCESS
         MAIL_LIST_FAILURE = parms.MAIL_LIST_FAILURE
         ADDITIONAL_OPTS = parms.ADDITIONAL_OPTS
+    } else {
+        ADDITIONAL_OPTS = ADDITIONAL_OPTS_DEFAULT
     }
 
     def deploylib = load( "pipeline-scripts/deploylib.groovy")

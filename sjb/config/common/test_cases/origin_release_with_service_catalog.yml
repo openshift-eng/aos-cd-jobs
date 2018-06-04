@@ -1,0 +1,24 @@
+---
+parent: 'common/test_cases/origin_release.yml'
+overrides:
+  provision:
+    os: "rhel"
+    stage: "build"
+    provider: "aws"
+extensions:
+  sync:
+    - "openshift,service-catalog=master"
+  actions:
+    - type: "script"
+      title: "determine the release commit for service catalog image and version for rpms"
+      repository: "origin"
+      script: |-
+        catalog_repo="/data/src/github.com/openshift/service-catalog/"
+        git log -1 --pretty=%h >> "${catalog_repo}/ORIGIN_COMMIT"
+    - type: "script"
+      title: "build the service catalog container image"
+      repository: "service-catalog"
+      timeout: 3600
+      script: |-
+        make build-images
+        docker tag openshift/origin-service-catalog:latest "openshift/origin-service-catalog:$( cat ./ORIGIN_COMMIT )"

@@ -82,15 +82,6 @@ node('openshift-build-1') {
 
     ADDITIONAL_OPTS_DEFAULT = aos_cd_ops_data.getOptionsList(CLUSTER_SPEC, ADDITIONAL_OPTS_PREFS)
 
-    // Add override repos which can be used to promote packages prior to release for starter clusters.
-    if ( CLUSTER_SPEC == "online:int:free-int" ) {
-        ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] = ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] + ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-int/x86_64/os/"
-    } else if ( CLUSTER_SPEC == "online:stg:free-stg" ) {
-        ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] = ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] + ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-stg/x86_64/os/"
-    } else if ( CLUSTER_SPEC.startsWith("online:prod:starter-" ) ) {
-        ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] = ADDITIONAL_OPTS_DEFAULT["cicd_yum_openshift_ansible_url"] + ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-prod/x86_64/os/"
-    }
-
     if ( MODE != "automatic" ) {
         parms = input(
                 message: 'Review/update the parameters for this before proceeding.',

@@ -184,7 +184,7 @@ class GatherLogs(object):
             gather_cmd = ['autokeys_loader', 'ossh', 'root@{}'.format(inv_node), '-c',
                           "journalctl --no-pager --since '2 days ago' -u {}.service".format(service)]
 
-            GatherLogs.run_cmd(gather_cmd)
+            GatherLogs.run_cmd(gather_cmd, os.path.join(node_dir, '{}.service.log'.format(service)))
 
         self.write_to_logfile("Gathering node info and metrics")
         GatherLogs.run_cmd(['autokeys_loader', 'ossh', "root@{}".format(self.cluster.primary_master),

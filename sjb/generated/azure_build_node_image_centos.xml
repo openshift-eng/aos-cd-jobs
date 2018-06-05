@@ -186,7 +186,8 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE THE RESOURCE GROUP ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RESOURCE GROUP [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-echo &#34;RESOURCE_GROUP=ci-$JOB_NAME-$BUILD_NUMBER&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;</command>
+echo &#34;RESOURCE_GROUP=ci-$JOB_NAME-$BUILD_NUMBER&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;
+echo &#34;IMAGE_NAME=centos7-master-$(TZ=Etc/UTC date +%Y%m%d%H%M)&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -224,12 +225,31 @@ TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_azure_input_image_ns=images&#34; \
   -e &#34;openshift_azure_input_image_prefix=centos7-base&#34; \
   -e &#34;openshift_azure_output_image_ns=images&#34; \
-  -e &#34;openshift_azure_output_image_prefix=centos7&#34; \
+  -e &#34;openshift_azure_output_image_name=\$IMAGE_NAME&#34; \
   -e &#34;openshift_azure_storage_account=openshiftimages&#34; \
   -e &#34;openshift_azure_storage_account_ns=images&#34; \
   -e &#34;openshift_azure_container=images&#34; \
   -e &#34;openshift_azure_install_repo=\$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/master/.latest-rpms)&#34; \
   playbooks/azure/openshift-cluster/build_node_image.yml
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: TAG NODE IMAGE AS VALID ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: TAG NODE IMAGE AS VALID [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
+cd cluster/test-deploy/azure
+TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
+  -e &#34;openshift_azure_input_image_ns=images&#34; \
+  -e &#34;openshift_azure_input_image_name=\$IMAGE_NAME&#34; \
+  playbooks/azure/openshift-cluster/tag_image_as_valid.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

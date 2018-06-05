@@ -17,12 +17,14 @@ rcs=$(oc get rc -n openshift-infra -o=name | grep hawkular-cassandra)
 backup_dir=$HOME/metrics-patch-backup
 mkdir -p $backup_dir
 
+ts=$(date +%s)
+
 for rc in $rcs ; do
 
         rc=$(echo $rc | cut -f 2 -d /)
 
-        org="$backup_dir/original-$rc.json"
-        mod="$backup_dir/modified-$rc.json"
+        org="$backup_dir/original-$rc-$ts.json"
+        mod="$backup_dir/modified-$rc-$ts.json"
 
         # store original
         oc get -n openshift-infra -o json rc/$rc | jq 'del(.metadata.resourceVersion)' > $org

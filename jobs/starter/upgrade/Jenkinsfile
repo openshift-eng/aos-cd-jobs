@@ -89,7 +89,7 @@ node('openshift-build-1') {
             PKG_OVERRIDE_REPO_ADDER = ",https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-prod/x86_64/os/"
         }
 
-        ADDITIONAL_OPTS_PREFS["cicd_yum_openshift_ansible_url"] += PKG_OVERRIDE_REPO_ADDER
+        ADDITIONAL_OPTS_PREFS["cicd_yum_repo_urls"] += PKG_OVERRIDE_REPO_ADDER
     }
 
     ADDITIONAL_OPTS_DEFAULT = aos_cd_ops_data.getOptionsList(CLUSTER_SPEC, ADDITIONAL_OPTS_PREFS)

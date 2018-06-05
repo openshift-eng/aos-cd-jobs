@@ -37,4 +37,4 @@ for rc in $rcs ; do
 done
 
 # delete existing pods so that new rc will recover them
-oc get pods -n openshift-infra -o=name | grep hawkular-cassandra-
+oc delete -n openshift-infra $(oc get pods -n openshift-infra -o=name | grep hawkular-cassandra-)

@@ -3,3 +3,5 @@ openshift_node_labels:
   region: infra
   zone: default
 openshift_schedulable: true
+
+openshift_node_group_name: "node-config-all-in-one"

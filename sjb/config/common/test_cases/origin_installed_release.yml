@@ -1,5 +1,10 @@
 ---
-parent: 'common/test_cases/origin_built_release.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
+overrides:
+  provision:
+    os: "rhel"
+    stage: "build"
+    provider: "aws"
 extensions:
   sync:
     - "openshift,aos-cd-jobs=master"
@@ -29,21 +34,6 @@ extensions:
            sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
         done
         sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
-    - type: "script"
-      title: "determine the release commit for origin images and version for rpms"
-      timeout: 600
-      repository: "origin"
-      script: |-
-        jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        git log -1 --pretty=%h > "${jobs_repo}/ORIGIN_COMMIT"
-
-        source hack/lib/init.sh
-        os::build::rpm::get_nvra_vars
-        echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" > "${jobs_repo}/ORIGIN_PKG_VERSION"
-        echo "${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" > "${jobs_repo}/ORIGIN_RELEASE"
-        echo "${OS_RPM_VERSION}" | cut -d'.' -f2 > "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
-        tag="$( echo "v${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" )"
-        echo "${tag}" > "${jobs_repo}/ORIGIN_TAG"
     - type: "script"
       title: "origin prerequisites"
       repository: "aos-cd-jobs"

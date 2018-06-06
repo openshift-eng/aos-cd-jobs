@@ -1,5 +1,10 @@
 ---
-parent: 'common/test_cases/origin_release_with_service_catalog.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem.yml'
+overrides:
+  provision:
+    os: "rhel"
+    stage: "build"
+    provider: "aws"
 extensions:
   sync:
     - "openshift,aos-cd-jobs=master"

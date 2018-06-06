@@ -460,6 +460,45 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: TURN OFF UNNECESSARY RPM REPOS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: TURN OFF UNNECESSARY RPM REPOS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+sudo yum-config-manager --disable centos-paas-sig-openshift-origin\*-rpms
+sudo yum-config-manager --disable origin-deps-rhel7\* || true
+sudo yum-config-manager --disable rhel-7-server-ose\* || true
+
+branch=&#34;\${PULL_BASE_REF:-&#34;master&#34;}&#34;
+case &#34;\${branch}&#34; in
+  master )
+    # 3.10
+    major=3
+    minor=10
+    ;;
+  release-* )
+    major=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
+    minor=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
+    ;;
+  enterprise-* )
+    major=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-)[0-9](?=\.[0-9])&#34; )&#34;
+    minor=&#34;\$( echo &#34;\${branch}&#34; | grep -Po &#34;(?&lt;=release-[0-9]\.)[0-9]&#34; )&#34;
+    ;;
+esac
+previous=&#34;\$(( minor -1))&#34;
+sudo yum-config-manager --enable &#34;rhel-7-server-ose-\${major}.\${minor}-rpms&#34;
+if [[ &#34;\${JOB_NAME}&#34; == *update* ]]; then
+  sudo yum-config-manager --enable &#34;rhel-7-server-ose-\${major}.\${previous}-rpms&#34;
+fi
+sudo yum repolist
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: INSTALL THE OPENSHIFT-ANSIBLE RELEASE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: INSTALL THE OPENSHIFT-ANSIBLE RELEASE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
@@ -619,7 +658,6 @@ ansible-playbook -vv --become               \
                  -e openshift_crio_use_rpm=True \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
-                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;                      \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
                  -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                    \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
@@ -681,7 +719,6 @@ ansible-playbook -vv --become               \
                  -e openshift_crio_use_rpm=True \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
-                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_TAG )&#34;                      \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;            \
                  -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                    \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \

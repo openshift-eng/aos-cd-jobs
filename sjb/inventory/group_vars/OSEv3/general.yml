@@ -21,3 +21,10 @@ enable_excluders: "false"
 osm_cluster_network_cidr: "10.128.0.0/14"
 openshift_portal_net: "172.30.0.0/16"
 osm_host_subnet_length: 9
+
+openshift_node_groups:
+  - name: 'node-config-all-in-one'
+    labels:
+      - 'node-role.kubernetes.io/master=true'
+      - 'node-role.kubernetes.io/infra=true'
+      - 'node-role.kubernetes.io/compute=true'

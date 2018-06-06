@@ -9,28 +9,79 @@ def set_workspace() {
 
 // Expose properties for a parameterized build
 properties(
+    [
+        disableConcurrentBuilds(),
         [
-                disableConcurrentBuilds(),
-                [$class: 'ParametersDefinitionProperty',
-                 parameterDefinitions:
-                         [
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'openshift-build-1', description: 'Jenkins agent node', name: 'TARGET_NODE'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'aos-cicd@redhat.com, aos-qe@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                                 [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,sedgar@redhat.com,vdinh@redhat.com,ahaile@redhat.com,bbarcaro@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                                 [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Force rebuild even if no changes are detected?', name: 'FORCE_REBUILD'],
-                                 [$class: 'hudson.model.ChoiceParameterDefinition',
-                                    choices: "online:int\nonline:stg\npre-release\nrelease",
-                                    description: '''online:int      online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts-int/ <br>
-                                                    online:stg      online/stage -> https://mirror.openshift.com/enterprise/online-openshift-scripts-stg/ <br>
-                                                    pre-release     online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>
-                                                    release         online/online-X.Y.Z -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>
-                                                    ''',
-                                    name: 'BUILD_MODE'],
-                                [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3.6.0\n3.7.0", defaultValue: '3.6.0', description: 'Release version (matches version in branch name for release builds)', name: 'RELEASE_VERSION'],
-                                [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?.', name: 'MOCK'],
-                         ]
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                [
+                    name: 'TARGET_NODE',
+                    description: 'Jenkins agent node',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1'
                 ],
-        ]
+                [
+                    name: 'MAIL_LIST_SUCCESS',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+                        'aos-cicd@redhat.com',
+                        'aos-qe@redhat.com'
+                    ].join(','),
+                    description: 'Success Mailing List'
+               ],
+                [
+                    name: 'MAIL_LIST_FAILURE',
+                    description: 'Failure Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+                        'jupierce@redhat.com',
+                        'smunilla@redhat.com',
+                        'sedgar@redhat.com',
+                        'vdinh@redhat.com',
+                        'ahaile@redhat.com',
+                        'bbarcaro@redhat.com'
+                    ].join(',')
+                ],
+                [
+                    name: 'FORCE_REBUILD',
+                    description: 'Force rebuild even if no changes are detected?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+                [
+                    name: 'BUILD_MODE',
+                    description:
+                        '''online:int      online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts-int/ <br>
+online:stg      online/stage -> https://mirror.openshift.com/enterprise/online-openshift-scripts-stg/ <br>
+pre-release     online/master -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>
+release         online/online-X.Y.Z -> https://mirror.openshift.com/enterprise/online-openshift-scripts/X.Y <br>''',
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: [
+                        "online:int",
+                        "online:stg",
+                        "pre-release",
+                        "release"
+                    ].join("\n")
+                ],
+                [
+                    name: 'RELEASE_VERSION',
+                    description: 'Release version (matches version in branch name for release builds)',
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: [
+                        "3.6.0",
+                        "3.7.0"
+                    ].join("\n"),
+                    defaultValue: '3.6.0'
+                ],
+                [
+                    name: 'MOCK',
+                    description: 'Mock run to pickup new Jenkins parameters?.',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+            ]
+        ],
+    ]
 )
 
 // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.

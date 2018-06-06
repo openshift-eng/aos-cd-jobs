@@ -2,24 +2,28 @@ final MAIL_FROM = 'aos-cicd@redhat.com'
 final MAILING_LIST_CVE = ['bbarcaro@redhat.com']
 final MAILING_LIST_ERR = ['bbarcaro@redhat.com']
 
-properties([[
-  $class : 'ParametersDefinitionProperty',
-  parameterDefinitions: [
+properties(
     [
-      $class: 'BooleanParameterDefinition',
-      name: 'MOCK',
-      description: 'Mock run to pickup new Jenkins parameters?.',
-      defaultValue: false,
-    ],
-    [
-      $class: 'hudson.model.ChoiceParameterDefinition',
-      name: 'BUILD_VERSION',
-      description: 'OCP Version to build',
-      defaultValue: '3.7',
-      choices: ['3.7', '3.6', '3.5', '3.4', '3.3'].join('\n'),
-    ],
-  ],
-]])
+        [
+            $class : 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                [
+                    name: 'MOCK',
+                    description: 'Mock run to pickup new Jenkins parameters?.',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+                [
+                    name: 'BUILD_VERSION',
+                    description: 'OCP Version to build',
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    defaultValue: '3.7',
+                    choices: ['3.7', '3.6', '3.5', '3.4', '3.3'].join('\n')
+                ],
+            ],
+        ]
+    ]
+)
 
 node('openshift-build-1') {
   try {

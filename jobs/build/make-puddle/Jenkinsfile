@@ -31,18 +31,62 @@ node('openshift-build-1') {
 
     // Expose properties for a parameterized build
     properties(
-            [[$class              : 'ParametersDefinitionProperty',
-              parameterDefinitions:
-                      [
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "3", description: 'OSE Major Version', name: 'OSE_MAJOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15", description: 'OSE Minor Version', name: 'OSE_MINOR'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "building\nlatest", description: 'What is it for', name: 'PUDDLE_PURPOSE'],
-                              [$class: 'hudson.model.ChoiceParameterDefinition', choices: "simple\nerrata\nsigned", description: 'What type to make (CURRENTLY ONLY WORKS WITH simple)', name: 'PUDDLE_TYPE'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com', description: 'Success Mailing List', name: 'MAIL_LIST_SUCCESS'],
-                              [$class: 'hudson.model.StringParameterDefinition', defaultValue: 'jupierce@redhat.com,smunilla@redhat.com', description: 'Failure Mailing List', name: 'MAIL_LIST_FAILURE'],
-                              [$class: 'hudson.model.BooleanParameterDefinition', defaultValue: false, description: 'Mock run to pickup new Jenkins parameters?', name: 'MOCK'],
-                      ]
-             ]]
+        [
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    [
+                        name: 'OSE_MAJOR',
+                        description: 'OSE Major Version',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "3"
+                    ],
+                    [
+                        name: 'OSE_MINOR',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15",
+                        description: 'OSE Minor Version'
+                    ],
+                    [
+                        name: 'PUDDLE_PURPOSE',
+                        description: 'What is it for',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "building\nlatest"
+                    ],
+                    [
+                        name: 'PUDDLE_TYPE',
+                        description: 'What type to make (CURRENTLY ONLY WORKS WITH simple)'
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "simple",
+                            "errata",
+                            "signed"
+                        ].join("\n")
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'jupierce@redhat.com',
+                            'smunilla@redhat.com'
+                        ],join(',')
+                   ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: 'jupierce@redhat.com,smunilla@redhat.com'
+                    ],
+                    [
+                        name: 'MOCK',
+                        description: 'Mock run to pickup new Jenkins parameters?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                ]
+            ]
+        ]
     )
     
     // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.

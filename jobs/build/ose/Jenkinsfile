@@ -48,6 +48,7 @@ def mail_success(version) {
         mirrorURL = "https://mirror.openshift.com/enterprise/online-stg"
     }
 
+    def oaBrewURL = readFile("results/openshift-ansible-brew.url")
     def oseBrewURL = readFile("results/ose-brew.url")
     def puddleName = readFile("results/ose-puddle.name")
     def changelogs = readFile("results/changelogs.txt")
@@ -80,6 +81,7 @@ ${image_details}
 
 Brew:
   - Openshift: ${oseBrewURL}
+  - OpenShift Ansible: ${oaBrewURL}
 
 Jenkins job: ${env.BUILD_URL}
 

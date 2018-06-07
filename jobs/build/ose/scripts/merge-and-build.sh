@@ -238,11 +238,50 @@ brew watch-task ${TASK_NUMBER}
 
 echo
 echo "=========="
-echo "OIT Building RPMs"
+echo "Setup: openshift-ansible"
 echo "=========="
-${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
-rpms:build --version v${VERSION} \
---release 1
+pushd ${WORKPATH}
+rm -rf openshift-ansible
+git clone git@github.com:openshift/openshift-ansible.git
+OPENSHIFT_ANSIBLE_DIR="${WORKPATH}/openshift-ansible/"
+cd openshift-ansible/
+if [ "${BUILD_MODE}" == "online:stg" ] ; then
+    git checkout -q stage
+else
+  if [ "${MAJOR}" -eq 3 ] && [ "${MINOR}" -le 5 ] ; then # 3.5 and below maps to "release-1.5"
+    git checkout -q release-1.${MINOR}
+  else  # Afterwards, version maps directly; 3.5 => "release-3.5"
+    git checkout -q release-${OSE_VERSION}
+  fi
+fi
+
+echo
+echo "=========="
+echo "Tito Tagging: openshift-ansible"
+echo "=========="
+if [ "${MAJOR}" -eq 3 -a "${MINOR}" -le 5 ] ; then # 3.5 and below
+    # Use tito's normal progression for older releases
+    export TITO_USE_VERSION=""
+else
+    # For 3.6 onward, match the OCP version
+    export TITO_USE_VERSION="--use-version=${VERSION}"
+fi
+
+tito tag --accept-auto-changelog ${TITO_USE_VERSION}
+git push
+git push --tags
+
+echo
+echo "=========="
+echo "Tito Building: openshift-ansible"
+echo "=========="
+TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
+echo "TASK NUMBER: ${TASK_NUMBER}"
+echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
+echo
+echo -n "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}" > "${RESULTS}/openshift-ansible-brew.url"
+brew watch-task ${TASK_NUMBER}
+popd
 
 echo
 echo "=========="
@@ -272,6 +311,7 @@ echo "=========="
 
 cat >"${OIT_WORKING}/sources.yml" <<EOF
 ose: ${OSE_DIR}
+openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
 EOF
 
 ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \

@@ -241,7 +241,6 @@ echo "=========="
 echo "OIT Building RPMs"
 echo "=========="
 ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
---sources ${OIT_WORKING}/sources.yml \
 rpms:build --version v${VERSION} \
 --release 1
 

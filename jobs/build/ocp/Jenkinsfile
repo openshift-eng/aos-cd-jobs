@@ -870,12 +870,26 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
 
             stage("ami") {
                 if (params.BUILD_AMI && BUILD_CONTAINER_IMAGES) {
-                        buildlib.build_ami(
-                                BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
-                                NEW_VERSION, NEW_RELEASE,
-                                "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
-                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
-                                MAIL_LIST_FAILURE)
+                    // define openshift ansible source branch
+                    OPENSHIFT_ANSIBLE_SOURCE_BRANCH = 'master'
+                    if (BUILD_MODE == 'online:stg') {
+                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = 'stage'
+                    } else {
+                        if (!IS_SOURCE_IN_MASTER) {
+                            // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
+                            if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
+                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
+                            } else {
+                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
+                            }
+                        }
+                    }
+                    buildlib.build_ami(
+                        BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
+                        NEW_VERSION, NEW_RELEASE,
+                        "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
+                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
+                        MAIL_LIST_FAILURE)
                 }
             }
 

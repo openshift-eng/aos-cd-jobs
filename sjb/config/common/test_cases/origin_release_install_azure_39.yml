@@ -146,7 +146,7 @@ extensions:
           -e "openshift_azure_input_image_ns=images" \
           -e "openshift_azure_input_image_prefix=centos7-base" \
           -e "openshift_azure_output_image_ns=$RESOURCE_GROUP" \
-          -e "openshift_azure_output_image_prefix=centos7" \
+          -e "openshift_azure_output_image_name=centos7-origin" \
           -e "openshift_azure_install_repo=$location_url" \
           -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
           playbooks/azure/openshift-cluster/build_node_image.yml
@@ -160,7 +160,7 @@ extensions:
           -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
           -e "openshift_azure_resource_location=eastus" \
           -e "openshift_azure_input_image_ns=$RESOURCE_GROUP" \
-          -e "openshift_azure_input_image_prefix=centos7" \
+          -e "openshift_azure_input_image_name=centos7-origin" \
           playbooks/azure/openshift-cluster/launch.yml
 
   post_actions:

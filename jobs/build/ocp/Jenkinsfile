@@ -87,7 +87,7 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
                         "pre-release",
                         "online:int",
                         "online:stg"
-                    ].join(',')
+                    ].join("\n")
                 ],
                 [
                     name: 'SIGN',

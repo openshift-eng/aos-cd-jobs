@@ -40,7 +40,7 @@ actions:
         -e "openshift_azure_input_image_ns=images" \
         -e "openshift_azure_input_image_prefix=rhel7-root" \
         -e "openshift_azure_output_image_ns=images" \
-        -e "openshift_azure_output_image_prefix=rhel7-base" \
+        -e "openshift_azure_output_image_name=rhel7-base-$(TZ=Etc/UTC date +%Y%m%d%H%M)" \
         playbooks/azure/openshift-cluster/build_base_image.yml
 
 post_actions:

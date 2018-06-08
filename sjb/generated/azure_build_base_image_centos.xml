@@ -224,7 +224,7 @@ TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_azure_input_image_ns=images&#34; \
   -e &#34;openshift_azure_input_image_prefix=centos7-root&#34; \
   -e &#34;openshift_azure_output_image_ns=images&#34; \
-  -e &#34;openshift_azure_output_image_prefix=centos7-base&#34; \
+  -e &#34;openshift_azure_output_image_name=centos7-base-\$(TZ=Etc/UTC date +%Y%m%d%H%M)&#34; \
   playbooks/azure/openshift-cluster/build_base_image.yml
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -54,6 +54,12 @@ extensions:
         suffix='origin-${component}'
         suffix="${suffix}:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )"
         cd cluster/test-deploy/
+        # temporary addition until make file is modified
+        WORK_DIR=$PWD
+        PROFILE=${UPGRADE_CLUSTER_PROFILE:-$CLUSTER_PROFILE}
+        cd ${PROFILE}/ && ../../bin/ansible.sh ansible-playbook -e openshift_release="3.9" playbooks/gcp/openshift-cluster/openshift_node_group.yml || true
+        cd $WORK_DIR
+        # end temporary addition
         make upgrade WHAT=${INSTANCE_PREFIX} PROFILE=${UPGRADE_CLUSTER_PROFILE:-$CLUSTER_PROFILE}
 
     - type: "script"

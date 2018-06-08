@@ -433,9 +433,10 @@ function cluster_operation() {
     # For now, let's skip statuspage operations
     export SKIP_STATUS_PAGE="true"
 
-    if [[ "${CLUSTER_OPERATION}" == online-* ]]; then
-      update-online-roles
-    fi
+  fi
+
+  if [[ "${CLUSTER_OPERATION}" == online-* ]]; then
+    update-online-roles
   fi
 
   # Get the latest openshift-ansible rpms

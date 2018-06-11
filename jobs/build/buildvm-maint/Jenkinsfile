@@ -14,7 +14,7 @@ properties(
             $class : 'ParametersDefinitionProperty',
             parameterDefinitions: [
                 [
-                    name: 'MOCK'
+                    name: 'MOCK',
                     description: 'Mock run to pickup new Jenkins parameters?',
                     $class: 'hudson.model.BooleanParameterDefinition',
                     defaultValue: false,

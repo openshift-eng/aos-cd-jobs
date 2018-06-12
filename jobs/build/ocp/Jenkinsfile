@@ -275,7 +275,7 @@ Time spent waiting for OSBS capacity: ${metrics[0]['elapsed_wait_minutes']} minu
 // get the list of images built
 def get_image_build_report(record_log) {
     builds = record_log['build']
-        
+
     if ( builds == null ) {
         return ""
     }
@@ -300,7 +300,7 @@ def get_rpm_changelog(record_log, package_name) {
     rpms = record_log['build_rpm']
 
     // find the named package and the spec file path
-    specfile_path = None
+    specfile_path = null
     for (i = 0 ; i < rpms.size(); i++) {
         if (rpms[i]['distgit_key'] == package_name) {
             specfile_path = rpms[i]['specfile']
@@ -309,7 +309,7 @@ def get_rpm_changelog(record_log, package_name) {
     }
 
     // if no matching package found, return an empty string
-    if (specfile_path == None) {
+    if (specfile_path == null) {
         return ""
     }
 

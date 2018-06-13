@@ -159,7 +159,7 @@ def get_mirror_url(build_mode, version) {
     return "https://mirror.openshift.com/enterprise/enterprise-${version}"
 }
 
-def mail_success(version, mirrorURL, record_log) {
+def mail_success(buildlib, version, mirrorURL, record_log) {
 
     def target = "(Release Candidate)"
 
@@ -179,7 +179,7 @@ def mail_success(version, mirrorURL, record_log) {
     def timing_report = get_build_timing_report(record_log)
     def image_list = get_image_build_report(record_log)
 
-    def oa_changelog = get_rpm_changelog(record_log, "openshift-ansible")
+    def oa_changelog = get_rpm_changelog(buildlib, record_log, "openshift-ansible")
 
     PARTIAL = " "
     exclude_subject = ""
@@ -296,7 +296,7 @@ def get_image_build_report(record_log) {
 
 // Search the RPM build logs for the named package
 // extract the path to the spec file and return the changelog section.
-def get_rpm_changelog(record_log, package_name) {
+def get_rpm_changelog(buildlib, record_log, package_name) {
     rpms = record_log['build_rpm']
 
     // find the named package and the spec file path
@@ -933,7 +933,7 @@ Jenkins job: ${env.BUILD_URL}
             }
 
             record_log = buildlib.parse_record_log(OIT_WORKING)
-            mail_success(NEW_FULL_VERSION, mirror_url, record_log)
+            mail_success(buildlib, NEW_FULL_VERSION, mirror_url, record_log)
         }
     } catch (err) {
 

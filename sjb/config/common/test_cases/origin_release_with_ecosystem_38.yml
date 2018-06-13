@@ -8,7 +8,7 @@ extensions:
       script: |-
         tito_tmp_dir="tito"
         mkdir -p "${tito_tmp_dir}"
-        tito tag --offline --accept-auto-changelog --use-release 9999
+        tito tag --offline --accept-auto-changelog --use-release '9999%{?dist}'
         tito build --output="${tito_tmp_dir}" --rpm --test --offline --quiet
         createrepo "${tito_tmp_dir}/noarch"
         cat << EOR > ./openshift-ansible-local-release.repo

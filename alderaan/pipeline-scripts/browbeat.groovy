@@ -25,6 +25,10 @@ stage ('BROWBEAT') {
                         def graphite = browbeat_properties['GRAPHITE']
                         def graphite_prefix = browbeat_properties['GRAPHITE_PREFIX']
                         def access_token = browbeat_properties['PERSONAL_ACCESS_TOKEN']
+                        def dns_server = browbeat_properties['DNS_SERVER']
+                        def collectd_compute = browbeat_properties['BROWBEAT_COLLECTD_COMPUTE']
+                        def collectd_rabbitmq = browbeat_properties['BROWBEAT_COLLECTD_RABBITMQ']
+                        def collectd_ceph = browbeat_properties['BROWBEAT_COLLECTD_CEPH']
 
                         // debug info
                         println "----------USER DEFINED OPTIONS-------------------"
@@ -45,6 +49,10 @@ stage ('BROWBEAT') {
                                                 [$class: 'StringParameterValue', name: 'OPENSTACK_USER', value: user ],
                                                 [$class: 'StringParameterValue', name: 'GRAPHITE', value: graphite ],
                                                 [$class: 'StringParameterValue', name: 'PERSONAL_ACCESS_TOKEN', value: access_token ],
+                                                [$class: 'StringParameterValue', name: 'DNS_SERVER', value: dns_server ],
+                                                [$class: 'StringParameterValue', name: 'BROWBEAT_COLLECTD_COMPUTE', value: collectd_compute ],
+                                                [$class: 'StringParameterValue', name: 'BROWBEAT_COLLECTD_RABBITMQ', value: collectd_rabbitmq ],
+                                                [$class: 'StringParameterValue', name: 'BROWBEAT_COLLECTD_CEPH', value: collectd_ceph ],
                                                 [$class: 'StringParameterValue', name: 'GRAPHITE_PREFIX', value: graphite_prefix ]]
                         } catch ( Exception e) {
                         echo " Browbeat failed with the following error: "

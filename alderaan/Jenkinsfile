@@ -18,7 +18,7 @@ node {
     deleteDir()
 
     // clone aos-cd-jobs repo where all the pipeline scripts exist
-    sh "git clone https://github.com/chaitanyaenr/aos-cd-jobs.git"
+    sh "git clone https://github.com/chaitanyaenr/aos-cd-jobs.git; cd aos-cd-jobs; git checkout alderaan"
 
     // stage to install openstack
     if (install_openstack == "TRUE") {

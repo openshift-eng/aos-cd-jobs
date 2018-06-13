@@ -20,11 +20,18 @@ stage ('openstack_install') {
                         sh "wget ${OPENSTACK_PROPERTY_FILE} -O openstack.properties"
                         sh "cat openstack.properties"
                         def openstack_properties = readProperties file: "openstack.properties"
+                        def osp_rebuild_undercloud = openstack_properties['OSP_REBUILD_UNDERCLOUD']
+                        def osp_external_network_setup = openstack_properties['OSP_EXTERNAL_NETWORK_SETUP']
+                        def osp_external_vlan = openstack_properties['OSP_EXTERNAL_VLAN']
+                        def osp_external_net_cidr = opentack_properties['OSP_EXTERNAL_NET_CIDR']
+                        def osp_external_net_gateway = openstack_properties['OSP_EXTERNAL_NET_GATEWAY']
+                        def osp_fip_pool_start = openstack_properties['OSP_FIP_POOL_START']
+                        def osp_fip_pool_end = openstack_properties['OSP_FIP_POOL_END']
                         def rhos_release_url = openstack_properties['RHOS_RELEASE_URL']
                         def stack_passwd = openstack_properties['STACK_PASSWORD']
-                        def external_ip = openstack_properties['EXTERNAL_NETWORK_VIP']
-                        def private_external_ip = openstack_properties['PRIVATE_EXTERNAL_ADDRESS']
-                        def dns_server = openstack_properties['DNS_SERVER']
+                        def external_ip = openstack_properties['OSP_EXTERNAL_NETWORK_VIP']
+                        def private_external_ip = openstack_properties['OSP_PRIVATE_EXTERNAL_ADDRESS']
+                        def dns_server = openstack_properties['OSP_DNS_SERVER']
                         def instack_json = openstack_properties['INSTACKENV_JSON']
                         def cloud_title = openstack_properties['CLOUD_TITLE']
                         def ticket = openstack_properties['TICKET_NUMBER']
@@ -65,11 +72,20 @@ stage ('openstack_install') {
 			try {
 			    openstack_build = build job: 'scale-ci_install_OpenStack',
 				parameters: [   [$class: 'LabelParameterValue', name: 'node', label: node_label ],
-					
+					        [$class: 'BooleanParameterValue', name: 'OSP_REBUILD_UNDERCLOUD', value: Boolean.valueOf(osp_rebuild_undercloud) ],
                                                 [$class: 'StringParameterValue', name: 'RHOS_RELEASE_URL', value: rhos_release_url ],
+                                                [$class: 'ChoiceParameterValue', name: 'OSP_EXTERNAL_NETWORK_SETUP', value: osp_external_network_setup ],
+                                                [$class: 'StringParameterValue', name: 'OSP_EXTERNAL_VLAN', value: osp_external_vlan ],
+                                                [$class: 'StringParameterValue', name: 'OSP_EXTERNAL_NET_CIDR', value: osp_external_net_cidr ],
+                                                [$class: 'StringParameterValue', name: 'OSP_EXTERNAL_NET_GATEWAY', value: osp_external_net_gateway ],
+                                                [$class: 'StringParameterValue', name: 'OSP_FIP_POOL_START', value: osp_fip_pool_start ],
+                                                [$class: 'StringParameterValue', name: 'OSP_FIP_POOL_END', value: osp_fip_pool_end ],
+                                                [$class: 'StringParameterValue', name: 'OSP_EXTERNAL_VLAN', value: osp_external_vlan ],
+                                                [$class: 'StringParameterValue', name: 'OSP_EXTERNAL_VLAN', value: osp_external_vlan ],
+
                                                 [$class: 'StringParameterValue', name: 'STACK_PASSWORD', value: stack_passwd ],
-                                                [$class: 'StringParameterValue', name: 'EXTERNAL_NETWORK_VIP', value: external_ip ],
-                                                [$class: 'StringParameterValue', name: 'DNS_SERVER', value: dns_server ],
+                                                [$class: 'StringParameterValue', name: 'OSP_EXTERNAL_NETWORK_VIP', value: external_ip ],
+                                                [$class: 'StringParameterValue', name: 'OSP_DNS_SERVER', value: dns_server ],
                                                 [$class: 'StringParameterValue', name: 'INSTACKENV_JSON', value: instack_json ],
                                                 [$class: 'StringParameterValue', name: 'TICKET_NUMBER', value: ticket ],
                                                 [$class: 'StringParameterValue', name: 'CLOUD_TITLE', value: cloud_title ],
@@ -81,7 +97,7 @@ stage ('openstack_install') {
                                                 [$class: 'StringParameterValue', name: 'GRAPHITE', value: graphite ],	
                                                 [$class: 'StringParameterValue', name: 'NUM_COMPUTE', value: num_compute ],
                                                 [$class: 'StringParameterValue', name: 'NUM_STORAGE', value: num_storage ],
-                                                [$class: 'StringParameterValue', name: 'PRIVATE_EXTERNAL_ADDRESS', value: private_external_ip ],
+                                                [$class: 'StringParameterValue', name: 'OCP_PRIVATE_EXTERNAL_ADDRESS', value: private_external_ip ],
                                                 [$class: 'StringParameterValue', name: 'EXTRA_VARS', value: extra_vars ],
                                                 [$class: 'StringParameterValue', name: 'PERSONAL_ACCESS_TOKEN', value: access_token ],
                                                 [$class: 'StringParameterValue', name: 'JENKINS_SLAVE_LABEL', value: jenkins_slave_label ]]

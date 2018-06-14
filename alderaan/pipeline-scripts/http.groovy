@@ -37,6 +37,10 @@ stage('http_test_scale_test') {
 			def load_generator_nodes = http_test_properties['LOAD_GENERATOR_NODES']
 			def cl_projects	= http_test_properties['CL_PROJECTS']
 			def cl_templates = http_test_properties['CL_TEMPLATES']
+			def run_time = http_test_properties['RUN_TIME']
+			def route_termination = http_test_properties['ROUTE_TERMINATION']
+			def smoke_test = http_test_properties['SMOKE_TEST']
+			def namespace_cleanup = http_test_properties['NAMESPACE_CLEANUP']
 
 			// debug info
 			println	"TEST_CFG: '${test_cfg}'"
@@ -55,6 +59,10 @@ stage('http_test_scale_test') {
 			println	"LOAD_GENERATOR_NODES: '${load_generator_nodes}'"
 			println	"CL_PROJECTS: '${cl_projects}'"
 			println	"CL_TEMPLATES: '${cl_templates}'"
+			println	"RUN_TIME: '${run_time}'"
+			println	"ROUTE_TERMINATION: '${route_termination}'"
+			println	"SMOKE_TEST: '${smoke_test}'"
+			println	"NAMESPACE_CLEANUP: '${namespace_cleanup}'"
 
 			// Run http_test job
 			try {
@@ -76,6 +84,10 @@ stage('http_test_scale_test') {
 						[$class: 'StringParameterValue', name: 'LOAD_GENERATOR_NODES', value: load_generator_nodes ],
 						[$class: 'StringParameterValue', name: 'CL_PROJECTS', value: cl_projects ],
 						[$class: 'StringParameterValue', name: 'CL_TEMPLATES', value: cl_templates ],
+						[$class: 'StringParameterValue', name: 'RUN_TIME', value: run_time ],
+						[$class: 'StringParameterValue', name: 'ROUTE_TERMINATION', value: route_termination ],
+						[$class: 'BooleanParameterValue', name:	'SMOKE_TEST', value: Boolean.valueOf(smoke_test) ],
+						[$class: 'BooleanParameterValue', name:	'NAMESPACE_CLEANUP', value: Boolean.valueOf(namespace_cleanup) ],
 					    ]
 			} catch	(Exception e) {
 			    echo "HTTP scale-test Job failed with the following	error: "

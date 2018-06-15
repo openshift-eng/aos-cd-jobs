@@ -1,0 +1,78 @@
+---
+parent: 'common/test_cases/origin_release_prepare.yml'
+extensions:
+  actions:
+    - type: "host_script"
+      title: "move secrets to remote host"
+      script: |-
+        rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.gce/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/'
+
+    - type: "script"
+      title: "provision test cluster"
+      repository: "release"
+      timeout: 2800
+      script: |-
+        sudo systemctl restart docker
+        if [[ -f "sjb/inventory/${PULL_BASE_REF:-}.cfg" ]]; then
+          evars="-e @sjb/inventory/${PULL_BASE_REF}.cfg"
+        else
+          evars="-e @sjb/inventory/base.cfg"
+        fi
+        suffix='origin-${component}'
+        suffix="${suffix}:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_TAG )"
+        cd cluster/test-deploy/${CLUSTER_PROFILE}/
+        ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_test_repo=${location_url}" \
+          -e debug_level=4 \
+          -e "oreg_url=${OS_PUSH_BASE_REGISTRY}${OS_PUSH_BASE_REPO}${suffix}" \
+          playbooks/gcp/openshift-cluster/launch.yml \
+          "${evars:-}"
+        cp admin.kubeconfig /tmp/cluster-admin.kubeconfig
+
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      timeout: 6000
+      script: |-
+        if [[ -z "${SUITE-}" && -z "${FOCUS-}" ]]; then
+          echo "No suite or focus, skipping test step"
+          exit 0
+        fi
+        mkdir -p /tmp/artifacts/junit
+        export KUBECONFIG=/tmp/cluster-admin.kubeconfig
+        export PARALLEL_NODES=25
+        export EXTENDED_TEST_PATH=test/extended
+        export TEST_ONLY=1
+        export JUNIT_REPORT=true
+        export TEST_EXTENDED_SKIP="\[local\]"
+        TEST_EXTENDED_SKIP+="${ADDITIONAL_SKIP-}"
+
+        # TODO: eventually this shouldn't be specific to a particular provider
+        export GOOGLE_APPLICATION_CREDENTIALS="/data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/gce.json"
+        export KUBE_SSH_USER=cloud-user
+        cp /data/src/github.com/openshift/release/cluster/test-deploy/${CLUSTER_PROFILE}/ssh-privatekey ~/.ssh/google_compute_engine || true
+        export TEST_EXTENDED_ARGS='-provider=gce -gce-zone=us-east1-c -gce-project=openshift-gce-devel-ci'
+
+        # test suites need oc and extended.test
+        OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/oc hack/env make build WHAT=cmd/oc
+        OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64/extended.test hack/env make build-extended-test
+
+        function gather() {
+          set +e
+          export PATH=$(pwd)/_output/local/bin/linux/amd64:$PATH
+          oc get nodes --template '{{ range .items }}{{ .metadata.name }}{{ "\n" }}{{ end }}' | xargs -L 1 -I X bash -c 'oc get --raw /api/v1/nodes/X/proxy/metrics > /tmp/artifacts/X.metrics' ''
+          oc get --raw /metrics > /tmp/artifacts/master.metrics
+          set -e
+        }
+        trap gather EXIT
+
+        # rosie-bot does not know how to split suite and focus
+        # so we need to detect that she is doing her best and
+        # help her out by parsing the input she gives
+        if [[ -z "${FOCUS:-}" && "${SUITE}" =~ ^(.*)\((.*)\)$ ]]; then
+          SUITE="${BASH_REMATCH[1]}"
+          FOCUS="${BASH_REMATCH[2]}"
+        fi
+        OPENSHIFT_SKIP_BUILD='true' make test-extended SUITE="${SUITE}" FOCUS="${FOCUS:-}"

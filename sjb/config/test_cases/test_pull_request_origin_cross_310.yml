@@ -1,0 +1,11 @@
+---
+parent: 'common/test_cases/origin_minimal.yml'
+overrides:
+  junit_analysis: False
+extensions:
+  actions:
+    - type: "script"
+      title: "run build-cross"
+      repository: "origin"
+      script: |-
+        OS_BUILD_ENV_PULL_IMAGE=true hack/env make build-cross

@@ -4,7 +4,7 @@ overrides:
   junit_analysis: True
   sync:
     - "openshift,origin=release-3.10"
-    - "openshift,aos-cd-jobs=release-3.10"
+    - "openshift,aos-cd-jobs=master"
     - "openshift,image-registry=release-3.10"
     - "openshift,kubernetes-metrics-server=release-3.10"
     - "openshift,origin-web-console-server=release-3.10"

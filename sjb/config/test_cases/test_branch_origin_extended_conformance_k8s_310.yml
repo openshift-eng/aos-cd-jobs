@@ -1,0 +1,29 @@
+---
+parent: 'common/test_cases/origin_release_install_gce_310.yml'
+overrides:
+  sync:
+    - "openshift,origin=release-3.10" # this is a periodic job and so must set branches
+    - "openshift,openshift-ansible=release-3.10"
+    - "openshift,image-registry=release-3.10"
+    - "openshift,kubernetes-metrics-server=release-3.10"
+    - "openshift,origin-web-console-server=release-3.10"
+    - "openshift,aos-cd-jobs=release-3.10"
+    - "openshift,release=master"
+  email:
+    - ccoleman@redhat.com
+extensions:
+  parameters:
+    - name: SUITE
+      description: "Which shell file in the <a href='https://github.com/openshift/origin/tree/master/test/extended'><code>origin/test/extended/</code></a> di
+rectory to run."
+      default_value: "conformance-k8s"
+    - name: FORCE_BUILD
+      default_value: "1"
+  actions:
+    - type: "host_script"
+      title: "tag the latest conformance results"
+      script: |-
+        location="origin-ci-test/logs/${JOB_NAME}/${BUILD_NUMBER}/artifacts/scripts/conformance-k8s/artifacts"
+        location_url="https://storage.googleapis.com/${location}"
+        echo "${location_url}" > .latest-conformance
+        gsutil cp .latest-conformance "gs://origin-ci-test/releases/openshift/origin/master/.latest-conformance"

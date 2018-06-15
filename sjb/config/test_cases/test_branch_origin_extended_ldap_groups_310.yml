@@ -1,0 +1,20 @@
+---
+parent: 'common/test_cases/origin_release_with_ecosystem_310.yml'
+overrides:
+  junit_analysis: False
+  email:
+    - skuznets@redhat.com
+    - deads2k@redhat.com
+    - jliggitt@redhat.com
+    - mkhan@redhat.com
+    - ssorce@redhat.com
+    - aos-security-team@redhat.com
+  sync:
+    - "openshift,origin=release-3.10"
+extensions:
+  actions:
+    - type: "script"
+      title: "run extended tests"
+      repository: "origin"
+      script: |-
+        OPENSHIFT_SKIP_BUILD='true' JUNIT_REPORT='true' make test-extended SUITE=ldap_groups

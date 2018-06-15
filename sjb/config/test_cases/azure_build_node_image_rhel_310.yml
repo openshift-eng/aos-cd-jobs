@@ -1,0 +1,72 @@
+---
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+sync:
+  - openshift,openshift-ansible=release-3.10
+  - openshift,release=master
+actions:
+  - type: "forward_parameters"
+    parameters:
+      - JOB_SPEC
+
+  - type: "host_script"
+    title: "determine the resource group"
+    script: |-
+      echo "RESOURCE_GROUP=ci-$JOB_NAME-$BUILD_NUMBER" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
+      echo "IMAGE_NAME=rhel7-3.9-$(TZ=Etc/UTC date +%Y%m%d%H%M)" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
+
+  - type: "script"
+    title: "build openshift installer image"
+    repository: openshift-ansible
+    script: |-
+      docker build -f images/installer/Dockerfile -t openshift/origin-ansible:latest .
+
+  - type: "host_script"
+    title: "move secrets to remote host"
+    script: |-
+      rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/azure/
+      ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
+      ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
+
+  - type: "script"
+    title: "build node image"
+    repository: "release"
+    script: |-
+      cd cluster/test-deploy/azure
+      TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
+        -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
+        -e "openshift_azure_resource_location=eastus" \
+        -e "openshift_azure_input_image_ns=images" \
+        -e "openshift_azure_input_image_prefix=rhel7-base" \
+        -e "openshift_azure_output_image_ns=images" \
+        -e "openshift_azure_output_image_name=$IMAGE_NAME" \
+        -e "openshift_azure_storage_account=openshiftimages" \
+        -e "openshift_azure_storage_account_ns=images" \
+        -e "openshift_azure_container=images" \
+        playbooks/azure/openshift-cluster/build_node_image.yml
+
+  - type: "script"
+    title: "tag node image as valid"
+    repository: "release"
+    script: |-
+      cd cluster/test-deploy/azure
+      TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
+        -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
+        -e "openshift_azure_input_image_ns=images" \
+        -e "openshift_azure_input_image_name=$IMAGE_NAME" \
+        playbooks/azure/openshift-cluster/tag_image_as_valid.yml
+
+post_actions:
+  - type: "script"
+    title: "clean up resources"
+    repository: "release"
+    script: |-
+      cd cluster/test-deploy/azure
+      TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
+        -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
+        playbooks/azure/openshift-cluster/deprovision.yml
+
+email:
+- aos-azure@redhat.com

@@ -34,12 +34,12 @@ properties(
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
+                        'tbielawa@redhat.com',
                         'jupierce@redhat.com',
                         'smunilla@redhat.com',
                         'sedgar@redhat.com',
                         'vdinh@redhat.com',
                         'ahaile@redhat.com',
-                        'bbarcaro@redhat.com'
                     ].join(',')
                 ],
                 [

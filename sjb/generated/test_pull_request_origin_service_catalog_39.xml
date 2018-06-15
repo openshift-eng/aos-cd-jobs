@@ -429,7 +429,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-sudo yum -y install etcd       
+sudo yum -y install etcd
 NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog scBuildImageTarget=.scBuildImage test-integration
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -486,7 +486,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
+./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=v3.9.0 --service-catalog
 ./_output/local/bin/linux/amd64/oc login -u system:admin
 ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
 SCRIPT

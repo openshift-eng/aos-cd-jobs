@@ -47,7 +47,7 @@ extensions:
       repository: "origin"
       timeout: 2700
       script: |-
-        sudo yum -y install etcd       
+        sudo yum -y install etcd
         NO_DOCKER=1 make -C cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog scBuildImageTarget=.scBuildImage test-integration
     - type: "script"
       title: "build Service Catalog image"
@@ -72,7 +72,7 @@ extensions:
       repository: "origin"
       timeout: 1800
       script: |-
-        ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
+        ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=v3.9.0 --service-catalog
         ./_output/local/bin/linux/amd64/oc login -u system:admin
         ./_output/local/bin/linux/amd64/oc describe po --all-namespaces
     - type: "script"

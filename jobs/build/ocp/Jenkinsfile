@@ -56,9 +56,10 @@ properties(
                     defaultValue: [
                         'aos-cicd@redhat.com',
                         'aos-qe@redhat.com',
+                        'tbielawa@redhat.com',
                         'jupierce@redhat.com',
                         'smunilla@redhat.com',
-                        'ahaile@redhat.com'
+                        'ahaile@redhat.com',
                     ].join(',')
                 ],
                 [
@@ -66,10 +67,10 @@ properties(
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
+                        'tbielawa@redhat.com',
                         'jupierce@redhat.com',
                         'smunilla@redhat.com',
                         'ahaile@redhat.com',
-                        'bbarcaro@redhat.com',
                         'mlamouri@redhat.com'
                     ].join(',')
                 ],

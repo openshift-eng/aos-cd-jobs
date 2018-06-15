@@ -1,0 +1,4 @@
+---
+parent: 'test_cases/test_branch_origin_integration_310.yml'
+overrides:
+  junit_analysis: False

@@ -1,0 +1,9 @@
+---
+parent: 'test_cases/test_branch_origin_extended_conformance_install_update_310.yml'
+overrides:
+  junit_analysis: True
+  sync:
+    - openshift,aos-cd-jobs=release-3.10
+    - openshift,image-registry=release-3.10
+    - openshift,kubernetes-metrics-server=release-3.10
+    - openshift,origin=release-3.10

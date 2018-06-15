@@ -1,0 +1,5 @@
+---
+parent: 'test_cases/test_branch_origin_verify_310.yml'
+overrides:
+  junit_analysis: False
+  email: []

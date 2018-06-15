@@ -1,0 +1,20 @@
+---
+parent: 'common/test_cases/origin_release_install_gce_310.yml'
+overrides:
+  sync:
+    - "openshift,origin=release-3.10"
+    - "openshift,aos-cd-jobs=release-3.10"
+    - "openshift,image-registry=release-3.10"
+    - "openshift,kubernetes-metrics-server=release-3.10"
+    - "openshift,origin-web-console-server=release-3.10"
+    - "openshift,release=master"
+extensions:
+  actions:
+    - type: "script"
+      title: "hold for user action"
+      repository: "origin"
+      timeout: 7230
+      script: |-
+        date
+        echo "Waiting for two hours before tearing down cluster"
+        sleep 7200

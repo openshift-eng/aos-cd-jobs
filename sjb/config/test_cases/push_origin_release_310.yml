@@ -1,0 +1,56 @@
+---
+parent: 'common/test_cases/origin_release_with_ecosystem_310.yml'
+overrides:
+  sync:
+    - "openshift,openshift-ansible=release-3.10"
+    - "openshift,image-registry=release-3.10"
+    - "openshift,kubernetes-metrics-server=release-3.10"
+    - "openshift,origin-web-console-server=release-3.10"
+    - "openshift,aos-cd-jobs=release-3.10"
+    - "openshift,release=master"
+    - "openshift,service-catalog=release-3.10"
+extensions:
+  parameters:
+    - name: "OS_PUSH_TAG"
+      description: "The docker image tag to push to, defaults to :latest"
+  actions:
+    - type: "script"
+      title: "create directory for docker config"
+      script: |-
+        mkdir -p /tmp/.docker
+        chmod a+rwx /tmp/.docker
+    - type: "host_script"
+      title: "transfer docker config to remote host"
+      script: |-
+        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+    - type: "forward_parameters"
+      parameters:
+        - OS_PUSH_TAG
+    - type: "script"
+      title: "push the release"
+      repository: "origin"
+      script: |-
+        sudo chmod a+rw /tmp/.docker/config.json
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+    - type: "script"
+      title: "push the image registry release"
+      repository: "image-registry"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+    - type: "script"
+      title: "push the image registry release"
+      repository: "kubernetes-metrics-server"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+    - type: "script"
+      title: "push the web console release"
+      repository: "origin-web-console-server"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+    - type: "script"
+      title: "push the image service-catalog release"
+      repository: "service-catalog"
+      script: |-
+        DOCKER_CONFIG=/tmp/.docker OS_PUSH_LOCAL=1 OS_PUSH_ALWAYS=1 OS_PUSH_BASE_REGISTRY="docker.io/" hack/push-release.sh
+        # (!)Note: the following command always needs to be LAST in the file, so move if additional scripts are added
+        sudo rm -rf /tmp/.docker

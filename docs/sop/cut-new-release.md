@@ -1,6 +1,6 @@
 These instructions assume we are moving from release X.A to X.B and that origin#master contains X.A's deisred content.
 
-- Have RCM create a new "Release" in the Errata Tool so that Advisories can be created for it. 
+- Have RCM create a new "Release" in the Errata Tool so that Advisories can be created for it.
 
 - Have RCM start creating new tags for X.B and new dist-git branches for X.B
 
@@ -14,7 +14,7 @@ These instructions assume we are moving from release X.A to X.B and that origin#
 
 - Create a new branch in openshift/jenkins: openshift-X.B
 
-- Remind jcantril that release cut is occuring so they can make branch for origin-aggregated-logging. 
+- Remind jcantril that release cut is occuring so they can make branch for origin-aggregated-logging.
 
 - In ose#master, set origin.spec "Version: X.B.0" and "Release: "0.0.0%{?dist}"
 
@@ -24,7 +24,7 @@ These instructions assume we are moving from release X.A to X.B and that origin#
 
 - Create a new origin-web-console#enterprise-X.B from origin-web-console#master. At this point, the origin-web-console team will start merging X.A changes into origin-web-console#X.A  and changes for X.B into origin-web-console#master . They will also add a branding commit to enterprise-X.B after few days. The branding commit is done manually and not CD's responsibility.
 
-- Create a new origin-web-console-server#enterprise-X.B branch from origin-web-console-server#master. 
+- Create a new origin-web-console-server#enterprise-X.B branch from origin-web-console-server#master.
 
 - Add a X.B .tito/releasers.conf to ose#master and openshift-ansible#master
 
@@ -32,7 +32,7 @@ These instructions assume we are moving from release X.A to X.B and that origin#
   - atomic_openshift-X.B.conf   (you can copy the content of the X.A file, but several changes are required inside)
   - errata-puddle-X.B.conf
   - errata-puddle-X.B-signed.conf
-  
+
 - In aos-cd-jobs
   - Change build/ocp Jenkinsfile:
     - Add X.B as a choice in the build options
@@ -43,14 +43,9 @@ These instructions assume we are moving from release X.A to X.B and that origin#
     - Add 3.8 to version_trim_list
     - Assess whether anything in base group needs to change for X.B
 
-- Copy dist-git data from last version branches into new version branches using oit images:copy
+- Copy dist-git data from last version branches into new version branches using oit images:merge-branch
 
-- In enterprise-images github repo:
-  - Copy groups/openshift-X.A to groups/openshift-X.B
-  - Edit group.yml' name to "openshift-X.B"
-  - Change group.yml's branch and repos from X.A to X.B
-  - *Search the new openshift-X.B directory for X.A . At the moment, there is one hard coded reference in the jenkins image base to help migrate away from ose_image.sh.*
-  
+- In enterprise-images github repo, follow the instructions in NewBranchProcess.md
 - Create a new build/ose-X.B job to enable single click invocation of a build/ocp for the version
 
 # Before doing a deployment

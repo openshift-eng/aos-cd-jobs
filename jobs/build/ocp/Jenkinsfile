@@ -46,8 +46,8 @@ properties(
                     name: 'BUILD_VERSION',
                     description: 'OCP Version to build',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: "3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
-                    defaultValue: '3.10'
+                    choices: "3.11\n3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
+                    defaultValue: '3.11'
                 ],
                 [
                     name: 'MAIL_LIST_SUCCESS',

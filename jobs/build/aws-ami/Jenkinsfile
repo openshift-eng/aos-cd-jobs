@@ -114,9 +114,9 @@ properties(
                     $class: 'hudson.model.StringParameterDefinition',
                     description: 'Failure Mailing List',
                     defaultValue: [
+                        'tbielawa@redhat.com',
                         'jupierce@redhat.com',
-                        'bbarcaro@redhat.com',
-                        'mwoodson@redhat.com'
+                        'mwoodson@redhat.com',
                     ].join(',')
                 ],
                 [

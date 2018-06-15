@@ -16,6 +16,8 @@ extensions:
       default_value: "registry.svc.ci.openshift.org/"
     - name: "OS_PUSH_BASE_REPO"
       default_value: "ci-pr-images/"
+    - name: "DEBUG_MAIL"
+      default_value: "aos-azure@redhat.com"
   actions:
     - type: "forward_parameters"
       parameters:
@@ -133,6 +135,11 @@ extensions:
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
         ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
 
+    - type: "host_script"
+      title: "set debuggability flag"
+      script: |-
+        >debuggable
+
     - type: "script"
       title: "build node image"
       repository: "release"
@@ -164,6 +171,35 @@ extensions:
           playbooks/azure/openshift-cluster/launch.yml
 
   post_actions:
+    - type: "host_script"
+      title: "hold failed test cluster for debug"
+      script: |-
+        trap 'exit 0' EXIT
+
+        if [[ "$BUILD_RESULT" == "SUCCESS" || -z "$DEBUG_MAIL" || "$JOB_NAME" != test_branch_* || ! -e debuggable ]]; then
+          exit 0
+        fi
+
+        nc localhost 25 <<EOF
+        HELO $(hostname)
+        MAIL FROM: <noreply@redhat.com>
+        RCPT TO: <$DEBUG_MAIL>
+        DATA
+        From: Jenkins <noreply@redhat.com>
+        To: <$DEBUG_MAIL>
+        Subject: Debug build in Jenkins: $JOB_NAME #$BUILD_NUMBER
+
+        Build $JOB_NAME #$BUILD_NUMBER failed in Jenkins.
+
+        The build environment will be preserved for debugging for two hours.
+
+        See <$RUN_DISPLAY_URL>
+        .
+        QUIT
+        EOF
+
+        ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sleep 7200'
+
     - type: "script"
       title: "deprovision test cluster"
       repository: "release"

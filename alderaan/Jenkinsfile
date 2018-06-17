@@ -11,7 +11,7 @@ def scaleup = OPENSHIFT_SCALEUP.toString().toUpperCase()
 def http = HTTP_TEST.toString().toUpperCase()
 def logging = LOGGING_SCALE_TEST.toString().toUpperCase()
 def pgbench_test = PGBENCH_TEST.toString().toUpperCase()
-
+def podvertical = PODVERTICAL.toString().toUpperCase()
 
 node {
     // clear workspace
@@ -73,6 +73,11 @@ node {
     // stage to run pgbench scale test
     if ( pgbench_test == "TRUE" ) {
       load "aos-cd-jobs/alderaan/pipeline-scripts/pgbench.groovy"
+    }
+
+    // stage to run podvertical test
+    if ( podvertical == "TRUE" ) {
+      load "aos-cd-jobs/alderaan/pipeline-scripts/podvertical.groovy"
     }
 
     mail(

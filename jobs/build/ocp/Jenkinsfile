@@ -160,7 +160,7 @@ def get_mirror_url(build_mode, version) {
     return "https://mirror.openshift.com/enterprise/enterprise-${version}"
 }
 
-def mail_success(buildlib, version, mirrorURL, record_log) {
+def mail_success(version, mirrorURL, record_log, oa_changelog) {
 
     def target = "(Release Candidate)"
 
@@ -179,8 +179,6 @@ def mail_success(buildlib, version, mirrorURL, record_log) {
 
     def timing_report = get_build_timing_report(record_log)
     def image_list = get_image_build_report(record_log)
-
-    def oa_changelog = get_rpm_changelog(buildlib, record_log, "openshift-ansible")
 
     PARTIAL = " "
     exclude_subject = ""
@@ -297,11 +295,11 @@ def get_image_build_report(record_log) {
 
 // Search the RPM build logs for the named package
 // extract the path to the spec file and return the changelog section.
-def get_rpm_changelog(buildlib, record_log, package_name) {
+def get_rpm_specfile_path(record_log, package_name) {
     rpms = record_log['build_rpm']
 
     // find the named package and the spec file path
-    specfile_path = null
+    specfile_path = ""
     for (i = 0 ; i < rpms.size(); i++) {
         if (rpms[i]['distgit_key'] == package_name) {
             specfile_path = rpms[i]['specfile']
@@ -309,13 +307,7 @@ def get_rpm_changelog(buildlib, record_log, package_name) {
         }
     }
 
-    // if no matching package found, return an empty string
-    if (specfile_path == null) {
-        return ""
-    }
-
-    // read the spec file and extract the changelog
-    return buildlib.read_changelog(specfile_path)
+    return specfile_path
 }
 
 // Will be used to track which atomic-openshift build was tagged before we ran.
@@ -934,7 +926,10 @@ Jenkins job: ${env.BUILD_URL}
             }
 
             record_log = buildlib.parse_record_log(OIT_WORKING)
-            mail_success(buildlib, NEW_FULL_VERSION, mirror_url, record_log)
+            oa_spec_file = get_rpm_specfile_path(record_log, "openshift-ansible")
+            oa_changelog = buildlib.read_changelog(oa_specfile)
+
+            mail_success(NEW_FULL_VERSION, mirror_url, record_log, oa_changelog)
         }
     } catch (err) {
 

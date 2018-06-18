@@ -1,5 +1,5 @@
 ---
-parent: 'common/test_cases/origin_release_with_ecosystem.yml'
+parent: 'common/test_cases/origin_release_with_ecosystem_310.yml'
 extensions:
   sync:
     - openshift,release=master

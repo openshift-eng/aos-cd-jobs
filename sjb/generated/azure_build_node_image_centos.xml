@@ -165,7 +165,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,release=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,release=master --repo=Azure,acs-engine=master }
 docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
@@ -231,6 +231,45 @@ TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_azure_container=images&#34; \
   -e &#34;openshift_azure_install_repo=\$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/master/.latest-rpms)&#34; \
   playbooks/azure/openshift-cluster/build_node_image.yml
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RUN THE ACS-ENGINE E2E TEST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN THE ACS-ENGINE E2E TEST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+set -a +o xtrace
+. /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
+set +a -o xtrace
+
+cd /data/src/github.com/Azure/acs-engine
+export GOPATH=&#34;/data&#34;
+export PATH=&#34;\${PATH}:\${GOPATH}/bin&#34;
+make build
+
+set +o xtrace
+docker run --rm -v \${PWD}:/go/src/github.com/Azure/acs-engine:z \
+  -w /go/src/github.com/Azure/acs-engine \
+  -e ORCHESTRATOR=openshift \
+  -e ORCHESTRATOR_VERSION=unstable \
+  -e IMAGE_RESOURCE_GROUP=images \
+  -e IMAGE_NAME=\$IMAGE_NAME \
+  -e CLUSTER_DEFINITION=examples/openshift.json \
+  -e TIMEOUT=30m \
+  -e CLEANUP_ON_EXIT=true \
+  -e REGIONS=eastus \
+  -e CLIENT_ID=\$AZURE_CLIENT_ID \
+  -e CLIENT_SECRET=\$AZURE_SECRET \
+  -e TENANT_ID=\$AZURE_TENANT \
+  -e SUBSCRIPTION_ID=\$AZURE_SUBSCRIPTION_ID \
+  registry.svc.ci.openshift.org/ci/acs-engine-tests:v3.9 make test-openshift
+set -o xtrace
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

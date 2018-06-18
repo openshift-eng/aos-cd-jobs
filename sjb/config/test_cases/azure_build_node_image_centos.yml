@@ -6,6 +6,7 @@ provision:
 sync:
   - openshift,openshift-ansible=master
   - openshift,release=master
+  - Azure,acs-engine=master
 actions:
   - type: "forward_parameters"
     parameters:
@@ -47,6 +48,36 @@ actions:
         -e "openshift_azure_container=images" \
         -e "openshift_azure_install_repo=$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/master/.latest-rpms)" \
         playbooks/azure/openshift-cluster/build_node_image.yml
+
+  - type: "script"
+    title: "run the acs-engine e2e test"
+    script: |-
+      set -a +o xtrace
+      . /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
+      set +a -o xtrace
+
+      cd /data/src/github.com/Azure/acs-engine
+      export GOPATH="/data"
+      export PATH="${PATH}:${GOPATH}/bin"
+      make build
+
+      set +o xtrace
+      docker run --rm -v ${PWD}:/go/src/github.com/Azure/acs-engine:z \
+        -w /go/src/github.com/Azure/acs-engine \
+        -e ORCHESTRATOR=openshift \
+        -e ORCHESTRATOR_VERSION=unstable \
+        -e IMAGE_RESOURCE_GROUP=images \
+        -e IMAGE_NAME=$IMAGE_NAME \
+        -e CLUSTER_DEFINITION=examples/openshift.json \
+        -e TIMEOUT=30m \
+        -e CLEANUP_ON_EXIT=true \
+        -e REGIONS=eastus \
+        -e CLIENT_ID=$AZURE_CLIENT_ID \
+        -e CLIENT_SECRET=$AZURE_SECRET \
+        -e TENANT_ID=$AZURE_TENANT \
+        -e SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
+        registry.svc.ci.openshift.org/ci/acs-engine-tests:v3.9 make test-openshift
+      set -o xtrace
 
   - type: "script"
     title: "tag node image as valid"

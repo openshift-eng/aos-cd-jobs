@@ -12,6 +12,8 @@ overrides:
     - jwozniak@redhat.com
     - adkaplan@redhat.com
 extensions:
+  sync:
+    - "openshift,origin=master"
   actions:
     - type: "script"
       title: "run extended tests"

@@ -26,6 +26,7 @@ extensions:
       git merge "${PULL_PULL_SHA}"
   - type: "script"
     title: "run the cri-o e2e tests"
+    timeout: "21600"  # 6 hours.  Playbook has shorter timeout for the test-task.
     script: |-
       ansible-playbook -vv --become  \
                        -i localhost, \

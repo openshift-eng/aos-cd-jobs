@@ -926,7 +926,7 @@ Jenkins job: ${env.BUILD_URL}
             }
 
             record_log = buildlib.parse_record_log(OIT_WORKING)
-            oa_spec_file = get_rpm_specfile_path(record_log, "openshift-ansible")
+            oa_specfile = get_rpm_specfile_path(record_log, "openshift-ansible")
             oa_changelog = buildlib.read_changelog(oa_specfile)
 
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, oa_changelog)

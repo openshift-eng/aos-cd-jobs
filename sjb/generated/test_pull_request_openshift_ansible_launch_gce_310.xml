@@ -32,7 +32,7 @@
           <name>OPENSHIFT_ANSIBLE_IMAGE</name>
           <description>The image to install the cluster with. If set, defaults to the value defined by the &lt;a href=&#39;https://github.com/openshift/release/blob/master/cluster/bin/local.sh&#39;&gt;&lt;code&gt;cluster/bin/local.sh&lt;/code&gt;&lt;/a&gt; script.
 </description>
-          <defaultValue>openshift/origin-ansible:latest</defaultValue>
+          <defaultValue>openshift/origin-ansible:v3.10</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>ADDITIONAL_SKIP</name>

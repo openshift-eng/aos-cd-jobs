@@ -1,6 +1,30 @@
 ---
 parent: 'common/test_cases/origin_release_prepare.yml'
 extensions:
+  sync:
+    - "openshift,release=master"
+  parameters:
+    - name: "CLUSTER_PROFILE"
+      description: "The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster."
+      default_value: "gcp"
+    - name: "FOCUS"
+      description: "Literal string to pass to <code>--ginkgo.focus</code>"
+    - name: "OPENSHIFT_ANSIBLE_IMAGE"
+      description: >
+        The image to install the cluster with. If set, defaults to the value defined by the
+        <a href='https://github.com/openshift/release/blob/master/cluster/bin/local.sh'><code>cluster/bin/local.sh</code></a>
+        script.
+      default_value: openshift/origin-ansible:v3.10
+    - name: "ADDITIONAL_SKIP"
+      description: |-
+        Regular expression to filter additional tests from the conformance suite.
+        See also:
+        <div>
+        </div>
+    - name: "OS_PUSH_BASE_REGISTRY"
+      default_value: "registry.svc.ci.openshift.org/"
+    - name: "OS_PUSH_BASE_REPO"
+      default_value: "ci-pr-images/"
   actions:
     - type: "host_script"
       title: "move secrets to remote host"

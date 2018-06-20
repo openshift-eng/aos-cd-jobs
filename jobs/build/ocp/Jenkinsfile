@@ -26,7 +26,8 @@ properties(
                         "git@github.com:openshift",
                         "git@github.com:jupierce",
                         "git@github.com:jupierce-aos-cd-bot",
-                        "git@github.com:adammhaile-aos-cd-bot"
+                        "git@github.com:adammhaile-aos-cd-bot",
+                        "git@github.com:markllama"
                     ].join("\n"),
                     defaultValue: 'git@github.com:openshift'
                 ],
@@ -38,7 +39,8 @@ properties(
                         "openshift-bot",
                         "aos-cd-test",
                         "jupierce-aos-cd-bot",
-                        "adammhaile-aos-cd-bot"
+                        "adammhaile-aos-cd-bot",
+                        "markllama-aos-cd-bot"
                     ].join("\n"),
                     defaultValue: 'aos-cd-test'
                 ],

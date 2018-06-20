@@ -340,7 +340,7 @@ node(TARGET_NODE) {
     commonlib.initialize()
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
-    buildlib.initialize()
+    buildlib.initialize(IS_TEST_MODE)
     echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
     // oit_working must be in WORKSPACE in order to have artifacts archived

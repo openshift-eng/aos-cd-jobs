@@ -6,10 +6,14 @@ commonlib.initialize()
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
 
-def initialize() {
-    this.registry_login()
+def initialize(test=false) {
+
+    // don't bother logging into a registry or getting a krb5 ticket for tests
+    if (!test) {
+        this.registry_login()
+        this.kinit()
+    }
     this.path_setup()
-    this.kinit()
 
     GITHUB_URLS = [:]
     GITHUB_BASE_PATHS = [:]

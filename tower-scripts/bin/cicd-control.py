@@ -124,7 +124,7 @@ class CICDControl(object):
         atexit.register(self.atexit_cleanup)
         self.setup_log_dir()
 
-        if self.operation.startswith('online'):
+        if self.operation.startswith('online') or self.operation == 'gluster-deployer':
             self.update_online_roles()
 
         valid_methods = [m[0] for m in inspect.getmembers(self) if inspect.ismethod(m[1])]
@@ -198,7 +198,7 @@ class CICDControl(object):
 
     @command
     def update_online_roles(self):
-        """ update the onnline roles with gogitit """
+        """ update the online roles with gogitit """
 
         print("\nUsing Online components from environment: {}\n".format(self.cluster.environment))
 

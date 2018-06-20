@@ -9,7 +9,7 @@ rpm_name() {
 
 extract() {
     local arch rpm
-    mkdir macosx windows x86_64 ${ARCH[@]}
+    mkdir macosx windows x86_64
     for arch in x86_64 ${ARCH}; do
         rpm=$(echo "$(rpm_name "${arch}")"*)
         if [[ "${arch}" == x86_64 ]]; then
@@ -21,6 +21,7 @@ extract() {
             mv usr/share/atomic-openshift/macosx/oc macosx/
             mv usr/share/atomic-openshift/windows/oc.exe windows/
         elif [[ -e "${rpm}" ]]; then
+            mkdir "${arch}"
             rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/oc
             mv usr/bin/oc "${arch}"
         fi

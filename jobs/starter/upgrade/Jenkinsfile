@@ -150,6 +150,10 @@ node('openshift-build-1') {
             stage( "enable maintenance" ) {
                 deploylib.run( "enable-zabbix-maint" )
                 deploylib.run( "disable-config-loop" )
+                
+                // Setup yum-repos again, because config loop may have reverted original step.
+                // Now that config loop is disabled, we shouldn't have to worry about it again.
+                deploylib.run("set-yum-repos")
             }
 
             stage( "upgrade: control plane" ) {

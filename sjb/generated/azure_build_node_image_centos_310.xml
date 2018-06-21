@@ -229,7 +229,7 @@ TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_azure_storage_account=openshiftimages&#34; \
   -e &#34;openshift_azure_storage_account_ns=images&#34; \
   -e &#34;openshift_azure_container=images&#34; \
-  -e &#34;openshift_azure_install_repo=\$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/master/.latest-rpms)&#34; \
+  -e &#34;openshift_azure_install_repo=\$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.10/.latest-rpms)&#34; \
   playbooks/azure/openshift-cluster/build_node_image.yml
 SCRIPT
 chmod +x &#34;${script}&#34;

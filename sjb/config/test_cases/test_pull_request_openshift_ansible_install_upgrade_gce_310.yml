@@ -15,7 +15,7 @@ extensions:
 rectory to run."
       default_value: "smoke"
     - name: "OPENSHIFT_ANSIBLE_IMAGE"
-      default_value: openshift/origin-ansible:latest
+      default_value: openshift/origin-ansible:v3.10
     - name: "CLUSTER_PROFILE"
       default_value: gcp-ha-static
     - name: "UPGRADE_CLUSTER_PROFILE"

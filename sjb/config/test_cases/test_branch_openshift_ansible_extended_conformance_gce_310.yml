@@ -17,7 +17,7 @@ extensions:
 rectory to run."
       default_value: "conformance"
     - name: "OPENSHIFT_ANSIBLE_IMAGE"
-      default_value: openshift/origin-ansible:latest
+      default_value: openshift/origin-ansible:v3.10
   actions:
     - type: "script"
       title: "create directory for docker config"

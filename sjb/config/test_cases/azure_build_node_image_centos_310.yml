@@ -16,7 +16,7 @@ actions:
     title: "determine the resource group"
     script: |-
       echo "RESOURCE_GROUP=ci-$JOB_NAME-$BUILD_NUMBER" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
-      echo "IMAGE_NAME=centos7-master-$(TZ=Etc/UTC date +%Y%m%d%H%M)" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
+      echo "IMAGE_NAME=centos7-3.10-$(TZ=Etc/UTC date +%Y%m%d%H%M)" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
 
   - type: "script"
     title: "build openshift installer image"

@@ -46,7 +46,7 @@ actions:
         -e "openshift_azure_storage_account=openshiftimages" \
         -e "openshift_azure_storage_account_ns=images" \
         -e "openshift_azure_container=images" \
-        -e "openshift_azure_install_repo=$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/master/.latest-rpms)" \
+        -e "openshift_azure_install_repo=$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.10/.latest-rpms)" \
         playbooks/azure/openshift-cluster/build_node_image.yml
 
   - type: "script"

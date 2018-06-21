@@ -275,6 +275,7 @@ export GOPATH=\$(pwd)
 env
 cd src/k8s.io/kubernetes
 KUBELET_FLAGS=&#34;--cgroup-driver=systemd --cgroups-per-qos=true --cgroup-root=/&#34;
+sudo setenforce 0
 make test-e2e-node TEST_ARGS=&#34;--kubelet-flags=\&#34;\${KUBELET_FLAGS}\&#34;&#34; FOCUS=&#34;Conformance&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

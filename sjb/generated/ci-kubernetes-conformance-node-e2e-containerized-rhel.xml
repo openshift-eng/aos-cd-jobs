@@ -309,6 +309,7 @@ IMAGE_TAG=\$(git describe --abbrev=0)
 HYPERKUBE_IMAGE=&#34;registry.access.redhat.com/hyperkube-amd64:\${IMAGE_TAG}&#34;
 # --cgroups-per-qos=true no longer available
 KUBELET_FLAGS=&#34;--cgroup-driver=systemd --cgroup-root=/&#34;
+sudo setenforce 0
 make test-e2e-node TEST_ARGS=&#34;--kubelet-containerized=true --hyperkube-image=\&#34;\${HYPERKUBE_IMAGE}\&#34; --kubelet-flags=\&#34;\${KUBELET_FLAGS}\&#34;&#34; FOCUS=&#34;Conformance&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;

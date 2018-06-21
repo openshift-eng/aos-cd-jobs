@@ -43,6 +43,7 @@ extensions:
         HYPERKUBE_IMAGE="registry.access.redhat.com/hyperkube-amd64:${IMAGE_TAG}"
         # --cgroups-per-qos=true no longer available
         KUBELET_FLAGS="--cgroup-driver=systemd --cgroup-root=/"
+        sudo setenforce 0
         make test-e2e-node TEST_ARGS="--kubelet-containerized=true --hyperkube-image=\"${HYPERKUBE_IMAGE}\" --kubelet-flags=\"${KUBELET_FLAGS}\"" FOCUS="Conformance"
 
   system_journals:

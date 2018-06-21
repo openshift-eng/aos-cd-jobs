@@ -18,4 +18,4 @@ extensions:
 rectory to run."
       default_value: "smoke"
     - name: "OPENSHIFT_ANSIBLE_IMAGE"
-      default_value: openshift/origin-ansible:latest
+      default_value: openshift/origin-ansible:v3.10

@@ -59,7 +59,7 @@ See also:
         <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_IMAGE</name>
           <description>None</description>
-          <defaultValue>openshift/origin-ansible:latest</defaultValue>
+          <defaultValue>openshift/origin-ansible:v3.9</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>

@@ -49,7 +49,7 @@ See also:
         <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_ANSIBLE_IMAGE</name>
           <description>None</description>
-          <defaultValue>openshift/origin-ansible:latest</defaultValue>
+          <defaultValue>openshift/origin-ansible:v3.10</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>CLUSTER_PROFILE</name>

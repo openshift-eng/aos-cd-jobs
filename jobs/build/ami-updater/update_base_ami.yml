@@ -47,7 +47,7 @@
   - name: create an instance for ami creation
     ec2:
       assign_public_ip: yes
-      instance_type: m4.xlarge
+      instance_type: m5.xlarge
       region: "{{ g_play_region }}"
       key_name: "{{ g_play_ssh_key_name }}"
       group_id: "{{ g_play_sg_group_id }}"

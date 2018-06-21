@@ -358,50 +358,37 @@ node(TARGET_NODE) {
                 script: "brew latest-build --quiet rhaos-${BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'"
             ).trim()
 
-            stage("enterprise-images repo") {
-                buildlib.initialize_enterprise_images_dir()
-            }
-
             stage("ose repo") {
+                // defines:
+                //   OPENSHIFT_DIR // by calling initialize_openshift_dir()
+                ///  OSE_DIR
+                //   GITHUB_URLS["ose"]
+                //   GITHUB_BASE_PATHS["ose"]
                 master_spec = buildlib.initialize_ose()
                 // If the target version resides in ose#master
                 IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
             }
 
-            stage("origin-web-console repo") {
-                sh "go get github.com/jteeuwen/go-bindata"
-                buildlib.initialize_origin_web_console()
-                dir(WEB_CONSOLE_DIR) {
-                    // Enable fake merge driver used in our .gitattributes
-                    sh "git config merge.ours.driver true"
-                    // Use fake merge driver on specific directories
-                    // We will be re-generating the dist directory, so ignore it for the merge
-                    sh "echo 'dist/** merge=ours' >> .gitattributes"
-                }
-            }
-
-            stage("origin-web-console-server repo") {
-                /**
-                 * The origin-web-console-server repo/image was introduced in 3.9.
-                 */
-                USE_WEB_CONSOLE_SERVER = false
-                if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 9) {
-                    USE_WEB_CONSOLE_SERVER = true
-                    buildlib.initialize_origin_web_console_server_dir()
-                    if (BUILD_MODE == "online:stg") {
-                        WEB_CONSOLE_SERVER_BRANCH = "stage"
-                    } else {
-                        WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
-                    }
-                    dir(WEB_CONSOLE_SERVER_DIR) {
-                        sh "git checkout ${WEB_CONSOLE_SERVER_BRANCH}"
-                    }
-                }
-            }
-
             stage("analyze") {
+                
                 dir(env.OSE_DIR) {
-
+                    // inputs:
+                    //  IS_SOURCE_IN_MASTER
+                    //  BUILD_MODE
+                    //  BUILD_VERSION
+                    
+                    // defines
+                    //  BUILD_MODE (if auto)
+                    //  OSE_SOURCE_BRANCH
+                    //  UPSTREAM_SOURCE_BRANCH
+                    //  NEW_VERSION
+                    //  NEW_RELEASE
+                    //  NEW_DOCKERFILE_RELEASE
+                    //  USE_WEB_CONSOLE_SERVER
+                    //
+                    //  sets:
+                    //    currentBuild.displayName
+                    
                     if (IS_SOURCE_IN_MASTER) {
                         if (BUILD_MODE == "release") {
                             error("You cannot build a release while it resides in master; cut an enterprise branch")
@@ -513,11 +500,50 @@ node(TARGET_NODE) {
                         error("Unknown BUILD_MODE: ${BUILD_MODE}")
                     }
 
+                    // decide which source to use for the web console
+                    USE_WEB_CONSOLE_SERVER = false
+                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 9) {
+                        USE_WEB_CONSOLE_SERVER = true
+                    }
+
                     rpmOnlyTag = ""
                     if (!BUILD_CONTAINER_IMAGES) {
                         rpmOnlyTag = " (RPM ONLY)"
                     }
                     currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE}${rpmOnlyTag})"
+                }
+            }
+
+            stage("merge origin") {
+                dir(OSE_DIR) {
+                    // Enable fake merge driver used in our .gitattributes
+                    sh "git config merge.ours.driver true"
+                    // Use fake merge driver on specific packages
+                    sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
+                    sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
+
+                    if (UPSTREAM_SOURCE_BRANCH != null) {
+                        // Merge upstream origin code into the ose branch
+                        sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
+                    } else {
+                        echo "No origin upstream in this build"
+                    }
+                }
+            }
+
+            stage("origin-web-console repo") {
+                sh "go get github.com/jteeuwen/go-bindata"
+                // defines:
+                //   WEB_CONSOLE_DIR
+                //   GITHUB_URLS["origin-web-console"]
+                //   GITHUB_BASE_PATHS["origin-web-console"]
+                buildlib.initialize_origin_web_console()
+                dir(WEB_CONSOLE_DIR) {
+                    // Enable fake merge driver used in our .gitattributes
+                    sh "git config merge.ours.driver true"
+                    // Use fake merge driver on specific directories
+                    // We will be re-generating the dist directory, so ignore it for the merge
+                    sh "echo 'dist/** merge=ours' >> .gitattributes"
                 }
             }
 
@@ -558,6 +584,28 @@ node(TARGET_NODE) {
                 }
             }
 
+
+            stage("origin-web-console-server repo") {
+                /**
+                 * The origin-web-console-server repo/image was introduced in 3.9.
+                 */
+                if (USE_WEB_CONSOLE_SERVER) {
+                    // defines:
+                    //   WEB_CONSOLE_SERVER_DIR
+                    //   GITHUB_URLS["origin-web-console-server"]
+                    //   GITHUB_BASE_PATHS["origin-web-console-server"]
+                    buildlib.initialize_origin_web_console_server_dir()
+                    if (BUILD_MODE == "online:stg") {
+                        WEB_CONSOLE_SERVER_BRANCH = "stage"
+                    } else {
+                        WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
+                    }
+                    dir(WEB_CONSOLE_SERVER_DIR) {
+                        sh "git checkout ${WEB_CONSOLE_SERVER_BRANCH}"
+                    }
+                }
+            }
+
             stage("prep web-console-server") {
                 if (BUILD_MODE != "online:stg" && USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER) {
                     dir(WEB_CONSOLE_SERVER_DIR) {
@@ -580,23 +628,6 @@ node(TARGET_NODE) {
 
                         // Clean up any unstaged changes (e.g. .gitattributes)
                         sh "git reset --hard HEAD"
-                    }
-                }
-            }
-
-            stage("merge origin") {
-                dir(OSE_DIR) {
-                    // Enable fake merge driver used in our .gitattributes
-                    sh "git config merge.ours.driver true"
-                    // Use fake merge driver on specific packages
-                    sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
-                    sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
-
-                    if (UPSTREAM_SOURCE_BRANCH != null) {
-                        // Merge upstream origin code into the ose branch
-                        sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
-                    } else {
-                        echo "No origin upstream in this build"
                     }
                 }
             }
@@ -640,6 +671,14 @@ node(TARGET_NODE) {
 
             }
 
+            // stages after this have side effects. Testing must stop here.
+            if (IS_TEST_MODE) {
+                echo(
+                    "TEST MODE complete: no builds executed")
+                currentBuild.result = "SUCCESS"
+                return
+            }
+
             stage("ose tag") {
                 dir(OSE_DIR) {
                     // Set the new version/release value in the file and tell tito to keep the version & release in the spec.
@@ -661,10 +700,6 @@ node(TARGET_NODE) {
                     }
                     OSE_CHANGELOG = buildlib.read_changelog("origin.spec")
                 }
-            }
-
-            if (IS_TEST_MODE) {
-                error("This is as far as the test process can proceed without triggering builds")
             }
 
             stage("rpm builds") {
@@ -690,6 +725,15 @@ node(TARGET_NODE) {
             }
 
             buildlib.write_sources_file()
+
+
+            // at this point we need both the OIT tools and the groups database
+            stage("enterprise-images repo") {
+                // defines
+                //   ENTERPRISE_IMAGES_DIR
+                //   OIT_PATH
+                buildlib.initialize_enterprise_images_dir()
+            }
 
             stage("build OIT rpms") {
                 buildlib.oit """

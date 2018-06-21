@@ -46,6 +46,7 @@ openshift_aws_subnet_az: ${AZ_NAME}
 openshift_aws_ssh_key_name: ${AWS_SSH_KEY_USER}
 openshift_pkg_version: "-${OPENSHIFT_VERSION}"
 openshift_cloudprovider_kind: aws
+openshift_aws_instance_type: m5.xlarge
 openshift_aws_base_ami_name: ${BASE_AMI_NAME}
 openshift_use_crio: ${USE_CRIO}
 openshift_crio_use_rpm: True
@@ -54,7 +55,7 @@ openshift_crio_systemcontainer_image_override: "${CRIO_SYSTEM_CONTAINER_IMAGE_OV
 openshift_additional_repos: [{'name': 'openshift-repo', 'id': 'openshift-repo',  'baseurl': '${env.YUM_BASE_URL}', 'enabled': 'yes', 'gpgcheck': 0, 'sslverify': 'no', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'sslclientkey': '/var/lib/yum/client-key.pem', 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted'},{'sslverify': False, 'name': 'fastdata', 'sslclientkey': '/var/lib/yum/client-key.pem', 'enabled': True, 'gpgkey': 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted', 'sslclientcert': '/var/lib/yum/client-cert.pem', 'baseurl': 'https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/', 'file': 'fastdata-ovs', 'gpgcheck': False, 'description': 'Fastdata provides the official builds of OVS OpenShift supports'}]
 oreg_url: 'registry.reg-aws.openshift.com:443/openshift3/ose-\${component}:\${version}'
 container_runtime_docker_storage_type: overlay2
-container_runtime_docker_storage_setup_device: xvdb
+container_runtime_docker_storage_setup_device: nvme1n1
 docker_storage_path: /var/lib/containers
 docker_storage_size: 200G
 openshift_docker_options: '--log-driver=json-file --log-opt max-size=50m'
@@ -72,7 +73,7 @@ openshift_aws_ami_tags:
   openshift-created: "true"
   parent: "{{ openshift_aws_base_ami }}"
   openshift_version: "${OPENSHIFT_VERSION}"
-  openshift_short_version: "${OPENSHIFT_VERSION.substring(0,3)}"
+  openshift_short_version: "${OPENSHIFT_VERSION.tokenize(".")[0..1].join('.')}"
   openshift_release: "${OPENSHIFT_RELEASE}"
   openshift_version_release: "${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
   build_date: "${build_date}"

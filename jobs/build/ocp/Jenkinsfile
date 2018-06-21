@@ -370,8 +370,25 @@ node(TARGET_NODE) {
             }
 
             stage("analyze") {
+                
                 dir(env.OSE_DIR) {
-
+                    // inputs:
+                    //  IS_SOURCE_IN_MASTER
+                    //  BUILD_MODE
+                    //  BUILD_VERSION
+                    
+                    // defines
+                    //  BUILD_MODE (if auto)
+                    //  OSE_SOURCE_BRANCH
+                    //  UPSTREAM_SOURCE_BRANCH
+                    //  NEW_VERSION
+                    //  NEW_RELEASE
+                    //  NEW_DOCKERFILE_RELEASE
+                    //  USE_WEB_CONSOLE_SERVER
+                    //
+                    //  sets:
+                    //    currentBuild.displayName
+                    
                     if (IS_SOURCE_IN_MASTER) {
                         if (BUILD_MODE == "release") {
                             error("You cannot build a release while it resides in master; cut an enterprise branch")

@@ -47,6 +47,11 @@ See also:
           <defaultValue>aos-azure@redhat.com</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>AZURE_VM_SIZE</name>
+          <description>None</description>
+          <defaultValue>Standard_D2s_v3</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>SUITE</name>
           <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
           <defaultValue>conformance</defaultValue>
@@ -604,6 +609,7 @@ TYPE=azure ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_azure_output_image_name=centos7-origin&#34; \
   -e &#34;openshift_azure_install_repo=\$location_url&#34; \
   -e &#34;oreg_url=\${OS_PUSH_BASE_REGISTRY}\${OS_PUSH_BASE_REPO}\${suffix}&#34; \
+  -e &#34;openshift_azure_vm_size=\${AZURE_VM_SIZE}&#34; \
   playbooks/azure/openshift-cluster/build_node_image.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -624,6 +630,7 @@ TYPE=azure ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_azure_resource_location=eastus&#34; \
   -e &#34;openshift_azure_input_image_ns=\$RESOURCE_GROUP&#34; \
   -e &#34;openshift_azure_input_image_name=centos7-origin&#34; \
+  -e &#34;openshift_azure_vm_size=\${AZURE_VM_SIZE}&#34; \
   playbooks/azure/openshift-cluster/launch.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -662,6 +669,7 @@ docker run --rm -v \${PWD}:/go/src/github.com/Azure/acs-engine:z \
   -e CLIENT_SECRET=\$AZURE_SECRET \
   -e TENANT_ID=\$AZURE_TENANT \
   -e SUBSCRIPTION_ID=\$AZURE_SUBSCRIPTION_ID \
+  -e NAME=\$RESOURCE_GROUP \
   registry.svc.ci.openshift.org/ci/acs-engine-tests:v3.9 make test-openshift
 set -o xtrace
 SCRIPT

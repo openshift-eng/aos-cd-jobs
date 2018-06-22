@@ -6,10 +6,14 @@ provision:
 sync:
   - openshift,openshift-ansible=master
   - openshift,release=master
+parameters:
+- name: "AZURE_VM_SIZE"
+  default_value: "Standard_D2s_v3"
 actions:
   - type: "forward_parameters"
     parameters:
       - JOB_SPEC
+      - AZURE_VM_SIZE
 
   - type: "host_script"
     title: "determine the resource group"
@@ -41,6 +45,7 @@ actions:
         -e "openshift_azure_input_image_prefix=rhel7-root" \
         -e "openshift_azure_output_image_ns=images" \
         -e "openshift_azure_output_image_name=rhel7-base-$(TZ=Etc/UTC date +%Y%m%d%H%M)" \
+        -e "openshift_azure_vm_size=$AZURE_VM_SIZE" \
         playbooks/azure/openshift-cluster/build_base_image.yml
 
 post_actions:

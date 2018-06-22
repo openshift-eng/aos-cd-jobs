@@ -7,10 +7,14 @@ sync:
   - openshift,openshift-ansible=release-3.10
   - openshift,release=master
   - Azure,acs-engine=master
+parameters:
+- name: AZURE_VM_SIZE
+  default_value: "Standard_D2s_v3"
 actions:
   - type: "forward_parameters"
     parameters:
       - JOB_SPEC
+      - AZURE_VM_SIZE
 
   - type: "host_script"
     title: "determine the resource group"
@@ -46,6 +50,7 @@ actions:
         -e "openshift_azure_storage_account=openshiftimages" \
         -e "openshift_azure_storage_account_ns=images" \
         -e "openshift_azure_container=images" \
+        -e "openshift_azure_vm_size=$AZURE_VM_SIZE" \
         -e "openshift_azure_install_repo=$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.10/.latest-rpms)" \
         playbooks/azure/openshift-cluster/build_node_image.yml
 

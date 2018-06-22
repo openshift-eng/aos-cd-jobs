@@ -19,6 +19,11 @@
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
+          <name>AZURE_VM_SIZE</name>
+          <description>None</description>
+          <defaultValue>Standard_D2s_v3</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>
           <description></description>
           <defaultValue></defaultValue>
@@ -181,6 +186,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: FORWARD PARAMETERS TO THE REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: FORWARD PARAMETERS TO THE REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod o+rw /etc/environment
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;AZURE_VM_SIZE=${AZURE_VM_SIZE:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -229,6 +235,7 @@ TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_azure_storage_account=openshiftimages&#34; \
   -e &#34;openshift_azure_storage_account_ns=images&#34; \
   -e &#34;openshift_azure_container=images&#34; \
+  -e &#34;openshift_azure_vm_size=\$AZURE_VM_SIZE&#34; \
   -e &#34;openshift_azure_install_repo=\$(curl -qs https://storage.googleapis.com/origin-ci-test/releases/openshift/origin/release-3.10/.latest-rpms)&#34; \
   playbooks/azure/openshift-cluster/build_node_image.yml
 SCRIPT

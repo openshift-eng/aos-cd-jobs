@@ -32,6 +32,7 @@ extensions:
         - JOB_SPEC
         - OS_PUSH_BASE_REGISTRY
         - OS_PUSH_BASE_REPO
+        - AZURE_VM_SIZE
 
     - type: "script"
       title: "build openshift-ansible image"

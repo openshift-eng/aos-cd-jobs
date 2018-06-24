@@ -481,6 +481,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REGISTRY=${OS_PUSH_BASE_REGISTRY:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;OS_PUSH_BASE_REPO=${OS_PUSH_BASE_REPO:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;AZURE_VM_SIZE=${AZURE_VM_SIZE:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>

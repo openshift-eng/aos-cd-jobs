@@ -191,7 +191,7 @@ extensions:
           -e TENANT_ID=$AZURE_TENANT \
           -e SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
           -e NAME=$RESOURCE_GROUP \
-          registry.svc.ci.openshift.org/ci/acs-engine-tests:v3.9 make test-openshift
+          registry.svc.ci.openshift.org/azure/acs-engine-tests:v3.9 make test-openshift
         set -o xtrace
 
   post_actions:

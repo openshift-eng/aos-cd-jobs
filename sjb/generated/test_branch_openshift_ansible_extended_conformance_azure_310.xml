@@ -644,6 +644,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
 cd cluster/test-deploy/azure
 TYPE=azure ../../bin/ansible.sh ansible-playbook \
+  -e &#34;openshift_ci_persist_artifacts=True&#34; \
   -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
   -e &#34;openshift_azure_resource_location=eastus&#34; \
   -e &#34;openshift_azure_input_image_ns=\$RESOURCE_GROUP&#34; \
@@ -668,6 +669,8 @@ set -a +o xtrace
 set +a -o xtrace
 
 cd /data/src/github.com/Azure/acs-engine
+mkdir -p _output
+cp /var/tmp/\${RESOURCE_GROUP}.json _output/
 export GOPATH=&#34;/data&#34;
 export PATH=&#34;\${PATH}:\${GOPATH}/bin&#34;
 make build

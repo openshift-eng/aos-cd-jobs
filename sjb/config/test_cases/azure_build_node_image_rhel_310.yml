@@ -80,7 +80,7 @@ actions:
         -e CLIENT_SECRET=$AZURE_SECRET \
         -e TENANT_ID=$AZURE_TENANT \
         -e SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
-        registry.svc.ci.openshift.org/ci/acs-engine-tests:v3.9 make test-openshift
+        registry.svc.ci.openshift.org/azure/acs-engine-tests:v3.10 make test-openshift
       set -o xtrace
 
   - type: "script"

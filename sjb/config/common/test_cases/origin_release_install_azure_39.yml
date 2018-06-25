@@ -153,6 +153,7 @@ extensions:
       script: |-
         cd cluster/test-deploy/azure
         TYPE=azure ../../bin/ansible.sh ansible-playbook \
+          -e "openshift_ci_persist_artifacts=True" \
           -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
           -e "openshift_azure_resource_location=eastus" \
           -e "openshift_azure_input_image_ns=$RESOURCE_GROUP" \
@@ -168,6 +169,8 @@ extensions:
         set +a -o xtrace
 
         cd /data/src/github.com/Azure/acs-engine
+        mkdir -p _output
+        cp /var/tmp/${RESOURCE_GROUP}.json _output/
         export GOPATH="/data"
         export PATH="${PATH}:${GOPATH}/bin"
         make build

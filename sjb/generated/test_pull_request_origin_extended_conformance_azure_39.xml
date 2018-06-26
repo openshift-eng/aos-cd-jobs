@@ -652,8 +652,9 @@ set -a +o xtrace
 set +a -o xtrace
 
 cd /data/src/github.com/Azure/acs-engine
-mkdir -p _output
-cp /var/tmp/\${RESOURCE_GROUP}.json _output/
+mkdir -p _output/\${RESOURCE_GROUP}
+cp -a /var/tmp/deploy/* _output/\${RESOURCE_GROUP}/
+cp _output/\${RESOURCE_GROUP}/apimodel.json _output/\${RESOURCE_GROUP}.json
 export GOPATH=&#34;/data&#34;
 export PATH=&#34;\${PATH}:\${GOPATH}/bin&#34;
 make build

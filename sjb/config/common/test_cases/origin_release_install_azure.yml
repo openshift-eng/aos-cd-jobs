@@ -169,8 +169,9 @@ extensions:
         set +a -o xtrace
 
         cd /data/src/github.com/Azure/acs-engine
-        mkdir -p _output
-        cp /var/tmp/${RESOURCE_GROUP}.json _output/
+        mkdir -p _output/${RESOURCE_GROUP}
+        cp -a /var/tmp/deploy/* _output/${RESOURCE_GROUP}/
+        cp _output/${RESOURCE_GROUP}/apimodel.json _output/${RESOURCE_GROUP}.json
         export GOPATH="/data"
         export PATH="${PATH}:${GOPATH}/bin"
         make build

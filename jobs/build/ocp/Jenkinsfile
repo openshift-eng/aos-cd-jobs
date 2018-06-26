@@ -188,13 +188,17 @@ def get_changelog(rpm_name, record_log) {
 
     // get the build ID from the web page
     // there must be an API way to do this MAL 20180622
-    build_id = sh(
-        returnStdout: true,
-        script: [
-            "curl --silent --insecure ${task_url}",
-            "sed -n -e 's/.*buildID=\\([0-9]*\\).*/\\1/p'"
-        ].join(" | ")
-    ).trim()
+    try {
+	build_id = sh(
+            returnStdout: true,
+            script: [
+		"curl --silent --insecure ${task_url}",
+		"sed -n -e 's/.*buildID=\\([0-9]*\\).*/\\1/p'"
+            ].join(" | ")
+	).trim()
+    } catch (err) {
+	error("failed to retrieve task page from brew: ${task_url}")
+    }
 
     // buildinfo can return the changelog.  Return just the text after
     // the Changelog: line
@@ -208,7 +212,6 @@ def get_changelog(rpm_name, record_log) {
         ).trim()
     } catch (err) {
         error "failed to get build info and changelog for build ${build_id}"
-        changelog = ""
     }
 
     return changelog

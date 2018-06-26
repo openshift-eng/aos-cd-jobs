@@ -1046,7 +1046,14 @@ Jenkins job: ${env.BUILD_URL}
 
             record_log = buildlib.parse_record_log(OIT_WORKING)
             oa_specfile = get_rpm_specfile_path(record_log, "openshift-ansible")
-            oa_changelog = get_changelog("openshift-ansible", record_log)
+	    try {
+		retry(3) {
+		    oa_changelog = get_changelog("openshift-ansible", record_log)
+		}
+	    } catch (changelog_err) {
+		echo "WARNING: unable to retrieve changelog for openshift-ansible: ${changelog_err}"
+		oa_changelog = "WARNING: unable to retrieve changelog for openshift-ansible.  See console output"
+	    }
 
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, oa_changelog)
         }

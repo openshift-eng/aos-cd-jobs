@@ -162,6 +162,61 @@ def get_mirror_url(build_mode, version) {
     return "https://mirror.openshift.com/enterprise/enterprise-${version}"
 }
 
+def get_changelog(rpm_name, record_log) {
+    //
+    // INPUTS:
+    //   rpm_name - the name of an RPM build previously
+    //   record_log - an array of build records with | separated fields
+
+    rpm_builds = record_log['build_rpm']
+    if (rpm_builds == null || rpm_builds.size() == 0) {
+        return ""
+    }
+
+    // filter for the desired RPM using name
+    build_record_index = rpm_builds.findIndexOf {
+        it['rpm'] == rpm_name
+    }
+    if (build_record_index == -1) {
+        return ""
+    }
+    build_record = rpm_builds[build_record_index]
+
+    // then get the task_id and task_url out of it
+    // task_id = build_record['task_id']
+    task_url = build_record['task_url']
+
+    // get the build ID from the web page
+    // there must be an API way to do this MAL 20180622
+    try {
+	build_id = sh(
+            returnStdout: true,
+            script: [
+		"curl --silent --insecure ${task_url}",
+		"sed -n -e 's/.*buildID=\\([0-9]*\\).*/\\1/p'"
+            ].join(" | ")
+	).trim()
+    } catch (err) {
+	error("failed to retrieve task page from brew: ${task_url}")
+    }
+
+    // buildinfo can return the changelog.  Return just the text after
+    // the Changelog: line
+    try {
+        changelog = sh(
+            returnStdout: true,
+            script: [
+                "brew buildinfo ${build_id} --changelog",
+                "sed -n '/Changelog/,\$p'"
+            ].join(' | ')
+        ).trim()
+    } catch (err) {
+        error "failed to get build info and changelog for build ${build_id}"
+    }
+
+    return changelog
+}
+
 def mail_success(version, mirrorURL, record_log, oa_changelog) {
 
     def target = "(Release Candidate)"
@@ -991,7 +1046,14 @@ Jenkins job: ${env.BUILD_URL}
 
             record_log = buildlib.parse_record_log(OIT_WORKING)
             oa_specfile = get_rpm_specfile_path(record_log, "openshift-ansible")
-            oa_changelog = buildlib.read_changelog(oa_specfile)
+	    try {
+		retry(3) {
+		    oa_changelog = get_changelog("openshift-ansible", record_log)
+		}
+	    } catch (changelog_err) {
+		echo "WARNING: unable to retrieve changelog for openshift-ansible: ${changelog_err}"
+		oa_changelog = "WARNING: unable to retrieve changelog for openshift-ansible.  See console output"
+	    }
 
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, oa_changelog)
         }

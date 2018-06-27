@@ -29,47 +29,47 @@ stage ('openshift_scaleup') {
 			def time_servers = scaleup_properties['TIME_SERVERS']
 			def jenkins_slave_label = scaleup_properties['JENKINS_SLAVE_LABEL']
 
-                        // debug info
-                        println "----------USER DEFINED OPTIONS-------------------"
-                        println "-------------------------------------------------"
-                        println "-------------------------------------------------"
-                        println "OPENSTACK_SERVER: '${openstack_server}'"
-                        println "OPENSTACK_USER: '${openstack_user}'"
-                        println "IMAGE_SERVER: '${image_server}'"
-                        println "IMAGE_USER: '${image_user}'"
-                        println "BRANCH: '${branch}'"
-                        println "OPENSHIFT_NODE_TARGET: '${openshift_node_target}'"
-                        println "TIME_SERVERS: '${time_servers}'"
-                        println "JENKINS_SLAVE_LABEL: '${jenkins_slave_label}'"
-                        println "-------------------------------------------------"
-                        println "-------------------------------------------------"	
+			// debug info
+			println "----------USER DEFINED OPTIONS-------------------"
+			println "-------------------------------------------------"
+			println "-------------------------------------------------"
+			println "OPENSTACK_SERVER: '${openstack_server}'"
+			println "OPENSTACK_USER: '${openstack_user}'"
+			println "IMAGE_SERVER: '${image_server}'"
+			println "IMAGE_USER: '${image_user}'"
+			println "BRANCH: '${branch}'"
+			println "OPENSHIFT_NODE_TARGET: '${openshift_node_target}'"
+			println "TIME_SERVERS: '${time_servers}'"
+			println "JENKINS_SLAVE_LABEL: '${jenkins_slave_label}'"
+			println "-------------------------------------------------"
+			println "-------------------------------------------------"	
 		
 			// Run scaleup
 			try {
-			    scaleup_build = build job: 'scale-ci_ScaleUp_OpenShift',
+				scaleup_build = build job: 'scale-ci_ScaleUp_OpenShift',
 				parameters: [   [$class: 'LabelParameterValue', name: 'node', label: node_label ],
-                                                [$class: 'StringParameterValue', name: 'OPENSTACK_SERVER', value: openstack_server ],
-                                                [$class: 'StringParameterValue', name: 'OPENSTACK_USER', value: openstack_user ],
-                                                [$class: 'StringParameterValue', name: 'IMAGE_SERVER', value: image_server ],
-                                                [$class: 'StringParameterValue', name: 'IMAGE_USER', value: image_user ],
-                                                [$class: 'StringParameterValue', name: 'branch', value: branch ],
-                                                [$class: 'StringParameterValue', name: 'OPENSHIFT_NODE_TARGET', value: openshift_node_target ],
-                                                [$class: 'StringParameterValue', name: 'scale_block_size', value: block_size ],
-                                                [$class: 'StringParameterValue', name: 'time_servers', value: time_servers ],
-                                                [$class: 'StringParameterValue', name: 'JENKINS_SLAVE_LABEL', value: jenkins_slave_label ]]
+						[$class: 'StringParameterValue', name: 'OPENSTACK_SERVER', value: openstack_server ],
+						[$class: 'StringParameterValue', name: 'OPENSTACK_USER', value: openstack_user ],
+						[$class: 'StringParameterValue', name: 'IMAGE_SERVER', value: image_server ],
+						[$class: 'StringParameterValue', name: 'IMAGE_USER', value: image_user ],
+						[$class: 'StringParameterValue', name: 'branch', value: branch ],
+						[$class: 'StringParameterValue', name: 'OPENSHIFT_NODE_TARGET', value: openshift_node_target ],
+						[$class: 'StringParameterValue', name: 'scale_block_size', value: block_size ],
+						[$class: 'StringParameterValue', name: 'time_servers', value: time_servers ],
+						[$class: 'StringParameterValue', name: 'JENKINS_SLAVE_LABEL', value: jenkins_slave_label ]]
 			} catch ( Exception e) {
-                	echo "SCALE_CI_OPENSHIFT_SCALEUP Job failed with the following error: "
-                	echo "${e.getMessage()}"
-			mail(
-                                to: 'nelluri@redhat.com',
-                                subject: 'Scaleup job failed',
-                                body: """\
-                                        Encoutered an error while running the scalup job: ${e.getMessage()}\n\n
-                                        Jenkins job: ${env.BUILD_URL}
-                        """)
-                	currentBuild.result = "FAILURE"
+				echo "SCALE_CI_OPENSHIFT_SCALEUP Job failed with the following error: "
+				echo "${e.getMessage()}"
+				mail(
+					to: 'nelluri@redhat.com',
+					subject: 'Scaleup job failed',
+ 					body: """\
+						Encoutered an error while running the scalup job: ${e.getMessage()}\n\n
+						Jenkins job: ${env.BUILD_URL}
+				""")
+				currentBuild.result = "FAILURE"
 			sh "exit 1"
-            		}
+			}
                 	println "SCALE-CI-OPENSHIFT-SCALEUP build ${openshift_build.getNumber()} completed successfully"
 		}
 }

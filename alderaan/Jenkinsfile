@@ -1,5 +1,6 @@
 #!/usr/bin/env groovy
 
+def contact = "nelluri@redhat.com"
 def setup_tooling = SETUP_TOOLING.toString().toUpperCase()
 def run_conformance = CONFORMANCE.toString().toUpperCase()
 def openshift_install = OPENSHIFT_INSTALL.toString().toUpperCase()
@@ -14,76 +15,78 @@ def pgbench_test = PGBENCH_TEST.toString().toUpperCase()
 def podvertical = PODVERTICAL.toString().toUpperCase()
 
 node {
-    // clear workspace
-    deleteDir()
+	// clear workspace
+	deleteDir()
 
-    // clone aos-cd-jobs repo where all the pipeline scripts exist
-    sh "git clone https://github.com/chaitanyaenr/aos-cd-jobs.git; cd aos-cd-jobs; git checkout alderaan"
+	// clone aos-cd-jobs repo where all the pipeline scripts exist
+	sh "git clone https://github.com/chaitanyaenr/aos-cd-jobs.git; cd aos-cd-jobs; git checkout alderaan"
 
-    // stage to install openstack
-    if (install_openstack == "TRUE") {
-        load "aos-cd-jobs/alderaan/pipeline-scripts/setup_openstack.groovy"
-    }
+	// stage to install openstack
+	if (install_openstack == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/openstack.groovy"
+	}
 
-    // stage to set up browbeat
-    if (browbeat == "TRUE") {
-        load "aos-cd-jobs/alderaan/pipeline-scripts/browbeat.groovy"
-    }
+	// stage to set up browbeat
+	if (browbeat == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/browbeat.groovy"
+	}
 
-    // stage to install openshift
-    if (openshift_install == "TRUE") {
-	load "aos-cd-jobs/alderaan/pipeline-scripts/scale-ci.groovy"
-    }
+	// stage to install openshift
+	if (openshift_install == "TRUE") {
+			load "aos-cd-jobs/alderaan/pipeline-scripts/openshift.groovy"
+	}
 
-    // stage to setup pbench
-    if (setup_tooling == "TRUE") {
-        load "aos-cd-jobs/alderaan/pipeline-scripts/tooling.groovy"
-    }
+	// stage to setup pbench
+	if (setup_tooling == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/tooling.groovy"
+	}
 
-    // stage to run conformance
-    if (run_conformance == "TRUE") {
-	load "aos-cd-jobs/alderaan/pipeline-scripts/conformance.groovy"
-    }
+	// stage to run conformance
+	if (run_conformance == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/conformance.groovy"
+	}
 
-    // stage to scaleup the cluster
-    if (scaleup == "TRUE") {
-        load "aos-cd-jobs/alderaan/pipeline-scripts/scaleup.groovy"
-    }
+	// stage to scaleup the cluster
+	if (scaleup == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/scaleup.groovy"
+	}
 
-    // stage to run nodevertical scale test
-    if (nodevertical == "TRUE") {
-        load "aos-cd-jobs/alderaan/pipeline-scripts/nodevertical.groovy"
-    }
+	// stage to run nodevertical scale test
+	if (nodevertical == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/nodevertical.groovy"
+	}
 
-    // stage to run mastervertical scale test
-    if (mastervertical == "TRUE") {
-        load "aos-cd-jobs/alderaan/pipeline-scripts/mastervertical.groovy"
-    }
+	// stage to run mastervertical scale test
+	if (mastervertical == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/mastervertical.groovy"
+	}
 
-    // stage to run logging scale test
-    if (logging == "TRUE") {
-	load "aos-cd-jobs/alderaan/pipeline-scripts/logging.groovy"
-    }
+	// stage to run logging scale test
+	if (logging == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/logging.groovy"
+	}
 
-    // stage to run http scale test
-    if (http == "TRUE") {
-       load "aos-cd-jobs/alderaan/pipeline-scripts/http.groovy"
-    }
-    
-    // stage to run pgbench scale test
-    if ( pgbench_test == "TRUE" ) {
-      load "aos-cd-jobs/alderaan/pipeline-scripts/pgbench.groovy"
-    }
+	// stage to run http scale test
+	if (http == "TRUE") {
+	 load "aos-cd-jobs/alderaan/pipeline-scripts/http.groovy"
+	}
 
-    // stage to run podvertical test
-    if ( podvertical == "TRUE" ) {
-      load "aos-cd-jobs/alderaan/pipeline-scripts/podvertical.groovy"
-    }
+	// stage to run pgbench scale test
+	if ( pgbench_test == "TRUE" ) {
+	load "aos-cd-jobs/alderaan/pipeline-scripts/pgbench.groovy"
+	}
 
-    mail(
-    	to: 'nelluri@redhat.com',
-        subject: 'Scale-ci pipeline completed successfully',
-        body: """\
-        Jenkins job: ${env.BUILD_URL}
-    """)
+	// stage to run podvertical test
+	if ( podvertical == "TRUE" ) {
+	load "aos-cd-jobs/alderaan/pipeline-scripts/podvertical.groovy"
+	}
+
+	mail(
+		to: contact,
+		subject: "${env.JOB_NAME} ${env.BUILD_NUMBER} completed successfully",
+		body: """\
+			Jenkins job: ${env.BUILD_URL}\n\n
+			See the console output for more details:  ${env.BUILD_URL}consoleFull\n\n
+		"""
+	)
 }

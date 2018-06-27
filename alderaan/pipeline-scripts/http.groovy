@@ -76,7 +76,7 @@ stage('http_test_scale_test') {
 
 			// Run http_test job
 			try {
-			    http_test_build = build job: 'http-scale-test',
+				http_test_build = build job: 'http-scale-test',
 				parameters: [	[$class: 'LabelParameterValue', name: 'node', label: node_label ],
 						[$class: 'StringParameterValue', name: 'TEST_CFG', value: test_cfg ],
 						[$class: 'StringParameterValue', name: 'JUMP_HOST', value: jump_host ],
@@ -105,21 +105,20 @@ stage('http_test_scale_test') {
 						[$class: 'BooleanParameterValue', name: 'NAMESPACE_CLEANUP', value: Boolean.valueOf(namespace_cleanup) ],
 					    ]
 			} catch (Exception e) {
-			    echo "HTTP scale-test Job failed with the following error: "
-			    echo "${e.getMessage()}"
-			    echo "Sending an email"
-			    mail(
-				to: 'nelluri@redhat.com',
-				subject: 'HTTP scale-test job failed',
-				body: """\
+				echo "HTTP scale-test Job failed with the following error: "
+				echo "${e.getMessage()}"
+				echo "Sending an email"
+				mail(
+					to: 'nelluri@redhat.com',
+					subject: 'HTTP scale-test job failed',
+					body: """\
 					Encoutered an error while running the http_test-scale-test job: ${e.getMessage()}\n\n
 					Jenkins job: ${env.BUILD_URL}
 				""")
-			    currentBuild.result = "FAILURE"
-			    sh "exit 1"
+				currentBuild.result = "FAILURE"
+				sh "exit 1"
 			}
 			println "HTTP_TEST-SCALE-TEST build ${http_test_build.getNumber()} completed successfully"
 		}
-		println "Stage 3: HTTP scale-test of pipeline build '${pipeline_id} completed"
 	}
 }

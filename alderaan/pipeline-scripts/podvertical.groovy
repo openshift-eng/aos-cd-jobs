@@ -29,7 +29,9 @@ stage ('podvertical_scale_test') {
 			def proxy_user = podvertical_properties['PROXY_USER']
 			def proxy_host = podvertical_properties['PROXY_HOST']
 			def containerized = podvertical_properties['CONTAINERIZED']
-			
+			def pods = podvertical_properties['PODS']
+			def iterations = podvertical_properties['ITERATIONS']
+	
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
 			println "-------------------------------------------------"
@@ -58,6 +60,8 @@ stage ('podvertical_scale_test') {
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
+						[$class: 'StringParameterValue', name: 'PODS', value: pods ],
+						[$class: 'StringParameterValue', name: 'ITERATIONS', value: iterations ],
 						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ]]
 			} catch ( Exception e) {
 				echo "PODVERTICAL Job failed with the following error: "

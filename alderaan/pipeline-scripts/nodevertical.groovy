@@ -29,7 +29,8 @@ stage ('nodevertical_scale_test') {
 			def proxy_user = nodevertical_properties['PROXY_USER']
 			def proxy_host = nodevertical_properties['PROXY_HOST']
 			def containerized = nodevertical_properties['CONTAINERIZED']
-		
+			def env = nodevertical_properties['ENVIRONMENT']
+	
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
 			println "-------------------------------------------------"
@@ -58,6 +59,7 @@ stage ('nodevertical_scale_test') {
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
+						[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env ],
 						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ]]
 			} catch ( Exception e) {
 				echo "NODEVERTICAL-SCALE-TEST Job failed with the following error: "

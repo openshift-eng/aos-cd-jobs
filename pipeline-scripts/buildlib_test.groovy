@@ -274,5 +274,143 @@ def test_auto_mode() {
     }
 }
 
+//
+// New version returns a map with the version and release strings for a new
+// build.  The change is defined by the build mode and the current version
+//
+def test_new_version() {
+    pass_count = 0
+    fail_count = 0
+
+    test_values = [
+        'online:int': [
+            [
+                'initial':  [ 'version': "3.1", 'release': "0.0.0"],
+                'expected': [ 'version': "3.1.0", 'release': "0.1.0"]
+            ],
+            [
+                'initial':  [ 'version': "3.10.1", 'release': "0.2.0"],
+                'expected': [ 'version': "3.10.1", 'release': "0.3.0"]
+            ],
+            [
+                'initial':  [ 'version': "3.1.4", 'release': "0.12.0"],
+                'expected': [ 'version': "3.1.4", 'release': "0.13.0"]
+            ],
+        ],
+
+        'online:stg': [
+            [
+                'initial':  [ 'version': "3.1", 'release': "0.0.0"],
+                'expected': [ 'version': "3.1.0", 'release': "0.0.1"]
+            ],
+            [
+                'initial':  [ 'version': "3.10", 'release': "0.2.3"],
+                'expected': [ 'version': "3.10.0", 'release': "0.2.4"]
+            ],
+            [
+                'initial':  [ 'version': "3.1.4", 'release': "0.1.12"],
+                'expected': [ 'version': "3.1.4", 'release': "0.1.13"]
+            ],
+        ],
+
+        'pre-release': [
+            [
+                'initial':  [ 'version': "3.1", 'release': "1"],
+                'expected': [ 'version': "3.1.1", 'release': "1"]
+            ],
+            [
+                'initial':  [ 'version': "3.10.2", 'release': "1"],
+                'expected': [ 'version': "3.10.3", 'release': "1"]
+            ],
+            [
+                'initial':  [ 'version': "3.1.9", 'release': "1"],
+                'expected': [ 'version': "3.1.10", 'release': "1"]
+            ],
+        ],
+
+        'release': [
+            [
+                'initial':  [ 'version': "3.1", 'release': "1"],
+                'expected': [ 'version': "3.1.1", 'release': "1"]
+            ],
+            [
+                'initial':  [ 'version': "3.10.2", 'release': "1"],
+                'expected': [ 'version': "3.10.3", 'release': "1"]
+            ],
+            [
+                'initial':  [ 'version': "3.1.9", 'release': "1"],
+                'expected': [ 'version': "3.1.10", 'release': "1"]
+            ],
+        ]
+    ]
+
+    test_values.each {
+        mode, samples ->  echo "test_new_version - mode: $mode"
+
+        samples.each { sample ->
+            //echo "test values: ${sample}"
+            try {
+                //echo "single sample ${sample['initial']}"
+                //echo "single sample initial version ${sample['initial']['version']}"
+                nv = buildlib.new_version(
+                    mode,
+                    sample['initial']['version'], sample['initial']['release']
+                )
+
+                assert nv == sample.expected
+                pass_count++
+            } catch (AssertionError e) {
+                fail_count++
+                echo "FAIL: new_version(${mode} - Input: ${sample.initial}, Expected: ${sample.expected}, Actual: ${nv}"
+            }
+        }
+    }
+
+    if (fail_count == 0) {
+        echo "PASS: new_version() - ${pass_count} tests passed"
+    } else {
+        echo "FAIL: new_version() - ${pass_count} tests passed, ${fail_count} tests failed"
+    }
+}
+
+def test_get_build_branches() {
+    pass_count = 0
+    fail_count = 0
+
+    test_values = [
+        'online:int': [
+            ['input': '3.9', 'expected': ['origin': 'master', 'upstream': 'master']]
+        ],
+
+        'online:stg': [
+            ['input': '3.3', 'expected': ['origin': 'stage', 'upstream': 'stage']]
+        ],
+
+        'pre-release': [
+            ['input': '3.9', 'expected': ['origin': 'enterprise-3.9', 'upstream': 'release-3.9']]
+        ],
+
+        'release': [
+            ['input': '3.9', 'expected': ['origin': 'enterprise-3.9', 'upstream': null]]
+        ]
+    ]
+
+    test_values.each { mode, samples ->
+        actual = buildlib.get_branch_names(mode, sample['input'])
+        try {
+            assert actual == expected
+            pass_count++
+        } catch (AssertionError e) {
+            fail_count++
+            echo("failed")
+        }
+    }
+
+    if (fail_count == 0) {
+        echo "PASS: validate_build() - ${pass_count} tests passed"
+    } else {
+        echo "FAIL: validate_build() - ${pass_count} tests passed, ${fail_count} tests failed"
+    }
+}
 // make this a function module
 return this

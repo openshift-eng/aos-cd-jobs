@@ -1,3 +1,4 @@
+#!/usr/bin/groovy
 
 def commonlib = load("pipeline-scripts/commonlib.groovy")
 
@@ -234,6 +235,184 @@ def read_spec_info(filename) {
             "minor": fields[1].toInteger(),
             "release": this.extract_rpm_release_prefix( spec_content ),
     ]
+}
+
+/**
+ * Retrive the branch list from a remote repository
+ * @param repo_url a git@ repository URL.
+ * @param pattern a matching pattern for the branch list. Only return matching branches
+ *
+ * @return a list of branch names.  Removes the leading ref path
+ *
+ * Requires SSH_AGENT to have set a key for access to the remote repository
+ */
+def get_branches(repo_url, pattern="") {
+
+    branch_text = sh(
+        returnStdout: true,
+        script: [
+            "git ls-remote ${repo_url} ${pattern}",
+            "awk '{print \$2}'",
+            "cut -d/ -f3"
+        ].join(" | ")
+    )
+
+    return branch_text.split("\n")
+}
+
+/**
+ * Retrive a list of release numbers from the OCP remote repository
+ * @param repo_url a git@ repository URL.
+ * @return a list of OSE release numbers.
+ *
+ * Get the branch names beginning with 'enterprise-'.
+ * Extract the release number string from each branch release name
+ * Sort in version order (compare fields as integers, not strings)
+ * Requires SSH_AGENT to have set a key for access to the remote repository
+ */
+def get_releases(repo_url) {
+    // too clever: chain - get branch names, remove prefix, suffix
+    r = get_branches(repo_url, "enterprise-*").collect { it - "enterprise-" }.findAll { it =~ /^\d+((\.\d+)*)$/ }
+
+    // and sort
+    z = sort_versions(r)
+    return z
+}
+
+/**
+ * Retrieve a single file from a Github repository
+ * @param owner
+ * @param repo_name
+ * @param file_name
+ * @param repo_token
+ * @return a string containing the contents of the specified file
+ */
+def get_single_file(owner, repo_name, file_name, repo_token) {
+    // Get a single file from a Github repository.
+
+    auth_header = "Authorization: token " + repo_token
+    file_url = "https://api.github.com/repos/${owner}/${repo_name}/contents/${file_name}"
+    accept_header = "Accept: application/vnd.github.v3.raw"
+
+    query = "curl --silent -H '${auth_header}' -H '${accept_header}' -L ${file_url}"
+    content = sh(
+	      returnStdout: true,
+        script: query
+    )
+
+    return content
+}
+
+/**
+ * Sort a list of dot separated version strings.
+ * The sort function requires the NonCPS decorator.
+ * @param v_in an unsorted array of version strings
+ * @return a sorted array of version strings
+ */
+@NonCPS // because sorting in-line in Jenkins requires NonCPS all the way out
+def sort_versions(v_in) {
+    v_out = v_in.sort{a, b -> return cmp_version(a, b)}
+}
+
+/**
+ * Compare two version strings
+ * These are dot separated lists of numbers.  Each field is compared to the matching field numerically
+ * @param v0 a version string
+ * @param v1 a second version string
+ * @return 0 if the versions are equal.  1 if v0 > v1, -1 if v0 < v1
+ *
+ * If two strings have different numbers of fields, the missing fields are padded with 0s
+ * Two versions are equal if all fields are equal
+ */
+@NonCPS
+def cmp_version(String v0, String v1) {
+    // compare two version strings.
+    // return:
+    //   v0 < v1: -1
+    //   v0 > v1:  1
+    //   v0 = v1:  0
+
+    // split both into arrays on dots (.)
+    try {
+        a0 = v0.tokenize('.').collect { it as int }
+        a1 = v1.tokenize('.').collect { it as int }
+    } catch (convert_error) {
+        error("Invalid version strings: ${v0} or ${v1} - ${convert_error}")
+    }
+
+    // extend both to 3 fields with zeros if needed
+    while (a0.size() < 3) { a0 << 0 }
+    while (a1.size() < 3) { a1 << 0 }
+
+    // zip these two together for comparison
+    // major.minor.revision
+    mmr = [a0, a1].transpose()
+
+    // if any pair do not match, return the result
+    for (field in mmr) {
+        t = field[0].compareTo(field[1])
+        if (t != 0) { return t }
+    }
+    return 0
+}
+
+/**
+ * Test if two version strings are equivalent
+ * @param v0 a dot separated version string
+ * @param v1 a dot separated version string
+ * @return true if versions are equal.  False otherwise
+ *
+ * If two strings have different numbers of fields, the missing fields are padded with 0s
+ * Two versions are equal if all fields are equal
+ */
+@NonCPS
+def eq_version(String v0, String v1) {
+    // determine if two versions are the same
+    // return:
+    //   v0 == v1: true
+    //   v0 != v1: false
+    return cmp_version(v0, v1) == 0
+}
+
+/**
+ * Determine the "build mode" based on the requested version, the version on HEAD of the master branch
+ * and the versions found in the release branch list
+ *
+ * @param build_version a version string.  The version to be built
+ * @param master_version a version string. The version on the master branch at HEAD
+ * @param releases an array of version strings.  Each version string is from a release branch name
+ * @return string the "build mode" to use when creating the local workspaces for OCP builds
+ *
+ * dev: build from master
+ * pre-release: build on release branch, merge master and upstream master before build
+ * release: build from release branch
+ *
+ * NOTE: Must build either from master HEAD or an existing release branch. A build version which is not one of these
+ * is invalid
+ */
+def auto_mode(build_version, master_version, releases) {
+    // Conditions:
+    //   BUILD_VERSION == master_version
+    //   BUILD_VERSION in releases
+    //
+    //                |  BUILD_VERSION in releases
+    // --------------------------------------------
+    // build = master |   true      |   false     |
+    // --------------------------------------------
+    //      true      | pre-release |    dev      |
+    // -------------------------------------------
+    //      false     |   release   |     X       |
+    // -------------------------------------------
+    // non-string map keys require parens during definition
+    mode_table = [
+        (true):  [ (true): "pre-release", (false): "dev" ],
+        (false): [ (true): "release",     (false): null  ]
+    ]
+
+    build_is_master = eq_version(build_version, master_version)
+    build_has_release_branch = releases.contains(build_version)
+    mode = mode_table[build_is_master][build_has_release_branch]
+    return mode
 }
 
 /**

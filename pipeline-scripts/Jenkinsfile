@@ -1,0 +1,91 @@
+#!/usr/bin/groovy
+
+// Test the functions in the buildlib for OCP builds
+
+properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '1000')),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                [
+                    name: 'TARGET_NODE',
+                    description: 'Jenkins agent node',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1'
+                ],
+                [
+                    name: 'MOCK',
+                    description: 'dont do anything if true',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+                // all these are required as silent magic vars for buildlib
+                // initialization
+                [
+                    name: 'TEST',
+                    description: 'just try running',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+                [
+                    name: 'BUILD_VERSION',
+                    description: 'version string',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: "0.0"
+                ],
+                [
+                    name: 'BUILD_MODE',
+                    description: 'version string',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: "dummy"
+                ],
+            ]
+        ],
+        disableConcurrentBuilds()
+    ]
+)
+
+IS_TEST_MODE = TEST.toBoolean()
+
+node(TARGET_NODE) {
+
+    checkout scm
+    
+//    def buildlib = load("pipeline-scripts/buildlib.groovy")
+//    buildlib.initialize(IS_TEST_MODE)
+//    echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
+
+    def testlib = load("pipeline-scripts/buildlib_test.groovy")
+
+    // now start testing
+
+    stage("test cmp_version") {
+        echo "BEGIN: test_cmp_version()"
+        testlib.test_cmp_version()
+        echo "END: test_cmp_version()"
+    }
+
+    stage("test eq_version") {
+        echo "BEGIN: test_eq_version()"
+        testlib.test_eq_version()
+        echo "END: test_eq_version()"
+    }
+
+    stage("test sort_versions") {
+        echo "BEGIN: test_sort_versions()"
+        testlib.test_sort_versions()
+        echo "END: test_sort_versions()"
+    }
+
+    stage("test auto-mode resolution") {
+        echo "BEGIN: test_auto_mode()"
+        testlib.test_auto_mode()
+        echo "END: test_auto_mode()"
+    }
+}

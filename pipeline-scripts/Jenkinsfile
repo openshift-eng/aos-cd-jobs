@@ -88,4 +88,10 @@ node(TARGET_NODE) {
         testlib.test_auto_mode()
         echo "END: test_auto_mode()"
     }
+
+    stage("test new_version") {
+        echo "BEGIN: test_new_version()"
+        testlib.test_new_version()
+        echo "END: test_new_version()"
+    }
 }

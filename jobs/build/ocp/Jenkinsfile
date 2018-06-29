@@ -421,6 +421,9 @@ node(TARGET_NODE) {
                 script: "brew latest-build --quiet rhaos-${BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'"
             ).trim()
 
+            // if we can get the master version/release and the list of release
+            // branch we can determine the build mode before cloning
+
             stage("ose repo") {
                 // defines:
                 //   OPENSHIFT_DIR // by calling initialize_openshift_dir()
@@ -446,153 +449,80 @@ node(TARGET_NODE) {
                     echo "AUTO-MODE: release repo: ${GITHUB_URLS['ose']}"
                     echo "AUTO-MODE: releases: ${releases}"
                     BUILD_MODE = buildlib.auto_mode(BUILD_VERSION, master_spec.major_minor, releases)
-                    echo "BUILD_MODE = ${BUILD_MODE}"
+                }
+
+                if (! BUILD_MODE in ['online:int', 'online:stg', 'pre-release', 'release']) {
+                    error("invalid build mode: ${BUILD_MODE}")
+                }
+
+                echo "BUILD_MODE = ${BUILD_MODE}"
+            }
+
+            // once we have the build mode and master version we can clone the source tree
+            stage("checkout ose build branch") {
+
+                // If the target version resides in ose#master
+                IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
+
+                // set branch/merge names
+                branch_names = buildlib.get_build_branches(BUILD_MODE, BUILD_VERSION)
+                OSE_SOURCE_BRANCH = branch_names['origin']
+                UPSTREAM_SOURCE_BRANCH = branch_names['upstream']
+
+                // checkout source branch
+                echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
+                if (OSE_SOURCE_BRANCH != 'master') {
+                    dir(GITHUB_BASE_PATHS['ose']) {
+                        sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
+                    }
                 }
             }
 
-            stage("analyze") {
+            stage("set build version/release") {
+                spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
 
-                dir(env.OSE_DIR) {
-                    // inputs:
-                    //  IS_SOURCE_IN_MASTER
-                    //  BUILD_MODE
-                    //  BUILD_VERSION
+                // -------------------------
+                // validate build parameters
+                // -------------------------
 
-                    // defines
-                    //  BUILD_MODE (if auto)
-                    //  OSE_SOURCE_BRANCH
-                    //  UPSTREAM_SOURCE_BRANCH
-                    //  NEW_VERSION
-                    //  NEW_RELEASE
-                    //  NEW_DOCKERFILE_RELEASE
-                    //  USE_WEB_CONSOLE_SERVER
-                    //
-                    //  sets:
-                    //    currentBuild.displayName
-
-                    if (IS_SOURCE_IN_MASTER) {
-                        if (BUILD_MODE == "release") {
-                            error("You cannot build a release while it resides in master; cut an enterprise branch")
-                        }
-                    } else {
-                        if (BUILD_MODE != "release" && BUILD_MODE != "pre-release") {
-                            error("Invalid build mode for a release that does not reside in master: ${BUILD_MODE}")
-                        }
-                    }
-
-                    if (IS_SOURCE_IN_MASTER) {
-                        if (BUILD_MODE == "online:stg") {
-                            OSE_SOURCE_BRANCH = "stage"
-                            UPSTREAM_SOURCE_BRANCH = "upstream/stage"
-                            sh "git checkout -b stage origin/stage"
-                        } else {
-                            OSE_SOURCE_BRANCH = "master"
-                            UPSTREAM_SOURCE_BRANCH = "upstream/master"
-                        }
-                    } else {
-                        OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
-                        if (BUILD_MODE == "release") {
-                            // When building in release mode, no longer pull from upstream
-                            UPSTREAM_SOURCE_BRANCH = null
-                        } else {
-                            UPSTREAM_SOURCE_BRANCH = "upstream/release-${BUILD_VERSION}"
-                        }
-                        // Create the non-master source branch and have it track the origin ose repo
-                        sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
-                    }
-
-                    echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
-
-                    spec = buildlib.read_spec_info("origin.spec")
-                    rel_fields = spec.release.tokenize(".")
-
-                    if (! spec.version.startsWith("${BUILD_VERSION}.")) {
-                        // Looks like pipeline thinks we are building something we aren't. Abort.
-                        error("Expected version consistent with ${BUILD_VERSION}.* but found: ${spec.version}")
-                    }
-
-
-                    if (BUILD_MODE == "online:int" || BUILD_MODE == "online:stg") {
-                        /**
-                         * In non-release candidates, we need the following fields
-                         *      REL.INT.STG
-                         * REL = 0    means pre-release,  1 means release
-                         * INT = fields used to differentiate online:int builds
-                         * STG = fields used to differentiate online:stg builds
-                         */
-
-                        while (rel_fields.size() < 3) {
-                            rel_fields << "0"    // Ensure there are enough fields in the array
-                        }
-
-                        if (rel_fields[0].toInteger() != 0) {
-                            // Don't build release candidate images this way since they can't wind up
-                            // in registry.access with a tag OCP can pull.
-                            error("Do not build released products in ${BUILD_MODE}; just build in release or pre-release mode")
-                        }
-
-                        if (rel_fields.size() != 3) {
-                            // Did we start with > 3? That's too weird to continue
-                            error("Unexpected number of fields in release: ${spec.release}")
-                        }
-
-                        if (BUILD_MODE == "online:int") {
-                            rel_fields[1] = rel_fields[1].toInteger() + 1  // Bump the INT version
-                            rel_fields[2] = 0  // If we are bumping the INT field, everything following is reset to zero
-                        }
-
-                        if (BUILD_MODE == "online:stg") {
-                            rel_fields[2] = rel_fields[2].toInteger() + 1  // Bump the STG version
-                        }
-
-                        NEW_VERSION = spec.version   // Keep the existing spec's version
-                        NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
-
-                        // Add a bumpable field for OIT to increment for image refreshes (i.e. REL.INT.STG.BUMP)
-                        NEW_DOCKERFILE_RELEASE = "${NEW_RELEASE}.0"
-
-                    } else if (BUILD_MODE == "release" || BUILD_MODE == "pre-release") {
-
-                        /**
-                         * Once someone sets the origin.spec Release to 1, we are building release candidates.
-                         * If a release candidate is released, its associated images will show up in registry.access
-                         * with the tags X.Y.Z-R  and  X.Y.Z. The "R" cannot be used since the fields is bumped by
-                         * refresh-images when building images with signed RPMs. That is, if OCP tried to load images
-                         * with the X.Y.Z-R' its RPM was built with, the R != R' (since R' < R) and the image
-                         * would not be found.
-                         * For release candidates, therefore, we must only use X.Y.Z to differentiate builds.
-                         *
-                         * Note that this problem does not affect online:int & online:stg builds since we control the
-                         * tags in the registries. We have refresh-images bump a harmless field in the release and then
-                         * craft a tag in the registry [version]-[release] which does not include that bumped field.
-                         */
-                        if (rel_fields[0].toInteger() != 1) {
-                            error("You need to set the spec Release field to 1 in order to build in this mode")
-                        }
-
-                        // Undertake to increment the last field in the version (e.g. 3.7.0 -> 3.7.1)
-                        ver_fields = spec.version.tokenize(".")
-                        ver_fields[ver_fields.size() - 1] = "${ver_fields[ver_fields.size() - 1].toInteger() + 1}"
-                        NEW_VERSION = ver_fields.join(".")
-                        NEW_RELEASE = "1"
-                        NEW_DOCKERFILE_RELEASE = NEW_RELEASE
-
-                    } else {
-                        error("Unknown BUILD_MODE: ${BUILD_MODE}")
-                    }
-
-                    // decide which source to use for the web console
-                    USE_WEB_CONSOLE_SERVER = false
-                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 9) {
-                        USE_WEB_CONSOLE_SERVER = true
-                    }
-
-                    rpmOnlyTag = ""
-                    if (!BUILD_CONTAINER_IMAGES) {
-                        rpmOnlyTag = " (RPM ONLY)"
-                    }
-                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE}${rpmOnlyTag})"
+                if (! spec.version.startsWith(BUILD_VERSION + '.')) {
+                    // Looks like pipeline thinks we are building something we aren't. Abort.
+                    error("Expected version consistent with ${BUILD_VERSION}.* but found: ${spec.version}")
                 }
+
+                if (BUILD_MODE in ['online:int', 'online:stg']) {
+                    if (!IS_SOURCE_IN_MASTER) {
+                        error("Invalid build mode for ${BUILD_VERSION}: ${BUILD_MODE} - source must be in master branch")
+                    }
+
+                    // in online:* modes, releasesize() <= 3
+                    if (spec.release.tokenize('.').size() > 3) {
+                        error("Unexpected number of fields in release: ${spec.release}")
+                    }
+                    // in online:* modes, release[0] == 0
+                    if (spec.release.tokenize('.')[0].toInteger() == 1) {
+                        error("Do not build released products in ${BUILD_MODE}; just build in release or pre-release mode")
+                    }
+                }
+
+                // in *release modes, release[0] == 1
+                if (BUILD_MODE in ['release', 'pre-release'] && spec.release.tokenize('.')[0].toInteger() != 1) {
+                    error("You need to set the spec Release field to 1 in order to build in this mode")
+                }
+
+                if (BUILD_MODE == "release" && IS_SOURCE_IN_MASTER) {
+                        error("You cannot build a release while it resides in master; cut an enterprise branch")
+                }
+
+                // set new version/release number
+                new_version = buildlib.new_version(BUILD_MODE, spec.version, spec.release)
+                NEW_VERSION = new_version['version']
+                NEW_RELEASE = new_version['release']
+                NEW_DOCKERFILE_RELEASE = "${NEW_RELEASE}.0"
+
+                // Note if we are not building images in build title
+                rpmOnlyTag = BUILD_CONTAINER_IMAGES ? "" : " (RPM ONLY)"
+                currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE}${rpmOnlyTag})"
             }
 
             stage("merge origin") {
@@ -605,7 +535,7 @@ node(TARGET_NODE) {
 
                     if (UPSTREAM_SOURCE_BRANCH != null) {
                         // Merge upstream origin code into the ose branch
-                        sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
+                        sh "git merge -m 'Merge remote-tracking branch upstream/${UPSTREAM_SOURCE_BRANCH}' upstream/${UPSTREAM_SOURCE_BRANCH}"
                     } else {
                         echo "No origin upstream in this build"
                     }
@@ -670,17 +600,13 @@ node(TARGET_NODE) {
                 /**
                  * The origin-web-console-server repo/image was introduced in 3.9.
                  */
-                if (USE_WEB_CONSOLE_SERVER) {
+                if (buildlib.use_web_console_server(BUILD_VERSION)) {
                     // defines:
                     //   WEB_CONSOLE_SERVER_DIR
                     //   GITHUB_URLS["origin-web-console-server"]
                     //   GITHUB_BASE_PATHS["origin-web-console-server"]
                     buildlib.initialize_origin_web_console_server_dir()
-                    if (BUILD_MODE == "online:stg") {
-                        WEB_CONSOLE_SERVER_BRANCH = "stage"
-                    } else {
-                        WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
-                    }
+                    WEB_CONSOLE_SERVER_BRANCH = OSE_SOURCE_BRANCH
                     dir(WEB_CONSOLE_SERVER_DIR) {
                         sh "git checkout ${WEB_CONSOLE_SERVER_BRANCH}"
                     }
@@ -688,7 +614,7 @@ node(TARGET_NODE) {
             }
 
             stage("prep web-console-server") {
-                if (BUILD_MODE != "online:stg" && USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER) {
+                if (BUILD_MODE != "online:stg" && buildlib.use_web_console_server(BUILD_VERSION) && IS_SOURCE_IN_MASTER) {
                     dir(WEB_CONSOLE_SERVER_DIR) {
                         // Enable fake merge driver used in our .gitattributes
                         sh "git config merge.ours.driver true"
@@ -717,7 +643,7 @@ node(TARGET_NODE) {
 
                 // In OCP release < 3.9, web-console is vendored into OSE repo
                 TARGET_VENDOR_DIR = OSE_DIR
-                if (USE_WEB_CONSOLE_SERVER) {
+                if (buildlib.use_web_console_server(BUILD_VERSION)) {
                     // In OCP release > 3.9, web-console is vendored into origin-web-console-server
                     TARGET_VENDOR_DIR = WEB_CONSOLE_SERVER_DIR
                 }
@@ -744,7 +670,7 @@ node(TARGET_NODE) {
                     git add pkg/assets/java/bindata.go
                 """
 
-                    if (USE_WEB_CONSOLE_SERVER && !IS_TEST_MODE) {
+                    if (buildlib.use_web_console_server(BUILD_VERSION) && !IS_TEST_MODE) {
                         sh "git commit -m 'bump origin-web-console ${VC_COMMIT}' --allow-empty"
                         sh "git push"
                     }
@@ -794,7 +720,7 @@ node(TARGET_NODE) {
                     // Note that I did not use --use-release because it did not maintain variables like %{?dist}
 
                     commit_msg = "Automatic commit of package [atomic-openshift] release [${NEW_VERSION}-${NEW_RELEASE}]"
-                    if (!USE_WEB_CONSOLE_SERVER) {
+                    if (!buildlib.use_web_console_server(BUILD_VERSION)) {
                         // If vendoring web console into ose, include the VC_COMMIT information in the ose commit
                         commit_msg = "${commit_msg} ; bump origin-web-console ${VC_COMMIT}"
                     }

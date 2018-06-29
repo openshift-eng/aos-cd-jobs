@@ -452,6 +452,88 @@ invalid mode build != master and no release branch
     return mode
 }
 
+//
+// Create a new version string based on the build mode
+//
+//@NonCPS
+def new_version(mode, version_string, release_string) {
+
+    // version and release are arrays of dot-seprated decimals
+    version = version_string.tokenize('.').collect { it.toInteger() }
+    release = release_string.tokenize('.').collect { it.toInteger() }
+
+    // stage and int:
+    //   version field is N.N.N unchanged
+    //   release field is 0.I.S to differentiate builds
+    //
+
+    // pre-release and release:
+    //
+    //   version field is N.{N+1}
+    //   release field is 1
+
+    // pad release to 3 fields
+    while (version.size() < 3) { version += 0 }
+    while (release.size() < 3) { release += 0 }
+
+    switch (mode) {
+        case 'online:int':
+            release[1]++
+            release[2] = 0
+            break
+        case 'online:stg':
+            release[2]++
+            break
+        case 'release':
+        case 'pre-release':
+            version[-1]++ // this puts a colon in the final field
+            release = [1]
+            break
+    }
+
+    return [
+        'version': version.each{ it.toString() }.join('.'),
+        'release': release.each{ it.toString() }.join('.')
+    ]
+}
+
+// set the repo and branch information for each mode and build version
+// NOTE: here "origin" refers to the git reference, not to OpenShift Origin
+def get_build_branches(mode, build_version) {
+    // INPUTS:
+    //   :param: mode - a string indicating which branches to build from
+    //   :param: build_version - a version string used to compose the branch names
+    //   :return: a map containing the source origin and upstream branch names
+
+    switch(mode) {
+        case "online:int":
+            branch_names = ['origin': "master", 'upstream': "master"]
+            break
+
+        case "online:stg":
+            branch_names = ['origin': "stage", 'upstream': "stage"]
+            break
+
+        case "pre-release":
+            branch_names = ['origin': "enterprise-${build_version}", 'upstream': "release-${build_version}"]
+            break
+
+        case "release":
+            branch_names = ['origin': "enterprise-${build_version}", 'upstream': null]
+            break
+    }
+
+    return branch_names
+}
+
+// predicate: build with the web-server-console source tree?
+def use_web_console_server(version_string) {
+    // the web console server was introduced with version 3.9
+    return cmp_version(version_string, "3.9") >= 0
+}
+
+
+
 /**
  * Create a new version string based on the build mode
  *

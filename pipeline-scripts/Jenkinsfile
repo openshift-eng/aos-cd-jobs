@@ -94,4 +94,10 @@ node(TARGET_NODE) {
         testlib.test_new_version()
         echo "END: test_new_version()"
     }
+
+    stage("test validate_build") {
+        echo "BEGIN: test_validate_build()"
+        testlib.test_validate_build()
+        echo "END: test_validate_build()"
+    }
 }

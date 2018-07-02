@@ -1,0 +1,104 @@
+#!/usr/bin/env groovy
+
+def contact = "nelluri@redhat.com"
+def setup_tooling = SETUP_TOOLING.toString().toUpperCase()
+def run_conformance = CONFORMANCE.toString().toUpperCase()
+def openshift_install = OPENSHIFT_INSTALL.toString().toUpperCase()
+def nodevertical = NODEVERTICAL_SCALE_TEST.toString().toUpperCase()
+def mastervertical = MASTERVERTICAL_SCALE_TEST.toString().toUpperCase()
+def install_openstack = OPENSTACK_INSTALL.toString().toUpperCase()
+def browbeat = BROWBEAT_INSTALL.toString().toUpperCase()
+def scaleup = OPENSHIFT_SCALEUP.toString().toUpperCase()
+def http = HTTP_TEST.toString().toUpperCase()
+def logging = LOGGING_SCALE_TEST.toString().toUpperCase()
+def pgbench_test = PGBENCH_TEST.toString().toUpperCase()
+def podvertical = PODVERTICAL.toString().toUpperCase()
+def deployments_per_ns = DEPLOYMENTS_PER_NS.toString().toUpperCase()
+def ns_per_cluster = NS_PER_CLUSTER.toString().toUpperCase()
+
+node {
+	// clear workspace
+	deleteDir()
+
+	// clone aos-cd-jobs repo where all the pipeline scripts exist
+	sh "git clone https://github.com/openshift/aos-cd-jobs.git"
+
+	// stage to install openstack
+	if (install_openstack == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/openstack.groovy"
+	}
+
+	// stage to set up browbeat
+	if (browbeat == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/browbeat.groovy"
+	}
+
+	// stage to install openshift
+	if (openshift_install == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/openshift.groovy"
+	}
+
+	// stage to setup pbench
+	if (setup_tooling == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/tooling.groovy"
+	}
+
+	// stage to run conformance
+	if (run_conformance == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/conformance.groovy"
+	}
+
+	// stage to scaleup the cluster
+	if (scaleup == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/scaleup.groovy"
+	}
+
+	// stage to run nodevertical scale test
+	if (nodevertical == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/nodevertical.groovy"
+	}
+
+	// stage to run mastervertical scale test
+	if (mastervertical == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/mastervertical.groovy"
+	}
+
+	// stage to run logging scale test
+	if (logging == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/logging.groovy"
+	}
+
+	// stage to run http scale test
+	if (http == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/http.groovy"
+	}
+
+	// stage to run pgbench scale test
+	if ( pgbench_test == "TRUE" ) {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/pgbench.groovy"
+	}
+
+	// stage to run podvertical test
+	if ( podvertical == "TRUE" ) {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/podvertical.groovy"
+	}
+
+	// stage to run deployments per ns test
+	if ( deployments_per_ns == "TRUE" ) {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/deployments_per_ns.groovy"
+	}
+
+	// stage to run ns_per_cluster test
+	if ( ns_per_cluster == "TRUE" ) {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/ns_per_cluster.groovy"
+	}
+
+	mail(
+		to: contact,
+		subject: "${env.JOB_NAME} ${env.BUILD_NUMBER} completed successfully",
+		body: """\
+			Jenkins job: ${env.BUILD_URL}\n\n
+			See the console output for more details:  ${env.BUILD_URL}consoleFull\n\n
+		"""
+	)
+}

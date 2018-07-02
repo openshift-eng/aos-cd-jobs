@@ -79,6 +79,7 @@ properties(
                 [
                     name: 'BUILD_MODE',
                     description: '''
+auto                      BUILD_VERSION and ocp repo contents determine the mode<br>
 release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
@@ -86,11 +87,13 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
 ''',
                     $class: 'hudson.model.ChoiceParameterDefinition',
                     choices: [
+                        "auto",
                         "release",
                         "pre-release",
                         "online:int",
                         "online:stg"
-                    ].join("\n")
+                    ].join("\n"),
+                    defaultValue: "auto"
                 ],
                 [
                     name: 'SIGN',
@@ -419,9 +422,25 @@ node(TARGET_NODE) {
                 ///  OSE_DIR
                 //   GITHUB_URLS["ose"]
                 //   GITHUB_BASE_PATHS["ose"]
-                master_spec = buildlib.initialize_ose()
+                buildlib.initialize_ose()
+            }
+
+            stage("set build mode") {
+                master_spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
+                                             
                 // If the target version resides in ose#master
                 IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
+                                             
+                if (BUILD_MODE == "auto") {
+                    echo "AUTO-MODE: determine mode from version and repo"
+                    // INPUTS:
+                    //   BUILD_MODE
+                    //   BUILD_VERSION
+                    //   GITHUB_URLS["ose"]
+                    releases = buildlib.get_releases(GITHUB_URLS["ose"])
+                    BUILD_MODE = buildlib.auto_mode(BUILD_VERSION, master_spec.major_minor, releases)
+                    echo "BUILD_MODE = ${BUILD_MODE}"
+                }
             }
 
             stage("analyze") {

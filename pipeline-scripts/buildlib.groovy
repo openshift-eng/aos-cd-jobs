@@ -383,7 +383,7 @@ def eq_version(String v0, String v1) {
  * @param releases an array of version strings.  Each version string is from a release branch name
  * @return string the "build mode" to use when creating the local workspaces for OCP builds
  *
- * dev: build from master
+ * online:int: build from master
  * pre-release: build on release branch, merge master and upstream master before build
  * release: build from release branch
  *
@@ -399,13 +399,13 @@ def auto_mode(build_version, master_version, releases) {
     // --------------------------------------------
     // build = master |   true      |   false     |
     // --------------------------------------------
-    //      true      | pre-release |    dev      |
+    //      true      | pre-release |    online:int      |
     // -------------------------------------------
     //      false     |   release   |     X       |
     // -------------------------------------------
     // non-string map keys require parens during definition
     mode_table = [
-        (true):  [ (true): "pre-release", (false): "dev" ],
+        (true):  [ (true): "pre-release", (false): "online:int" ],
         (false): [ (true): "release",     (false): null  ]
     ]
 

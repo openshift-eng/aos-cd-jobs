@@ -6,8 +6,8 @@ def node_label = 'CCI && ansible-2.4'
 def ns_per_cluster = NS_PER_CLUSTER.toString().toUpperCase()
 
 // run ns_per_cluster test
-stage('ns_per_clusterical_scale_test') {
-	if (MASTERVERTICAL_SCALE_TEST) {
+stage('ns_per_cluster_scale_test') {
+	if (ns_per_cluster == "TRUE") {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file

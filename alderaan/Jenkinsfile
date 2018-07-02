@@ -21,7 +21,7 @@ node {
 	deleteDir()
 
 	// clone aos-cd-jobs repo where all the pipeline scripts exist
-	sh "git clone https://github.com/chaitanyaenr/aos-cd-jobs.git; cd aos-cd-jobs; git checkout alderaan"
+	sh "git clone https://github.com/openshift/aos-cd-jobs.git"
 
 	// stage to install openstack
 	if (install_openstack == "TRUE") {
@@ -35,7 +35,7 @@ node {
 
 	// stage to install openshift
 	if (openshift_install == "TRUE") {
-			load "aos-cd-jobs/alderaan/pipeline-scripts/openshift.groovy"
+		load "aos-cd-jobs/alderaan/pipeline-scripts/openshift.groovy"
 	}
 
 	// stage to setup pbench

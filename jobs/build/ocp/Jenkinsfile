@@ -422,12 +422,15 @@ node(TARGET_NODE) {
                 ///  OSE_DIR
                 //   GITHUB_URLS["ose"]
                 //   GITHUB_BASE_PATHS["ose"]
-                master_spec = buildlib.initialize_ose()
-                // If the target version resides in ose#master
-                IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
+                buildlib.initialize_ose()
             }
 
             stage("set build mode") {
+                master_spec = read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
+                                             
+                // If the target version resides in ose#master
+                IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
+                                             
                 if (BUILD_MODE == "auto") {
                     echo "AUTO-MODE: determine mode from version and repo"
                     // INPUTS:

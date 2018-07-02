@@ -218,7 +218,7 @@ def test_sort_versions() {
 // Test the automatic "build mode" selection for different version and release number inputs
 //
 // The auto_mode() function returns 1 of 4 values:
-//   'dev':         The version to build matches the master:HEAD version and is not in the current release set
+//   'online:int':  The version to build matches the master:HEAD version and is not in the current release set
 //   'pre-release': The version matches master:HEAD and a release branch for that version exists
 //   'release':     The version matches a release branch but is not the version at master:HEAD
 //   null:          The version is neither on a release branch or in master:HEAD
@@ -229,7 +229,7 @@ def test_auto_mode() {
 
     releases = ["3.0", "3.1", "3.2"]
 
-    expected = 'dev'
+    expected = 'online:int'
     actual = buildlib.auto_mode("3.3", "3.3", releases)
     try {
         assert actual == expected

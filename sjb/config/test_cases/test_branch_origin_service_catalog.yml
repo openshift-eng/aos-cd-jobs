@@ -39,13 +39,6 @@ extensions:
       script: |-
         hack/env make build
     - type: "script"
-      title: "run Service Catalog unit tests"
-      repository: "service-catalog"
-      timeout: 1800
-      script: |-
-        # the preserve directory is not used here, so include a constant file to avoid copy failures
-        OS_BUILD_ENV_PRESERVE="Makefile" hack/env NO_DOCKER=1 make -f Makefile.sc test-unit
-    - type: "script"
       title: "build Service Catalog integration test binary"
       repository: "service-catalog"
       timeout: 1800

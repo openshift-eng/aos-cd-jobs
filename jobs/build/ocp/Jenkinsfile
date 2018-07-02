@@ -426,7 +426,7 @@ node(TARGET_NODE) {
             }
 
             stage("set build mode") {
-                master_spec = read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
+                master_spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
                                              
                 // If the target version resides in ose#master
                 IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)

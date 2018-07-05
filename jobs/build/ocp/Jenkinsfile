@@ -432,12 +432,14 @@ node(TARGET_NODE) {
                 IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
                                              
                 if (BUILD_MODE == "auto") {
-                    echo "AUTO-MODE: determine mode from version and repo"
+                    echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${BUILD_VERSION}, master_version: ${master_spec.major_minor}"
                     // INPUTS:
                     //   BUILD_MODE
                     //   BUILD_VERSION
                     //   GITHUB_URLS["ose"]
-                    releases = buildlib.get_releases(GITHUB_URLS["ose"])
+                    releases = buildlib.get_releases(GITHUB_URLS['ose'])
+                    echo "AUTO-MODE: release repo: ${GITHUB_URLS['ose']}")
+                    echo "AUTO-MODE: releases: ${releases}"
                     BUILD_MODE = buildlib.auto_mode(BUILD_VERSION, master_spec.major_minor, releases)
                     echo "BUILD_MODE = ${BUILD_MODE}"
                 }

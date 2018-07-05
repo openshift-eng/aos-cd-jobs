@@ -412,6 +412,10 @@ def auto_mode(build_version, master_version, releases) {
     build_is_master = eq_version(build_version, master_version)
     build_has_release_branch = releases.contains(build_version)
     mode = mode_table[build_is_master][build_has_release_branch]
+
+    if (mode == null) {
+        error("invalid mode for BUILD_VERSION: ${build_version}: build != master and no release branch")
+    }
     return mode
 }
 

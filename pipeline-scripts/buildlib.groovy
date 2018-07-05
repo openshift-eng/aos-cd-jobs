@@ -414,7 +414,12 @@ def auto_mode(build_version, master_version, releases) {
     mode = mode_table[build_is_master][build_has_release_branch]
 
     if (mode == null) {
-        error("invalid mode for BUILD_VERSION: ${build_version}: build != master and no release branch")
+        error("""
+invalid mode build != master and no release branch
+  BUILD_VERSION: ${build_version}
+  MASTER_VERSION: ${master_version}
+  RELEASES: ${releases}
+""")
     }
     return mode
 }

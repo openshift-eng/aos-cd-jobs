@@ -259,14 +259,12 @@ def test_auto_mode() {
         echo "FAIL: auto_mode(\"3.2\", \"3.3\", ${releases}): actual: ${actual}, expected ${expected}"
     }
 
-    expected = null
-    actual = buildlib.auto_mode("3.4", "3.3", releases)
     try {
-        assert actual == expected
-        pass_count++
-    } catch (AssertionError e) {
+        actual = buildlib.auto_mode("3.4", "3.3", releases)
         fail_count++
-        echo "FAIL: auto_mode(\"3.4\", \"3.3\", ${releases}): actual: ${actual}, expected ${expected}"
+        echo "FAIL: auto_mode(\"3.4\", \"3.3\", ${releases}): actual: ${actual}, expected error"
+    } catch (hudson.AbortException e) {
+        pass_count++
     }
 
     if (fail_count == 0) {

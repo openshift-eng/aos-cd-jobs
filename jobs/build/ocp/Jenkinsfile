@@ -969,7 +969,7 @@ ${dockerfile_url}
 
 The reconciled (downstream OCP) Dockerfile can be view here: https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
-Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IRC).
+Please direct any questions to the Automated Release Team (#aos-cd-team on IRC).
                 """);
                     } catch (err) {
 

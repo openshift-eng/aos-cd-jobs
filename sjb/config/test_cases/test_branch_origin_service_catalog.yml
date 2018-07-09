@@ -11,6 +11,13 @@ extensions:
     - name: "service-catalog"
   actions:
     - type: "script"
+      title: "checkout the correct branch of service-catalog"
+      repository: "service-catalog"
+      script: |-
+        if [[ "${PULL_BASE_REF:-master}" =! "master" ]]; then
+          git checkout $PULL_BASE_REF
+        fi
+    - type: "script"
       title: "determine the release commit for origin images"
       repository: "origin"
       script: |-
@@ -77,6 +84,7 @@ extensions:
       timeout: 1800
       script: |-
         if [[ "${PULL_BASE_REF:-master}" == "release-3.9" ]]; then
+          # 3.9 doesn't actually use this file, but leave this here for when oc cluster up syntax changes in the future
           ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --version=latest --service-catalog
         else
           ./_output/local/bin/linux/amd64/oc cluster up --loglevel=5 --tag=latest --enable=service-catalog

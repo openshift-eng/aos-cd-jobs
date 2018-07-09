@@ -266,28 +266,24 @@ Jenkins job: ${env.BUILD_URL}
             }
 
             stage("send ci msg") {
-                if ( MODE != "silent" ) {
-                    try {
-                        msg = deploylib.run("build-ci-msg", null, true, false)
-                        echo "Sending CI Message:\n${msg}"
-                        timeout(3) {
-                            sendCIMessage messageContent: msg,
-                                    messageProperties: msg,
-                                    messageType: 'ComponentBuildDone',
-                                    overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
-                                    providerName: 'Red Hat UMB'
-                        }
-                    } catch (err2) {
-                        mail(to: "${MAIL_LIST_FAILURE}",
-                                from: "aos-cicd@redhat.com",
-                                subject: "Error sending CI msg for cluster ${CLUSTER_NAME}",
-                                body: """Encountered an error: ${err2}
+                try {
+                    msg = deploylib.run("build-ci-msg", null, true, false)
+                    echo "Sending CI Message:\n${msg}"
+                    timeout(3) {
+                        sendCIMessage messageContent: msg,
+                                messageProperties: msg,
+                                messageType: 'ComponentBuildDone',
+                                overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
+                                providerName: 'Red Hat UMB'
+                    }
+                } catch (err2) {
+                    mail(to: "${MAIL_LIST_FAILURE}",
+                            from: "aos-cicd@redhat.com",
+                            subject: "Error sending CI msg for cluster ${CLUSTER_NAME}",
+                            body: """Encountered an error: ${err2}
 
 Jenkins job: ${env.BUILD_URL}
 """);
-                    }
-                } else {
-                    echo "Silent mode - skipping CI message"
                 }
             }
 

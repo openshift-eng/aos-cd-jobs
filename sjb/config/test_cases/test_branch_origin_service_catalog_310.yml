@@ -1,14 +1,11 @@
 ---
-parent: 'common/test_cases/origin.yml'
+parent: 'common/test_cases/origin_minimal.yml'
 overrides:
   junit_analysis: False
   email:
     - jpeeler@redhat.com
     - jaboyd@redhat.com
 extensions:
-  sync_repos:
-    - name: "origin"
-    - name: "service-catalog"
   actions:
     - type: "script"
       title: "determine the release commit for origin images"

@@ -25,6 +25,8 @@ extensions:
       default_value: "registry.svc.ci.openshift.org/"
     - name: "OS_PUSH_BASE_REPO"
       default_value: "ci-pr-images/"
+    - name: "ORIGIN_TARGET_BRANCH"
+      default_value: "release-3.10"
   actions:
     - type: "host_script"
       title: "move secrets to remote host"

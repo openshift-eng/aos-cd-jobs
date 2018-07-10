@@ -14,7 +14,7 @@ extensions:
       title: "checkout the correct branch of service-catalog"
       repository: "service-catalog"
       script: |-
-        if [[ "${PULL_BASE_REF:-master}" =! "master" ]]; then
+        if [[ "${PULL_BASE_REF:-master}" != "master" ]]; then
           git checkout $PULL_BASE_REF
         fi
     - type: "script"

@@ -47,6 +47,11 @@ See also:
           <defaultValue>ci-pr-images/</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>ORIGIN_TARGET_BRANCH</name>
+          <description>None</description>
+          <defaultValue>release-3.10</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>SUITE</name>
           <description>Which shell file in the &lt;a href=&#39;https://github.com/openshift/origin/tree/master/test/extended&#39;&gt;&lt;code&gt;origin/test/extended/&lt;/code&gt;&lt;/a&gt; di rectory to run.</description>
           <defaultValue>conformance</defaultValue>

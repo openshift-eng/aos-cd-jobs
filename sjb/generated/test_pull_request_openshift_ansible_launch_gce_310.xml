@@ -53,6 +53,11 @@ See also:
           <defaultValue>ci-pr-images/</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>ORIGIN_TARGET_BRANCH</name>
+          <description>None</description>
+          <defaultValue>release-3.10</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>
           <description></description>
           <defaultValue></defaultValue>

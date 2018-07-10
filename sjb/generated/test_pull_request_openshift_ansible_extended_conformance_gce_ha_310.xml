@@ -42,6 +42,11 @@ See also:
           <defaultValue>ci-pr-images/</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>ORIGIN_TARGET_BRANCH</name>
+          <description>None</description>
+          <defaultValue>release-3.10</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>CLUSTER_PROFILE</name>
           <description>The subdirectory of openshift/release cluster/test-deploy to use for configuration of the cluster.</description>
           <defaultValue>gcp-ha</defaultValue>

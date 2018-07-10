@@ -394,8 +394,9 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
+jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 docker pull openshift/origin-console:v3.11
-docker tag openshift/origin-console:v3.11 &#34;openshift/origin-console:\$( cat ./ORIGIN_COMMIT )&#34;
+docker tag openshift/origin-console:v3.11 &#34;openshift/origin-console:\$( cat \${jobs_repo}/ORIGIN_COMMIT )&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

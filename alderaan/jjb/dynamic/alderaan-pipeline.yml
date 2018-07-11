@@ -1,0 +1,190 @@
+- job:
+    description: 'Collection of Jenkins jobs to setup osp, ocp and run various scale
+      tests on Alderaan environment. '
+    disabled: false
+    name: !!python/unicode 'alderaan'
+    parameters:
+    - bool:
+        default: false
+        description: ''
+        name: CREATE_JOBS
+    - bool:
+        default: false
+        description: ''
+        name: OPENSTACK_INSTALL
+    - bool:
+        default: false
+        description: ''
+        name: BROWBEAT_INSTALL
+    - bool:
+        default: false
+        description: ''
+        name: OPENSHIFT_INSTALL
+    - bool:
+        default: false
+        description: ''
+        name: SETUP_TOOLING
+    - bool:
+        default: false
+        description: ''
+        name: CONFORMANCE
+    - bool:
+        default: false
+        description: ''
+        name: OPENSHIFT_SCALEUP
+    - bool:
+        default: false
+        description: ''
+        name: NODEVERTICAL_SCALE_TEST
+    - bool:
+        default: false
+        description: ''
+        name: MASTERVERTICAL_SCALE_TEST
+    - bool:
+        default: false
+        description: ''
+        name: HTTP_TEST
+    - bool:
+        default: false
+        description: ''
+        name: LOGGING_SCALE_TEST
+    - bool:
+        default: false
+        description: ''
+        name: PGBENCH_TEST
+    - bool:
+        default: false
+        description: ''
+        name: MONGODB_YCSB_TEST
+    - bool:
+        default: false
+        description: ''
+        name: PODVERTICAL
+    - bool:
+        default: false
+        description: ''
+        name: DEPLOYMENTS_PER_NS
+    - bool:
+        default: false
+        description: ''
+        name: NS_PER_CLUSTER
+    - string:
+        default: ''
+        description: ''
+        name: JOBS_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: OPENSTACK_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: BROWBEAT_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: OPENSHIFT_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: SETUP_PBENCH_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: CONFORMANCE_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: OPENSHIFT_SCALEUP_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: NODEVERTICAL_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: MASTERVERTICAL_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: LOGGING_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: HTTP_TEST_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: PGBENCH_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: PGBENCH_PROPERTY_FILE_GLUSTER_BLOCK
+    - string:
+        default: ''
+        description: ''
+        name: PODVERTICAL_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: DEPLOYMENTS_PER_NS_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: NS_PER_CLUSTER_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: MONGOYCSB_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: MONGOYCSB_PROPERTY_FILE_GLUSTER_BLOCK
+    pipeline-scm:
+      lightweight-checkout: false
+      scm:
+      - git:
+          branches:
+          - '*/master'
+          url: https://github.com/openshift/aos-cd-jobs.git
+          wipe-workspace: true
+      scriptPath: alderaan/Jenkinsfile
+    project-type: pipeline
+    properties:
+    - raw:
+        xml: |
+          <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin@1.5.3">
+          <gitLabConnection />
+          </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
+    - raw:
+        xml: |
+          <org.jenkinsci.plugins.ZMQEventPublisher.HudsonNotificationProperty plugin="zmq-event-publisher@0.0.5">
+          <enabled>false</enabled>
+          </org.jenkinsci.plugins.ZMQEventPublisher.HudsonNotificationProperty>
+    - raw:
+        xml: |
+          <com.synopsys.arc.jenkins.plugins.ownership.jobs.JobOwnerJobProperty plugin="ownership@0.11.0">
+          <ownership>
+          <ownershipEnabled>true</ownershipEnabled>
+          <primaryOwnerId>nelluri</primaryOwnerId>
+          <coownersIds class="sorted-set" />
+          </ownership>
+          </com.synopsys.arc.jenkins.plugins.ownership.jobs.JobOwnerJobProperty>
+    - raw:
+        xml: |
+          <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.27">
+          <autoRebuild>false</autoRebuild>
+          <rebuildDisabled>false</rebuildDisabled>
+          </com.sonyericsson.rebuild.RebuildSettings>
+    - raw:
+        xml: |
+          <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@2.0.1">
+          <maxConcurrentPerNode>0</maxConcurrentPerNode>
+          <maxConcurrentTotal>0</maxConcurrentTotal>
+          <categories class="java.util.concurrent.CopyOnWriteArrayList" />
+          <throttleEnabled>false</throttleEnabled>
+          <throttleOption>project</throttleOption>
+          <limitOneJobWithMatchingParams>false</limitOneJobWithMatchingParams>
+          <paramsToUseForLimit />
+          </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+    triggers: []

@@ -15,13 +15,19 @@ def pgbench_test = PGBENCH_TEST.toString().toUpperCase()
 def podvertical = PODVERTICAL.toString().toUpperCase()
 def deployments_per_ns = DEPLOYMENTS_PER_NS.toString().toUpperCase()
 def ns_per_cluster = NS_PER_CLUSTER.toString().toUpperCase()
-
+def create_jobs = CREATE_JOBS_FROM_JJB.toString().toUpperCase()
+ 
 node {
 	// clear workspace
 	deleteDir()
 
 	// clone aos-cd-jobs repo where all the pipeline scripts exist
 	sh "git clone https://github.com/openshift/aos-cd-jobs.git"
+	
+	// create jenkins jobs using the jjb templated in openshift-qe jenkins 
+	if (create_jobs == "TRUE") {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/create_jobs.groovy"
+	}
 
 	// stage to install openstack
 	if (install_openstack == "TRUE") {

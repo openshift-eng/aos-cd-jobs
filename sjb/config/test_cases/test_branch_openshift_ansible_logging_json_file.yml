@@ -66,8 +66,6 @@ extensions:
                          -e openshift_logging_es_ops_allow_external=True                          \
                          -e oreg_url='openshift/origin-${component}:'"${release_commit:-latest}"                 \
                          -e openshift_logging_elasticsearch_proxy_image="docker.io/openshift/oauth-proxy:v1.0.0" \
-                         -e openshift_logging_es_nodeselector={'node-role.kubernetes.io/infra': 'true'}          \
-                         -e openshift_logging_es_ops_nodeselector={'node-role.kubernetes.io/infra': 'true'}      \
                          ${EXTRA_EVARS:-} \
                          ${playbook} \
                          ${logging_extras} \

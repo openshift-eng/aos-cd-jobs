@@ -9,6 +9,7 @@ import argparse
 import colorama
 import datetime
 import dateutil.parser
+import json
 import re
 import sys
 
@@ -57,6 +58,12 @@ class LinenoStyle(BaseStyle):
     def __init__(self, stream, stack):
         super(LinenoStyle, self).__init__(stream, stack)
         self.style = colorama.Fore.BLUE
+
+
+class ErrorStyle(BaseStyle):
+    def __init__(self, stream, stack):
+        super(ErrorStyle, self).__init__(stream, stack)
+        self.style = colorama.Fore.RED + colorama.Style.BRIGHT
 
 
 class MessageStyle(BaseStyle):
@@ -118,6 +125,26 @@ class Line(object):
         stream.write('\n')
 
 
+class ErrorLine(Line):
+
+    def __init__(self, lineno, message, json=None):
+        super(ErrorLine, self).__init__(lineno, message)
+        self.json = json
+
+    def write_message(self, stream):
+        with ErrorStyle(stream, self.styles):
+            stream.write('  ' + self.message)
+            if self.json:
+                json_object = json.loads(self.json)
+                # Dont' need both stderr and stderr_lines.
+                if 'stderr' in json_object:
+                    del json_object['stderr']
+                # Don't need both stdout and stdout_lines.
+                if 'stdout' in json_object:
+                    del json_object['stdout']
+                stream.write(json.dumps(json_object, indent=4))
+
+
 class PlayLine(Line):
 
     def __init__(self, lineno, message):
@@ -125,6 +152,7 @@ class PlayLine(Line):
         self.timestamp = None
         self.duration = datetime.timedelta()
         self.hosts = set()
+        self.errors = []
 
         # None  = unknown
         # True  = all hosts in all tasks skipped
@@ -157,6 +185,9 @@ class PlayLine(Line):
             elif self.duration.total_seconds() >= self.MIN_DURATION_SECONDS:
                 with InformationStyle(stream, self.styles):
                     stream.write(' took {0}s'.format(self.duration))
+            while self.errors:
+                stream.write('\n')
+                self.errors.pop(0).write(stream)
 
 
 def main():
@@ -176,8 +207,9 @@ def main():
     # Compile regexp patterns
     re_operation   = re.compile('Running operation: [a-z-]+')
     re_play        = re.compile('PLAY \[(.*)\]')
-    re_task        = re.compile('TASK \[(.*)\]')
+    re_task        = re.compile('(TASK|RUNNING HANDLER) \[(.*)\]')
     re_timestamp   = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
+    re_host_error  = re.compile('^(fatal: \[(.*)\]: FAILED! => )(\{.*\})')
     re_host_result = re.compile('^(ok|changed|skipping): \[(.*?)( .*?)?\]')
 
     timestamp_init = None
@@ -224,6 +256,14 @@ def main():
                         play.skipped = skipped
                     else:
                         play.skipped &= skipped
+
+            result = re_host_error.match(line)
+            if result:
+                message = result.group(1)
+                host    = result.group(2)
+                jsonstr = result.group(3)
+                play.hosts.add(host)
+                play.errors.append(ErrorLine(lineno, message, jsonstr))
 
             # TASK data ends with blank line
             if play.hosts and not line:

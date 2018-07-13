@@ -207,7 +207,7 @@ def main():
     # Compile regexp patterns
     re_operation   = re.compile('Running operation: [a-z-]+')
     re_play        = re.compile('PLAY \[(.*)\]')
-    re_task        = re.compile('TASK \[(.*)\]')
+    re_task        = re.compile('(TASK|RUNNING HANDLER) \[(.*)\]')
     re_timestamp   = re.compile('^(.*) \((\d+)\:(\d+)\:(\d+)\.(\d+)\)')
     re_host_error  = re.compile('^(fatal: \[(.*)\]: FAILED! => )(\{.*\})')
     re_host_result = re.compile('^(ok|changed|skipping): \[(.*?)( .*?)?\]')

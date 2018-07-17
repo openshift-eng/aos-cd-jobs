@@ -137,6 +137,19 @@ def initialize_origin_web_console_server_dir() {
     echo "Initialized env.WEB_CONSOLE_SERVER_DIR: ${env.WEB_CONSOLE_SERVER_DIR}"
 }
 
+def initialize_openshift_ansible() {
+    this.initialize_openshift_dir()
+    dir( OPENSHIFT_DIR ) {
+        sh "git clone ${GITHUB_BASE}/openshift-ansible.git"
+        GITHUB_URLS["openshift-ansible"] = "${GITHUB_BASE}/openshift-ansible.git"
+    }
+    OPENSHIFT_ANSIBLE_DIR = "${OPENSHIFT_DIR}/openshift-ansible"
+    GITHUB_BASE_PATHS["openshift-ansible"] = OPENSHIFT_ANSIBLE_DIR
+    env.OPENSHIFT_ANSIBLE_DIR = OPENSHIFT_ANSIBLE_DIR
+    echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
+}
+
+
 /**
  * Returns up to 100 lines of passed in spec content
  * @param spec_filename The spec filename to read
@@ -445,6 +458,10 @@ def initialize_ose() {
 
         if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/origin.git release-${spec.major_minor}" ).trim() != "" ) {
             error( "origin has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
+        }
+
+        if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/openshift-ansible.git release-${spec.major_minor}" ).trim() != "" ) {
+            error( "openshift-ansible has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
         }
 
         // origin-web-console does not work like the other repos. It always has a enterprise branch for any release in origin#master.

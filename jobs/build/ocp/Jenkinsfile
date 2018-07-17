@@ -276,6 +276,7 @@ ${image_details}
 
 Brew:
   - Openshift: ${OSE_BREW_URL}
+  - OpenShift Ansible: ${OA_BREW_URL}
 
 Jenkins job: ${env.BUILD_URL}
 
@@ -290,7 +291,7 @@ Are your OpenShift Ansible changes in this build? Check here:
 https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_VERSION}-${NEW_RELEASE}/
 
 ===OpenShift Ansible changelog snippet===
-${oa_changelog}
+${OA_CHANGELOG}
 """);
 
     try {
@@ -303,6 +304,7 @@ ${oa_changelog}
                         puddle_url=${mirrorURL}/${OCP_PUDDLE}
                         image_registry_root=registry.reg-aws.openshift.com:443
                         brew_task_url_openshift=${OSE_BREW_URL}
+                        brew_task_url_openshift_ANSIBLE=${OA_BREW_URL}
                         product=OpenShift Container Platform
                         """,
                     messageType: 'ProductBuildDone',
@@ -747,6 +749,32 @@ node(TARGET_NODE) {
 
             }
 
+            stage("openshift-ansible repo") {
+                buildlib.initialize_openshift_ansible()
+            }
+
+            stage("openshift-ansible prep") {
+                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "master"
+                dir(OPENSHIFT_ANSIBLE_DIR) {
+                    if (BUILD_MODE == "online:stg") {
+                        sh "git checkout -b stage origin/stage"
+                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "stage"
+                    } else {
+                        if (!IS_SOURCE_IN_MASTER) {
+                            // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
+                            if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
+                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
+                            } else {
+                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
+                            }
+                            sh "git checkout -b ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
+                        } else {
+                            sh "git checkout master"
+                        }
+                    }
+                }
+            }
+
             // stages after this have side effects. Testing must stop here.
             if (IS_TEST_MODE) {
                 echo(
@@ -778,8 +806,28 @@ node(TARGET_NODE) {
                 }
             }
 
-            stage("rpm builds") {
+            stage("openshift-ansible tag") {
+                dir(OPENSHIFT_ANSIBLE_DIR) {
+                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
+                        // Use legacy versioning if < 3.6
+                        sh "tito tag --debug --accept-auto-changelog"
+                    } else {
+                        // If >= 3.6, keep openshift-ansible in sync with OCP version
+                        buildlib.set_rpm_spec_version("openshift-ansible.spec", NEW_VERSION)
+                        buildlib.set_rpm_spec_release_prefix("openshift-ansible.spec", NEW_RELEASE)
+                        // Note that I did not use --use-release because it did not maintain variables like %{?dist}
+                        sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
 
+                    }
+                    if (!IS_TEST_MODE) {
+                        sh "git push"
+                        sh "git push --tags"
+                    }
+                    OA_CHANGELOG = buildlib.read_changelog("openshift-ansible.spec")
+                }
+            }
+
+            stage("rpm builds") {
                 // Allow both brew builds to run at the same time
 
                 dir(OSE_DIR) {
@@ -791,12 +839,28 @@ node(TARGET_NODE) {
                     echo "ose rpm brew task: ${OSE_BREW_URL}"
                 }
 
+                dir(OPENSHIFT_ANSIBLE_DIR) {
+                    OA_TASK_ID = sh(
+                        returnStdout: true,
+                        script: "tito release --debug --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                    )
+                    OA_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OA_TASK_ID}"
+                    echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
+                }
+
                 // Watch the tasks to make sure they succeed. If one fails, make sure the user knows which one by providing the correct brew URL
                 try {
                     sh "brew watch-task ${OSE_TASK_ID}"
                 } catch (ose_err) {
                     echo "Error in ose build task: ${OSE_BREW_URL}"
                     throw ose_err
+                }
+
+                try {
+                    sh "brew watch-task ${OA_TASK_ID}"
+                } catch (oa_err) {
+                    echo "Error in openshift-ansible build task: ${OA_BREW_URL}"
+                    throw oa_err
                 }
             }
 
@@ -857,6 +921,7 @@ images:rebase --version v${NEW_VERSION}
 
             SOURCE_BRANCHES = [
                 "ose"              : OSE_SOURCE_BRANCH,
+                "openshift-ansible": OPENSHIFT_ANSIBLE_SOURCE_BRANCH
             ]
             for (i = 0; i < distgit_notify.size(); i++) {
                 distgit = distgit_notify[i][0]

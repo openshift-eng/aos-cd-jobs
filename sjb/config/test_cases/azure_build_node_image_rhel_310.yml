@@ -34,11 +34,12 @@ actions:
   - type: "host_script"
     title: "move secrets to remote host"
     script: |-
+      # TODO: Remove token inject logic after GA
       set +x
       export KUBECONFIG=/var/lib/jenkins/.azure/kubeconfig
-      NEW_TOKEN=$(oc get secret aws-reg-token --template={{.data.token}} | base64 -d)
-      if [[ -n $NEW_TOKEN ]]; then
-        echo $NEW_TOKEN > /var/lib/jenkins/.azure/registry
+      AWS_REGISTRY_TOKEN=$(oc get secret aws-reg-token -n azure --template={{.data.token}} | base64 -d)
+      if [[ -n $AWS_REGISTRY_TOKEN ]]; then
+        echo "AWS_REGISTRY_TOKEN=$AWS_REGISTRY_TOKEN" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
       fi
       set -x
       rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/azure/
@@ -49,11 +50,13 @@ actions:
     title: "build node image"
     repository: "release"
     script: |-
-      cd cluster/test-deploy/azure
+     # TODO: Remove token injection after GA (oreg_* vars)
+     cd cluster/test-deploy/azure
       echo "Build parameters:"
       echo "openshift_azure_resource_group_name=$RESOURCE_GROUP"
       echo "openshift_azure_output_image_name=$IMAGE_NAME"
       set +x
+      export OREG_URL='registry.reg-aws.openshift.com/openshift3/ose-${component}:${version}'
       TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
         -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
         -e "openshift_azure_resource_location=eastus" \
@@ -65,9 +68,11 @@ actions:
         -e "openshift_azure_storage_account_ns=images" \
         -e "openshift_azure_container=images" \
         -e "openshift_azure_vm_size=$AZURE_VM_SIZE" \
-        -e "openshift_azure_dev_registry_token=$(cat /data/src/github.com/openshift/release/cluster/test-deploy/azure/registry)" \
+        -e "oreg_url=$OREG_URL" \
+        -e "oreg_auth_user=unused" \
+        -e "oreg_auth_password=$AWS_REGISTRY_TOKEN" \
         playbooks/azure/openshift-cluster/build_node_image.yml 
-        set -x
+      set -x
 
   - type: "script"
     title: "run the acs-engine e2e test"

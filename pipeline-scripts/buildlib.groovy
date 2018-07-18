@@ -452,10 +452,18 @@ invalid mode build != master and no release branch
     return mode
 }
 
-//
-// Create a new version string based on the build mode
-//
-//@NonCPS
+/**
+ * Create a new version string based on the build mode
+ *
+ * @param mode - The build mode string:
+ *              ['online:int', 'online:stg', 'pre-release', 'release']
+ * @param version_string - a dot separated <major>.<minor>.<release> string
+ *               Where <major>, <minor>, and <release> are integer strings
+ * @param release_string - same as the version string
+ *
+ * version_string and release_string are meant to mimic RPM version strings
+ **/
+@NonCPS
 def new_version(mode, version_string, release_string) {
 
     // version and release are arrays of dot-seprated decimals
@@ -497,13 +505,15 @@ def new_version(mode, version_string, release_string) {
     ]
 }
 
-// set the repo and branch information for each mode and build version
-// NOTE: here "origin" refers to the git reference, not to OpenShift Origin
+/** 
+ * set the repo and branch information for each mode and build version
+ * NOTE: here "origin" refers to the git reference, not to OpenShift Origin
+ *
+ * @param mode - a string indicating which branches to build from
+ * @param build_version - a version string used to compose the branch names
+ * @return a map containing the source origin and upstream branch names
+ **/
 def get_build_branches(mode, build_version) {
-    // INPUTS:
-    //   :param: mode - a string indicating which branches to build from
-    //   :param: build_version - a version string used to compose the branch names
-    //   :return: a map containing the source origin and upstream branch names
 
     switch(mode) {
         case "online:int":
@@ -526,17 +536,22 @@ def get_build_branches(mode, build_version) {
     return branch_names
 }
 
-// predicate: build with the web-server-console source tree?
+/**
+ * predicate: build with the web-server-console source tree?
+ * @param version_string - a dot separated <major>.<minor>.<release> string
+ *               Where <major>, <minor>, and <release> are integer strings
+ * @return boolean
+ **/
 def use_web_console_server(version_string) {
     // the web console server was introduced with version 3.9
     return cmp_version(version_string, "3.9") >= 0
 }
 
-// set the merge driver for a git repo
-//
-// @param repo_dir string - a git repository workspace
-// @param files List[String] - a list of file/dir strings for the merge driver
-//
+/**
+ * set the merge driver for a git repo
+ * @param repo_dir string - a git repository workspace
+ * @param files List[String] - a list of file/dir strings for the merge driver
+ **/
 @NonCPS
 def mock_merge_driver(repo_dir, files) {
 

@@ -293,18 +293,33 @@ def get_releases(repo_url) {
 }
 
 /**
+ * Read an OAuth token from a file on the jenkins server.
+ * Because groovy/jenkins sandbox won't let you read it without sh()
+ * @param token_file - a file containing a single OAuth token string
+ * @return - a string containing the OAuth token
+ */
+def read_oath_token(token_file) {
+    token_string = sh (
+        returnStdout: true,
+        script: "cat ${token_file}"
+    ).trim()
+    return token_string
+}
+
+/**
  * Retrieve a single file from a Github repository
  * @param owner
  * @param repo_name
  * @param file_name
  * @param repo_token
+ * @param branch
  * @return a string containing the contents of the specified file
  */
-def get_single_file(owner, repo_name, file_name, repo_token) {
+def get_single_file(owner, repo_name, file_name, repo_token, branch='master') {
     // Get a single file from a Github repository.
 
     auth_header = "Authorization: token " + repo_token
-    file_url = "https://api.github.com/repos/${owner}/${repo_name}/contents/${file_name}"
+    file_url = "https://api.github.com/repos/${owner}/${repo_name}/contents/${file_name}?ref=${branch}"
     accept_header = "Accept: application/vnd.github.v3.raw"
 
     query = "curl --silent -H '${auth_header}' -H '${accept_header}' -L ${file_url}"
@@ -435,6 +450,120 @@ invalid mode build != master and no release branch
 """)
     }
     return mode
+}
+
+/**
+ * Create a new version string based on the build mode
+ *
+ * @param mode - The build mode string:
+ *              ['online:int', 'online:stg', 'pre-release', 'release']
+ * @param version_string - a dot separated <major>.<minor>.<release> string
+ *               Where <major>, <minor>, and <release> are integer strings
+ * @param release_string - same as the version string
+ *
+ * version_string and release_string are meant to mimic RPM version strings
+ **/
+@NonCPS
+def new_version(mode, version_string, release_string) {
+
+    // version and release are arrays of dot-seprated decimals
+    version = version_string.tokenize('.').collect { it.toInteger() }
+    release = release_string.tokenize('.').collect { it.toInteger() }
+
+    // stage and int:
+    //   version field is N.N.N unchanged
+    //   release field is 0.I.S to differentiate builds
+    //
+
+    // pre-release and release:
+    //
+    //   version field is N.{N+1}
+    //   release field is 1
+
+    // pad release to 3 fields
+    while (version.size() < 3) { version += 0 }
+    while (release.size() < 3) { release += 0 }
+
+    switch (mode) {
+        case 'online:int':
+            release[1]++
+            release[2] = 0
+            break
+        case 'online:stg':
+            release[2]++
+            break
+        case 'release':
+        case 'pre-release':
+            version[-1]++ // this puts a colon in the final field
+            release = [1]
+            break
+    }
+
+    return [
+        'version': version.each{ it.toString() }.join('.'),
+        'release': release.each{ it.toString() }.join('.')
+    ]
+}
+
+/** 
+ * set the repo and branch information for each mode and build version
+ * NOTE: here "origin" refers to the git reference, not to OpenShift Origin
+ *
+ * @param mode - a string indicating which branches to build from
+ * @param build_version - a version string used to compose the branch names
+ * @return a map containing the source origin and upstream branch names
+ **/
+def get_build_branches(mode, build_version) {
+
+    switch(mode) {
+        case "online:int":
+            branch_names = ['origin': "master", 'upstream': "master"]
+            break
+
+        case "online:stg":
+            branch_names = ['origin': "stage", 'upstream': "stage"]
+            break
+
+        case "pre-release":
+            branch_names = ['origin': "enterprise-${build_version}", 'upstream': "release-${build_version}"]
+            break
+
+        case "release":
+            branch_names = ['origin': "enterprise-${build_version}", 'upstream': null]
+            break
+    }
+
+    return branch_names
+}
+
+/**
+ * predicate: build with the web-server-console source tree?
+ * @param version_string - a dot separated <major>.<minor>.<release> string
+ *               Where <major>, <minor>, and <release> are integer strings
+ * @return boolean
+ **/
+def use_web_console_server(version_string) {
+    // the web console server was introduced with version 3.9
+    return cmp_version(version_string, "3.9") >= 0
+}
+
+/**
+ * set the merge driver for a git repo
+ * @param repo_dir string - a git repository workspace
+ * @param files List[String] - a list of file/dir strings for the merge driver
+ **/
+@NonCPS
+def mock_merge_driver(repo_dir, files) {
+
+    Dir(repo_dir) {
+        sh "git config merge.ours.driver true"
+    }
+
+    // Use fake merge driver on specific packages
+    gitattrs = new File(repo_dir + "/.gitattributes")
+    files.each {
+            gitattrs << "${it}  merge=ours\n"
+    }
 }
 
 /**

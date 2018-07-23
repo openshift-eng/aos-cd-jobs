@@ -22,7 +22,7 @@ extensions:
     - type: "host_script"
       title: "transfer aws credentials to remote host"
       script: |-
-        scp -F ./.config/origin-ci-tool/inventory/.ssh_config ~/.aws/clusteroperator-credentials openshiftdevel:/tmp/.aws/credentials
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config ~/.aws/clusteroperator-ci-credentials openshiftdevel:/tmp/.aws/credentials
     - type: "script"
       title: "start cluster up environment"
       timeout: 600

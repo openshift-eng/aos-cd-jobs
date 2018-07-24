@@ -47,7 +47,7 @@
     register: ami_search
     retries: 30
     delay: 20
-    until: "'failed' not in ami_search"
+    until: "'results' in ami_search and ami_search.results"
 
   - name: debug the ami find
     debug:

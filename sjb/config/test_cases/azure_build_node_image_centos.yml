@@ -6,7 +6,7 @@ provision:
 sync:
   - openshift,openshift-ansible=master
   - openshift,release=master
-  - Azure,acs-engine=master
+  #- Azure,acs-engine=master
 parameters:
 - name: "AZURE_VM_SIZE"
   default_value: "Standard_D2s_v3"
@@ -57,6 +57,7 @@ actions:
   - type: "script"
     title: "run the acs-engine e2e test"
     script: |-
+      exit 0 # TODO: re-enable me
       set -a +o xtrace
       . /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
       set +a -o xtrace

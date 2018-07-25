@@ -9,7 +9,7 @@ overrides:
     - "openshift,kubernetes-metrics-server=release-3.10"
     - "openshift,origin-web-console-server=release-3.10"
     - "openshift,release=master"
-    - "Azure,acs-engine=master"
+    #- "Azure,acs-engine=master"
 extensions:
   parameters:
     - name: "SUITE"

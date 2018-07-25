@@ -3,7 +3,7 @@ parent: 'common/test_cases/origin_release_with_ecosystem_310.yml'
 extensions:
   sync:
     - openshift,release=master
-    - Azure,acs-engine=master
+    #- Azure,acs-engine=master
   parameters:
     - name: "FOCUS"
       description: "Literal string to pass to <code>--ginkgo.focus</code>"
@@ -151,6 +151,7 @@ extensions:
       title: "provision test cluster"
       repository: "release"
       script: |-
+        exit 0 # TODO: re-enable me
         cd cluster/test-deploy/azure
         TYPE=azure ../../bin/ansible.sh ansible-playbook \
           -e "openshift_ci_persist_artifacts=True" \
@@ -164,6 +165,7 @@ extensions:
     - type: "script"
       title: "run the acs-engine e2e test"
       script: |-
+        exit 0 # TODO: re-enable me
         set -a +o xtrace
         . /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
         set +a -o xtrace
@@ -199,6 +201,7 @@ extensions:
     - type: "host_script"
       title: "hold failed test cluster for debug"
       script: |-
+        exit 0 # TODO: re-enable me
         trap 'exit 0' EXIT
 
         if [[ "$BUILD_RESULT" == "SUCCESS" || -z "$DEBUG_MAIL" || "$JOB_NAME" != test_branch_* || ! -e debuggable ]]; then

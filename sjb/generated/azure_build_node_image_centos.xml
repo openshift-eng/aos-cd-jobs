@@ -170,7 +170,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,release=master --repo=Azure,acs-engine=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,release=master }
 docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
@@ -251,6 +251,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
+exit 0 # TODO: re-enable me
 set -a +o xtrace
 . /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
 set +a -o xtrace

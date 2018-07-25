@@ -203,7 +203,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,origin=release-3.10 --repo=openshift,aos-cd-jobs=master --repo=openshift,service-catalog=release-3.10 --repo=openshift,image-registry=release-3.10 --repo=openshift,kubernetes-metrics-server=release-3.10 --repo=openshift,origin-web-console-server=release-3.10 --repo=openshift,release=master --repo=Azure,acs-engine=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,origin=release-3.10 --repo=openshift,aos-cd-jobs=master --repo=openshift,service-catalog=release-3.10 --repo=openshift,image-registry=release-3.10 --repo=openshift,kubernetes-metrics-server=release-3.10 --repo=openshift,origin-web-console-server=release-3.10 --repo=openshift,release=master }
 docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
@@ -642,6 +642,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
+exit 0 # TODO: re-enable me
 cd cluster/test-deploy/azure
 TYPE=azure ../../bin/ansible.sh ansible-playbook \
   -e &#34;openshift_ci_persist_artifacts=True&#34; \
@@ -664,6 +665,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
+exit 0 # TODO: re-enable me
 set -a +o xtrace
 . /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
 set +a -o xtrace
@@ -880,6 +882,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: HOLD FAILED TEST CLUSTER FOR DEBUG ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: HOLD FAILED TEST CLUSTER FOR DEBUG [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+exit 0 # TODO: re-enable me
 trap &#39;exit 0&#39; EXIT
 
 if [[ &#34;$BUILD_RESULT&#34; == &#34;SUCCESS&#34; || -z &#34;$DEBUG_MAIL&#34; || &#34;$JOB_NAME&#34; != test_branch_* || ! -e debuggable ]]; then

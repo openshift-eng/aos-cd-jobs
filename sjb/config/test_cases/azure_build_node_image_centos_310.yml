@@ -10,17 +10,20 @@ sync:
 parameters:
 - name: AZURE_VM_SIZE
   default_value: "Standard_D2s_v3"
+- name: "OPENSHIFT_RELEASE"
+  default_value: "3.10"
 actions:
   - type: "forward_parameters"
     parameters:
       - JOB_SPEC
       - AZURE_VM_SIZE
+      - OPENSHIFT_RELEASE
 
   - type: "host_script"
     title: "determine the resource group"
     script: |-
       echo "RESOURCE_GROUP=ci-$JOB_NAME-$BUILD_NUMBER" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
-      echo "IMAGE_NAME=centos7-3.10-$(TZ=Etc/UTC date +%Y%m%d%H%M)" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
+      echo "IMAGE_NAME=centos7-$OPENSHIFT_RELEASE-$(TZ=Etc/UTC date +%Y%m%d%H%M)" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
 
   - type: "script"
     title: "build openshift installer image"
@@ -82,7 +85,7 @@ actions:
         -e CLIENT_SECRET=$AZURE_SECRET \
         -e TENANT_ID=$AZURE_TENANT \
         -e SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
-        registry.svc.ci.openshift.org/azure/acs-engine-tests:v3.10 make test-openshift
+        registry.svc.ci.openshift.org/azure/acs-engine-tests:v$OPENSHIFT_RELEASE make test-openshift
       set -o xtrace
 
   - type: "script"

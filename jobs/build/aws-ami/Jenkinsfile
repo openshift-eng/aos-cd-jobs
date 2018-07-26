@@ -64,7 +64,7 @@ openshift_additional_repos:
   gpgkey: 'https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-release https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-beta https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted'
 - name: fastdata
   description: 'Fastdata provides the official builds of OVS OpenShift supports'
-  baseurl: https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/
+  baseurl: 'https://mirror.ops.rhcloud.com/enterprise/rhel/rhel-7-fast-datapath-rpms/'
   file: 'fastdata-ovs'
   sslverify: False
   sslclientkey: /var/lib/yum/client-key.pem
@@ -76,7 +76,7 @@ openshift_additional_repos:
   file: ops-rpm
   state: present
   description: "Ops RPM Repo - Prod"
-  baseurl: 'https://mirror.ops.rhcloud.com/libra/ops-rpm-7/$basearch/'
+  baseurl: 'https://mirror.ops.rhcloud.com/libra/ops-rpm-7/\$basearch/'
   enabled: yes
   gpgcheck: yes
   sslverify: no

@@ -98,6 +98,10 @@ node {
 	if ( ns_per_cluster == "TRUE" ) {
 		load "aos-cd-jobs/alderaan/pipeline-scripts/ns_per_cluster.groovy"
 	}
+	// stage to run mongodb ycsb scale test
+	if ( mongodb_ycsb_test == "TRUE" ) {
+		load "aos-cd-jobs/alderaan/pipeline-scripts/mongodbycsb.groovy"
+	}
 
 	mail(
 		to: contact,

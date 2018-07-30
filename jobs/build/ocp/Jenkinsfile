@@ -192,15 +192,15 @@ def get_changelog(rpm_name, record_log) {
     // get the build ID from the web page
     // there must be an API way to do this MAL 20180622
     try {
-	build_id = sh(
+        build_id = sh(
             returnStdout: true,
             script: [
-		"curl --silent --insecure ${task_url}",
-		"sed -n -e 's/.*buildID=\\([0-9]*\\).*/\\1/p'"
+                "curl --silent --insecure ${task_url}",
+                "sed -n -e 's/.*buildID=\\([0-9]*\\).*/\\1/p'"
             ].join(" | ")
-	).trim()
+        ).trim()
     } catch (err) {
-	error("failed to retrieve task page from brew: ${task_url}")
+        error("failed to retrieve task page from brew: ${task_url}")
     }
 
     // buildinfo can return the changelog.  Return just the text after
@@ -361,6 +361,9 @@ def get_image_build_report(record_log) {
 // extract the path to the spec file and return the changelog section.
 def get_rpm_specfile_path(record_log, package_name) {
     rpms = record_log['build_rpm']
+    if (rpms == null) {
+        return null
+    }
 
     // find the named package and the spec file path
     specfile_path = ""
@@ -1129,19 +1132,7 @@ Jenkins job: ${env.BUILD_URL}
                     );
                 }
             }
-
-            record_log = buildlib.parse_record_log(OIT_WORKING)
-            oa_specfile = get_rpm_specfile_path(record_log, "openshift-ansible")
-	    try {
-		retry(3) {
-		    oa_changelog = get_changelog("openshift-ansible", record_log)
-		}
-	    } catch (changelog_err) {
-		echo "WARNING: unable to retrieve changelog for openshift-ansible: ${changelog_err}"
-		oa_changelog = "WARNING: unable to retrieve changelog for openshift-ansible.  See console output"
-	    }
-
-            mail_success(NEW_FULL_VERSION, mirror_url, record_log, oa_changelog)
+            mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG)
         }
     } catch (err) {
 

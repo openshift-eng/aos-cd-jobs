@@ -291,7 +291,7 @@ Are your OpenShift Ansible changes in this build? Check here:
 https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_VERSION}-${NEW_RELEASE}/
 
 ===OpenShift Ansible changelog snippet===
-${OA_CHANGELOG}
+${oa_changelog}
 """);
 
     try {

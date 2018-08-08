@@ -16,12 +16,7 @@ _PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinitio
 _GCS_UPLOAD = """docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 """
 
-_CLONEREFS_ACTION_TEMPLATE = Template("""if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
-  echo "Keeping BUILD_ID"
-else
-  echo "Using BUILD_NUMBER"
-  JOB_SPEC="$( jq --compact-output '.buildid |= "'"${BUILD_NUMBER}"'"' <<<"${JOB_SPEC}" )"
-fi
+_CLONEREFS_ACTION_TEMPLATE = Template("""JOB_SPEC="$( jq --compact-output '.buildid |= "'"${BUILD_NUMBER}"'"' <<<"${JOB_SPEC}" )"
 for image in 'registry.svc.ci.openshift.org/ci/clonerefs:latest' 'registry.svc.ci.openshift.org/ci/initupload:latest'; do
     for (( i = 0; i < 5; i++ )); do
         if docker pull "${image}"; then

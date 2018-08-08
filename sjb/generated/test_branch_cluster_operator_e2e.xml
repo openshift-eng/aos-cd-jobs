@@ -386,7 +386,7 @@ cd &#34;\${GOPATH}/src/github.com/openshift/cluster-operator&#34;
 hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
 export CLUSTER_NAME=&#34;co-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
 export PATH=&#34;\${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin:\$(pwd)/bin&#34;
-sudo env &#34;PATH=\${PATH}&#34; wait-for-cluster-ready --master-install-timeout=40m \${CLUSTER_NAME}
+sudo env &#34;PATH=\${PATH}&#34; coutil wait-for-cluster-ready --master-install-timeout=40m \${CLUSTER_NAME}
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -67,13 +67,7 @@ actions:
       }
       STARTED
 
-      if [[ "$( jq --compact-output ".buildid" <<<"${JOB_SPEC}" )" =~ ^\"[0-9]+\"$ ]]; then
-        echo "Keeping BUILD_ID"
-        BUILD="${BUILD_ID}"
-      else
-        echo "Using BUILD_NUMBER"
-        BUILD="${BUILD_NUMBER}"
-      fi
+      BUILD="${BUILD_NUMBER}"
 
       gsutil cp gcs/started.json "gs://kubernetes-github-redhat/logs/${JOB_NAME}/${BUILD}/started.json"
       echo ${BUILD} > latest-build.txt

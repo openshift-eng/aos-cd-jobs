@@ -73,7 +73,7 @@ extensions:
         hashed_identifier="$( echo "${JOB_NAME}" | sha1sum )"
         export CLUSTER_NAME="co-${hashed_identifier:0:7}-${BUILD_NUMBER}"
         export PATH="${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin:$(pwd)/bin"
-        sudo env "PATH=${PATH}" wait-for-cluster-ready --master-install-timeout=40m ${CLUSTER_NAME}
+        sudo env "PATH=${PATH}" coutil wait-for-cluster-ready --master-install-timeout=40m ${CLUSTER_NAME}
 
   post_actions:
     - type: "script"

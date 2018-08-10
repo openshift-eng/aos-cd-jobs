@@ -103,3 +103,6 @@ ENV/
 
 # Generated shell files
 sjb/generated/*.sh
+
+# Emacs backups
+*~

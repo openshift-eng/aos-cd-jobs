@@ -101,6 +101,9 @@
       fmo_mount_point: /var
       fmo_mount_options: rw,relatime,seclabel,attr2,inode64,grpquota
 
+  - name: This disables the hyperthreading to fix the new security issue
+    command: grubby --args=nosmt --update-kernel=ALL
+
   - name: Update all packages
     yum:
       name:  "*"

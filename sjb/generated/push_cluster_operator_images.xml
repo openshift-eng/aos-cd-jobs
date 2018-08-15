@@ -307,9 +307,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/cluster-operator&#34;
 make images
-sudo mkdir -p \$(pwd)/bin/cluster-api
-sudo chmod 777 \$(pwd)/bin/cluster-api
-make kubernetes-cluster-api
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -353,13 +350,10 @@ docker tag cluster-operator-ansible:canary registry.svc.ci.openshift.org/openshi
 docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
 
 docker tag cluster-operator-ansible:v3.10 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
-docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
 
 docker tag cluster-operator-ansible:v3.9 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9
-docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
-
-docker tag clusterapi:latest registry.svc.ci.openshift.org/openshift-cluster-operator/kubernetes-cluster-api:latest
-docker push registry.svc.ci.openshift.org/openshift-cluster-operator/kubernetes-cluster-api:latest
+docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

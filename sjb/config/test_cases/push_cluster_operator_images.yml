@@ -7,9 +7,6 @@ extensions:
       repository: "cluster-operator"
       script: |-
         make images
-        sudo mkdir -p $(pwd)/bin/cluster-api
-        sudo chmod 777 $(pwd)/bin/cluster-api
-        make kubernetes-cluster-api
     - type: "script"
       title: "create directory for docker config"
       script: |-
@@ -35,10 +32,7 @@ extensions:
         docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
 
         docker tag cluster-operator-ansible:v3.10 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
-        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
 
         docker tag cluster-operator-ansible:v3.9 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9
-        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
-
-        docker tag clusterapi:latest registry.svc.ci.openshift.org/openshift-cluster-operator/kubernetes-cluster-api:latest
-        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/kubernetes-cluster-api:latest
+        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9

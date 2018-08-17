@@ -4,7 +4,6 @@ overrides:
   junit_analysis: False
   email:
     - mkhan@redhat.com
-    - jliggitt@redhat.com
     - ssorce@redhat.com
     - aos-security-team@redhat.com
   sync:

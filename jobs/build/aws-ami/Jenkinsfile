@@ -320,7 +320,7 @@ node(TARGET_NODE) {
             sh '''
 [ -e env/ ] || virtualenv env/
 env/bin/pip install --upgrade pip
-env/bin/pip install --upgrade 'ansible==2.6' boto boto3
+env/bin/pip install --upgrade 'ansible==2.6.2' boto boto3
 '''
         }
         stage('build') {

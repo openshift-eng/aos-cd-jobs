@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def mastervertical = MASTERVERTICAL_SCALE_TEST.toString().toUpperCase()
+def property_file_name = "mastervert.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run mastervert test
 stage('mastervertical_scale_test') {
@@ -11,15 +13,14 @@ stage('mastervertical_scale_test') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("mastervert.properties")) {
-				println "Looks like mastervert.properties file already exists, erasing it"
-				sh "rm mastervertical.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the property file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/mastervert.properties"
-			sh "wget ${MASTERVERTICAL_PROPERTY_FILE} -O mastervert.properties"
-                        sh "cat mastervert.properties"
-			def mastervertical_properties = readProperties file: "mastervert.properties"
+			sh "wget ${MASTERVERTICAL_PROPERTY_FILE} -O ${property_file_name}"
+                        sh "cat ${property_file_name}"
+			def mastervertical_properties = readProperties file: property_file_name
 			def jump_host = mastervertical_properties['JUMP_HOST']
 			def user = mastervertical_properties['USER']
 			def tooling_inventory_path = mastervertical_properties['TOOLING_INVENTORY']

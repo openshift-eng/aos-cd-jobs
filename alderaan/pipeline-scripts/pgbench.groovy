@@ -1,22 +1,24 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.3'
 def pgbench_test = PGBENCH_TEST.toString().toUpperCase()
+def property_file_name = "pgbench.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run pgbench scale test
 stage ('pgbench_scale_test_glusterfs') {
 	if ( pgbench_test == "TRUE") {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
-			if (fileExists("pgbench.properties")) {
+			if (fileExists(property_file_name)) {
 				println "pgbench_scale_test.properties file exist... deleting it..."
-				sh "rm pgbench.properties"
+				sh "rm ${property_file_name}"
 				}
-			sh "wget -O pgbench.properties ${PGBENCH_PROPERTY_FILE}"
-			sh "cat pgbench.properties"
-			def pgbench_scale_test_properties = readProperties file: "pgbench.properties"
+			sh "wget -O ${property_file_name} ${PGBENCH_PROPERTY_FILE}"
+			sh "cat ${property_file_name}"
+			def pgbench_scale_test_properties = readProperties file: property_file_name
 			def NAMESPACE = pgbench_scale_test_properties['NAMESPACE']
 			def TRANSACTIONS = pgbench_scale_test_properties['TRANSACTIONS']
 			def TEMPLATE = pgbench_scale_test_properties['TEMPLATE']

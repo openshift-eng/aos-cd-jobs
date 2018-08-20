@@ -1,22 +1,24 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.3'
 def mongodb_ycsb_test = MONGODB_YCSB_TEST.toString().toUpperCase()
+def property_file_name = "mongodbycsb.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run mongoycsb scale test
 stage ('mongoycsb_scale_test_glusterfs') {
 		  if ( mongodb_ycsb_test == "TRUE") {
 			currentBuild.result = "SUCCESS"
 			node('CCI && US') {
-				if (fileExists("mongodbycsb.properties")) {
-					println "mongodbycsb.properties... deleting it..."
-					sh "rm mongodbycsb.properties"
+				if (fileExists(property_file_name)) {
+					println "Property file already exists... deleting it..."
+					sh "rm ${property_file_name}"
 				}
-				sh "wget -O mongodbycsb.properties ${MONGOYCSB_PROPERTY_FILE}"
-				sh "cat mongodbycsb.properties"
-				def mongodbycsb_scale_test_properties = readProperties file: "mongodbycsb.properties"
+				sh "wget -O ${property_file_name} ${MONGOYCSB_PROPERTY_FILE}"
+				sh "cat ${property_file_name}"
+				def mongodbycsb_scale_test_properties = readProperties file: property_file_name
 				def MEMORY_LIMIT = mongodbycsb_scale_test_properties['MEMORY_LIMIT']
 				def YCSB_THREADS = mongodbycsb_scale_test_properties['YCSB_THREADS']
 				def WORKLOAD = mongodbycsb_scale_test_properties['WORKLOAD']

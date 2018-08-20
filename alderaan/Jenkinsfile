@@ -16,91 +16,97 @@ def podvertical = PODVERTICAL.toString().toUpperCase()
 def deployments_per_ns = DEPLOYMENTS_PER_NS.toString().toUpperCase()
 def ns_per_cluster = NS_PER_CLUSTER.toString().toUpperCase()
 def create_jobs = CREATE_JOBS_FROM_JJB.toString().toUpperCase()
- 
-node {
-	// clear workspace
-	deleteDir()
+def networking = NETWORKING.toString().toUpperCase() 
 
-	// clone aos-cd-jobs repo where all the pipeline scripts exist
-	sh "git clone https://github.com/openshift/aos-cd-jobs.git"
+node {
+	// setup the repo containing the pipeline scripts
+	stage('cloning pipeline repo') {
+		checkout scm
+	}
 	
 	// create jenkins jobs using the jjb templated in openshift-qe jenkins 
 	if (create_jobs == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/create_jobs.groovy"
+		load "alderaan/pipeline-scripts/create_jobs.groovy"
 	}
 
 	// stage to install openstack
 	if (install_openstack == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/openstack.groovy"
+		load "alderaan/pipeline-scripts/openstack.groovy"
 	}
 
 	// stage to set up browbeat
 	if (browbeat == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/browbeat.groovy"
+		load "alderaan/pipeline-scripts/browbeat.groovy"
 	}
 
 	// stage to install openshift
 	if (openshift_install == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/openshift.groovy"
+		load "alderaan/pipeline-scripts/openshift.groovy"
 	}
 
 	// stage to setup pbench
 	if (setup_tooling == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/tooling.groovy"
+		load "alderaan/pipeline-scripts/tooling.groovy"
 	}
 
 	// stage to run conformance
 	if (run_conformance == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/conformance.groovy"
+		load "alderaan/pipeline-scripts/conformance.groovy"
 	}
 
 	// stage to scaleup the cluster
 	if (scaleup == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/scaleup.groovy"
+		load "alderaan/pipeline-scripts/scaleup.groovy"
 	}
 
 	// stage to run nodevertical scale test
 	if (nodevertical == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/nodevertical.groovy"
-	}
-
-	// stage to run mastervertical scale test
-	if (mastervertical == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/mastervertical.groovy"
-	}
-
-	// stage to run logging scale test
-	if (logging == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/logging.groovy"
+		load "alderaan/pipeline-scripts/nodevertical.groovy"
 	}
 
 	// stage to run http scale test
 	if (http == "TRUE") {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/http.groovy"
-	}
-
-	// stage to run pgbench scale test
-	if ( pgbench_test == "TRUE" ) {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/pgbench.groovy"
-	}
-
-	// stage to run podvertical test
-	if ( podvertical == "TRUE" ) {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/podvertical.groovy"
+		load "alderaan/pipeline-scripts/http.groovy"
 	}
 
 	// stage to run deployments per ns test
 	if ( deployments_per_ns == "TRUE" ) {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/deployments_per_ns.groovy"
+		load "alderaan/pipeline-scripts/deployments_per_ns.groovy"
+	}
+
+	// stage to run podvertical test
+	if ( podvertical == "TRUE" ) {
+		load "alderaan/pipeline-scripts/podvertical.groovy"
+	}
+
+	// stage to run networking test
+	if ( networking == "TRUE" ) {
+		load "alderaan/pipeline-scripts/networking.groovy"
+	}
+
+	// stage to run pgbench scale test
+	if ( pgbench_test == "TRUE" ) {
+		load "alderaan/pipeline-scripts/pgbench.groovy"
+	}
+
+	// stage to run mongodb ycsb scale test
+	if ( mongodb_ycsb_test == "TRUE" ) {
+		load "alderaan/pipeline-scripts/mongodbycsb.groovy"
+	}
+
+	// stage to run mastervertical scale test
+	if (mastervertical == "TRUE") {
+		load "alderaan/pipeline-scripts/mastervertical.groovy"
 	}
 
 	// stage to run ns_per_cluster test
 	if ( ns_per_cluster == "TRUE" ) {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/ns_per_cluster.groovy"
+		load "alderaan/pipeline-scripts/ns_per_cluster.groovy"
 	}
-	// stage to run mongodb ycsb scale test
-	if ( mongodb_ycsb_test == "TRUE" ) {
-		load "aos-cd-jobs/alderaan/pipeline-scripts/mongodbycsb.groovy"
+
+	// stage to run logging scale test
+	if (logging == "TRUE") {
+		load "alderaan/pipeline-scripts/logging.groovy"
 	}
 
 	mail(

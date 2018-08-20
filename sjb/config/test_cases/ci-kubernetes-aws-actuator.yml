@@ -1,0 +1,236 @@
+---
+parent: 'common/test_cases/minimal.yml'
+extensions:
+  actions:
+    - type: "host_script"
+      title: "Upload the default AWS credentiasl"
+      script: |-
+         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir ~/.aws"
+         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws
+    - type: "script"
+      title: "Install minikube"
+      script: |-
+        # Install minikube
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.28.0/minikube-linux-amd64
+        chmod +x minikube
+        sudo mv minikube /usr/bin/
+        # Install kubectl
+        curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl
+        chmod +x kubectl
+        sudo mv kubectl /usr/bin/
+    - type: "script"
+      title: "Deploy kubernetes"
+      script: |-
+        sudo setenforce 0
+        # https://github.com/kubernetes/minikube/blob/master/docs/configuring_kubernetes.md
+        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd
+    - type: "script"
+      title: "Build the machine controller"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws
+        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+        sudo mv /data/bin/imagebuilder /usr/bin
+        sudo make -C cmd/machine-controller
+    - type: "script"
+      title: "Deploy manifests"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
+        sudo pip install awscli
+
+        set +x
+        cat << HEREDOC > addons.yaml
+        ---
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: test
+        ---
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: aws-credentials-secret
+          namespace: test
+        type: Opaque
+        data:
+          awsAccessKeyId: $(echo -n $(aws configure get aws_access_key_id) | base64)
+          awsSecretAccessKey: $(echo -n $(aws configure get aws_secret_access_key) | base64)
+        HEREDOC
+        set -x
+
+        cat << HEREDOC > machine.yaml
+        ---
+        apiVersion: "cluster.k8s.io/v1alpha1"
+        kind: Cluster
+        metadata:
+          name: tb-asg-35
+          namespace: test
+        spec:
+          clusterNetwork:
+            services:
+              cidrBlocks:
+                - "10.0.0.1/24"
+            pods:
+              cidrBlocks:
+                - "10.0.0.2/24"
+            serviceDomain: example.com
+        ---
+        apiVersion: "cluster.k8s.io/v1alpha1"
+        kind: Machine
+        metadata:
+          name: aws-actuator-testing-machine-pr-${BUILD_NUMBER}-${PULL_NUMBER}
+          namespace: test
+          generateName: vs-master-
+          labels:
+            sigs.k8s.io/cluster-api-cluster: tb-asg-35
+            sigs.k8s.io/cluster-api-machine-role: infra
+            sigs.k8s.io/cluster-api-machine-type: master
+        spec:
+          providerConfig:
+            value:
+              apiVersion: awsproviderconfig/v1alpha1
+              kind: AWSMachineProviderConfig
+              ami:
+                id: ami-a9acbbd6
+              credentialsSecret:
+                name: aws-credentials-secret
+              instanceType: m4.xlarge
+              placement:
+                region: us-east-1
+                availabilityZone: us-east-1a
+              subnet:
+                id: subnet-0e56b13a64ff8a941
+              iamInstanceProfile:
+                id: openshift_master_launch_instances
+              keyName: libra
+              tags:
+                - name: openshift-node-group-config
+                  value: node-config-master
+                - name: host-type
+                  value: master
+                - name: sub-host-type
+                  value: default
+              securityGroups:
+                - id: sg-00868b02fbe29de17
+                - id: sg-0a4658991dc5eb40a
+                - id: sg-009a70e28fa4ba84e
+                - id: sg-07323d56fb932c84c
+                - id: sg-08b1ffd32874d59a2
+              publicIP: true
+            versions:
+              kubelet: 1.10.1
+              controlPlane: 1.10.1
+        HEREDOC
+
+        sudo kubectl apply -f addons.yaml
+        sudo kubectl apply -f cluster-api-server.yaml
+        sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
+        sudo kubectl apply -f provider-components.yml
+    - type: "script"
+      title: "Deploy machine manifests and verify aws instance is created"
+      script: |-
+        set +x
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
+
+        echo "### Wait until the aggregated apiserver is running (5 minutes at most)"
+        retry=0
+        while [[ $retry -le 150 ]]; do
+                IS_READY=$(sudo kubectl get deployment clusterapi-apiserver -o json | jq  '.status | select(.readyReplicas != null) | .readyReplicas' | wc -l)
+                echo "$(date): aggreagted apiserver ready = ${IS_READY}"
+                if [[ ${IS_READY} -eq 0 ]]; then
+                        retry=$((retry+1))
+                        sleep 2s
+                        continue
+                fi
+                break
+        done
+
+        if [[ ${IS_READY} -eq 0 ]]; then
+                echo "aggregated apiserver still not ready"
+                exit 1
+        fi
+
+        echo "### Give the apiserver sometime so it starts serving as well"
+        sleep 5s
+
+        sudo kubectl apply -f machine.yaml --validate=false
+        echo "### wait until the instance is running (5 minutes at most)"
+        retry=0
+        running=0
+        while [[ $retry -le 150 ]]; do
+                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-pr-${BUILD_NUMBER}-${PULL_NUMBER}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
+                echo "$(date): instance is ${instanceState}"
+                if [[ "${instanceState}" != "running" ]]; then
+                        retry=$((retry+1))
+                        sleep 2s
+                        continue
+                fi
+                running=1
+                break
+        done
+
+        echo "### Remove the instance"
+        sudo kubectl delete -f machine.yaml
+
+        echo "### Wait until the instance is terminated"
+        retry=0
+        terminated=0
+        while [[ $retry -le 150 ]]; do
+                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-pr-${BUILD_NUMBER}-${PULL_NUMBER}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
+                echo "$(date): instance is ${instanceState}"
+                if [[ "${instanceState}" != "terminated" ]]; then
+                        retry=$((retry+1))
+                        sleep 2s
+                        continue
+                fi
+                terminated=1
+                break
+        done
+
+        if [[ $running -ne 1 ]]; then
+            echo "The aws instance was not running in 5 minutes"
+        fi
+        if [[ $terminated -ne 1 ]]; then
+            echo "The aws instance was not terminated in 5 minutes"
+        fi
+        if [[ $running -ne 1 || $terminated -ne 1 ]]; then
+            exit 1
+        fi
+
+        echo "The aws instance was running and terminated"
+  system_journals:
+    - systemd-journald.service
+overrides:
+  post_actions:
+    - type: "host_script"
+      title: "assemble GCS output"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+        result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+        cat <<FINISHED >gcs/finished.json
+        {
+          "timestamp": $( date +%s ),
+          "result": "${result}"
+        }
+        FINISHED
+        cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+        cp artifacts/generated/* gcs/artifacts/generated/
+        cp artifacts/journals/* gcs/artifacts/journals/
+
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+    - type: "script"
+      title: "push the artifacts and metadata"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        if [[ -n "${JOB_SPEC:-}" ]]; then
+          JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
+          gcloud auth activate-service-account --key-file /data/credentials.json
+          gcloud config set project openshift-gce-devel
+          docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+        fi

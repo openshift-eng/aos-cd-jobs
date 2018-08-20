@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def logging = LOGGING_SCALE_TEST.toString().toUpperCase()
+def property_file_name = "logging.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run logging scale test
 stage ('logging_scale_test') {
@@ -11,15 +13,14 @@ stage ('logging_scale_test') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("logging.properties")) {
-				println "Looks like logging.properties file already exists, erasing it"
-				sh "rm logging.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the property file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/logging.properties"
-			sh "wget ${LOGGING_PROPERTY_FILE} -O logging.properties"
-			sh "cat logging.properties"
-			def logging_properties = readProperties file: "logging.properties"
+			sh "wget ${LOGGING_PROPERTY_FILE} -O ${property_file_name}"
+			sh "cat ${property_file_name}"
+			def logging_properties = readProperties file: property_file_name
 			def jump_host = logging_properties['JUMP_HOST']
 			def user = logging_properties['USER']
 			def tooling_inventory_path = logging_properties['TOOLING_INVENTORY']

@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def http_test = HTTP_TEST.toString().toUpperCase()
+def property_file_name = "http_test.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run HTTP test
 stage('http_test_scale_test') {
@@ -11,14 +13,14 @@ stage('http_test_scale_test') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("http_test.properties")) {
-				println "Looks like http_test.properties file already exists, erasing it"
-				sh "rm http_test.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the propertyfile already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
 			sh "wget ${HTTP_TEST_PROPERTY_FILE}"
-			sh "cat http_test.properties"
-			def http_test_properties = readProperties file: "http_test.properties"
+			sh "cat ${property_file_name}"
+			def http_test_properties = readProperties file: property_file_name
 
 			// test properties
 			def test_cfg = http_test_properties['TEST_CFG']

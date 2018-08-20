@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def deployments_per_ns = DEPLOYMENTS_PER_NS.toString().toUpperCase()
+def property_file_name = "deployments_per_ns.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run deployments_per_ns scale test
 stage ('deployments_per_ns_scale_test') {
@@ -11,15 +13,14 @@ stage ('deployments_per_ns_scale_test') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("deployments_per_ns.properties")) {
-				println "Looks like deployments_per_ns.properties file already exists, erasing it"
-				sh "rm deployments_per_ns.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like property file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/deployments_per_ns.properties"
-			sh "wget ${DEPLOYMENTS_PER_NS_PROPERTY_FILE} -O deployments_per_ns.properties"
-			sh "cat deployments_per_ns.properties"
-			def deployments_per_ns_properties = readProperties file: "deployments_per_ns.properties"
+			sh "wget ${DEPLOYMENTS_PER_NS_PROPERTY_FILE} -O ${property_file_name}"
+			sh "cat ${property_file_name}"
+			def deployments_per_ns_properties = readProperties file: property_file_name
 			def jump_host = deployments_per_ns_properties['JUMP_HOST']
 			def user = deployments_per_ns_properties['USER']
 			def tooling_inventory_path = deployments_per_ns_properties['TOOLING_INVENTORY']

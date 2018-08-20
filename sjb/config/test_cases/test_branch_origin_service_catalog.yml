@@ -1,6 +1,8 @@
 ---
 parent: 'common/test_cases/origin_minimal.yml'
 overrides:
+  sync:
+    - "openshift,origin=master"
   junit_analysis: False
   email:
     - jpeeler@redhat.com
@@ -23,6 +25,12 @@ extensions:
       timeout: 1800
       script: |-
         OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_PRESERVE=_output/local/bin/linux/amd64 hack/env make build
+    - type: "script"
+      title: "report commit for service catalog"
+      repository: "service-catalog"
+      timeout: 1800
+      script: |-
+        echo Last two commits for Service Catalog: $(git log -2 --pretty="%h  %an, %ai.  %s")
     - type: "script"
       title: "build service-catalog user-broker image"
       repository: "service-catalog"

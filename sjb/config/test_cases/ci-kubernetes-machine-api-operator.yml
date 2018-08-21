@@ -1,0 +1,78 @@
+---
+parent: 'common/test_cases/minimal.yml'
+extensions:
+  actions:
+    - type: "host_script"
+      title: "Upload the default AWS credentiasl"
+      script: |-
+         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir ~/.aws"
+         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws
+    - type: "script"
+      title: "Install minikube"
+      script: |-
+        # Install minikube
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.28.0/minikube-linux-amd64
+        chmod +x minikube
+        sudo mv minikube /usr/bin/
+        # Install kubectl
+        curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl
+        chmod +x kubectl
+        sudo mv kubectl /usr/bin/
+    - type: "script"
+      title: "Deploy kubernetes"
+      script: |-
+        sudo setenforce 0
+        # https://github.com/kubernetes/minikube/blob/master/docs/configuring_kubernetes.md
+        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd
+    - type: "script"
+      title: "Build the machine api operator"
+      script: |-
+        # build the mao image
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/machine-api-operator
+        go build -v -o bin/machine-api-operator github.com/openshift/machine-api-operator/cmd
+        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+        sudo mv /data/bin/imagebuilder /usr/bin
+        sudo imagebuilder -t "docker.io/machine-api-operator:$(git describe --always --abbrev=7)" .
+    - type: "script"
+      title: "Deploy and test the machine api operator"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/machine-api-operator
+        make build-e2e
+        sudo ./bin/e2e --kubeconfig /root/.kube/config --mao-image machine-api-operator:$(git describe --always --abbrev=7)
+  system_journals:
+    - systemd-journald.service
+overrides:
+  post_actions:
+    - type: "host_script"
+      title: "assemble GCS output"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        sleep 1h
+        mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+        result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+        cat <<FINISHED >gcs/finished.json
+        {
+          "timestamp": $( date +%s ),
+          "result": "${result}"
+        }
+        FINISHED
+        cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+        cp artifacts/generated/* gcs/artifacts/generated/
+        cp artifacts/journals/* gcs/artifacts/journals/
+
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+    - type: "script"
+      title: "push the artifacts and metadata"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        if [[ -n "${JOB_SPEC:-}" ]]; then
+          JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
+          gcloud auth activate-service-account --key-file /data/credentials.json
+          gcloud config set project openshift-gce-devel
+          docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+        fi

@@ -9,6 +9,30 @@ sync:
 parameters:
 - name: "AZURE_VM_SIZE"
   default_value: "Standard_D2s_v3"
+- name: JOB_SPEC
+  description: "JSON form of job specification."
+- name: BUILD_ID
+  description: "Unique build number for each run."
+- name: REPO_OWNER
+  description: "GitHub org that triggered the job."
+  default_value: openshift
+- name: REPO_NAME
+  description: "GitHub repo that triggered the job."
+  default_value: origin
+- name: PULL_BASE_REF
+  description: "Ref name of the base branch."
+- name: PULL_BASE_SHA
+  description: "Git SHA of the base branch."
+- name: PULL_REFS
+  description: "All refs to test."
+- name: PULL_NUMBER
+  description: "Pull request number."
+- name: PULL_PULL_SHA
+  description: "Pull request head SHA."
+- name: JOB_SPEC
+  description: "The job spec definition."
+- name: PROW_JOB_ID
+  description: "The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob."
 actions:
   - type: "forward_parameters"
     parameters:

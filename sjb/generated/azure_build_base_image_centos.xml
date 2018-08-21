@@ -24,6 +24,11 @@
           <defaultValue>Standard_D2s_v3</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
+          <name>PROW_JOB_ID</name>
+          <description>The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob.</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
           <name>JOB_SPEC</name>
           <description></description>
           <defaultValue></defaultValue>

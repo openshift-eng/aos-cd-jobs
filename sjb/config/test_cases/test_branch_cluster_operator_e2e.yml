@@ -8,6 +8,7 @@ extensions:
     - type: "script"
       title: "setup prerequisites"
       script: |-
+        sudo yum -y install python-devel
         sudo pip install --upgrade setuptools
         sudo pip install openshift
         sudo pip install --upgrade awscli

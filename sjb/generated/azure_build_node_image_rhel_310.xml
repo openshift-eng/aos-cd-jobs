@@ -248,14 +248,7 @@ cd cluster/test-deploy/azure
    -e &#34;openshift_azure_storage_account_ns=images&#34; \
    -e &#34;openshift_azure_container=images&#34; \
    -e &#34;openshift_azure_vm_size=\$AZURE_VM_SIZE&#34; \
-<<<<<<< HEAD
-   -e &#34;oreg_url=\$OREG_URL&#34; \
-   -e &#34;oreg_auth_user=unused&#34; \
-   -e &#34;oreg_auth_password=\$AWS_REGISTRY_TOKEN&#34; \
-   playbooks/azure/openshift-cluster/build_node_image.yml
-=======
    playbooks/azure/openshift-cluster/build_node_image.yml 
->>>>>>> post GA deprecate 3.9 builds
  set -x
 SCRIPT
 chmod +x &#34;${script}&#34;

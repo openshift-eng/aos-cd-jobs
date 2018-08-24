@@ -58,14 +58,6 @@ actions:
   - type: "host_script"
     title: "move secrets to remote host"
     script: |-
-      # TODO: Remove token inject logic after GA
-      set +x
-      export KUBECONFIG=/var/lib/jenkins/.azure/kubeconfig
-      AWS_REGISTRY_TOKEN=$(oc get secret aws-reg-token -n azure --template={{.data.token}} | base64 -d)
-      if [[ -n $AWS_REGISTRY_TOKEN ]]; then
-        echo "AWS_REGISTRY_TOKEN=$AWS_REGISTRY_TOKEN" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
-      fi
-      set -x
       rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/azure/
       ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
       ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
@@ -92,10 +84,7 @@ actions:
         -e "openshift_azure_storage_account_ns=images" \
         -e "openshift_azure_container=images" \
         -e "openshift_azure_vm_size=$AZURE_VM_SIZE" \
-        -e "oreg_url=$OREG_URL" \
-        -e "oreg_auth_user=unused" \
-        -e "oreg_auth_password=$AWS_REGISTRY_TOKEN" \
-        playbooks/azure/openshift-cluster/build_node_image.yml
+        playbooks/azure/openshift-cluster/build_node_image.yml 
       set -x
 
   - type: "script"

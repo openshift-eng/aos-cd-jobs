@@ -218,14 +218,6 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE SECRETS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE SECRETS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-# TODO: Remove token inject logic after GA
-set +x
-export KUBECONFIG=/var/lib/jenkins/.azure/kubeconfig
-AWS_REGISTRY_TOKEN=$(oc get secret aws-reg-token -n azure --template={{.data.token}} | base64 -d)
-if [[ -n $AWS_REGISTRY_TOKEN ]]; then
-  echo &#34;AWS_REGISTRY_TOKEN=$AWS_REGISTRY_TOKEN&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;
-fi
-set -x
 rsync --copy-links --omit-dir-times --archive --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; /var/lib/jenkins/.azure/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/azure/
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/azure/&#39;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/azure/&#39;</command>
@@ -256,10 +248,7 @@ cd cluster/test-deploy/azure
    -e &#34;openshift_azure_storage_account_ns=images&#34; \
    -e &#34;openshift_azure_container=images&#34; \
    -e &#34;openshift_azure_vm_size=\$AZURE_VM_SIZE&#34; \
-   -e &#34;oreg_url=\$OREG_URL&#34; \
-   -e &#34;oreg_auth_user=unused&#34; \
-   -e &#34;oreg_auth_password=\$AWS_REGISTRY_TOKEN&#34; \
-   playbooks/azure/openshift-cluster/build_node_image.yml
+   playbooks/azure/openshift-cluster/build_node_image.yml 
  set -x
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -26,7 +26,7 @@
         <hudson.model.StringParameterDefinition>
           <name>OPENSHIFT_RELEASE</name>
           <description>None</description>
-          <defaultValue>3.9</defaultValue>
+          <defaultValue>master</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>PROW_JOB_ID</name>
@@ -175,7 +175,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=release-3.9 --repo=openshift,release=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,release=master }
 docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
@@ -199,7 +199,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE THE RESOURCE GROUP ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RESOURCE GROUP [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 echo &#34;RESOURCE_GROUP=ci-$JOB_NAME-$BUILD_NUMBER&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;
-echo &#34;IMAGE_NAME=centos7-$OPENSHIFT_RELEASE-$(TZ=Etc/UTC date +%Y%m%d%H%M)&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;</command>
+echo &#34;IMAGE_NAME=rhel7-$OPENSHIFT_RELEASE-$(TZ=Etc/UTC date +%Y%m%d%H%M)&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -218,6 +218,14 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: MOVE SECRETS TO REMOTE HOST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: MOVE SECRETS TO REMOTE HOST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+# TODO: Remove token inject logic after GA
+set +x
+export KUBECONFIG=/var/lib/jenkins/.azure/kubeconfig
+AWS_REGISTRY_TOKEN=$(oc get secret aws-reg-token -n azure --template={{.data.token}} | base64 -d)
+if [[ -n $AWS_REGISTRY_TOKEN ]]; then
+  echo &#34;AWS_REGISTRY_TOKEN=$AWS_REGISTRY_TOKEN&#34; | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;cat &gt;&gt;/etc/environment&#34;
+fi
+set -x
 rsync --copy-links --omit-dir-times --archive --rsh &#34;ssh -F ./.config/origin-ci-tool/inventory/.ssh_config&#34; /var/lib/jenkins/.azure/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/azure/
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/azure/&#39;
 ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#39;sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/azure/&#39;</command>
@@ -230,59 +238,29 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
+# TODO: Remove token injection after GA (oreg_* vars)
 cd cluster/test-deploy/azure
-TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
-  -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
-  -e &#34;openshift_azure_resource_location=eastus&#34; \
-  -e &#34;openshift_azure_input_image_ns=images&#34; \
-  -e &#34;openshift_azure_input_image_prefix=centos7-base&#34; \
-  -e &#34;openshift_azure_output_image_ns=images&#34; \
-  -e &#34;openshift_azure_output_image_name=\$IMAGE_NAME&#34; \
-  -e &#34;openshift_azure_storage_account=openshiftimages&#34; \
-  -e &#34;openshift_azure_storage_account_ns=images&#34; \
-  -e &#34;openshift_azure_container=images&#34; \
-  -e &#34;openshift_azure_vm_size=\$AZURE_VM_SIZE&#34; \
-  playbooks/azure/openshift-cluster/build_node_image.yml
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RUN THE ACS-ENGINE E2E TEST ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN THE ACS-ENGINE E2E TEST [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${HOME}&#34;
-exit 0 # TODO: re-enable me
-set -a +o xtrace
-. /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
-set +a -o xtrace
-
-cd /data/src/github.com/Azure/acs-engine
-export GOPATH=&#34;/data&#34;
-export PATH=&#34;\${PATH}:\${GOPATH}/bin&#34;
-make build
-
-set +o xtrace
-docker run --rm -v \${PWD}:/go/src/github.com/Azure/acs-engine:z \
-  -w /go/src/github.com/Azure/acs-engine \
-  -e ORCHESTRATOR=openshift \
-  -e ORCHESTRATOR_VERSION=\${OPENSHIFT_RELEASE}.0 \
-  -e IMAGE_RESOURCE_GROUP=images \
-  -e IMAGE_NAME=\$IMAGE_NAME \
-  -e CLUSTER_DEFINITION=examples/openshift.json \
-  -e TIMEOUT=30m \
-  -e CLEANUP_ON_EXIT=true \
-  -e REGIONS=eastus \
-  -e CLIENT_ID=\$AZURE_CLIENT_ID \
-  -e CLIENT_SECRET=\$AZURE_SECRET \
-  -e TENANT_ID=\$AZURE_TENANT \
-  -e SUBSCRIPTION_ID=\$AZURE_SUBSCRIPTION_ID \
-  registry.svc.ci.openshift.org/azure/acs-engine-tests:v\$OPENSHIFT_RELEASE make test-openshift
-set -o xtrace
+ echo &#34;Build parameters:&#34;
+ echo &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34;
+ echo &#34;openshift_azure_output_image_name=\$IMAGE_NAME&#34;
+ set +x
+ export OREG_URL=&#39;registry.reg-aws.openshift.com/openshift3/ose-\${component}:\${version}&#39;
+ TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
+   -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
+   -e &#34;openshift_azure_resource_location=eastus&#34; \
+   -e &#34;openshift_azure_input_image_ns=images&#34; \
+   -e &#34;openshift_azure_input_image_prefix=rhel7-base&#34; \
+   -e &#34;openshift_azure_output_image_ns=images&#34; \
+   -e &#34;openshift_azure_output_image_name=\$IMAGE_NAME&#34; \
+   -e &#34;openshift_azure_storage_account=openshiftimages&#34; \
+   -e &#34;openshift_azure_storage_account_ns=images&#34; \
+   -e &#34;openshift_azure_container=images&#34; \
+   -e &#34;openshift_azure_vm_size=\$AZURE_VM_SIZE&#34; \
+   -e &#34;oreg_url=\$OREG_URL&#34; \
+   -e &#34;oreg_auth_user=unused&#34; \
+   -e &#34;oreg_auth_password=\$AWS_REGISTRY_TOKEN&#34; \
+   playbooks/azure/openshift-cluster/build_node_image.yml 
+ set -x
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

@@ -4,14 +4,14 @@ provision:
   stage: "base"
   provider: "aws"
 sync:
-  - openshift,openshift-ansible=release-3.9
+  - openshift,openshift-ansible=master
   - openshift,release=master
   #- Azure,acs-engine=master
 parameters:
 - name: "AZURE_VM_SIZE"
   default_value: "Standard_D2s_v3"
 - name: "OPENSHIFT_RELEASE"
-  default_value: "3.9"
+  default_value: "master"
 - name: JOB_SPEC
   description: "JSON form of job specification."
 - name: BUILD_ID
@@ -47,7 +47,7 @@ actions:
     title: "determine the resource group"
     script: |-
       echo "RESOURCE_GROUP=ci-$JOB_NAME-$BUILD_NUMBER" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
-      echo "IMAGE_NAME=centos7-$OPENSHIFT_RELEASE-$(TZ=Etc/UTC date +%Y%m%d%H%M)" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
+      echo "IMAGE_NAME=rhel7-$OPENSHIFT_RELEASE-$(TZ=Etc/UTC date +%Y%m%d%H%M)" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
 
   - type: "script"
     title: "build openshift installer image"
@@ -58,6 +58,14 @@ actions:
   - type: "host_script"
     title: "move secrets to remote host"
     script: |-
+      # TODO: Remove token inject logic after GA
+      set +x
+      export KUBECONFIG=/var/lib/jenkins/.azure/kubeconfig
+      AWS_REGISTRY_TOKEN=$(oc get secret aws-reg-token -n azure --template={{.data.token}} | base64 -d)
+      if [[ -n $AWS_REGISTRY_TOKEN ]]; then
+        echo "AWS_REGISTRY_TOKEN=$AWS_REGISTRY_TOKEN" | ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "cat >>/etc/environment"
+      fi
+      set -x
       rsync --copy-links --omit-dir-times --archive --rsh "ssh -F ./.config/origin-ci-tool/inventory/.ssh_config" /var/lib/jenkins/.azure/* openshiftdevel:/data/src/github.com/openshift/release/cluster/test-deploy/azure/
       ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chown -R origin:origin-git /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
       ssh -F ./.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 'sudo chmod -R ug+rwX /data/src/github.com/openshift/release/cluster/test-deploy/azure/'
@@ -66,50 +74,29 @@ actions:
     title: "build node image"
     repository: "release"
     script: |-
-      cd cluster/test-deploy/azure
+     # TODO: Remove token injection after GA (oreg_* vars)
+     cd cluster/test-deploy/azure
+      echo "Build parameters:"
+      echo "openshift_azure_resource_group_name=$RESOURCE_GROUP"
+      echo "openshift_azure_output_image_name=$IMAGE_NAME"
+      set +x
+      export OREG_URL='registry.reg-aws.openshift.com/openshift3/ose-${component}:${version}'
       TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
         -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
         -e "openshift_azure_resource_location=eastus" \
         -e "openshift_azure_input_image_ns=images" \
-        -e "openshift_azure_input_image_prefix=centos7-base" \
+        -e "openshift_azure_input_image_prefix=rhel7-base" \
         -e "openshift_azure_output_image_ns=images" \
         -e "openshift_azure_output_image_name=$IMAGE_NAME" \
         -e "openshift_azure_storage_account=openshiftimages" \
         -e "openshift_azure_storage_account_ns=images" \
         -e "openshift_azure_container=images" \
         -e "openshift_azure_vm_size=$AZURE_VM_SIZE" \
-        playbooks/azure/openshift-cluster/build_node_image.yml
-
-  - type: "script"
-    title: "run the acs-engine e2e test"
-    script: |-
-      exit 0 # TODO: re-enable me
-      set -a +o xtrace
-      . /data/src/github.com/openshift/release/cluster/test-deploy/azure/credentials
-      set +a -o xtrace
-
-      cd /data/src/github.com/Azure/acs-engine
-      export GOPATH="/data"
-      export PATH="${PATH}:${GOPATH}/bin"
-      make build
-
-      set +o xtrace
-      docker run --rm -v ${PWD}:/go/src/github.com/Azure/acs-engine:z \
-        -w /go/src/github.com/Azure/acs-engine \
-        -e ORCHESTRATOR=openshift \
-        -e ORCHESTRATOR_VERSION=${OPENSHIFT_RELEASE}.0 \
-        -e IMAGE_RESOURCE_GROUP=images \
-        -e IMAGE_NAME=$IMAGE_NAME \
-        -e CLUSTER_DEFINITION=examples/openshift.json \
-        -e TIMEOUT=30m \
-        -e CLEANUP_ON_EXIT=true \
-        -e REGIONS=eastus \
-        -e CLIENT_ID=$AZURE_CLIENT_ID \
-        -e CLIENT_SECRET=$AZURE_SECRET \
-        -e TENANT_ID=$AZURE_TENANT \
-        -e SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
-        registry.svc.ci.openshift.org/azure/acs-engine-tests:v$OPENSHIFT_RELEASE make test-openshift
-      set -o xtrace
+        -e "oreg_url=$OREG_URL" \
+        -e "oreg_auth_user=unused" \
+        -e "oreg_auth_password=$AWS_REGISTRY_TOKEN" \
+        playbooks/azure/openshift-cluster/build_node_image.yml 
+      set -x
 
   - type: "script"
     title: "tag node image as valid"

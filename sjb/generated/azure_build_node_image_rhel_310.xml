@@ -230,13 +230,11 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/release&#34;
-# TODO: Remove token injection after GA (oreg_* vars)
 cd cluster/test-deploy/azure
  echo &#34;Build parameters:&#34;
  echo &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34;
  echo &#34;openshift_azure_output_image_name=\$IMAGE_NAME&#34;
  set +x
- export OREG_URL=&#39;registry.reg-aws.openshift.com/openshift3/ose-\${component}:\${version}&#39;
  TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
    -e &#34;openshift_azure_resource_group_name=\$RESOURCE_GROUP&#34; \
    -e &#34;openshift_azure_resource_location=eastus&#34; \
@@ -248,7 +246,7 @@ cd cluster/test-deploy/azure
    -e &#34;openshift_azure_storage_account_ns=images&#34; \
    -e &#34;openshift_azure_container=images&#34; \
    -e &#34;openshift_azure_vm_size=\$AZURE_VM_SIZE&#34; \
-   playbooks/azure/openshift-cluster/build_node_image.yml 
+   playbooks/azure/openshift-cluster/build_node_image.yml
  set -x
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -66,13 +66,11 @@ actions:
     title: "build node image"
     repository: "release"
     script: |-
-     # TODO: Remove token injection after GA (oreg_* vars)
      cd cluster/test-deploy/azure
       echo "Build parameters:"
       echo "openshift_azure_resource_group_name=$RESOURCE_GROUP"
       echo "openshift_azure_output_image_name=$IMAGE_NAME"
       set +x
-      export OREG_URL='registry.reg-aws.openshift.com/openshift3/ose-${component}:${version}'
       TYPE=azure INSTANCE_PREFIX=unused ../../bin/ansible.sh ansible-playbook \
         -e "openshift_azure_resource_group_name=$RESOURCE_GROUP" \
         -e "openshift_azure_resource_location=eastus" \
@@ -84,7 +82,7 @@ actions:
         -e "openshift_azure_storage_account_ns=images" \
         -e "openshift_azure_container=images" \
         -e "openshift_azure_vm_size=$AZURE_VM_SIZE" \
-        playbooks/azure/openshift-cluster/build_node_image.yml 
+        playbooks/azure/openshift-cluster/build_node_image.yml
       set -x
 
   - type: "script"

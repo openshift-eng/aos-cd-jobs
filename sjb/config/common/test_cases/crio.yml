@@ -82,6 +82,12 @@ actions:
         echo "Bad job type provided in JOB_SPEC: $job_type"
       fi
 post_actions:
+  - type: "script"
+    title: "create and chwon /data/gcs for artifacts"
+    timeout: 300
+    script: |-
+      sudo mkdir -p /data/gcs
+      sudo chown -R origin:origin /data
   - type: "host_script"
     title: "assemble GCS output"
     timeout: 300

@@ -28,3 +28,6 @@ openshift_node_groups:
       - 'node-role.kubernetes.io/master=true'
       - 'node-role.kubernetes.io/infra=true'
       - 'node-role.kubernetes.io/compute=true'
+
+# disabled for single node clusters because of size constraints
+openshift_cluster_monitoring_operator_install: false

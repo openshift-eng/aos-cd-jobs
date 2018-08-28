@@ -133,7 +133,9 @@ artifacts:
 generated_artifacts:
   installed_packages.log: 'sudo yum list installed'
   avc_denials.log: 'sudo ausearch -m AVC -m SELINUX_ERR -m USER_AVC'
-  filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+  #filesystem.info: 'sudo df -h && sudo pvs && sudo vgs && sudo lvs'
+  # TODO(runcom): sudo df -h hangs because stale nfs mounts are blocking it (straced). Fix it and re-enable sudo df -h here
+  filesystem.info: 'sudo pvs && sudo vgs && sudo lvs'
   pid1.journal: 'sudo journalctl _PID=1 --no-pager --all --lines=all'
   system.journal: 'sudo journalctl --no-pager --boot'
 system_journals:

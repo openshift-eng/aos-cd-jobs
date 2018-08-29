@@ -126,6 +126,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;PROW_JOB_ID=${PROW_JOB_ID:-}&#39; &gt;&gt; /etc/environment&#34;
 ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;JOB_SPEC=${JOB_SPEC:-}&#39; &gt;&gt; /etc/environment&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;echo &#39;BUILD_NUMBER=${BUILD_NUMBER:-}&#39; &gt;&gt; /etc/environment&#34;
 </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -153,39 +154,50 @@ fi
 
 BUILD=&#34;${BUILD_NUMBER}&#34;
 
+function gcs_path() {
+  bucket=&#34;gs://origin-federated-results/&#34;
 
-bucket=&#34;gs://origin-federated-results/&#34;
-suffix=&#34;${JOB_NAME}/${BUILD}/&#34;
-if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
-  segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
-  if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-    prefix=&#34;pr-logs/pull/&#34;
-    segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
-  else
-    if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
-      prefix=&#34;pr-logs/pull/batch/&#34;
-    else
-      prefix=&#34;logs/&#34;
+  suffix=&#34;${JOB_NAME}/${BUILD}/&#34;
+  if [[ -n &#34;${REPO_OWNER:-}&#34; ]]; then
+    if [[ &#34;${REPO_NAME}&#34; != &#34;origin&#34; ]]; then
+      segment=&#34;${REPO_OWNER}_${REPO_NAME}/&#34;
     fi
+    if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+      # this is a presubmit
+      prefix=&#34;pr-logs/pull/&#34;
+      segment=&#34;${segment:-}${PULL_NUMBER}/&#34;
+    else
+      if [[ &#34;${PULL_REFS}&#34; =~ ^[^:]+:[^:]+(,[^:]+:[^:]+){2,} ]]; then
+        # this is a batch
+        prefix=&#34;pr-logs/pull/batch/&#34;
+      else
+        # this is a postsubmit
+        prefix=&#34;logs/&#34;
+      fi
+    fi
+  else
+    # this is a periodic
+    prefix=&#34;logs/&#34;
   fi
-else
-  prefix=&#34;logs/&#34;
-fi
+  echo &#34;${bucket}${prefix}${segment:-}${suffix}&#34;
+  return 0
+}
+if path=&#34;$( gcs_path )&#34;; then
+  gsutil cp gcs/started.json &#34;${path}started.json&#34;
+  if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
+    echo &#34;${path%\/}&#34; &gt; &#34;${BUILD}.txt&#34;
+    gsutil cp &#34;${BUILD}.txt&#34; &#34;gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/${BUILD}.txt&#34;
+  fi
 
-path=&#34;${bucket}${prefix}${segment:-}${suffix}&#34;
-gsutil cp gcs/started.json &#34;${path}started.json&#34;
-if [[ -n &#34;${PULL_NUMBER:-}&#34; ]]; then
-  echo &#34;${path%\/}&#34; &gt; &#34;${BUILD}.txt&#34;
-  gsutil cp &#34;${BUILD}.txt&#34; &#34;gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/${BUILD}.txt&#34;
-fi
-echo ${BUILD} &gt; latest-build.txt
-job_type=&#34;$( jq --compact-output &#34;.type&#34; &lt;&lt;&lt;&#34;${JOB_SPEC}&#34; )&#34;
-if [[ $job_type =~ &#34;presubmit&#34; || $job_type =~ &#34;batch&#34; ]]; then
-  gsutil cp latest-build.txt &#34;gs://origin-ci-test/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;
-elif [[ $job_type =~ &#34;postsubmit&#34; || $job_type =~ &#34;periodic&#34; ]]; then
-  gsutil cp latest-build.txt &#34;gs://origin-ci-test/logs/${JOB_NAME}/latest-build.txt&#34;
-else
-  echo &#34;Bad job type provided in JOB_SPEC: $job_type&#34;
+  echo ${BUILD} &gt; latest-build.txt
+  job_type=$( jq --compact-output &#34;.type&#34; &lt;&lt;&lt;${JOB_SPEC} )
+  if [[ $job_type =~ &#34;presubmit&#34; || $job_type =~ &#34;batch&#34; ]]; then
+    gsutil cp latest-build.txt &#34;gs://origin-federated-results/pr-logs/directory/${JOB_NAME}/latest-build.txt&#34;
+  elif [[ $job_type =~ &#34;postsubmit&#34; || $job_type =~ &#34;periodic&#34; ]]; then
+    gsutil cp latest-build.txt &#34;gs://origin-federated-results/logs/${JOB_NAME}/latest-build.txt&#34;
+  else
+    echo &#34;Bad job type provided in JOB_SPEC: $job_type&#34;
+  fi
 fi</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -469,7 +481,7 @@ cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
 if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
   JOB_SPEC=&#34;\$( jq --compact-output &#34;.buildid |= \&#34;\${BUILD_NUMBER}\&#34;&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
-  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/*
+  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-federated-results --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;

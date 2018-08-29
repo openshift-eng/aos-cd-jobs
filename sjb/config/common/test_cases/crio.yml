@@ -34,6 +34,7 @@ actions:
     - JOB_SPEC
     - PROW_JOB_ID
     - JOB_SPEC
+    - BUILD_NUMBER
   - type: "host_script"
     title: "upload GCS starting metadata"
     timeout: 300

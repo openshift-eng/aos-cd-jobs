@@ -96,11 +96,21 @@ actions:
       fi
 post_actions:
   - type: "script"
-    title: "create and chwon /data/gcs for artifacts"
+    title: "Create /data, install jq, docker, and start dockerd"
     timeout: 300
     script: |-
+      trap 'exit 0' EXIT
       sudo mkdir -p /data/gcs
       sudo chown -R origin:origin /data
+      if grep -q 'ID="centos"' /etc/os-release || \
+         grep -q 'ID="rhel"' /etc/os-release
+      then
+          sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+          sudo yum install -y jq docker
+      else  # assume fedora
+          sudo dnf install -y jq docker
+      fi
+      sudo systemctl start docker
   - type: "host_script"
     title: "assemble GCS output"
     timeout: 300
@@ -128,7 +138,7 @@ post_actions:
       trap 'exit 0' EXIT
       if [[ -n "${JOB_SPEC:-}" ]]; then
         JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
-        docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/*
+        sudo docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/*
       fi
 artifacts:
   - /go/src/k8s.io/kubernetes/artifacts

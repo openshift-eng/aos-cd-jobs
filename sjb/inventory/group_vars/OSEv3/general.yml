@@ -31,3 +31,7 @@ openshift_node_groups:
 
 # disabled for single node clusters because of size constraints
 openshift_cluster_monitoring_operator_install: false
+
+# This is needed because oreg_url is used to get local images, of which cockpit-ui
+# is not one of them.
+openshift_cockpit_deployer_image: 'docker.io/cockpit/kubernetes:latest'

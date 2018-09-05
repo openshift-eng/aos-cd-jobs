@@ -1,8 +1,6 @@
 ---
 parent: 'common/test_cases/origin_minimal.yml'
 overrides:
-  sync:
-    - "openshift,origin=release-3.10"
   junit_analysis: False
   email:
     - jpeeler@redhat.com

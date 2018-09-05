@@ -1,8 +1,6 @@
 ---
 parent: 'common/test_cases/origin_minimal.yml'
 overrides:
-  sync:
-    - "openshift,origin=master"
   junit_analysis: False
   email:
     - jpeeler@redhat.com
@@ -19,6 +17,7 @@ extensions:
         source hack/lib/init.sh
         export ORIGIN_BUILT_VERSION=$(os::build::rpm::format_nvra)
         echo $ORIGIN_BUILT_VERSION > "${jobs_repo}/ORIGIN_BUILT_VERSION"
+        printf "Last two commits for Origin:\n$(git log -2 --pretty='%H  %an, %ai.  %s')\n"
     - type: "script"
       title: "build Origin"
       repository: "origin"
@@ -30,7 +29,7 @@ extensions:
       repository: "service-catalog"
       timeout: 1800
       script: |-
-        echo Last two commits for Service Catalog: $(git log -2 --pretty="%h  %an, %ai.  %s")
+        printf "Last two commits for Service Catalog:\n$(git log -2 --pretty='%H  %an, %ai.  %s')\n"
     - type: "script"
       title: "build service-catalog user-broker image"
       repository: "service-catalog"
@@ -111,8 +110,8 @@ extensions:
         trap 'exit 0' EXIT
         ( source hack/lib/init.sh; os::cleanup::dump_container_logs )
   generated_artifacts:
-    catalog-apiserver.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/kubectl logs -n kube-service-catalog -lapp=apiserver -c apiserver'
-    catalog-controller.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/kubectl logs -n kube-service-catalog -lapp=controller-manager'
+    catalog-apiserver.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc logs -n kube-service-catalog deploy/apiserver -c apiserver'
+    catalog-controller.log: '/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc login -u system:admin && /data/src/github.com/openshift/origin/_output/local/bin/linux/amd64/oc logs -n kube-service-catalog deploy/controller-manager'
   system_journals:
     - origin-master.service
     - origin-master-api.service

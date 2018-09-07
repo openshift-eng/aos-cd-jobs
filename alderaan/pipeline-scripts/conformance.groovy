@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def run_conformance = CONFORMANCE.toString().toUpperCase()
+def property_file_name = "conformance.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run conformance
 // use master host instead of jump host for conformance tests
@@ -12,15 +14,14 @@ stage ('conformance') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("conformance.properties")) {
-				println "Looks like conformance.properties file already exists, erasing it"
-				sh "rm conformance.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the property file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/conformance.properties"
-			sh "wget ${CONFORMANCE_PROPERTY_FILE} -O conformance.properties"
-			sh "cat conformance.properties"
-			def conformance_properties = readProperties file: "conformance.properties"
+			sh "wget ${CONFORMANCE_PROPERTY_FILE} -O ${property_file_name}"
+			sh "cat ${property_file_name}"
+			def conformance_properties = readProperties file: property_file_name
 			def master_hostname = conformance_properties['MASTER_HOSTNAME']
 			def user = conformance_properties['USER']
 			def enable_pbench = conformance_properties['ENABLE_PBENCH']

@@ -2,13 +2,14 @@
 
 def contact = "nelluri@redhat.com"
 def pipeline_id = env.BUILD_ID
-println("Current pipeline job id is '${pipeline_id}'")
 def node_label = "'CCI && ansible-2.4'"
 def run_job = OPENSHIFT_SCALEUP.toString().toUpperCase()
 def job_name = "scale-ci_ScaleUp_OpenShift"
 def stage_name = "openshift_scaleup"
 def property_file_name = "openshift_scaleup.properties"
 def property_file_uri = OPENSHIFT_SCALEUP_PROPERTY_FILE.toString()
+
+println("Current pipeline job id is '${pipeline_id}'")
 
 stage (stage_name) {
 	if (run_job) {

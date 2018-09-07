@@ -2,13 +2,14 @@
 
 def contact = "nelluri@redhat.com"
 def pipeline_id = env.BUILD_ID
-println("Current pipeline job id is '${pipeline_id}'")
 def node_label = "'CCI && ansible-2.4'"
 def run_job = OPENSTACK_INSTALL.toString().toUpperCase()
 def job_name = "scale-ci_install_OpenStack"
 def stage_name = "openstack_install"
 def property_file_name = "openstack.properties"
 def property_file_uri = OPENSTACK_PROPERTY_FILE.toString()
+
+println("Current pipeline job id is '${pipeline_id}'")
 
 stage (stage_name) {
 	if (run_job) {

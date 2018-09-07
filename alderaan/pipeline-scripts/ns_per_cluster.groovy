@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def ns_per_cluster = NS_PER_CLUSTER.toString().toUpperCase()
+def property_file_name = "ns_per_cluster.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run ns_per_cluster test
 stage('ns_per_cluster_scale_test') {
@@ -11,15 +13,14 @@ stage('ns_per_cluster_scale_test') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("ns_per_cluster.properties")) {
-				println "Looks like ns_per_cluster.properties file already exists, erasing it"
-				sh "rm ns_per_cluster.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the property file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/ns_per_cluster.properties"
-			sh "wget ${NS_PER_CLUSTER_PROPERTY_FILE} -O ns_per_cluster.properties"
-                        sh "cat ns_per_cluster.properties"
-			def ns_per_cluster_properties = readProperties file: "ns_per_cluster.properties"
+			sh "wget ${NS_PER_CLUSTER_PROPERTY_FILE} -O ${property_file_name}"
+                        sh "cat ${property_file_name}"
+			def ns_per_cluster_properties = readProperties file: property_file_name
 			def jump_host = ns_per_cluster_properties['JUMP_HOST']
 			def user = ns_per_cluster_properties['USER']
 			def tooling_inventory_path = ns_per_cluster_properties['TOOLING_INVENTORY']

@@ -3,6 +3,7 @@
 def pipeline_id = env.BUILD_ID
 def node_label = 'CCI && ansible-2.4'
 def create_jobs = CREATE_JOBS_FROM_JJB.toString().toUpperCase()
+def property_file_name = "jobs.properties"
 
 println "Current pipeline job build id is '${pipeline_id}'"
 
@@ -12,14 +13,14 @@ stage ('Create jobs in OpenShift QE jenkins') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("jobs.properties")) {
-				println "Looks like jobs.properties file already exists, erasing it"
-				sh "rm jobs.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			sh "wget ${JOBS_PROPERTY_FILE} -O jobs.properties"
-			sh "cat jobs.properties"
-			def jobs_properties = readProperties file: "jobs.properties"
+			sh "wget ${JOBS_PROPERTY_FILE} -O ${property_file_name}"
+			sh "cat ${property_file_name}"
+			def jobs_properties = readProperties file: property_file_name
 			def jump_host = jobs_properties['JUMP_HOST']
 			def user = jobs_properties['USER']
 			def use_proxy = jobs_properties['USE_PROXY']
@@ -58,4 +59,3 @@ stage ('Create jobs in OpenShift QE jenkins') {
 			println "ALDERAAN-CREATE-JOBS build ${jobs_build.getNumber()} completed successfully"
 		}
 	}
-}

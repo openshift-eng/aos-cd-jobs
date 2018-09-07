@@ -1,9 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def nodevertical = NODEVERTICAL_SCALE_TEST.toString().toUpperCase()
+def property_file_name = "nodevertical.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run nodevertical scale test
 stage ('nodevertical_scale_test') {
@@ -11,15 +13,14 @@ stage ('nodevertical_scale_test') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("nodevertical.properties")) {
-				println "Looks like nodevertical.properties file already exists, erasing it"
-				sh "rm nodevertical.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the property file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/nodevertical.properties"
-			sh "wget ${NODEVERTICAL_PROPERTY_FILE} -O nodevertical.properties"
-			sh "cat nodevertical.properties"
-			def nodevertical_properties = readProperties file: "nodevertical.properties"
+			sh "wget ${NODEVERTICAL_PROPERTY_FILE} -O ${property_file_name}"
+			sh "cat ${property_file_name}"
+			def nodevertical_properties = readProperties file: property_file_name
 			def jump_host = nodevertical_properties['JUMP_HOST']
 			def user = nodevertical_properties['USER']
 			def tooling_inventory_path = nodevertical_properties['TOOLING_INVENTORY']

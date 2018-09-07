@@ -1,10 +1,11 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-println "Current pipeline job build id is '${pipeline_id}'"
 def node_label = 'CCI && ansible-2.4'
 def browbeat = BROWBEAT_INSTALL.toString().toUpperCase()
 def property_file_name = "browbeat.properties"
+
+println "Current pipeline job build id is '${pipeline_id}'"
 
 // run browbeat install
 stage ('BROWBEAT') {

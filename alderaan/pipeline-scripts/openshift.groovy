@@ -2,13 +2,14 @@
 
 def contact = "nelluri@redhat.com"
 def pipeline_id = env.BUILD_ID
-println("Current pipeline job id is '${pipeline_id}'")
 def node_label = "'CCI && ansible-2.4'"
 def run_job = OPENSHIFT_INSTALL.toString().toUpperCase()
 def job_name = "scale-ci_install_OpenShift"
 def stage_name = "openshift_install"
 def property_file_name = "openshift.properties"
 def property_file_uri = OPENSHIFT_PROPERTY_FILE.toString()
+
+println("Current pipeline job id is '${pipeline_id}'")
 
 stage (stage_name) {
 	if (run_job) {

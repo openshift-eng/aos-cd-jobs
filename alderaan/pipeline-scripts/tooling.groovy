@@ -3,6 +3,7 @@
 def pipeline_id = env.BUILD_ID
 def node_label = 'CCI && ansible-2.4'
 def setup_tooling = SETUP_TOOLING.toString().toUpperCase()
+def property_file_name = "set_pbench.properties"
 
 println "Current pipeline job build id is '${pipeline_id}'"
 // setup tooling
@@ -11,15 +12,14 @@ stage ('setup_pbench') {
 		currentBuild.result = "SUCCESS"
 		node('CCI && US') {
 			// get properties file
-			if (fileExists("setup_pbench.properties")) {
-				println "Looks like setup_pbench.properties file already exists, erasing it"
-				sh "rm setup_pbench.properties"
+			if (fileExists(property_file_name)) {
+				println "Looks like the property file already exists, erasing it"
+				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			//sh "wget http://file.rdu.redhat.com/~nelluri/pipeline/setup_pbench.properties"
-			sh "wget ${SETUP_PBENCH_PROPERTY_FILE} -O setup_pbench.properties"
-			sh "cat setup_pbench.properties"
-			def pbench_properties = readProperties file: "setup_pbench.properties"
+			sh "wget ${SETUP_PBENCH_PROPERTY_FILE} -O ${property_file_name}"
+			sh "cat ${property_file_name}"
+			def pbench_properties = readProperties file: property_file_name
 			def jump_host = pbench_properties['JUMP_HOST']
 			def user = pbench_properties['USER']
 			def tooling_inventory_path = pbench_properties['TOOLING_INVENTORY']

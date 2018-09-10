@@ -1,0 +1,28 @@
+---
+parent: 'common/test_cases/origin_built_installed_release.yml'
+overrides:
+  junit_analysis: False
+  email: [ "zkosic@redhat.com" ]
+  provision:
+    os: "rhel"
+    stage: "base"
+    provider: "aws"
+    instance_type: "g3.4xlarge"
+extensions:
+  sync:
+    - "zvonkok,openshift-ansible=zvonkok-gpu-origin"
+  actions:
+    - type: "script"
+      title: "run gpu deployment"
+      repository: "aos-cd-jobs"
+      script: |-
+        OPENSHIFT_SKIP_BUILD='true' 
+        ansible-playbook -vv --become               \
+                         --become-user root         \
+                         --connection local         \
+                         --inventory sjb/inventory/ \
+                         -e openshift_deployment_type=origin  \
+                         -e openshift_pkg_version="$( cat ./ORIGIN_PKG_VERSION )"               \
+                         -e openshift_release="$( cat ./ORIGIN_RELEASE )"                       \
+                         -e oreg_url='openshift/origin-${component}:'"$( cat ./ORIGIN_COMMIT )" \
+                         ${EXTRA_EVARS:-} /data/src/github.com/zvonkok/openshift-ansible/playbooks/byo/openshift-gpu-cluster/config.yml              

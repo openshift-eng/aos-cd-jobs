@@ -308,10 +308,14 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
-export PATH=&#34;\${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64&#34;
+cd /tmp &amp;&amp; \
+curl -OL https://github.com/openshift/origin/releases/download/v3.10.0/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit.tar.gz &amp;&amp; \
+tar -xzf openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit.tar.gz
+ln -s /tmp/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit/oc /tmp/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit/kubectl
+export PATH=&#34;\${PATH}:/tmp/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit&#34;
 sudo mkdir -p /var/lib/origin
 cd /var/lib/origin
-sudo env &#34;PATH=\${PATH}&#34; oc cluster up --tag=latest
+sudo env &#34;PATH=\${PATH}&#34; oc cluster up --tag=v3.10.0
 sudo env &#34;PATH=\${PATH}&#34; oc login -u system:admin
 sudo env &#34;PATH=\${PATH}&#34; oc adm policy add-cluster-role-to-user cluster-admin developer
 sudo env &#34;PATH=\${PATH}&#34; oc login -u developer
@@ -342,7 +346,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/cluster-operator&#34;
-export PATH=&#34;\${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin&#34;
+export PATH=&#34;\${PATH}:/tmp/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit:/data/bin&#34;
 sudo env &#34;PATH=\${PATH}&#34; ansible-playbook ./contrib/ansible/deploy-devel-playbook.yml -e build_images=false -e fake_deployment=false
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -364,7 +368,7 @@ export CLUSTER_NAME=&#34;co-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
 # Set up a new keypair for the cluster
 sudo env HOME=/tmp CLUSTER_NAME=&#34;\${CLUSTER_NAME}&#34; aws ec2 create-key-pair --region us-east-1 --key-name &#34;\${CLUSTER_NAME}&#34; | jq -r &#34;.KeyMaterial&#34; &gt; /tmp/.ssh/sshkey.pem
 
-export PATH=&#34;\${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin:\$(pwd)/bin&#34;
+export PATH=&#34;\${PATH}:/tmp/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit:/data/bin:\$(pwd)/bin&#34;
 sudo env &#34;PATH=\${PATH}&#34; ansible-playbook \
     -e cluster_name=\${CLUSTER_NAME} \
     -e aws_creds_file=/tmp/.aws/credentials \
@@ -386,7 +390,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/cluster-operator&#34;
 hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
 export CLUSTER_NAME=&#34;co-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
-export PATH=&#34;\${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64:/data/bin:\$(pwd)/bin&#34;
+export PATH=&#34;\${PATH}:/tmp/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit:/data/bin:\$(pwd)/bin&#34;
 sudo env &#34;PATH=\${PATH}&#34; coutil wait-for-cluster-ready --master-install-timeout=40m \${CLUSTER_NAME}
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -562,7 +566,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 hashed_identifier=&#34;\$( echo &#34;\${JOB_NAME}&#34; | sha1sum )&#34;
 export CLUSTER_NAME=&#34;co-\${hashed_identifier:0:7}-\${BUILD_NUMBER}&#34;
-export PATH=&#34;\${PATH}:/data/src/github.com/openshift/origin/_output/local/bin/linux/amd64&#34;
+export PATH=&#34;\${PATH}:/tmp/openshift-origin-client-tools-v3.10.0-dd10d17-linux-64bit&#34;
 # TODO: Remove &#39;|| true&#39; when clusterdeployments support the metadata.name 
 # field selector
 sudo env &#34;PATH=\${PATH}&#34; oc delete clusterdeployment &#34;\${CLUSTER_NAME}&#34; || true

@@ -585,14 +585,13 @@ def initialize_ose() {
 
         // Perform some sanity checks
 
-        // AMH - origin got branched early. Disabling these until we can catch up.
-        // if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/origin.git release-${spec.major_minor}" ).trim() != "" ) {
-        //     error( "origin has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
-        // }
+        if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/origin.git release-${spec.major_minor}" ).trim() != "" ) {
+            error( "origin has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
+        }
 
-        // if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/openshift-ansible.git release-${spec.major_minor}" ).trim() != "" ) {
-        //     error( "openshift-ansible has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
-        // }
+        if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/openshift-ansible.git release-${spec.major_minor}" ).trim() != "" ) {
+            error( "openshift-ansible has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
+        }
 
         // origin-web-console does not work like the other repos. It always has a enterprise branch for any release in origin#master.
         // origin-web-console#master contains changes for the latest origin-web-console#enterprise-X.Y which need to be be merged into

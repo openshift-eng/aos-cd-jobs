@@ -48,8 +48,8 @@ properties(
                     name: 'BUILD_VERSION',
                     description: 'OCP Version to build',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: "3.11\n3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
-                    defaultValue: '3.11'
+                    choices: "4.0\n3.11\n3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
+                    defaultValue: '4.0'
                 ],
                 [
                     name: 'MAIL_LIST_SUCCESS',
@@ -432,10 +432,10 @@ node(TARGET_NODE) {
 
             stage("set build mode") {
                 master_spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
-                                             
+
                 // If the target version resides in ose#master
                 IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
-                                             
+
                 if (BUILD_MODE == "auto") {
                     echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${BUILD_VERSION}, master_version: ${master_spec.major_minor}"
                     // INPUTS:
@@ -451,13 +451,13 @@ node(TARGET_NODE) {
             }
 
             stage("analyze") {
-                
+
                 dir(env.OSE_DIR) {
                     // inputs:
                     //  IS_SOURCE_IN_MASTER
                     //  BUILD_MODE
                     //  BUILD_VERSION
-                    
+
                     // defines
                     //  BUILD_MODE (if auto)
                     //  OSE_SOURCE_BRANCH
@@ -469,7 +469,7 @@ node(TARGET_NODE) {
                     //
                     //  sets:
                     //    currentBuild.displayName
-                    
+
                     if (IS_SOURCE_IN_MASTER) {
                         if (BUILD_MODE == "release") {
                             error("You cannot build a release while it resides in master; cut an enterprise branch")

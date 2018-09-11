@@ -12,12 +12,11 @@ fi
 
 usage() {
   echo >&2
-  echo "Usage `basename $0` <online-int|online-stg|online-prod> [NVR-1] [NVR-2] ... [NVR-n]" >&2
+  echo "Usage `basename $0` <online|3.11|4.0|...> <int|stg|prod> [NVR-1] [NVR-2] ... [NVR-n]" >&2
   echo >&2
-  echo "online-XXXXX indicates the repo that should be populated."
   echo "The NVR information specified will be collected from brew and used to"
   echo "create a repository like https://mirror.openshift.com/enterprise/rhel/aos-cd/overrides-online-XXXXX/x86_64/os/"
-  echo "When online-prod is specified, it will simply duplicate the current state of online-stg. No NVR information should be specified in this case."
+  echo "When prod is specified, it will simply duplicate the current state of stg. No NVR information should be specified in this case."
   echo "NVR = Name-Version-Release of an rpm" >&2
   echo "  NVR Example: docker-1.12.6-9.el7" >&2
   echo >&2
@@ -25,25 +24,29 @@ usage() {
   exit 1
 }
 
-if [ "$#" -lt 1 ] ; then
+if [ "$#" -lt 2 ] ; then
   usage
 fi
 
-if [ "$1" != "online-int" -a "$1" != "online-stg" -a "$1" != "online-prod" ]; then
-  echo "Unknown repo: $1"
+CLASS="$1"
+ENV="$2"
+
+if [ "$ENV" != "int" -a "$ENV" != "stg" -a "$ENV" != "prod" ]; then
+  echo "Unknown environment: $ENV"
   usage
 fi
 
-if [ "$1" == "online-prod" -a "$#" -gt 1 ]; then
-  echo "online-prod can only promote online-stg. Do not specify NVR information"
+if [ "$ENV" == "prod" -a "$#" -gt 2 ]; then
+  echo "prod can only promote stg. Do not specify NVR information"
   usage
 fi
 
-REPO_NAME="overrides-${1}"
+REPO_NAME="overrides-${CLASS}-${ENV}"
 LOCAL_BASE_DIR="/mnt/rcm-guest/puddles/RHAOS/ContinuousDelivery/${REPO_NAME}/"
 REMOTE_BASE_DIR="/srv/enterprise/rhel/aos-cd/${REPO_NAME}"
 
-shift # leave only NVR values
+shift # Remove repo type
+shift # Remove environment. Leave only NVR values
 
 # In case we haven't been run before
 mkdir -p ${LOCAL_BASE_DIR}/x86_64/os/Packages/
@@ -52,11 +55,11 @@ mkdir -p ${LOCAL_BASE_DIR}/x86_64/os/Packages/
 cd ${LOCAL_BASE_DIR}/x86_64/os/Packages/
 rm -f *.rpm
 
-if [ "$REPO_NAME" == "overrides-online-prod" ]; then
-	echo "Promoting online-stg to online-prod"
-	# If running online-prod, just promote whatever is in stage
+if [ "$ENV" == "prod" ]; then
+	echo "Promoting stg to prod"
+	# If running prod, just promote whatever is in stage
 	rm -rf "${LOCAL_BASE_DIR}"
-	cp -a /mnt/rcm-guest/puddles/RHAOS/ContinuousDelivery/overrides-online-stg ${LOCAL_BASE_DIR}
+	cp -a "/mnt/rcm-guest/puddles/RHAOS/ContinuousDelivery/overrides-${CLASS}-stg" ${LOCAL_BASE_DIR}
 fi
 
 # Go through the arguments one at a time, downloading the packages.

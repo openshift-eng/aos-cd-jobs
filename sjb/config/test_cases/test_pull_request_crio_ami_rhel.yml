@@ -32,8 +32,8 @@ extensions:
         sudo mkdir /go
         sudo chmod a+rwx /go
         sudo echo "GOPATH=/go" >> /etc/environment
-        mkdir -p /go/src/github.com/kubernetes-incubator
-        cd /go/src/github.com/kubernetes-incubator
+        mkdir -p /go/src/github.com/kubernetes-sigs
+        cd /go/src/github.com/kubernetes-sigs
         git clone https://github.com/kubernetes-sigs/cri-o.git
         cd cri-o
         git branch target "${PULL_BASE_SHA}"

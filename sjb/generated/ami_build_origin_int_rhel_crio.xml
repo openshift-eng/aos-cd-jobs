@@ -227,8 +227,8 @@ sudo mkdir /go
 sudo chmod a+rwx /go
 sudo chmod o+rw /etc/environment
 sudo echo &#34;GOPATH=/go&#34; &gt;&gt; /etc/environment
-mkdir -p /go/src/github.com/kubernetes-incubator
-cd /go/src/github.com/kubernetes-incubator
+mkdir -p /go/src/github.com/kubernetes-sigs
+cd /go/src/github.com/kubernetes-sigs
 git clone https://github.com/kubernetes-sigs/cri-o.git
 SCRIPT
 chmod +x &#34;${script}&#34;

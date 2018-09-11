@@ -235,8 +235,8 @@ cd &#34;\${HOME}&#34;
 sudo mkdir /go
 sudo chmod a+rwx /go
 sudo echo &#34;GOPATH=/go&#34; &gt;&gt; /etc/environment
-mkdir -p /go/src/github.com/kubernetes-incubator
-cd /go/src/github.com/kubernetes-incubator
+mkdir -p /go/src/github.com/kubernetes-sigs
+cd /go/src/github.com/kubernetes-sigs
 git clone https://github.com/kubernetes-sigs/cri-o.git
 cd cri-o
 git branch target &#34;\${PULL_BASE_SHA}&#34;

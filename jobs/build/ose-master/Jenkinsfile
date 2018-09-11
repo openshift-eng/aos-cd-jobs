@@ -5,7 +5,7 @@ properties(
         ] )
 
 
-b = build       job: '../aos-cd-builds/build%2Fose3.11', propagate: false
+b = build       job: '../aos-cd-builds/build%2Fose4.0', propagate: false
 
 currentBuild.displayName = "${b.displayName}"
 

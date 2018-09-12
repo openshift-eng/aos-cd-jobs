@@ -13,8 +13,8 @@ properties(
                     name: 'OCP_RELEASE',
                     description: 'OCP target release',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: ['3.15', '3.14', '3.13', '3.12', '3.11', '3.10', '3.9','3.8','3.7', '3.6', '3.5', '3.4', '3.3'].join('\n'),
-                    defaultValue: '3.10'
+                    choices: ['4.3', '4.2', '4.1', '4.0', '3.11', '3.10', '3.9','3.8','3.7', '3.6', '3.5', '3.4', '3.3'].join('\n'),
+                    defaultValue: '4.0'
                 ],
                 [
                     name: 'PLUGIN_LIST',
@@ -40,11 +40,11 @@ properties(
                     defaultValue: 'openshift-build-1'
                 ],
                 [
-                    $class: 'hudson.model.BooleanParameterDefinition', 
+                    $class: 'hudson.model.BooleanParameterDefinition',
                     defaultValue: false,
-                    description: 'Mock run to pickup new Jenkins parameters?', 
+                    description: 'Mock run to pickup new Jenkins parameters?',
                     name: 'MOCK'
-                ],            
+                ],
             ]
         ],
         disableConcurrentBuilds()

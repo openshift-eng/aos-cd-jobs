@@ -41,3 +41,14 @@ extensions:
         echo "${OS_RPM_VERSION}" | cut -d'.' -f2 > "${jobs_repo}/ORIGIN_PKG_MINOR_VERSION"
         tag="$( echo "v${OS_GIT_MAJOR}.${OS_GIT_MINOR}" | sed "s/+//" )"
         echo "${tag}" > "${jobs_repo}/ORIGIN_TAG"
+
+        # attempt to tag in images that are not built by this job but are needed
+        # ignore errors and log, later tests will fail if these images are not present
+        # all of these jobs will be removed in later releases
+        if [[ "${tag}" == "v3.11" || "${tag}" == "v4.0" ]]; then
+          for i in service-serving-cert-signer; do
+            if docker pull "registry.svc.ci.openshift.org/openshift/origin-v${OS_GIT_MAJOR}.${OS_GIT_MINOR}:${i}"; then
+              docker tag "registry.svc.ci.openshift.org/openshift/origin-v${OS_GIT_MAJOR}.${OS_GIT_MINOR}:${i}" "openshift/origin-${i}:${tag}"
+            fi
+          done
+        fi

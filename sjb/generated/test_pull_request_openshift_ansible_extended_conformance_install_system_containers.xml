@@ -346,8 +346,8 @@ echo &#34;\${tag}&#34; &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 # all of these jobs will be removed in later releases
 if [[ &#34;\${tag}&#34; == &#34;v3.11&#34; || &#34;\${tag}&#34; == &#34;v4.0&#34; ]]; then
   for i in service-serving-cert-signer; do
-    if docker pull &#34;registry.svc.ci.openshift.org/openshift/origin-v\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}:\${i}&#34;; then
-      docker tag &#34;registry.svc.ci.openshift.org/openshift/origin-v\${OS_GIT_MAJOR}.\${OS_GIT_MINOR}:\${i}&#34; &#34;openshift/origin-\${i}:\${tag}&#34;
+    if docker pull &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34;; then
+      docker tag &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34; &#34;openshift/origin-\${i}:\$( cat &#34;\${jobs_repo}/ORIGIN_COMMIT&#34; )&#34;
     fi
   done
 fi

@@ -47,8 +47,8 @@ extensions:
         # all of these jobs will be removed in later releases
         if [[ "${tag}" == "v3.11" || "${tag}" == "v4.0" ]]; then
           for i in service-serving-cert-signer; do
-            if docker pull "registry.svc.ci.openshift.org/openshift/origin-v${OS_GIT_MAJOR}.${OS_GIT_MINOR}:${i}"; then
-              docker tag "registry.svc.ci.openshift.org/openshift/origin-v${OS_GIT_MAJOR}.${OS_GIT_MINOR}:${i}" "openshift/origin-${i}:${tag}"
+            if docker pull "registry.svc.ci.openshift.org/openshift/origin-${tag}:${i}"; then
+              docker tag "registry.svc.ci.openshift.org/openshift/origin-${tag}:${i}" "openshift/origin-${i}:$( cat "${jobs_repo}/ORIGIN_COMMIT" )"
             fi
           done
         fi

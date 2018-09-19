@@ -40,7 +40,18 @@ extensions:
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/machine-api-operator
         make build-e2e
-        sudo ./bin/e2e --kubeconfig /root/.kube/config --mao-image machine-api-operator:$(git describe --always --abbrev=7)
+        sudo pip install awscli
+        curl https://releases.hashicorp.com/terraform/0.11.8/terraform_0.11.8_linux_amd64.zip -o terraform_0.11.8_linux_amd64.zip
+        unzip terraform_0.11.8_linux_amd64.zip
+        sudo cp ./terraform /usr/bin/.
+        set +x
+        echo "export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)" >> envs
+        echo "export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)" >> envs
+        source envs
+        set -x
+        # copy the credentials under root since the ./bin/e2e is run through sudo
+        sudo cp -r /home/origin/.aws /root/.
+        sudo -E ./bin/e2e --kubeconfig /root/.kube/config --mao-image machine-api-operator:$(git describe --always --abbrev=7) --cluster-id mao-${BUILD_NUMBER}-pr-${PULL_NUMBER}
   system_journals:
     - systemd-journald.service
 overrides:
@@ -50,7 +61,6 @@ overrides:
       timeout: 300
       script: |-
         trap 'exit 0' EXIT
-        sleep 1h
         mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
         result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
         cat <<FINISHED >gcs/finished.json
@@ -72,7 +82,5 @@ overrides:
         trap 'exit 0' EXIT
         if [[ -n "${JOB_SPEC:-}" ]]; then
           JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
-          gcloud auth activate-service-account --key-file /data/credentials.json
-          gcloud config set project openshift-gce-devel
           docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
         fi

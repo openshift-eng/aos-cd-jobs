@@ -58,10 +58,7 @@ properties(
                     defaultValue: [
                         'aos-cicd@redhat.com',
                         'aos-qe@redhat.com',
-                        'tbielawa@redhat.com',
-                        'jupierce@redhat.com',
-                        'smunilla@redhat.com',
-                        'ahaile@redhat.com',
+                        'aos-team-art@redhat.com',
                     ].join(',')
                 ],
                 [
@@ -69,11 +66,7 @@ properties(
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
-                        'tbielawa@redhat.com',
-                        'jupierce@redhat.com',
-                        'smunilla@redhat.com',
-                        'ahaile@redhat.com',
-                        'mlamouri@redhat.com'
+                        'aos-team-art@redhat.com'
                     ].join(',')
                 ],
                 [
@@ -942,7 +935,7 @@ images:rebase --version v${NEW_VERSION}
                     try {
                         // always mail success list, val.owners will be comma delimited or empty
                         mail(
-                            to: "jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,${val.owners}",
+                            to: "aos-team-art@redhat.com,${val.owners}",
                             from: "aos-cicd@redhat.com",
                             subject: "${val.image} Dockerfile reconciliation for OCP v${BUILD_VERSION}",
                             body: """
@@ -1123,7 +1116,7 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
 
                 } catch( release_ex ) {
                     mail(
-                        to: "jupierce@redhat.com",
+                        to: "aos-team-art@redhat.com",
                         from: "aos-cicd@redhat.com",
                         subject: "Error creating ose release in github",
                         body: """

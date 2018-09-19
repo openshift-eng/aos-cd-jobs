@@ -258,7 +258,18 @@ cd &#34;\${HOME}&#34;
 export GOPATH=/data
 cd \$GOPATH/src/github.com/openshift/machine-api-operator
 make build-e2e
-sudo ./bin/e2e --kubeconfig /root/.kube/config --mao-image machine-api-operator:\$(git describe --always --abbrev=7)
+sudo pip install awscli
+curl https://releases.hashicorp.com/terraform/0.11.8/terraform_0.11.8_linux_amd64.zip -o terraform_0.11.8_linux_amd64.zip
+unzip terraform_0.11.8_linux_amd64.zip
+sudo cp ./terraform /usr/bin/.
+set +x
+echo &#34;export AWS_ACCESS_KEY_ID=\$(aws configure get aws_access_key_id)&#34; &gt;&gt; envs
+echo &#34;export AWS_SECRET_ACCESS_KEY=\$(aws configure get aws_secret_access_key)&#34; &gt;&gt; envs
+source envs
+set -x
+# copy the credentials under root since the ./bin/e2e is run through sudo
+sudo cp -r /home/origin/.aws /root/.
+sudo -E ./bin/e2e --kubeconfig /root/.kube/config --mao-image machine-api-operator:\$(git describe --always --abbrev=7) --cluster-id mao-\${BUILD_NUMBER}-pr-\${PULL_NUMBER}
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -360,7 +371,6 @@ tree &#34;${ARTIFACT_DIR}&#34; </command>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ASSEMBLE GCS OUTPUT ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ASSEMBLE GCS OUTPUT [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 trap &#39;exit 0&#39; EXIT
-sleep 1h
 mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
 result=$( python -c &#34;import json; import urllib; print json.load(urllib.urlopen(&#39;${BUILD_URL}api/json&#39;))[&#39;result&#39;]&#34; )
 cat &lt;&lt;FINISHED &gt;gcs/finished.json
@@ -399,8 +409,6 @@ cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
 if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
   JOB_SPEC=&#34;\$( jq --compact-output &#34;.buildid |= \&#34;\${BUILD_NUMBER}\&#34;&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
-  gcloud auth activate-service-account --key-file /data/credentials.json
-  gcloud config set project openshift-gce-devel
   docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
 fi
 SCRIPT

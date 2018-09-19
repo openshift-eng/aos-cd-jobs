@@ -36,8 +36,25 @@ extensions:
       title: "Deploy manifests"
       script: |-
         export GOPATH=/data
-        cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/
         sudo pip install awscli
+        curl https://releases.hashicorp.com/terraform/0.11.8/terraform_0.11.8_linux_amd64.zip -o terraform_0.11.8_linux_amd64.zip
+        unzip terraform_0.11.8_linux_amd64.zip
+        sudo cp ./terraform /usr/bin/.
+
+        export CLUSTER_ID="pr-${BUILD_NUMBER}-${PULL_NUMBER}"
+
+        # Create all the aws resources
+        pushd hack
+        set +x
+        echo "export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)" >> envs
+        echo "export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)" >> envs
+        source envs
+        set -x
+        ENVIRONMENT_ID=${CLUSTER_ID} ./aws-provision.sh install
+        popd
+
+        cd examples
 
         set +x
         cat << HEREDOC > addons.yaml
@@ -79,7 +96,7 @@ extensions:
         apiVersion: "cluster.k8s.io/v1alpha1"
         kind: Machine
         metadata:
-          name: aws-actuator-testing-machine-pr-${BUILD_NUMBER}-${PULL_NUMBER}
+          name: aws-actuator-testing-machine-${CLUSTER_ID}
           namespace: test
           generateName: vs-master-
           labels:
@@ -100,7 +117,10 @@ extensions:
                 region: us-east-1
                 availabilityZone: us-east-1a
               subnet:
-                id: subnet-0e56b13a64ff8a941
+                filters:
+                  - name: "tag:Name"
+                    values:
+                    - "${CLUSTER_ID}-worker-*"
               iamInstanceProfile:
                 id: openshift_master_launch_instances
               keyName: libra
@@ -112,11 +132,10 @@ extensions:
                 - name: sub-host-type
                   value: default
               securityGroups:
-                - id: sg-00868b02fbe29de17
-                - id: sg-0a4658991dc5eb40a
-                - id: sg-009a70e28fa4ba84e
-                - id: sg-07323d56fb932c84c
-                - id: sg-08b1ffd32874d59a2
+                - filters:
+                    - name: "tag:Name"
+                      values:
+                      - "${CLUSTER_ID}-*"
               publicIP: true
             versions:
               kubelet: 1.10.1
@@ -133,6 +152,8 @@ extensions:
         set +x
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
+
+        export CLUSTER_ID="pr-${BUILD_NUMBER}-${PULL_NUMBER}"
 
         echo "### Wait until the aggregated apiserver is running (5 minutes at most)"
         retry=0
@@ -160,7 +181,7 @@ extensions:
         retry=0
         running=0
         while [[ $retry -le 150 ]]; do
-                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-pr-${BUILD_NUMBER}-${PULL_NUMBER}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
+                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-${CLUSTER_ID}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
                 echo "$(date): instance is ${instanceState}"
                 if [[ "${instanceState}" != "running" ]]; then
                         retry=$((retry+1))
@@ -178,7 +199,7 @@ extensions:
         retry=0
         terminated=0
         while [[ $retry -le 150 ]]; do
-                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-pr-${BUILD_NUMBER}-${PULL_NUMBER}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
+                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-${CLUSTER_ID}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
                 echo "$(date): instance is ${instanceState}"
                 if [[ "${instanceState}" != "terminated" ]]; then
                         retry=$((retry+1))
@@ -204,6 +225,16 @@ extensions:
     - systemd-journald.service
 overrides:
   post_actions:
+    - type: "script"
+      title: "Deprovision resources"
+      script: |-
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/hack
+        set +x
+        echo "export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)" >> envs
+        echo "export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)" >> envs
+        source envs
+        set -x
+        ./aws-provision.sh destroy || true
     - type: "host_script"
       title: "assemble GCS output"
       timeout: 300
@@ -230,7 +261,5 @@ overrides:
         trap 'exit 0' EXIT
         if [[ -n "${JOB_SPEC:-}" ]]; then
           JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
-          gcloud auth activate-service-account --key-file /data/credentials.json
-          gcloud config set project openshift-gce-devel
-          docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+          sudo docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json /data/gcs/*
         fi

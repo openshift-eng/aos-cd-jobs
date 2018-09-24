@@ -146,7 +146,7 @@ artifacts:
   - /go/src/k8s.io/kubernetes/e2e.log
   - /go/src/github.com/kubernetes-sigs/cri-o/testout.txt
   - /go/src/github.com/kubernetes-sigs/cri-o/reports
-  - /tmp/artifacts
+  - /tmp/artifacts/*
   - /tmp/kubelet.log
   - /tmp/kube-apiserver.log
   - /tmp/kube-controller-manager.log

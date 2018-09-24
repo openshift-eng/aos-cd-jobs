@@ -254,8 +254,25 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 export GOPATH=/data
-cd \$GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
+cd \$GOPATH/src/github.com/openshift/cluster-api-provider-aws/
 sudo pip install awscli
+curl https://releases.hashicorp.com/terraform/0.11.8/terraform_0.11.8_linux_amd64.zip -o terraform_0.11.8_linux_amd64.zip
+unzip terraform_0.11.8_linux_amd64.zip
+sudo cp ./terraform /usr/bin/.
+
+export CLUSTER_ID=&#34;pr-\${BUILD_NUMBER}-\${PULL_NUMBER}&#34;
+
+# Create all the aws resources
+pushd hack
+set +x
+echo &#34;export AWS_ACCESS_KEY_ID=\$(aws configure get aws_access_key_id)&#34; &gt;&gt; envs
+echo &#34;export AWS_SECRET_ACCESS_KEY=\$(aws configure get aws_secret_access_key)&#34; &gt;&gt; envs
+source envs
+set -x
+ENVIRONMENT_ID=\${CLUSTER_ID} ./aws-provision.sh install
+popd
+
+cd examples
 
 set +x
 cat &lt;&lt; HEREDOC &gt; addons.yaml
@@ -297,7 +314,7 @@ spec:
 apiVersion: &#34;cluster.k8s.io/v1alpha1&#34;
 kind: Machine
 metadata:
-  name: aws-actuator-testing-machine-pr-\${BUILD_NUMBER}-\${PULL_NUMBER}
+  name: aws-actuator-testing-machine-\${CLUSTER_ID}
   namespace: test
   generateName: vs-master-
   labels:
@@ -318,7 +335,10 @@ spec:
         region: us-east-1
         availabilityZone: us-east-1a
       subnet:
-        id: subnet-0e56b13a64ff8a941
+        filters:
+          - name: &#34;tag:Name&#34;
+            values:
+            - &#34;\${CLUSTER_ID}-worker-*&#34;
       iamInstanceProfile:
         id: openshift_master_launch_instances
       keyName: libra
@@ -330,11 +350,10 @@ spec:
         - name: sub-host-type
           value: default
       securityGroups:
-        - id: sg-00868b02fbe29de17
-        - id: sg-0a4658991dc5eb40a
-        - id: sg-009a70e28fa4ba84e
-        - id: sg-07323d56fb932c84c
-        - id: sg-08b1ffd32874d59a2
+        - filters:
+            - name: &#34;tag:Name&#34;
+              values:
+              - &#34;\${CLUSTER_ID}-*&#34;
       publicIP: true
     versions:
       kubelet: 1.10.1
@@ -362,6 +381,8 @@ set +x
 export GOPATH=/data
 cd \$GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
 
+export CLUSTER_ID=&#34;pr-\${BUILD_NUMBER}-\${PULL_NUMBER}&#34;
+
 echo &#34;### Wait until the aggregated apiserver is running (5 minutes at most)&#34;
 retry=0
 while [[ \$retry -le 150 ]]; do
@@ -388,7 +409,7 @@ echo &#34;### wait until the instance is running (5 minutes at most)&#34;
 retry=0
 running=0
 while [[ \$retry -le 150 ]]; do
-        instanceState=\$(aws --region us-east-1 ec2 describe-instances --filters &#34;Name=tag:Name,Values=aws-actuator-testing-machine-pr-\${BUILD_NUMBER}-\${PULL_NUMBER}&#34; | jq &#39;.Reservations[0].Instances[0].State.Name&#39; --raw-output)
+        instanceState=\$(aws --region us-east-1 ec2 describe-instances --filters &#34;Name=tag:Name,Values=aws-actuator-testing-machine-\${CLUSTER_ID}&#34; | jq &#39;.Reservations[0].Instances[0].State.Name&#39; --raw-output)
         echo &#34;\$(date): instance is \${instanceState}&#34;
         if [[ &#34;\${instanceState}&#34; != &#34;running&#34; ]]; then
                 retry=\$((retry+1))
@@ -406,7 +427,7 @@ echo &#34;### Wait until the instance is terminated&#34;
 retry=0
 terminated=0
 while [[ \$retry -le 150 ]]; do
-        instanceState=\$(aws --region us-east-1 ec2 describe-instances --filters &#34;Name=tag:Name,Values=aws-actuator-testing-machine-pr-\${BUILD_NUMBER}-\${PULL_NUMBER}&#34; | jq &#39;.Reservations[0].Instances[0].State.Name&#39; --raw-output)
+        instanceState=\$(aws --region us-east-1 ec2 describe-instances --filters &#34;Name=tag:Name,Values=aws-actuator-testing-machine-\${CLUSTER_ID}&#34; | jq &#39;.Reservations[0].Instances[0].State.Name&#39; --raw-output)
         echo &#34;\$(date): instance is \${instanceState}&#34;
         if [[ &#34;\${instanceState}&#34; != &#34;terminated&#34; ]]; then
                 retry=\$((retry+1))
@@ -527,6 +548,38 @@ tree &#34;${ARTIFACT_DIR}&#34; </command>
             <buildSteps>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DEPROVISION RESOURCES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DEPROVISION RESOURCES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${HOME}&#34;
+cd \$GOPATH/src/github.com/openshift/cluster-api-provider-aws/hack
+set +x
+echo &#34;export AWS_ACCESS_KEY_ID=\$(aws configure get aws_access_key_id)&#34; &gt;&gt; envs
+echo &#34;export AWS_SECRET_ACCESS_KEY=\$(aws configure get aws_secret_access_key)&#34; &gt;&gt; envs
+source envs
+set -x
+./aws-provision.sh destroy || true
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+            </buildSteps>
+          </org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
+          <org.jenkinsci.plugins.postbuildscript.model.PostBuildStep>
+            <results>
+              <string>SUCCESS</string>
+              <string>NOT_BUILT</string>
+              <string>ABORTED</string>
+              <string>FAILURE</string>
+              <string>UNSTABLE</string>
+            </results>
+            <role>BOTH</role>
+            <buildSteps>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ASSEMBLE GCS OUTPUT ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ASSEMBLE GCS OUTPUT [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 trap &#39;exit 0&#39; EXIT
 mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
@@ -567,9 +620,7 @@ cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
 if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
   JOB_SPEC=&#34;\$( jq --compact-output &#34;.buildid |= \&#34;\${BUILD_NUMBER}\&#34;&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
-  gcloud auth activate-service-account --key-file /data/credentials.json
-  gcloud config set project openshift-gce-devel
-  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+  sudo docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json /data/gcs/*
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;

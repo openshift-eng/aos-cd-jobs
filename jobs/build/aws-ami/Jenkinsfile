@@ -206,9 +206,9 @@ openshift-enterprise - Openshift Enterprise online""",
                 ],
                 [
                     name: 'OPENSHIFT_ANSIBLE_CHECKOUT',
-                    description: 'openshift-ansible checkout reference.',
+                    description: 'openshift-ansible checkout reference. Leave blank to use corresponding OCP release branch.',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'master'
+                    defaultValue: ''
                 ],
 
                 // Parameters to search for AMI to use
@@ -303,6 +303,12 @@ NOTE: Currently this only shares the AMI in the AWS_REGION defined.
 
 if ( MOCK.toBoolean() ) {
     error( "Ran in mock mode to pick up any new parameters" )
+}
+
+if ( OPENSHIFT_ANSIBLE_CHECKOUT == "" ) {
+    OCP_MAJOR = OPENSHIFT_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y.Z
+    OCP_MINOR = OPENSHIFT_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y.Z
+    OPENSHIFT_ANSIBLE_CHECKOUT = "release-${OCP_MAJOR}.${OCP_MINOR}"
 }
 
 node(TARGET_NODE) {

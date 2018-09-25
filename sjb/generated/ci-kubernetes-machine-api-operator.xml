@@ -238,7 +238,7 @@ cd &#34;\${HOME}&#34;
 # build the mao image
 export GOPATH=/data
 cd \$GOPATH/src/github.com/openshift/machine-api-operator
-go build -v -o bin/machine-api-operator github.com/openshift/machine-api-operator/cmd
+make build
 go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
 sudo mv /data/bin/imagebuilder /usr/bin
 sudo imagebuilder -t &#34;docker.io/machine-api-operator:\$(git describe --always --abbrev=7)&#34; .

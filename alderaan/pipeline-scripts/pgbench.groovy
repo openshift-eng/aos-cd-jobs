@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-def node_label = 'CCI && ansible-2.3'
+def node_label = NODE_LABEL.toString()
 def pgbench_test = PGBENCH_TEST.toString().toUpperCase()
 def property_file_name = "pgbench.properties"
 
@@ -11,7 +11,7 @@ println "Current pipeline job build id is '${pipeline_id}'"
 stage ('pgbench_scale_test_glusterfs') {
 	if ( pgbench_test == "TRUE") {
 		currentBuild.result = "SUCCESS"
-		node('CCI && US') {
+		node(node_label) {
 			if (fileExists(property_file_name)) {
 				println "pgbench_scale_test.properties file exist... deleting it..."
 				sh "rm ${property_file_name}"

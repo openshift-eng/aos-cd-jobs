@@ -2,7 +2,7 @@
 
 def contact = "nelluri@redhat.com"
 def pipeline_id = env.BUILD_ID
-def node_label = "'CCI && ansible-2.4'"
+def node_label = NODE_LABEL.toString()
 def run_job = OPENSHIFT_INSTALL.toString().toUpperCase()
 def job_name = "scale-ci_install_OpenShift"
 def stage_name = "openshift_install"
@@ -14,7 +14,7 @@ println("Current pipeline job id is '${pipeline_id}'")
 stage (stage_name) {
 	if (run_job) {
 		currentBuild.result = "SUCCESS"
-		node("CCI && US") {
+		node(node_label) {
 			// Look for old property files.
 			if (fileExists(property_file_name)) {
 				println("Deleting the old ${property_file_name}")

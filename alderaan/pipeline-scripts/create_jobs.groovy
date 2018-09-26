@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-def node_label = 'CCI && ansible-2.4'
+def node_label = NODE_LABEL.toString()
 def create_jobs = CREATE_JOBS_FROM_JJB.toString().toUpperCase()
 def property_file_name = "jobs.properties"
 
@@ -11,7 +11,7 @@ println "Current pipeline job build id is '${pipeline_id}'"
 stage ('Create jobs in OpenShift QE jenkins') {
 	if (create_jobs == "TRUE") {
 		currentBuild.result = "SUCCESS"
-		node('CCI && US') {
+		node(node_label) {
 			// get properties file
 			if (fileExists(property_file_name)) {
 				println "Looks like the file already exists, erasing it"

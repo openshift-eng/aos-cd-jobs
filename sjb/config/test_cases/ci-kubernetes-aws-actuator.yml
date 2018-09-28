@@ -5,8 +5,10 @@ extensions:
     - type: "host_script"
       title: "Upload the default AWS credentiasl"
       script: |-
-         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir ~/.aws"
+         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.aws"
          scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws
+         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.ssh"
+         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.ssh/devenv.pem openshiftdevel:~/.ssh/devenv.pem
     - type: "script"
       title: "Install minikube"
       script: |-
@@ -33,7 +35,7 @@ extensions:
         sudo mv /data/bin/imagebuilder /usr/bin
         sudo make -C cmd/machine-controller
     - type: "script"
-      title: "Deploy manifests"
+      title: "Create cluster resources"
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/
@@ -54,171 +56,27 @@ extensions:
         ENVIRONMENT_ID=${CLUSTER_ID} ./aws-provision.sh install
         popd
 
-        cd examples
-
-        set +x
-        cat << HEREDOC > addons.yaml
-        ---
-        apiVersion: v1
-        kind: Namespace
-        metadata:
-          name: test
-        ---
-        apiVersion: v1
-        kind: Secret
-        metadata:
-          name: aws-credentials-secret
-          namespace: test
-        type: Opaque
-        data:
-          awsAccessKeyId: $(echo -n $(aws configure get aws_access_key_id) | base64)
-          awsSecretAccessKey: $(echo -n $(aws configure get aws_secret_access_key) | base64)
-        HEREDOC
-        set -x
-
-        cat << HEREDOC > machine.yaml
-        ---
-        apiVersion: "cluster.k8s.io/v1alpha1"
-        kind: Cluster
-        metadata:
-          name: tb-asg-35
-          namespace: test
-        spec:
-          clusterNetwork:
-            services:
-              cidrBlocks:
-                - "10.0.0.1/24"
-            pods:
-              cidrBlocks:
-                - "10.0.0.2/24"
-            serviceDomain: example.com
-        ---
-        apiVersion: "cluster.k8s.io/v1alpha1"
-        kind: Machine
-        metadata:
-          name: aws-actuator-testing-machine-${CLUSTER_ID}
-          namespace: test
-          generateName: vs-master-
-          labels:
-            sigs.k8s.io/cluster-api-cluster: tb-asg-35
-            sigs.k8s.io/cluster-api-machine-role: infra
-            sigs.k8s.io/cluster-api-machine-type: master
-        spec:
-          providerConfig:
-            value:
-              apiVersion: aws.cluster.k8s.io/v1alpha1
-              kind: AWSMachineProviderConfig
-              ami:
-                id: ami-a9acbbd6
-              credentialsSecret:
-                name: aws-credentials-secret
-              instanceType: m4.xlarge
-              placement:
-                region: us-east-1
-                availabilityZone: us-east-1a
-              subnet:
-                filters:
-                  - name: "tag:Name"
-                    values:
-                    - "${CLUSTER_ID}-worker-*"
-              iamInstanceProfile:
-                id: openshift_master_launch_instances
-              keyName: libra
-              tags:
-                - name: openshift-node-group-config
-                  value: node-config-master
-                - name: host-type
-                  value: master
-                - name: sub-host-type
-                  value: default
-              securityGroups:
-                - filters:
-                    - name: "tag:Name"
-                      values:
-                      - "${CLUSTER_ID}-*"
-              publicIP: true
-            versions:
-              kubelet: 1.10.1
-              controlPlane: 1.10.1
-        HEREDOC
-
-        sudo kubectl apply -f addons.yaml
-        sudo kubectl apply -f cluster-api-server.yaml
         sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
-        sudo kubectl apply -f provider-components.yml
     - type: "script"
-      title: "Deploy machine manifests and verify aws instance is created"
+      title: "Run e2e tests"
       script: |-
         set +x
         export GOPATH=/data
-        cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
+        mkdir -p /data/src/sigs.k8s.io
+        ln -s $GOPATH/src/github.com/openshift/cluster-api-provider-aws $GOPATH/src/sigs.k8s.io/cluster-api-provider-aws
+        cd $GOPATH/src/sigs.k8s.io/cluster-api-provider-aws
+
+        set +x
+        source hack/envs
+        set -x
+
+        chmod 0600 ~/.ssh/devenv.pem
 
         export CLUSTER_ID="pr-${BUILD_NUMBER}-${PULL_NUMBER}"
+        export ENVIRONMENT_ID="${CLUSTER_ID}"
+        export SSH_PK="/home/origin/.ssh/devenv.pem"
 
-        echo "### Wait until the aggregated apiserver is running (5 minutes at most)"
-        retry=0
-        while [[ $retry -le 150 ]]; do
-                IS_READY=$(sudo kubectl get deployment clusterapi-apiserver -o json | jq  '.status | select(.readyReplicas != null) | .readyReplicas' | wc -l)
-                echo "$(date): aggreagted apiserver ready = ${IS_READY}"
-                if [[ ${IS_READY} -eq 0 ]]; then
-                        retry=$((retry+1))
-                        sleep 2s
-                        continue
-                fi
-                break
-        done
-
-        if [[ ${IS_READY} -eq 0 ]]; then
-                echo "aggregated apiserver still not ready"
-                exit 1
-        fi
-
-        echo "### Give the apiserver sometime so it starts serving as well"
-        sleep 5s
-
-        sudo kubectl apply -f machine.yaml --validate=false
-        echo "### wait until the instance is running (5 minutes at most)"
-        retry=0
-        running=0
-        while [[ $retry -le 150 ]]; do
-                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-${CLUSTER_ID}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
-                echo "$(date): instance is ${instanceState}"
-                if [[ "${instanceState}" != "running" ]]; then
-                        retry=$((retry+1))
-                        sleep 2s
-                        continue
-                fi
-                running=1
-                break
-        done
-
-        echo "### Remove the instance"
-        sudo kubectl delete -f machine.yaml
-
-        echo "### Wait until the instance is terminated"
-        retry=0
-        terminated=0
-        while [[ $retry -le 150 ]]; do
-                instanceState=$(aws --region us-east-1 ec2 describe-instances --filters "Name=tag:Name,Values=aws-actuator-testing-machine-${CLUSTER_ID}" | jq '.Reservations[0].Instances[0].State.Name' --raw-output)
-                echo "$(date): instance is ${instanceState}"
-                if [[ "${instanceState}" != "terminated" ]]; then
-                        retry=$((retry+1))
-                        sleep 2s
-                        continue
-                fi
-                terminated=1
-                break
-        done
-
-        if [[ $running -ne 1 ]]; then
-            echo "The aws instance was not running in 5 minutes"
-        fi
-        if [[ $terminated -ne 1 ]]; then
-            echo "The aws instance was not terminated in 5 minutes"
-        fi
-        if [[ $running -ne 1 || $terminated -ne 1 ]]; then
-            exit 1
-        fi
+        sudo -E make test-e2e
 
         echo "The aws instance was running and terminated"
   system_journals:
@@ -229,12 +87,12 @@ overrides:
       title: "Deprovision resources"
       script: |-
         cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws/hack
-        set +x
-        echo "export AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)" >> envs
-        echo "export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)" >> envs
-        source envs
-        set -x
-        ./aws-provision.sh destroy || true
+        if [[ -e envs ]]; then
+          set +x
+          source envs
+          set -x
+          ./aws-provision.sh destroy || true
+        fi
     - type: "host_script"
       title: "assemble GCS output"
       timeout: 300

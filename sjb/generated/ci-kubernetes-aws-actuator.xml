@@ -187,8 +187,10 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel 
         <hudson.tasks.Shell>
           <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: UPLOAD THE DEFAULT AWS CREDENTIASL ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: UPLOAD THE DEFAULT AWS CREDENTIASL [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;mkdir ~/.aws&#34;
-scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws</command>
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;mkdir -p ~/.aws&#34;
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel &#34;mkdir -p ~/.ssh&#34;
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.ssh/devenv.pem openshiftdevel:~/.ssh/devenv.pem</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -247,7 +249,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DEPLOY MANIFESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DEPLOY MANIFESTS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: CREATE CLUSTER RESOURCES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: CREATE CLUSTER RESOURCES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
@@ -272,98 +274,7 @@ set -x
 ENVIRONMENT_ID=\${CLUSTER_ID} ./aws-provision.sh install
 popd
 
-cd examples
-
-set +x
-cat &lt;&lt; HEREDOC &gt; addons.yaml
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: test
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: aws-credentials-secret
-  namespace: test
-type: Opaque
-data:
-  awsAccessKeyId: \$(echo -n \$(aws configure get aws_access_key_id) | base64)
-  awsSecretAccessKey: \$(echo -n \$(aws configure get aws_secret_access_key) | base64)
-HEREDOC
-set -x
-
-cat &lt;&lt; HEREDOC &gt; machine.yaml
----
-apiVersion: &#34;cluster.k8s.io/v1alpha1&#34;
-kind: Cluster
-metadata:
-  name: tb-asg-35
-  namespace: test
-spec:
-  clusterNetwork:
-    services:
-      cidrBlocks:
-        - &#34;10.0.0.1/24&#34;
-    pods:
-      cidrBlocks:
-        - &#34;10.0.0.2/24&#34;
-    serviceDomain: example.com
----
-apiVersion: &#34;cluster.k8s.io/v1alpha1&#34;
-kind: Machine
-metadata:
-  name: aws-actuator-testing-machine-\${CLUSTER_ID}
-  namespace: test
-  generateName: vs-master-
-  labels:
-    sigs.k8s.io/cluster-api-cluster: tb-asg-35
-    sigs.k8s.io/cluster-api-machine-role: infra
-    sigs.k8s.io/cluster-api-machine-type: master
-spec:
-  providerConfig:
-    value:
-      apiVersion: aws.cluster.k8s.io/v1alpha1
-      kind: AWSMachineProviderConfig
-      ami:
-        id: ami-a9acbbd6
-      credentialsSecret:
-        name: aws-credentials-secret
-      instanceType: m4.xlarge
-      placement:
-        region: us-east-1
-        availabilityZone: us-east-1a
-      subnet:
-        filters:
-          - name: &#34;tag:Name&#34;
-            values:
-            - &#34;\${CLUSTER_ID}-worker-*&#34;
-      iamInstanceProfile:
-        id: openshift_master_launch_instances
-      keyName: libra
-      tags:
-        - name: openshift-node-group-config
-          value: node-config-master
-        - name: host-type
-          value: master
-        - name: sub-host-type
-          value: default
-      securityGroups:
-        - filters:
-            - name: &#34;tag:Name&#34;
-              values:
-              - &#34;\${CLUSTER_ID}-*&#34;
-      publicIP: true
-    versions:
-      kubelet: 1.10.1
-      controlPlane: 1.10.1
-HEREDOC
-
-sudo kubectl apply -f addons.yaml
-sudo kubectl apply -f cluster-api-server.yaml
 sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
-sudo kubectl apply -f provider-components.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -371,7 +282,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DEPLOY MACHINE MANIFESTS AND VERIFY AWS INSTANCE IS CREATED ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DEPLOY MACHINE MANIFESTS AND VERIFY AWS INSTANCE IS CREATED [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: RUN E2E TESTS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: RUN E2E TESTS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
@@ -379,74 +290,21 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 set +x
 export GOPATH=/data
-cd \$GOPATH/src/github.com/openshift/cluster-api-provider-aws/examples
+mkdir -p /data/src/sigs.k8s.io
+ln -s \$GOPATH/src/github.com/openshift/cluster-api-provider-aws \$GOPATH/src/sigs.k8s.io/cluster-api-provider-aws
+cd \$GOPATH/src/sigs.k8s.io/cluster-api-provider-aws
+
+set +x
+source hack/envs
+set -x
+
+chmod 0600 ~/.ssh/devenv.pem
 
 export CLUSTER_ID=&#34;pr-\${BUILD_NUMBER}-\${PULL_NUMBER}&#34;
+export ENVIRONMENT_ID=&#34;\${CLUSTER_ID}&#34;
+export SSH_PK=&#34;/home/origin/.ssh/devenv.pem&#34;
 
-echo &#34;### Wait until the aggregated apiserver is running (5 minutes at most)&#34;
-retry=0
-while [[ \$retry -le 150 ]]; do
-        IS_READY=\$(sudo kubectl get deployment clusterapi-apiserver -o json | jq  &#39;.status | select(.readyReplicas != null) | .readyReplicas&#39; | wc -l)
-        echo &#34;\$(date): aggreagted apiserver ready = \${IS_READY}&#34;
-        if [[ \${IS_READY} -eq 0 ]]; then
-                retry=\$((retry+1))
-                sleep 2s
-                continue
-        fi
-        break
-done
-
-if [[ \${IS_READY} -eq 0 ]]; then
-        echo &#34;aggregated apiserver still not ready&#34;
-        exit 1
-fi
-
-echo &#34;### Give the apiserver sometime so it starts serving as well&#34;
-sleep 5s
-
-sudo kubectl apply -f machine.yaml --validate=false
-echo &#34;### wait until the instance is running (5 minutes at most)&#34;
-retry=0
-running=0
-while [[ \$retry -le 150 ]]; do
-        instanceState=\$(aws --region us-east-1 ec2 describe-instances --filters &#34;Name=tag:Name,Values=aws-actuator-testing-machine-\${CLUSTER_ID}&#34; | jq &#39;.Reservations[0].Instances[0].State.Name&#39; --raw-output)
-        echo &#34;\$(date): instance is \${instanceState}&#34;
-        if [[ &#34;\${instanceState}&#34; != &#34;running&#34; ]]; then
-                retry=\$((retry+1))
-                sleep 2s
-                continue
-        fi
-        running=1
-        break
-done
-
-echo &#34;### Remove the instance&#34;
-sudo kubectl delete -f machine.yaml
-
-echo &#34;### Wait until the instance is terminated&#34;
-retry=0
-terminated=0
-while [[ \$retry -le 150 ]]; do
-        instanceState=\$(aws --region us-east-1 ec2 describe-instances --filters &#34;Name=tag:Name,Values=aws-actuator-testing-machine-\${CLUSTER_ID}&#34; | jq &#39;.Reservations[0].Instances[0].State.Name&#39; --raw-output)
-        echo &#34;\$(date): instance is \${instanceState}&#34;
-        if [[ &#34;\${instanceState}&#34; != &#34;terminated&#34; ]]; then
-                retry=\$((retry+1))
-                sleep 2s
-                continue
-        fi
-        terminated=1
-        break
-done
-
-if [[ \$running -ne 1 ]]; then
-    echo &#34;The aws instance was not running in 5 minutes&#34;
-fi
-if [[ \$terminated -ne 1 ]]; then
-    echo &#34;The aws instance was not terminated in 5 minutes&#34;
-fi
-if [[ \$running -ne 1 || \$terminated -ne 1 ]]; then
-    exit 1
-fi
+sudo -E make test-e2e
 
 echo &#34;The aws instance was running and terminated&#34;
 SCRIPT
@@ -555,12 +413,12 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 cd \$GOPATH/src/github.com/openshift/cluster-api-provider-aws/hack
-set +x
-echo &#34;export AWS_ACCESS_KEY_ID=\$(aws configure get aws_access_key_id)&#34; &gt;&gt; envs
-echo &#34;export AWS_SECRET_ACCESS_KEY=\$(aws configure get aws_secret_access_key)&#34; &gt;&gt; envs
-source envs
-set -x
-./aws-provision.sh destroy || true
+if [[ -e envs ]]; then
+  set +x
+  source envs
+  set -x
+  ./aws-provision.sh destroy || true
+fi
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

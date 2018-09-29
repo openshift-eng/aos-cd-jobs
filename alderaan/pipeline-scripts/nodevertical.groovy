@@ -31,6 +31,7 @@ stage ('nodevertical_scale_test') {
 			def proxy_host = nodevertical_properties['PROXY_HOST']
 			def containerized = nodevertical_properties['CONTAINERIZED']
 			def env = nodevertical_properties['ENVIRONMENT']
+			def token = nodevertical_properties['GITHUB_TOKEN']
 	
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
@@ -45,6 +46,7 @@ stage ('nodevertical_scale_test') {
 			println "PROXY_USER: '${proxy_user}'"
 			println "PROXY_HOST: '${proxy_host}'"
 			println "CONTAINERIZED: '${containerized}'"
+			println "TOKEN: '${token}'"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
 
@@ -61,6 +63,7 @@ stage ('nodevertical_scale_test') {
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
 						[$class: 'StringParameterValue', name: 'ENVIRONMENT', value: env ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ],
 						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ]]
 			} catch ( Exception e) {
 				echo "NODEVERTICAL-SCALE-TEST Job failed with the following error: "

@@ -32,6 +32,7 @@ stage ('podvertical_scale_test') {
 			def containerized = podvertical_properties['CONTAINERIZED']
 			def pods = podvertical_properties['PODS']
 			def iterations = podvertical_properties['ITERATIONS']
+			def token = podvertical_properties['GITHUB_TOKEN']
 	
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
@@ -46,6 +47,7 @@ stage ('podvertical_scale_test') {
 			println "PROXY_USER: '${proxy_user}'"
 			println "PROXY_HOST: '${proxy_host}'"
 			println "CONTAINERIZED: '${containerized}'"
+			println "TOKEN: '${token}'"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
 
@@ -63,7 +65,8 @@ stage ('podvertical_scale_test') {
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
 						[$class: 'StringParameterValue', name: 'PODS', value: pods ],
 						[$class: 'StringParameterValue', name: 'ITERATIONS', value: iterations ],
-						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ]]
+						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ]]
 			} catch ( Exception e) {
 				echo "PODVERTICAL Job failed with the following error: "
 				echo "${e.getMessage()}"

@@ -1,13 +1,14 @@
 - job:
+    concurrent: true
     description: 'Collection of Jenkins jobs to setup osp, ocp and run various scale
       tests on Alderaan environment. '
     disabled: false
-    name: !!python/unicode 'alderaan'
+    name: alderaan-pipeline
     parameters:
     - bool:
         default: false
         description: ''
-        name: CREATE_JOBS
+        name: CREATE_JOBS_FROM_JJB
     - bool:
         default: false
         description: ''
@@ -39,15 +40,19 @@
     - bool:
         default: false
         description: ''
-        name: MASTERVERTICAL_SCALE_TEST
-    - bool:
-        default: false
-        description: ''
         name: HTTP_TEST
     - bool:
         default: false
         description: ''
-        name: LOGGING_SCALE_TEST
+        name: DEPLOYMENTS_PER_NS
+    - bool:
+        default: false
+        description: ''
+        name: PODVERTICAL
+    - bool:
+        default: false
+        description: ''
+        name: NETWORKING
     - bool:
         default: false
         description: ''
@@ -59,15 +64,15 @@
     - bool:
         default: false
         description: ''
-        name: PODVERTICAL
-    - bool:
-        default: false
-        description: ''
-        name: DEPLOYMENTS_PER_NS
+        name: MASTERVERTICAL_SCALE_TEST
     - bool:
         default: false
         description: ''
         name: NS_PER_CLUSTER
+    - bool:
+        default: false
+        description: ''
+        name: LOGGING_SCALE_TEST
     - string:
         default: ''
         description: ''
@@ -103,15 +108,19 @@
     - string:
         default: ''
         description: ''
-        name: MASTERVERTICAL_PROPERTY_FILE
-    - string:
-        default: ''
-        description: ''
-        name: LOGGING_PROPERTY_FILE
-    - string:
-        default: ''
-        description: ''
         name: HTTP_TEST_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: DEPLOYMENTS_PER_NS_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: PODVERTICAL_PROPERTY_FILE
+    - string:
+        default: ''
+        description: ''
+        name: NETWORKING_PROPERTY_FILE
     - string:
         default: ''
         description: ''
@@ -123,11 +132,15 @@
     - string:
         default: ''
         description: ''
-        name: PODVERTICAL_PROPERTY_FILE
+        name: MONGOYCSB_PROPERTY_FILE
     - string:
         default: ''
         description: ''
-        name: DEPLOYMENTS_PER_NS_PROPERTY_FILE
+        name: MONGOYCSB_PROPERTY_FILE_GLUSTER_BLOCK
+    - string:
+        default: ''
+        description: ''
+        name: MASTERVERTICAL_PROPERTY_FILE
     - string:
         default: ''
         description: ''
@@ -135,11 +148,7 @@
     - string:
         default: ''
         description: ''
-        name: MONGOYCSB_PROPERTY_FILE
-    - string:
-        default: ''
-        description: ''
-        name: MONGOYCSB_PROPERTY_FILE_GLUSTER_BLOCK
+        name: LOGGING_PROPERTY_FILE
     pipeline-scm:
       lightweight-checkout: false
       scm:
@@ -148,7 +157,7 @@
           - '*/master'
           url: https://github.com/openshift/aos-cd-jobs.git
           wipe-workspace: true
-      scriptPath: alderaan/Jenkinsfile
+      script-path: alderaan/Jenkinsfile
     project-type: pipeline
     properties:
     - raw:

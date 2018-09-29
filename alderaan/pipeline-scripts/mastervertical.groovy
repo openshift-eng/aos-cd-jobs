@@ -35,6 +35,7 @@ stage('mastervertical_scale_test') {
 			def first_run = mastervertical_properties['FIRST_RUN_PROJECTS']
 			def second_run = mastervertical_properties['SECOND_RUN_PROJECTS']
 			def third_run = mastervertical_properties['THIRD_RUN_PROJECTS']
+			def token = mastervertical_properties['GITHUB_TOKEN']
 
 			// debug info
 			println "JUMP_HOST: '${jump_host}'"
@@ -46,6 +47,7 @@ stage('mastervertical_scale_test') {
 			println "PROXY_USER: '${proxy_user}'"
 			println "PROXY_HOST: '${proxy_host}'"
 			println "PROJECTS: '${projects}'"
+			println "TOKEN: '${token}'"
 
 			// Run mastervertical job
 			try {
@@ -63,7 +65,8 @@ stage('mastervertical_scale_test') {
 						[$class: 'BooleanParameterValue', name: 'SETUP_PBENCH', value: Boolean.valueOf(setup_pbench) ],
 						[$class: 'StringParameterValue', name: 'FIRST_RUN_PROJECTS', value: first_run ],
 						[$class: 'StringParameterValue', name: 'SECOND_RUN_PROJECTS', value: second_run ],
-						[$class: 'StringParameterValue', name: 'THIRD_RUN_PROJECTS', value: third_run ]]
+						[$class: 'StringParameterValue', name: 'THIRD_RUN_PROJECTS', value: third_run ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ]]
 			} catch ( Exception e) {
 				echo "MASTERVERTICAL-SCALE-TEST Job failed with the following error: "
 				echo "${e.getMessage()}"

@@ -29,6 +29,7 @@ stage ('setup_pbench') {
 			def proxy_host = pbench_properties['PROXY_HOST']
 			def containerized = pbench_properties['CONTAINERIZED']
 			def all_nodes = pbench_properties['REGISTER_ALL_NODES']
+			def token = pbench_properties['GITHUB_TOKEN']
 
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
@@ -38,6 +39,7 @@ stage ('setup_pbench') {
 			println "USER: '${user}'"
 			println "TOOLING_INVENTORY_PATH: '${tooling_inventory_path}'"
 			println "OPENSHIFT_INVENTORY_PATH: '${openshift_inventory}'"
+			println "TOKEN: '${token}'"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
 
@@ -52,7 +54,8 @@ stage ('setup_pbench') {
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
 						[$class: 'BooleanParameterValue', name: 'REGISTER_ALL_NODES', value: Boolean.valueOf(all_nodes) ],
-						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ]]
+						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ]]
 			} catch ( Exception e) {
 				echo "SETUP_TOOLING Job failed with the following error: "
 				echo "${e.getMessage()}"

@@ -50,7 +50,7 @@ prep_jenkins_war() {
 update_dist_git () {
   if [ ! -f *.spec ]; then
         # Get the spec and supporting files from a prior release
-        git pull --no-edit origin rhaos-3.7-rhel-7
+        git pull --no-edit --allow-unrelated-histories origin rhaos-3.7-rhel-7
   fi
   rhpkg new-sources jenkins.${UVERSION}.war
   $SCRIPTS_DIR/rpm-bump-version.sh "${UVERSION}"

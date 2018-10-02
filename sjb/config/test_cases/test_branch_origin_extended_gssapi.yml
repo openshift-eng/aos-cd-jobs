@@ -3,9 +3,7 @@ parent: 'common/test_cases/origin_release_with_ecosystem.yml'
 overrides:
   junit_analysis: False
   email:
-    - mkhan@redhat.com
-    - ssorce@redhat.com
-    - aos-security-team@redhat.com
+    - aos-auth-team@redhat.com
   sync:
     - "openshift,origin=master"
 extensions:

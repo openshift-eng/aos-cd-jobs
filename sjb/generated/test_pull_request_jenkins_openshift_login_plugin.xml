@@ -711,7 +711,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-KUBECONFIG=/etc/origin/master/admin.kubeconfig USE_SNAPSHOT_JENKINS_LOGIN_IMAGE=1 TEST_ONLY=true JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=core FOCUS=&#34;jenkins-plugin test exec DSL&#34;
+KUBECONFIG=/etc/origin/master/admin.kubeconfig USE_SNAPSHOT_JENKINS_LOGIN_IMAGE=1 TEST_ONLY=true JUNIT_REPORT=&#39;true&#39; make test-extended SUITE=core FOCUS=&#34;jenkins-client-plugin&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

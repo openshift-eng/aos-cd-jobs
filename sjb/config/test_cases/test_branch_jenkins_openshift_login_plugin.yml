@@ -16,4 +16,4 @@ extensions:
       title: "test the jenkins login plugin test image against origin"
       repository: "origin"
       script: |-
-        KUBECONFIG=/etc/origin/master/admin.kubeconfig USE_SNAPSHOT_JENKINS_LOGIN_IMAGE=1 TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="jenkins-plugin test exec DSL"
+        KUBECONFIG=/etc/origin/master/admin.kubeconfig USE_SNAPSHOT_JENKINS_LOGIN_IMAGE=1 TEST_ONLY=true JUNIT_REPORT='true' make test-extended SUITE=core FOCUS="jenkins-client-plugin"

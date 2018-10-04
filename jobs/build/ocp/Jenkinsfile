@@ -89,6 +89,12 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
                     defaultValue: "auto"
                 ],
                 [
+                    name: 'ODCS',
+                    description: 'Run in ODCS Mode?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false
+                ],
+                [
                     name: 'SIGN',
                     description: 'Sign RPMs with openshifthosted?',
                     $class: 'hudson.model.BooleanParameterDefinition',
@@ -141,6 +147,13 @@ BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X
 BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 SIGN_RPMS = SIGN.toBoolean()
 BUILD_CONTAINER_IMAGES = BUILD_CONTAINER_IMAGES.toBoolean()
+ODCS_MODE = ODCS.toBoolean()
+ODCS_FLAG = ""
+ODCS_OPT = ""
+if (ODCS_MODE) {
+    ODCS_FLAG = "--odcs-mode"
+    ODCS_OPT = "--odcs unsigned"
+}
 
 if (BUILD_EXCLUSIONS != "") {
     // clean up string delimiting
@@ -904,6 +917,7 @@ rpms:build --version v${NEW_VERSION}
                 buildlib.oit """
 --working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
 --sources ${env.WORKSPACE}/sources.yml
+${ODCS_FLAG}
 images:rebase --version v${NEW_VERSION}
 --release ${NEW_DOCKERFILE_RELEASE}
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
@@ -988,9 +1002,10 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
                             }
                             buildlib.oit """
     --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+    ${ODCS_FLAG}
     ${exclude}
     images:build
-    --push-to-defaults --repo-type unsigned
+    --push-to-defaults --repo-type unsigned ${ODCS_OPT}
     """
                             return true // finish waitUntil
                         }

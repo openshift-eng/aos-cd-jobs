@@ -101,6 +101,10 @@
       fmo_mount_point: /var
       fmo_mount_options: rw,relatime,seclabel,attr2,inode64,grpquota
 
+  - name: install systemd unit to keep ops registry credentials in sync
+    include_role:
+      name: roles/registry_credentials_sync
+
   - name: This disables the hyperthreading to fix the new security issue
     command: grubby --args=nosmt --update-kernel=ALL
 

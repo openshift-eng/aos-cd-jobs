@@ -204,7 +204,7 @@ fi
 {%- if email %}
     <hudson.tasks.Mailer plugin="mailer@1.16">
       <recipients>{{ email | join(' ') }}</recipients>
-      <dontNotifyEveryUnstableBuild>true</dontNotifyEveryUnstableBuild>
+      <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
 {%- endif %}

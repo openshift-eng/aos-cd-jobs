@@ -24,8 +24,6 @@ properties(
                     $class: 'hudson.model.ChoiceParameterDefinition',
                     choices: [
                         "git@github.com:openshift",
-                        "git@github.com:jupierce",
-                        "git@github.com:jupierce-aos-cd-bot",
                         "git@github.com:adammhaile-aos-cd-bot",
                         "git@github.com:markllama"
                     ].join("\n"),
@@ -38,7 +36,6 @@ properties(
                     choices: [
                         "openshift-bot",
                         "aos-cd-test",
-                        "jupierce-aos-cd-bot",
                         "adammhaile-aos-cd-bot",
                         "markllama-aos-cd-bot"
                     ].join("\n"),
@@ -993,60 +990,23 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
             BUILD_CONTINUED = false
             stage("build images") {
                 if (BUILD_CONTAINER_IMAGES) {
-
-                    waitUntil {
-                        try {
-                            exclude = ""
-                            if (BUILD_EXCLUSIONS != "") {
-                                exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
-                            }
-                            buildlib.oit """
-    --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
-    ${ODCS_FLAG}
-    ${exclude}
-    images:build
-    --push-to-defaults --repo-type unsigned ${ODCS_OPT}
-    """
-                            return true // finish waitUntil
+                    try {
+                        exclude = ""
+                        if (BUILD_EXCLUSIONS != "") {
+                            exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
                         }
-                        catch (err) {
-                            failed_map = buildlib.get_failed_builds(OIT_WORKING)
-
-                            mail(to: "${MAIL_LIST_FAILURE}",
-                                 from: "aos-cicd@redhat.com",
-                                 subject: "RESUMABLE Error during Image Build for OCP v${BUILD_VERSION}",
-                                 body: """Encountered an error: ${err}
-    Input URL: ${env.BUILD_URL}input
-    Jenkins job: ${env.BUILD_URL}
-
-    BUILD / PUSH FAILURES:
-    ${failed_map}
-    """);
-
-                            def resp = input(
-                                message: "Error during Image Build for OCP v${BUILD_VERSION}",
-                                parameters: [
-                                    [
-                                        $class     : 'hudson.model.ChoiceParameterDefinition',
-                                        choices    : "RETRY\nCONTINUE\nABORT",
-                                        description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).',
-                                        name       : 'action'
-                                    ]
-                                ]
-                            )
-
-                            if (resp == "RETRY") {
-                                return false  // cause waitUntil to loop again
-                            } else if (resp == "CONTINUE") {
-                                echo "User chose to continue. Build failures are non-fatal."
-                                BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
-                                BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
-                                return true // Terminate waitUntil
-                            } else {
-                                // ABORT
-                                error("User chose to abort pipeline because of image build failures")
-                            }
-                        }
+                        buildlib.oit """
+--working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+${ODCS_FLAG}
+${exclude}
+images:build
+--push-to-defaults --repo-type unsigned ${ODCS_OPT}
+"""
+                    }
+                    catch (err) {
+                        failed_map = buildlib.get_failed_builds(OIT_WORKING)
+                        BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
+                        BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
                     }
 
                     if (BUILD_CONTINUED) {

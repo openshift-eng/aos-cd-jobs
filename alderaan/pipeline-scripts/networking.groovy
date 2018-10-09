@@ -26,6 +26,7 @@ stage ('networking_test') {
 			def proxy_user = networking_properties['PROXY_USER']
 			def proxy_host = networking_properties['PROXY_HOST']
 			def mode = networking_properties['MODE']
+			def token = networking_properties['GITHUB_TOKEN']
 	
 			// Run networking job
 			try {
@@ -36,6 +37,7 @@ stage ('networking_test') {
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ],
 						[$class: 'StringParameterValue', name: 'MODE', value: mode ]]
 			} catch ( Exception e) {
 				echo "NETWORKING-TEST Job failed with the following error: "

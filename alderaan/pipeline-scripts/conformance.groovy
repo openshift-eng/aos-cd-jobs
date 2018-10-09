@@ -28,6 +28,7 @@ stage ('conformance') {
 			def use_proxy = conformance_properties['USE_PROXY']
 			def proxy_user = conformance_properties['PROXY_USER']
 			def proxy_host = conformance_properties['PROXY_HOST']
+			def token = conformance_properties['GITHUB_TOKEN']
 
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
@@ -39,6 +40,7 @@ stage ('conformance') {
 			println "USE_PROXY: '${use_proxy}'"
 			println "PROXY_USER: '${proxy_user}'"
 			println "PROXY_HOST: '${proxy_host}'"
+			println "TOKEN: '${token}'"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"	
 		
@@ -51,7 +53,8 @@ stage ('conformance') {
 						[$class: 'StringParameterValue', name: 'ENABLE_PBENCH', value: enable_pbench ],
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
-						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ]]
+						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ]]
 			} catch ( Exception e) {
 				echo "CONFORMANCE Job failed with the following error: "
 				echo "${e.getMessage()}"

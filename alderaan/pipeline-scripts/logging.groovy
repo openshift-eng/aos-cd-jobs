@@ -30,7 +30,8 @@ stage ('logging_scale_test') {
 			def proxy_user = logging_properties['PROXY_USER']
 			def proxy_host = logging_properties['PROXY_HOST']
 			def containerized = logging_properties['CONTAINERIZED']
-			
+			def token = logging_properties['GITHUB_TOKEN']
+	
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
 			println "-------------------------------------------------"
@@ -44,6 +45,7 @@ stage ('logging_scale_test') {
 			println "PROXY_USER: '${proxy_user}'"
 			println "PROXY_HOST: '${proxy_host}'"
 			println "CONTAINERIZED: '${containerized}'"
+			println "TOKEN: '${token}'"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
 
@@ -59,7 +61,8 @@ stage ('logging_scale_test') {
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
-						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ]]
+						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ]]
 			} catch ( Exception e) {
 				echo "LOGGING-SCALE-TEST Job failed with the following error: "
 				echo "${e.getMessage()}"

@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-def node_label = 'CCI && ansible-2.4'
+def node_label = NODE_LABEL.toString()
 def http_test = HTTP_TEST.toString().toUpperCase()
 def property_file_name = "http_test.properties"
 
@@ -11,7 +11,7 @@ println "Current pipeline job build id is '${pipeline_id}'"
 stage('http_test_scale_test') {
 	if (HTTP_TEST) {
 		currentBuild.result = "SUCCESS"
-		node('CCI && US') {
+		node(node_label) {
 			// get properties file
 			if (fileExists(property_file_name)) {
 				println "Looks like the propertyfile already exists, erasing it"

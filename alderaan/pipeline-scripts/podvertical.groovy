@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 def pipeline_id = env.BUILD_ID
-def node_label = 'CCI && ansible-2.4'
+def node_label = NODE_LABEL.toString()
 def podvertical = PODVERTICAL.toString().toUpperCase()
 def property_file_name = "podvertical.properties"
 
@@ -11,7 +11,7 @@ println "Current pipeline job build id is '${pipeline_id}'"
 stage ('podvertical_scale_test') {
 	if (podvertical == "TRUE") {
 		currentBuild.result = "SUCCESS"
-		node('CCI && US') {
+		node(node_label) {
 			// get properties file
 			if (fileExists(property_file_name)) {
 				println "Looks like the propertyfile already exists, erasing it"

@@ -18,8 +18,9 @@ def deployments_per_ns = DEPLOYMENTS_PER_NS.toString().toUpperCase()
 def ns_per_cluster = NS_PER_CLUSTER.toString().toUpperCase()
 def create_jobs = CREATE_JOBS_FROM_JJB.toString().toUpperCase()
 def networking = NETWORKING.toString().toUpperCase() 
+def node_label = NODE_LABEL.toString()
 
-node {
+node (node_label) {
 	// setup the repo containing the pipeline scripts
 	stage('cloning pipeline repo') {
 		checkout scm

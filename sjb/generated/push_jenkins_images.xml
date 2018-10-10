@@ -195,116 +195,12 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD BASE RHEL IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD BASE RHEL IMAGES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${HOME}&#34;
-# purpose of this job is to build images that have subscriptions+necessary repos built in.
-# if you don&#39;t need a registry.access.redhat.com/rhel7 with such additions, don&#39;t use
-# this job as a parent
-
-# inside temporary directory create docker build context for the new base image
-contextdir=\$(mktemp -d)
-
-# copy the necessary files
-mkdir \$contextdir/{certs,repos,vars,keys}
-cp /var/lib/yum/*.pem \$contextdir/certs
-cp /etc/yum/vars/* \$contextdir/vars
-cp /etc/yum.repos.d/* \$contextdir/repos
-cp /etc/pki/rpm-gpg/* \$contextdir/keys
-
-# Remove repositories we won&#39;t be needing and which require RH certs
-rm -rf \$contextdir/repos/redhat-rhui*
-
-# remove google chrome repo
-rm -rf \$contextdir/repos/*chrome*.repo
-
-# remove local openshift epel mirror - we will only temporarily mount this via imagebuilder during image builds
-rm -rf \$contextdir/repos/local_epel.repo
-
-# remove the now defunct openshift rhel-7 mirrors
-rm -rf \$contextdir/repos/openshift-rhel7-dependencies.repo
-rm -rf \$contextdir/repos/centos-paas-sig-openshift*
-rm -rf \$contextdir/repos/rhel-7-server-ose-*
-
-
-# Add the online-int repo which has the latest jenkins rpms
-cat &lt;&lt;EOF &gt; \$contextdir/repos/rhel-7-server-ose-onlineint-rpms.repo
-[rhel-7-server-ose-onlineint-rpms]
-baseurl = https://mirror.openshift.com/enterprise/online-int/latest/x86_64/os/
-failovermethod = priority
-gpgcheck = 0
-gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release, file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-beta, https://mirror.ops.rhcloud.com/libra/keys/RPM-GPG-KEY-redhat-openshifthosted
-name = A repository of dependencies for Atomic OpenShift Online-Int
-sslclientcert = /var/lib/yum/client-cert.pem
-sslclientkey = /var/lib/yum/client-key.pem
-sslverify = 0
-
-EOF
-
-# create Dockerfile
-cat &lt;&lt;EOF &gt; \$contextdir/Dockerfile
-FROM registry.access.redhat.com/openshift3/ose:latest
-
-RUN yum remove -y subscription-manager
-
-ADD vars/* /etc/yum/vars/
-ADD repos/* /etc/yum.repos.d/
-ADD certs/* /var/lib/yum/
-ADD keys/* /etc/pki/rpm-gpg/
-
-RUN yum update -y &amp;&amp; yum clean all
-ENTRYPOINT []
-EOF
-
-docker build --rm -t registry.access.redhat.com/openshift3/ose \$contextdir
-
-# make sure the new image has valid certs
-docker run registry.access.redhat.com/openshift3/ose yum install -y tar
-
-
-
-# create Dockerfile
-cat &lt;&lt;EOF &gt; \$contextdir/Dockerfile
-FROM registry.access.redhat.com/openshift3/ose:v3.6
-
-RUN yum remove -y subscription-manager
-
-ADD vars/* /etc/yum/vars/
-ADD repos/* /etc/yum.repos.d/
-ADD certs/* /var/lib/yum/
-ADD keys/* /etc/pki/rpm-gpg/
-
-RUN yum update -y &amp;&amp; yum clean all
-ENTRYPOINT []
-EOF
-
-docker build --rm -t registry.access.redhat.com/openshift3/ose:v3.6 \$contextdir
-
-# make sure the new image has valid certs
-docker run registry.access.redhat.com/openshift3/ose:v3.6 yum install -y tar
-# this docker tag is for the jenkins image repo 3.6 branch; we did not introduce
-# the use of the ose image until 3.7
-docker tag registry.access.redhat.com/openshift3/ose:v3.6 registry.access.redhat.com/rhel7
-
-# cleaning
-rm -rf \$contextdir
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD THE JENKINS IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD THE JENKINS IMAGES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/jenkins&#34;
-make build TARGET=rhel7
 make build TARGET=centos7
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -319,7 +215,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/jenkins&#34;
-make test TARGET=rhel7 TAG_ON_SUCCESS=true
 make test TARGET=centos7 TAG_ON_SUCCESS=true
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -359,60 +254,36 @@ export DOCKER_CONFIG=/tmp/.docker
 
 version_tag=\$(cat release.version)
 
-docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7:\${version_tag}
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7:\${version_tag}
 docker tag docker.io/openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-2-centos7:\${version_tag}
 
-docker tag registry.access.redhat.com/openshift3/jenkins-slave-base-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7:\${version_tag}
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7:\${version_tag}
 docker tag docker.io/openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-slave-base-centos7:\${version_tag}
 
-docker tag registry.access.redhat.com/openshift3/jenkins-slave-maven-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7:\${version_tag}
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7:\${version_tag}
 docker tag docker.io/openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
 
-docker tag registry.access.redhat.com/openshift3/jenkins-slave-nodejs-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7:\${version_tag}
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7:\${version_tag}
 docker tag docker.io/openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
 
-docker tag registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7:\${version_tag}
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7:\${version_tag}
 docker tag docker.io/openshift/jenkins-agent-maven-35-centos7 docker.io/openshift/jenkins-agent-maven-35-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-agent-maven-35-centos7:\${version_tag}
 
-docker tag registry.access.redhat.com/openshift3/jenkins-agent-nodejs-8-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7:\${version_tag}
-docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7:\${version_tag}
 docker tag docker.io/openshift/jenkins-agent-nodejs-8-centos7 docker.io/openshift/jenkins-agent-nodejs-8-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7:\${version_tag}
 
 # only push to latest if we&#39;re building the master branch.
 if [ &#34;\${PULL_BASE_REF}&#34; = &#34;master&#34; ]; then
-  docker tag registry.access.redhat.com/openshift3/jenkins-2-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
-  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-2-rhel7
   docker push docker.io/openshift/jenkins-2-centos7
 
-  docker tag registry.access.redhat.com/openshift3/jenkins-slave-base-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
-  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-base-rhel7
   docker push docker.io/openshift/jenkins-slave-base-centos7
 
-  docker tag registry.access.redhat.com/openshift3/jenkins-slave-maven-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
-  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-maven-rhel7
   docker push docker.io/openshift/jenkins-slave-maven-centos7
 
-  docker tag registry.access.redhat.com/openshift3/jenkins-slave-nodejs-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
-  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-slave-nodejs-rhel7
   docker push docker.io/openshift/jenkins-slave-nodejs-centos7
 
-  docker tag registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7
-  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-maven-35-rhel7
   docker push docker.io/openshift/jenkins-agent-maven-35-centos7
 
-  docker tag registry.access.redhat.com/openshift3/jenkins-agent-nodejs-8-rhel7 ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7
-  docker push ci.dev.openshift.redhat.com:5000/openshift3/jenkins-agent-nodejs-8-rhel7
   docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7
 fi
 SCRIPT

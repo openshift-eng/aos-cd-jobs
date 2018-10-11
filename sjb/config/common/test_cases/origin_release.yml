@@ -45,10 +45,18 @@ extensions:
         # attempt to tag in images that are not built by this job but are needed
         # ignore errors and log, later tests will fail if these images are not present
         # all of these jobs will be removed in later releases
-        if [[ "${tag}" == "v3.11" || "${tag}" == "v4.0" ]]; then
+        if [[ "${tag}" == "v3.11" ]]; then
           for i in service-serving-cert-signer; do
             if docker pull "registry.svc.ci.openshift.org/openshift/origin-${tag}:${i}"; then
               docker tag "registry.svc.ci.openshift.org/openshift/origin-${tag}:${i}" "openshift/origin-${i}:$( cat "${jobs_repo}/ORIGIN_COMMIT" )"
             fi
           done
         fi
+
+        if [[ "${tag}" == "v4.0" ]]; then
+          for i in service-serving-cert-signer docker-builder; do
+            if docker pull "registry.svc.ci.openshift.org/openshift/origin-${tag}:${i}"; then
+              docker tag "registry.svc.ci.openshift.org/openshift/origin-${tag}:${i}" "openshift/origin-${i}:$( cat "${jobs_repo}/ORIGIN_COMMIT" )"
+            fi
+          done
+        fi        

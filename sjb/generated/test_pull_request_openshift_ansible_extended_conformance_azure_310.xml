@@ -362,13 +362,21 @@ echo &#34;\${tag}&#34; &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 # attempt to tag in images that are not built by this job but are needed
 # ignore errors and log, later tests will fail if these images are not present
 # all of these jobs will be removed in later releases
-if [[ &#34;\${tag}&#34; == &#34;v3.11&#34; || &#34;\${tag}&#34; == &#34;v4.0&#34; ]]; then
+if [[ &#34;\${tag}&#34; == &#34;v3.11&#34; ]]; then
   for i in service-serving-cert-signer; do
     if docker pull &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34;; then
       docker tag &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34; &#34;openshift/origin-\${i}:\$( cat &#34;\${jobs_repo}/ORIGIN_COMMIT&#34; )&#34;
     fi
   done
 fi
+
+if [[ &#34;\${tag}&#34; == &#34;v4.0&#34; ]]; then
+  for i in service-serving-cert-signer docker-builder; do
+    if docker pull &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34;; then
+      docker tag &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34; &#34;openshift/origin-\${i}:\$( cat &#34;\${jobs_repo}/ORIGIN_COMMIT&#34; )&#34;
+    fi
+  done
+fi        
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

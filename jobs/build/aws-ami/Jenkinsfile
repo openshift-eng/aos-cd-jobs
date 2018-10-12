@@ -91,7 +91,7 @@ docker_storage_size: 200G
 openshift_docker_options: '--log-driver=json-file --log-opt max-size=50m'
 openshift_aws_node_group_config_node_volumes:
 - device_name: /dev/sda1
-  volume_size: 50
+  volume_size: 100
   device_type: gp2
   delete_on_termination: True
 - device_name: /dev/sdb

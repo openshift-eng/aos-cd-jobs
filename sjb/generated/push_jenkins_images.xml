@@ -260,11 +260,14 @@ docker push docker.io/openshift/jenkins-2-centos7:\${version_tag}
 docker tag docker.io/openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-slave-base-centos7:\${version_tag}
 
-docker tag docker.io/openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
-docker push docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
+if [[ \$version_tag == v3* ]];
+then
+   docker tag docker.io/openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
+   docker push docker.io/openshift/jenkins-slave-maven-centos7:\${version_tag}
 
-docker tag docker.io/openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
-docker push docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
+   docker tag docker.io/openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
+   docker push docker.io/openshift/jenkins-slave-nodejs-centos7:\${version_tag}
+fi
 
 docker tag docker.io/openshift/jenkins-agent-maven-35-centos7 docker.io/openshift/jenkins-agent-maven-35-centos7:\${version_tag}
 docker push docker.io/openshift/jenkins-agent-maven-35-centos7:\${version_tag}
@@ -277,10 +280,6 @@ if [ &#34;\${PULL_BASE_REF}&#34; = &#34;master&#34; ]; then
   docker push docker.io/openshift/jenkins-2-centos7
 
   docker push docker.io/openshift/jenkins-slave-base-centos7
-
-  docker push docker.io/openshift/jenkins-slave-maven-centos7
-
-  docker push docker.io/openshift/jenkins-slave-nodejs-centos7
 
   docker push docker.io/openshift/jenkins-agent-maven-35-centos7
 

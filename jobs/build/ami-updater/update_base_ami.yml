@@ -108,6 +108,23 @@
   - name: This disables the hyperthreading to fix the new security issue
     command: grubby --args=nosmt --update-kernel=ALL
 
+  # 10-17-2018 mwoodson note
+  # This is a hack to add in a special kernel needed for m5 nodes.  This needs to be removed in the future
+  # kernel-3.10.0-877.el7 is the version targeted here.  IT is to be released in rhel 7.6
+  - name: add the yum repo for kernel
+    yum_repository:
+      name: zstream_kernel
+      state: present
+      file: zstream_kernel
+      description: Zstream Pre Release kernel
+      baseurl: https://mirror.ops.rhcloud.com/libra/kernel_hotfixes/$basearch/
+      enabled: 1
+      gpgkey: 0
+      gpgcheck: no
+      sslverify: yes
+      sslclientkey: "/var/lib/yum/client-key.pem"
+      sslclientcert: "/var/lib/yum/client-cert.pem"
+
   - name: Update all packages
     yum:
       name:  "*"

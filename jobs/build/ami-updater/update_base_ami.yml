@@ -117,9 +117,8 @@
       state: present
       file: zstream_kernel
       description: Zstream Pre Release kernel
-      baseurl: https://mirror.ops.rhcloud.com/libra/kernel_hotfixes/$basearch/
+      baseurl: https://mirror.openshift.com/libra/kernel_hotfixes/$basearch/
       enabled: 1
-      gpgkey: 0
       gpgcheck: no
       sslverify: yes
       sslclientkey: "/var/lib/yum/client-key.pem"

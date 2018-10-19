@@ -63,7 +63,8 @@ properties(
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
-                        'aos-team-art@redhat.com'
+                        'aos-team-art@redhat.com',
+                        'aos-art-requests@redhat.com'
                     ].join(',')
                 ],
                 [
@@ -1091,7 +1092,7 @@ images:build
 
                 } catch( release_ex ) {
                     mail(
-                        to: "aos-team-art@redhat.com",
+                        to: "aos-art-requests@redhat.com,aos-team-art@redhat.com",
                         from: "aos-cicd@redhat.com",
                         subject: "Error creating ose release in github",
                         body: """

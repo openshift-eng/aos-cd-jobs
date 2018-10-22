@@ -1,0 +1,120 @@
+---
+parent: 'common/test_cases/minimal.yml'
+extensions:
+  actions:
+    - type: "host_script"
+      title: "Upload packet.net token"
+      script: |-
+         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.packet.net"
+         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/packet.net/token openshiftdevel:~/.packet.net
+    - type: "script"
+      title: "Build the machine controller"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-libvirt
+        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+        sudo mv /data/bin/imagebuilder /usr/bin
+        sudo make images IMAGE=gcr.io/k8s-cluster-api/libvirt-machine-controller VERSION=0.0.1 NO_DOCKER=1
+    - type: "script"
+      title: "Create cluster resources"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-libvirt/
+
+        curl https://releases.hashicorp.com/terraform/0.11.8/terraform_0.11.8_linux_amd64.zip -o terraform_0.11.8_linux_amd64.zip
+        unzip terraform_0.11.8_linux_amd64.zip
+        sudo cp ./terraform /usr/bin/.
+
+        # Provision packet.net instance
+        set +x
+        export TF_VAR_packet_project_id=e35d3e75-a0b4-47be-8810-b62d2b417cec
+        export PACKET_AUTH_TOKEN=$(cat ~/.packet.net/token)
+        set -x
+        ./hack/packet-provision.sh install
+        LIBVIRT_IP=$(cat /tmp/packet_ip)
+        cat <<FINISHED >~/.ssh/config
+        Host libvirtactuator ${LIBVIRT_IP}
+        Hostname ${LIBVIRT_IP}
+        User root
+        StrictHostKeyChecking no
+        PasswordAuthentication no
+        UserKnownHostsFile ~/.ssh/aws_known_hosts
+        IdentityFile /tmp/packet_id_rsa
+        IdentitiesOnly yes
+        Compression yes
+        FINISHED
+
+        # More initialization of the instance
+        sudo yum install libvirt-client -y
+        bash cmd/libvirt-actuator/resources/init.sh
+        # Install docker
+        ssh libvirtactuator "yum install -y docker"
+        ssh libvirtactuator "systemctl enable docker"
+        ssh libvirtactuator "systemctl start docker"
+        # Copy built docker image to the instance
+        docker save gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 | bzip2 | ssh libvirtactuator "bunzip2 > /tmp/tempimage.bz2 && sudo docker load -i /tmp/tempimage.bz2"
+        # Copy built docker image into the minikube guest
+        ssh libvirtactuator 'docker save gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 | bzip2 | ssh -o StrictHostKeyChecking=no -i ~/.minikube/machines/minikube/id_rsa docker@$(minikube ip) "bunzip2 > /tmp/tempimage.bz2 && sudo docker load -i /tmp/tempimage.bz2"'
+    - type: "script"
+      title: "Run e2e tests"
+      script: |-
+        set +x
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-libvirt
+        export CLUSTER_ID="pr-${BUILD_NUMBER}-${PULL_NUMBER}"
+        LIBVIRT_IP=$(cat /tmp/packet_ip)
+
+        # build testing binary
+        sudo yum install libvirt-devel -y
+        go test -c -o bin/machines.test github.com/openshift/cluster-api-provider-libvirt/test/machines
+        # upload the binary to the instance
+        scp bin/machines.test libvirtactuator:.
+        # Upload PKs
+        scp /tmp/packet_id_rsa libvirtactuator:/libvirt.pem
+        scp cmd/libvirt-actuator/resources/guest.pem libvirtactuator:/guest.pem
+        ssh libvirtactuator 'chmod 600 /libvirt.pem'
+        ssh libvirtactuator 'chmod 600 /guest.pem'
+
+        # run the e2e
+        ssh libvirtactuator "./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -actuator-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri 'qemu+ssh://root@${LIBVIRT_IP}/system?no_verify=1&keyfile=/root/.ssh/actuator.pem/privatekey' -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem"
+  system_journals:
+    - systemd-journald.service
+overrides:
+  post_actions:
+    - type: "script"
+      title: "Deprovision resources"
+      script: |-
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-libvirt/hack
+        set +x
+        export TF_VAR_packet_project_id=e35d3e75-a0b4-47be-8810-b62d2b417cec
+        export PACKET_AUTH_TOKEN=$(cat ~/.packet.net/token)
+        set -x
+        ./packet-provision.sh destroy || true
+    - type: "host_script"
+      title: "assemble GCS output"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+        result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+        cat <<FINISHED >gcs/finished.json
+        {
+          "timestamp": $( date +%s ),
+          "result": "${result}"
+        }
+        FINISHED
+        cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+        cp artifacts/generated/* gcs/artifacts/generated/
+        cp artifacts/journals/* gcs/artifacts/journals/
+
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+        scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+    - type: "script"
+      title: "push the artifacts and metadata"
+      timeout: 300
+      script: |-
+        trap 'exit 0' EXIT
+        if [[ -n "${JOB_SPEC:-}" ]]; then
+          JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
+          sudo docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json /data/gcs/*
+        fi

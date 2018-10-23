@@ -1,0 +1,60 @@
+---
+parent: 'common/test_cases/origin_built_release.yml'
+extensions:
+  actions:
+    - type: "script"
+      title: "determine binary and image version"
+      repository: "origin"
+      script: |-
+        if [[ "${PULL_BASE_REF}" = "enterprise-"* ]]; then
+          case $PULL_BASE_REF in
+          enterprise-3.[2-5])
+            echo "IMAGE_VERSION=${PULL_BASE_REF/enterprise-3/v1}.1" > IMAGE_VERSION_VAR
+            ;;
+          enterprise-3.1)
+            echo "IMAGE_VERSION=v1.1.6" > IMAGE_VERSION_VAR
+            ;;
+          *)
+            echo "IMAGE_VERSION=${PULL_BASE_REF/enterprise-/v}" > IMAGE_VERSION_VAR
+            ;;
+          esac
+        else
+          echo "IMAGE_VERSION=latest" > IMAGE_VERSION_VAR
+        fi
+        source IMAGE_VERSION_VAR
+        sudo docker pull openshift/origin:"${IMAGE_VERSION}"
+        sudo docker create --name temp-container openshift/origin:"${IMAGE_VERSION}"
+        sudo docker cp temp-container:/usr/bin/oc ./
+        sudo docker rm temp-container
+        sudo mv -f ./oc /bin/oc
+    - type: "script"
+      title: "start openshift server"
+      repository: "origin"
+      script: |-
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+        sudo yum install ./google-chrome-stable_current_*.rpm -y
+        source IMAGE_VERSION_VAR
+        oc version
+        if [ "${IMAGE_VERSION}" == "latest" ]; then
+          oc cluster up --tag="${IMAGE_VERSION}" --public-hostname=localhost --loglevel=5 --server-loglevel=5
+        else
+          oc cluster up --public-hostname=localhost --loglevel=5 --server-loglevel=5
+        fi
+    - type: "script"
+      title: "run web console tests"
+      repository: "origin-web-console"
+      script: |-
+        export PATH=$PATH:$(pwd)/node_modules/.bin
+        make test
+  post_actions:
+    - type: "script"
+      title: "grab container logs"
+      repository: "origin"
+      script: |-
+        trap 'exit 0' EXIT
+        ( source hack/lib/init.sh; os::cleanup::dump_container_logs )
+  artifacts:
+    - "/data/src/github.com/openshift/origin-web-console/test/tmp/screenshots/"
+    - "/data/src/github.com/openshift/origin-web-console/test/coverage/"
+    - "/data/src/github.com/openshift/origin-web-console/test/junit/"
+    - "/data/src/github.com/openshift/origin-web-console/test/reports/"

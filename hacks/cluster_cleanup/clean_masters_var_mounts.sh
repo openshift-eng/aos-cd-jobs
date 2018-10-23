@@ -29,5 +29,7 @@ for master in $masters ; do
         ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/cache/yum/*"
         ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/log/*.gz"
         ossh -o StrictHostKeyChecking=no "root@${master}" -c "journalctl --vacuum-time=5h"
+        ossh -o StrictHostKeyChecking=no "root@${master}" -c "rm -rf /var/log/messages-*"
+        ossh -o StrictHostKeyChecking=no "root@${master}" -c "truncate /var/log/messages --size=200M"
         COUNT=$((COUNT+1))
 done

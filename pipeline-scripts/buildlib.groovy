@@ -685,47 +685,29 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
     final param = { type, name, value ->
         [$class: type + 'ParameterValue', name: name, value: value]
     }
-    waitUntil {
-        try {
-            build(job: 'build%2Faws-ami', parameters: [
-                param('String', 'OPENSHIFT_VERSION', version),
-                param('String', 'OPENSHIFT_RELEASE', release),
-                param('String', 'YUM_BASE_URL', yum_base_url),
-                param('String', 'OPENSHIFT_ANSIBLE_CHECKOUT', ansible_branch),
-                param('Boolean', 'USE_CRIO', true),
-                param(
-                    'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
-                    'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
-                        + full_version)])
-            return true
-        } catch(err) {
-            mail(
-                to: "${mail_list}",
-                from: "aos-cicd@redhat.com",
-                subject: "RESUMABLE Error during AMI build for OCP v${full_version}",
-                body: [
-                    "Encountered an error: ${err}",
-                    "Input URL: ${env.BUILD_URL}input",
-                    "Jenkins job: ${env.BUILD_URL}"].join('\n'))
-            final resp = input(
-                message: "Error during AMI Build for OCP v${full_version}",
-                parameters: [[
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    name: 'action',
-                    choices: 'RETRY\nCONTINUE\nABORT',
-                    description: [
-                        'Retry (try the operation again).',
-                        'Continue (fails are OK, continue pipeline).',
-                        'Abort (terminate the pipeline).'].join(' ')]])
-            if(resp == 'RETRY') {
-                return false // cause waitUntil to loop again
-            } else if(resp == 'CONTINUE') {
-                echo 'User chose to continue. Build failures are non-fatal.'
-                return true // terminate waitUntil
-            } else { // ABORT
-                error('User chose to abort pipeline because of ami build failures')
-            }
-        }
+    try {
+        build(job: 'build%2Faws-ami', parameters: [
+            param('String', 'OPENSHIFT_VERSION', version),
+            param('String', 'OPENSHIFT_RELEASE', release),
+            param('String', 'YUM_BASE_URL', yum_base_url),
+            param('String', 'OPENSHIFT_ANSIBLE_CHECKOUT', ansible_branch),
+            param('Boolean', 'USE_CRIO', true),
+            param(
+                'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
+                'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
+                    + full_version)])
+    } catch(err) {
+        mail(
+            to: "${mail_list},jupierce@redhat.com,openshift-cr@redhat.com",
+            from: "aos-cicd@redhat.com",
+            subject: "RESUMABLE Error during AMI build for OCP v${full_version}",
+            body: [
+                "Encountered an error: ${err}",
+                "Input URL: ${env.BUILD_URL}input",
+                "Jenkins job: ${env.BUILD_URL}"].join('\n')
+            )
+
+        // Continue on, this is not considered a fatal error
     }
 }
 

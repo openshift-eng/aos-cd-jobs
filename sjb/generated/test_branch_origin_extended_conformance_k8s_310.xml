@@ -427,7 +427,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
-for i in console service-catalog web-console metrics-server openshift docker-registry; do
+for i in console service-catalog web-console metrics-server docker-registry; do
   docker pull openshift/origin-\$i:v4.0
   docker tag openshift/origin-\$i:v4.0 &#34;openshift/origin-\$i:\$( cat \${jobs_repo}/ORIGIN_COMMIT )&#34;
 done

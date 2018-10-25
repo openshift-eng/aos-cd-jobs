@@ -26,7 +26,7 @@ extensions:
       timeout: 3600
       script: |-
         jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-        for i in console service-catalog web-console metrics-server openshift docker-registry; do
+        for i in console service-catalog web-console metrics-server docker-registry; do
           docker pull openshift/origin-$i:v4.0
           docker tag openshift/origin-$i:v4.0 "openshift/origin-$i:$( cat ${jobs_repo}/ORIGIN_COMMIT )"
         done

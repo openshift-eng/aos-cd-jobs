@@ -274,7 +274,7 @@ LIBVIRT_IP=\$(cat /tmp/packet_ip)
 
 # build testing binary
 sudo yum install libvirt-devel -y
-go test -c -o bin/machines.test github.com/openshift/cluster-api-provider-libvirt/test/machines
+make build-e2e
 # upload the binary to the instance
 scp bin/machines.test libvirtactuator:.
 # Upload PKs

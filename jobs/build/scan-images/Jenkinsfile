@@ -52,7 +52,6 @@ node('openshift-build-1') {
         sh """\
 set -o pipefail
 sudo python oit/tools/bin/oit \
-  --metadata-dir oit/ \
   --group 'openshift-${BUILD_VERSION}' \
   images:scan-for-cves \
   | tee scan.txt

@@ -90,7 +90,7 @@ def oit(cmd, opts=[:]){
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
     return sh(
         returnStdout: opts.capture ?: false,
-        script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/oit --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}")
+        script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/oit --user=ocp-build ${cmd.trim()}")
 }
 
 def elliott(cmd, opts=[:]){
@@ -98,7 +98,7 @@ def elliott(cmd, opts=[:]){
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
     return sh(
         returnStdout: opts.capture ?: false,
-        script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/elliott --user=ocp-build --metadata-dir ${env.ENTERPRISE_IMAGES_DIR} ${cmd.trim()}")
+        script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/elliott --user=ocp-build ${cmd.trim()}")
 }
 
 def initialize_ose_dir() {

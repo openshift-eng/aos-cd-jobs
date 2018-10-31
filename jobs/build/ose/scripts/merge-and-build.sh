@@ -314,7 +314,7 @@ ose: ${OSE_DIR}
 openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
 EOF
 
-${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
 --sources ${OIT_WORKING}/sources.yml \
 images:rebase --version v${VERSION} \
 --release 1 \
@@ -326,7 +326,7 @@ echo "Build OIT images"
 echo "=========="
 
 if [ "$BUILD_CONTAINER_IMAGES" != "false" ]; then
-    ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+    ${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
 images:build \
 --push-to-defaults --repo-type unsigned
 fi

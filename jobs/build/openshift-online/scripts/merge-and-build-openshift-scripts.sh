@@ -174,7 +174,7 @@ else
     echo "=========="
     echo "Update Dockerfiles"
     echo "=========="ild
-    ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
+    ${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
     images:rebase --version v${VERSION} \
     --release 1 \
     --message "MaxFileSize: 52428800" --push
@@ -183,7 +183,7 @@ else
     echo "=========="
     echo "Build Images"
     echo "=========="
-    ${OIT_PATH} --user=ocp-build --metadata-dir ${OIT_DIR} --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
+    ${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
     images:build \
     --push-to-defaults --repo-type unsigned
 

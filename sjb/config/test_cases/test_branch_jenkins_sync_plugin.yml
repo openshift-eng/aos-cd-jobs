@@ -1,8 +1,8 @@
 ---
-parent: 'common/test_cases/origin_built_installed_release.yml'
+parent: 'common/test_cases/origin_built_installed_release_311.yml'
 extensions:
   sync:
-    - "openshift,origin=master"
+    - "openshift,origin=release-3.11"
   actions:
     - type: "script"
       title: "build the jenkins sync plugin and test image"

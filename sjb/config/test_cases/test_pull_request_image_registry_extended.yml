@@ -1,3 +1,0 @@
----
-parent: 'test_cases/test_branch_image_registry_extended.yml'
-overrides: {}

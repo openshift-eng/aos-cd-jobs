@@ -76,6 +76,10 @@ extensions:
         export ENVIRONMENT_ID="${CLUSTER_ID}"
         export SSH_PK="/home/origin/.ssh/devenv.pem"
 
+        export CLUSTER_IP="$(sudo kubectl get service kubernetes -o json | jq '.spec.clusterIP' --raw-output)"
+        export KUBECONFIG=/etc/kubernetes/admin.conf
+        sudo -E kubectl config set-cluster kubernetes --server=https://${CLUSTER_IP}:443
+
         sudo -E make test-e2e
 
         echo "The aws instance was running and terminated"

@@ -1,0 +1,4 @@
+---
+parent: 'test_cases/test_branch_origin_web_console_311.yml'
+overrides:
+  test: "origin-web-console"

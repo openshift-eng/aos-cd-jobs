@@ -165,7 +165,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,aos-cd-jobs=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=release-3.11 --repo=openshift,aos-cd-jobs=master --repo=openshift,origin=release-3.11 }
 docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
@@ -379,8 +379,8 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
 jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
 for i in console service-catalog web-console metrics-server docker-registry; do
-  docker pull openshift/origin-\$i:v4.0
-  docker tag openshift/origin-\$i:v4.0 &#34;openshift/origin-\$i:\$( cat \${jobs_repo}/ORIGIN_COMMIT )&#34;
+  docker pull openshift/origin-\$i:v3.11
+  docker tag openshift/origin-\$i:v3.11 &#34;openshift/origin-\$i:\$( cat \${jobs_repo}/ORIGIN_COMMIT )&#34;
 done
 SCRIPT
 chmod +x &#34;${script}&#34;

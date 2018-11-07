@@ -93,7 +93,7 @@ node('openshift-build-1') {
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,mlamouri@redhat.com'
+                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com'
                     ],
                     [
                         name: 'MOCK',

@@ -244,11 +244,15 @@ def mail_success(version, mirrorURL, record_log, oa_changelog) {
     def timing_report = get_build_timing_report(record_log)
     def image_list = get_image_build_report(record_log)
 
+    currentBuild.result = "SUCCESS"
     PARTIAL = " "
+    mail_list = MAIL_LIST_SUCCESS
     exclude_subject = ""
     if (BUILD_EXCLUSIONS != "") {
         PARTIAL = " PARTIAL "
+        mail_list = MAIL_LIST_FAILURE
         exclude_subject = " [excluded images: ${BUILD_EXCLUSIONS}]"
+        currentBuild.result = "UNSTABLE"
     }
 
     image_details = """${timing_report}
@@ -258,7 +262,7 @@ Images:
 ${image_list}
 """
 
-    mail_list = MAIL_LIST_SUCCESS
+
     if (!BUILD_CONTAINER_IMAGES) {
         PARTIAL = " RPM ONLY "
         image_details = ""
@@ -1123,6 +1127,8 @@ Jenkins job: ${env.BUILD_URL}
 
     Jenkins job: ${env.BUILD_URL}
     """);
+
+        currentBuild.result = "FAILURE"
         throw err
     } finally {
         try {

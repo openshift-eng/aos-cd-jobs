@@ -27,12 +27,15 @@ stage ('podvertical_scale_test') {
 			def clear_results = podvertical_properties['CLEAR_RESULTS']
 			def move_results = podvertical_properties['MOVE_RESULTS']
 			def use_proxy = podvertical_properties['USE_PROXY']
+			def setup_pbench = podvertical_properties['SETUP_PBENCH']
 			def proxy_user = podvertical_properties['PROXY_USER']
 			def proxy_host = podvertical_properties['PROXY_HOST']
 			def containerized = podvertical_properties['CONTAINERIZED']
 			def pods = podvertical_properties['PODS']
 			def iterations = podvertical_properties['ITERATIONS']
 			def token = podvertical_properties['GITHUB_TOKEN']
+			def repo = podvertical_properties['PERF_REPO']
+			def server = podvertical_properties['PBENCH_SERVER']
 	
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
@@ -51,6 +54,10 @@ stage ('podvertical_scale_test') {
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
 
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
+
 			// Run podvertical job
 			try {
 				podvertical_build = build job: 'PODVERTICAL',
@@ -59,6 +66,7 @@ stage ('podvertical_scale_test') {
 						[$class: 'StringParameterValue', name: 'USER', value: user ],
 						[$class: 'StringParameterValue', name: 'TOOLING_INVENTORY', value: tooling_inventory_path ],
 						[$class: 'BooleanParameterValue', name: 'CLEAR_RESULTS', value: Boolean.valueOf(clear_results) ],
+						[$class: 'BooleanParameterValue', name: 'SETUP_PBENCH', value: Boolean.valueOf(setup_pbench) ],
 						[$class: 'BooleanParameterValue', name: 'MOVE_RESULTS', value: Boolean.valueOf(move_results) ],
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],

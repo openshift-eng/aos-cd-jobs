@@ -32,6 +32,13 @@ stage ('deployments_per_ns_scale_test') {
 			def containerized = deployments_per_ns_properties['CONTAINERIZED']
 			def deployments = deployments_per_ns_properties['DEPLOYMENTS']
 			def token = deployments_per_ns_properties['GITHUB_TOKEN']
+			def setup_pbench = deployments_per_ns_properties['SETUP_PBENCH']
+			def repo = deployments_per_ns_properties['PERF_REPO']
+			def server = deployments_per_ns_properties['PBENCH_SERVER']
+
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
 
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
@@ -58,6 +65,7 @@ stage ('deployments_per_ns_scale_test') {
 						[$class: 'StringParameterValue', name: 'USER', value: user ],
 						[$class: 'StringParameterValue', name: 'TOOLING_INVENTORY', value: tooling_inventory_path ],
 						[$class: 'BooleanParameterValue', name: 'CLEAR_RESULTS', value: Boolean.valueOf(clear_results) ],
+						[$class: 'BooleanParameterValue', name: 'SETUP_PBENCH', value: Boolean.valueOf(setup_pbench) ],
 						[$class: 'BooleanParameterValue', name: 'MOVE_RESULTS', value: Boolean.valueOf(move_results) ],
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
@@ -71,7 +79,7 @@ stage ('deployments_per_ns_scale_test') {
 				echo "Sending an email"
 				mail(
 					to: 'nelluri@redhat.com',
-					subject: 'Podvertical-scale-test job failed',
+					subject: 'Deployments per namespace cluster limits job failed',
 					body: """\
 						Encoutered an error while running the deployments_per_ns-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}

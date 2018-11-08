@@ -10,7 +10,7 @@ println "Current pipeline job build id is '${pipeline_id}'"
 stage (node_label) {
 	if (networking == "TRUE") {
 		currentBuild.result = "SUCCESS"
-		node('CCI && US') {
+		node(node_label) {
 			// get properties file
 			if (fileExists(property_file_name)) {
 				println "Looks like the property file already exists, erasing it"
@@ -27,6 +27,14 @@ stage (node_label) {
 			def proxy_host = networking_properties['PROXY_HOST']
 			def mode = networking_properties['MODE']
 			def token = networking_properties['GITHUB_TOKEN']
+			def repo = networking_properties['PERF_REPO']
+			def server = networking_properties['PBENCH_SERVER']
+			def setup_pbench = networking_properties['SKIP_REGISTER_PBENCH']
+			def containerized = networking_properties['CONTAINERIZED']
+
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
 	
 			// Run networking job
 			try {
@@ -38,6 +46,8 @@ stage (node_label) {
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
 						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ],
+						[$class: 'BooleanParameterValue', name: 'SKIP_REGISTER_PBENCH', value: Boolean.valueOf(setup_pbench) ],
+						[$class: 'StringParameterValue', name: 'CONTAINERIZED', value: containerized ],
 						[$class: 'StringParameterValue', name: 'MODE', value: mode ]]
 			} catch ( Exception e) {
 				echo "NETWORKING-TEST Job failed with the following error: "

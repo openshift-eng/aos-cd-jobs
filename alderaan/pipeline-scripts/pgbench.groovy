@@ -15,7 +15,7 @@ stage ('pgbench_scale_test_glusterfs') {
 			if (fileExists(property_file_name)) {
 				println "pgbench_scale_test.properties file exist... deleting it..."
 				sh "rm ${property_file_name}"
-				}
+			}
 			sh "wget -O ${property_file_name} ${PGBENCH_PROPERTY_FILE}"
 			sh "cat ${property_file_name}"
 			def pgbench_scale_test_properties = readProperties file: property_file_name
@@ -31,6 +31,10 @@ stage ('pgbench_scale_test_glusterfs') {
 			def SCALING = pgbench_scale_test_properties['SCALING']
 			def PBENCHCONFIG = pgbench_scale_test_properties['PBENCHCONFIG']
 			def STORAGECLASS = pgbench_scale_test_properties['STORAGECLASS']
+			def token = pgbench_scale_test_properties['GITHUB_TOKEN']
+			def repo = pgbench_scale_test_properties['PERF_REPO']
+			def server = pgbench_scale_test_properties['PBENCH_SERVER']
+
 			println "----------USER DEFINED OPTIONS-------------------"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
@@ -48,6 +52,11 @@ stage ('pgbench_scale_test_glusterfs') {
 			println "STORAGECLASS: '${STORAGECLASS}'"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
+
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
+
 			try {
 				pgbench_build = build job: 'PGBENCH_SCALE_TEST',
 				parameters: [	[$class: 'StringParameterValue', name: 'NAMESPACE', value: NAMESPACE ],
@@ -89,7 +98,7 @@ stage ('pgbench_scale_test_gluster_block') {
 			if (fileExists("pgbench_cns_block.properties")) {
 				println "pgbench_cns_block.properties file exist... deleting it..."
 				sh "rm pgbench_cns_block.properties"
-				}
+			}
 			sh "wget -O pgbench_cns_block.properties ${PGBENCH_PROPERTY_FILE_GLUSTER_BLOCK}"
 			sh "cat pgbench_cns_block.properties"
 			def pgbench_scale_test_properties = readProperties file: "pgbench_cns_block.properties"
@@ -105,6 +114,9 @@ stage ('pgbench_scale_test_gluster_block') {
 			def SCALING = pgbench_scale_test_properties['SCALING']
 			def PBENCHCONFIG = pgbench_scale_test_properties['PBENCHCONFIG']
 			def STORAGECLASS = pgbench_scale_test_properties['STORAGECLASS']
+			def token = pgbench_scale_test_properties['GITHUB_TOKEN']
+			def repo = pgbench_scale_test_properties['PERF_REPO']
+			def server = pgbench_scale_test_properties['PBENCH_SERVER']
 
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"
@@ -124,6 +136,10 @@ stage ('pgbench_scale_test_gluster_block') {
 			println "STORAGECLASS: '${STORAGECLASS}'"
 			println "-------------------------------------------------"
 			println "-------------------------------------------------"
+			
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
 
 			try {
 				pgbench_build = build job: 'PGBENCH_SCALE_TEST',

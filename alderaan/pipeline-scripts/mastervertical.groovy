@@ -36,6 +36,9 @@ stage('mastervertical_scale_test') {
 			def second_run = mastervertical_properties['SECOND_RUN_PROJECTS']
 			def third_run = mastervertical_properties['THIRD_RUN_PROJECTS']
 			def token = mastervertical_properties['GITHUB_TOKEN']
+			def repo = mastervertical_properties['PERF_REPO']
+			def server = mastervertical_properties['PBENCH_SERVER']	
+			def mode = mastervertical_properties['MODE']
 
 			// debug info
 			println "JUMP_HOST: '${jump_host}'"
@@ -48,6 +51,10 @@ stage('mastervertical_scale_test') {
 			println "PROXY_HOST: '${proxy_host}'"
 			println "PROJECTS: '${projects}'"
 			println "TOKEN: '${token}'"
+			
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
 
 			// Run mastervertical job
 			try {
@@ -66,6 +73,7 @@ stage('mastervertical_scale_test') {
 						[$class: 'StringParameterValue', name: 'FIRST_RUN_PROJECTS', value: first_run ],
 						[$class: 'StringParameterValue', name: 'SECOND_RUN_PROJECTS', value: second_run ],
 						[$class: 'StringParameterValue', name: 'THIRD_RUN_PROJECTS', value: third_run ],
+						[$class: 'StringParameterValue', name: 'MODE', value: mode ],
 						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ]]
 			} catch ( Exception e) {
 				echo "MASTERVERTICAL-SCALE-TEST Job failed with the following error: "

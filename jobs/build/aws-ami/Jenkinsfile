@@ -82,12 +82,7 @@ if ( OPENSHIFT_ANSIBLE_CHECKOUT == "" ) {
     OPENSHIFT_ANSIBLE_CHECKOUT = "release-${OCP_MAJOR}.${OCP_MINOR}"
 }
 
-def PAYLOAD = """OPENSHIFT_VERSION=${OPENSHIFT_VERSION}
-OPENSHIFT_RELEASE=${OPENSHIFT_RELEASE}
-YUM_BASE_URL=${YUM_BASE_URL}
-OPENSHIFT_ANSIBLE_CHECKOUT=${OPENSHIFT_ANSIBLE_CHECKOUT}
-USE_CRIO=${USE_CRIO}
-CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE=${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"""
+def FORM_PAYLOAD = "OPENSHIFT_VERSION=${OPENSHIFT_VERSION}&OPENSHIFT_RELEASE=${OPENSHIFT_RELEASE}&YUM_BASE_URL=${YUM_BASE_URL}&OPENSHIFT_ANSIBLE_CHECKOUT=${OPENSHIFT_ANSIBLE_CHECKOUT}&USE_CRIO=${USE_CRIO}&CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE=${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"
 
 node('openshift-build-1') {
     try {
@@ -95,14 +90,14 @@ node('openshift-build-1') {
         def buildlib = null
         def build_date = new Date().format('yyyyMMddHHmm')
         stage('invoke') {
-            echo "Sending payload:\n${PAYLOAD}"
+            echo "Sending payload:\n${FORM_PAYLOAD}"
             def response = httpRequest(
                                 authentication: 'cbed7561-b35d-44e9-b15c-67ae0e6cf017',
                                 consoleLogResponseBody: true,
                                 contentType: 'APPLICATION_FORM',
                                 httpMode: 'POST',
                                 ignoreSslErrors: true,
-                                requestBody: PAYLOAD,
+                                requestBody: FORM_PAYLOAD,
                                 responseHandle: 'NONE',
                                 url: 'https://cr.ops.openshift.com:8443/job/images/job/aws-ami/buildWithParameters',
                                 validResponseCodes: '201')

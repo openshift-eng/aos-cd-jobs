@@ -90,6 +90,7 @@ node('openshift-build-1') {
         def buildlib = null
         def build_date = new Date().format('yyyyMMddHHmm')
         stage('invoke') {
+            currentBuild.displayName = "#${currentBuild.number} - ${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"
             echo "Sending payload:\n${FORM_PAYLOAD}"
             def response = httpRequest(
                                 authentication: 'cbed7561-b35d-44e9-b15c-67ae0e6cf017',

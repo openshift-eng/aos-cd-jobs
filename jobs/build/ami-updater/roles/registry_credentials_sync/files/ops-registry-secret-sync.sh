@@ -2,6 +2,10 @@
 
 set -o pipefail
 
+# Lazy place to put this for now until sysctl settings are managable in the AMI build process
+# https://github.com/kubernetes/kubernetes/issues/10421#issuecomment-115866727
+sysctl fs.inotify.max_user_watches=1048576
+
 while true ; do
     echo "Attempt to read secret from cluster..."
     oc --config /etc/origin/node/node.kubeconfig -n openshift get secrets reg-aws-dockercfg -o=yaml | grep '.dockerconfigjson:' | cut -d ':' -f 2 | tr -d ' ' | base64 -d > /root/.docker/config.stg

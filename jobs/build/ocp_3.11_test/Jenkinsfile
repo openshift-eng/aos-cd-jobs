@@ -73,7 +73,7 @@ properties(
                         'jupierce@redhat.com',
                         'smunilla@redhat.com',
                         'ahaile@redhat.com',
-                        'mlamouri@redhat.com'
+                        'jodavis@redhat.com'
                     ].join(',')
                 ],
                 [

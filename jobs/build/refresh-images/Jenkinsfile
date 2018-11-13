@@ -31,7 +31,7 @@ def mail_success() {
     mail(
             to: "${MAIL_LIST_SUCCESS}",
             from: "aos-cicd@redhat.com",
-            replyTo: 'smunilla@redhat.com',
+            replyTo: 'aos-team-art@redhat.com',
             subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
             body: """\
 Jenkins job: ${env.BUILD_URL}
@@ -87,13 +87,13 @@ node('openshift-build-1') {
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com'
+                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,jodavis@redhat.com,lmeyer@redhat.com'
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com'
+                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,jodavis@redhat.com,lmeyer@redhat.com'
                     ],
                     [
                         name: 'MOCK',

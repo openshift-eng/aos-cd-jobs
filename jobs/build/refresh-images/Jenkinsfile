@@ -148,33 +148,29 @@ node('openshift-build-1') {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize()
 
-    stage("enterprise-images repo") {
-        buildlib.initialize_enterprise_images_dir()
-    }
-
-    // oit_working must be in WORKSPACE in order to have artifacts archived
-    OIT_WORKING = "${WORKSPACE}/oit_working"
+    // doozer_working must be in WORKSPACE in order to have artifacts archived
+    DOOZER_WORKING = "${WORKSPACE}/doozer_working"
     //Clear out previous work
-    sh "rm -rf ${OIT_WORKING}"
-    sh "mkdir -p ${OIT_WORKING}"
+    sh "rm -rf ${DOOZER_WORKING}"
+    sh "mkdir -p ${DOOZER_WORKING}"
 
     stage('Refresh Images') {
 
         // default to using the atomic-openshift package version
         // unless the caller provides a version and release
         if (VERSION_OVERRIDE == "auto") {
-            oit_update_docker_args = "--version auto --repo-type signed"
+            doozer_update_docker_args = "--version auto --repo-type signed"
         } else {
             if (!VERSION_OVERRIDE.startsWith("v")) {
                 error("Version overrides must start with 'v'")
             }
-            oit_update_docker_args = "--version ${VERSION_OVERRIDE}"
+            doozer_update_docker_args = "--version ${VERSION_OVERRIDE}"
         }
 
         // Get the OCP version from the current build
         // query-rpm-version returns "version: v3.10.0" for example
-        def detected_version = buildlib.oit("""
---working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+        def detected_version = buildlib.doozer("""
+--working-dir ${DOOZER_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
 --quiet
 images:query-rpm-version
 --repo-type signed
@@ -184,7 +180,7 @@ images:query-rpm-version
                 message: """\
 Remember to rebuild signed puddles before proceeding.
 You have specified version: ${VERSION_OVERRIDE}
-oit has detected the signed puddle contains: ${detected_version}
+doozer has detected the signed puddle contains: ${detected_version}
 Proceed?
 """)
 
@@ -199,20 +195,20 @@ Proceed?
             sshagent(['openshift-bot']) {
 
                 if (RELEASE_OVERRIDE != "") {
-                    oit_update_docker_args = "${oit_update_docker_args} --release ${RELEASE_OVERRIDE}"
+                    doozer_update_docker_args = "${doozer_update_docker_args} --release ${RELEASE_OVERRIDE}"
                 }
 
                 buildlib.kinit() // Sets up credentials for dist-git access
 
                 /**
-                 * By default, do not specify a version or release for oit. This will preserve the version label and remove
+                 * By default, do not specify a version or release for doozer. This will preserve the version label and remove
                  * the release label. OSBS now chooses a viable release label to prevent conflicting with pre-existing
                  * builds. Let's use that fact to our advantage.
                  */
-                buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+                buildlib.doozer """
+--working-dir ${DOOZER_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
 images:update-dockerfile
-  ${oit_update_docker_args}
+  ${doozer_update_docker_args}
   --message 'Updating for image refresh'
   --push
   """
@@ -228,15 +224,15 @@ images:update-dockerfile
                             exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
                         }
 
-                        buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+                        buildlib.doozer """
+--working-dir ${DOOZER_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
 ${exclude}
 images:build
 --push-to-defaults --repo-type signed
 """
                         return true  // finish waitUntil
                     } catch (err) {
-                        failed_builds = buildlib.get_failed_builds(OIT_WORKING)
+                        failed_builds = buildlib.get_failed_builds(DOOZER_WORKING)
 
                         mail(
                             to: "${MAIL_LIST_FAILURE}",
@@ -276,8 +272,8 @@ ${failed_builds}
 
                 // a failed build won't push. If continued, do that now
                 if (BUILD_CONTINUED) {
-                    buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+                    buildlib.doozer """
+--working-dir ${DOOZER_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
 ${exclude}
 images:push
 --to-defaults --late-only"""
@@ -286,8 +282,8 @@ images:push
             }
 
             try {
-                buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
+                buildlib.doozer """
+--working-dir ${DOOZER_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
 ${exclude}
 images:verify
 --repo-type signed
@@ -306,8 +302,8 @@ Jenkins job: ${env.BUILD_URL}
 
             if (params.BUILD_AMI) {
                 // e.g. version_release = ['v3.9.0', '0.34.0.0']
-                final version_release = buildlib.oit([
-                        "--working-dir ${OIT_WORKING}",
+                final version_release = buildlib.doozer([
+                        "--working-dir ${DOOZER_WORKING}",
                         "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
                         '--images openshift-enterprise-docker',
                         '--quiet',
@@ -338,9 +334,9 @@ Jenkins job: ${env.BUILD_URL}
             throw err
         } finally {
             try {
-                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/verify_fail_log.yml"
-                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
-                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/verify_fail_log.yml"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/brew-logs/**"
             } catch (aae) {
             }
         }

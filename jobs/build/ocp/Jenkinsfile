@@ -414,11 +414,11 @@ node(TARGET_NODE) {
     buildlib.initialize(IS_TEST_MODE)
     echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
-    // oit_working must be in WORKSPACE in order to have artifacts archived
-    OIT_WORKING = "${WORKSPACE}/oit_working"
+    // doozer_working must be in WORKSPACE in order to have artifacts archived
+    DOOZER_WORKING = "${WORKSPACE}/doozer_working"
     //Clear out previous work
-    sh "rm -rf ${OIT_WORKING}"
-    sh "mkdir -p ${OIT_WORKING}"
+    sh "rm -rf ${DOOZER_WORKING}"
+    sh "mkdir -p ${DOOZER_WORKING}"
 
     try {
         sshagent([SSH_KEY_ID]) {
@@ -556,7 +556,7 @@ node(TARGET_NODE) {
                         NEW_VERSION = spec.version   // Keep the existing spec's version
                         NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
 
-                        // Add a bumpable field for OIT to increment for image refreshes (i.e. REL.INT.STG.BUMP)
+                        // Add a bumpable field for Doozer to increment for image refreshes (i.e. REL.INT.STG.BUMP)
                         NEW_DOCKERFILE_RELEASE = "${NEW_RELEASE}.0"
 
                     } else if (BUILD_MODE == "release" || BUILD_MODE == "pre-release") {
@@ -875,21 +875,10 @@ node(TARGET_NODE) {
                 }
             }
 
-            buildlib.write_sources_file()
-
-
-            // at this point we need both the OIT tools and the groups database
-            stage("enterprise-images repo") {
-                // defines
-                //   ENTERPRISE_IMAGES_DIR
-                //   OIT_PATH
-                buildlib.initialize_enterprise_images_dir()
-            }
-
-            stage("build OIT rpms") {
-                buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
---sources ${env.WORKSPACE}/sources.yml
+            stage("doozer build rpms") {
+                buildlib.doozer """
+--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}'
+--source ose ${OSE_DIR}
 rpms:build --version v${NEW_VERSION}
 --release ${NEW_RELEASE}
 """
@@ -916,9 +905,9 @@ rpms:build --version v${NEW_VERSION}
             }
 
             stage("update dist-git") {
-                buildlib.oit """
---working-dir ${OIT_WORKING} --group 'openshift-${BUILD_VERSION}'
---sources ${env.WORKSPACE}/sources.yml
+                buildlib.doozer """
+--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}'
+--source ose ${OSE_DIR}
 ${ODCS_FLAG}
 images:rebase --version v${NEW_VERSION}
 --release ${NEW_DOCKERFILE_RELEASE}
@@ -926,7 +915,7 @@ images:rebase --version v${NEW_VERSION}
 """
             }
 
-            record_log = buildlib.parse_record_log(OIT_WORKING)
+            record_log = buildlib.parse_record_log(DOOZER_WORKING)
             distgit_notify = buildlib.get_distgit_notify(record_log)
             distgit_notify = buildlib.mapToList(distgit_notify)
             // loop through all new commits and notify their owners
@@ -1000,8 +989,8 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
                         if (BUILD_EXCLUSIONS != "") {
                             exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
                         }
-                        buildlib.oit """
---working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+                        buildlib.doozer """
+--working-dir ${DOOZER_WORKING} --group openshift-${BUILD_VERSION}
 ${ODCS_FLAG}
 ${exclude}
 images:build
@@ -1009,14 +998,14 @@ images:build
 """
                     }
                     catch (err) {
-                        failed_map = buildlib.get_failed_builds(OIT_WORKING)
+                        failed_map = buildlib.get_failed_builds(DOOZER_WORKING)
                         BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
                         BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
                     }
 
                     if (BUILD_CONTINUED) {
-                        buildlib.oit """
-    --working-dir ${OIT_WORKING} --group openshift-${BUILD_VERSION}
+                        buildlib.doozer """
+    --working-dir ${DOOZER_WORKING} --group openshift-${BUILD_VERSION}
     ${exclude} images:push --to-defaults --late-only
     """
                         // exclude is already set earlier in the main images:build flow
@@ -1132,8 +1121,8 @@ Jenkins job: ${env.BUILD_URL}
         throw err
     } finally {
         try {
-            archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
-            archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
+            archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
+            archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/brew-logs/**"
         } catch (aae) {
         }
     }

@@ -94,13 +94,13 @@ if ( MOCK.toBoolean() ) {
 node(TARGET_NODE) {
 
     set_workspace()
-    
-    // oit_working must be in WORKSPACE in order to have artifacts archived
-    OIT_WORKING = "${WORKSPACE}/oit_working"
-    env.OIT_WORKING = OIT_WORKING
+
+    // doozer_working must be in WORKSPACE in order to have artifacts archived
+    DOOZER_WORKING = "${WORKSPACE}/doozer_working"
+    env.DOOZER_WORKING = DOOZER_WORKING
     //Clear out previous work
-    sh "rm -rf ${OIT_WORKING}"
-    sh "mkdir -p ${OIT_WORKING}"
+    sh "rm -rf ${DOOZER_WORKING}"
+    sh "mkdir -p ${DOOZER_WORKING}"
 
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',

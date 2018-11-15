@@ -1,8 +1,8 @@
 #!/usr/bin/env groovy
 
 /**
- * The build/ose job can no longer be used to build ose/master. The support to do so 
- * has been removed. It is only designed to build 3.3 through 3.6. 
+ * The build/ose job can no longer be used to build ose/master. The support to do so
+ * has been removed. It is only designed to build 3.3 through 3.6.
  */
 
 // https://issues.jenkins-ci.org/browse/JENKINS-33511
@@ -218,12 +218,12 @@ node(TARGET_NODE) {
 
     set_workspace()
 
-    // oit_working must be in WORKSPACE in order to have artifacts archived
-    OIT_WORKING = "${WORKSPACE}/oit_working"
-    env.OIT_WORKING = OIT_WORKING
+    // doozer_working must be in WORKSPACE in order to have artifacts archived
+    DOOZER_WORKING = "${WORKSPACE}/doozer_working"
+    env.DOOZER_WORKING = DOOZER_WORKING
     //Clear out previous work
-    sh "rm -rf ${OIT_WORKING}"
-    sh "mkdir -p ${OIT_WORKING}"
+    sh "rm -rf ${DOOZER_WORKING}"
+    sh "mkdir -p ${DOOZER_WORKING}"
 
     stage('Merge and build') {
         try {
@@ -272,8 +272,8 @@ Jenkins job: ${env.BUILD_URL}
             throw err
         } finally {
             try {
-                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/*.log"
-                archiveArtifacts allowEmptyArchive: true, artifacts: "oit_working/brew-logs/**"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
+                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/brew-logs/**"
             } catch (aae) {
             }
         }

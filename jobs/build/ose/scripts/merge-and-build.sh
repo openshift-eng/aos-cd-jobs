@@ -104,20 +104,6 @@ fi # End check if we are version 3.2
 
 echo
 echo "=========="
-echo "Setup OIT stuff"
-echo "=========="
-
-
-pushd ${BUILDPATH}
-OIT_DIR="${BUILDPATH}/enterprise-images/"
-rm -rf ${OIT_DIR}
-mkdir -p ${OIT_DIR}
-OIT_PATH="${OIT_DIR}/tools/bin/oit"
-git clone git@github.com:openshift/enterprise-images.git ${OIT_DIR}
-popd
-
-echo
-echo "=========="
 echo "Setup origin-web-console stuff"
 echo "=========="
 cd ${WORKPATH}
@@ -306,27 +292,27 @@ ssh ocp-build@rcm-guest.app.eng.bos.redhat.com \
 
 echo
 echo "=========="
-echo "Run OIT rebase"
+echo "Run Doozer rebase"
 echo "=========="
 
-cat >"${OIT_WORKING}/sources.yml" <<EOF
+cat >"${DOOZER_WORKING}/sources.yml" <<EOF
 ose: ${OSE_DIR}
 openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
 EOF
 
-${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
---sources ${OIT_WORKING}/sources.yml \
+doozer --working-dir ${DOOZER_WORKING} --group openshift-${OSE_VERSION} \
+--sources ${DOOZER_WORKING}/sources.yml \
 images:rebase --version v${VERSION} \
 --release 1 \
 --message "Updating Dockerfile version and release v${VERSION}-1" --push
 
 echo
 echo "=========="
-echo "Build OIT images"
+echo "Build Doozer images"
 echo "=========="
 
 if [ "$BUILD_CONTAINER_IMAGES" != "false" ]; then
-    ${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group openshift-${OSE_VERSION} \
+    doozer --working-dir ${DOOZER_WORKING} --group openshift-${OSE_VERSION} \
 images:build \
 --push-to-defaults --repo-type unsigned
 fi

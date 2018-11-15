@@ -38,12 +38,8 @@ These instructions assume we are moving from release X.A to X.B and that origin#
     - Add X.B as a choice in the build options
   - Change build/ose Jenkinsfile:
     - OSE_MASTER=X.B
-  - Change ose_images.sh
-    - MASTER_RELEASE=X.B
-    - Add 3.8 to version_trim_list
-    - Assess whether anything in base group needs to change for X.B
 
-- Copy dist-git data from last version branches into new version branches using oit images:merge-branch
+- Copy dist-git data from last version branches into new version branches using doozer images:merge-branch
 
 - In enterprise-images github repo, follow the instructions in NewBranchProcess.md
 - Create a new build/ose-X.B job to enable single click invocation of a build/ocp for the version

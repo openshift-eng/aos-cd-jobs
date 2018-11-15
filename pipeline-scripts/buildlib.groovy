@@ -73,24 +73,12 @@ def initialize_openshift_dir() {
     echo "Initialized env.OPENSHIFT_DIR: ${env.OPENSHIFT_DIR}"
 }
 
-def initialize_enterprise_images_dir() {
-    this.initialize_openshift_dir()
-    ENTERPRISE_IMAGES_DIR = "${env.WORKSPACE}/enterprise-images"
-    sh "rm -rf ${ENTERPRISE_IMAGES_DIR}"  // Remove any cruft
-    sh "mkdir -p ${ENTERPRISE_IMAGES_DIR}"
-    OIT_PATH = "${ENTERPRISE_IMAGES_DIR}/tools/bin/oit"
-    sh "git clone ${GITHUB_BASE}/enterprise-images.git ${ENTERPRISE_IMAGES_DIR}"
-    env.ENTERPRISE_IMAGES_DIR = ENTERPRISE_IMAGES_DIR
-    env.OIT_PATH = OIT_PATH
-    echo "Initialized env.ENTERPRISE_IMAGES_DIR: ${env.ENTERPRISE_IMAGES_DIR}"
-}
-
-def oit(cmd, opts=[:]){
+def doozer(cmd, opts=[:]){
     cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
     return sh(
         returnStdout: opts.capture ?: false,
-        script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/oit --user=ocp-build ${cmd.trim()}")
+        script: "doozer ${cmd.trim()}")
 }
 
 def elliott(cmd, opts=[:]){
@@ -720,18 +708,18 @@ def with_virtualenv(path, f) {
     return withEnv(env, f)
 }
 
-// Parse record.log from OIT into a map
+// Parse record.log from Doozer into a map
 // Records will be formatted in a map like below:
 // rpms/jenkins-slave-maven-rhel7-docker:
 //   source_alias: jenkins
 //   image: openshift3/jenkins-slave-maven-rhel7
-//   dockerfile: /tmp/oit-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
+//   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
 //   owners: ahaile@redhat.com,smunilla@redhat.com
 //   distgit: rpms/jenkins-slave-maven-rhel7-docker]
 // pms/aos-f5-router-docker:
 //   source_alias: ose
 //   image: openshift3/ose-f5-router
-//   dockerfile: /tmp/oit-uEeF2_.tmp/distgits/aos-f5-router-docker/Dockerfile
+//   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/aos-f5-router-docker/Dockerfile
 //   owners:
 //   distgit: rpms/aos-f5-router-docker
 def parse_record_log( working_dir ) {
@@ -791,7 +779,7 @@ def get_failed_builds(log_dir) {
 // rpms/jenkins-slave-maven-rhel7-docker
 //   source_alias: jenkins
 //   image: openshift3/jenkins-slave-maven-rhel7
-//   dockerfile: /tmp/oit-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
+//   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
 //   owners: bparees@redhat.com
 //   distgit: rpms/jenkins-slave-maven-rhel7-docker
 //   sha: 1b8903ef72878cd895b3f94bee1c6f5d60ce95c3

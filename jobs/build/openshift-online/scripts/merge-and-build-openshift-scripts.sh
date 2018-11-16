@@ -88,16 +88,6 @@ elif [ "${BUILD_MODE}" == "release" ] ; then
     SPEC_VERSION_COUNT=6
 fi
 
-echo
-echo "=========="
-echo "Setup OIT stuff"
-echo "=========="
-
-OIT_DIR="${BUILDPATH}/enterprise-images/"
-rm -rf ${OIT_DIR}
-mkdir -p ${OIT_DIR}
-OIT_PATH="${OIT_DIR}/tools/bin/oit"
-git clone git@github.com:openshift/enterprise-images.git ${OIT_DIR}
 
 # Check to see if there have been any changes since the last tag
 if git describe --abbrev=0 --tags --exact-match HEAD >/dev/null 2>&1 && [ "${FORCE_REBUILD}" != "true" ] ; then
@@ -174,7 +164,7 @@ else
     echo "=========="
     echo "Update Dockerfiles"
     echo "=========="ild
-    ${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
+    doozer --working-dir ${DOOZER_WORKING} --group oso-${RELEASE_VERSION} \
     images:rebase --version v${VERSION} \
     --release 1 \
     --message "MaxFileSize: 52428800" --push
@@ -183,7 +173,7 @@ else
     echo "=========="
     echo "Build Images"
     echo "=========="
-    ${OIT_PATH} --user=ocp-build --working-dir ${OIT_WORKING} --group oso-${RELEASE_VERSION} \
+    doozer --working-dir ${DOOZER_WORKING} --group oso-${RELEASE_VERSION} \
     images:build \
     --push-to-defaults --repo-type unsigned
 

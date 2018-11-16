@@ -11,9 +11,6 @@ fi
 # new runs will use this as tito tmp
 sudo find /home/jenkins/workspace/tito_tmp -type f -mtime +1 -exec rm -rf {} \;
 
-echo "====Cleaning up old ose_images.sh temporary directories===="
-sudo find /var/tmp/ -maxdepth 1 -name 'ose_images*' -mtime +1 -exec rm -rf {} +
-
 set +e   # docker rmi -f can fail if an image is in use, so ignore errors
 
 echo "====Cleaning up older docker images===="

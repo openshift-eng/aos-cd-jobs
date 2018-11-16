@@ -41,19 +41,14 @@ node('openshift-build-1') {
             // Capture exceptions and don't let one problem stop other cleanup from executing
             e1 = null
             e2 = null
-            e3 = null        
+            e3 = null
 
             try {
-                stage("oit setup"){
-                    sh 'rm -rf enterprise-images'
-                    sh 'git clone git@github.com:openshift/enterprise-images.git'
-                }
-
                 stage("push images") {
                     dir ( "enterprise-images" ) {
-                        sh './tools/bin/oit --user=ocp-build --group sync-3.9 images:push --to-defaults'
-                        sh './tools/bin/oit --user=ocp-build --group sync-misc images:push --to-defaults'
-                        sh './tools/bin/oit --user=ocp-build --group sync-3.7 images:push --to-defaults'
+                        sh 'doozer --group sync-3.9 images:push --to-defaults'
+                        sh 'doozer --group sync-misc images:push --to-defaults'
+                        sh 'doozer --group sync-3.7 images:push --to-defaults'
                     }
                 }
             } catch ( ex1 ) {
@@ -71,7 +66,7 @@ node('openshift-build-1') {
                 echo "ERROR: ex2 occurred: " + ex2
                 e2 = ex2
             }
-            
+
             try {
                 stage("snapshot system setup") {
                     snapshot_diff = sh(returnStdout: true, script: "./scripts/snapshot.sh /home/jenkins").trim()
@@ -95,7 +90,7 @@ node('openshift-build-1') {
             if ( e2 != null ) {
                 throw e2
             }
-            
+
             if ( e3 != null ) {
                 throw e3
             }

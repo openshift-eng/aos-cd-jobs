@@ -295,13 +295,8 @@ echo "=========="
 echo "Run Doozer rebase"
 echo "=========="
 
-cat >"${DOOZER_WORKING}/sources.yml" <<EOF
-ose: ${OSE_DIR}
-openshift-ansible: ${OPENSHIFT_ANSIBLE_DIR}
-EOF
-
 doozer --working-dir ${DOOZER_WORKING} --group openshift-${OSE_VERSION} \
---sources ${DOOZER_WORKING}/sources.yml \
+--source ose ${OSE_DIR} \
 images:rebase --version v${VERSION} \
 --release 1 \
 --message "Updating Dockerfile version and release v${VERSION}-1" --push

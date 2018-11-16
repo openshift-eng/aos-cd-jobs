@@ -74,15 +74,13 @@ auto                      BUILD_VERSION and ocp repo contents determine the mode
 release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
 online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
-online:stg                {origin,origin-web-console,openshift-ansible}/stage -> online-stg yum repo<br>
 ''',
                     $class: 'hudson.model.ChoiceParameterDefinition',
                     choices: [
                         "auto",
                         "release",
                         "pre-release",
-                        "online:int",
-                        "online:stg"
+                        "online:int"
                     ].join("\n"),
                     defaultValue: "auto"
                 ],
@@ -163,9 +161,6 @@ def get_mirror_url(build_mode, version) {
     if (build_mode == "online:int") {
         return "https://mirror.openshift.com/enterprise/online-int"
     }
-    if (build_mode == "online:stg") {
-        return "https://mirror.openshift.com/enterprise/online-stg"
-    }
     return "https://mirror.openshift.com/enterprise/enterprise-${version}"
 }
 
@@ -230,10 +225,6 @@ def mail_success(version, mirrorURL, record_log, oa_changelog) {
 
     if (BUILD_MODE == "online:int") {
         target = "(Integration Testing)"
-    }
-
-    if (BUILD_MODE == "online:stg") {
-        target = "(Stage Testing)"
     }
 
     def inject_notes = ""
@@ -489,14 +480,8 @@ node(TARGET_NODE) {
                     }
 
                     if (IS_SOURCE_IN_MASTER) {
-                        if (BUILD_MODE == "online:stg") {
-                            OSE_SOURCE_BRANCH = "stage"
-                            UPSTREAM_SOURCE_BRANCH = "upstream/stage"
-                            sh "git checkout -b stage origin/stage"
-                        } else {
-                            OSE_SOURCE_BRANCH = "master"
-                            UPSTREAM_SOURCE_BRANCH = "upstream/master"
-                        }
+                        OSE_SOURCE_BRANCH = "master"
+                        UPSTREAM_SOURCE_BRANCH = "upstream/master"
                     } else {
                         OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
                         if (BUILD_MODE == "release") {
@@ -520,13 +505,12 @@ node(TARGET_NODE) {
                     }
 
 
-                    if (BUILD_MODE == "online:int" || BUILD_MODE == "online:stg") {
+                    if (BUILD_MODE == "online:int") {
                         /**
                          * In non-release candidates, we need the following fields
                          *      REL.INT.STG
                          * REL = 0    means pre-release,  1 means release
                          * INT = fields used to differentiate online:int builds
-                         * STG = fields used to differentiate online:stg builds
                          */
 
                         while (rel_fields.size() < 3) {
@@ -549,10 +533,6 @@ node(TARGET_NODE) {
                             rel_fields[2] = 0  // If we are bumping the INT field, everything following is reset to zero
                         }
 
-                        if (BUILD_MODE == "online:stg") {
-                            rel_fields[2] = rel_fields[2].toInteger() + 1  // Bump the STG version
-                        }
-
                         NEW_VERSION = spec.version   // Keep the existing spec's version
                         NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
 
@@ -569,10 +549,6 @@ node(TARGET_NODE) {
                          * with the X.Y.Z-R' its RPM was built with, the R != R' (since R' < R) and the image
                          * would not be found.
                          * For release candidates, therefore, we must only use X.Y.Z to differentiate builds.
-                         *
-                         * Note that this problem does not affect online:int & online:stg builds since we control the
-                         * tags in the registries. We have refresh-images bump a harmless field in the release and then
-                         * craft a tag in the registry [version]-[release] which does not include that bumped field.
                          */
                         if (rel_fields[0].toInteger() != 1) {
                             error("You need to set the spec Release field to 1 in order to build in this mode")
@@ -638,34 +614,28 @@ node(TARGET_NODE) {
 
             stage("prep web-console") {
                 dir(WEB_CONSOLE_DIR) {
-                    // Unless building for stage, origin-web-console#entperise-X.Y should be used
-                    if (BUILD_MODE == "online:stg") {
-                        WEB_CONSOLE_BRANCH = "stage"
-                        sh "git checkout -b stage origin/stage"
-                    } else {
-                        WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
-                        sh "git checkout -b ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
-                        if (IS_SOURCE_IN_MASTER) {
+                    WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
+                    sh "git checkout -b ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
+                    if (IS_SOURCE_IN_MASTER) {
 
-                            // jwforres asked that master *not* merge into the 3.8 branch.
-                            if (BUILD_VERSION != "3.8") {
-                                sh """
-                                # Pull content of master into enterprise branch
-                                git merge master --no-commit --no-ff
-                                # Use grunt to rebuild everything in the dist directory
-                                ./hack/install-deps.sh
-                                grunt build
+                        // jwforres asked that master *not* merge into the 3.8 branch.
+                        if (BUILD_VERSION != "3.8") {
+                            sh """
+                            # Pull content of master into enterprise branch
+                            git merge master --no-commit --no-ff
+                            # Use grunt to rebuild everything in the dist directory
+                            ./hack/install-deps.sh
+                            grunt build
 
-                                git add dist
-                                git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
-                            """
+                            git add dist
+                            git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
+                        """
 
-                                if (!IS_TEST_MODE) {
-                                    sh "git push"
-                                }
+                            if (!IS_TEST_MODE) {
+                                sh "git push"
                             }
-
                         }
+
                     }
 
                     // Clean up any unstaged changes (e.g. .gitattributes)
@@ -684,11 +654,7 @@ node(TARGET_NODE) {
                     //   GITHUB_URLS["origin-web-console-server"]
                     //   GITHUB_BASE_PATHS["origin-web-console-server"]
                     buildlib.initialize_origin_web_console_server_dir()
-                    if (BUILD_MODE == "online:stg") {
-                        WEB_CONSOLE_SERVER_BRANCH = "stage"
-                    } else {
-                        WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
-                    }
+                    WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
                     dir(WEB_CONSOLE_SERVER_DIR) {
                         sh "git checkout ${WEB_CONSOLE_SERVER_BRANCH}"
                     }
@@ -696,7 +662,7 @@ node(TARGET_NODE) {
             }
 
             stage("prep web-console-server") {
-                if (BUILD_MODE != "online:stg" && USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER) {
+                if (USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER) {
                     dir(WEB_CONSOLE_SERVER_DIR) {
                         // Enable fake merge driver used in our .gitattributes
                         sh "git config merge.ours.driver true"
@@ -767,21 +733,16 @@ node(TARGET_NODE) {
             stage("openshift-ansible prep") {
                 OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "master"
                 dir(OPENSHIFT_ANSIBLE_DIR) {
-                    if (BUILD_MODE == "online:stg") {
-                        sh "git checkout -b stage origin/stage"
-                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "stage"
-                    } else {
-                        if (!IS_SOURCE_IN_MASTER) {
-                            // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
-                            if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
-                            } else {
-                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
-                            }
-                            sh "git checkout -b ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
+                    if (!IS_SOURCE_IN_MASTER) {
+                        // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
+                        if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
+                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
                         } else {
-                            sh "git checkout master"
+                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
                         }
+                        sh "git checkout -b ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
+                    } else {
+                        sh "git checkout master"
                     }
                 }
             }
@@ -1031,16 +992,12 @@ images:build
                 if (params.BUILD_AMI && BUILD_CONTAINER_IMAGES) {
                     // define openshift ansible source branch
                     OPENSHIFT_ANSIBLE_SOURCE_BRANCH = 'master'
-                    if (BUILD_MODE == 'online:stg') {
-                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = 'stage'
-                    } else {
-                        if (!IS_SOURCE_IN_MASTER) {
-                            // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
-                            if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
-                            } else {
-                                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
-                            }
+                    if (!IS_SOURCE_IN_MASTER) {
+                        // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
+                        if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
+                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
+                        } else {
+                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
                         }
                     }
                     buildlib.build_ami(

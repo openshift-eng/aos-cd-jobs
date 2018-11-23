@@ -49,9 +49,9 @@ extensions:
         echo "export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)" >> envs
         source envs
         set -x
-        # copy the credentials under root since the ./bin/e2e is run through sudo
+        # copy the credentials under root since the ./bin/integration is run through sudo
         sudo cp -r /home/origin/.aws /root/.
-        sudo -E ./bin/e2e --kubeconfig /root/.kube/config --mao-image machine-api-operator:$(git describe --always --abbrev=7) --cluster-id mao-${BUILD_NUMBER}-pr-${PULL_NUMBER}
+        sudo -E ./bin/integration --kubeconfig /root/.kube/config --mao-image machine-api-operator:$(git describe --always --abbrev=7) --cluster-id mao-${BUILD_NUMBER}-pr-${PULL_NUMBER}
   system_journals:
     - systemd-journald.service
 overrides:

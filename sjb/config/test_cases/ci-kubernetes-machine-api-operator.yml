@@ -39,7 +39,7 @@ extensions:
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/machine-api-operator
-        make build-e2e
+        make build-integration
         sudo pip install awscli
         curl https://releases.hashicorp.com/terraform/0.11.8/terraform_0.11.8_linux_amd64.zip -o terraform_0.11.8_linux_amd64.zip
         unzip terraform_0.11.8_linux_amd64.zip

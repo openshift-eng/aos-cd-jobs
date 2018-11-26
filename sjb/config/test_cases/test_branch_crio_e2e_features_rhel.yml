@@ -1,0 +1,28 @@
+---
+parent: 'common/test_cases/crio.yml'
+overrides:
+  provision:
+    os: "rhel"
+    stage: "crio"
+    provider: "aws"
+extensions:
+  actions:
+  - type: "forward_parameters"
+    parameters:
+      - PULL_BASE_SHA
+  - type: "script"
+    title: "clone cri-o and check out the correct refs"
+    script: |-
+      cd /go/src/github.com/kubernetes-sigs/cri-o
+      git fetch origin
+      git checkout "${PULL_BASE_SHA}"
+  - type: "script"
+    title: "run the cri-o e2e features tests"
+    timeout: "21600"  # 6 hours.  Playbook has shorter timeout for the test-task.
+    script: |-
+      ansible-playbook -vv --become  \
+                       -i localhost, \
+                       --tags e2e-features    \
+                       --become-user root \
+                       --connection local \
+                       /go/src/github.com/kubernetes-sigs/cri-o/contrib/test/integration/main.yml

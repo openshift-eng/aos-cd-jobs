@@ -1,0 +1,121 @@
+
+
+properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '360'
+            )
+        ),
+        [
+            $class : 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                [
+                    name: 'MOCK',
+                    description: 'Mock run to pickup new Jenkins parameters?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
+                ],
+                [
+                    name: 'BUILD_VERSION',
+                    description: 'OCP Version to build',
+                    $class: 'hudson.model.ChoiceParameterDefinition',
+                    choices: "4.0",
+                    defaultValue: '4.0'
+                ],
+                [
+                    name: 'TARGET_NODE',
+                    description: 'Jenkins agent node',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: 'openshift-build-1'
+                ],
+                [
+                    name: 'MAIL_LIST_SUCCESS',
+                    description: 'Success Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+//                        'aos-cicd@redhat.com',
+                        'aos-team-art@redhat.com',
+                    ].join(',')
+                ],
+                [
+                    name: 'MAIL_LIST_FAILURE',
+                    description: 'Failure Mailing List',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: [
+                        'aos-team-art@redhat.com',
+                    ].join(',')
+                ],
+
+            ]
+        ],
+        disableConcurrentBuilds()
+    ]
+)
+
+node(TARGET_NODE) {
+    checkout scm
+
+    def commonlib = load( "pipeline-scripts/commonlib.groovy")
+    commonlib.initialize()
+
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    buildlib.initialize()
+    echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
+
+    // doozer_working must be in WORKSPACE in order to have artifacts archived
+    MIRROR_WORKING = "${WORKSPACE}/MIRROR_working"
+    OC_MIRROR_INPUT = "${MIRROR_WORKING}/oc_mirror_input"
+
+    // See 'oc image mirror --help' for more information
+    OC_FMT_STR = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v4.0-art-dev:{version}-{release}-{name}"
+
+    //Clear out previous work
+    sh "rm -rf ${MIRROR_WORKING}"
+    sh "mkdir -p ${MIRROR_WORKING}"
+
+    // ######################################################################
+    // This should create a list of SOURCE=DEST strings in the output file
+    // May take a few minutes because doozer must query brew for each image
+    stage("Generate SRC=DEST input") {
+	buildlib.doozer """
+--working-dir ${MIRROR_WORKING} --group 'openshift-${BUILD_VERSION}'
+images:print
+--short
+-o ${OC_MIRROR_INPUT}
+'${OC_FMT_STR}'
+"""
+    }
+
+    // ######################################################################
+    // Now run the actual mirroring command. Need to wrap this in a
+    // retry loop because it is known to fail occassionally.
+    //
+    // IIRC, Clayton said they run it 3-5x in upstream CI.
+    stage("oc image mirror") {
+	err = null
+	try {
+	    // We must do this because 'docker login' will only handle
+	    // credentials for one registry under a given domain. This
+	    // is gross but we have to do it for now. Sorry :(
+	    sh "/home/jenkins/bin/login-quay-art-dev.sh"
+
+	    buildlib.oc """
+image
+--v=6
+mirror
+--filename=${OC_MIRROR_INPUT}
+"""
+	}
+	catch ( ex1 ) {
+            echo "ERROR: ex1 occurred: " + ex1
+        }
+
+	if ( err != null ) {
+            throw err
+	}
+    }
+}

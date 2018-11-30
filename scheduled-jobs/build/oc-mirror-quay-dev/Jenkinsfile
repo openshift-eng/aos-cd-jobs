@@ -66,7 +66,7 @@ node(TARGET_NODE) {
     // buildlib.initialize()
     buildlib.registry_quay_dev_login()
 
-    echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
+    echo "Initializing ${BUILD_VERSION} sync: #${currentBuild.number}"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     MIRROR_WORKING = "${WORKSPACE}/MIRROR_working"

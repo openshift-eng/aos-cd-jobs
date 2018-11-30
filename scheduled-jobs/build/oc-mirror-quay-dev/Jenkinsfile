@@ -84,7 +84,7 @@ node(TARGET_NODE) {
     // May take a few minutes because doozer must query brew for each image
     stage("Generate SRC=DEST input") {
 	buildlib.doozer """
---working-dir ${MIRROR_WORKING} --group 'openshift-${BUILD_VERSION}'
+--working-dir "${MIRROR_WORKING}" --group 'openshift-${BUILD_VERSION}'
 images:print
 --short
 -o ${OC_MIRROR_INPUT}

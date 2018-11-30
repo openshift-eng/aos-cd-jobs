@@ -89,6 +89,15 @@ def elliott(cmd, opts=[:]){
         script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/elliott --user=ocp-build ${cmd.trim()}")
 }
 
+def oc(cmd, opts=[:]){
+    cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
+    cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
+    return sh(
+        returnStdout: opts.capture ?: false,
+        script: "/usr/bin/oc ${cmd.trim()}"
+    )
+}
+
 def initialize_ose_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {

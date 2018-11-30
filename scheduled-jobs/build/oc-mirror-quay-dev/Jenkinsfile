@@ -73,7 +73,7 @@ node(TARGET_NODE) {
     OC_MIRROR_INPUT = "${MIRROR_WORKING}/oc_mirror_input"
 
     // See 'oc image mirror --help' for more information
-    OC_FMT_STR = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v4.0-art-dev:{version}-{release}-{name}"
+    OC_FMT_STR = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v4.0-art-dev:{version}-{release}-{image_name_short}"
 
     //Clear out previous work
     sh "rm -rf ${MIRROR_WORKING}"
@@ -90,6 +90,8 @@ images:print
 -o '${OC_MIRROR_INPUT}'
 '${OC_FMT_STR}'
 """
+
+	sh "cat ${OC_MIRROR_INPUT}"
     }
 
     // ######################################################################
@@ -100,11 +102,6 @@ images:print
     stage("oc image mirror") {
 	err = null
 	try {
-	    // We must do this because 'docker login' will only handle
-	    // credentials for one registry under a given domain. This
-	    // is gross but we have to do it for now. Sorry :(
-	    sh "/home/jenkins/bin/login-quay-art-dev.sh"
-
 	    buildlib.oc """
 image
 --v=6

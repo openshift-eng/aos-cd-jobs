@@ -58,6 +58,17 @@ def registry_login() {
     }
 }
 
+def registry_quay_dev_login() {
+    // 2018-11-30 - Login to the
+    // openshift-release-dev/ocp-v4.0-art-dev registry This is just
+    // for test purposes right now
+
+    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io',
+                      usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+        sh 'docker login -u "openshift-release-dev+art_quay_dev" -p $PASSWORD quay.io'
+    }
+}
+
 def print_tags(image_name) {
     // Writing the file out is all to avoid displaying the token in the Jenkins console
     writeFile file:"print_tags.sh", text:'''#!/bin/bash

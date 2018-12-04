@@ -104,7 +104,6 @@ images:print
 	try {
 	    buildlib.oc """
 image
---v=6
 mirror
 --filename='${OC_MIRROR_INPUT}'
 """

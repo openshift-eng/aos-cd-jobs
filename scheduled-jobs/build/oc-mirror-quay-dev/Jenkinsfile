@@ -71,6 +71,7 @@ node(TARGET_NODE) {
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     MIRROR_WORKING = "${WORKSPACE}/MIRROR_working"
     OC_MIRROR_INPUT = "${MIRROR_WORKING}/oc_mirror_input"
+    OC_IS_OBJECT = "${MIRROR_WORKING}/release-is.yaml"
     BASE_IMAGE_STREAM = "/home/jenkins/base-art-latest-imagestream.yaml"
     CI_KUBECONFIG = "/home/jenkins/kubeconfigs/art-publish.kubeconfig"
 
@@ -88,6 +89,8 @@ node(TARGET_NODE) {
 	buildlib.doozer """
 --working-dir "${MIRROR_WORKING}" --group 'openshift-${BUILD_VERSION}'
 beta:release-gen
+--sd ${OC_MIRROR_INPUT}
+--is ${OC_IS_OBJECT}
 --isb ${BASE_IMAGE_STREAM}
 '${OC_FMT_STR}'
 """
@@ -106,7 +109,7 @@ beta:release-gen
 	    buildlib.oc """
 image
 mirror
---filename=img-mirror.txt
+--filename=${OC_MIRROR_INPUT}
 """
 	}
 	catch ( ex1 ) {
@@ -120,11 +123,11 @@ mirror
 
     stage("oc apply") {
 	echo "ImageStream Object to apply:"
-	sh "cat release-is.yaml"
+	sh "cat ${OC_IS_OBJECT}"
 
 	buildlib.oc """
 apply
---filename=release-is.yaml
+--filename=${OC_IS_OBJECT}
 --kubeconfig ${CI_KUBECONFIG}
 """
     }

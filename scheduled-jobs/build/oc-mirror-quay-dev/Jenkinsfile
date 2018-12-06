@@ -71,6 +71,8 @@ node(TARGET_NODE) {
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     MIRROR_WORKING = "${WORKSPACE}/MIRROR_working"
     OC_MIRROR_INPUT = "${MIRROR_WORKING}/oc_mirror_input"
+    BASE_IMAGE_STREAM = "/home/jenkins/base-art-latest-imagestream.yaml"
+    CI_KUBECONFIG = "/home/jenkins/kubeconfigs/art-publish.kubeconfig"
 
     // See 'oc image mirror --help' for more information
     OC_FMT_STR = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v4.0-art-dev:{version}-{release}-{image_name_short}"
@@ -84,14 +86,12 @@ node(TARGET_NODE) {
     // May take a few minutes because doozer must query brew for each image
     stage("Generate SRC=DEST input") {
 	buildlib.doozer """
+./doozer --group=openshift-4.0 release:mirror-gen
 --working-dir "${MIRROR_WORKING}" --group 'openshift-${BUILD_VERSION}'
-images:print
---short
--o '${OC_MIRROR_INPUT}'
+beta:release-gen
+--isb ${BASE_IMAGE_STREAM}
 '${OC_FMT_STR}'
 """
-
-	sh "cat ${OC_MIRROR_INPUT}"
     }
 
     // ######################################################################
@@ -101,11 +101,13 @@ images:print
     // IIRC, Clayton said they run it 3-5x in upstream CI.
     stage("oc image mirror") {
 	err = null
+	echo "Mirror SRC=DEST input:"
+	sh "cat ${OC_MIRROR_INPUT}"
 	try {
 	    buildlib.oc """
 image
 mirror
---filename='${OC_MIRROR_INPUT}'
+--filename=img-mirror.txt
 """
 	}
 	catch ( ex1 ) {
@@ -115,5 +117,16 @@ mirror
 	if ( err != null ) {
             throw err
 	}
+    }
+
+    stage("oc apply") {
+	echo "ImageStream Object to apply:"
+	sh "cat release-is.yaml"
+
+	buildlib.oc """
+apply
+--filename=release-is.yaml
+--kubeconfig ${CI_KUBECONFIG}
+"""
     }
 }

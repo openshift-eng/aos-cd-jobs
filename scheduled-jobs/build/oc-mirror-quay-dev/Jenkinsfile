@@ -86,7 +86,6 @@ node(TARGET_NODE) {
     // May take a few minutes because doozer must query brew for each image
     stage("Generate SRC=DEST input") {
 	buildlib.doozer """
-./doozer --group=openshift-4.0 release:mirror-gen
 --working-dir "${MIRROR_WORKING}" --group 'openshift-${BUILD_VERSION}'
 beta:release-gen
 --isb ${BASE_IMAGE_STREAM}

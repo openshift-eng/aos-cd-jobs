@@ -50,7 +50,7 @@ properties(
                 ],
                 [
                     name: 'SIGNED',
-                    description: 'Mock run to pickup new Jenkins parameters?',
+                    description: 'Build against signed RPMs?',
                     $class: 'hudson.model.BooleanParameterDefinition',
                     defaultValue: false
                 ],
@@ -82,6 +82,12 @@ properties(
         disableConcurrentBuilds()
     ]
 )
+
+
+TARGET_NODE = "openshift-build-1"
+GITHUB_BASE = "git@github.com:openshift"
+SSH_KEY_ID = "openshift-bot"
+
 
 REBASE_IMAGES = REBASE_IMAGES.toBoolean()
 REPO_TYPE = "unsigned"

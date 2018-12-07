@@ -79,7 +79,6 @@ properties(
                 ]
             ]
         ],
-        disableConcurrentBuilds()
     ]
 )
 
@@ -95,6 +94,8 @@ if(SIGNED.toBoolean()) { REPO_TYPE = "signed" }
 
 
 node(TARGET_NODE) {
+    checkout scm
+
     if(env.WORKSPACE == null) {
         env.WORKSPACE = pwd()
     }
@@ -140,10 +141,10 @@ node(TARGET_NODE) {
             }
 
             stage("rpm builds") {
-                if (RPMS.toLowerCase() != "NONE") {
+                if (RPMS.toUpperCase() != "NONE") {
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
                     command += "--source ose ${OSE_DIR} "
-                    if (RPMS) { command += "-r '${RPMS}' " }
+                    if (!RPMS?.trim()) { command += "-r '${RPMS}' " }
                     command += "rpms:build --version v${VERSION} --release ${RELEASE} "
                     buildlib.doozer command
                 }
@@ -176,6 +177,7 @@ node(TARGET_NODE) {
 
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
                     command += "--source ose ${OSE_DIR} "
+                    if (!IMAGES?.trim()) { command += "-i '${IMAGES}' " }
                     command += "images:${TASK} --version v${VERSION} --release ${RELEASE} "
                     command += "--repo-type ${REPO_TYPE} "
                     command += "--message 'Updating Dockerfile version and release v${VERSION}-${RELEASE}' --push "
@@ -187,6 +189,7 @@ node(TARGET_NODE) {
             stage("build images") {
                 if (IMAGES.toUpperCase() != "NONE") {
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
+                    if (!IMAGES?.trim()) { command += "-i '${IMAGES}' " }
                     command += "images:build --version v${VERSION} --release ${RELEASE} "
                     command += "--push-to-defaults --repo-type unsigned "
                     try {
@@ -215,7 +218,7 @@ node(TARGET_NODE) {
     } catch (err) {
         mail(to: "${MAIL_LIST_FAILURE}",
              from: "aos-team-art@redhat.com",
-             subject: "Error building custom OCP: ${VERSION}-${RELEASE}",
+             subject: "Error building custom OCP: v${VERSION}-${RELEASE}",
              body: """Encountered an error while running OCP pipeline: ${err}
 
     Jenkins job: ${env.BUILD_URL}

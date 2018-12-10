@@ -256,18 +256,6 @@ cd /data/src/github.com/openshift-s2i/s2i-wildfly
 sudo chmod a+rw /tmp/.docker/config.json
 export DOCKER_CONFIG=/tmp/.docker
 
-docker tag openshift/wildfly-81-centos7 docker.io/openshift/wildfly-81-centos7
-docker push docker.io/openshift/wildfly-81-centos7
-
-docker tag openshift/wildfly-90-centos7 docker.io/openshift/wildfly-90-centos7
-docker push docker.io/openshift/wildfly-90-centos7
-
-docker tag openshift/wildfly-100-centos7 docker.io/openshift/wildfly-100-centos7
-docker push docker.io/openshift/wildfly-100-centos7
-
-docker tag openshift/wildfly-101-centos7 docker.io/openshift/wildfly-101-centos7
-docker push docker.io/openshift/wildfly-101-centos7
-
 docker tag openshift/wildfly-110-centos7 docker.io/openshift/wildfly-110-centos7
 docker push docker.io/openshift/wildfly-110-centos7
 
@@ -279,6 +267,9 @@ docker push docker.io/openshift/wildfly-130-centos7
 
 docker tag openshift/wildfly-140-centos7 docker.io/openshift/wildfly-140-centos7
 docker push docker.io/openshift/wildfly-140-centos7
+
+docker tag openshift/wildfly-150-centos7 docker.io/openshift/wildfly-150-centos7
+docker push docker.io/openshift/wildfly-150-centos7
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

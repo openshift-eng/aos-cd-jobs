@@ -20,7 +20,7 @@ properties(
                 ],
                 [
                     name: 'VERSION',
-                    description: 'Version string for build (i.e. v4.0.0)',
+                    description: 'Version string for build without leading "v" (i.e. 4.0.0)',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: ""
                 ],
@@ -83,6 +83,7 @@ properties(
 )
 
 
+MASTER_VER = "4.0"
 TARGET_NODE = "openshift-build-1"
 GITHUB_BASE = "git@github.com:openshift"
 SSH_KEY_ID = "openshift-bot"
@@ -126,25 +127,27 @@ node(TARGET_NODE) {
                 ///  OSE_DIR
                 //   GITHUB_URLS["ose"]
                 //   GITHUB_BASE_PATHS["ose"]
-                buildlib.initialize_ose()
+                buildlib.initialize_openshift_dir()
+                CHECKOUT_BRANCH = "enterprise-${BUILD_VERSION}"
+                if(BUILD_VERSION == MASTER_VER){ CHECKOUT_BRANCH = "master"}
 
-                master_spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
-                IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
-
-                if (IS_SOURCE_IN_MASTER) {
-                    OSE_SOURCE_BRANCH = "master"
-                } else {
-                    OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
-                    // Create the non-master source branch and have it track the origin ose repo
-                    sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
+                // since there's no merge and commit back, single depth is way faster
+                dir( OPENSHIFT_DIR ) {
+                    sh "git clone -b ${CHECKOUT_BRANCH} --single-branch ${GITHUB_BASE}/ose.git --depth 1"
+                    GITHUB_URLS["ose"] = "${GITHUB_BASE}/ose.git"
                 }
+
+                OSE_DIR = "${OPENSHIFT_DIR}/ose"
+                GITHUB_BASE_PATHS["ose"] = OSE_DIR
+                env.OSE_DIR = OSE_DIR
+                echo "Initialized env.OSE_DIR: ${env.OSE_DIR}"
             }
 
             stage("rpm builds") {
                 if (RPMS.toUpperCase() != "NONE") {
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
                     command += "--source ose ${OSE_DIR} "
-                    if (!RPMS?.trim()) { command += "-r '${RPMS}' " }
+                    if (RPMS?.trim()) { command += "-r '${RPMS}' " }
                     command += "rpms:build --version v${VERSION} --release ${RELEASE} "
                     buildlib.doozer command
                 }
@@ -176,8 +179,8 @@ node(TARGET_NODE) {
                     if(REBASE_IMAGES) { TASK = "rebase" }
 
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
-                    command += "--source ose ${OSE_DIR} "
-                    if (!IMAGES?.trim()) { command += "-i '${IMAGES}' " }
+                    command += "--source ose ${OSE_DIR} --latest-parent-version "
+                    if (IMAGES?.trim()) { command += "-i '${IMAGES}' " }
                     command += "images:${TASK} --version v${VERSION} --release ${RELEASE} "
                     command += "--repo-type ${REPO_TYPE} "
                     command += "--message 'Updating Dockerfile version and release v${VERSION}-${RELEASE}' --push "
@@ -189,9 +192,8 @@ node(TARGET_NODE) {
             stage("build images") {
                 if (IMAGES.toUpperCase() != "NONE") {
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
-                    if (!IMAGES?.trim()) { command += "-i '${IMAGES}' " }
-                    command += "images:build --version v${VERSION} --release ${RELEASE} "
-                    command += "--push-to-defaults --repo-type unsigned "
+                    if (IMAGES?.trim()) { command += "-i '${IMAGES}' " }
+                    command += "images:build --push-to-defaults --repo-type unsigned "
                     try {
                         buildlib.doozer command
                     }

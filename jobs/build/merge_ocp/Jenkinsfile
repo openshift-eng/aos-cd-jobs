@@ -13,7 +13,7 @@ properties(
             parameterDefinitions: [
                 [
                     name: 'VERSIONS',
-                    description: 'CSV list of merges to run merge on.',
+                    description: 'CSV list of versions to run merge on.',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: "3.9,3.10,3.11,4.0"
                 ],
@@ -47,6 +47,7 @@ properties(
 
 
 TARGET_NODE = "openshift-build-1"
+SSH_KEY_ID = "openshift-bot"
 
 MERGE_VERSIONS = VERSIONS.split(',')
 CURRENT_MASTER = "4.0"
@@ -65,40 +66,43 @@ node(TARGET_NODE) {
     }
 
     try {
-        MERGE_VERSIONS.each { VERSION ->
-            MERGE_WORKING = "${WORKSPACE}/${VERSION}"
-            sh "rm -rf ${MERGE_WORKING}"
-            sh "mkdir -p ${MERGE_WORKING}"
+        sshagent([SSH_KEY_ID]) {
+            for(int i = 0; i < MERGE_VERSIONS.size(); ++i) {
+                def VERSION = MERGE_VERSIONS[i]
+                MERGE_WORKING = "${WORKSPACE}/${VERSION}"
+                sh "rm -rf ${MERGE_WORKING}"
+                sh "mkdir -p ${MERGE_WORKING}"
 
-            if(VERSION == CURRENT_MASTER) {
-                UPSTREAM = DOWNSTREAM = "master"
-            }
-            else {
-                UPSTREAM = "release-${VERSION}"
-                DOWNSTREAM = "enterprise-${VERSION}"
-            }
+                if(VERSION == CURRENT_MASTER) {
+                    UPSTREAM = DOWNSTREAM = "master"
+                }
+                else {
+                    UPSTREAM = "release-${VERSION}"
+                    DOWNSTREAM = "enterprise-${VERSION}"
+                }
 
-            stage("Merge ${VERSION}") {
-                try {
-                    sh './merge_ocp.sh "${MERGE_WORKING}" ${DOWNSTREAM} ${UPSTREAM}'
+                stage("Merge ${VERSION}") {
+                    try {
+                        sh "./merge_ocp.sh ${MERGE_WORKING} ${DOWNSTREAM} ${UPSTREAM}"
 
-                    echo "Success running ${VERSION} merge"
+                        echo "Success running ${VERSION} merge"
 
-                    // AMH - No email for now. There would be WAY too may emails.
-                    // mail(to: "${MAIL_LIST_SUCCESS}",
-                    //     from: "aos-team-art@redhat.com",
-                    //     subject: "Success merging OCP v${VERSION}",
-                    //     body: "Success running OCP merge:\n${env.BUILD_URL}"
-                    // );
+                        // AMH - No email for now. There would be WAY too may emails.
+                        // mail(to: "${MAIL_LIST_SUCCESS}",
+                        //     from: "aos-team-art@redhat.com",
+                        //     subject: "Success merging OCP v${VERSION}",
+                        //     body: "Success running OCP merge:\n${env.BUILD_URL}"
+                        // );
 
-                } catch (err) {
-                    currentBuild.result = "UNSTABLE"
-                    echo "Error running ${VERSION} merge:\n${err}"
-                    mail(to: "${MAIL_LIST_FAILURE}",
-                        from: "aos-team-art@redhat.com",
-                        subject: "Error merging OCP v${VERSION}",
-                        body: "Encountered an error while running OCP merge:\n${env.BUILD_URL}\n\n${err}"
-                    );
+                    } catch (err) {
+                        currentBuild.result = "UNSTABLE"
+                        echo "Error running ${VERSION} merge:\n${err}"
+                        mail(to: "${MAIL_LIST_FAILURE}",
+                            from: "aos-team-art@redhat.com",
+                            subject: "Error merging OCP v${VERSION}",
+                            body: "Encountered an error while running OCP merge:\n${env.BUILD_URL}\n\n${err}"
+                        );
+                    }
                 }
             }
         }

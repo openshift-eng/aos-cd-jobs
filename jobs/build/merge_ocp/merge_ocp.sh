@@ -10,10 +10,8 @@ GITHUB_BASE="git@github.com:openshift"
 pushd ${WORKING_DIR}
 
 # pull OSE
-git clone ${GITHUB_BASE}/ose.git
+git clone -b ${OSE_SOURCE_BRANCH} ${GITHUB_BASE}/ose.git --depth 1
 cd ose
-
-git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}
 
 # Add origin remote so we can merge it in
 git remote add upstream ${GITHUB_BASE}/origin.git --no-tags

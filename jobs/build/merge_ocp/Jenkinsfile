@@ -74,7 +74,8 @@ node(TARGET_NODE) {
                 sh "mkdir -p ${MERGE_WORKING}"
 
                 if(VERSION == CURRENT_MASTER) {
-                    UPSTREAM = DOWNSTREAM = "master"
+                    UPSTREAM = "master"
+                    DOWNSTREAM = "master"
                 }
                 else {
                     UPSTREAM = "release-${VERSION}"

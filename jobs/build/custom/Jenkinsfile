@@ -194,28 +194,14 @@ node(TARGET_NODE) {
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
                     if (IMAGES?.trim()) { command += "-i '${IMAGES}' " }
                     command += "images:build --push-to-defaults --repo-type unsigned "
-                    try {
-                        buildlib.doozer command
-                    }
-                    catch (err) {
-                        failed_map = buildlib.get_failed_builds(DOOZER_WORKING)
-                        BUILD_EXCLUSIONS = failed_map.keySet().join(",")
-                    }
+                    buildlib.doozer command
                 }
             }
 
-            if(BUILD_EXCLUSIONS) {
-                mail(to: "${MAIL_LIST_FAILURE}",
-                from: "aos-team-art@redhat.com",
-                subject: "PARTIAL custom OCP build: ${VERSION}-${RELEASE}",
-                body: "Some images failed during custom OCP build:\n${BUILD_EXCLUSIONS}\n\nJenkins job: ${env.BUILD_URL}");
-            }
-            else {
-                mail(to: "${MAIL_LIST_SUCCESS}",
+            mail(to: "${MAIL_LIST_SUCCESS}",
                 from: "aos-team-art@redhat.com",
                 subject: "Successful custom OCP build: ${VERSION}-${RELEASE}",
                 body: "Jenkins job: ${env.BUILD_URL}");
-            }
         }
     } catch (err) {
         mail(to: "${MAIL_LIST_FAILURE}",

@@ -7,7 +7,8 @@ properties(
                 artifactDaysToKeepStr: '',
                 artifactNumToKeepStr: '',
                 daysToKeepStr: '',
-                numToKeepStr: '1000')),
+                numToKeepStr: '1000')
+        ),
         [
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [
@@ -42,6 +43,7 @@ properties(
                 ]
             ]
         ],
+        disableConcurrentBuilds()
     ]
 )
 

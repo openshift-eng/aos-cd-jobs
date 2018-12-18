@@ -63,8 +63,7 @@ properties(
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
-                        'aos-team-art@redhat.com',
-                        'aos-art-requests@redhat.com'
+                        'aos-team-art@redhat.com'
                     ].join(',')
                 ],
                 [

@@ -73,6 +73,10 @@
         default: false
         description: ''
         name: LOGGING_SCALE_TEST
+    - bool:
+        default: false
+        description: ''
+        name: CNV_SCALE_TEST
     - string:
         default: ''
         description: ''

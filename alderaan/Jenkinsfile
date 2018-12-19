@@ -19,6 +19,7 @@ def ns_per_cluster = NS_PER_CLUSTER.toString().toUpperCase()
 def create_jobs = CREATE_JOBS_FROM_JJB.toString().toUpperCase()
 def networking = NETWORKING.toString().toUpperCase() 
 def node_label = NODE_LABEL.toString()
+def cvn_scale_test = CNV_SCALE_TEST.toString().toUpperCase()
 
 node (node_label) {
 	// setup the repo containing the pipeline scripts
@@ -110,6 +111,11 @@ node (node_label) {
 	if (logging == "TRUE") {
 		load "alderaan/pipeline-scripts/logging.groovy"
 	}
+
+	// stage to run cnv scale test
+     	if ( cnv_scale_test == "TRUE" ) {
+     		load "aos-cd-jobs/alderaan/pipeline-scripts/cnv_scale_test.groovy"
+    }
 
 	mail(
 		to: contact,

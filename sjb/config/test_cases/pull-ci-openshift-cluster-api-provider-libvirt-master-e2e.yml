@@ -75,6 +75,11 @@ extensions:
         ssh libvirtactuator 'chmod 600 /libvirt.pem'
         ssh libvirtactuator 'chmod 600 /guest.pem'
 
+        # Update libvirtd
+        ssh libvirtactuator 'sudo yum update -y libvirt-libs librbd1'
+        ssh libvirtactuator 'sudo systemctl status libvirtd'
+        ssh libvirtactuator 'sudo systemctl start libvirtd'
+
         # run the e2e
         ssh libvirtactuator "./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -actuator-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri 'qemu+ssh://root@${LIBVIRT_IP}/system?no_verify=1&keyfile=/root/.ssh/actuator.pem/privatekey' -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem"
   system_journals:

@@ -283,6 +283,11 @@ scp cmd/libvirt-actuator/resources/guest.pem libvirtactuator:/guest.pem
 ssh libvirtactuator &#39;chmod 600 /libvirt.pem&#39;
 ssh libvirtactuator &#39;chmod 600 /guest.pem&#39;
 
+# Update libvirtd
+ssh libvirtactuator &#39;sudo yum update -y libvirt-libs librbd1&#39;
+ssh libvirtactuator &#39;sudo systemctl status libvirtd&#39;
+ssh libvirtactuator &#39;sudo systemctl start libvirtd&#39;
+
 # run the e2e
 ssh libvirtactuator &#34;./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -actuator-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri &#39;qemu+ssh://root@\${LIBVIRT_IP}/system?no_verify=1&amp;keyfile=/root/.ssh/actuator.pem/privatekey&#39; -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem&#34;
 SCRIPT

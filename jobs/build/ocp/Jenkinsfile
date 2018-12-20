@@ -595,7 +595,10 @@ node(TARGET_NODE) {
                 }
             }
 
+
             stage("origin-web-console repo") {
+                if (BUILD_VERSION_MAJOR != 3) return
+
                 sh "go get github.com/jteeuwen/go-bindata"
                 // defines:
                 //   WEB_CONSOLE_DIR
@@ -612,6 +615,8 @@ node(TARGET_NODE) {
             }
 
             stage("prep web-console") {
+                if (BUILD_VERSION_MAJOR != 3) return
+
                 dir(WEB_CONSOLE_DIR) {
                     WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
                     sh "git checkout -b ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
@@ -644,9 +649,11 @@ node(TARGET_NODE) {
 
 
             stage("origin-web-console-server repo") {
+                if (BUILD_VERSION_MAJOR != 3) return
+
                 /**
-                 * The origin-web-console-server repo/image was introduced in 3.9.
-                 */
+                * The origin-web-console-server repo/image was introduced in 3.9.
+                */
                 if (USE_WEB_CONSOLE_SERVER) {
                     // defines:
                     //   WEB_CONSOLE_SERVER_DIR
@@ -661,6 +668,8 @@ node(TARGET_NODE) {
             }
 
             stage("prep web-console-server") {
+                if (BUILD_VERSION_MAJOR != 3) return
+
                 if (USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER) {
                     dir(WEB_CONSOLE_SERVER_DIR) {
                         // Enable fake merge driver used in our .gitattributes
@@ -687,6 +696,7 @@ node(TARGET_NODE) {
             }
 
             stage("merge web-console") {
+                if (BUILD_VERSION_MAJOR != 3) return
 
                 // In OCP release < 3.9, web-console is vendored into OSE repo
                 TARGET_VENDOR_DIR = OSE_DIR
@@ -725,6 +735,7 @@ node(TARGET_NODE) {
 
             }
 
+
             stage("openshift-ansible repo") {
                 buildlib.initialize_openshift_ansible()
             }
@@ -762,7 +773,7 @@ node(TARGET_NODE) {
                     // Note that I did not use --use-release because it did not maintain variables like %{?dist}
 
                     commit_msg = "Automatic commit of package [atomic-openshift] release [${NEW_VERSION}-${NEW_RELEASE}]"
-                    if (!USE_WEB_CONSOLE_SERVER) {
+                    if (BUILD_VERSION_MAJOR == 3 && !USE_WEB_CONSOLE_SERVER) {
                         // If vendoring web console into ose, include the VC_COMMIT information in the ose commit
                         commit_msg = "${commit_msg} ; bump origin-web-console ${VC_COMMIT}"
                     }

@@ -80,7 +80,7 @@ extensions:
         export KUBECONFIG=/etc/kubernetes/admin.conf
         sudo -E kubectl config set-cluster kubernetes --server=https://${CLUSTER_IP}:443
 
-        sudo -E make test-e2e
+        sudo -E make k8s-e2e
 
         echo "The aws instance was running and terminated"
   system_journals:

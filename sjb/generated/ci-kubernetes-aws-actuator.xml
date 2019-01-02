@@ -308,7 +308,7 @@ export CLUSTER_IP=&#34;\$(sudo kubectl get service kubernetes -o json | jq &#39;
 export KUBECONFIG=/etc/kubernetes/admin.conf
 sudo -E kubectl config set-cluster kubernetes --server=https://\${CLUSTER_IP}:443
 
-sudo -E make test-e2e
+sudo -E make k8s-e2e
 
 echo &#34;The aws instance was running and terminated&#34;
 SCRIPT

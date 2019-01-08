@@ -294,8 +294,8 @@ else
   echo &#34;IMAGE_VERSION=latest&#34; &gt; IMAGE_VERSION_VAR
 fi
 source IMAGE_VERSION_VAR
-sudo docker pull openshift/origin:&#34;\${IMAGE_VERSION}&#34;
-sudo docker create --name temp-container openshift/origin:&#34;\${IMAGE_VERSION}&#34;
+sudo docker pull openshift/origin-cli:&#34;\${IMAGE_VERSION}&#34;
+sudo docker create --name temp-container openshift/origin-cli:&#34;\${IMAGE_VERSION}&#34;
 sudo docker cp temp-container:/usr/bin/oc ./
 sudo docker rm temp-container
 sudo mv -f ./oc /bin/oc

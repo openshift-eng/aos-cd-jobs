@@ -22,8 +22,8 @@ extensions:
           echo "IMAGE_VERSION=latest" > IMAGE_VERSION_VAR
         fi
         source IMAGE_VERSION_VAR
-        sudo docker pull openshift/origin:"${IMAGE_VERSION}"
-        sudo docker create --name temp-container openshift/origin:"${IMAGE_VERSION}"
+        sudo docker pull openshift/origin-cli:"${IMAGE_VERSION}"
+        sudo docker create --name temp-container openshift/origin-cli:"${IMAGE_VERSION}"
         sudo docker cp temp-container:/usr/bin/oc ./
         sudo docker rm temp-container
         sudo mv -f ./oc /bin/oc

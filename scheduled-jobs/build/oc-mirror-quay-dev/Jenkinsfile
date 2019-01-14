@@ -82,6 +82,15 @@ node(TARGET_NODE) {
     sh "rm -rf ${MIRROR_WORKING}"
     sh "mkdir -p ${MIRROR_WORKING}"
 
+    stage("Version dumps") {
+	buildlib.doozer """
+--version
+"""
+	sh "which doozer"
+	sh "oc version"
+    }
+
+
     // ######################################################################
     // This should create a list of SOURCE=DEST strings in the output file
     // May take a few minutes because doozer must query brew for each image

@@ -139,7 +139,8 @@ apply
     } finally {
         try {
             // Hold on to that mirror input and image stream
-            archiveArtifacts allowEmptyArchive: true, artifacts: "${MIRROR_WORKING}/*"
+            archiveArtifacts allowEmptyArchive: true, artifacts: "MIRROR_working/oc_mirror_input"
+            archiveArtifacts allowEmptyArchive: true, artifacts: "MIRROR_working/release-is.yaml"
         } catch (aae) {
         }
     }

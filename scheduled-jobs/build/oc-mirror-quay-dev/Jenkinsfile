@@ -37,7 +37,6 @@ properties(
                     description: 'Success Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
-//                        'aos-cicd@redhat.com',
                         'aos-team-art@redhat.com',
                     ].join(',')
                 ],
@@ -83,19 +82,21 @@ node(TARGET_NODE) {
     sh "mkdir -p ${MIRROR_WORKING}"
 
     stage("Version dumps") {
-	buildlib.doozer """
+        buildlib.doozer """
 --version
 """
-	sh "which doozer"
-	sh "oc version"
+        sh "which doozer"
+        sh "oc version"
     }
 
-
-    // ######################################################################
-    // This should create a list of SOURCE=DEST strings in the output file
-    // May take a few minutes because doozer must query brew for each image
-    stage("Generate SRC=DEST input") {
-	buildlib.doozer """
+    // TRY all of this so we can save the generated artifacts before
+    // throwing the exceptions
+    try {
+        // ######################################################################
+        // This should create a list of SOURCE=DEST strings in the output file
+        // May take a few minutes because doozer must query brew for each image
+        stage("Generate SRC=DEST input") {
+            buildlib.doozer """
 --working-dir "${MIRROR_WORKING}" --group 'openshift-${BUILD_VERSION}'
 beta:release-gen
 --sd ${OC_MIRROR_INPUT}
@@ -103,41 +104,43 @@ beta:release-gen
 --isb ${BASE_IMAGE_STREAM}
 '${OC_FMT_STR}'
 """
-    }
+        }
 
-    // ######################################################################
-    // Now run the actual mirroring command. Need to wrap this in a
-    // retry loop because it is known to fail occassionally.
-    //
-    // IIRC, Clayton said they run it 3-5x in upstream CI.
-    stage("oc image mirror") {
-	err = null
-	echo "Mirror SRC=DEST input:"
-	sh "cat ${OC_MIRROR_INPUT}"
-	try {
-	    buildlib.oc """
+        // ######################################################################
+        // Now run the actual mirroring command. Wrapped this in a
+        // retry loop because it is known to fail occassionally
+        // depending on the health of the source/destination endpoints.
+        stage("oc image mirror") {
+            echo "Mirror SRC=DEST input:"
+            sh "cat ${OC_MIRROR_INPUT}"
+            retry (3) {
+                buildlib.oc """
 image
 mirror
 --filename=${OC_MIRROR_INPUT}
 """
-	}
-	catch ( ex1 ) {
-            echo "ERROR: ex1 occurred: " + ex1
+            }
         }
 
-	if ( err != null ) {
-            throw err
-	}
-    }
-
-    stage("oc apply") {
-	echo "ImageStream Object to apply:"
-	sh "cat ${OC_IS_OBJECT}"
-
-	buildlib.oc """
+        stage("oc apply") {
+            echo "ImageStream Object to apply:"
+            sh "cat ${OC_IS_OBJECT}"
+            try {
+                buildlib.oc """
 apply
 --filename=${OC_IS_OBJECT}
 --kubeconfig ${CI_KUBECONFIG}
 """
+            } catch (apply_error) {
+                echo "Error applying image stream:"
+                throw apply_error
+            }
+        }
+    } finally {
+        try {
+            // Hold on to that mirror input and image stream
+            archiveArtifacts allowEmptyArchive: true, artifacts: "${MIRROR_WORKING}/*"
+        } catch (aae) {
+        }
     }
 }

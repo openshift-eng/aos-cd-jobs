@@ -233,6 +233,7 @@ images:build
                         return true  // finish waitUntil
                     } catch (err) {
                         failed_builds = buildlib.get_failed_builds(DOOZER_WORKING)
+                        currentBuild.result = "UNSTABLE"
 
                         mail(
                             to: "${MAIL_LIST_FAILURE}",
@@ -245,27 +246,12 @@ Jenkins job: ${env.BUILD_URL}
 BUILD / PUSH FAILURES:
 ${failed_builds}
 """)
-
-                        def resp = input message: "Error during Image Build for OCP v${OSE_MAJOR}.${OSE_MINOR}",
-                        parameters: [
-                            [$class: 'hudson.model.ChoiceParameterDefinition',choices: "RETRY\nCONTINUE\nABORT", name: 'action', description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).']
-                        ]
-
-                        switch (resp) {
-                            case "RETRY":
-                                // cause waitUntil to loop again
-                                return false
-                            case "CONTINUE":
-                                echo "User chose continue. Build failures are non-fatal."
-                                //will make email show PARTIAL, don't try to rebuild failures, only unbuilt
-                                BUILD_EXCLUSIONS = failed_builds.keySet().join(",")
-                                //simply setting flag to keep required work out of input flow
-                                BUILD_CONTINUED = true
-                                return true // Terminate waitUntil
-                            default: // ABORT
-                                error("User chose to abort pipeline because of image build failures")
-                        }
-
+                        echo "Some images failed to build. Continuing with partial refresh."
+                        //will make email show PARTIAL, don't try to rebuild failures, only unbuilt
+                        BUILD_EXCLUSIONS = failed_builds.keySet().join(",")
+                        //simply setting flag to keep required work out of input flow
+                        BUILD_CONTINUED = true
+                        return true // Terminate waitUntil
                     }
 
                 }
@@ -354,6 +340,7 @@ Jenkins job: ${env.BUILD_URL}
 """
             } catch ( attach_err ) {
                 // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
+                currentBuild.result = "UNSTABLE"
                 mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cicd@redhat.com",
                     subject: "Error Attaching ${OSE_MAJOR}.${OSE_MINOR} images to ${ADVISORY_ID}","""

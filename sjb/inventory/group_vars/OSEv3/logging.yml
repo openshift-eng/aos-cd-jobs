@@ -31,10 +31,7 @@ openshift_logging_kibana_proxy_memory_limit: "64Mi"
 openshift_logging_mux_cpu_request: "400m"
 openshift_logging_mux_memory_limit: "256Mi"
 
-# TODO: remove this once we have oauth-proxy images built that are in step
-#       with the logging images (version and prefix)
-openshift_logging_elasticsearch_proxy_image_prefix: "docker.io/openshift/"
-openshift_logging_elasticsearch_proxy_image_version: "v1.0.0"
+openshift_logging_elasticsearch_proxy_image: "docker.io/openshift/oauth-proxy:v1.0.0"
 
 # 3.11 and later requires es/es-ops nodes to be specified
 # in order that only the es nodes have the mmap sysctl applied

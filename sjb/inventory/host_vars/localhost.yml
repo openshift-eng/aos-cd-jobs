@@ -1,8 +1,4 @@
 ---
-openshift_node_labels:
-  region: infra
-  zone: default
-  node-role.kubernetes.io/infra: "true"
 openshift_schedulable: true
 
 openshift_node_group_name: "node-config-all-in-one"

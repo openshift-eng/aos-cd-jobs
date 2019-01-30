@@ -64,11 +64,11 @@ node('openshift-build-1') {
                         defaultValue: 'git@github.com:openshift'
                     ],
                     [
-                            name: 'BUILD_VERSION',
-                            description: 'OSE Version',
-                            $class: 'hudson.model.ChoiceParameterDefinition',
-                            choices: OCP_VERSIONS.join('\n'),
-                            defaultValue: '3.9'
+                        name: 'BUILD_VERSION',
+                        description: 'OSE Version',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: OCP_VERSIONS.join('\n'),
+                        defaultValue: '3.11'
                     ],
                     [
                         name: 'VERSION_OVERRIDE',
@@ -87,13 +87,13 @@ node('openshift-build-1') {
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,jodavis@redhat.com,lmeyer@redhat.com'
+                        defaultValue: 'aos-team-art@redhat.com'
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: 'tbielawa@redhat.com,jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com,jodavis@redhat.com,lmeyer@redhat.com'
+                        defaultValue: 'aos-team-art@redhat.com'
                     ],
                     [
                         name: 'MOCK',
@@ -109,8 +109,14 @@ node('openshift-build-1') {
                         defaultValue: false
                     ],
                     [
+                        name: 'BUILD_ONLY',
+                        description: 'Only rebuild specific images. Comma or space separated list. (e.g. cri-o,aos3-installation)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
                         name: 'BUILD_EXCLUSIONS',
-                        description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
+                        description: 'Exclude these images from builds. Comma or space separated list. (e.g. cri-o,aos3-installation)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -128,8 +134,12 @@ node('openshift-build-1') {
     OSE_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
     OSE_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 
+    // clean up string delimiting
+    if (BUILD_ONLY != "") {
+        BUILD_ONLY = BUILD_ONLY.replaceAll(',', ' ')
+        BUILD_ONLY = BUILD_ONLY.split().join(',')
+    }
     if (BUILD_EXCLUSIONS != "") {
-        // clean up string delimiting
         BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.replaceAll(',', ' ')
         BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
     }
@@ -201,12 +211,29 @@ Proceed?
                 buildlib.kinit() // Sets up credentials for dist-git access
 
                 /**
+                 * Determine if something other than the whole list should be built.
+                 * Note that --ignore-missing-base causes the rebase not to update a member image
+                 * it is based on if that member is not in the build. Thus the build will rely on
+                 * the member that was already in the Dockerfile, which was presumably already built.
+                 * Specifying the same image in both causes an error, so don't do that.
+                 */
+                include = ""
+                exclude = ""
+                if (BUILD_ONLY != "") {
+                    include = "-i ${BUILD_ONLY} --ignore-missing-base"
+                }
+                if (BUILD_EXCLUSIONS != "") {
+                    exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                }
+
+                /**
                  * By default, do not specify a version or release for doozer. This will preserve the version label and remove
                  * the release label. OSBS now chooses a viable release label to prevent conflicting with pre-existing
                  * builds. Let's use that fact to our advantage.
                  */
                 buildlib.doozer """
 --working-dir ${DOOZER_WORKING} --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+${include} ${exclude}
 images:update-dockerfile
   ${doozer_update_docker_args}
   --message 'Updating for image refresh'
@@ -217,16 +244,14 @@ images:update-dockerfile
 // start retry region
 //
                 BUILD_CONTINUED = false
+                build_include = include
+                build_exclude = exclude
                 waitUntil {
                     try {
-                        exclude = ""
-                        if (BUILD_EXCLUSIONS != "") {
-                            exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
-                        }
 
                         buildlib.doozer """
 --working-dir ${DOOZER_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-${exclude}
+${build_include} ${build_exclude}
 images:build
 --push-to-defaults --repo-type signed
 """
@@ -248,18 +273,19 @@ ${failed_builds}
 
                         def resp = input message: "Error during Image Build for OCP v${OSE_MAJOR}.${OSE_MINOR}",
                         parameters: [
-                            [$class: 'hudson.model.ChoiceParameterDefinition',choices: "RETRY\nCONTINUE\nABORT", name: 'action', description: 'Retry (try the operation again). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).']
+                            [$class: 'hudson.model.ChoiceParameterDefinition',choices: "RETRY\nCONTINUE\nABORT", name: 'action', description: 'Retry (only the builds that failed). Continue (fails are OK, continue pipeline). Abort (terminate the pipeline).']
                         ]
 
                         switch (resp) {
                             case "RETRY":
+                                echo "User chose retry. Build failures will be retried."
                                 // cause waitUntil to loop again
+                                build_include = "-i " + failed_builds.keySet().join(",")
+                                build_exclude = ""
                                 return false
                             case "CONTINUE":
                                 echo "User chose continue. Build failures are non-fatal."
-                                //will make email show PARTIAL, don't try to rebuild failures, only unbuilt
-                                BUILD_EXCLUSIONS = failed_builds.keySet().join(",")
-                                //simply setting flag to keep required work out of input flow
+                                // simply setting flag to keep required work out of input flow
                                 BUILD_CONTINUED = true
                                 return true // Terminate waitUntil
                             default: // ABORT
@@ -274,17 +300,16 @@ ${failed_builds}
                 if (BUILD_CONTINUED) {
                     buildlib.doozer """
 --working-dir ${DOOZER_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-${exclude}
+${include} ${exclude}
 images:push
 --to-defaults --late-only"""
-                    // exclude is already set earlier in the main images:build flow
                 }
             }
 
             try {
                 buildlib.doozer """
 --working-dir ${DOOZER_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-${exclude}
+${include} ${exclude}
 images:verify
 --repo-type signed
 """

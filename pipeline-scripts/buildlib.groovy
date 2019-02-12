@@ -651,6 +651,13 @@ def invoke_on_rcm_guest(git_script_filename, Object... args ) {
     ).trim()
 }
 
+def invoke_on_use_mirror(git_script_filename, Object... args ) {
+    return sh(
+            returnStdout: true,
+            script: "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/use-mirror/${git_script_filename}",
+    ).trim()
+}
+
 /**
  * Extract the puddle name from the puddle output
  * @param puddle_output The captured output of the puddle process

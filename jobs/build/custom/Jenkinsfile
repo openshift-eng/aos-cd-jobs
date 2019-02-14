@@ -193,7 +193,7 @@ node(TARGET_NODE) {
                 if (IMAGES.toUpperCase() != "NONE") {
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
                     if (IMAGES?.trim()) { command += "-i '${IMAGES}' " }
-                    command += "images:build --push-to-defaults --repo-type unsigned "
+                    command += "images:build --push-to-defaults --repo-type ${REPO_TYPE} "
                     buildlib.doozer command
                 }
             }

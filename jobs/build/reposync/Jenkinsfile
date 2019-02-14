@@ -82,7 +82,7 @@ node("openshift-build-1") {
     sh "mkdir -p ${DOOZER_WORKING}"
 
     try {
-        sshagent([SSH_KEY_ID]) {
+        sshagent(['aos-cd-test']) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
 
             stage("sync repos to local") {

@@ -1052,7 +1052,7 @@ images:build
 
                 } catch( release_ex ) {
                     mail(
-                        to: "aos-art-requests@redhat.com,aos-team-art@redhat.com",
+                        to: "aos-team-art@redhat.com",
                         from: "aos-cicd@redhat.com",
                         subject: "Error creating ose release in github",
                         body: """

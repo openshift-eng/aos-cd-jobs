@@ -55,6 +55,7 @@ properties(
 
 SYNC_DIR="/mnt/nfs/home/jenkins/reposync"
 LOCAL_SYNC_DIR = "${SYNC_DIR}/${SYNC_VERSION}/"
+LOCAL_CACHE_DIR = "${SYNC_DIR}/cache/${SYNC_VERSION}/"
 
 MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
 MIRROR_PATH = "/srv/enterprise/reposync/${SYNC_VERSION}/"
@@ -87,7 +88,7 @@ node("openshift-build-1") {
 
             stage("sync repos to local") {
                 command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${SYNC_VERSION}' "
-                command += "beta:reposync --output ${LOCAL_SYNC_DIR} --repo-type ${REPO_TYPE} "
+                command += "beta:reposync --output ${LOCAL_SYNC_DIR} --cachedir ${LOCAL_CACHE_DIR} --repo-type ${REPO_TYPE} "
                 buildlib.doozer command
             }
 

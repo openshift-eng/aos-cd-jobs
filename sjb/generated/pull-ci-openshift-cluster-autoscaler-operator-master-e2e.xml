@@ -230,7 +230,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo setenforce 0
 # https://github.com/kubernetes/minikube/blob/master/docs/configuring_kubernetes.md
-sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd --kubernetes-version v1.11.3 --v 5
+sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd --kubernetes-version v1.12.0 --v 5
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

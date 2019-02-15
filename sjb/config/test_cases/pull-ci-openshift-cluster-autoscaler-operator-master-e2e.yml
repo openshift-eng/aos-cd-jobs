@@ -35,7 +35,7 @@ extensions:
       script: |-
         sudo setenforce 0
         # https://github.com/kubernetes/minikube/blob/master/docs/configuring_kubernetes.md
-        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd --kubernetes-version v1.11.3 --v 5
+        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd --kubernetes-version v1.12.0 --v 5
     - type: "script"
       title: "Build the machine controller"
       script: |-

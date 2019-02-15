@@ -3,5 +3,5 @@
 set -e
 set -o xtrace
 
-timeout 1h /usr/local/bin/push.enterprise.sh all -v
+timeout 2h /usr/local/bin/push.enterprise.sh reposync -v
 

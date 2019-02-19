@@ -783,7 +783,7 @@ def parse_record_log( working_dir ) {
 // Search the build log for failed builds
 def get_failed_builds(log_dir) {
     record_log = parse_record_log(log_dir)
-    builds = record_log['build']
+    builds = record_log.get('build', [:])
     failed_map = [:]
     for (i = 0; i < builds.size(); i++) {
         bld = builds[i]

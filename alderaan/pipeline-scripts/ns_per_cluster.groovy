@@ -35,6 +35,10 @@ stage('ns_per_cluster_scale_test') {
 			def first_run = ns_per_cluster_properties['FIRST_RUN_PROJECTS']
 			def second_run = ns_per_cluster_properties['SECOND_RUN_PROJECTS']
 			def third_run = ns_per_cluster_properties['THIRD_RUN_PROJECTS']
+			def repo = ns_per_cluster_properties['PERF_REPO']
+			def token = ns_per_cluster_properties['GITHUB_TOKEN']
+			def server = ns_per_cluster_properties['PBENCH_SERVER']
+			def mode = ns_per_cluster_properties['MODE']
 
 			// debug info
 			println "JUMP_HOST: '${jump_host}'"
@@ -46,6 +50,10 @@ stage('ns_per_cluster_scale_test') {
 			println "PROXY_USER: '${proxy_user}'"
 			println "PROXY_HOST: '${proxy_host}'"
 
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
+
 			// Run ns_per_clusterical job
 			try {
 				ns_per_clusterical_build = build job: 'NS_PER_CLUSTER',
@@ -56,12 +64,15 @@ stage('ns_per_cluster_scale_test') {
 						[$class: 'BooleanParameterValue', name: 'CLEAR_RESULTS', value: Boolean.valueOf(clear_results) ],
 						[$class: 'BooleanParameterValue', name: 'MOVE_RESULTS', value: Boolean.valueOf(move_results) ],
 						[$class: 'BooleanParameterValue', name: 'CONTAINERIZED', value: Boolean.valueOf(containerized) ],
+						[$class: 'BooleanParameterValue', name: 'SETUP_PBENCH', value: Boolean.valueOf(setup_pbench) ],
 						[$class: 'StringParameterValue', name: 'PROXY_USER', value: proxy_user ],
 						[$class: 'StringParameterValue', name: 'PROXY_HOST', value: proxy_host ],
 						[$class: 'BooleanParameterValue', name: 'USE_PROXY', value: Boolean.valueOf(use_proxy) ],
 						[$class: 'BooleanParameterValue', name: 'SETUP_PBENCH', value: Boolean.valueOf(setup_pbench) ],
 						[$class: 'StringParameterValue', name: 'FIRST_RUN_PROJECTS', value: first_run ],
 						[$class: 'StringParameterValue', name: 'SECOND_RUN_PROJECTS', value: second_run ],
+						[$class: 'StringParameterValue', name: 'GITHUB_TOKEN', value: token ],
+						[$class: 'StringParameterValue', name: 'MODE', value: mode ],
 						[$class: 'StringParameterValue', name: 'THIRD_RUN_PROJECTS', value: third_run ]]
 			} catch ( Exception e) {
 				echo "NS_PER_CLUSTER Job failed with the following error: "

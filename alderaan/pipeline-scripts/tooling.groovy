@@ -30,6 +30,12 @@ stage ('setup_pbench') {
 			def containerized = pbench_properties['CONTAINERIZED']
 			def all_nodes = pbench_properties['REGISTER_ALL_NODES']
 			def token = pbench_properties['GITHUB_TOKEN']
+			def repo = pbench_properties['PERF_REPO']
+			def server = pbench_properties['PBENCH_SERVER']
+
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
 
 			// debug info
 			println "----------USER DEFINED OPTIONS-------------------"

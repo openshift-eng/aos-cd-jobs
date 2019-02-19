@@ -13,19 +13,23 @@ extensions:
       title: "Install minikube"
       script: |-
         # Install minikube
-        curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.28.0/minikube-linux-amd64
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.30.0/minikube-linux-amd64
         chmod +x minikube
         sudo mv minikube /usr/bin/
         # Install kubectl
         curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl
         chmod +x kubectl
         sudo mv kubectl /usr/bin/
+        # Install crictl
+        curl -Lo crictl-v1.12.0-linux-amd64.tar.gz https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.12.0/crictl-v1.12.0-linux-amd64.tar.gz
+        tar -xvf crictl-v1.12.0-linux-amd64.tar.gz
+        sudo mv crictl /usr/bin/
     - type: "script"
       title: "Deploy kubernetes"
       script: |-
         sudo setenforce 0
         # https://github.com/kubernetes/minikube/blob/master/docs/configuring_kubernetes.md
-        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd
+        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd --kubernetes-version v1.12.0 --v 5
     - type: "script"
       title: "Build the machine controller"
       script: |-
@@ -33,7 +37,8 @@ extensions:
         cd $GOPATH/src/github.com/openshift/cluster-api-provider-aws
         go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
         sudo mv /data/bin/imagebuilder /usr/bin
-        sudo make -C cmd/machine-controller
+        sed -i "s/FROM registry\.svc\.ci\.openshift\.org\/openshift\/origin-v4\.0:base/FROM docker\.io\/gofed\/base:baseci/" Dockerfile
+        sudo make images NO_DOCKER=1
     - type: "script"
       title: "Create cluster resources"
       script: |-
@@ -53,7 +58,7 @@ extensions:
         echo "export AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)" >> envs
         source envs
         set -x
-        ENVIRONMENT_ID=${CLUSTER_ID} ./aws-provision.sh install
+        AWS_DEFAULT_REGION="us-east-1" ENVIRONMENT_ID=${CLUSTER_ID} ./aws-provision.sh install
         popd
 
         sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
@@ -80,7 +85,7 @@ extensions:
         export KUBECONFIG=/etc/kubernetes/admin.conf
         sudo -E kubectl config set-cluster kubernetes --server=https://${CLUSTER_IP}:443
 
-        sudo -E make k8s-e2e
+        sudo -E make k8s-e2e ACTUATOR_IMAGE=origin-aws-machine-controllers:$(git describe --always --abbrev=7)
 
         echo "The aws instance was running and terminated"
   system_journals:
@@ -95,7 +100,7 @@ overrides:
           set +x
           source envs
           set -x
-          ./aws-provision.sh destroy || true
+          AWS_DEFAULT_REGION="us-east-1" ./aws-provision.sh destroy || true
         fi
     - type: "host_script"
       title: "assemble GCS output"

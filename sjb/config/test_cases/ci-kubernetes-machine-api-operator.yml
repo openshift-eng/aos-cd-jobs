@@ -11,7 +11,7 @@ extensions:
       title: "Install minikube"
       script: |-
         # Install minikube
-        curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.28.0/minikube-linux-amd64
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.30.0/minikube-linux-amd64
         chmod +x minikube
         sudo mv minikube /usr/bin/
         # Install kubectl
@@ -23,7 +23,7 @@ extensions:
       script: |-
         sudo setenforce 0
         # https://github.com/kubernetes/minikube/blob/master/docs/configuring_kubernetes.md
-        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd
+        sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd --kubernetes-version v1.12.0 --v 5
     - type: "script"
       title: "Build the machine api operator"
       script: |-

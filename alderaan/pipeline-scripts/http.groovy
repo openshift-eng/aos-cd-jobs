@@ -18,7 +18,7 @@ stage('http_test_scale_test') {
 				sh "rm ${property_file_name}"
 			}
 			// get properties file
-			sh "wget ${HTTP_TEST_PROPERTY_FILE}"
+			sh "wget ${HTTP_TEST_PROPERTY_FILE} -O ${property_file_name}"
 			sh "cat ${property_file_name}"
 			def http_test_properties = readProperties file: property_file_name
 
@@ -48,6 +48,9 @@ stage('http_test_scale_test') {
 			def route_termination = http_test_properties['ROUTE_TERMINATION']
 			def smoke_test = http_test_properties['SMOKE_TEST']
 			def namespace_cleanup = http_test_properties['NAMESPACE_CLEANUP']
+			def token = http_test_properties['GITHUB_TOKEN']
+			def repo = http_test_properties['PERF_REPO']
+			def server = http_test_properties['PBENCH_SERVER']
 
 			// debug info
 			println "TEST_CFG: '${test_cfg}'"
@@ -75,6 +78,10 @@ stage('http_test_scale_test') {
 			println "ROUTE_TERMINATION: '${route_termination}'"
 			println "SMOKE_TEST: '${smoke_test}'"
 			println "NAMESPACE_CLEANUP: '${namespace_cleanup}'"
+
+			// copy the parameters file to jump host
+			sh "git clone https://${token}@${repo} ${WORKSPACE}/perf-dept && chmod 600 ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf"
+			sh "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ${WORKSPACE}/perf-dept/ssh_keys/id_rsa_perf ${property_file_name} root@${jump_host}:/root/properties"
 
 			// Run http_test job
 			try {

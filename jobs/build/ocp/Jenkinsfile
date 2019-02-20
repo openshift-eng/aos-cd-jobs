@@ -1,5 +1,21 @@
 #!/usr/bin/env groovy
 
+OCP_VERSIONS = [
+        "4.1",
+        "4.0",
+        "3.11",
+        "3.10",
+        "3.9",
+        "3.8",
+        "3.7",
+        "3.6",
+        "3.5",
+        "3.4",
+        "3.3",
+        "3.2",
+        "3.1",
+]
+
 // Expose properties for a parameterized build
 properties(
     [
@@ -25,7 +41,6 @@ properties(
                     choices: [
                         "git@github.com:openshift",
                         "git@github.com:adammhaile-aos-cd-bot",
-                        "git@github.com:markllama"
                     ].join("\n"),
                     defaultValue: 'git@github.com:openshift'
                 ],
@@ -37,7 +52,6 @@ properties(
                         "openshift-bot",
                         "aos-cd-test",
                         "adammhaile-aos-cd-bot",
-                        "markllama-aos-cd-bot"
                     ].join("\n"),
                     defaultValue: 'aos-cd-test'
                 ],
@@ -45,7 +59,7 @@ properties(
                     name: 'BUILD_VERSION',
                     description: 'OCP Version to build',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: "4.1\n4.0\n3.11\n3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
+                    choices: OCP_VERSIONS.join('\n'),
                     defaultValue: '4.0'
                 ],
                 [
@@ -97,8 +111,8 @@ online:int                {origin,origin-web-console,openshift-ansible}/master -
                 ],
                 [
                     name: 'MOCK',
-                    description: 'Mock run to pickup new Jenkins parameters?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
+                    description: 'Pick up changed job parameters and then exit',
+                    $class: 'BooleanParameterDefinition',
                     defaultValue: false
                 ],
                 [
@@ -137,12 +151,20 @@ online:int                {origin,origin-web-console,openshift-ansible}/master -
     ]
 )
 
-IS_TEST_MODE = TEST.toBoolean()
+// User can have the job end if this is just a run to pick up parameter changes
+// (which Jenkins discovers by running the job).
+if (env.MOCK == null || params.MOCK) {
+    currentBuild.displayName = "#${currentBuild.number} - update parameters"
+    currentBuild.description = "Ran in mock mode"
+    return
+}
+
+IS_TEST_MODE = params.TEST
 BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
 BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
-SIGN_RPMS = SIGN.toBoolean()
-BUILD_CONTAINER_IMAGES = BUILD_CONTAINER_IMAGES.toBoolean()
-ODCS_MODE = ODCS.toBoolean()
+SIGN_RPMS = params.SIGN
+BUILD_CONTAINER_IMAGES = params.BUILD_CONTAINER_IMAGES
+ODCS_MODE = params.ODCS
 ODCS_FLAG = ""
 ODCS_OPT = ""
 if (ODCS_MODE) {
@@ -233,7 +255,7 @@ def mail_success(version, mirrorURL, record_log, oa_changelog) {
 
     def timing_report = get_build_timing_report(record_log)
     def image_list = get_image_build_report(record_log)
-
+    currentBuild.description = timing_report
     currentBuild.result = "SUCCESS"
     PARTIAL = " "
     mail_list = MAIL_LIST_SUCCESS
@@ -243,6 +265,8 @@ def mail_success(version, mirrorURL, record_log, oa_changelog) {
         mail_list = MAIL_LIST_FAILURE
         exclude_subject = " [excluded images: ${BUILD_EXCLUSIONS}]"
         currentBuild.result = "UNSTABLE"
+        currentBuild.displayName += " (partial)"
+        currentBuild.description = "Failed images: ${BUILD_EXCLUSIONS}"
     }
 
     image_details = """${timing_report}
@@ -378,7 +402,7 @@ def get_rpm_specfile_path(record_log, package_name) {
 // Will be used to track which atomic-openshift build was tagged before we ran.
 PREV_BUILD = null
 
-node(TARGET_NODE) {
+node(params.TARGET_NODE) {
 
     checkout scm
     AOS_CD_JOBS_COMMIT_SHA = sh(
@@ -398,8 +422,6 @@ node(TARGET_NODE) {
     PUDDLE_SIGN_KEYS = SIGN_RPMS ? "b906ba72" : null
 
     def commonlib = load("pipeline-scripts/commonlib.groovy")
-    commonlib.initialize()
-
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize(IS_TEST_MODE)
     echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
@@ -1059,6 +1081,7 @@ images:build
 Jenkins job: ${env.BUILD_URL}
 """
                     );
+                    currentBuild.description = "Error creating ose release in github:\n${release_ex}"
                 }
             }
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG)
@@ -1083,14 +1106,10 @@ Jenkins job: ${env.BUILD_URL}
 
     Jenkins job: ${env.BUILD_URL}
     """);
-
+        currentBuild.description = "Error while running OCP pipeline:\n${err}"
         currentBuild.result = "FAILURE"
         throw err
     } finally {
-        try {
-            archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
-            archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/brew-logs/**"
-        } catch (aae) {
-        }
+        commonlib.safeArchiveArtifacts ["doozer_working/*.log", "doozer_working/brew-logs/**"]
     }
 }

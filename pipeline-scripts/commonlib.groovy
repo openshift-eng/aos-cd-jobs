@@ -16,6 +16,16 @@ def initialize() {
 
 }
 
+def safeArchiveArtifacts(List patterns) {
+    for (pattern in patterns) {
+        try {
+            archiveArtifacts allowEmptyArchive: true, artifacts: pattern
+        } catch (err) {
+            echo "Failed to archive artifacts like ${pattern}: ${err}"
+        }
+    }
+}
+
 /**
  * Jenkins doesn't seems to whitelist .asList(),
  * so this is an awful workaround.

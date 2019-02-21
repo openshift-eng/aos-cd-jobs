@@ -1,3 +1,18 @@
+OCP_VERSIONS = [
+        "4.1",
+        "4.0",
+        "3.11",
+        "3.10",
+        "3.9",
+        "3.8",
+        "3.7",
+        "3.6",
+        "3.5",
+        "3.4",
+        "3.3",
+        "3.2",
+        "3.1",
+]
 
 // Expose properties for a parameterized build
 properties(
@@ -15,7 +30,7 @@ properties(
                     name: 'SYNC_VERSION',
                     description: 'OCP version of RPMs to sync',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: "4.1\n4.0\n3.11\n3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
+                    choices: OCP_VERSIONS.join('\n'),
                     defaultValue: '4.0'
                 ],
                 [
@@ -96,11 +111,6 @@ node("openshift-build-1") {
                 sh "rsync -avzh --delete -e \"ssh -o StrictHostKeyChecking=no\" ${LOCAL_SYNC_DIR} ${MIRROR_TARGET}:${MIRROR_PATH} "
                 buildlib.invoke_on_use_mirror("push.enterprise.sh")
             }
-
-            mail(to: "${MAIL_LIST_SUCCESS}",
-                from: "aos-team-art@redhat.com",
-                subject: "Successful reposync for v${SYNC_VERSION}",
-                body: "Jenkins job: ${env.BUILD_URL}");
         }
     } catch (err) {
         mail(to: "${MAIL_LIST_FAILURE}",

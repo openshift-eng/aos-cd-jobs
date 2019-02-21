@@ -1110,6 +1110,11 @@ Jenkins job: ${env.BUILD_URL}
         currentBuild.result = "FAILURE"
         throw err
     } finally {
-        commonlib.safeArchiveArtifacts ["doozer_working/*.log", "doozer_working/brew-logs/**"]
+        commonlib.safeArchiveArtifacts([
+            "doozer_working/*.log",
+            "doozer_working/brew-logs/**",
+            "doozer_working/*.yaml",
+            "doozer_working/*.yml",
+        ])
     }
 }

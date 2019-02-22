@@ -1,13 +1,15 @@
 #!/usr/bin/groovy
 
-def commonlib = load("pipeline-scripts/commonlib.groovy")
-
+commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
 
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
 
-def initialize(test=false) {
+def initialize(test=false, checkMock=true) {
+    if (checkMock) {
+        commonlib.checkMock()
+    }
 
     // don't bother logging into a registry or getting a krb5 ticket for tests
     if (!test) {
@@ -783,7 +785,7 @@ def parse_record_log( working_dir ) {
 // Search the build log for failed builds
 def get_failed_builds(log_dir) {
     record_log = parse_record_log(log_dir)
-    builds = record_log.get('build', [:])
+    builds = record_log['build']
     failed_map = [:]
     for (i = 0; i < builds.size(); i++) {
         bld = builds[i]

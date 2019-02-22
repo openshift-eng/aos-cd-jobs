@@ -1,70 +1,54 @@
-
-// Expose properties for a parameterized build
-properties(
-    [
-        buildDiscarder(
-            logRotator(
-                artifactDaysToKeepStr: '',
-                artifactNumToKeepStr: '',
-                daysToKeepStr: '',
-                numToKeepStr: '1000')
-        ),
-        [
-            $class: 'ParametersDefinitionProperty',
-            parameterDefinitions: [
-                [
-                    name: 'VERSIONS',
-                    description: 'CSV list of versions to run merge on.',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: "3.9,3.10,3.11,4.0"
-                ],
-                [
-                    name: 'MAIL_LIST_SUCCESS',
-                    description: 'Success Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MAIL_LIST_FAILURE',
-                    description: 'Failure Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MOCK',
-                    description: 'Mock run to pickup new Jenkins parameters?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false
-                ]
-            ]
-        ],
-        disableConcurrentBuilds()
-    ]
-)
-
-
-TARGET_NODE = "openshift-build-1"
-SSH_KEY_ID = "openshift-bot"
-
-MERGE_VERSIONS = VERSIONS.split(',')
-CURRENT_MASTER = "4.0"
-
-
-node(TARGET_NODE) {
+node {
     checkout scm
+    def commonlib = load("pipeline-scripts/commonlib.groovy")
 
-    if(env.WORKSPACE == null) {
-        env.WORKSPACE = pwd()
-    }
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '1000')
+            ),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    [
+                        name: 'VERSIONS',
+                        description: 'CSV list of versions to run merge on.',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "3.9,3.10,3.11,4.0"
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    commonlib.mockParam(),
+                ]
+            ],
+            disableConcurrentBuilds()
+        ]
+    )
 
+    commonlib.checkMock()
 
-    if ( MOCK.toBoolean() ) {
-        error( "Ran in mock mode to pick up any new parameters" )
-    }
+    SSH_KEY_ID = "openshift-bot"
+    MERGE_VERSIONS = VERSIONS.split(',')
+    CURRENT_MASTER = "4.0"
 
     try {
         sshagent([SSH_KEY_ID]) {

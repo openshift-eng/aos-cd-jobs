@@ -1,47 +1,5 @@
 #!/usr/bin/env groovy
 
-OCP_VERSIONS = [
-        "4.1",
-        "4.0",
-        "3.11",
-        "3.10",
-        "3.9",
-        "3.8",
-        "3.7",
-        "3.6",
-        "3.5",
-        "3.4",
-        "3.3",
-        "3.2",
-        "3.1",
-]
-
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-    if (env.WORKSPACE == null) {
-        env.WORKSPACE = pwd()
-    }
-}
-
-def clean_comma_list(str) {
-    if (str == "") {
-        return ""
-    }
-    str = str.replaceAll(',', ' ')
-    return str.split().join(',')
-}
-
-def safeArchiveArtifacts(List patterns) {
-    for (pattern in patterns) {
-        try {
-            archiveArtifacts allowEmptyArchive: true, artifacts: pattern
-        } catch (err) {
-            echo "Failed to archive artifacts like ${pattern}: ${err}"
-        }
-    }
-}
-
 def mail_failure(Map params) {
     def err = params.err ? params.err.getMessage() : "(unknown)"
     def subject = params.get("subject", "Problem with incremental build for ${MINOR_VERSION}")
@@ -66,8 +24,11 @@ ${extra_body}""")
     }
 }
 
-node('openshift-build-1') {
+node {
     checkout scm
+
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
 
     // Expose properties for a parameterized build
     properties(
@@ -83,13 +44,7 @@ node('openshift-build-1') {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
-                        name: 'MINOR_VERSION',
-                        description: 'OSE Version',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: OCP_VERSIONS.join('\n'),
-                        defaultValue: '4.0'
-                    ],
+                    commonlib.oseVersionParam('MINOR_VERSION'),
                     [
                         name: 'VERSION_OVERRIDE',
                         description: 'Optional full version for build (e.g. v4.0.1). Defaults to atomic-openshift version',
@@ -126,39 +81,24 @@ node('openshift-build-1') {
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false
                     ],
-                    [
-                        name: 'MOCK',
-                        description: 'Pick up changed job parameters and then exit',
-                        $class: 'BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
+                    commonlib.mockParam(),
                 ]
             ]
         ]
     )
 
-    // User can have the job end if this is just a run to pick up parameter changes
-    // (which Jenkins discovers by running the job).
-    if (env.MOCK == null || MOCK.toBoolean()) {
-        currentBuild.description = "Ran in mock mode"
-        return
-    }
+    buildlib.initialize()
 
     OSE_MAJOR = MINOR_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
     OSE_MINOR = MINOR_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}"
 
-    EXCLUSIONS = clean_comma_list(EXCLUSIONS)
-    INCLUSIONS = clean_comma_list(INCLUSIONS)
+    EXCLUSIONS = commonlib.cleanCommaList(EXCLUSIONS)
+    INCLUSIONS = commonlib.cleanCommaList(INCLUSIONS)
     def filter = INCLUSIONS ? "-i ${INCLUSIONS}" : "-i ''"
     if (EXCLUSIONS) {
         filter = "-x ${EXCLUSIONS}"
     }
-
-    set_workspace()
-
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    buildlib.initialize()
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
@@ -232,7 +172,7 @@ node('openshift-build-1') {
             throw err
 
         } finally {
-            safeArchiveArtifacts(["doozer_working/*.log"])
+            commonlib.safeArchiveArtifacts(["doozer_working/*.log"])
         }
     }
 
@@ -286,7 +226,11 @@ node('openshift-build-1') {
             // Re-throw the error in order to fail the job
             throw err
         } finally {
-            safeArchiveArtifacts(["doozer_working/*.log"])
+            commonlib.safeArchiveArtifacts([
+                "doozer_working/*.log",
+                "doozer_working/*.yaml",
+                "doozer_working/*.yml",
+            ])
         }
     }
 
@@ -327,7 +271,12 @@ node('openshift-build-1') {
             throw err
 
         } finally {
-            safeArchiveArtifacts(["doozer_working/*.log", "doozer_working/brew-logs/**"])
+            commonlib.safeArchiveArtifacts([
+                "doozer_working/*.log",
+                "doozer_working/brew-logs/**",
+                "doozer_working/*.yaml",
+                "doozer_working/*.yml",
+            ])
         }
 
     }

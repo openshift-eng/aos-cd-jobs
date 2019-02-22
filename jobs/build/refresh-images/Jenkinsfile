@@ -1,27 +1,5 @@
 #!/usr/bin/env groovy
 
-OCP_VERSIONS = [
-        "3.11",
-        "3.10",
-        "3.9",
-        "3.8",
-        "3.7",
-        "3.6",
-        "3.5",
-        "3.4",
-        "3.3",
-        "3.2",
-        "3.1",
-]
-
-
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-    if (env.WORKSPACE == null) {
-        env.WORKSPACE = pwd()
-    }
-}
-
 def version(f) {
     def matcher = readFile(f) =~ /Version:\s+([.0-9]+)/
     matcher ? matcher[0][1] : null
@@ -39,8 +17,10 @@ ${OSE_MAJOR}.${OSE_MINOR}
 """);
 }
 
-node('openshift-build-1') {
+node {
     checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
 
     // Expose properties for a parameterized build
     properties(
@@ -63,13 +43,7 @@ node('openshift-build-1') {
                         choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot",
                         defaultValue: 'git@github.com:openshift'
                     ],
-                    [
-                        name: 'BUILD_VERSION',
-                        description: 'OSE Version',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: OCP_VERSIONS.join('\n'),
-                        defaultValue: '3.11'
-                    ],
+                    commonlib.oseVersionParam('BUILD_VERSION'),
                     [
                         name: 'VERSION_OVERRIDE',
                         description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"',
@@ -95,12 +69,7 @@ node('openshift-build-1') {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: 'aos-team-art@redhat.com'
                     ],
-                    [
-                        name: 'MOCK',
-                        description: 'Mock run to pickup new Jenkins parameters?.',
-                        $class: 'BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
+                    commonlib.mockParam(),
                     // TODO reenable when the mirrors have the necessary puddles
                     [
                         name: 'BUILD_AMI',
@@ -131,32 +100,18 @@ node('openshift-build-1') {
         ]
     )
 
+    buildlib.initialize()
+
     OSE_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
     OSE_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
 
     // clean up string delimiting
-    if (BUILD_ONLY != "") {
-        BUILD_ONLY = BUILD_ONLY.replaceAll(',', ' ')
-        BUILD_ONLY = BUILD_ONLY.split().join(',')
-    }
-    if (BUILD_EXCLUSIONS != "") {
-        BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.replaceAll(',', ' ')
-        BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
-    }
+    BUILD_ONLY = commonlib.cleanCommaList(BUILD_ONLY)
+    BUILD_EXCLUSIONS = commonlib.cleanCommaList(BUILD_EXCLUSIONS)
 
-    // Force Jenkins to fail early if this is the first time this job has been run/and or new parameters have not been discovered.
     echo "${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
 
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}"
-
-    if (MOCK.toBoolean()) {
-        error("Ran in mock mode")
-    }
-
-    set_workspace()
-
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    buildlib.initialize()
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
@@ -172,7 +127,7 @@ node('openshift-build-1') {
             doozer_update_docker_args = "--version auto --repo-type signed"
         } else {
             if (!VERSION_OVERRIDE.startsWith("v")) {
-                error("Version overrides must start with 'v'")
+                VERSION_OVERRIDE = "v${VERSION_OVERRIDE}"
             }
             doozer_update_docker_args = "--version ${VERSION_OVERRIDE}"
         }
@@ -358,12 +313,13 @@ Jenkins job: ${env.BUILD_URL}
             // Re-throw the error in order to fail the job
             throw err
         } finally {
-            try {
-                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/verify_fail_log.yml"
-                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
-                archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/brew-logs/**"
-            } catch (aae) {
-            }
+            commonlib.safeArchiveArtifacts([
+                "doozer_working/verify_fail_log.yml",
+                "doozer_working/*.log",
+                "doozer_working/brew-logs/**",
+                "doozer_working/*.yaml",
+                "doozer_working/*.yml",
+            ])
         }
 
     }

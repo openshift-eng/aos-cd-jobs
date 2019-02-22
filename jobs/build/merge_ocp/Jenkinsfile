@@ -32,7 +32,6 @@ properties(
                     $class: 'hudson.model.StringParameterDefinition',
                     defaultValue: [
                         'aos-team-art@redhat.com',
-                        // 'aos-art-requests@redhat.com'
                     ].join(',')
                 ],
                 [

@@ -13,6 +13,14 @@ b = build       job: '../aos-cd-builds/build%2Freposync', propagate: false,
                 parameters: [[$class: 'StringParameterValue', name: 'SYNC_VERSION', value: '4.0']]
 
 description += "${b.displayName} - ${b.result}\n"
+failed |= (b.result != "SUCCESS")
+
+b = build       job: '../aos-cd-builds/build%2Freposync', propagate: false,
+                parameters: [[$class: 'StringParameterValue', name: 'SYNC_VERSION', value: '4.1']]
+
+description += "${b.displayName} - ${b.result}\n"
+failed |= (b.result != "SUCCESS")
 
 currentBuild.description = description.trim()
-currentBuild.result = b.result
+currentBuild.result = failed ? "FAILURE" : "SUCCESS"
+

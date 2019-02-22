@@ -1,112 +1,88 @@
-
-// Expose properties for a parameterized build
-properties(
-    [
-        buildDiscarder(
-            logRotator(
-                artifactDaysToKeepStr: '',
-                artifactNumToKeepStr: '',
-                daysToKeepStr: '',
-                numToKeepStr: '1000')),
-        [
-            $class: 'ParametersDefinitionProperty',
-            parameterDefinitions: [
-                [
-                    name: 'BUILD_VERSION',
-                    description: 'OCP Version to build',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: "4.0\n3.11\n3.10\n3.9\n3.8\n3.7\n3.6\n3.5\n3.4\n3.3",
-                    defaultValue: '4.0'
-                ],
-                [
-                    name: 'VERSION',
-                    description: 'Version string for build without leading "v" (i.e. 4.0.0)',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: ""
-                ],
-                [
-                    name: 'RELEASE',
-                    description: 'Release string for build',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: ""
-                ],
-                [
-                    name: 'RPMS',
-                    description: 'CSV list of RPMs to build. Empty for all. Enter "NONE" to not build any.',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: "NONE"
-                ],
-                [
-                    name: 'IMAGES',
-                    description: 'CSV list of images to build. Empty for all. Enter "NONE" to not build any.',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: ""
-                ],
-                [
-                    name: 'REBASE_IMAGES',
-                    description: 'Run images:rebase? Otherwise use images:update-dockerfile',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: true
-                ],
-                [
-                    name: 'SIGNED',
-                    description: 'Build against signed RPMs?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false
-                ],
-                [
-                    name: 'MAIL_LIST_SUCCESS',
-                    description: 'Success Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MAIL_LIST_FAILURE',
-                    description: 'Failure Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MOCK',
-                    description: 'Mock run to pickup new Jenkins parameters?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false
-                ]
-            ]
-        ],
-    ]
-)
-
-
-MASTER_VER = "4.0"
-TARGET_NODE = "openshift-build-1"
-GITHUB_BASE = "git@github.com:openshift"
-SSH_KEY_ID = "openshift-bot"
-
-
-REBASE_IMAGES = REBASE_IMAGES.toBoolean()
-REPO_TYPE = "unsigned"
-if(SIGNED.toBoolean()) { REPO_TYPE = "signed" }
-
-
-node(TARGET_NODE) {
+node {
     checkout scm
+    def commonlib = load("pipeline-scripts/commonlib.groovy")
 
-    if(env.WORKSPACE == null) {
-        env.WORKSPACE = pwd()
-    }
-
-
-    if ( MOCK.toBoolean() ) {
-        error( "Ran in mock mode to pick up any new parameters" )
-    }
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '1000')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.oseVersionParam('BUILD_VERSION'),
+                    [
+                        name: 'VERSION',
+                        description: 'Version string for build without leading "v" (i.e. 4.0.0)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'RELEASE',
+                        description: 'Release string for build',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'RPMS',
+                        description: 'CSV list of RPMs to build. Empty for all. Enter "NONE" to not build any.',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "NONE"
+                    ],
+                    [
+                        name: 'IMAGES',
+                        description: 'CSV list of images to build. Empty for all. Enter "NONE" to not build any.',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'REBASE_IMAGES',
+                        description: 'Run images:rebase? Otherwise use images:update-dockerfile',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
+                    [
+                        name: 'SIGNED',
+                        description: 'Build against signed RPMs?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize(false)
+
+    MASTER_VER = commonlib.ocpDefaultVersion
+    GITHUB_BASE = "git@github.com:openshift"
+    SSH_KEY_ID = "openshift-bot"
+
+    REBASE_IMAGES = REBASE_IMAGES.toBoolean()
+    REPO_TYPE = SIGNED.toBoolean() ? "signed" : "unsigned"
+    IMAGES = commonlib.cleanCommaList(IMAGES)
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
@@ -187,7 +163,6 @@ node(TARGET_NODE) {
                 }
             }
 
-            BUILD_EXCLUSIONS = ""
             stage("build images") {
                 if (IMAGES.toUpperCase() != "NONE") {
                     command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
@@ -214,10 +189,10 @@ node(TARGET_NODE) {
         currentBuild.result = "FAILURE"
         throw err
     } finally {
-        try {
-            archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
-            archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/brew-logs/**"
-        } catch (aae) {
-        }
+        commonlib.safeArchiveArtifacts([
+            "doozer_working/*.log",
+            "doozer_working/*.yaml",
+            "doozer_working/brew-logs/**",
+        ])
     }
 }

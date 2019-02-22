@@ -1,19 +1,64 @@
 
+ocpDefaultVersion = "4.0"
+ocpVersions = [
+    "4.1",
+    "4.0",
+    "3.11",
+    "3.10",
+    "3.9",
+    "3.8",
+    "3.7",
+    "3.6",
+    "3.5",
+    "3.4",
+    "3.3",
+    "3.2",
+    "3.1",
+]
+
 /**
  * Handles any common setup required by the library
  */
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
+
 def initialize() {
+    // https://issues.jenkins-ci.org/browse/JENKINS-33511 no longer appears relevant
+}
 
-    if(env.WORKSPACE == null) {
-        env.WORKSPACE = pwd()
-    }
-
-
-    if ( MOCK.toBoolean() ) {
+def checkMock() {
+    // User can have the job end if this is just a run to pick up parameter changes
+    // (which Jenkins discovers by running the job).
+    if (env.MOCK == null || MOCK.toBoolean()) {
+        currentBuild.displayName = "#${currentBuild.number} - update parameters"
+        currentBuild.description = "Ran in mock mode"
         error( "Ran in mock mode to pick up any new parameters" )
     }
+}
 
+def mockParam() {
+    return [
+        name: 'MOCK',
+        description: 'Pick up changed job parameters and then exit',
+        $class: 'BooleanParameterDefinition',
+        defaultValue: false
+    ]
+}
+
+def oseVersionParam(name='MINOR_VERSION') {
+    return [
+        name: name,
+        description: 'OSE Version',
+        $class: 'hudson.model.ChoiceParameterDefinition',
+        choices: ocpVersions.join('\n'),
+        defaultValue: ocpDefaultVersion,
+    ]
+}
+
+def cleanCommaList(str) {
+    // turn a list separated by commas or spaces into a comma-separated list
+    if (str.trim() == "") {
+        return ""
+    }
+    str = str.trim().replaceAll(',', ' ').split().join(',')
 }
 
 def safeArchiveArtifacts(List patterns) {

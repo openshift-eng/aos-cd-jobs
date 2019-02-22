@@ -1,182 +1,5 @@
 #!/usr/bin/env groovy
 
-OCP_VERSIONS = [
-        "4.1",
-        "4.0",
-        "3.11",
-        "3.10",
-        "3.9",
-        "3.8",
-        "3.7",
-        "3.6",
-        "3.5",
-        "3.4",
-        "3.3",
-        "3.2",
-        "3.1",
-]
-
-// Expose properties for a parameterized build
-properties(
-    [
-        buildDiscarder(
-            logRotator(
-                artifactDaysToKeepStr: '',
-                artifactNumToKeepStr: '',
-                daysToKeepStr: '',
-                numToKeepStr: '1000')),
-        [
-            $class: 'ParametersDefinitionProperty',
-            parameterDefinitions: [
-                [
-                    name: 'TARGET_NODE',
-                    description: 'Jenkins agent node',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'openshift-build-1'
-                ],
-                [
-                    name: 'GITHUB_BASE',
-                    description: 'Github base for repos',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: [
-                        "git@github.com:openshift",
-                        "git@github.com:adammhaile-aos-cd-bot",
-                    ].join("\n"),
-                    defaultValue: 'git@github.com:openshift'
-                ],
-                [
-                    name: 'SSH_KEY_ID',
-                    description: 'SSH credential id to use',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: [
-                        "openshift-bot",
-                        "aos-cd-test",
-                        "adammhaile-aos-cd-bot",
-                    ].join("\n"),
-                    defaultValue: 'aos-cd-test'
-                ],
-                [
-                    name: 'BUILD_VERSION',
-                    description: 'OCP Version to build',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: OCP_VERSIONS.join('\n'),
-                    defaultValue: '4.0'
-                ],
-                [
-                    name: 'MAIL_LIST_SUCCESS',
-                    description: 'Success Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-cicd@redhat.com',
-                        'aos-qe@redhat.com',
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MAIL_LIST_FAILURE',
-                    description: 'Failure Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com'
-                    ].join(',')
-                ],
-                [
-                    name: 'BUILD_MODE',
-                    description: '''
-auto                      BUILD_VERSION and ocp repo contents determine the mode<br>
-release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
-''',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: [
-                        "auto",
-                        "release",
-                        "pre-release",
-                        "online:int"
-                    ].join("\n"),
-                    defaultValue: "auto"
-                ],
-                [
-                    name: 'ODCS',
-                    description: 'Run in ODCS Mode?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false
-                ],
-                [
-                    name: 'SIGN',
-                    description: 'Sign RPMs with openshifthosted?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false
-                ],
-                [
-                    name: 'MOCK',
-                    description: 'Pick up changed job parameters and then exit',
-                    $class: 'BooleanParameterDefinition',
-                    defaultValue: false
-                ],
-                [
-                    name: 'TEST',
-                    description: 'Run as much code as possible without pushing / building?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false
-                ],
-                [
-                    name: 'SPECIAL_NOTES',
-                    description: 'Include special notes in the build email?',
-                    $class: 'hudson.model.TextParameterDefinition',
-                    defaultValue: ""
-                ],
-                [
-                    name: 'BUILD_EXCLUSIONS',
-                    description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: ""
-                ],
-                [
-                    name: 'BUILD_CONTAINER_IMAGES',
-                    description: 'Build container images?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: true
-                ],
-                [
-                    name: 'BUILD_AMI',
-                    description: 'Build golden image after building images?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: true
-                ],
-            ]
-        ],
-        disableConcurrentBuilds()
-    ]
-)
-
-// User can have the job end if this is just a run to pick up parameter changes
-// (which Jenkins discovers by running the job).
-if (env.MOCK == null || params.MOCK) {
-    currentBuild.displayName = "#${currentBuild.number} - update parameters"
-    currentBuild.description = "Ran in mock mode"
-    return
-}
-
-IS_TEST_MODE = params.TEST
-BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
-BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
-SIGN_RPMS = params.SIGN
-BUILD_CONTAINER_IMAGES = params.BUILD_CONTAINER_IMAGES
-ODCS_MODE = params.ODCS
-ODCS_FLAG = ""
-ODCS_OPT = ""
-if (ODCS_MODE) {
-    ODCS_FLAG = "--odcs-mode"
-    ODCS_OPT = "--odcs unsigned"
-}
-
-if (BUILD_EXCLUSIONS != "") {
-    // clean up string delimiting
-    BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.replaceAll(',', ' ')
-    BUILD_EXCLUSIONS = BUILD_EXCLUSIONS.split().join(',')
-}
 
 def get_mirror_url(build_mode, version) {
     if (build_mode == "online:int") {
@@ -399,12 +222,149 @@ def get_rpm_specfile_path(record_log, package_name) {
     return specfile_path
 }
 
-// Will be used to track which atomic-openshift build was tagged before we ran.
-PREV_BUILD = null
-
-node(params.TARGET_NODE) {
-
+node {
     checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '1000')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    [
+                        name: 'GITHUB_BASE',
+                        description: 'Github base for repos',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "git@github.com:openshift",
+                            "git@github.com:adammhaile-aos-cd-bot",
+                        ].join("\n"),
+                        defaultValue: 'git@github.com:openshift'
+                    ],
+                    [
+                        name: 'SSH_KEY_ID',
+                        description: 'SSH credential id to use',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "openshift-bot",
+                            "aos-cd-test",
+                            "adammhaile-aos-cd-bot",
+                        ].join("\n"),
+                        defaultValue: 'aos-cd-test'
+                    ],
+                    commonlib.oseVersionParam('BUILD_VERSION'),
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-cicd@redhat.com',
+                            'aos-qe@redhat.com',
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com'
+                        ].join(',')
+                    ],
+                    [
+                        name: 'BUILD_MODE',
+                        description: '''
+    auto                      BUILD_VERSION and ocp repo contents determine the mode<br>
+    release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
+    pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
+    online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
+    ''',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "auto",
+                            "release",
+                            "pre-release",
+                            "online:int"
+                        ].join("\n"),
+                        defaultValue: "auto"
+                    ],
+                    [
+                        name: 'ODCS',
+                        description: 'Run in ODCS Mode?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                        name: 'SIGN',
+                        description: 'Sign RPMs with openshifthosted?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    commonlib.mockParam(),
+                    [
+                        name: 'TEST',
+                        description: 'Run as much code as possible without pushing / building?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                        name: 'SPECIAL_NOTES',
+                        description: 'Include special notes in the build email?',
+                        $class: 'hudson.model.TextParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'BUILD_EXCLUSIONS',
+                        description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'BUILD_CONTAINER_IMAGES',
+                        description: 'Build container images?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
+                    [
+                        name: 'BUILD_AMI',
+                        description: 'Build golden image after building images?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
+                ]
+            ],
+            disableConcurrentBuilds()
+        ]
+    )
+
+    IS_TEST_MODE = params.TEST
+    buildlib.initialize(IS_TEST_MODE)
+
+    BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
+    BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
+    SIGN_RPMS = params.SIGN
+    BUILD_CONTAINER_IMAGES = params.BUILD_CONTAINER_IMAGES
+    ODCS_MODE = params.ODCS
+    ODCS_FLAG = ""
+    ODCS_OPT = ""
+    if (ODCS_MODE) {
+        ODCS_FLAG = "--odcs-mode"
+        ODCS_OPT = "--odcs unsigned"
+    }
+
+    BUILD_EXCLUSIONS = commonlib.cleanCommaList(BUILD_EXCLUSIONS)
+
+    // Will be used to track which atomic-openshift build was tagged before we ran.
+    PREV_BUILD = null
+
     AOS_CD_JOBS_COMMIT_SHA = sh(
         returnStdout: true,
         script: "git rev-parse HEAD",
@@ -421,9 +381,6 @@ node(params.TARGET_NODE) {
     PUDDLE_CONF = "${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}.conf"
     PUDDLE_SIGN_KEYS = SIGN_RPMS ? "b906ba72" : null
 
-    def commonlib = load("pipeline-scripts/commonlib.groovy")
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    buildlib.initialize(IS_TEST_MODE)
     echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived

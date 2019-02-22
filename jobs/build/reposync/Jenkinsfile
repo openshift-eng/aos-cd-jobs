@@ -1,97 +1,59 @@
-OCP_VERSIONS = [
-        "4.1",
-        "4.0",
-        "3.11",
-        "3.10",
-        "3.9",
-        "3.8",
-        "3.7",
-        "3.6",
-        "3.5",
-        "3.4",
-        "3.3",
-        "3.2",
-        "3.1",
-]
-
-// Expose properties for a parameterized build
-properties(
-    [
-        buildDiscarder(
-            logRotator(
-                artifactDaysToKeepStr: '',
-                artifactNumToKeepStr: '',
-                daysToKeepStr: '',
-                numToKeepStr: '1000')),
-        [
-            $class: 'ParametersDefinitionProperty',
-            parameterDefinitions: [
-                [
-                    name: 'SYNC_VERSION',
-                    description: 'OCP version of RPMs to sync',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: OCP_VERSIONS.join('\n'),
-                    defaultValue: '4.0'
-                ],
-                [
-                    name: 'REPO_TYPE',
-                    description: 'Type of repos to sync',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: "unsigned\nsigned",
-                    defaultValue: 'unsigned'
-                ],
-                [
-                    name: 'MAIL_LIST_SUCCESS',
-                    description: 'Success Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MAIL_LIST_FAILURE',
-                    description: 'Failure Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MOCK',
-                    description: 'Mock run to pickup new Jenkins parameters?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false
-                ]
-            ]
-        ],
-        disableConcurrentBuilds()
-    ]
-)
-
-SYNC_DIR="/mnt/nfs/home/jenkins/reposync"
-LOCAL_SYNC_DIR = "${SYNC_DIR}/${SYNC_VERSION}/"
-LOCAL_CACHE_DIR = "${SYNC_DIR}/cache/${SYNC_VERSION}/"
-
-MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
-MIRROR_PATH = "/srv/enterprise/reposync/${SYNC_VERSION}/"
-
-
-node("openshift-build-1") {
+node {
     checkout scm
+    def commonlib = load("pipeline-scripts/commonlib.groovy")
 
-    if(env.WORKSPACE == null) {
-        env.WORKSPACE = pwd()
-    }
-
-
-    if ( MOCK.toBoolean() ) {
-        error( "Ran in mock mode to pick up any new parameters" )
-    }
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '1000')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.oseVersionParam('SYNC_VERSION'),
+                    [
+                        name: 'REPO_TYPE',
+                        description: 'Type of repos to sync',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: "unsigned\nsigned",
+                        defaultValue: 'unsigned'
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize(false)
 
     currentBuild.displayName = "v${SYNC_VERSION} RepoSync"
+    SYNC_DIR="/mnt/nfs/home/jenkins/reposync"
+    LOCAL_SYNC_DIR = "${SYNC_DIR}/${SYNC_VERSION}/"
+    LOCAL_CACHE_DIR = "${SYNC_DIR}/cache/${SYNC_VERSION}/"
+
+    MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
+    MIRROR_PATH = "/srv/enterprise/reposync/${SYNC_VERSION}/"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
@@ -126,9 +88,6 @@ node("openshift-build-1") {
         currentBuild.result = "FAILURE"
         throw err
     } finally {
-        try {
-            archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
-        } catch (aae) {
-        }
+        commonlib.safeArchiveArtifacts(["doozer_working/*.log"])
     }
 }

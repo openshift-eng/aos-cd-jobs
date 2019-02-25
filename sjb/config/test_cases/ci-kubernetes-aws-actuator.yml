@@ -63,6 +63,13 @@ extensions:
 
         sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
     - type: "script"
+      title: "Install go 1.10.1"
+      script: |-
+        mkdir -p ~/bin
+        curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
+        chmod +x ~/bin/gimme
+        gimme 1.10.1
+    - type: "script"
       title: "Run e2e tests"
       script: |-
         set +x
@@ -85,6 +92,7 @@ extensions:
         export KUBECONFIG=/etc/kubernetes/admin.conf
         sudo -E kubectl config set-cluster kubernetes --server=https://${CLUSTER_IP}:443
 
+        source ~/.gimme/envs/go1.11.1.env
         sudo -E make k8s-e2e ACTUATOR_IMAGE=origin-aws-machine-controllers:$(git describe --always --abbrev=7)
 
         echo "The aws instance was running and terminated"

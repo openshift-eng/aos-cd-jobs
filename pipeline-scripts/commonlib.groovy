@@ -55,10 +55,8 @@ def oseVersionParam(name='MINOR_VERSION') {
 
 def cleanCommaList(str) {
     // turn a list separated by commas or spaces into a comma-separated list
-    if (str.trim() == "") {
-        return ""
-    }
-    str = str.trim().replaceAll(',', ' ').split().join(',')
+    str = (str == null) ? "" : str
+    return str.replaceAll(',', ' ').split().join(',')
 }
 
 def safeArchiveArtifacts(List patterns) {

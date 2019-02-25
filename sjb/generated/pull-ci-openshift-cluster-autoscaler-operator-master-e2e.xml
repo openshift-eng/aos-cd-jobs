@@ -273,8 +273,6 @@ curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest |
 chmod u+x kustomize_*_linux_amd64
 sudo mv kustomize_*_linux_amd64 /usr/bin/kustomize
 cd config
-# set the nodelink-controller image to the latest
-sed -i &#34;/NODELINK_CONTROLLER_IMAGE/c\        image: \$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)&#34; clusterapi-manager-controllers-patch.yaml
 kustomize build | sudo kubectl apply --validate=false -f -
 
 sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt

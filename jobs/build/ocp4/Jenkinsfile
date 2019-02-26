@@ -63,7 +63,7 @@ def get_changelog(rpm_name, record_log) {
     return changelog
 }
 
-def mail_success(version, mirrorURL, record_log, oa_changelog) {
+def mail_success(version, mirrorURL, record_log) {
 
     def target = "(Release Candidate)"
 
@@ -135,8 +135,6 @@ ${OSE_CHANGELOG}
 Are your OpenShift Ansible changes in this build? Check here:
 https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_VERSION}-${NEW_RELEASE}/
 
-===OpenShift Ansible changelog snippet===
-${oa_changelog}
 """);
 
     try {
@@ -245,7 +243,6 @@ node {
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "git@github.com:openshift",
-                            "git@github.com:adammhaile-aos-cd-bot",
                         ].join("\n"),
                         defaultValue: 'git@github.com:openshift'
                     ],
@@ -256,7 +253,6 @@ node {
                         choices: [
                             "openshift-bot",
                             "aos-cd-test",
-                            "adammhaile-aos-cd-bot",
                         ].join("\n"),
                         defaultValue: 'aos-cd-test'
                     ],
@@ -442,7 +438,6 @@ node {
                     //  NEW_VERSION
                     //  NEW_RELEASE
                     //  NEW_DOCKERFILE_RELEASE
-                    //  USE_WEB_CONSOLE_SERVER
                     //
                     //  sets:
                     //    currentBuild.displayName
@@ -543,12 +538,6 @@ node {
                         error("Unknown BUILD_MODE: ${BUILD_MODE}")
                     }
 
-                    // decide which source to use for the web console
-                    USE_WEB_CONSOLE_SERVER = false
-                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR >= 9) {
-                        USE_WEB_CONSOLE_SERVER = true
-                    }
-
                     rpmOnlyTag = ""
                     if (!BUILD_CONTAINER_IMAGES) {
                         rpmOnlyTag = " (RPM ONLY)"
@@ -574,176 +563,6 @@ node {
                 }
             }
 
-
-            stage("origin-web-console repo") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
-                sh "go get github.com/jteeuwen/go-bindata"
-                // defines:
-                //   WEB_CONSOLE_DIR
-                //   GITHUB_URLS["origin-web-console"]
-                //   GITHUB_BASE_PATHS["origin-web-console"]
-                buildlib.initialize_origin_web_console()
-                dir(WEB_CONSOLE_DIR) {
-                    // Enable fake merge driver used in our .gitattributes
-                    sh "git config merge.ours.driver true"
-                    // Use fake merge driver on specific directories
-                    // We will be re-generating the dist directory, so ignore it for the merge
-                    sh "echo 'dist/** merge=ours' >> .gitattributes"
-                }
-            }
-
-            stage("prep web-console") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
-                dir(WEB_CONSOLE_DIR) {
-                    WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
-                    sh "git checkout -b ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
-                    if (IS_SOURCE_IN_MASTER) {
-
-                        // jwforres asked that master *not* merge into the 3.8 branch.
-                        if (BUILD_VERSION != "3.8") {
-                            sh """
-                            # Pull content of master into enterprise branch
-                            git merge master --no-commit --no-ff
-                            # Use grunt to rebuild everything in the dist directory
-                            ./hack/install-deps.sh
-                            grunt build
-
-                            git add dist
-                            git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
-                        """
-
-                            if (!IS_TEST_MODE) {
-                                sh "git push"
-                            }
-                        }
-
-                    }
-
-                    // Clean up any unstaged changes (e.g. .gitattributes)
-                    sh "git reset --hard HEAD"
-                }
-            }
-
-
-            stage("origin-web-console-server repo") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
-                /**
-                * The origin-web-console-server repo/image was introduced in 3.9.
-                */
-                if (USE_WEB_CONSOLE_SERVER) {
-                    // defines:
-                    //   WEB_CONSOLE_SERVER_DIR
-                    //   GITHUB_URLS["origin-web-console-server"]
-                    //   GITHUB_BASE_PATHS["origin-web-console-server"]
-                    buildlib.initialize_origin_web_console_server_dir()
-                    WEB_CONSOLE_SERVER_BRANCH = "enterprise-${BUILD_VERSION_MAJOR}.${BUILD_VERSION_MINOR}"
-                    dir(WEB_CONSOLE_SERVER_DIR) {
-                        sh "git checkout ${WEB_CONSOLE_SERVER_BRANCH}"
-                    }
-                }
-            }
-
-            stage("prep web-console-server") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
-                if (USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER) {
-                    dir(WEB_CONSOLE_SERVER_DIR) {
-                        // Enable fake merge driver used in our .gitattributes
-                        sh "git config merge.ours.driver true"
-                        // Use fake merge driver on specific packages
-                        sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
-                        sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
-
-
-                        sh """
-                            # Pull content of master into enterprise branch
-                            git merge master --no-commit --no-ff
-                            git commit -m "Merge master into enterprise-${BUILD_VERSION}" --allow-empty
-                        """
-
-                        if (!IS_TEST_MODE) {
-                            sh "git push"
-                        }
-
-                        // Clean up any unstaged changes (e.g. .gitattributes)
-                        sh "git reset --hard HEAD"
-                    }
-                }
-            }
-
-            stage("merge web-console") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
-                // In OCP release < 3.9, web-console is vendored into OSE repo
-                TARGET_VENDOR_DIR = OSE_DIR
-                if (USE_WEB_CONSOLE_SERVER) {
-                    // In OCP release > 3.9, web-console is vendored into origin-web-console-server
-                    TARGET_VENDOR_DIR = WEB_CONSOLE_SERVER_DIR
-                }
-
-                dir(TARGET_VENDOR_DIR) {
-
-                    // Vendor a particular branch of the web console into our ose branch and capture the SHA we vendored in
-                    // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
-                    // we already setup?
-                    // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
-                    VC_COMMIT = sh(
-                        returnStdout: true,
-                        script: "GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
-                    ).trim()
-
-                    if (VC_COMMIT == "") {
-                        sh("GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null")
-                        error("Unable to acquire VC_COMMIT")
-                    }
-
-                    // Vendoring the console will rebuild this assets, so add them to the commit
-                    sh """
-                    git add pkg/assets/bindata.go
-                    git add pkg/assets/java/bindata.go
-                """
-
-                    if (USE_WEB_CONSOLE_SERVER && !IS_TEST_MODE) {
-                        sh "git commit -m 'bump origin-web-console ${VC_COMMIT}' --allow-empty"
-                        sh "git push"
-                    }
-                }
-
-            }
-
-
-            stage("openshift-ansible repo") {
-                buildlib.initialize_openshift_ansible()
-            }
-
-            stage("openshift-ansible prep") {
-                OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "master"
-                dir(OPENSHIFT_ANSIBLE_DIR) {
-                    if (!IS_SOURCE_IN_MASTER) {
-                        // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
-                        if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
-                        } else {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
-                        }
-                        sh "git checkout -b ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
-                    } else {
-                        sh "git checkout master"
-                    }
-                }
-            }
-
-            // stages after this have side effects. Testing must stop here.
-            if (IS_TEST_MODE) {
-                echo(
-                    "TEST MODE complete: no builds executed")
-                currentBuild.result = "SUCCESS"
-                return
-            }
-
             stage("ose tag") {
                 dir(OSE_DIR) {
                     // Set the new version/release value in the file and tell tito to keep the version & release in the spec.
@@ -752,10 +571,6 @@ node {
                     // Note that I did not use --use-release because it did not maintain variables like %{?dist}
 
                     commit_msg = "Automatic commit of package [atomic-openshift] release [${NEW_VERSION}-${NEW_RELEASE}]"
-                    if (BUILD_VERSION_MAJOR == 3 && !USE_WEB_CONSOLE_SERVER) {
-                        // If vendoring web console into ose, include the VC_COMMIT information in the ose commit
-                        commit_msg = "${commit_msg} ; bump origin-web-console ${VC_COMMIT}"
-                    }
 
                     sh "git commit --allow-empty -m '${commit_msg}'" // add commit to capture our change message
                     sh "tito tag --accept-auto-changelog --keep-version --debug"
@@ -764,27 +579,6 @@ node {
                         sh "git push --tags"
                     }
                     OSE_CHANGELOG = buildlib.read_changelog("origin.spec")
-                }
-            }
-
-            stage("openshift-ansible tag") {
-                dir(OPENSHIFT_ANSIBLE_DIR) {
-                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                        // Use legacy versioning if < 3.6
-                        sh "tito tag --debug --accept-auto-changelog"
-                    } else {
-                        // If >= 3.6, keep openshift-ansible in sync with OCP version
-                        buildlib.set_rpm_spec_version("openshift-ansible.spec", NEW_VERSION)
-                        buildlib.set_rpm_spec_release_prefix("openshift-ansible.spec", NEW_RELEASE)
-                        // Note that I did not use --use-release because it did not maintain variables like %{?dist}
-                        sh "tito tag --debug --accept-auto-changelog --keep-version --debug"
-
-                    }
-                    if (!IS_TEST_MODE) {
-                        sh "git push"
-                        sh "git push --tags"
-                    }
-                    OA_CHANGELOG = buildlib.read_changelog("openshift-ansible.spec")
                 }
             }
 
@@ -871,8 +665,7 @@ images:rebase --version v${NEW_VERSION}
             // loop through all new commits and notify their owners
 
             SOURCE_BRANCHES = [
-                "ose"              : OSE_SOURCE_BRANCH,
-                "openshift-ansible": OPENSHIFT_ANSIBLE_SOURCE_BRANCH
+                "ose"              : OSE_SOURCE_BRANCH
             ]
             for (i = 0; i < distgit_notify.size(); i++) {
                 distgit = distgit_notify[i][0]
@@ -977,27 +770,6 @@ images:build
             OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
             final mirror_url = get_mirror_url(BUILD_MODE, BUILD_VERSION)
 
-            stage("ami") {
-                if (params.BUILD_AMI && BUILD_CONTAINER_IMAGES) {
-                    // define openshift ansible source branch
-                    OPENSHIFT_ANSIBLE_SOURCE_BRANCH = 'master'
-                    if (!IS_SOURCE_IN_MASTER) {
-                        // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
-                        if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
-                        } else {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${BUILD_VERSION}"
-                        }
-                    }
-                    buildlib.build_ami(
-                        BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
-                        NEW_VERSION, NEW_RELEASE,
-                        "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
-                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
-                        MAIL_LIST_FAILURE)
-                }
-            }
-
             if (NEW_RELEASE != "1") {
                 // If this is not a release candidate, push binary in a directory qualified with release field information
                 buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION)
@@ -1041,7 +813,7 @@ Jenkins job: ${env.BUILD_URL}
                     currentBuild.description = "Error creating ose release in github:\n${release_ex}"
                 }
             }
-            mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG)
+            mail_success(NEW_FULL_VERSION, mirror_url, record_log)
         }
     } catch (err) {
 

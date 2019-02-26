@@ -16,6 +16,12 @@ ocpVersions = [
     "3.1",
 ]
 
+ocp4DefaultVersion = "4.0"
+ocp4Versions = [
+    "4.1",
+    "4.0",
+]
+
 /**
  * Handles any common setup required by the library
  */
@@ -52,6 +58,17 @@ def oseVersionParam(name='MINOR_VERSION') {
         defaultValue: ocpDefaultVersion,
     ]
 }
+
+def ocp4VersionParam(name='MINOR_VERSION') {
+    return [
+        name: name,
+        description: 'OSE Version',
+        $class: 'hudson.model.ChoiceParameterDefinition',
+        choices: ocp4Versions.join('\n'),
+        defaultValue: ocp4DefaultVersion,
+    ]
+}
+
 
 def cleanCommaList(str) {
     // turn a list separated by commas or spaces into a comma-separated list

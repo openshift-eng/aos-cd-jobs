@@ -46,6 +46,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'EXCLUDE_IMAGES',
+                        description: 'CSV list of images to skip building (IMAGES value is ignored)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
                         name: 'IMAGE_MODE',
                         description: 'How to update image dist-gits: with a source rebase, just dockerfile updates, or not at all (no version/release update)',
                         $class: 'hudson.model.ChoiceParameterDefinition',
@@ -89,6 +95,7 @@ node {
     release = params.RELEASE.trim()
     repo_type = params.SIGNED ? "signed" : "unsigned"
     images = commonlib.cleanCommaList(params.IMAGES)
+    exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
     rpms = commonlib.cleanCommaList(params.RPMS)
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
@@ -156,14 +163,24 @@ node {
                 }
             }
 
+            // determine which images, if any, should be built, and how to tell doozer that
+            include_exclude = ""
+            any_images_to_build = true
+            if (exclude_images) {
+                include_exclude = "-x ${exclude_images}"
+            } else if (images.toUpperCase() == "NONE") {
+                any_images_to_build = false
+            } else if (images) {
+                include_exclude = "-i ${images}"
+            }
+
             stage("update dist-git") {
-                if (images.toUpperCase() == "NONE") { return }
+                if (!any_images_to_build) { return }
                 if (params.IMAGE_MODE == "nothing") { return }
 
                 command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
-                command += "--latest-parent-version "
                 if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
-                if (images) { command += "-i '${images}' " }
+                command += "--latest-parent-version ${include_exclude} "
                 command += "images:${params.IMAGE_MODE} --version ${version} --release ${release} "
                 command += "--repo-type ${repo_type} "
                 command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
@@ -171,12 +188,10 @@ node {
             }
 
             stage("build images") {
-                if (images.toUpperCase() != "NONE") {
-                    command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
-                    if (images) { command += "-i '${images}' " }
-                    command += "images:build --push-to-defaults --repo-type ${repo_type} "
-                    buildlib.doozer command
-                }
+                if (!any_images_to_build) { return }
+                command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                command += "${include_exclude} images:build --push-to-defaults --repo-type ${repo_type} "
+                buildlib.doozer command
             }
 
             mail(to: "${params.MAIL_LIST_SUCCESS}",

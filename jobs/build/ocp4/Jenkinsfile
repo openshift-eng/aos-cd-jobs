@@ -121,7 +121,6 @@ ${image_details}
 
 Brew:
   - Openshift: ${OSE_BREW_URL}
-  - OpenShift Ansible: ${OA_BREW_URL}
 
 Jenkins job: ${env.BUILD_URL}
 
@@ -131,9 +130,6 @@ https://github.com/openshift/ose/commits/v${NEW_VERSION}-${NEW_RELEASE}/
 ===Atomic OpenShift changelog snippet===
 ${OSE_CHANGELOG}
 
-
-Are your OpenShift Ansible changes in this build? Check here:
-https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_VERSION}-${NEW_RELEASE}/
 
 """);
 
@@ -147,7 +143,6 @@ https://github.com/openshift/openshift-ansible/commits/openshift-ansible-${NEW_V
                         puddle_url=${mirrorURL}/${OCP_PUDDLE}
                         image_registry_root=registry.reg-aws.openshift.com:443
                         brew_task_url_openshift=${OSE_BREW_URL}
-                        brew_task_url_openshift_ANSIBLE=${OA_BREW_URL}
                         product=OpenShift Container Platform
                         """,
                     messageType: 'ProductBuildDone',
@@ -279,9 +274,9 @@ node {
                         name: 'BUILD_MODE',
                         description: '''
     auto                      BUILD_VERSION and ocp repo contents determine the mode<br>
-    release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-    pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-    online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
+    release                   ose/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
+    pre-release               origin/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
+    online:int                origin/master -> online-int yum repo<br>
     ''',
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
@@ -594,28 +589,12 @@ node {
                     echo "ose rpm brew task: ${OSE_BREW_URL}"
                 }
 
-                dir(OPENSHIFT_ANSIBLE_DIR) {
-                    OA_TASK_ID = sh(
-                        returnStdout: true,
-                        script: "tito release --debug --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
-                    )
-                    OA_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OA_TASK_ID}"
-                    echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
-                }
-
                 // Watch the tasks to make sure they succeed. If one fails, make sure the user knows which one by providing the correct brew URL
                 try {
                     sh "brew watch-task ${OSE_TASK_ID}"
                 } catch (ose_err) {
                     echo "Error in ose build task: ${OSE_BREW_URL}"
                     throw ose_err
-                }
-
-                try {
-                    sh "brew watch-task ${OA_TASK_ID}"
-                } catch (oa_err) {
-                    echo "Error in openshift-ansible build task: ${OA_BREW_URL}"
-                    throw oa_err
                 }
             }
 

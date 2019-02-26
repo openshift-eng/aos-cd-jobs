@@ -28,6 +28,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'SKIP_OSE',
+                        description: 'If certain the ose repo is not needed, save minutes by not cloning it.',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'RPMS',
                         description: 'CSV list of RPMs to build. Empty for all. Enter "NONE" to not build any.',
                         $class: 'hudson.model.StringParameterDefinition',
@@ -97,6 +103,7 @@ node {
             // Some images require OSE as a source.
             // Instead of trying to figure out which do, always clone
             stage("ose repo") {
+                if (params.SKIP_OSE) { return }
                 // defines:
                 //   OPENSHIFT_DIR // by calling initialize_openshift_dir()
                 ///  OSE_DIR
@@ -121,8 +128,8 @@ node {
             stage("rpm builds") {
                 if (rpms.toUpperCase() != "NONE") {
                     command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
-                    command += "--source ose ${OSE_DIR} "
                     if (rpms) { command += "-r '${rpms}' " }
+                    if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
                     command += "rpms:build --version ${version} --release ${release} "
                     buildlib.doozer command
                 }
@@ -153,7 +160,8 @@ node {
                     task = params.REBASE_IMAGES ? "rebase" : "update-dockerfile"
 
                     command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
-                    command += "--source ose ${OSE_DIR} --latest-parent-version "
+                    command += "--latest-parent-version "
+                    if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
                     if (images) { command += "-i '${images}' " }
                     command += "images:${task} --version ${version} --release ${release} "
                     command += "--repo-type ${repo_type} "

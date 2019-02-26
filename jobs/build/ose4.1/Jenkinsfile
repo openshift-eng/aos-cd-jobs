@@ -5,7 +5,7 @@ properties(
         ] )
 
 
-b = build       job: '../aos-cd-builds/build%2Focp', propagate: false,
+b = build       job: '../aos-cd-builds/build%2Focp4', propagate: false,
                 parameters: [   [$class: 'StringParameterValue', name: 'BUILD_VERSION', value: '4.1'],
                                 [$class: 'StringParameterValue', name: 'BUILD_MODE', value: 'online:int'],
                                 ]

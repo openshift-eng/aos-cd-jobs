@@ -46,10 +46,11 @@ node {
                         defaultValue: ""
                     ],
                     [
-                        name: 'REBASE_IMAGES',
-                        description: 'Run images:rebase? Otherwise use images:update-dockerfile',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: true
+                        name: 'IMAGE_MODE',
+                        description: 'How to update image dist-gits: with a source rebase, just dockerfile updates, or not at all (no version/release update)',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['rebase', 'update-dockerfile', 'nothing'].join('\n'),
+                        defaultValue: 'images:rebase',
                     ],
                     [
                         name: 'SIGNED',
@@ -156,18 +157,17 @@ node {
             }
 
             stage("update dist-git") {
-                if (images.toUpperCase() != "NONE") {
-                    task = params.REBASE_IMAGES ? "rebase" : "update-dockerfile"
+                if (images.toUpperCase() == "NONE") { return }
+                if (params.IMAGE_MODE == "nothing") { return }
 
-                    command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
-                    command += "--latest-parent-version "
-                    if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
-                    if (images) { command += "-i '${images}' " }
-                    command += "images:${task} --version ${version} --release ${release} "
-                    command += "--repo-type ${repo_type} "
-                    command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
-                    buildlib.doozer command
-                }
+                command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                command += "--latest-parent-version "
+                if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
+                if (images) { command += "-i '${images}' " }
+                command += "images:${params.IMAGE_MODE} --version ${version} --release ${release} "
+                command += "--repo-type ${repo_type} "
+                command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
+                buildlib.doozer command
             }
 
             stage("build images") {

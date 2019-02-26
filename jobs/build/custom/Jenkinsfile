@@ -104,6 +104,9 @@ node {
     sh "rm -rf ${doozer_working}"
     sh "mkdir -p ${doozer_working}"
 
+
+    currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
+
     try {
         sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
@@ -112,6 +115,8 @@ node {
             // Instead of trying to figure out which do, always clone
             stage("ose repo") {
                 if (params.SKIP_OSE) { return }
+                currentBuild.description = "checking out ose repo"
+
                 // defines:
                 //   OPENSHIFT_DIR // by calling initialize_openshift_dir()
                 ///  OSE_DIR
@@ -132,9 +137,12 @@ node {
                 env.OSE_DIR = OSE_DIR
                 echo "Initialized env.OSE_DIR: ${env.OSE_DIR}"
             }
+            currentBuild.description = ""
 
             stage("rpm builds") {
                 if (rpms.toUpperCase() != "NONE") {
+                    currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
+                    currentBuild.description = "building RPM(s): ${rpms}\n"
                     command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
                     if (rpms) { command += "-r '${rpms}' " }
                     if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
@@ -168,14 +176,17 @@ node {
             any_images_to_build = true
             if (exclude_images) {
                 include_exclude = "-x ${exclude_images}"
+                currentBuild.displayName += " [images]"
             } else if (images.toUpperCase() == "NONE") {
                 any_images_to_build = false
             } else if (images) {
                 include_exclude = "-i ${images}"
+                currentBuild.displayName += images.contains(",") ? " [images]" : " [${images} image]"
             }
 
             stage("update dist-git") {
                 if (!any_images_to_build) { return }
+                currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
                 if (params.IMAGE_MODE == "nothing") { return }
 
                 command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
@@ -196,16 +207,20 @@ node {
 
             mail(to: "${params.MAIL_LIST_SUCCESS}",
                 from: "aos-team-art@redhat.com",
-                subject: "Successful custom OCP build: ${version}-${release}",
-                body: "Jenkins job: ${env.BUILD_URL}");
+                subject: "Successful custom OCP build: ${currentBuild.displayName}",
+                body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}");
         }
     } catch (err) {
+        currentBuild.description = "failed with error: ${err}\n${currentBuild.description}"
         mail(to: "${params.MAIL_LIST_FAILURE}",
              from: "aos-team-art@redhat.com",
-             subject: "Error building custom OCP: ${version}-${release}",
-             body: """Encountered an error while running OCP pipeline: ${err}
+             subject: "Error building custom OCP: ${currentBuild.displayName}",
+             body: """Encountered an error while running OCP pipeline:
 
-    Jenkins job: ${env.BUILD_URL}
+${currentBuild.description}
+
+Jenkins job: ${env.BUILD_URL}
+Job console: ${env.BUILD_URL}/console
     """);
 
         currentBuild.result = "FAILURE"

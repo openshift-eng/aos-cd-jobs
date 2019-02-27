@@ -202,6 +202,7 @@ export GOPATH=/data
 cd \$GOPATH/src/github.com/openshift/cluster-api-provider-libvirt
 go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
 sudo mv /data/bin/imagebuilder /usr/bin
+sed -i &#34;s/FROM registry\.svc\.ci\.openshift\.org\/openshift\/origin-v4\.0:base/FROM docker\.io\/gofed\/base:baseci/&#34; Dockerfile
 sudo make images IMAGE=gcr.io/k8s-cluster-api/libvirt-machine-controller VERSION=0.0.1 NO_DOCKER=1
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -251,6 +252,7 @@ ssh libvirtactuator &#34;systemctl enable docker&#34;
 ssh libvirtactuator &#34;systemctl start docker&#34;
 # Copy built docker image to the instance
 docker save gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 | bzip2 | ssh libvirtactuator &#34;bunzip2 &gt; /tmp/tempimage.bz2 &amp;&amp; sudo docker load -i /tmp/tempimage.bz2&#34;
+
 # Copy built docker image into the minikube guest
 ssh libvirtactuator &#39;docker save gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 | bzip2 | ssh -o StrictHostKeyChecking=no -i ~/.minikube/machines/minikube/id_rsa docker@\$(minikube ip) &#34;bunzip2 &gt; /tmp/tempimage.bz2 &amp;&amp; sudo docker load -i /tmp/tempimage.bz2&#34;&#39;
 SCRIPT
@@ -289,7 +291,8 @@ ssh libvirtactuator &#39;sudo systemctl status libvirtd&#39;
 ssh libvirtactuator &#39;sudo systemctl start libvirtd&#39;
 
 # run the e2e
-ssh libvirtactuator &#34;./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -actuator-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri &#39;qemu+ssh://root@\${LIBVIRT_IP}/system?no_verify=1&amp;keyfile=/root/.ssh/actuator.pem/privatekey&#39; -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem&#34;
+MAO_IMAGE=\$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
+ssh libvirtactuator &#34;./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -machine-manager-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -nodelink-controller-image \$MAO_IMAGE -machine-controller-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri &#39;qemu+ssh://root@\${LIBVIRT_IP}/system?no_verify=1&amp;keyfile=/root/.ssh/actuator.pem/privatekey&#39; -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

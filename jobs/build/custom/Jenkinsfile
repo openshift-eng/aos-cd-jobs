@@ -17,7 +17,7 @@ node {
                     commonlib.oseVersionParam('BUILD_VERSION'),
                     [
                         name: 'VERSION',
-                        description: 'Version string for build without leading "v" (i.e. 4.0.0)',
+                        description: 'Version string for build (e.g. 4.0.0)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -26,6 +26,12 @@ node {
                         description: 'Release string for build',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
+                    ],
+                    [
+                        name: 'SKIP_OSE',
+                        description: 'If certain the ose repo is not needed, save minutes by not cloning it.',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
                     ],
                     [
                         name: 'RPMS',
@@ -40,14 +46,21 @@ node {
                         defaultValue: ""
                     ],
                     [
-                        name: 'REBASE_IMAGES',
-                        description: 'Run images:rebase? Otherwise use images:update-dockerfile',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: true
+                        name: 'EXCLUDE_IMAGES',
+                        description: 'CSV list of images to skip building (IMAGES value is ignored)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'IMAGE_MODE',
+                        description: 'How to update image dist-gits: with a source rebase, just dockerfile updates, or not at all (no version/release update)',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['rebase', 'update-dockerfile', 'nothing'].join('\n'),
+                        defaultValue: 'images:rebase',
                     ],
                     [
                         name: 'SIGNED',
-                        description: 'Build against signed RPMs?',
+                        description: 'Build images against signed RPMs?',
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
                     ],
@@ -75,40 +88,47 @@ node {
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize(false)
+    GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
-    MASTER_VER = commonlib.ocpDefaultVersion
-    GITHUB_BASE = "git@github.com:openshift"
-    SSH_KEY_ID = "openshift-bot"
-
-    REBASE_IMAGES = REBASE_IMAGES.toBoolean()
-    REPO_TYPE = SIGNED.toBoolean() ? "signed" : "unsigned"
-    IMAGES = commonlib.cleanCommaList(IMAGES)
+    master_ver = commonlib.ocpDefaultVersion
+    version = commonlib.standardVersion(params.VERSION)
+    release = params.RELEASE.trim()
+    repo_type = params.SIGNED ? "signed" : "unsigned"
+    images = commonlib.cleanCommaList(params.IMAGES)
+    exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
+    rpms = commonlib.cleanCommaList(params.RPMS)
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
-    DOOZER_WORKING = "${WORKSPACE}/doozer_working"
-    //Clear out previous work
-    sh "rm -rf ${DOOZER_WORKING}"
-    sh "mkdir -p ${DOOZER_WORKING}"
+    doozer_working = "${WORKSPACE}/doozer_working"
+    //Clear out previous workspace
+    sh "rm -rf ${doozer_working}"
+    sh "mkdir -p ${doozer_working}"
+
+
+    currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
 
     try {
-        sshagent([SSH_KEY_ID]) {
+        sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
 
             // Some images require OSE as a source.
             // Instead of trying to figure out which do, always clone
             stage("ose repo") {
+                if (params.SKIP_OSE) { return }
+                currentBuild.description = "checking out ose repo"
+
                 // defines:
                 //   OPENSHIFT_DIR // by calling initialize_openshift_dir()
                 ///  OSE_DIR
                 //   GITHUB_URLS["ose"]
                 //   GITHUB_BASE_PATHS["ose"]
                 buildlib.initialize_openshift_dir()
-                CHECKOUT_BRANCH = "enterprise-${BUILD_VERSION}"
-                if(BUILD_VERSION == MASTER_VER){ CHECKOUT_BRANCH = "master"}
+                checkout_branch = "enterprise-${params.BUILD_VERSION}"
+                if(params.BUILD_VERSION == master_ver){ checkout_branch = "master"}
 
                 // since there's no merge and commit back, single depth is way faster
                 dir( OPENSHIFT_DIR ) {
-                    sh "git clone -b ${CHECKOUT_BRANCH} --single-branch ${GITHUB_BASE}/ose.git --depth 1"
+                    sh "git clone -b ${checkout_branch} --single-branch ${GITHUB_BASE}/ose.git --depth 1"
                     GITHUB_URLS["ose"] = "${GITHUB_BASE}/ose.git"
                 }
 
@@ -117,25 +137,28 @@ node {
                 env.OSE_DIR = OSE_DIR
                 echo "Initialized env.OSE_DIR: ${env.OSE_DIR}"
             }
+            currentBuild.description = ""
 
             stage("rpm builds") {
-                if (RPMS.toUpperCase() != "NONE") {
-                    command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
-                    command += "--source ose ${OSE_DIR} "
-                    if (RPMS?.trim()) { command += "-r '${RPMS}' " }
-                    command += "rpms:build --version v${VERSION} --release ${RELEASE} "
+                if (rpms.toUpperCase() != "NONE") {
+                    currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
+                    currentBuild.description = "building RPM(s): ${rpms}\n"
+                    command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                    if (rpms) { command += "-r '${rpms}' " }
+                    if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
+                    command += "rpms:build --version ${version} --release ${release} "
                     buildlib.doozer command
                 }
             }
 
             stage("puddle: ose 'building'") {
-                if (RPMS.toUpperCase() != "NONE") {
+                if (rpms.toUpperCase() != "NONE") {
                     AOS_CD_JOBS_COMMIT_SHA = sh(
                         returnStdout: true,
                         script: "git rev-parse HEAD",
                     ).trim()
                     PUDDLE_CONF_BASE = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
-                    PUDDLE_CONF = "${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}.conf"
+                    PUDDLE_CONF = "${PUDDLE_CONF_BASE}/atomic_openshift-${params.BUILD_VERSION}.conf"
                     OCP_PUDDLE = buildlib.build_puddle(
                         PUDDLE_CONF,    // The puddle configuration file to use
                         null, // openshifthosted key
@@ -148,42 +171,56 @@ node {
                 }
             }
 
-            stage("update dist-git") {
-                if (IMAGES.toUpperCase() != "NONE") {
-                    TASK = "update-dockerfile"
-                    if(REBASE_IMAGES) { TASK = "rebase" }
+            // determine which images, if any, should be built, and how to tell doozer that
+            include_exclude = ""
+            any_images_to_build = true
+            if (exclude_images) {
+                include_exclude = "-x ${exclude_images}"
+                currentBuild.displayName += " [images]"
+            } else if (images.toUpperCase() == "NONE") {
+                any_images_to_build = false
+            } else if (images) {
+                include_exclude = "-i ${images}"
+                currentBuild.displayName += images.contains(",") ? " [images]" : " [${images} image]"
+            }
 
-                    command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
-                    command += "--source ose ${OSE_DIR} --latest-parent-version "
-                    if (IMAGES?.trim()) { command += "-i '${IMAGES}' " }
-                    command += "images:${TASK} --version v${VERSION} --release ${RELEASE} "
-                    command += "--repo-type ${REPO_TYPE} "
-                    command += "--message 'Updating Dockerfile version and release v${VERSION}-${RELEASE}' --push "
-                    buildlib.doozer command
-                }
+            stage("update dist-git") {
+                if (!any_images_to_build) { return }
+                currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
+                if (params.IMAGE_MODE == "nothing") { return }
+
+                command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
+                command += "--latest-parent-version ${include_exclude} "
+                command += "images:${params.IMAGE_MODE} --version ${version} --release ${release} "
+                command += "--repo-type ${repo_type} "
+                command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
+                buildlib.doozer command
             }
 
             stage("build images") {
-                if (IMAGES.toUpperCase() != "NONE") {
-                    command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}' "
-                    if (IMAGES?.trim()) { command += "-i '${IMAGES}' " }
-                    command += "images:build --push-to-defaults --repo-type ${REPO_TYPE} "
-                    buildlib.doozer command
-                }
+                if (!any_images_to_build) { return }
+                command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                command += "${include_exclude} images:build --push-to-defaults --repo-type ${repo_type} "
+                buildlib.doozer command
             }
 
-            mail(to: "${MAIL_LIST_SUCCESS}",
+            mail(to: "${params.MAIL_LIST_SUCCESS}",
                 from: "aos-team-art@redhat.com",
-                subject: "Successful custom OCP build: ${VERSION}-${RELEASE}",
-                body: "Jenkins job: ${env.BUILD_URL}");
+                subject: "Successful custom OCP build: ${currentBuild.displayName}",
+                body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}");
         }
     } catch (err) {
-        mail(to: "${MAIL_LIST_FAILURE}",
+        currentBuild.description = "failed with error: ${err}\n${currentBuild.description}"
+        mail(to: "${params.MAIL_LIST_FAILURE}",
              from: "aos-team-art@redhat.com",
-             subject: "Error building custom OCP: v${VERSION}-${RELEASE}",
-             body: """Encountered an error while running OCP pipeline: ${err}
+             subject: "Error building custom OCP: ${currentBuild.displayName}",
+             body: """Encountered an error while running OCP pipeline:
 
-    Jenkins job: ${env.BUILD_URL}
+${currentBuild.description}
+
+Jenkins job: ${env.BUILD_URL}
+Job console: ${env.BUILD_URL}/console
     """);
 
         currentBuild.result = "FAILURE"

@@ -69,6 +69,15 @@ def ocp4VersionParam(name='MINOR_VERSION') {
     ]
 }
 
+def standardVersion(String version, Boolean withV=true) {
+    version = version.trim()
+    def match = version =~ /(?ix) ^v? (  \d+ (\.\d+)+  )$/
+    if (!match) {
+        error("Not a valid version: ${version}")
+    }
+    version = match[0][1] // first group in the regex
+    return withV ? "v${version}" : version
+}
 
 def cleanCommaList(str) {
     // turn a list separated by commas or spaces into a comma-separated list

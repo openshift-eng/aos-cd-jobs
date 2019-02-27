@@ -14,6 +14,7 @@ extensions:
         cd $GOPATH/src/github.com/openshift/cluster-api-provider-libvirt
         go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
         sudo mv /data/bin/imagebuilder /usr/bin
+        sed -i "s/FROM registry\.svc\.ci\.openshift\.org\/openshift\/origin-v4\.0:base/FROM docker\.io\/gofed\/base:baseci/" Dockerfile
         sudo make images IMAGE=gcr.io/k8s-cluster-api/libvirt-machine-controller VERSION=0.0.1 NO_DOCKER=1
     - type: "script"
       title: "Create cluster resources"
@@ -53,6 +54,7 @@ extensions:
         ssh libvirtactuator "systemctl start docker"
         # Copy built docker image to the instance
         docker save gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 | bzip2 | ssh libvirtactuator "bunzip2 > /tmp/tempimage.bz2 && sudo docker load -i /tmp/tempimage.bz2"
+
         # Copy built docker image into the minikube guest
         ssh libvirtactuator 'docker save gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 | bzip2 | ssh -o StrictHostKeyChecking=no -i ~/.minikube/machines/minikube/id_rsa docker@$(minikube ip) "bunzip2 > /tmp/tempimage.bz2 && sudo docker load -i /tmp/tempimage.bz2"'
     - type: "script"
@@ -81,7 +83,8 @@ extensions:
         ssh libvirtactuator 'sudo systemctl start libvirtd'
 
         # run the e2e
-        ssh libvirtactuator "./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -actuator-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri 'qemu+ssh://root@${LIBVIRT_IP}/system?no_verify=1&keyfile=/root/.ssh/actuator.pem/privatekey' -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem"
+        MAO_IMAGE=$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
+        ssh libvirtactuator "./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -machine-manager-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -nodelink-controller-image $MAO_IMAGE -machine-controller-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri 'qemu+ssh://root@${LIBVIRT_IP}/system?no_verify=1&keyfile=/root/.ssh/actuator.pem/privatekey' -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem"
   system_journals:
     - systemd-journald.service
 overrides:

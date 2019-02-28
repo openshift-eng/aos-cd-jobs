@@ -792,37 +792,42 @@ node {
                 // Allow both brew builds to run at the same time
 
                 dir(OSE_DIR) {
-                    OSE_TASK_ID = sh(
+                    oseTaskId = sh(
                         returnStdout: true,
                         script: "tito release --debug --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
-                    OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OSE_TASK_ID}"
-                    echo "ose rpm brew task: ${OSE_BREW_URL}"
+                    OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${oseTaskId }"
+                    echo "atomic-openshift rpm brew task: ${OSE_BREW_URL}"
                 }
 
                 dir(OPENSHIFT_ANSIBLE_DIR) {
-                    OA_TASK_ID = sh(
+                    oaTaskId = sh(
                         returnStdout: true,
                         script: "tito release --debug --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
-                    OA_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OA_TASK_ID}"
+                    OA_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${oaTaskId}"
                     echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
                 }
 
-                // Watch the tasks to make sure they succeed. If one fails, make sure the user knows which one by providing the correct brew URL
-                try {
-                    sh "brew watch-task ${OSE_TASK_ID}"
-                } catch (ose_err) {
-                    echo "Error in ose build task: ${OSE_BREW_URL}"
-                    throw ose_err
+                // Watch the tasks to make sure they succeed. If one fails, retry and make sure messaging to user indicates which failed
+                Closure watchAndRetry = { name, taskId, brewUrl ->
+                    try {
+                        sh "brew watch-task ${taskId}"
+                    } catch (err) {
+                        msg = "Error in ${name} RPM build task: ${err}\nSee failed brew task ${brewUrl}"
+                        echo msg
+                        try {
+                            retry(2) {
+                                sh "brew resubmit ${taskId}"
+                            }
+                        } catch (err2) {
+                            echo "giving up on ${name} RPM build after three failures"
+                            error(msg)
+                        }
+                    }
                 }
-
-                try {
-                    sh "brew watch-task ${OA_TASK_ID}"
-                } catch (oa_err) {
-                    echo "Error in openshift-ansible build task: ${OA_BREW_URL}"
-                    throw oa_err
-                }
+                parallel "atomic-openshift": { watchAndRetry("atomic-openshift", oseTaskId, OSE_BREW_URL) },
+                         "openshift-ansible": { watchAndRetry("openshift-ansible", oaTaskId, OA_BREW_URL) }
             }
 
             stage("doozer build rpms") {

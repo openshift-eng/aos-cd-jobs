@@ -3,15 +3,9 @@ parent: 'common/test_cases/minimal.yml'
 overrides:
   sync:
     - "openshift,cluster-api-provider-kubemark=master"
+    - "openshift,machine-api-operator=master"
 extensions:
   actions:
-    - type: "host_script"
-      title: "Upload the default AWS credentiasl"
-      script: |-
-         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.aws"
-         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws
-         ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.ssh"
-         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.ssh/devenv.pem openshiftdevel:~/.ssh/devenv.pem
     - type: "script"
       title: "Install minikube"
       script: |-
@@ -36,20 +30,10 @@ extensions:
         sudo setenforce 0
         # https://github.com/kubernetes/minikube/blob/master/docs/configuring_kubernetes.md
         sudo minikube start --vm-driver=none --extra-config=kubelet.cgroup-driver=systemd --kubernetes-version v1.12.0 --v 5
+        sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
     - type: "script"
-      title: "Build the machine controller"
+      title: "Install kustomize"
       script: |-
-        export GOPATH=/data
-        cd $GOPATH/src/github.com/openshift/cluster-autoscaler-operator
-        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
-        sudo mv /data/bin/imagebuilder /usr/bin
-        export NO_DOCKER=1
-        sudo -E make images IMAGE="docker.io/openshift/origin-cluster-autoscaler-operator" VERSION="v4.0"
-    - type: "script"
-      title: "Deploy kubemark actuator stack"
-      script: |-
-        export GOPATH=/data
-        cd $GOPATH/src/github.com/openshift/cluster-api-provider-kubemark/
         curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest |\
           grep browser_download |\
           grep linux |\
@@ -57,24 +41,48 @@ extensions:
           xargs curl -O -L
         chmod u+x kustomize_*_linux_amd64
         sudo mv kustomize_*_linux_amd64 /usr/bin/kustomize
-        cd config
-        kustomize build | sudo kubectl apply --validate=false -f -
+    - type: "script"
+      title: "Deploy machine API operator"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/machine-api-operator/
 
-        sudo cp /etc/ssl/certs/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt
+        # TODO(jchaloup): once 220 gets merge, remove this
+        git remote add origin https://github.com/openshift/machine-api-operator
+        git fetch origin pull/220/head:220
+        git checkout 220
+
+        # deploy expected cluster and machineset objects
+        sed -i "s/image: docker\.io\/openshift\/origin-machine-api-operator:v4\.0\.0/image: docker\.io\/gofed\/machine-api-operator:v0\.1\.0-181-g4b6bfc4/" install/0000_30_machine-api-operator_09_deployment.yaml
+        sudo make deploy-kubemark
     - type: "script"
       title: "Deploy cluster autoscaler operator"
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-autoscaler-operator/
-        # deploy expected cluster and machineset objects
-        sudo kubectl apply -f test/resources/cluster.yaml -f test/resources/machine-set.yaml
         kustomize build | sudo kubectl apply -f -
+    - type: "script"
+      title: "Deploy cluster resources"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-kubemark
+        sudo kubectl apply -f examples/machine-set.yaml
+    - type: "script"
+      title: "Install go 1.10.1"
+      script: |-
+        mkdir -p ~/bin
+        curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
+        chmod +x ~/bin/gimme
+        gimme 1.10.1
+        source ~/.gimme/envs/go1.10.1.env
+        sudo cp /home/origin/.gimme/versions/go1.10.1.linux.amd64/bin/go /bin/go
     - type: "script"
       title: "Run e2e tests"
       script: |-
         set +x
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-autoscaler-operator/
-        sudo make test-e2e NAMESPACE="kube-system" FOCUS="[k8s]"
+        source ~/.gimme/envs/go1.10.1.env
+        sudo -E make test-e2e NAMESPACE="kube-system"
   system_journals:
     - systemd-journald.service

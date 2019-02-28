@@ -577,8 +577,7 @@ node {
                 }
             }
 
-            stage("rpm builds") {
-                // Allow both brew builds to run at the same time
+            stage("ose rpm build") {
 
                 dir(OSE_DIR) {
                     OSE_TASK_ID = sh(
@@ -589,12 +588,21 @@ node {
                     echo "ose rpm brew task: ${OSE_BREW_URL}"
                 }
 
-                // Watch the tasks to make sure they succeed. If one fails, make sure the user knows which one by providing the correct brew URL
+                // Watch the task to make sure it succeeds, or retry if it fails.
                 try {
                     sh "brew watch-task ${OSE_TASK_ID}"
+                    return // success, end the stage
                 } catch (ose_err) {
-                    echo "Error in ose build task: ${OSE_BREW_URL}"
-                    throw ose_err
+                    echo "Error in ose build task: ${OSE_BREW_URL}\n${ose_err}"
+                }
+                // if we got here, it failed; this is usually a flake so retry twice.
+                try {
+                    retry(2) {
+                        sh "brew resubmit ${OSE_TASK_ID}"
+                    }
+                } catch (err) {
+                    currentBuild.description = "ose rpm build task failed three times:\nsee first failure at ${OSE_BREW_URL}"
+                    error(currentBuild.description)
                 }
             }
 

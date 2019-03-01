@@ -21,6 +21,7 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "3.9,3.10,3.11,4.0"
                     ],
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -83,7 +84,8 @@ node {
                     } catch (err) {
                         currentBuild.result = "UNSTABLE"
                         echo "Error running ${VERSION} merge:\n${err}"
-                        mail(to: "${MAIL_LIST_FAILURE}",
+                        commonlib.email(
+                            to: "${MAIL_LIST_FAILURE}",
                             from: "aos-team-art@redhat.com",
                             subject: "Error merging OCP v${VERSION}",
                             body: "Encountered an error while running OCP merge:\n${env.BUILD_URL}\n\n${err}"
@@ -105,10 +107,11 @@ node {
 
     } catch (err) {
         // This job is so simple that this should never really happen. But might as well have it.
-        mail(to: "${MAIL_LIST_FAILURE}",
-             from: "aos-team-art@redhat.com",
-             subject: "Unexpected error during OCP Merge!",
-             body: "Encountered an unexpected error while running OCP merge: ${err}"
+        commonlib.email(
+            to: "${MAIL_LIST_FAILURE}",
+            from: "aos-team-art@redhat.com",
+            subject: "Unexpected error during OCP Merge!",
+            body: "Encountered an unexpected error while running OCP merge: ${err}"
         );
 
         currentBuild.result = "FAILURE"

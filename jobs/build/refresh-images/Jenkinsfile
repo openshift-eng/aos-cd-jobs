@@ -43,7 +43,7 @@ node {
                         choices: "git@github.com:openshift\ngit@github.com:jupierce\ngit@github.com:jupierce-aos-cd-bot\ngit@github.com:adammhaile-aos-cd-bot",
                         defaultValue: 'git@github.com:openshift'
                     ],
-                    commonlib.oseVersionParam('BUILD_VERSION'),
+                    commonlib.ocpVersionParam('BUILD_VERSION'),
                     [
                         name: 'VERSION_OVERRIDE',
                         description: 'Optional version to use. (i.e. v3.6.17). Defaults to "auto"',

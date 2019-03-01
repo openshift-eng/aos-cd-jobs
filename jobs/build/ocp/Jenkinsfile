@@ -63,7 +63,7 @@ def get_changelog(rpm_name, record_log) {
     return changelog
 }
 
-def mail_success(version, mirrorURL, record_log, oa_changelog) {
+def mail_success(version, mirrorURL, record_log, oa_changelog, commonlib) {
 
     def target = "(Release Candidate)"
 
@@ -107,7 +107,7 @@ ${image_list}
         mail_list = MAIL_LIST_FAILURE
     }
 
-    mail(
+    commonlib.email(
         to: "${mail_list}",
         from: "aos-cicd@redhat.com",
         subject: "[aos-cicd] New${PARTIAL}build for OpenShift ${target}: ${version}${exclude_subject}",
@@ -261,6 +261,7 @@ node {
                         defaultValue: 'aos-cd-test'
                     ],
                     commonlib.ocpVersionParam('BUILD_VERSION', '3'),
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -892,13 +893,12 @@ images:rebase --version v${NEW_VERSION}
                     github_url = github_url.replaceFirst(":", "/")
                     dockerfile_sub_path = val['source_dockerfile_subpath']
                     dockerfile_url = "Upstream source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] + "/" + dockerfile_sub_path
-                    try {
-                        // always mail success list, val.owners will be comma delimited or empty
-                        mail(
-                            to: "aos-team-art@redhat.com,${val.owners}",
-                            from: "aos-cicd@redhat.com",
-                            subject: "${val.image} Dockerfile reconciliation for OCP v${BUILD_VERSION}",
-                            body: """
+                    // always mail success list, val.owners will be comma delimited or empty
+                    commonlib.email(
+                        to: "aos-team-art@redhat.com,${val.owners}",
+                        from: "aos-cicd@redhat.com",
+                        subject: "${val.image} Dockerfile reconciliation for OCP v${BUILD_VERSION}",
+                        body: """
 Why am I receiving this?
 You are receiving this message because you are listed as an owner for an OpenShift related image - or
 you recently made a modification to the definition of such an image in github. Upstream OpenShift Dockerfiles
@@ -923,12 +923,7 @@ ${dockerfile_url}
 The reconciled (downstream OCP) Dockerfile can be view here: https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
 Please direct any questions to the Automated Release Team (#aos-cd-team on IRC).
-                """);
-                    } catch (err) {
-
-                        echo "Failure sending email"
-                        echo "${err}"
-                    }
+                    """);
                 } catch (err_alias) {
 
                     echo "Failure resolving alias for email"
@@ -1035,7 +1030,7 @@ images:build
                     }
 
                 } catch( release_ex ) {
-                    mail(
+                    commonlib.email(
                         to: "aos-team-art@redhat.com",
                         from: "aos-cicd@redhat.com",
                         subject: "Error creating ose release in github",
@@ -1046,7 +1041,7 @@ Jenkins job: ${env.BUILD_URL}
                     currentBuild.description = "Error creating ose release in github:\n${release_ex}"
                 }
             }
-            mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG)
+            mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)
         }
     } catch (err) {
 
@@ -1061,13 +1056,14 @@ Jenkins job: ${env.BUILD_URL}
             ATTN = " - UNABLE TO UNTAG!"
         }
 
-        mail(to: "${MAIL_LIST_FAILURE}",
-             from: "aos-cicd@redhat.com",
-             subject: "Error building OSE: ${BUILD_VERSION}${ATTN}",
-             body: """Encountered an error while running OCP pipeline: ${err}
+        commonlib.email(
+            to: "${MAIL_LIST_FAILURE}",
+            from: "aos-cicd@redhat.com",
+            subject: "Error building OSE: ${BUILD_VERSION}${ATTN}",
+            body: """Encountered an error while running OCP pipeline: ${err}
 
-    Jenkins job: ${env.BUILD_URL}
-    """);
+Jenkins job: ${env.BUILD_URL}
+        """);
         currentBuild.description = "Error while running OCP pipeline:\n${err}"
         currentBuild.result = "FAILURE"
         throw err

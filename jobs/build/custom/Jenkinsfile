@@ -64,6 +64,7 @@ node {
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
                     ],
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -205,23 +206,25 @@ node {
                 buildlib.doozer command
             }
 
-            mail(to: "${params.MAIL_LIST_SUCCESS}",
+            commonlib.email(
+                to: "${params.MAIL_LIST_SUCCESS}",
                 from: "aos-team-art@redhat.com",
                 subject: "Successful custom OCP build: ${currentBuild.displayName}",
                 body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}");
         }
     } catch (err) {
         currentBuild.description = "failed with error: ${err}\n${currentBuild.description}"
-        mail(to: "${params.MAIL_LIST_FAILURE}",
-             from: "aos-team-art@redhat.com",
-             subject: "Error building custom OCP: ${currentBuild.displayName}",
-             body: """Encountered an error while running OCP pipeline:
+        commonlib.email(
+            to: "${params.MAIL_LIST_FAILURE}",
+            from: "aos-team-art@redhat.com",
+            subject: "Error building custom OCP: ${currentBuild.displayName}",
+            body: """Encountered an error while running OCP pipeline:
 
 ${currentBuild.description}
 
 Jenkins job: ${env.BUILD_URL}
 Job console: ${env.BUILD_URL}/console
-    """);
+    """)
 
         currentBuild.result = "FAILURE"
         throw err

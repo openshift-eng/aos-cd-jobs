@@ -63,7 +63,7 @@ def get_changelog(rpm_name, record_log) {
     return changelog
 }
 
-def mail_success(version, mirrorURL, record_log) {
+def mail_success(version, mirrorURL, record_log, commonlib) {
 
     def target = "(Release Candidate)"
 
@@ -107,7 +107,7 @@ ${image_list}
         mail_list = MAIL_LIST_FAILURE
     }
 
-    mail(
+    commonlib.email(
         to: "${mail_list}",
         from: "aos-cicd@redhat.com",
         subject: "[aos-cicd] New${PARTIAL}build for OpenShift ${target}: ${version}${exclude_subject}",
@@ -252,6 +252,7 @@ node {
                         defaultValue: 'aos-cd-test'
                     ],
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -669,7 +670,7 @@ images:rebase --version v${NEW_VERSION}
                     dockerfile_url = "Upstream source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] + "/" + dockerfile_sub_path
                     try {
                         // always mail success list, val.owners will be comma delimited or empty
-                        mail(
+                        commonlib.email(
                             to: "aos-team-art@redhat.com,${val.owners}",
                             from: "aos-cicd@redhat.com",
                             subject: "${val.image} Dockerfile reconciliation for OCP v${BUILD_VERSION}",
@@ -789,7 +790,7 @@ images:build
                     }
 
                 } catch( release_ex ) {
-                    mail(
+                    commonlib.email(
                         to: "aos-team-art@redhat.com",
                         from: "aos-cicd@redhat.com",
                         subject: "Error creating ose release in github",
@@ -800,7 +801,7 @@ Jenkins job: ${env.BUILD_URL}
                     currentBuild.description = "Error creating ose release in github:\n${release_ex}"
                 }
             }
-            mail_success(NEW_FULL_VERSION, mirror_url, record_log)
+            mail_success(NEW_FULL_VERSION, mirror_url, record_log, commonlib)
         }
     } catch (err) {
 
@@ -815,13 +816,14 @@ Jenkins job: ${env.BUILD_URL}
             ATTN = " - UNABLE TO UNTAG!"
         }
 
-        mail(to: "${MAIL_LIST_FAILURE}",
-             from: "aos-cicd@redhat.com",
-             subject: "Error building OSE: ${BUILD_VERSION}${ATTN}",
-             body: """Encountered an error while running OCP pipeline: ${err}
+        commonlib.email(
+            to: "${MAIL_LIST_FAILURE}",
+            from: "aos-cicd@redhat.com",
+            subject: "Error building OSE: ${BUILD_VERSION}${ATTN}",
+            body: """Encountered an error while running OCP pipeline: ${err}
 
-    Jenkins job: ${env.BUILD_URL}
-    """);
+Jenkins job: ${env.BUILD_URL}
+        """);
         currentBuild.description = "Error while running OCP pipeline:\n${err}"
         currentBuild.result = "FAILURE"
         throw err

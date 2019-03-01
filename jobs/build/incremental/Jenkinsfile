@@ -1,29 +1,5 @@
 #!/usr/bin/env groovy
 
-def mail_failure(Map params) {
-    def err = params.err ? params.err.getMessage() : "(unknown)"
-    def subject = params.get("subject", "Problem with incremental build for ${MINOR_VERSION}")
-    def stage = params.stage ? "in stage '${params.stage}' " : ""
-    def extra_body = params.get("extra_body", "")
-    try {
-        mail(
-                to: "${MAIL_LIST_FAILURE}",
-                from: "aos-cicd@redhat.com",
-                replyTo: 'aos-team-art@redhat.com',
-                subject: subject,
-                body: """\
-Encoutered an error ${stage}while running ${env.JOB_NAME}:
-${err}
-
-Jenkins job: ${env.BUILD_URL}
-Console output: ${env.BUILD_URL}console
-
-${extra_body}""")
-    } catch (oops) {
-        echo "failed to send failure email: ${oops.getMessage()}"
-    }
-}
-
 node {
     checkout scm
 
@@ -69,6 +45,7 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
@@ -86,6 +63,26 @@ node {
             ]
         ]
     )
+
+    def mail_failure = { Map params ->
+        def err = params.err ? params.err.getMessage() : "(unknown)"
+        def subject = params.get("subject", "Problem with incremental build for ${params.MINOR_VERSION}")
+        def stage = params.stage ? "in stage '${params.stage}' " : ""
+        def extra_body = params.get("extra_body", "")
+        commonlib.email(
+                to: "${params.MAIL_LIST_FAILURE}",
+                from: "aos-cicd@redhat.com",
+                replyTo: 'aos-team-art@redhat.com',
+                subject: subject,
+                body: """\
+Encountered an error ${stage}while running ${env.JOB_NAME}:
+${err}
+
+Jenkins job: ${env.BUILD_URL}
+Console output: ${env.BUILD_URL}console
+
+${extra_body}""")
+    }
 
     buildlib.initialize()
 

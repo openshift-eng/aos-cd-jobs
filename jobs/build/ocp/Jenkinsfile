@@ -260,7 +260,7 @@ node {
                         ].join("\n"),
                         defaultValue: 'aos-cd-test'
                     ],
-                    commonlib.oseVersionParam('BUILD_VERSION'),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '3'),
                     [
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',

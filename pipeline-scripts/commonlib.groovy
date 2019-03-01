@@ -1,8 +1,6 @@
 
-ocpDefaultVersion = "4.0"
-ocpVersions = [
-    "4.1",
-    "4.0",
+ocp3DefaultVersion = "3.11"
+ocp3Versions = [
     "3.11",
     "3.10",
     "3.9",
@@ -22,10 +20,23 @@ ocp4Versions = [
     "4.0",
 ]
 
+ocpDefaultVersion = ocp4DefaultVersion
+ocpVersions = ocp4Versions + ocp3Versions
+
+ocpMajorVersions = [
+    "4": ocp4Versions,
+    "3": ocp3Versions,
+    "all": ocpVersions,
+]
+ocpMajorDefaultVersion = [
+    "4": ocp4DefaultVersion,
+    "3": ocp3DefaultVersion,
+    "all": ocp4DefaultVersion,
+]
+
 /**
  * Handles any common setup required by the library
  */
-
 def initialize() {
     // https://issues.jenkins-ci.org/browse/JENKINS-33511 no longer appears relevant
 }
@@ -49,26 +60,20 @@ def mockParam() {
     ]
 }
 
-def oseVersionParam(name='MINOR_VERSION') {
+def ocpVersionParam(name='MINOR_VERSION', majorVersion='all') {
     return [
         name: name,
         description: 'OSE Version',
         $class: 'hudson.model.ChoiceParameterDefinition',
-        choices: ocpVersions.join('\n'),
-        defaultValue: ocpDefaultVersion,
+        choices: ocpMajorVersions[majorVersion].join('\n'),
+        defaultValue: ocpMajorDefaultVersion[majorVersion],
     ]
 }
 
-def ocp4VersionParam(name='MINOR_VERSION') {
-    return [
-        name: name,
-        description: 'OSE Version',
-        $class: 'hudson.model.ChoiceParameterDefinition',
-        choices: ocp4Versions.join('\n'),
-        defaultValue: ocp4DefaultVersion,
-    ]
-}
-
+/**
+ * Normalize input so whether the user supplies "v" or not we get what we want.
+ * Also, for totally bogus versions we get an error early on.
+ */
 def standardVersion(String version, Boolean withV=true) {
     version = version.trim()
     def match = version =~ /(?ix) ^v? (  \d+ (\.\d+)+  )$/

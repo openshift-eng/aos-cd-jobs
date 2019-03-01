@@ -44,7 +44,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.oseVersionParam('MINOR_VERSION'),
+                    commonlib.ocpVersionParam('MINOR_VERSION', '4'),
                     [
                         name: 'VERSION_OVERRIDE',
                         description: 'Optional full version for build (e.g. v4.0.1). Defaults to atomic-openshift version',

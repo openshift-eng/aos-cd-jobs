@@ -14,7 +14,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.oseVersionParam('SYNC_VERSION'),
+                    commonlib.ocpVersionParam('SYNC_VERSION'),
                     [
                         name: 'REPO_TYPE',
                         description: 'Type of repos to sync',

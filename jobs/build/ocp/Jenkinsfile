@@ -83,13 +83,16 @@ def mail_success(version, mirrorURL, record_log, oa_changelog, commonlib) {
     PARTIAL = " "
     mail_list = MAIL_LIST_SUCCESS
     exclude_subject = ""
-    if (BUILD_EXCLUSIONS != "") {
+    if (BUILD_EXCLUSIONS != "" || BUILD_FAILURES != null) {
         PARTIAL = " PARTIAL "
-        mail_list = MAIL_LIST_FAILURE
-        exclude_subject = " [excluded images: ${BUILD_EXCLUSIONS}]"
-        currentBuild.result = "UNSTABLE"
         currentBuild.displayName += " (partial)"
-        currentBuild.description = "Failed images: ${BUILD_EXCLUSIONS}"
+        if (BUILD_FAILURES != null {
+            mail_list = MAIL_LIST_FAILURE
+            exclude_subject += " [failed images: ${BUILD_FAILURES}]"
+        }
+        if (BUILD_EXCLUSIONS != "") {
+            exclude_subject += " [excluded images: ${BUILD_EXCLUSIONS}]"
+        }
     }
 
     image_details = """${timing_report}
@@ -362,6 +365,7 @@ node {
     }
 
     BUILD_EXCLUSIONS = commonlib.cleanCommaList(BUILD_EXCLUSIONS)
+    BUILD_FAILURES = null
 
     // Will be used to track which atomic-openshift build was tagged before we ran.
     PREV_BUILD = null
@@ -931,7 +935,6 @@ Please direct any questions to the Automated Release Team (#aos-cd-team on IRC).
                 }
             }
 
-            BUILD_CONTINUED = false
             stage("build images") {
                 if (BUILD_CONTAINER_IMAGES) {
                     try {
@@ -949,16 +952,10 @@ images:build
                     }
                     catch (err) {
                         failed_map = buildlib.get_failed_builds(DOOZER_WORKING)
-                        BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
-                        BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
-                    }
-
-                    if (BUILD_CONTINUED) {
-                        buildlib.doozer """
-    --working-dir ${DOOZER_WORKING} --group openshift-${BUILD_VERSION}
-    ${exclude} images:push --to-defaults --late-only
-    """
-                        // exclude is already set earlier in the main images:build flow
+                        if (!failed_map) { throw err }  // failed so badly we don't know what failed; assume all
+                        BUILD_FAILURES = failed_map.keySet().join(",")  // will make email show PARTIAL
+                        currentBuild.result = "UNSTABLE"
+                        currentBuild.description = "Failed images: ${BUILD_FAILURES}"
                     }
                 }
             }

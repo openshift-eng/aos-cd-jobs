@@ -203,14 +203,29 @@ node {
                 if (!any_images_to_build) { return }
                 command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
                 command += "${include_exclude} images:build --push-to-defaults --repo-type ${repo_type} "
-                buildlib.doozer command
+                try {
+                    buildlib.doozer command
+                } catch (err) {
+                    def record_log = buildlib.parse_record_log(doozer_working)
+                    def failed_map = buildlib.get_failed_builds(record_log, true)
+                    if (failed_map) {
+                        def r = buildlib.determine_build_failure_ratio(record_log)
+                        if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
+                            echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+                        } else {
+                            buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                        }
+                    }
+                    throw err  // build is considered failed if anything failed
+                }
             }
 
             commonlib.email(
                 to: "${params.MAIL_LIST_SUCCESS}",
                 from: "aos-team-art@redhat.com",
                 subject: "Successful custom OCP build: ${currentBuild.displayName}",
-                body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}");
+                body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}",
+            )
         }
     } catch (err) {
         currentBuild.description = "failed with error: ${err}\n${currentBuild.description}"

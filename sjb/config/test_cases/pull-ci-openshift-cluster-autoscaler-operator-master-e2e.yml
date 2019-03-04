@@ -46,20 +46,16 @@ extensions:
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/machine-api-operator/
-
-        # TODO(jchaloup): once 220 gets merge, remove this
-        git remote add origin https://github.com/openshift/machine-api-operator
-        git fetch origin pull/220/head:220
-        git checkout 220
-
         # deploy expected cluster and machineset objects
-        sed -i "s/image: docker\.io\/openshift\/origin-machine-api-operator:v4\.0\.0/image: docker\.io\/gofed\/machine-api-operator:v0\.1\.0-181-g4b6bfc4/" install/0000_30_machine-api-operator_09_deployment.yaml
         sudo make deploy-kubemark
     - type: "script"
       title: "Deploy cluster autoscaler operator"
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-autoscaler-operator/
+        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+        sudo mv /data/bin/imagebuilder /usr/bin
+        sudo imagebuilder -t "quay.io/openshift/origin-cluster-autoscaler-operator:v4.0" .
         kustomize build | sudo kubectl apply -f -
     - type: "script"
       title: "Deploy cluster resources"

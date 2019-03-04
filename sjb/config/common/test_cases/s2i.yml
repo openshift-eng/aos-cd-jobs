@@ -32,6 +32,7 @@ actions:
     timeout: 300
     repository: "source-to-image"
     script: |-
+      wget -q https://dl.google.com/go/go1.10.8.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf go1.10.8.linux-amd64.tar.gz && sudo rm /bin/go* && sudo ln -s /usr/local/go/bin/go /usr/local/go/bin/godoc /usr/local/go/bin/gofmt /bin
       make build
       sudo cp /data/src/github.com/openshift/source-to-image/_output/local/bin/linux/amd64/s2i /usr/bin
       echo "Printing s2i version"

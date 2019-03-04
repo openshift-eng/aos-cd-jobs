@@ -1,63 +1,114 @@
 ---
-parent: 'test_cases/test_branch_jenkins_images.yml'
-overrides:
-  email:
+parameters:
+  - name: BUILD_ID
+    description: "Unique build number for each run."
+  - name: REPO_OWNER
+    description: "GitHub org that triggered the job."
+  - name: REPO_NAME
+    description: "GitHub repo that triggered the job."
+  - name: PULL_BASE_REF
+    description: "Ref name of the base branch."
+  - name: PULL_BASE_SHA
+    description: "Git SHA of the base branch."
+  - name: PULL_REFS
+    description: "All refs to test."
+  - name: PULL_NUMBER
+    description: "Pull request number."
+  - name: PULL_PULL_SHA
+    description: "Pull request head SHA."
+  - name: JOB_SPEC
+    description: "JSON form of job specification."
+  - name: PROW_JOB_ID
+    description: "The ID that prow sets on a Jenkins job in order to correlate it with a ProwJob."
+provision:
+  os: "rhel"
+  stage: "base"
+  provider: "aws"
+email:
     - bparees@redhat.com
     - gmontero@redhat.com
     - cdaley@redhat.com
     - obulatov@redhat.com
     - agladkov@redhat.com
     - adkaplan@redhat.com
-extensions:
-  actions:
-    - type: "script"
-      title: "create directory for docker config"
-      script: |-
-        mkdir -p /tmp/.docker
-        chmod a+rwx /tmp/.docker
-    - type: "host_script"
-      title: "Copy docker credentials to instance"
-      timeout: 60
-      script: |-
-        scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
-    - type: "script"
-      title: "push the jenkins images"
-      repository: "jenkins"
-      timeout: 7200
-      script: |-
-        sudo chmod a+rw /tmp/.docker/config.json
-        export DOCKER_CONFIG=/tmp/.docker
+actions:
+  - type: "script"
+    title: "create directory for docker config"
+    script: |-
+      mkdir -p /tmp/.docker
+      chmod a+rwx /tmp/.docker
+  - type: "host_script"
+    title: "Copy docker credentials to instance"
+    timeout: 60
+    script: |-
+      scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker/config.json openshiftdevel:/tmp/.docker/
+  - type: "script"
+    title: "push the jenkins images"
+    repository: "jenkins"
+    timeout: 7200
+    script: |-
+      sudo chmod a+rw /tmp/.docker/config.json
+      export DOCKER_CONFIG=/tmp/.docker
+      version_tag=$(cat release.version)
 
-        version_tag=$(cat release.version)
+      docker tag docker.io/openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7:${version_tag}
+      docker push docker.io/openshift/jenkins-2-centos7:${version_tag}
 
-        docker tag docker.io/openshift/jenkins-2-centos7 docker.io/openshift/jenkins-2-centos7:${version_tag}
-        docker push docker.io/openshift/jenkins-2-centos7:${version_tag}
+      docker tag docker.io/openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7:${version_tag}
+      docker push docker.io/openshift/jenkins-slave-base-centos7:${version_tag}
 
-        docker tag docker.io/openshift/jenkins-slave-base-centos7 docker.io/openshift/jenkins-slave-base-centos7:${version_tag}
-        docker push docker.io/openshift/jenkins-slave-base-centos7:${version_tag}
+      if [[ $version_tag == v3* ]];
+      then
+         docker tag docker.io/openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7:${version_tag}
+         docker push docker.io/openshift/jenkins-slave-maven-centos7:${version_tag}
 
-        if [[ $version_tag == v3* ]];
-        then
-           docker tag docker.io/openshift/jenkins-slave-maven-centos7 docker.io/openshift/jenkins-slave-maven-centos7:${version_tag}
-           docker push docker.io/openshift/jenkins-slave-maven-centos7:${version_tag}
+         docker tag docker.io/openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7:${version_tag}
+         docker push docker.io/openshift/jenkins-slave-nodejs-centos7:${version_tag}
+      fi
 
-           docker tag docker.io/openshift/jenkins-slave-nodejs-centos7 docker.io/openshift/jenkins-slave-nodejs-centos7:${version_tag}
-           docker push docker.io/openshift/jenkins-slave-nodejs-centos7:${version_tag}
-        fi
+      docker tag docker.io/openshift/jenkins-agent-maven-35-centos7 docker.io/openshift/jenkins-agent-maven-35-centos7:${version_tag}
+      docker push docker.io/openshift/jenkins-agent-maven-35-centos7:${version_tag}
 
-        docker tag docker.io/openshift/jenkins-agent-maven-35-centos7 docker.io/openshift/jenkins-agent-maven-35-centos7:${version_tag}
-        docker push docker.io/openshift/jenkins-agent-maven-35-centos7:${version_tag}
+      docker tag docker.io/openshift/jenkins-agent-nodejs-8-centos7 docker.io/openshift/jenkins-agent-nodejs-8-centos7:${version_tag}
+      docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7:${version_tag}
 
-        docker tag docker.io/openshift/jenkins-agent-nodejs-8-centos7 docker.io/openshift/jenkins-agent-nodejs-8-centos7:${version_tag}
-        docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7:${version_tag}
+      # only push to latest if we're building the master branch.
+      if [ "${PULL_BASE_REF}" = "master" ]; then
+        docker push docker.io/openshift/jenkins-2-centos7
 
-        # only push to latest if we're building the master branch.
-        if [ "${PULL_BASE_REF}" = "master" ]; then
-          docker push docker.io/openshift/jenkins-2-centos7
+        docker push docker.io/openshift/jenkins-slave-base-centos7
 
-          docker push docker.io/openshift/jenkins-slave-base-centos7
+        docker push docker.io/openshift/jenkins-agent-maven-35-centos7
 
-          docker push docker.io/openshift/jenkins-agent-maven-35-centos7
+        docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7
+      fi
+post_actions:
+  - type: "host_script"
+    title: "assemble GCS output"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      mkdir -p gcs/artifacts gcs/artifacts/generated gcs/artifacts/journals gcs/artifacts/gathered
+      result=$( python -c "import json; import urllib; print json.load(urllib.urlopen('${BUILD_URL}api/json'))['result']" )
+      cat <<FINISHED >gcs/finished.json
+      {
+        "timestamp": $( date +%s ),
+        "result": "${result}"
+      }
+      FINISHED
+      cat "/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log" > gcs/build-log.txt
+      cp artifacts/generated/* gcs/artifacts/generated/
+      cp artifacts/journals/* gcs/artifacts/journals/
+      cp -r artifacts/gathered/* gcs/artifacts/
 
-          docker push docker.io/openshift/jenkins-agent-nodejs-8-centos7
-        fi
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r "$( pwd )/gcs" openshiftdevel:/data
+      scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json
+  - type: "script"
+    title: "push the artifacts and metadata"
+    timeout: 300
+    script: |-
+      trap 'exit 0' EXIT
+      if [[ -n "${JOB_SPEC:-}" ]]; then
+        JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
+        docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+      fi

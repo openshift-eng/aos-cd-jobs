@@ -14,7 +14,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.oseVersionParam('BUILD_VERSION'),
+                    commonlib.ocpVersionParam('BUILD_VERSION'),
                     [
                         name: 'VERSION',
                         description: 'Version string for build (e.g. 4.0.0)',

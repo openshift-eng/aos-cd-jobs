@@ -5,8 +5,8 @@ def version(f) {
     matcher ? matcher[0][1] : null
 }
 
-def mail_success() {
-    mail(
+def mail_success(commonlib) {
+    commonlib.email(
             to: "${MAIL_LIST_SUCCESS}",
             from: "aos-cicd@redhat.com",
             replyTo: 'aos-team-art@redhat.com',
@@ -57,6 +57,7 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ''
                     ],
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -214,7 +215,7 @@ images:build
                     } catch (err) {
                         failed_builds = buildlib.get_failed_builds(DOOZER_WORKING)
 
-                        mail(
+                        commonlib.email(
                             to: "${MAIL_LIST_FAILURE}",
                             from: "aos-cicd@redhat.com",
                             subject: "RESUMABLE Error during Refresh Images for OCP v${OSE_MAJOR}.${OSE_MINOR}",
@@ -270,10 +271,11 @@ images:verify
 """
             } catch (vererr) {
                 echo "Error verifying images: ${vererr}"
-                mail(to: "${MAIL_LIST_FAILURE}",
-                     from: "aos-cicd@redhat.com",
-                     subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
-                     body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
+                commonlib.email(
+                    to: "${MAIL_LIST_FAILURE}",
+                    from: "aos-cicd@redhat.com",
+                    subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
+                    body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
 
 
 Jenkins job: ${env.BUILD_URL}
@@ -297,15 +299,16 @@ Jenkins job: ${env.BUILD_URL}
             }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail_success()
+            mail_success(commonlib)
 
 
         } catch (err) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-            mail(to: "${MAIL_LIST_FAILURE}",
-                    from: "aos-cicd@redhat.com",
-                    subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
-                    body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
+            commonlib.email(
+                to: "${MAIL_LIST_FAILURE}",
+                from: "aos-cicd@redhat.com",
+                subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
+                body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}
@@ -335,7 +338,8 @@ Jenkins job: ${env.BUILD_URL}
 """
             } catch ( attach_err ) {
                 // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-                mail(to: "${MAIL_LIST_FAILURE}",
+                commonlib.email(
+                    to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cicd@redhat.com",
                     subject: "Error Attaching ${OSE_MAJOR}.${OSE_MINOR} images to ${ADVISORY_ID}","""
 

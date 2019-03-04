@@ -70,6 +70,15 @@ def ocpVersionParam(name='MINOR_VERSION', majorVersion='all') {
     ]
 }
 
+def suppressEmailParam() {
+    return [
+        name: 'SUPPRESS_EMAIL',
+        description: 'Do not actually send email, just archive it',
+        $class: 'BooleanParameterDefinition',
+        defaultValue: false
+    ]
+}
+
 /**
  * Normalize input so whether the user supplies "v" or not we get what we want.
  * Also, for totally bogus versions we get an error early on.
@@ -88,6 +97,49 @@ def cleanCommaList(str) {
     // turn a list separated by commas or spaces into a comma-separated list
     str = (str == null) ? "" : str
     return str.replaceAll(',', ' ').split().join(',')
+}
+
+emailIndex = 0
+/**
+ * Wrapper to persist email as an artifact and enable suppressing actual email
+ */
+def email(args) {
+    if (params.SUPPRESS_EMAIL) {
+        def title = currentBuild.displayName ?: ""
+        if (!title.contains("no email")) {
+            currentBuild.displayName = "${title} [no email]"
+        }
+    } else {
+        try {
+            mail(args)
+        } catch (err) { // don't usually want to fail the job for this
+            echo "Failure sending email: ${err}"
+        }
+    }
+
+    // now write this out and archive it
+    try {
+        // make a clean space for files
+        if (emailIndex == 0) {
+            sh("rm -rf email")
+            sh("mkdir -p email")
+        }
+
+        // create a sanitized but recognizable name
+        to = args.to ?: args.cc ?: args.bcc ?: "NOBODY"
+        to = to.replaceAll(/[^@.\w]+/, "_")
+        subject = args.get("subject", "NO SUBJECT").replaceAll(/\W+/, "_")
+        filename = String.format("email/%03d-%s-%s", ++emailIndex, to, subject)
+
+        // this is a bit silly but writeYaml and writeFile lack finesse
+        body = args.remove("body")  // unreadable when written as yaml
+        writeYaml file: filename, data: args
+        yaml = readFile filename
+        writeFile file: filename, text: yaml + "\n\n" + body
+        this.safeArchiveArtifacts([filename])
+    } catch (err) {
+        echo "Failure writing and archiving email file:\n${err}"
+    }
 }
 
 def safeArchiveArtifacts(List patterns) {

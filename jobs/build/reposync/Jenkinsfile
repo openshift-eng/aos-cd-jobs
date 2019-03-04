@@ -22,6 +22,7 @@ node {
                         choices: "unsigned\nsigned",
                         defaultValue: 'unsigned'
                     ],
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -77,13 +78,14 @@ node {
             }
         }
     } catch (err) {
-        mail(to: "${MAIL_LIST_FAILURE}",
-             from: "aos-team-art@redhat.com",
-             subject: "Error syncing v${SYNC_VERSION} repos",
-             body: """Encountered an error while running OCP pipeline: ${err}
+        commonlib.email(
+            to: "${MAIL_LIST_FAILURE}",
+            from: "aos-team-art@redhat.com",
+            subject: "Error syncing v${SYNC_VERSION} repos",
+            body: """Encountered an error while running OCP pipeline: ${err}
 
-    Jenkins job: ${env.BUILD_URL}
-    """);
+Jenkins job: ${env.BUILD_URL}
+        """);
 
         currentBuild.result = "FAILURE"
         throw err

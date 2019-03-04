@@ -185,7 +185,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo chmod o+rw /etc/environment
-echo &#39;EXTRA_EVARS=&#34;-e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_install_examples=false -e debug_level=2&#34;&#39; &gt;&gt; /etc/environment
+echo &#39;EXTRA_EVARS=&#34;-e@/data/src/github.com/openshift/origin-aggregated-logging/ci-ansible-common.yaml -e@/data/src/github.com/openshift/origin-aggregated-logging/ci-ansible-journald.yaml&#34;&#39; &gt;&gt; /etc/environment
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

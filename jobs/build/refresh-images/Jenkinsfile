@@ -7,7 +7,7 @@ def version(f) {
 
 def mail_success(commonlib) {
     commonlib.email(
-            to: "${MAIL_LIST_SUCCESS}",
+            to: "${params.MAIL_LIST_SUCCESS}",
             from: "aos-cicd@redhat.com",
             replyTo: 'aos-team-art@redhat.com',
             subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
@@ -110,7 +110,7 @@ node {
     BUILD_ONLY = commonlib.cleanCommaList(BUILD_ONLY)
     BUILD_EXCLUSIONS = commonlib.cleanCommaList(BUILD_EXCLUSIONS)
 
-    echo "${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${MAIL_LIST_FAILURE}], MOCK:${MOCK}"
+    echo "${OSE_MAJOR}.${OSE_MINOR}, MAIL_LIST_SUCCESS:[${params.MAIL_LIST_SUCCESS}], MAIL_LIST_FAILURE:[${params.MAIL_LIST_FAILURE}]"
 
     currentBuild.displayName = "#${currentBuild.number} - ${OSE_MAJOR}.${OSE_MINOR}"
 
@@ -213,10 +213,19 @@ images:build
 """
                         return true  // finish waitUntil
                     } catch (err) {
-                        failed_builds = buildlib.get_failed_builds(DOOZER_WORKING)
+                        def record_log = buildlib.parse_record_log(DOOZER_WORKING)
+                        def failed_map = buildlib.get_failed_builds(record_log, true)
+                        if (failed_map) {
+                            def r = buildlib.determine_build_failure_ratio(record_log)
+                            if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
+                                echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+                            } else {
+                                buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                            }
+                        }
 
                         commonlib.email(
-                            to: "${MAIL_LIST_FAILURE}",
+                            to: "${params.MAIL_LIST_FAILURE}",
                             from: "aos-cicd@redhat.com",
                             subject: "RESUMABLE Error during Refresh Images for OCP v${OSE_MAJOR}.${OSE_MINOR}",
                             body: """Encountered an error: ${err}
@@ -224,7 +233,7 @@ Input URL: ${env.BUILD_URL}input
 Jenkins job: ${env.BUILD_URL}
 
 BUILD / PUSH FAILURES:
-${failed_builds}
+${failed_map}
 """)
 
                         def resp = input message: "Error during Image Build for OCP v${OSE_MAJOR}.${OSE_MINOR}",
@@ -236,7 +245,7 @@ ${failed_builds}
                             case "RETRY":
                                 echo "User chose retry. Build failures will be retried."
                                 // cause waitUntil to loop again
-                                build_include = "-i " + failed_builds.keySet().join(",")
+                                build_include = "-i " + failed_map.keySet().join(",")
                                 build_exclude = ""
                                 return false
                             case "CONTINUE":
@@ -272,7 +281,7 @@ images:verify
             } catch (vererr) {
                 echo "Error verifying images: ${vererr}"
                 commonlib.email(
-                    to: "${MAIL_LIST_FAILURE}",
+                    to: "${params.MAIL_LIST_FAILURE}",
                     from: "aos-cicd@redhat.com",
                     subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
                     body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
@@ -295,7 +304,7 @@ Jenkins job: ${env.BUILD_URL}
                         OSE_MAJOR, OSE_MINOR,
                         version_release[0].substring(1), version_release[1],
                         "release-${OSE_MAJOR}.${OSE_MINOR}",
-                        MAIL_LIST_FAILURE)
+                        params.MAIL_LIST_FAILURE)
             }
 
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
@@ -305,7 +314,7 @@ Jenkins job: ${env.BUILD_URL}
         } catch (err) {
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             commonlib.email(
-                to: "${MAIL_LIST_FAILURE}",
+                to: "${params.MAIL_LIST_FAILURE}",
                 from: "aos-cicd@redhat.com",
                 subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
                 body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
@@ -339,7 +348,7 @@ Jenkins job: ${env.BUILD_URL}
             } catch ( attach_err ) {
                 // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
                 commonlib.email(
-                    to: "${MAIL_LIST_FAILURE}",
+                    to: "${params.MAIL_LIST_FAILURE}",
                     from: "aos-cicd@redhat.com",
                     subject: "Error Attaching ${OSE_MAJOR}.${OSE_MINOR} images to ${ADVISORY_ID}","""
 

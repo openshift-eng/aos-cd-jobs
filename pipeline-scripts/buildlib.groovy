@@ -783,17 +783,21 @@ def parse_record_log( working_dir ) {
 }
 
 // Search the build log for failed builds
-def get_failed_builds(log_dir) {
+def get_failed_builds(String log_dir, Boolean fullRecord=false) {
     record_log = parse_record_log(log_dir)
-    builds = record_log['build']
+    this.get_failed_builds(record_log, fullRecord)
+}
+
+def get_failed_builds(Map record_log, Boolean fullRecord=false) {
+    builds = record_log.get('build', [])
     failed_map = [:]
     for (i = 0; i < builds.size(); i++) {
         bld = builds[i]
         distgit = bld['distgit']
         if (bld['status'] != '0') {
-            failed_map[distgit] = bld['task_url']
+            failed_map[distgit] = fullRecord ? bld : bld['task_url']
         } else if (bld['push_status'] != '0') {
-            failed_map[distgit] = 'Failed to push built image. See debug.log'
+            failed_map[distgit] = fullRecord ? bld : 'Failed to push built image. See debug.log'
         } else {
             // build may have succeeded later. If so, remove.
             failed_map.remove(distgit)
@@ -837,6 +841,90 @@ def get_distgit_notify( record_log ) {
 
     return result
 
+}
+
+/**
+ * send email to owners of failed image builds.
+ * param failed_builds: map of records as below (all values strings):
+
+presto:
+    status: -1
+    push_status: 0
+    distgit: presto
+    image: openshift/ose-presto
+    owners: sd-operator-metering@redhat.com,czibolsk@redhat.com
+    version: v4.0.6
+    release: 1
+    dir: doozer_working/distgits/containers/presto
+    dockerfile: doozer_working/distgits/containers/presto/Dockerfile
+    task_id: 20415814
+    task_url: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=20415814
+    message: "Exception occurred: ;;; Traceback (most recent call last): [...]"
+
+ * param returnAddress: email will come "from" this
+ * param defaultOwner: if no owner is listed, send build failure email to this
+**/
+def mail_build_failure_owners(failed_builds, returnAddress, defaultOwner) {
+    List<Map> records = failed_builds.values()
+    for(i = 0; i < records.size(); i++) {
+        def failure = records[i]
+        if (failure.status != '0') {
+            def container_log = "doozer_working/brew-logs/${failure.distgit}/noarch-${failure.task_id}/container-build-x86_64.log"
+            try {
+                container_log = """
+--------------------------------------------------------------------------
+The following logs are just the container build portion of the OSBS build:
+--------------------------------------------------------------------------
+                \n""" + readFile(container_log)
+            } catch(err) {
+                echo "No container build log for failed ${failure.distgit} build\n" +
+                     "(task url ${failure.task_url})\n" +
+                     "at path ${container_log}"
+                container_log = ""
+            }
+            commonlib.email(
+                from: returnAddress,
+                to: failure.owners ?: defaultOwner,
+                subject: "Failed OCP build of ${failure.image}:${failure.version}",
+                body: """
+ART's brew/OSBS build of OCP image ${failure.image}:${failure.version} has failed.
+
+${failure.owners
+? "This email is addressed to the owner(s) of this image per ART's build configuration."
+: "There is no owner listed for this build (you may want to add one)."
+}
+
+Builds may fail for many reasons, some under owner control, some under ART's
+control, and some in the domain of other groups. This message is only sent when
+the build fails consistently, so it is unlikely this failure will resolve
+itself without intervention.
+
+The brew build task ${failure.task_url}
+failed with error message:
+${failure.message}
+
+ART's Jenkins build that resulted in this failure may be found at:
+  * ${env.BUILD_URL}
+The console log and artifacts there may assist in resolving this failure.
+${container_log}
+                """,
+            )
+        }
+    }
+}
+
+@NonCPS
+def determine_build_failure_ratio(record_log) {
+    // determine what the last build status was for each distgit.
+    // we're only interested in whether the build succeeded - ignore push failures.
+    def last_status = [:]
+    record_log.get('build', []).each { record -> last_status[record.distgit] = record.status }
+
+    def total = last_status.size()
+    def failed = last_status.values().count { it != '0' }
+    def ratio = total ? failed / total : 0
+
+    return [failed: failed, total: total, ratio: ratio]
 }
 
 def write_sources_file() {

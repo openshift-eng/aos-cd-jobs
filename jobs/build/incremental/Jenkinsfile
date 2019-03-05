@@ -251,12 +251,22 @@ ${extra_body}""")
             echo "Error building images: ${err}"
             currentBuild.description = "${err} during build step"
 
-            failed_builds = buildlib.get_failed_builds(DOOZER_WORKING)
-            if (failed_builds) {
-                failed_msg = "The following build(s) failed:\n"
-                failed_builds.each { img, reason -> failed_msg += "${img}: ${reason} \n" }
+            def record_log = buildlib.parse_record_log(DOOZER_WORKING)
+            def failed_map = buildlib.get_failed_builds(record_log, true)
+            if (failed_map) {
+                // echo to console and description what happened
+                def failed_msg = "The following build(s) failed:\n"
+                failed_map.each { img, reason -> failed_msg += "${img}: ${reason} \n" }
                 echo failed_msg
                 currentBuild.description = failed_msg
+
+                // send out emails to failed build owners
+                def r = buildlib.determine_build_failure_ratio(record_log)
+                if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
+                    echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+                } else {
+                    buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                }
             }
 
             mail_failure(

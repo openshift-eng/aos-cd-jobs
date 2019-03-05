@@ -72,8 +72,8 @@ def mail_success(version, mirrorURL, record_log, commonlib) {
     }
 
     def inject_notes = ""
-    if (SPECIAL_NOTES.trim() != "") {
-        inject_notes = "\n***Special notes associated with this build****\n${SPECIAL_NOTES.trim()}\n***********************************************\n"
+    if (params.SPECIAL_NOTES.trim() != "") {
+        inject_notes = "\n***Special notes associated with this build****\n${params.SPECIAL_NOTES.trim()}\n***********************************************\n"
     }
 
     def timing_report = get_build_timing_report(record_log)
@@ -81,15 +81,18 @@ def mail_success(version, mirrorURL, record_log, commonlib) {
     currentBuild.description = timing_report
     currentBuild.result = "SUCCESS"
     PARTIAL = " "
-    mail_list = MAIL_LIST_SUCCESS
+    mail_list = params.MAIL_LIST_SUCCESS
     exclude_subject = ""
-    if (BUILD_EXCLUSIONS != "") {
+    if (BUILD_EXCLUSIONS != "" || BUILD_FAILURES != null) {
         PARTIAL = " PARTIAL "
-        mail_list = MAIL_LIST_FAILURE
-        exclude_subject = " [excluded images: ${BUILD_EXCLUSIONS}]"
-        currentBuild.result = "UNSTABLE"
         currentBuild.displayName += " (partial)"
-        currentBuild.description = "Failed images: ${BUILD_EXCLUSIONS}"
+        if (BUILD_FAILURES != null {
+            mail_list = params.MAIL_LIST_FAILURE
+            exclude_subject += " [failed images: ${BUILD_FAILURES}]"
+        }
+        if (BUILD_EXCLUSIONS != "") {
+            exclude_subject += " [excluded images: ${BUILD_EXCLUSIONS}]"
+        }
     }
 
     image_details = """${timing_report}
@@ -100,11 +103,11 @@ ${image_list}
 """
 
 
-    if (!BUILD_CONTAINER_IMAGES) {
+    if (!params.BUILD_CONTAINER_IMAGES) {
         PARTIAL = " RPM ONLY "
         image_details = ""
         // Just inform key folks about RPM only build; this is just prepping for an advisory.
-        mail_list = MAIL_LIST_FAILURE
+        mail_list = params.MAIL_LIST_FAILURE
     }
 
     commonlib.email(
@@ -115,7 +118,7 @@ ${image_list}
 OpenShift Version: v${version}
 ${inject_notes}
 RPMs:
-    Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${BUILD_VERSION}/${OCP_PUDDLE}
+    Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${params.BUILD_VERSION}/${OCP_PUDDLE}
     Exernal Mirror: ${mirrorURL}/${OCP_PUDDLE}
 ${image_details}
 
@@ -134,7 +137,7 @@ ${OSE_CHANGELOG}
 """);
 
     try {
-        if (BUILD_EXCLUSIONS == "" && BUILD_CONTAINER_IMAGES) {
+        if (BUILD_EXCLUSIONS == "" && params.BUILD_CONTAINER_IMAGES) {
             timeout(3) {
                 sendCIMessage(
                     messageContent: "New build for OpenShift ${target}: ${version}",
@@ -340,10 +343,9 @@ node {
     IS_TEST_MODE = params.TEST
     buildlib.initialize(IS_TEST_MODE)
 
-    BUILD_VERSION_MAJOR = BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
-    BUILD_VERSION_MINOR = BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
+    BUILD_VERSION_MAJOR = params.BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
+    BUILD_VERSION_MINOR = params.BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
     SIGN_RPMS = params.SIGN
-    BUILD_CONTAINER_IMAGES = params.BUILD_CONTAINER_IMAGES
     ODCS_MODE = params.ODCS
     ODCS_FLAG = ""
     ODCS_OPT = ""
@@ -352,42 +354,43 @@ node {
         ODCS_OPT = "--odcs unsigned"
     }
 
-    BUILD_EXCLUSIONS = commonlib.cleanCommaList(BUILD_EXCLUSIONS)
+    BUILD_EXCLUSIONS = commonlib.cleanCommaList(params.BUILD_EXCLUSIONS)
+    BUILD_FAILURES = null
 
     // Will be used to track which atomic-openshift build was tagged before we ran.
     PREV_BUILD = null
 
-    AOS_CD_JOBS_COMMIT_SHA = sh(
+    aosCdJobsCommitSha = sh(
         returnStdout: true,
         script: "git rev-parse HEAD",
     ).trim()
 
     try {
         // Clean up old images so that we don't run out of device mapper space
-        sh "docker rmi --force \$(docker images  | grep v${BUILD_VERSION} | awk '{print \$3}')"
+        sh "docker rmi --force \$(docker images  | grep v${params.BUILD_VERSION} | awk '{print \$3}')"
     } catch (cce) {
         echo "Error cleaning up old images: ${cce}"
     }
 
-    PUDDLE_CONF_BASE = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
-    PUDDLE_CONF = "${PUDDLE_CONF_BASE}/atomic_openshift-${BUILD_VERSION}.conf"
-    PUDDLE_SIGN_KEYS = SIGN_RPMS ? "b906ba72" : null
+    puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${aosCdJobsCommitSha}/build-scripts/puddle-conf"
+    puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
+    puddleSignKeys = SIGN_RPMS ? "b906ba72" : null
 
-    echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
+    echo "Initializing build: #${currentBuild.number} - ${params.BUILD_VERSION}.?? (${BUILD_MODE})"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
-    DOOZER_WORKING = "${WORKSPACE}/doozer_working"
+    DOOZER_WORKING = "${env.WORKSPACE}/doozer_working"
     //Clear out previous work
     sh "rm -rf ${DOOZER_WORKING}"
     sh "mkdir -p ${DOOZER_WORKING}"
 
     try {
-        sshagent([SSH_KEY_ID]) {
+        sshagent([params.SSH_KEY_ID]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
 
             PREV_BUILD = sh(
                 returnStdout: true,
-                script: "brew latest-build --quiet rhaos-${BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'"
+                script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'"
             ).trim()
 
             stage("ose repo") {
@@ -403,10 +406,10 @@ node {
                 master_spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
 
                 // If the target version resides in ose#master
-                IS_SOURCE_IN_MASTER = (BUILD_VERSION == master_spec.major_minor)
+                IS_SOURCE_IN_MASTER = (params.BUILD_VERSION == master_spec.major_minor)
 
                 if (BUILD_MODE == "auto") {
-                    echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${BUILD_VERSION}, master_version: ${master_spec.major_minor}"
+                    echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${params.BUILD_VERSION}, master_version: ${master_spec.major_minor}"
                     // INPUTS:
                     //   BUILD_MODE
                     //   BUILD_VERSION
@@ -414,14 +417,14 @@ node {
                     releases = buildlib.get_releases(GITHUB_URLS['ose'])
                     echo "AUTO-MODE: release repo: ${GITHUB_URLS['ose']}"
                     echo "AUTO-MODE: releases: ${releases}"
-                    BUILD_MODE = buildlib.auto_mode(BUILD_VERSION, master_spec.major_minor, releases)
+                    BUILD_MODE = buildlib.auto_mode(params.BUILD_VERSION, master_spec.major_minor, releases)
                     echo "BUILD_MODE = ${BUILD_MODE}"
                 }
             }
 
             stage("analyze") {
 
-                dir(env.OSE_DIR) {
+                dir(OSE_DIR) {
                     // inputs:
                     //  IS_SOURCE_IN_MASTER
                     //  BUILD_MODE
@@ -452,12 +455,12 @@ node {
                         OSE_SOURCE_BRANCH = "master"
                         UPSTREAM_SOURCE_BRANCH = "upstream/master"
                     } else {
-                        OSE_SOURCE_BRANCH = "enterprise-${BUILD_VERSION}"
+                        OSE_SOURCE_BRANCH = "enterprise-${params.BUILD_VERSION}"
                         if (BUILD_MODE == "release") {
                             // When building in release mode, no longer pull from upstream
                             UPSTREAM_SOURCE_BRANCH = null
                         } else {
-                            UPSTREAM_SOURCE_BRANCH = "upstream/release-${BUILD_VERSION}"
+                            UPSTREAM_SOURCE_BRANCH = "upstream/release-${params.BUILD_VERSION}"
                         }
                         // Create the non-master source branch and have it track the origin ose repo
                         sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
@@ -468,9 +471,9 @@ node {
                     spec = buildlib.read_spec_info("origin.spec")
                     rel_fields = spec.release.tokenize(".")
 
-                    if (! spec.version.startsWith("${BUILD_VERSION}.")) {
+                    if (! spec.version.startsWith("${params.BUILD_VERSION}.")) {
                         // Looks like pipeline thinks we are building something we aren't. Abort.
-                        error("Expected version consistent with ${BUILD_VERSION}.* but found: ${spec.version}")
+                        error("Expected version consistent with ${params.BUILD_VERSION}.* but found: ${spec.version}")
                     }
 
 
@@ -535,7 +538,7 @@ node {
                     }
 
                     rpmOnlyTag = ""
-                    if (!BUILD_CONTAINER_IMAGES) {
+                    if (!params.BUILD_CONTAINER_IMAGES) {
                         rpmOnlyTag = " (RPM ONLY)"
                     }
                     currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE}${rpmOnlyTag})"
@@ -583,7 +586,7 @@ node {
                 dir(OSE_DIR) {
                     OSE_TASK_ID = sh(
                         returnStdout: true,
-                        script: "tito release --debug --yes --test aos-${BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                        script: "tito release --debug --yes --test aos-${params.BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
                     OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OSE_TASK_ID}"
                     echo "ose rpm brew task: ${OSE_BREW_URL}"
@@ -609,7 +612,7 @@ node {
 
             stage("doozer build rpms") {
                 buildlib.doozer """
---working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}'
+--working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}'
 --source ose ${OSE_DIR}
 rpms:build --version v${NEW_VERSION}
 --release ${NEW_RELEASE}
@@ -618,7 +621,7 @@ rpms:build --version v${NEW_VERSION}
 
             stage("signing rpms") {
                 if (SIGN_RPMS) {
-                    sh "${env.WORKSPACE}/build-scripts/sign_rpms.sh rhaos-${BUILD_VERSION}-rhel-7-candidate openshifthosted"
+                    sh "${env.WORKSPACE}/build-scripts/sign_rpms.sh rhaos-${params.BUILD_VERSION}-rhel-7-candidate openshifthosted"
                 } else {
                     echo "RPM signing has been skipped..."
                 }
@@ -626,8 +629,8 @@ rpms:build --version v${NEW_VERSION}
 
             stage("puddle: ose 'building'") {
                 OCP_PUDDLE = buildlib.build_puddle(
-                    PUDDLE_CONF,    // The puddle configuration file to use
-                    PUDDLE_SIGN_KEYS, // openshifthosted key
+                    puddleConf,    // The puddle configuration file to use
+                    puddleSignKeys, // openshifthosted key
                     "-b",   // do not fail if we are missing dependencies
                     "-d",   // print debug information
                     "-n",   // do not send an email for this puddle
@@ -638,7 +641,7 @@ rpms:build --version v${NEW_VERSION}
 
             stage("update dist-git") {
                 buildlib.doozer """
---working-dir ${DOOZER_WORKING} --group 'openshift-${BUILD_VERSION}'
+--working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}'
 --source ose ${OSE_DIR}
 ${ODCS_FLAG}
 images:rebase --version v${NEW_VERSION}
@@ -673,7 +676,7 @@ images:rebase --version v${NEW_VERSION}
                         commonlib.email(
                             to: "aos-team-art@redhat.com,${val.owners}",
                             from: "aos-cicd@redhat.com",
-                            subject: "${val.image} Dockerfile reconciliation for OCP v${BUILD_VERSION}",
+                            subject: "${val.image} Dockerfile reconciliation for OCP v${params.BUILD_VERSION}",
                             body: """
 Why am I receiving this?
 You are receiving this message because you are listed as an owner for an OpenShift related image - or
@@ -712,16 +715,15 @@ Please direct any questsions to the Continuous Delivery team (#aos-cd-team on IR
                 }
             }
 
-            BUILD_CONTINUED = false
             stage("build images") {
-                if (BUILD_CONTAINER_IMAGES) {
+                if (params.BUILD_CONTAINER_IMAGES) {
                     try {
                         exclude = ""
                         if (BUILD_EXCLUSIONS != "") {
                             exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
                         }
                         buildlib.doozer """
---working-dir ${DOOZER_WORKING} --group openshift-${BUILD_VERSION}
+--working-dir ${DOOZER_WORKING} --group openshift-${params.BUILD_VERSION}
 ${ODCS_FLAG}
 ${exclude}
 images:build
@@ -729,17 +731,20 @@ images:build
 """
                     }
                     catch (err) {
-                        failed_map = buildlib.get_failed_builds(DOOZER_WORKING)
-                        BUILD_EXCLUSIONS = failed_map.keySet().join(",") //will make email show PARTIAL
-                        BUILD_CONTINUED = true //simply setting flag to keep required work out of input flow
-                    }
+                        record_log = buildlib.parse_record_log(DOOZER_WORKING)
+                        def failed_map = buildlib.get_failed_builds(record_log, true)
+                        if (!failed_map) { throw err }  // failed so badly we don't know what failed; assume all
 
-                    if (BUILD_CONTINUED) {
-                        buildlib.doozer """
-    --working-dir ${DOOZER_WORKING} --group openshift-${BUILD_VERSION}
-    ${exclude} images:push --to-defaults --late-only
-    """
-                        // exclude is already set earlier in the main images:build flow
+                        BUILD_FAILURES = failed_map.keySet().join(",")  // will make email show PARTIAL
+                        currentBuild.result = "UNSTABLE"
+                        currentBuild.description = "Failed images: ${BUILD_FAILURES}"
+
+                        def r = buildlib.determine_build_failure_ratio(record_log)
+                        if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
+                            echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+                        } else {
+                            buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                        }
                     }
                 }
             }
@@ -747,7 +752,7 @@ images:build
             NEW_FULL_VERSION = "${NEW_VERSION}-${NEW_RELEASE}"
 
             SYMLINK_NAME = "latest"
-            if (!BUILD_CONTAINER_IMAGES) {
+            if (!params.BUILD_CONTAINER_IMAGES) {
                 SYMLINK_NAME = "no-image-latest"
             }
 
@@ -756,21 +761,21 @@ images:build
 
             // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
             OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
-            final mirror_url = get_mirror_url(BUILD_MODE, BUILD_VERSION)
+            final mirror_url = get_mirror_url(BUILD_MODE, params.BUILD_VERSION)
 
             if (NEW_RELEASE != "1") {
                 // If this is not a release candidate, push binary in a directory qualified with release field information
-                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", BUILD_VERSION, NEW_FULL_VERSION)
+                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
             } else {
                 // If this is a release candidate, the directory binary directory should not contain release information
-                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", BUILD_VERSION, NEW_VERSION)
+                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_VERSION)
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
 
             // Don't make an github release unless this build it from the actual ose repo
-            if ( GITHUB_BASE == "git@github.com:openshift" ) {
+            if ( params.GITHUB_BASE == "git@github.com:openshift" ) {
                 try {
                     withCredentials([string(credentialsId: 'github_token_ose', variable: 'GITHUB_TOKEN')]) {
                         httpRequest(
@@ -807,19 +812,19 @@ Jenkins job: ${env.BUILD_URL}
 
         ATTN = ""
         try {
-            NEW_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+            NEW_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
             if (PREV_BUILD != null && PREV_BUILD != NEW_BUILD) {
                 // Untag anything tagged by this build if an error occured at any point
-                sh "brew --user=ocp-build untag-build rhaos-${BUILD_VERSION}-rhel-7-candidate ${NEW_BUILD}"
+                sh "brew --user=ocp-build untag-build rhaos-${params.BUILD_VERSION}-rhel-7-candidate ${NEW_BUILD}"
             }
         } catch (err2) {
             ATTN = " - UNABLE TO UNTAG!"
         }
 
         commonlib.email(
-            to: "${MAIL_LIST_FAILURE}",
+            to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-cicd@redhat.com",
-            subject: "Error building OSE: ${BUILD_VERSION}${ATTN}",
+            subject: "Error building OSE: ${params.BUILD_VERSION}${ATTN}",
             body: """Encountered an error while running OCP pipeline: ${err}
 
 Jenkins job: ${env.BUILD_URL}

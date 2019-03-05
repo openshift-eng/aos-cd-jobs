@@ -12,6 +12,7 @@ def scaleup = OPENSHIFT_SCALEUP.toString().toUpperCase()
 def http = HTTP_TEST.toString().toUpperCase()
 def logging = LOGGING_SCALE_TEST.toString().toUpperCase()
 def pgbench_test = PGBENCH_TEST.toString().toUpperCase()
+def prometheus_test = PROMETHEUS_TEST.toString().toUpperCase()
 def mongodb_ycsb_test = MONGODB_YCSB_TEST.toString().toUpperCase()
 def podvertical = PODVERTICAL.toString().toUpperCase()
 def deployments_per_ns = DEPLOYMENTS_PER_NS.toString().toUpperCase()
@@ -110,6 +111,11 @@ node (node_label) {
 	// stage to run logging scale test
 	if (logging == "TRUE") {
 		load "alderaan/pipeline-scripts/logging.groovy"
+	}
+
+	// stage to run prometheus scale test
+	if ( prometheus_test == "TRUE" ) {
+		load "alderaan/pipeline-scripts/prometheus.groovy"
 	}
 
 	// stage to run BYO scale test

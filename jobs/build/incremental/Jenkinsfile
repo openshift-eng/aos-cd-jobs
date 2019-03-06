@@ -143,7 +143,7 @@ ${extra_body}""")
             gather_children = { all, data, changed, gather ->
                 // all(list): all images gathered so far while traversing tree
                 // data(map): the part of the yaml image tree we're looking at
-                // changed(list): all images initially found to have changed 
+                // changed(list): all images initially found to have changed
                 // gather(bool): whether this is a subtree of an image with changed source
                 data.each { image, children ->
                     def gather_this = gather || image in changed
@@ -286,6 +286,15 @@ ${extra_body}""")
             ])
         }
 
+    }
+
+    stage('sync images') {
+	buildlib.sync_images(
+	    OSE_MAJOR,
+	    OSE_MINOR,
+	    "aos-team-art@redhat.com",
+	    currentBuild.number
+	)
     }
 
     // we probably don't want to spam email on success.

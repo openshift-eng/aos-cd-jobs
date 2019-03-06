@@ -8,7 +8,7 @@ overrides:
     - "openshift,origin-aggregated-logging=release-3.10"
     - "openshift,kubernetes-metrics-server=release-3.10"
     - "openshift,origin-web-console-server=release-3.10"
-  evars: "-e skip_sanity_checks=true -e openshift_disable_check=* -e openshift_docker_log_driver=json-file -e openshift_docker_options=--log-driver=json-file -e openshift_install_examples=false -e debug_level=2"
+  evars: "-e@/data/src/github.com/openshift/origin-aggregated-logging/ci-ansible-common.yaml -e@/data/src/github.com/openshift/origin-aggregated-logging/ci-ansible-json-file.yaml"
 extensions:
   actions:
     - type: "script"

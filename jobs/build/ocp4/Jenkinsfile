@@ -86,7 +86,7 @@ def mail_success(version, mirrorURL, record_log, commonlib) {
     if (BUILD_EXCLUSIONS != "" || BUILD_FAILURES != null) {
         PARTIAL = " PARTIAL "
         currentBuild.displayName += " (partial)"
-        if (BUILD_FAILURES != null {
+        if (BUILD_FAILURES != null) {
             mail_list = params.MAIL_LIST_FAILURE
             exclude_subject += " [failed images: ${BUILD_FAILURES}]"
         }

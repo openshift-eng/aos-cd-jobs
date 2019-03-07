@@ -1,0 +1,47 @@
+---
+output_dir: /home/opsmedic/aos-cd/vendored/gogitit-online
+repos:
+- id: online-archivist
+  url: https://github.com/openshift/online-archivist.git
+  version: stg
+  copy:
+  - src: ansible/roles/oc_start_build_check
+    dst: roles/oc_start_build_check
+- id: online-analytics
+  url: https://github.com/openshift/online-analytics.git
+  version: stg
+  copy:
+  - src: ansible/roles/oso_analytics/
+    dst: roles/oso_analytics/
+- id: online-hibernation
+  url: https://github.com/openshift/online-hibernation.git
+  version: stg
+  copy:
+  - src: ansible/roles/oso_hibernation/
+    dst: roles/oso_hibernation/
+- id: online
+  url: git@github.com:openshift/online.git
+  version: stg
+  copy:
+  # Copy all online roles with oso prefix. These roles are intended for
+  # formal consumption by ops/CD.
+  - src: ansible/roles/oso_*
+    dst: roles
+- id: online-console-extensions
+  url: https://github.com/openshift/online-console-extensions.git
+  version: stg
+  copy:
+  - src: ansible/roles/oso_console_extensions/
+    dst: roles/oso_console_extensions/
+- id: openshift-ansible
+  url: https://github.com/openshift/openshift-ansible.git
+  version: openshift-ansible-3.10.0-0.50.0
+  copy:
+  - src: roles/lib_openshift/
+    dst: roles/lib_openshift/
+  - src: roles/lib_utils/
+    dst: roles/lib_utils/
+  - src: roles/openshift_web_console/
+    dst: roles/openshift_web_console/
+  - src: roles/openshift_facts/
+    dst: roles/openshift_facts/

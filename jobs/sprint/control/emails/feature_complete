@@ -1,6 +1,0 @@
-Feature Complete
-
-No more features should be merged for this release. From now until GA, PRs must be labeled as kind/bug
-in order to merge. You will not see DevCut or an Open Master for the remainder of this release.
-
-- The OpenShift Continuous Delivery Bot

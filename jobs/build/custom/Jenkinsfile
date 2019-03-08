@@ -220,6 +220,15 @@ node {
                 }
             }
 
+            stage('sync images') {
+                buildlib.sync_images(
+                    params.BUILD_VERSION.split()[0],
+                    params.BUILD_VERSION.split()[1],
+                    "aos-team-art@redhat.com",
+                    currentBuild.number
+                )
+            }
+
             commonlib.email(
                 to: "${params.MAIL_LIST_SUCCESS}",
                 from: "aos-team-art@redhat.com",
@@ -245,9 +254,9 @@ Job console: ${env.BUILD_URL}/console
         throw err
     } finally {
         commonlib.safeArchiveArtifacts([
-            "doozer_working/*.log",
-            "doozer_working/*.yaml",
-            "doozer_working/brew-logs/**",
-        ])
+                "doozer_working/*.log",
+                "doozer_working/*.yaml",
+                "doozer_working/brew-logs/**",
+            ])
     }
 }

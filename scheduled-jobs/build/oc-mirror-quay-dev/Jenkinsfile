@@ -1,68 +1,58 @@
-
-
-properties(
-    [
-        buildDiscarder(
-            logRotator(
-                artifactDaysToKeepStr: '',
-                artifactNumToKeepStr: '',
-                daysToKeepStr: '',
-                numToKeepStr: '360'
-            )
-        ),
-        [
-            $class : 'ParametersDefinitionProperty',
-            parameterDefinitions: [
-                [
-                    name: 'MOCK',
-                    description: 'Mock run to pickup new Jenkins parameters?',
-                    $class: 'hudson.model.BooleanParameterDefinition',
-                    defaultValue: false,
-                ],
-                [
-                    name: 'BUILD_VERSION',
-                    description: 'OCP Version to build',
-                    $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: "4.0",
-                    defaultValue: '4.0'
-                ],
-                [
-                    name: 'TARGET_NODE',
-                    description: 'Jenkins agent node',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'openshift-build-1'
-                ],
-                [
-                    name: 'MAIL_LIST_SUCCESS',
-                    description: 'Success Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-                [
-                    name: 'MAIL_LIST_FAILURE',
-                    description: 'Failure Mailing List',
-                    $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: [
-                        'aos-team-art@redhat.com',
-                    ].join(',')
-                ],
-
-            ]
-        ],
-        disableConcurrentBuilds()
-    ]
-)
-
-node(TARGET_NODE) {
+node {
     checkout scm
 
     def commonlib = load( "pipeline-scripts/commonlib.groovy")
-    commonlib.initialize()
-
     def buildlib = load("pipeline-scripts/buildlib.groovy")
-    // buildlib.initialize()
+
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '360'
+                )
+            ),
+            [
+                $class : 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    [
+                        name: 'MOCK',
+                        description: 'Mock run to pickup new Jenkins parameters?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false,
+                    ],
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    [
+                        name: 'TARGET_NODE',
+                        description: 'Jenkins agent node',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: 'openshift-build-1'
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+
+                ]
+            ],
+            disableConcurrentBuilds()
+        ]
+    )
+
     buildlib.registry_quay_dev_login()
 
     echo "Initializing ${BUILD_VERSION} sync: #${currentBuild.number}"

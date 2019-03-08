@@ -808,6 +808,15 @@ Jenkins job: ${env.BUILD_URL}
             }
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, commonlib)
         }
+
+	stage('sync images') {
+	    buildlib.sync_images(
+		BUILD_VERSION_MAJOR,
+		BUILD_VERSION_MINOR,
+		"aos-team-art@redhat.com",
+		currentBuild.number
+	    )
+	}
     } catch (err) {
 
         ATTN = ""

@@ -91,8 +91,8 @@ node {
     buildlib.initialize(false)
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
-    majorVersion = params.BUILD_VERSION.split('.')[0]
-    minorVersion = params.BUILD_VERSION.split('.')[1]
+    majorVersion = params.BUILD_VERSION.split('\\.')[0]
+    minorVersion = params.BUILD_VERSION.split('\\.')[1]
     master_ver = commonlib.ocpDefaultVersion
     version = commonlib.standardVersion(params.VERSION)
     release = params.RELEASE.trim()

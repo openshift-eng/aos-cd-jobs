@@ -23,7 +23,6 @@ node {
                 ]
             ],
             disableConcurrentBuilds(),
-            timestamps(),
         ]
     )
 

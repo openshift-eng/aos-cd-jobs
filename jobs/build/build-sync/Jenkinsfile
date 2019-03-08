@@ -83,6 +83,7 @@ beta:release-gen
                 retry (3) {
                     buildlib.registry_quay_dev_login()
                     buildlib.oc "image mirror --filename=${ocMirrorInput}"
+		    currentBuild.description = "Success mirroring images"
                 }
             } catch (mirror_error) {
                 currentBuild.description = "Error mirroring images after 3 attempts:\n${mirror_error}"
@@ -95,6 +96,7 @@ beta:release-gen
             sh "cat ${ocIsObject}"
             try {
                 buildlib.oc "apply --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
+		currentBuild.description = "Success updating image stream"
             } catch (apply_error) {
                 currentBuild.description = "Error updating image stream:\n${apply_error}"
                 error(currentBuild.description)

@@ -271,26 +271,6 @@ images:push
                 }
             }
 
-            try {
-                buildlib.doozer """
---working-dir ${DOOZER_WORKING} --group openshift-${OSE_MAJOR}.${OSE_MINOR}
-${include} ${exclude}
-images:verify
---repo-type signed
-"""
-            } catch (vererr) {
-                echo "Error verifying images: ${vererr}"
-                commonlib.email(
-                    to: "${params.MAIL_LIST_FAILURE}",
-                    from: "aos-cicd@redhat.com",
-                    subject: "Error Verifying Images During Refresh: ${OSE_MAJOR}.${OSE_MINOR}",
-                    body: """Encoutered an error while running ${env.JOB_NAME}: ${vererr}
-
-
-Jenkins job: ${env.BUILD_URL}
-""");
-            }
-
             if (params.BUILD_AMI) {
                 // e.g. version_release = ['v3.9.0', '0.34.0.0']
                 final version_release = buildlib.doozer([

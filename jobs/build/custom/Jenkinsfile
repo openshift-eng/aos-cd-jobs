@@ -91,6 +91,8 @@ node {
     buildlib.initialize(false)
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
+    majorVersion = params.BUILD_VERSION.split('.')[0]
+    minorVersion = params.BUILD_VERSION.split('.')[1]
     master_ver = commonlib.ocpDefaultVersion
     version = commonlib.standardVersion(params.VERSION)
     release = params.RELEASE.trim()
@@ -221,12 +223,14 @@ node {
             }
 
             stage('sync images') {
-                buildlib.sync_images(
-                    params.BUILD_VERSION.split()[0],
-                    params.BUILD_VERSION.split()[1],
-                    "aos-team-art@redhat.com",
-                    currentBuild.number
-                )
+                if (majorVersion == "4") {
+                    buildlib.sync_images(
+			majorVersion,
+			minorVersion,
+			"aos-team-art@redhat.com",
+			currentBuild.number
+                    )
+		}
             }
 
             commonlib.email(

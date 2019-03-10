@@ -728,24 +728,22 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
     }
 }
 
-def sync_images(major, minor, mail_list, build_nuber) {
+def sync_images(major, minor, mail_list, build_number) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
     // stream is updated with the new tags and pullspecs.
     if(major < 4) {
-	currentBuild.description = "Invalid sync request: Sync images only applies to 4.x+ builds"
-	error(currentBuild.description)
+        currentBuild.description = "Invalid sync request: Sync images only applies to 4.x+ builds"
+        error(currentBuild.description)
     }
     final param = { type, name, value ->
         [$class: type + 'ParameterValue', name: name, value: value]
     }
     def fullVersion = "${major}.${minor}"
     try {
-        build(job: 'build%252Fbuild-sync', parameters:
-	      [
-		param('Choice', 'BUILD_VERSION', fullVersion)
-	    ]
-	)
+        build(job: 'build%2Fbuild-sync', parameters:
+            [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
+        )
     } catch(err) {
         commonlib.email(
             to: "${mail_list}",
@@ -753,10 +751,10 @@ def sync_images(major, minor, mail_list, build_nuber) {
             subject: "Error syncing images after ${fullVersion} build #${build_number}",
             body: [
                 "Encountered an error: ${err}",
-                "Input URL: ${env.BUILD_URL}input",
-                "Jenkins job: ${env.BUILD_URL}"].join('\n')
-            )
-        // Continue on, this is not considered a fatal error
+                "Jenkins job: ${env.BUILD_URL}"
+            ].join('\n')
+        )
+        throw err  // may want the build status to reflect that this didn't work
     }
 }
 

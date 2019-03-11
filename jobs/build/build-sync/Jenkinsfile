@@ -19,7 +19,7 @@ node {
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.mockParam(),
-		     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                 ]
             ],
             disableConcurrentBuilds(),

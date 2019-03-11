@@ -225,12 +225,12 @@ node {
             stage('sync images') {
                 if (majorVersion == "4") {
                     buildlib.sync_images(
-			majorVersion,
-			minorVersion,
-			"aos-team-art@redhat.com",
-			currentBuild.number
+                        majorVersion,
+                        minorVersion,
+                        "aos-team-art@redhat.com",
+                        currentBuild.number
                     )
-		}
+                }
             }
 
             commonlib.email(

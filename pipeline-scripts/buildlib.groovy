@@ -261,7 +261,7 @@ def read_spec_info(filename) {
 }
 
 /**
- * Retrive the branch list from a remote repository
+ * Retrieve the branch list from a remote repository
  * @param repo_url a git@ repository URL.
  * @param pattern a matching pattern for the branch list. Only return matching branches
  *
@@ -284,7 +284,7 @@ def get_branches(repo_url, pattern="") {
 }
 
 /**
- * Retrive a list of release numbers from the OCP remote repository
+ * Retrieve a list of release numbers from the OCP remote repository
  * @param repo_url a git@ repository URL.
  * @return a list of OSE release numbers.
  *
@@ -695,13 +695,14 @@ def build_puddle(conf_url, keys, Object...args) {
     return puddle_dir
 }
 
+def param(type, name, value) {
+    return [$class: type + 'ParameterValue', name: name, value: value]
+}
+
 def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail_list) {
     if(major < 3 || (major == 3 && minor < 9))
         return
     final full_version = "${version}-${release}"
-    final param = { type, name, value ->
-        [$class: type + 'ParameterValue', name: name, value: value]
-    }
     try {
         build(job: 'build%2Faws-ami', parameters: [
             param('String', 'OPENSHIFT_VERSION', version),
@@ -714,38 +715,34 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
                 'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
                     + full_version)])
     } catch(err) {
-        mail(
+        commonlib.email(
             to: "${mail_list},jupierce@redhat.com,openshift-cr@redhat.com",
             from: "aos-cicd@redhat.com",
             subject: "RESUMABLE Error during AMI build for OCP v${full_version}",
             body: [
                 "Encountered an error: ${err}",
                 "Input URL: ${env.BUILD_URL}input",
-                "Jenkins job: ${env.BUILD_URL}"].join('\n')
-            )
+                "Jenkins job: ${env.BUILD_URL}"
+            ].join('\n')
+        )
 
         // Continue on, this is not considered a fatal error
     }
 }
 
-def sync_images(major, minor, mail_list, build_nuber) {
+def sync_images(major, minor, mail_list, build_number) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
     // stream is updated with the new tags and pullspecs.
     if(major < 4) {
-	currentBuild.description = "Invalid sync request: Sync images only applies to 4.x+ builds"
-	error(currentBuild.description)
-    }
-    final param = { type, name, value ->
-        [$class: type + 'ParameterValue', name: name, value: value]
+        currentBuild.description = "Invalid sync request: Sync images only applies to 4.x+ builds"
+        error(currentBuild.description)
     }
     def fullVersion = "${major}.${minor}"
     try {
-        build(job: 'build%252Fbuild-sync', parameters:
-	      [
-		param('Choice', 'BUILD_VERSION', fullVersion)
-	    ]
-	)
+        build(job: 'build%2Fbuild-sync', parameters:
+            [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
+        )
     } catch(err) {
         commonlib.email(
             to: "${mail_list}",
@@ -753,10 +750,10 @@ def sync_images(major, minor, mail_list, build_nuber) {
             subject: "Error syncing images after ${fullVersion} build #${build_number}",
             body: [
                 "Encountered an error: ${err}",
-                "Input URL: ${env.BUILD_URL}input",
-                "Jenkins job: ${env.BUILD_URL}"].join('\n')
-            )
-        // Continue on, this is not considered a fatal error
+                "Jenkins job: ${env.BUILD_URL}"
+            ].join('\n')
+        )
+        throw err  // may want the build status to reflect that this didn't work
     }
 }
 

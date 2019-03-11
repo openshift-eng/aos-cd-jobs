@@ -813,25 +813,8 @@ node {
                     echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
                 }
 
-                // Watch the tasks to make sure they succeed. If one fails, retry and make sure messaging to user indicates which failed
-                Closure watchAndRetry = { name, taskId, brewUrl ->
-                    try {
-                        sh "brew watch-task ${taskId}"
-                    } catch (err) {
-                        msg = "Error in ${name} RPM build task: ${err}\nSee failed brew task ${brewUrl}"
-                        echo msg
-                        try {
-                            retry(2) {
-                                sh "brew resubmit ${taskId}"
-                            }
-                        } catch (err2) {
-                            echo "giving up on ${name} RPM build after three failures"
-                            error(msg)
-                        }
-                    }
-                }
-                parallel "atomic-openshift": { watchAndRetry("atomic-openshift", oseTaskId, OSE_BREW_URL) },
-                         "openshift-ansible": { watchAndRetry("openshift-ansible", oaTaskId, OA_BREW_URL) }
+                parallel "atomic-openshift": { buildlib.watch_brew_task_and_retry("atomic-openshift RPM", oseTaskId, OSE_BREW_URL) },
+                         "openshift-ansible": { buildlib.watch_brew_task_and_retry("openshift-ansible RPM", oaTaskId, OA_BREW_URL) }
             }
 
             stage("doozer build rpms") {

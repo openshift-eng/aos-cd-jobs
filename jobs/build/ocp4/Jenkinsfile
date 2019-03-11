@@ -584,30 +584,16 @@ node {
             stage("ose rpm build") {
 
                 dir(OSE_DIR) {
-                    OSE_TASK_ID = sh(
+                    oseTaskId = sh(
                         returnStdout: true,
                         script: "tito release --debug --yes --test aos-${params.BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
-                    OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${OSE_TASK_ID}"
+                    OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${oseTaskId}"
                     echo "ose rpm brew task: ${OSE_BREW_URL}"
                 }
 
                 // Watch the task to make sure it succeeds, or retry if it fails.
-                try {
-                    sh "brew watch-task ${OSE_TASK_ID}"
-                    return // success, end the stage
-                } catch (ose_err) {
-                    echo "Error in ose build task: ${OSE_BREW_URL}\n${ose_err}"
-                }
-                // if we got here, it failed; this is usually a flake so retry twice.
-                try {
-                    retry(2) {
-                        sh "brew resubmit ${OSE_TASK_ID}"
-                    }
-                } catch (err) {
-                    currentBuild.description = "ose rpm build task failed three times:\nsee first failure at ${OSE_BREW_URL}"
-                    error(currentBuild.description)
-                }
+                buildlib.watch_brew_task_and_retry("atomic-openshift RPM", oseTaskId, OSE_BREW_URL)
             }
 
             stage("doozer build rpms") {

@@ -398,6 +398,13 @@ Determines where the compose is mirrored:
                 }
             }
 
+            // stages after this have side effects. Testing must stop here.
+            if (IS_TEST_MODE) {
+                currentBuild.description = "TEST MODE complete: no builds executed"
+                currentBuild.result = "SUCCESS"
+                return
+            }
+
             stage("ose rpm build") {
 
                 dir(OSE_DIR) {
@@ -443,6 +450,9 @@ rpms:build --version v${NEW_VERSION}
             }
 
             stage("update dist-git") {
+                if (!params.BUILD_CONTAINER_IMAGES) {
+                    return
+                }
                 buildlib.doozer """
 --working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}'
 --source ose ${OSE_DIR}
@@ -513,6 +523,9 @@ images:build
             }
 
             stage('sync images') {
+                if (!params.BUILD_CONTAINER_IMAGES) {
+                    return
+                }
                 buildlib.sync_images(
                     BUILD_VERSION_MAJOR,
                     BUILD_VERSION_MINOR,

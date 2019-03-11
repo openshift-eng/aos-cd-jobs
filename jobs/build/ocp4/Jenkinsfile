@@ -8,61 +8,6 @@ def get_mirror_url(build_mode, version) {
     return "https://mirror.openshift.com/enterprise/enterprise-${version}"
 }
 
-def get_changelog(rpm_name, record_log) {
-    //
-    // INPUTS:
-    //   rpm_name - the name of an RPM build previously
-    //   record_log - an array of build records with | separated fields
-
-    rpm_builds = record_log['build_rpm']
-    if (rpm_builds == null || rpm_builds.size() == 0) {
-        return ""
-    }
-
-    // filter for the desired RPM using name
-    build_record_index = rpm_builds.findIndexOf {
-        it['rpm'] == rpm_name
-    }
-    if (build_record_index == -1) {
-        return ""
-    }
-    build_record = rpm_builds[build_record_index]
-
-    // then get the task_id and task_url out of it
-    // task_id = build_record['task_id']
-    task_url = build_record['task_url']
-
-    // get the build ID from the web page
-    // there must be an API way to do this MAL 20180622
-    try {
-        build_id = sh(
-            returnStdout: true,
-            script: [
-                "curl --silent --insecure ${task_url}",
-                "sed -n -e 's/.*buildID=\\([0-9]*\\).*/\\1/p'"
-            ].join(" | ")
-        ).trim()
-    } catch (err) {
-        error("failed to retrieve task page from brew: ${task_url}")
-    }
-
-    // buildinfo can return the changelog.  Return just the text after
-    // the Changelog: line
-    try {
-        changelog = sh(
-            returnStdout: true,
-            script: [
-                "brew buildinfo ${build_id} --changelog",
-                "sed -n '/Changelog/,\$p'"
-            ].join(' | ')
-        ).trim()
-    } catch (err) {
-        error "failed to get build info and changelog for build ${build_id}"
-    }
-
-    return changelog
-}
-
 def mail_success(version, mirrorURL, record_log, commonlib) {
 
     def target = "(Release Candidate)"
@@ -130,10 +75,6 @@ Jenkins job: ${env.BUILD_URL}
 Are your Atomic OpenShift changes in this build? Check here:
 https://github.com/openshift/ose/commits/v${NEW_VERSION}-${NEW_RELEASE}/
 
-===Atomic OpenShift changelog snippet===
-${OSE_CHANGELOG}
-
-
 """);
 
     try {
@@ -199,7 +140,7 @@ def get_image_build_report(record_log) {
 }
 
 // Search the RPM build logs for the named package
-// extract the path to the spec file and return the changelog section.
+// extract the path to the spec file and return that.
 def get_rpm_specfile_path(record_log, package_name) {
     rpms = record_log['build_rpm']
     if (rpms == null) {
@@ -402,36 +343,13 @@ node {
                 buildlib.initialize_ose()
             }
 
-            stage("set build mode") {
-                master_spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
-
-                // If the target version resides in ose#master
-                IS_SOURCE_IN_MASTER = (params.BUILD_VERSION == master_spec.major_minor)
-
-                if (BUILD_MODE == "auto") {
-                    echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${params.BUILD_VERSION}, master_version: ${master_spec.major_minor}"
-                    // INPUTS:
-                    //   BUILD_MODE
-                    //   BUILD_VERSION
-                    //   GITHUB_URLS["ose"]
-                    releases = buildlib.get_releases(GITHUB_URLS['ose'])
-                    echo "AUTO-MODE: release repo: ${GITHUB_URLS['ose']}"
-                    echo "AUTO-MODE: releases: ${releases}"
-                    BUILD_MODE = buildlib.auto_mode(params.BUILD_VERSION, master_spec.major_minor, releases)
-                    echo "BUILD_MODE = ${BUILD_MODE}"
-                }
-            }
-
             stage("analyze") {
 
                 dir(OSE_DIR) {
                     // inputs:
-                    //  IS_SOURCE_IN_MASTER
-                    //  BUILD_MODE
                     //  BUILD_VERSION
 
                     // defines
-                    //  BUILD_MODE (if auto)
                     //  OSE_SOURCE_BRANCH
                     //  UPSTREAM_SOURCE_BRANCH
                     //  NEW_VERSION
@@ -441,34 +359,23 @@ node {
                     //  sets:
                     //    currentBuild.displayName
 
-                    if (IS_SOURCE_IN_MASTER) {
-                        if (BUILD_MODE == "release") {
-                            error("You cannot build a release while it resides in master; cut an enterprise branch")
-                        }
-                    } else {
-                        if (BUILD_MODE != "release" && BUILD_MODE != "pre-release") {
-                            error("Invalid build mode for a release that does not reside in master: ${BUILD_MODE}")
-                        }
-                    }
+                    // If the target version resides in ose#master
+                    spec = buildlib.read_spec_info("origin.spec")
+                    IS_SOURCE_IN_MASTER = (params.BUILD_VERSION == spec.major_minor)
 
                     if (IS_SOURCE_IN_MASTER) {
                         OSE_SOURCE_BRANCH = "master"
                         UPSTREAM_SOURCE_BRANCH = "upstream/master"
                     } else {
                         OSE_SOURCE_BRANCH = "enterprise-${params.BUILD_VERSION}"
-                        if (BUILD_MODE == "release") {
-                            // When building in release mode, no longer pull from upstream
-                            UPSTREAM_SOURCE_BRANCH = null
-                        } else {
-                            UPSTREAM_SOURCE_BRANCH = "upstream/release-${params.BUILD_VERSION}"
-                        }
+                        UPSTREAM_SOURCE_BRANCH = "upstream/release-${params.BUILD_VERSION}"
                         // Create the non-master source branch and have it track the origin ose repo
                         sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
+                        spec = buildlib.read_spec_info("origin.spec")
                     }
 
                     echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
 
-                    spec = buildlib.read_spec_info("origin.spec")
                     rel_fields = spec.release.tokenize(".")
 
                     if (! spec.version.startsWith("${params.BUILD_VERSION}.")) {
@@ -477,65 +384,9 @@ node {
                     }
 
 
-                    if (BUILD_MODE == "online:int") {
-                        /**
-                         * In non-release candidates, we need the following fields
-                         *      REL.INT.STG
-                         * REL = 0    means pre-release,  1 means release
-                         * INT = fields used to differentiate online:int builds
-                         */
-
-                        while (rel_fields.size() < 3) {
-                            rel_fields << "0"    // Ensure there are enough fields in the array
-                        }
-
-                        if (rel_fields[0].toInteger() != 0) {
-                            // Don't build release candidate images this way since they can't wind up
-                            // in registry.access with a tag OCP can pull.
-                            error("Do not build released products in ${BUILD_MODE}; just build in release or pre-release mode")
-                        }
-
-                        if (rel_fields.size() != 3) {
-                            // Did we start with > 3? That's too weird to continue
-                            error("Unexpected number of fields in release: ${spec.release}")
-                        }
-
-                        if (BUILD_MODE == "online:int") {
-                            rel_fields[1] = rel_fields[1].toInteger() + 1  // Bump the INT version
-                            rel_fields[2] = 0  // If we are bumping the INT field, everything following is reset to zero
-                        }
-
-                        NEW_VERSION = spec.version   // Keep the existing spec's version
-                        NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
-
-                        // Add a bumpable field for Doozer to increment for image refreshes (i.e. REL.INT.STG.BUMP)
-                        NEW_DOCKERFILE_RELEASE = "${NEW_RELEASE}.0"
-
-                    } else if (BUILD_MODE == "release" || BUILD_MODE == "pre-release") {
-
-                        /**
-                         * Once someone sets the origin.spec Release to 1, we are building release candidates.
-                         * If a release candidate is released, its associated images will show up in registry.access
-                         * with the tags X.Y.Z-R  and  X.Y.Z. The "R" cannot be used since the fields is bumped by
-                         * refresh-images when building images with signed RPMs. That is, if OCP tried to load images
-                         * with the X.Y.Z-R' its RPM was built with, the R != R' (since R' < R) and the image
-                         * would not be found.
-                         * For release candidates, therefore, we must only use X.Y.Z to differentiate builds.
-                         */
-                        if (rel_fields[0].toInteger() != 1) {
-                            error("You need to set the spec Release field to 1 in order to build in this mode")
-                        }
-
-                        // Undertake to increment the last field in the version (e.g. 3.7.0 -> 3.7.1)
-                        ver_fields = spec.version.tokenize(".")
-                        ver_fields[ver_fields.size() - 1] = "${ver_fields[ver_fields.size() - 1].toInteger() + 1}"
-                        NEW_VERSION = ver_fields.join(".")
-                        NEW_RELEASE = "1"
-                        NEW_DOCKERFILE_RELEASE = NEW_RELEASE
-
-                    } else {
-                        error("Unknown BUILD_MODE: ${BUILD_MODE}")
-                    }
+                    NEW_VERSION = params.NEW_VERSION ?: spec.version
+                    NEW_RELEASE = new Date().format("yyyy.MM.dd.HH.mm")
+                    NEW_DOCKERFILE_RELEASE = NEW_RELEASE
 
                     rpmOnlyTag = ""
                     if (!params.BUILD_CONTAINER_IMAGES) {
@@ -546,6 +397,7 @@ node {
             }
 
             stage("merge origin") {
+                // note, this will go away once merge is handled in its own job
                 dir(OSE_DIR) {
                     // Enable fake merge driver used in our .gitattributes
                     sh "git config merge.ours.driver true"
@@ -553,31 +405,35 @@ node {
                     sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
                     sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
 
-                    if (UPSTREAM_SOURCE_BRANCH != null) {
-                        // Merge upstream origin code into the ose branch
-                        sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
-                    } else {
-                        echo "No origin upstream in this build"
+                    // Merge upstream origin code into the ose branch
+                    sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
+                    if (!IS_TEST_MODE) {
+                        sh "git push"
                     }
+
                 }
             }
 
             stage("ose tag") {
                 dir(OSE_DIR) {
+                    // we no longer want to push tito's changes (and tags) to ose.
+                    // but push a tag for tito to generate the next changelog against and to match historical practice.
+                    def tag = "v${NEW_VERSION}-${NEW_RELEASE}"
+
+                    sh "git tag -am '' ${tag}"
+                    if (!IS_TEST_MODE) {
+                        sh "git push origin ${tag}"
+                    }
+                    // but tito needs to believe it owns the new tag so make way for that
+                    sh "git tag -d ${tag}"
+
                     // Set the new version/release value in the file and tell tito to keep the version & release in the spec.
+                    // Cannot tito tag --use-release because it does not maintain variables like %{?dist}.
                     buildlib.set_rpm_spec_version("origin.spec", NEW_VERSION)
                     buildlib.set_rpm_spec_release_prefix("origin.spec", NEW_RELEASE)
-                    // Note that I did not use --use-release because it did not maintain variables like %{?dist}
 
-                    commit_msg = "Automatic commit of package [atomic-openshift] release [${NEW_VERSION}-${NEW_RELEASE}]"
-
-                    sh "git commit --allow-empty -m '${commit_msg}'" // add commit to capture our change message
-                    sh "tito tag --accept-auto-changelog --keep-version --debug"
-                    if (!IS_TEST_MODE) {
-                        sh "git push"
-                        sh "git push --tags"
-                    }
-                    OSE_CHANGELOG = buildlib.read_changelog("origin.spec")
+                    // tito tag commits above changes along with its own.
+                    sh "tito tag --no-auto-changelog --keep-version --debug"
                 }
             }
 
@@ -671,73 +527,44 @@ images:build
                 }
             }
 
-            NEW_FULL_VERSION = "${NEW_VERSION}-${NEW_RELEASE}"
+            stage("mirror RPMs") {
 
-            SYMLINK_NAME = "latest"
-            if (!params.BUILD_CONTAINER_IMAGES) {
-                SYMLINK_NAME = "no-image-latest"
-            }
+                NEW_FULL_VERSION = "${NEW_VERSION}-${NEW_RELEASE}"
 
-            // Push the building puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
-            buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", SYMLINK_NAME, NEW_FULL_VERSION, BUILD_MODE)
-
-            // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
-            OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
-            final mirror_url = get_mirror_url(BUILD_MODE, params.BUILD_VERSION)
-
-            if (NEW_RELEASE != "1") {
-                // If this is not a release candidate, push binary in a directory qualified with release field information
-                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
-            } else {
-                // If this is a release candidate, the directory binary directory should not contain release information
-                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_VERSION)
-            }
-
-            echo "Finished building OCP ${NEW_FULL_VERSION}"
-            PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
-
-            // Don't make an github release unless this build it from the actual ose repo
-            if ( params.GITHUB_BASE == "git@github.com:openshift" ) {
-                try {
-                    withCredentials([string(credentialsId: 'github_token_ose', variable: 'GITHUB_TOKEN')]) {
-                        httpRequest(
-                            consoleLogResponseBody: true,
-                            httpMode: 'POST',
-                            ignoreSslErrors: true,
-                            responseHandle: 'NONE',
-                            url: "https://api.github.com/repos/openshift/ose/releases?access_token=${GITHUB_TOKEN}",
-                            requestBody: """{"tag_name": "v${NEW_VERSION}-${NEW_RELEASE}",
-"target_commitish": "${OSE_SOURCE_BRANCH}",
-"name": "v${NEW_VERSION}-${NEW_RELEASE}",
-"draft": true,
-"prerelease": false,
-"body": "Release of OpenShift Container Platform v${NEW_VERSION}-${NEW_RELEASE}\\nPuddle: ${mirror_url}/${OCP_PUDDLE}"
-}"""
-                        )
-                    }
-
-                } catch( release_ex ) {
-                    commonlib.email(
-                        to: "aos-team-art@redhat.com",
-                        from: "aos-cicd@redhat.com",
-                        subject: "Error creating ose release in github",
-                        body: """
-Jenkins job: ${env.BUILD_URL}
-"""
-                    );
-                    currentBuild.description = "Error creating ose release in github:\n${release_ex}"
+                SYMLINK_NAME = "latest"
+                if (!params.BUILD_CONTAINER_IMAGES) {
+                    SYMLINK_NAME = "no-image-latest"
                 }
-            }
-            mail_success(NEW_FULL_VERSION, mirror_url, record_log, commonlib)
-        }
 
-        stage('sync images') {
-            buildlib.sync_images(
-                BUILD_VERSION_MAJOR,
-                BUILD_VERSION_MINOR,
-                "aos-team-art@redhat.com",
-                currentBuild.number
-            )
+                // Push the building puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
+                buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", SYMLINK_NAME, NEW_FULL_VERSION, BUILD_MODE)
+
+                // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
+                OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
+                final mirror_url = get_mirror_url(BUILD_MODE, params.BUILD_VERSION)
+
+                if (NEW_RELEASE != "1") {
+                    // If this is not a release candidate, push binary in a directory qualified with release field information
+                    buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
+                } else {
+                    // If this is a release candidate, the directory binary directory should not contain release information
+                    buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_VERSION)
+                }
+
+                echo "Finished building OCP ${NEW_FULL_VERSION}"
+                PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
+                mail_success(NEW_FULL_VERSION, mirror_url, record_log, commonlib)
+
+            }
+
+            stage('sync images') {
+                buildlib.sync_images(
+                    BUILD_VERSION_MAJOR,
+                    BUILD_VERSION_MINOR,
+                    "aos-team-art@redhat.com",
+                    currentBuild.number
+                )
+            }
         }
     } catch (err) {
 

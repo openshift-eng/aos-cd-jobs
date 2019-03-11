@@ -971,4 +971,22 @@ List<List<?>> mapToList(Map map) {
   }
 }
 
+def watch_brew_task_and_retry(name, taskId, brewUrl) {
+    // Watch brew task to make sure it succeeds. If it fails, retry twice before giving up.
+    try {
+        sh "brew watch-task ${taskId}"
+    } catch (err) {
+        msg = "Error in ${name} build task: ${err}\nSee failed brew task ${brewUrl}"
+        echo msg
+        try {
+            retry(2) {
+                sh "brew resubmit ${taskId}"
+            }
+        } catch (err2) {
+            echo "giving up on ${name} build after three failures"
+            error(msg)
+        }
+    }
+}
+
 return this

@@ -289,12 +289,12 @@ ${extra_body}""")
     }
 
     stage('sync images') {
-	buildlib.sync_images(
-	    OSE_MAJOR,
-	    OSE_MINOR,
-	    "aos-team-art@redhat.com",
-	    currentBuild.number
-	)
+        buildlib.sync_images(
+            OSE_MAJOR,
+            OSE_MINOR,
+            "aos-team-art@redhat.com",
+            currentBuild.number
+        )
     }
 
     // we probably don't want to spam email on success.

@@ -176,26 +176,40 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
-                        name: 'GITHUB_BASE',
-                        description: 'Github base for repos',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: [
-                            "git@github.com:openshift",
-                        ].join("\n"),
-                        defaultValue: 'git@github.com:openshift'
-                    ],
-                    [
-                        name: 'SSH_KEY_ID',
-                        description: 'SSH credential id to use',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: [
-                            "openshift-bot",
-                            "aos-cd-test",
-                        ].join("\n"),
-                        defaultValue: 'aos-cd-test'
-                    ],
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    [
+                        name: 'BUILD_CONTAINER_IMAGES',
+                        description: 'Build container images? Otherwise just RPMs',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
+                    [
+                        name: 'BUILD_EXCLUSIONS',
+                        description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    commonlib.mockParam(),
+                    [
+                        name: 'TEST',
+                        description: 'Run as much code as possible without pushing / building?',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                        name: 'BUILD_MODE',
+                        description: '''
+Determines where the compose is mirrored:
+    pre-release               origin/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/
+    online:int                origin/master -> online-int yum repo
+    ''',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "pre-release",
+                            "online:int"
+                        ].join("\n"),
+                        defaultValue: "pre-release"
+                    ],
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -216,64 +230,10 @@ node {
                         ].join(',')
                     ],
                     [
-                        name: 'BUILD_MODE',
-                        description: '''
-    auto                      BUILD_VERSION and ocp repo contents determine the mode<br>
-    release                   ose/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-    pre-release               origin/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-    online:int                origin/master -> online-int yum repo<br>
-    ''',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: [
-                            "auto",
-                            "release",
-                            "pre-release",
-                            "online:int"
-                        ].join("\n"),
-                        defaultValue: "auto"
-                    ],
-                    [
-                        name: 'ODCS',
-                        description: 'Run in ODCS Mode?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
-                    [
-                        name: 'SIGN',
-                        description: 'Sign RPMs with openshifthosted?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
-                    commonlib.mockParam(),
-                    [
-                        name: 'TEST',
-                        description: 'Run as much code as possible without pushing / building?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
-                    [
                         name: 'SPECIAL_NOTES',
                         description: 'Include special notes in the build email?',
                         $class: 'hudson.model.TextParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
-                        name: 'BUILD_EXCLUSIONS',
-                        description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'BUILD_CONTAINER_IMAGES',
-                        description: 'Build container images?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: true
-                    ],
-                    [
-                        name: 'BUILD_AMI',
-                        description: 'Build golden image after building images?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: true
                     ],
                 ]
             ],
@@ -281,13 +241,14 @@ node {
         ]
     )
 
+    GITHUB_BASE = "git@github.com:openshift"  // buildlib uses this :eyeroll:
     IS_TEST_MODE = params.TEST
     buildlib.initialize(IS_TEST_MODE)
 
     BUILD_VERSION_MAJOR = params.BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
     BUILD_VERSION_MINOR = params.BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
-    SIGN_RPMS = params.SIGN
-    ODCS_MODE = params.ODCS
+    SIGN_RPMS = false  // expose param for this if we get to sign RPMs
+    ODCS_MODE = false  // expose param for this if we ever get serious about ODCS again
     ODCS_FLAG = ""
     ODCS_OPT = ""
     if (ODCS_MODE) {
@@ -317,7 +278,7 @@ node {
     puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
     puddleSignKeys = SIGN_RPMS ? "b906ba72" : null
 
-    echo "Initializing build: #${currentBuild.number} - ${params.BUILD_VERSION}.?? (${BUILD_MODE})"
+    echo "Initializing build: #${currentBuild.number} - ${params.BUILD_VERSION}.??"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${env.WORKSPACE}/doozer_working"
@@ -326,7 +287,7 @@ node {
     sh "mkdir -p ${DOOZER_WORKING}"
 
     try {
-        sshagent([params.SSH_KEY_ID]) {
+        sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
 
             PREV_BUILD = sh(
@@ -392,7 +353,7 @@ node {
                     if (!params.BUILD_CONTAINER_IMAGES) {
                         rpmOnlyTag = " (RPM ONLY)"
                     }
-                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE}${rpmOnlyTag})"
+                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} ${rpmOnlyTag}"
                 }
             }
 

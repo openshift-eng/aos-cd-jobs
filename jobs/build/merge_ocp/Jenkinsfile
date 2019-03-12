@@ -19,7 +19,7 @@ node {
                         name: 'VERSIONS',
                         description: 'CSV list of versions to run merge on.',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "3.9,3.10,3.11,4.0"
+                        defaultValue: commonlib.ocpMergeVersions.join(',')
                     ],
                     commonlib.suppressEmailParam(),
                     [
@@ -49,7 +49,7 @@ node {
 
     SSH_KEY_ID = "openshift-bot"
     MERGE_VERSIONS = VERSIONS.split(',')
-    CURRENT_MASTER = "4.0"
+    CURRENT_MASTER = commonlib.ocp4MasterVersion
 
     try {
         sshagent([SSH_KEY_ID]) {

@@ -29,6 +29,6 @@ echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes
 echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes
 git merge -m "Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}" "upstream/${UPSTREAM_SOURCE_BRANCH}"
 
-# git push # probabaly don't run this yet
+git push
 
 popd

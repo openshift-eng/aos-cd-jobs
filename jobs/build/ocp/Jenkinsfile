@@ -813,25 +813,8 @@ node {
                     echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
                 }
 
-                // Watch the tasks to make sure they succeed. If one fails, retry and make sure messaging to user indicates which failed
-                Closure watchAndRetry = { name, taskId, brewUrl ->
-                    try {
-                        sh "brew watch-task ${taskId}"
-                    } catch (err) {
-                        msg = "Error in ${name} RPM build task: ${err}\nSee failed brew task ${brewUrl}"
-                        echo msg
-                        try {
-                            retry(2) {
-                                sh "brew resubmit ${taskId}"
-                            }
-                        } catch (err2) {
-                            echo "giving up on ${name} RPM build after three failures"
-                            error(msg)
-                        }
-                    }
-                }
-                parallel "atomic-openshift": { watchAndRetry("atomic-openshift", oseTaskId, OSE_BREW_URL) },
-                         "openshift-ansible": { watchAndRetry("openshift-ansible", oaTaskId, OA_BREW_URL) }
+                parallel "atomic-openshift": { buildlib.watch_brew_task_and_retry("atomic-openshift RPM", oseTaskId, OSE_BREW_URL) },
+                         "openshift-ansible": { buildlib.watch_brew_task_and_retry("openshift-ansible RPM", oaTaskId, OA_BREW_URL) }
             }
 
             stage("doozer build rpms") {
@@ -872,68 +855,12 @@ images:rebase --version v${NEW_VERSION}
 --release ${NEW_DOCKERFILE_RELEASE}
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
 """
+                buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, [
+                    "ose"              : OSE_SOURCE_BRANCH,
+                    "openshift-ansible": OPENSHIFT_ANSIBLE_SOURCE_BRANCH
+                ])
             }
-
-            record_log = buildlib.parse_record_log(DOOZER_WORKING)
-            distgit_notify = buildlib.get_distgit_notify(record_log)
-            distgit_notify = buildlib.mapToList(distgit_notify)
-            // loop through all new commits and notify their owners
-
-            SOURCE_BRANCHES = [
-                "ose"              : OSE_SOURCE_BRANCH,
-                "openshift-ansible": OPENSHIFT_ANSIBLE_SOURCE_BRANCH
-            ]
-            for (i = 0; i < distgit_notify.size(); i++) {
-                distgit = distgit_notify[i][0]
-                val = distgit_notify[i][1]
-
-                try {
-                    alias = val['source_alias']
-                    dockerfile_url = ""
-                    github_url = GITHUB_URLS[alias]
-                    github_url = github_url.replace(".git", "")
-                    github_url = github_url.replace("git@", "")
-                    github_url = github_url.replaceFirst(":", "/")
-                    dockerfile_sub_path = val['source_dockerfile_subpath']
-                    dockerfile_url = "Upstream source file: https://" + github_url + "/blob/" + SOURCE_BRANCHES[alias] + "/" + dockerfile_sub_path
-                    // always mail success list, val.owners will be comma delimited or empty
-                    commonlib.email(
-                        to: "aos-team-art@redhat.com,${val.owners}",
-                        from: "aos-cicd@redhat.com",
-                        subject: "${val.image} Dockerfile reconciliation for OCP v${params.BUILD_VERSION}",
-                        body: """
-Why am I receiving this?
-You are receiving this message because you are listed as an owner for an OpenShift related image - or
-you recently made a modification to the definition of such an image in github. Upstream OpenShift Dockerfiles
-(e.g. those in the openshift/origin repository under images/*) are regularly pulled from their upstream
-source and used as an input to build our productized images - RHEL based OpenShift Container Platform (OCP) images.
-
-To serve as an input to RHEL/OCP images, upstream Dockerfiles are programmatically modified before they are checked
-into a downstream git repository which houses all Red Hat images: http://dist-git.host.prod.eng.bos.redhat.com/cgit/rpms/ .
-We call this programmatic modification "reconciliation" and you will receive an email each time the upstream
-Dockerfile changes so that you can review the differences between the upstream & downstream Dockerfiles.
-
-
-What do I need to do?
-You may want to look at the result of the reconciliation. Usually, reconciliation is transparent and safe.
-However, you may be interested in any changes being performed by the OCP build system.
-
-
-What changed this time?
-Reconciliation has just been performed for the image: ${val.image}
-${dockerfile_url}
-
-The reconciled (downstream OCP) Dockerfile can be view here: https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
-
-Please direct any questions to the Automated Release Team (#aos-cd-team on IRC).
-                    """);
-                } catch (err_alias) {
-
-                    echo "Failure resolving alias for email"
-                    echo "${err_alias}"
-                }
-            }
-
+    
             stage("build images") {
                 if (params.BUILD_CONTAINER_IMAGES) {
                     try {

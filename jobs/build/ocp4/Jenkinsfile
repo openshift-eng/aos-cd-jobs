@@ -298,7 +298,7 @@ node {
     BUILD_EXCLUSIONS = commonlib.cleanCommaList(params.BUILD_EXCLUSIONS)
     BUILD_FAILURES = null
 
-    // Will be used to track which atomic-openshift build was tagged before we ran.
+    // Will be used to track which openshift pkg build was tagged before we ran.
     PREV_BUILD = null
 
     aosCdJobsCommitSha = sh(
@@ -331,7 +331,7 @@ node {
 
             PREV_BUILD = sh(
                 returnStdout: true,
-                script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'"
+                script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate openshift | awk '{print \$1}'"
             ).trim()
 
             stage("ose repo") {
@@ -449,7 +449,7 @@ node {
                 }
 
                 // Watch the task to make sure it succeeds, or retry if it fails.
-                buildlib.watch_brew_task_and_retry("atomic-openshift RPM", oseTaskId, OSE_BREW_URL)
+                buildlib.watch_brew_task_and_retry("openshift RPM", oseTaskId, OSE_BREW_URL)
             }
 
             stage("doozer build rpms") {
@@ -543,13 +543,7 @@ images:build
                 OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
                 final mirror_url = get_mirror_url(BUILD_MODE, params.BUILD_VERSION)
 
-                if (NEW_RELEASE != "1") {
-                    // If this is not a release candidate, push binary in a directory qualified with release field information
-                    buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
-                } else {
-                    // If this is a release candidate, the directory binary directory should not contain release information
-                    buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_VERSION)
-                }
+                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION, "openshift")
 
                 echo "Finished building OCP ${NEW_FULL_VERSION}"
                 PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
@@ -570,7 +564,7 @@ images:build
 
         ATTN = ""
         try {
-            NEW_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+            NEW_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate openshift | awk '{print \$1}'").trim()
             if (PREV_BUILD != null && PREV_BUILD != NEW_BUILD) {
                 // Untag anything tagged by this build if an error occured at any point
                 sh "brew --user=ocp-build untag-build rhaos-${params.BUILD_VERSION}-rhel-7-candidate ${NEW_BUILD}"

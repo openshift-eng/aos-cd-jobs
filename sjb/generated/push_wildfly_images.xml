@@ -271,6 +271,9 @@ docker push docker.io/openshift/wildfly-140-centos7
 
 docker tag openshift/wildfly-150-centos7 docker.io/openshift/wildfly-150-centos7
 docker push docker.io/openshift/wildfly-150-centos7
+
+docker tag openshift/wildfly-160-centos7 docker.io/openshift/wildfly-160-centos7
+docker push docker.io/openshift/wildfly-160-centos7
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

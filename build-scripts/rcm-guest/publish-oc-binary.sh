@@ -20,11 +20,11 @@ extract() {
         else
             rpm2cpio "${rpm}" \
                 | cpio -idm --quiet \
-                    ./usr/share/atomic-openshift/{linux,macosx}/oc \
-                    ./usr/share/atomic-openshift/windows/oc.exe
-            mv usr/share/atomic-openshift/linux/oc x86_64/
-            mv usr/share/atomic-openshift/macosx/oc macosx/
-            mv usr/share/atomic-openshift/windows/oc.exe windows/
+                    ./usr/share/${PKG}/{linux,macosx}/oc \
+                    ./usr/share/${PKG}/windows/oc.exe
+            mv usr/share/${PKG}/linux/oc x86_64/
+            mv usr/share/${PKG}/macosx/oc macosx/
+            mv usr/share/${PKG}/windows/oc.exe windows/
         fi
     done
 }
@@ -42,8 +42,9 @@ pkg_tar() {
 
 OSE_VERSION=$1
 VERSION=$2
+PKG=${3:-atomic-openshift}
 RPM=/mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/${OSE_VERSION}/building/%s
-RPM=${RPM}/os/Packages/atomic-openshift-clients
+RPM=${RPM}/os/Packages/${PKG}-clients
 ARCH='aarch64 ppc64le s390x'
 TMPDIR=$(mktemp -dt ocbinary.XXXXXXXXXX)
 trap "rm -rf '${TMPDIR}'" EXIT INT TERM

@@ -15,7 +15,7 @@ RELEASEVERSION="RHEL-7-OSE-${VERSION}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
 SIMPLEDIR="${BASEDIR}/AtomicOpenShift/${VERSION}/${SIMPLELINK}/x86_64/os/Packages"
 ERRATADIR="${BASEDIR}/AtomicOpenShift-errata/${VERSION}/${ERRATALINK}/RH7-RHAOS-${VERSION}/x86_64/os/Packages"
-GITEXCLUDE="-e cockpit -e atomic-openshift-clients-redistributable -e python-jsonschema -e python-ruamel-yaml -e python-wheel -e python-typing -e python-ruamel-ordereddict -e openshift-ansible"
+GITEXCLUDE="-e cockpit -e atomic-openshift-clients-redistributable -e openshift-clients-redistributable -e python-jsonschema -e python-ruamel-yaml -e python-wheel -e python-typing -e python-ruamel-ordereddict -e openshift-ansible"
 
 # Figure out the ERRATAID
 #ERRATAID="25181"

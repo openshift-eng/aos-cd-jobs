@@ -14,7 +14,7 @@ ERRATALINK="building"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
 SIMPLEDIR="${BASEDIR}/AtomicOpenShift/${VERSION}/${SIMPLELINK}/x86_64/os/Packages"
 ERRATADIR="${BASEDIR}/AtomicOpenShift-errata/${VERSION}/${ERRATALINK}/RH7-RHAOS-${VERSION}/x86_64/os/Packages"
-GITEXCLUDE="-e cockpit -e python-jsonschema -e python-ruamel-yaml -e python-wheel -e openshift-ansible -e atomic-openshift-clients-redistributable"
+GITEXCLUDE="-e cockpit -e python-jsonschema -e python-ruamel-yaml -e python-wheel -e openshift-ansible -e atomic-openshift-clients-redistributable -e openshift-clients-redistributable"
 
 # Find out differences, put them in a file
 diff --brief -r ${SIMPLEDIR}/ ${ERRATADIR}/ | grep "${SIMPLEDIR}" | grep -v ${GITEXCLUDE} | awk '{print "'${SIMPLEDIR}'/" $4}' | while read line

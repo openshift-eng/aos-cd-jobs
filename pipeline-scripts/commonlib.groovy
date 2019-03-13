@@ -15,9 +15,18 @@ ocp3Versions = [
 ]
 
 ocp4DefaultVersion = "4.0"
+ocp4MasterVersion = "4.1"
 ocp4Versions = [
     "4.1",
     "4.0",
+]
+
+ocpMergeVersions = [
+    "4.1",
+    "4.0",
+    "3.11",
+    "3.10",
+    "3.9",
 ]
 
 ocpDefaultVersion = ocp4DefaultVersion

@@ -109,6 +109,9 @@ A typical workflow for a developer making changes to the job would look like:
  - commit changes
  - run `sjb/push-update-automatic.sh` once changes are approved and merged into `master`
 
+Your local environment needs Python dependencies installed to run `sjb/generate.sh` - this can be done via the command `$ pip install -r sjb/requirements.txt`.
+You will also need [pip](https://pypi.org/project/pip/), which comes bundled with most Python distributions.
+
 In order to test a job, it is necessary to copy a configuration file under `sjb/config` to a new YAML file with a different name,
 then re-generate XML and use the following command to push only your test job up to the server:
 ```shell

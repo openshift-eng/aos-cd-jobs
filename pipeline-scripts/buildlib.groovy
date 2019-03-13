@@ -234,6 +234,16 @@ def set_rpm_spec_release_prefix( filename, new_rel ) {
     writeFile( file: filename, text: content )
 }
 
+// Just like the separate calls except it doesn't expect existing version/release to look like anything
+def set_rpm_spec_version_release( filename, new_ver, new_rel ) {
+    echo "Setting Version-Release in ${filename}: ${new_ver}-${new_rel}"
+    content = readFile( filename )
+    content = content.replaceFirst( /(?mxi) ^( \s* Version: \s* ) .+/, "\$1${new_ver}" ) // \$1 is a backref to "Version:    "
+    content = content.replaceFirst( /(?mxi) ^( \s* Release: \s* ) .+/, "\$1${new_rel}%{?dist}" )
+    writeFile( file: filename, text: content )
+}
+
+
 /**
  * Reads the specified RPM spec and parses version information from
  * it.
@@ -574,6 +584,20 @@ def mock_merge_driver(repo_dir, files) {
     files.each {
             gitattrs << "${it}  merge=ours\n"
     }
+}
+
+/**
+ * Clones ose (with origin as 'upstream')
+ * Sets OSE_DIR to ose repo directory
+ * @return Returns the directory where ose is cloned
+ */
+def initialize_ose_4() {
+    this.initialize_ose_dir()
+    dir( OSE_DIR ) {
+        sh "git remote add upstream ${GITHUB_BASE}/origin.git --no-tags"
+        sh 'git fetch --all'
+    }
+    return OSE_DIR
 }
 
 /**

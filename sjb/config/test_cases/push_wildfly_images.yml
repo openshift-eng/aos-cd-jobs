@@ -45,3 +45,6 @@ extensions:
 
         docker tag openshift/wildfly-150-centos7 docker.io/openshift/wildfly-150-centos7
         docker push docker.io/openshift/wildfly-150-centos7
+
+        docker tag openshift/wildfly-160-centos7 docker.io/openshift/wildfly-160-centos7
+        docker push docker.io/openshift/wildfly-160-centos7

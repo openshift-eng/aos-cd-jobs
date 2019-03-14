@@ -23,13 +23,13 @@ node {
                     commonlib.ocpVersionParam('MINOR_VERSION', '4'),
                     [
                         name: 'VERSION_OVERRIDE',
-                        description: 'Optional full version for build (e.g. v4.0.1). Defaults to atomic-openshift version',
+                        description: 'Optional full version for build (e.g. v4.0.1). Defaults to openshift pkg version',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ''
                     ],
                     [
                         name: 'RELEASE_OVERRIDE',
-                        description: 'Optional release to use. By default, auto-increment previous build.',
+                        description: 'Optional release to use. By default, use a timestamp.',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ''
                     ],
@@ -189,13 +189,11 @@ ${extra_body}""")
 
                 // determine what version to use
                 def version = VERSION_OVERRIDE.trim()
-                def release = RELEASE_OVERRIDE.trim() ? RELEASE_OVERRIDE.trim() : "+"
+                def release = RELEASE_OVERRIDE.trim() ?: new Date().format("yyyyMMddHHmm")
 
                 if (version == "") {
-                    version = buildlib.doozer(
-                        "${doozer_opts} --quiet images:query-rpm-version --repo-type unsigned",
-                        [capture: true]
-                    ).split(' ').last()
+                    version = commonlib.currentOpenshiftVersionFor(params.MINOR_VERSION)
+                    version = "v" + (version ?: "${params.MINOR_VERSION}.0")
                 } else {
                     version = version.startsWith("v") ? version : "v${version}"
                 }
@@ -255,7 +253,7 @@ ${extra_body}""")
             def failed_map = buildlib.get_failed_builds(record_log, true)
             if (failed_map) {
                 // echo to console and description what happened
-                def failed_msg = "The following build(s) failed:\n"
+                failed_msg = "The following build(s) failed:\n"
                 failed_map.each { img, reason -> failed_msg += "${img}: ${reason} \n" }
                 echo failed_msg
                 currentBuild.description = failed_msg

@@ -587,20 +587,6 @@ def mock_merge_driver(repo_dir, files) {
 }
 
 /**
- * Clones ose (with origin as 'upstream')
- * Sets OSE_DIR to ose repo directory
- * @return Returns the directory where ose is cloned
- */
-def initialize_ose_4() {
-    this.initialize_ose_dir()
-    dir( OSE_DIR ) {
-        sh "git remote add upstream ${GITHUB_BASE}/origin.git --no-tags"
-        sh 'git fetch --all'
-    }
-    return OSE_DIR
-}
-
-/**
  * Extracts ose (with origin as 'upstream') and:
  * Sets OSE_MASTER to major.minor ("X.Y") from current ose#master origin.spec
  * Sets OSE_MASTER_MAJOR to X

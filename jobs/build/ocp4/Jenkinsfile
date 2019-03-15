@@ -139,26 +139,6 @@ def get_image_build_report(record_log) {
         image_set.toSorted().join("\n    ")
 }
 
-// Search the RPM build logs for the named package
-// extract the path to the spec file and return that.
-def get_rpm_specfile_path(record_log, package_name) {
-    rpms = record_log['build_rpm']
-    if (rpms == null) {
-        return null
-    }
-
-    // find the named package and the spec file path
-    specfile_path = ""
-    for (i = 0 ; i < rpms.size(); i++) {
-        if (rpms[i]['distgit_key'] == package_name) {
-            specfile_path = rpms[i]['specfile']
-            break
-        }
-    }
-
-    return specfile_path
-}
-
 node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -197,8 +177,8 @@ node {
                     ],
                     commonlib.mockParam(),
                     [
-                        name: 'TEST',
-                        description: 'Run as much code as possible without pushing / building?',
+                        name: 'DRY_RUN',
+                        description: 'Take no action, just echo what the build would have done.',
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
                     ],
@@ -248,47 +228,29 @@ Determines where the compose is mirrored:
     )
 
     GITHUB_BASE = "git@github.com:openshift"  // buildlib uses this :eyeroll:
-    IS_TEST_MODE = params.TEST
     commonlib.checkMock()
 
     BUILD_VERSION_MAJOR = params.BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
     BUILD_VERSION_MINOR = params.BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
-    SIGN_RPMS = false  // expose param for this if we get to sign RPMs
-    ODCS_MODE = false  // expose param for this if we ever get serious about ODCS again
-    ODCS_FLAG = ""
-    ODCS_OPT = ""
-    if (ODCS_MODE) {
-        ODCS_FLAG = "--odcs-mode"
-        ODCS_OPT = "--odcs unsigned"
-    }
 
     BUILD_EXCLUSIONS = commonlib.cleanCommaList(params.BUILD_EXCLUSIONS)
     BUILD_FAILURES = null
-
-    // Will be used to track which openshift pkg build was tagged before we ran.
-    prevBuild = ""
 
     aosCdJobsCommitSha = sh(
         returnStdout: true,
         script: "git rev-parse HEAD",
     ).trim()
 
-    try {
-        // Clean up old images so that we don't run out of device mapper space
-        sh "docker rmi --force \$(docker images  | grep v${params.BUILD_VERSION} | awk '{print \$3}')"
-    } catch (cce) {
-        echo "Error cleaning up old images: ${cce}"
-    }
-
     puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${aosCdJobsCommitSha}/build-scripts/puddle-conf"
     puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
-    puddleSignKeys = SIGN_RPMS ? "b906ba72" : null
 
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}.??"
     echo "Initializing build: ${currentBuild.displayName}"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${env.WORKSPACE}/doozer_working"
+    // get a fresh one, but delay removing the old one
+    sh "mkdir -p ${DOOZER_WORKING}; mv ${DOOZER_WORKING} ${DOOZER_WORKING}.${currentBuild.number}; mkdir -p ${DOOZER_WORKING}"
 
     try {
         stage("version") {
@@ -296,14 +258,13 @@ Determines where the compose is mirrored:
             //  BUILD_VERSION
 
             // defines:
-            //  prevBuild
             //  NEW_VERSION
             //  NEW_RELEASE
             //  NEW_DOCKERFILE_RELEASE
             //
             //  sets currentBuild.displayName
 
-            prevBuild = sh(
+            def prevBuild = sh(
                 returnStdout: true,
                 script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate openshift | awk '{print \$1}'"
             ).trim()
@@ -346,134 +307,41 @@ Determines where the compose is mirrored:
             NEW_RELEASE = new Date().format("yyyyMMddHHmm")
             NEW_DOCKERFILE_RELEASE = NEW_RELEASE
 
-            rpmOnlyTag = params.BUILD_CONTAINER_IMAGES ? "" : " (RPM ONLY)"
-            currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} ${rpmOnlyTag}"
+            currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE}"
+            if (!params.BUILD_CONTAINER_IMAGES) { currentBuild.displayName += " (RPM ONLY)" }
+            if (params.DRY_RUN) { currentBuild.displayName += " (DRY RUN)" }
         }
 
         sshagent(["openshift-bot"]) {
             // To work on private repos, buildlib operations must run with the permissions of openshift-bot
 
-            stage("ose repo") {
-                // defines:
-                //   OPENSHIFT_DIR // by calling initialize_openshift_dir()
-                //   OSE_DIR
-                //   GITHUB_URLS["ose"]
-                //   GITHUB_BASE_PATHS["ose"]
-                //   OSE_SOURCE_BRANCH
-                //   UPSTREAM_SOURCE_BRANCH
-
-                parallel "clone ose": { ->
-                    buildlib.initialize(IS_TEST_MODE)
-                    // TODO: clone a single branch
-                    buildlib.initialize_ose_4()
-                },
-                "remove previous workspace": { ->
-                    num = currentBuild.number
-                    sh "mkdir -p ${DOOZER_WORKING}; mv ${DOOZER_WORKING} ${DOOZER_WORKING}.${num}"
-                    sh "mkdir -p ${DOOZER_WORKING}"
-                    // this can take a while, and even fail, given NFS. do while cloning ose.
-                    sh script: "rm -rf ${DOOZER_WORKING}.${num}", returnStatus: true
-                }
-
-                // If the target version resides in ose#master
-                if (params.BUILD_VERSION == commonlib.ocp4MasterVersion) {
-                    OSE_SOURCE_BRANCH = "master"
-                    UPSTREAM_SOURCE_BRANCH = "upstream/master"
-                } else {
-                    OSE_SOURCE_BRANCH = "enterprise-${params.BUILD_VERSION}"
-                    UPSTREAM_SOURCE_BRANCH = "upstream/release-${params.BUILD_VERSION}"
-                    dir(OSE_DIR) {
-                        // Create the non-master source branch and have it track the origin ose repo
-                        sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
-                    }
-                }
-
-                echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
-            }
-
-            stage("merge origin") {
-                // note, this can go away once merge is handled in its own job
-                dir(OSE_DIR) {
-                    // Enable fake merge driver used in our .gitattributes
-                    sh "git config merge.ours.driver true"
-                    // Use fake merge driver on specific packages
-                    sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
-                    sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
-
-                    // Merge upstream origin code into the ose branch
-                    sh "git merge -m 'Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}' ${UPSTREAM_SOURCE_BRANCH}"
-                    if (!IS_TEST_MODE) {
-                        sh "git push"
-                    }
-
-                }
-            }
-
-            stage("ose tag") {
-                dir(OSE_DIR) {
-                    // we no longer want to push tito's changes (and tags) to ose.
-                    // but push a tag for tito to generate the next changelog against and to match historical practice.
-                    def tag = "v${NEW_VERSION}-${NEW_RELEASE}"
-
-                    sh "git tag -am '' ${tag}"
-                    if (!IS_TEST_MODE) {
-                        sh "git push origin ${tag}"
-                    }
-                    // but tito needs to believe it owns the new tag so make way for that
-                    sh "git tag -d ${tag}"
-
-                    // Set the new version/release value in the file and tell tito to keep the version & release in the spec.
-                    // Cannot tito tag --use-release because it does not maintain variables like %{?dist}.
-                    buildlib.set_rpm_spec_version_release("origin.spec", NEW_VERSION, NEW_RELEASE)
-
-                    // tito tag commits above changes along with its own.
-                    sh "tito tag --no-auto-changelog --keep-version --debug"
-                }
-            }
-
-            // stages after this have side effects. Testing must stop here.
-            if (IS_TEST_MODE) {
-                currentBuild.description = "TEST MODE complete: no builds executed"
-                currentBuild.result = "SUCCESS"
-                return
-            }
-
-            stage("ose rpm build") {
-
-                dir(OSE_DIR) {
-                    oseTaskId = sh(
-                        returnStdout: true,
-                        script: "tito release --debug --yes --test aos-${params.BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
-                    )
-                    OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${oseTaskId}"
-                    echo "ose rpm brew task: ${OSE_BREW_URL}"
-                }
-
-                // Watch the task to make sure it succeeds, or retry if it fails.
-                buildlib.watch_brew_task_and_retry("openshift RPM", oseTaskId, OSE_BREW_URL)
-            }
-
             stage("doozer build rpms") {
-                buildlib.doozer """
+                def cmd =
+"""
 --working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}'
---source ose ${OSE_DIR}
 rpms:build --version v${NEW_VERSION}
 --release ${NEW_RELEASE}
 """
-            }
 
-            stage("signing rpms") {
-                if (SIGN_RPMS) {
-                    sh "${env.WORKSPACE}/build-scripts/sign_rpms.sh rhaos-${params.BUILD_VERSION}-rhel-7-candidate openshifthosted"
-                } else {
-                    echo "RPM signing has been skipped..."
+                parallel "remove previous workspace(s)": { ->
+                    // this can take a while, given NFS. do while building RPMs.
+                    sh script: "rm -rf ${DOOZER_WORKING}.*", returnStatus: true
+                },
+                "build RPMs": { ->
+                    params.DRY_RUN ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
                 }
+
+
             }
 
             stage("puddle: ose 'building'") {
+                if(params.DRY_RUN) {
+                    echo "Build puddle with conf ${puddleConf}"
+                    return
+                }
                 OCP_PUDDLE = buildlib.build_puddle(
                     puddleConf,    // The puddle configuration file to use
-                    puddleSignKeys, // openshifthosted key
+                    null,   // signing key
                     "-b",   // do not fail if we are missing dependencies
                     "-d",   // print debug information
                     "-n",   // do not send an email for this puddle
@@ -486,14 +354,18 @@ rpms:build --version v${NEW_VERSION}
                 if (!params.BUILD_CONTAINER_IMAGES) {
                     return
                 }
-                buildlib.doozer """
+                def cmd =
+"""
 --working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}'
---source ose ${OSE_DIR}
-${ODCS_FLAG}
 images:rebase --version v${NEW_VERSION}
 --release ${NEW_DOCKERFILE_RELEASE}
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
 """
+                if(params.DRY_RUN) {
+                    echo "doozer ${cmd}"
+                    return
+                }
+                buildlib.doozer cmd
                 buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, ["ose": OSE_SOURCE_BRANCH])
             }
 
@@ -504,13 +376,18 @@ images:rebase --version v${NEW_VERSION}
                         if (BUILD_EXCLUSIONS != "") {
                             exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
                         }
-                        buildlib.doozer """
+                        def cmd =
+"""
 --working-dir ${DOOZER_WORKING} --group openshift-${params.BUILD_VERSION}
-${ODCS_FLAG}
 ${exclude}
 images:build
---push-to-defaults --repo-type unsigned ${ODCS_OPT}
+--push-to-defaults --repo-type unsigned
 """
+                        if(params.DRY_RUN) {
+                            echo "doozer ${cmd}"
+                            return
+                        }
+                        buildlib.doozer cmd
                     }
                     catch (err) {
                         record_log = buildlib.parse_record_log(DOOZER_WORKING)
@@ -532,6 +409,9 @@ images:build
             }
 
             stage("mirror RPMs") {
+                if(params.DRY_RUN) {
+                    return
+                }
 
                 NEW_FULL_VERSION = "${NEW_VERSION}-${NEW_RELEASE}"
 
@@ -555,7 +435,7 @@ images:build
             }
 
             stage('sync images') {
-                if (!params.BUILD_CONTAINER_IMAGES) {
+                if (params.DRY_RUN || !params.BUILD_CONTAINER_IMAGES) {
                     return
                 }
                 buildlib.sync_images(

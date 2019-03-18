@@ -234,6 +234,16 @@ def set_rpm_spec_release_prefix( filename, new_rel ) {
     writeFile( file: filename, text: content )
 }
 
+// Just like the separate calls except it doesn't expect existing version/release to look like anything
+def set_rpm_spec_version_release( filename, new_ver, new_rel ) {
+    echo "Setting Version-Release in ${filename}: ${new_ver}-${new_rel}"
+    content = readFile( filename )
+    content = content.replaceFirst( /(?mxi) ^( \s* Version: \s* ) .+/, "\$1${new_ver}" ) // \$1 is a backref to "Version:    "
+    content = content.replaceFirst( /(?mxi) ^( \s* Release: \s* ) .+/, "\$1${new_rel}%{?dist}" )
+    writeFile( file: filename, text: content )
+}
+
+
 /**
  * Reads the specified RPM spec and parses version information from
  * it.

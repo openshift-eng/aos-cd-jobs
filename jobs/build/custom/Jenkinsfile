@@ -28,12 +28,6 @@ node {
                         defaultValue: ""
                     ],
                     [
-                        name: 'SKIP_OSE',
-                        description: 'If certain the ose repo is not needed, save minutes by not cloning it.',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
-                    [
                         name: 'RPMS',
                         description: 'CSV list of RPMs to build. Empty for all. Enter "NONE" to not build any.',
                         $class: 'hudson.model.StringParameterDefinition',
@@ -113,33 +107,6 @@ node {
     try {
         sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
-
-            // Some images require OSE as a source.
-            // Instead of trying to figure out which do, always clone
-            stage("ose repo") {
-                if (params.SKIP_OSE) { return }
-                currentBuild.description = "checking out ose repo"
-
-                // defines:
-                //   OPENSHIFT_DIR // by calling initialize_openshift_dir()
-                ///  OSE_DIR
-                //   GITHUB_URLS["ose"]
-                //   GITHUB_BASE_PATHS["ose"]
-                buildlib.initialize_openshift_dir()
-                checkout_branch = "enterprise-${params.BUILD_VERSION}"
-                if(params.BUILD_VERSION == master_ver){ checkout_branch = "master"}
-
-                // since there's no merge and commit back, single depth is way faster
-                dir( OPENSHIFT_DIR ) {
-                    sh "git clone -b ${checkout_branch} --single-branch ${GITHUB_BASE}/ose.git --depth 1"
-                    GITHUB_URLS["ose"] = "${GITHUB_BASE}/ose.git"
-                }
-
-                OSE_DIR = "${OPENSHIFT_DIR}/ose"
-                GITHUB_BASE_PATHS["ose"] = OSE_DIR
-                env.OSE_DIR = OSE_DIR
-                echo "Initialized env.OSE_DIR: ${env.OSE_DIR}"
-            }
             currentBuild.description = ""
 
             stage("rpm builds") {
@@ -148,7 +115,6 @@ node {
                     currentBuild.description = "building RPM(s): ${rpms}\n"
                     command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
                     if (rpms) { command += "-r '${rpms}' " }
-                    if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
                     command += "rpms:build --version ${version} --release ${release} "
                     buildlib.doozer command
                 }
@@ -193,7 +159,6 @@ node {
                 if (params.IMAGE_MODE == "nothing") { return }
 
                 command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
-                if (!params.SKIP_OSE) { command += "--source ose ${OSE_DIR} " }
                 command += "--latest-parent-version ${include_exclude} "
                 command += "images:${params.IMAGE_MODE} --version ${version} --release ${release} "
                 command += "--repo-type ${repo_type} "

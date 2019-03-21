@@ -366,7 +366,7 @@ images:rebase --version v${NEW_VERSION}
                     return
                 }
                 buildlib.doozer cmd
-                buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, ["ose": OSE_SOURCE_BRANCH])
+                buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
             }
 
             stage("build images") {

@@ -194,6 +194,7 @@ def shell(arg) {
     sh("mkdir -p ${filename}")
     filename += "/sh.${shellIndex}"
 
+    echo "Running shell script via commonlib.shell:\n${script}"
     arg.script =
     """
         set +x

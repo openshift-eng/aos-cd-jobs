@@ -122,7 +122,7 @@ node {
 
             stage("puddle: ose 'building'") {
                 if (rpms.toUpperCase() != "NONE") {
-                    AOS_CD_JOBS_COMMIT_SHA = sh(
+                    AOS_CD_JOBS_COMMIT_SHA = commonlib.shell(
                         returnStdout: true,
                         script: "git rev-parse HEAD",
                     ).trim()
@@ -206,7 +206,7 @@ node {
             )
         }
     } catch (err) {
-        currentBuild.description = "failed with error: ${err}\n${currentBuild.description}"
+        currentBuild.description += "\nerror: ${err.getMessage()}"
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-team-art@redhat.com",

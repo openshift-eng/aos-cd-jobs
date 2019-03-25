@@ -89,7 +89,7 @@ def initialize_openshift_dir() {
 def doozer(cmd, opts=[:]){
     cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
-    return sh(
+    return commonlib.shell(
         returnStdout: opts.capture ?: false,
         script: "doozer ${cmd.trim()}")
 }
@@ -97,7 +97,7 @@ def doozer(cmd, opts=[:]){
 def elliott(cmd, opts=[:]){
     cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
-    return sh(
+    return commonlib.shell(
         returnStdout: opts.capture ?: false,
         script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/elliott --user=ocp-build ${cmd.trim()}")
 }
@@ -105,7 +105,7 @@ def elliott(cmd, opts=[:]){
 def oc(cmd, opts=[:]){
     cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
-    return sh(
+    return commonlib.shell(
         returnStdout: opts.capture ?: false,
         script: "/usr/bin/oc ${cmd.trim()}"
     )
@@ -1060,13 +1060,13 @@ List<List<?>> mapToList(Map map) {
 def watch_brew_task_and_retry(name, taskId, brewUrl) {
     // Watch brew task to make sure it succeeds. If it fails, retry twice before giving up.
     try {
-        sh "brew watch-task ${taskId}"
+        commonlib.shell "brew watch-task ${taskId}"
     } catch (err) {
         msg = "Error in ${name} build task: ${err}\nSee failed brew task ${brewUrl}"
         echo msg
         try {
             retry(2) {
-                sh "brew resubmit ${taskId}"
+                commonlib.shell "brew resubmit ${taskId}"
             }
         } catch (err2) {
             echo "giving up on ${name} build after three failures"

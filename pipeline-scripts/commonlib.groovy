@@ -162,6 +162,87 @@ def safeArchiveArtifacts(List patterns) {
     }
 }
 
+shellIndex = 0
+/**
+ * Wraps the Jenkins Pipeline sh step in order to get actually useful exceptions.
+ * Because https://issues.jenkins-ci.org/browse/JENKINS-44930 is ridiculous.
+ *
+ * N.B. the returnStatus value is wrong. It's not because of the bash wrapper,
+ * which propagates the correct rc fine if run outside Jenkins. Presumably it's
+ * Jenkins being screwy. It does at least return an rc with the same truthiness
+ * (0 for success, 1 for failure).
+ * If your code really cares about the rc being right then do not use.
+ *
+ * @param returnAll true causes to return map with stderr, stdout, combined, and returnStatus
+ * @param otherwise same as sh() command
+ * @return same as sh() command, unless returnAll set
+ * @throws error (unless returnAll or returnStatus set) with useful message (and archives)
+ */
+def shell(arg) {
+    if (arg instanceof CharSequence) {  // https://stackoverflow.com/a/13880841
+        arg = [script: arg]
+    }
+    arg = [:] + arg  // make a copy
+    def returnAll = arg.remove("returnAll")
+    def script = arg.script  // keep a copy of original script
+    def truncScript = (script.size() <= 75) ? script : script[0..35] + "..." + script[-36..-1]
+
+    // ensure a clean space to save output files
+    if (!shellIndex++) { sh("rm -rf shell") }
+
+    def filename = "shell/sh.${shellIndex}." + truncScript.replaceAll( /[^\w-.]+/ , "_").take(80)
+    sh("mkdir -p ${filename}")
+    filename += "/sh.${shellIndex}"
+
+    echo "Running shell script via commonlib.shell:\n${script}"
+    arg.script =
+    """
+        set +x
+        set -euo pipefail
+        # many thanks to https://stackoverflow.com/a/9113604
+        {
+            {
+                {
+                    ${script}
+                }  2>&3 |  tee ${filename}.out.txt   # redirect stderr to fd 3, capture stdout
+            } 3>&1 1>&2 |  tee ${filename}.err.txt   # turn captured stderr (3) into stdout and stdout>stderr
+        }               |& tee ${filename}.combo.txt # and then capture both (though maybe out of order)
+    """
+
+    // run it, capture rc, and don't error
+    def rc = sh(arg + [returnStatus: true])
+
+    if (returnAll) {
+        return [
+            stdout: readFile("${filename}.out.txt"),
+            stderr: readFile("${filename}.err.txt"),
+            combined: readFile("${filename}.combo.txt"),
+            returnStatus: rc,
+        ]
+    }
+    if (arg.returnStatus) { return rc } // same as sh() so why bother?
+    if (arg.returnStdout && rc == 0) { return readFile("${filename}.out.txt")}
+    if (rc) {
+        // error like sh() would but with useful content. and archive it.
+        writeFile file: "${filename}.cmd.txt", text: script  // context for archive
+        safeArchiveArtifacts(["${filename}.*"])
+        def output = readFile("${filename}.combo.txt").split("\n")
+
+        // want the error message to be user-directed, so trim it a bit
+        if (output.size() > 3) {
+            output = [ "[...see full archive #${shellIndex}...]" ] + array_to_list(output)[-3..-1] 
+        }
+        error(  // TODO: use a custom exception class with attrs
+"""\
+failed shell command: ${truncScript}
+with rc=${rc} and output:
+${output.join("\n")}
+""")
+    }
+
+    return  // nothing, like normal sh()
+}
+
 /**
  * Jenkins doesn't seems to whitelist .asList(),
  * so this is an awful workaround.

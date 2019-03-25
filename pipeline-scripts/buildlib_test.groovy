@@ -3,7 +3,7 @@
 
 buildlib = load("pipeline-scripts/buildlib.groovy")
 
-buildlib.initialize(IS_TEST_MODE)
+buildlib.initialize(IS_TEST_MODE, false)
 echo "Initializing build: #${currentBuild.number} - ${BUILD_VERSION}.?? (${BUILD_MODE})"
 
 // define tests for the functions in buildlib.groovy
@@ -396,7 +396,7 @@ def test_get_build_branches() {
     ]
 
     test_values.each { mode, samples ->
-        actual = buildlib.get_branch_names(mode, sample['input'])
+        actual = buildlib.get_build_branches(mode, sample['input'])
         try {
             assert actual == expected
             pass_count++
@@ -412,5 +412,34 @@ def test_get_build_branches() {
         echo "FAIL: validate_build() - ${pass_count} tests passed, ${fail_count} tests failed"
     }
 }
+
+def test_dockerfile_url_for() {
+    echo "test_dockerfile_url_for"
+    def failed = 0
+    [
+        [url: "spam", branch: null, path: "", expect: ""],
+        [url: "git@github.com:spam/eggs.git", branch: "bacon", path: "",
+         expect: "https://github.com/spam/eggs/blob/bacon/"],
+        [url: "https://github.com/spam/eggs", branch: "bacon", path: "beans",
+         expect: "https://github.com/spam/eggs/blob/bacon/beans"],
+    ].each { it ->
+        def actual = buildlib.dockerfile_url_for(it.url, it.branch, it.path)
+        echo "[${it.url}, ${it.branch}, ${it.path}] ->\nexpect ${it.expect}"
+        try {
+            assert actual == it.expect
+        } catch (AssertionError e) {
+            echo "actual ${actual}"
+            failed++
+        }
+    }
+    if(failed) { error("test_dockerfile_url_for had ${failed} test failures") }
+}
+
+def test_dockerfile_notifications(record_log_path) {
+    // make sure to provide params.SUPPRESS_EMAIL = true...
+    echo "test_dockerfile_notifications"
+    buildlib.notify_dockerfile_reconciliations(record_log_path, "4.1")
+}
+
 // make this a function module
 return this

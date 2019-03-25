@@ -855,10 +855,7 @@ images:rebase --version v${NEW_VERSION}
 --release ${NEW_DOCKERFILE_RELEASE}
 --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
 """
-                buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, [
-                    "ose"              : OSE_SOURCE_BRANCH,
-                    "openshift-ansible": OPENSHIFT_ANSIBLE_SOURCE_BRANCH
-                ])
+                buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
             }
     
             stage("build images") {

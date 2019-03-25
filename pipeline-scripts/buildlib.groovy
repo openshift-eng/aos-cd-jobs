@@ -850,7 +850,7 @@ def get_failed_builds(Map record_log, Boolean fullRecord=false) {
 // gets map of emails to notify from output of parse_record_log
 // map formatted as below:
 // rpms/jenkins-slave-maven-rhel7-docker
-//   source_alias: jenkins
+//   source_alias: [source_alias map]
 //   image: openshift3/jenkins-slave-maven-rhel7
 //   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
 //   owners: bparees@redhat.com
@@ -863,12 +863,20 @@ def get_distgit_notify( record_log ) {
         return result
     }
 
+    source = record_log.get("source_alias", [])
     commit = record_log["distgit_commit"]
     notify = record_log["dockerfile_notify"]
 
     int i = 0
+    def source_alias = [:]
+    // will use source alias to look up where Dockerfile came from
+    for ( i = 0; i < source.size(); i++ ) {
+      source_alias[source[i]["alias"]] = source[i]
+    }
+
     // get notification emails by distgit name
     for ( i = 0; i < notify.size(); i++ ) {
+        notify[i].source_alias = source_alias.get(notify[i].source_alias, [:])
         result[notify[i]["distgit"]] = notify[i]
     }
 
@@ -883,10 +891,20 @@ def get_distgit_notify( record_log ) {
 
 }
 
-def notify_dockerfile_reconciliations(doozerWorking, sourceBranches) {
+@NonCPS
+def dockerfile_url_for(url, branch, sub_path) {
+    if(!url || !branch) { return "" }
+
+    // if it looks like an ssh github remote, transform it to https
+    url = url.replaceFirst( /(?x) ^git@  ( [\w.-]+ ) : (.+) .git$/, "https://\$1/\$2" )
+
+    return  "${url}/blob/${branch}/${sub_path ?: ''}"
+}
+
+def notify_dockerfile_reconciliations(doozerWorking, buildVersion) {
     // loop through all new commits that affect dockerfiles and notify their owners
 
-    record_log = parse_record_log(DOOZER_WORKING)
+    record_log = parse_record_log(doozerWorking)
     distgit_notify = get_distgit_notify(record_log)
     distgit_notify = mapToList(distgit_notify)
 
@@ -894,53 +912,51 @@ def notify_dockerfile_reconciliations(doozerWorking, sourceBranches) {
         distgit = distgit_notify[i][0]
         val = distgit_notify[i][1]
 
-        try {
-            alias = val['source_alias']
-            dockerfile_url = ""
-            github_url = GITHUB_URLS[alias]
-            github_url = github_url.replace(".git", "")
-            github_url = github_url.replace("git@", "")
-            github_url = github_url.replaceFirst(":", "/")
-            dockerfile_sub_path = val['source_dockerfile_subpath']
-            dockerfile_url = "Upstream source file: https://" + github_url + "/blob/" + sourceBranches[alias] + "/" + dockerfile_sub_path
-            // always mail success list, val.owners will be comma delimited or empty
-            commonlib.email(
-                to: "aos-team-art@redhat.com,${val.owners}",
-                from: "aos-cicd@redhat.com",
-                subject: "${val.image} Dockerfile reconciliation for OCP v${params.BUILD_VERSION}",
-                body: """
-Why am I receiving this?
-You are receiving this message because you are listed as an owner for an OpenShift related image - or
-you recently made a modification to the definition of such an image in github. Upstream OpenShift Dockerfiles
-(e.g. those in the openshift/origin repository under images/*) are regularly pulled from their upstream
-source and used as an input to build our productized images - RHEL based OpenShift Container Platform (OCP) images.
+        alias = val.source_alias
+        url = dockerfile_url_for(alias.origin_url, alias.branch, val.source_dockerfile_subpath)
+        dockerfile_url = url ? "Upstream source file: ${url}" : ""
 
-To serve as an input to RHEL/OCP images, upstream Dockerfiles are programmatically modified before they are checked
-into a downstream git repository which houses all Red Hat images: http://dist-git.host.prod.eng.bos.redhat.com/cgit/rpms/ .
-We call this programmatic modification "reconciliation" and you will receive an email each time the upstream
-Dockerfile changes so that you can review the differences between the upstream & downstream Dockerfiles.
+        // always mail team; val.owners will be comma delimited or empty
+        commonlib.email(
+            to: "aos-team-art@redhat.com,${val.owners}",
+            from: "aos-cicd@redhat.com",
+            subject: "${val.image} Dockerfile reconciliation for OCP v${buildVersion}",
+            body: """
+Why am I receiving this?
+------------------------
+You are receiving this message because you are listed as an owner for an
+OpenShift related image - or you recently made a modification to the definition
+of such an image in github. Upstream (github) OpenShift Dockerfiles are
+regularly pulled from their upstream source and used as an input to build our
+productized images - RHEL-based OpenShift Container Platform (OCP) images.
+
+To serve as an input to RHEL/OCP images, upstream Dockerfiles are
+programmatically modified before they are checked into a downstream git
+repository which houses all Red Hat images:
+ - https://pkgs.devel.redhat.com/cgit/containers/
+
+We call this programmatic modification "reconciliation" and you will receive an
+email when the upstream Dockerfile changes so that you can review the
+differences between the upstream & downstream Dockerfiles.
 
 
 What do I need to do?
-You may want to look at the result of the reconciliation. Usually, reconciliation is transparent and safe.
-However, you may be interested in any changes being performed by the OCP build system.
+---------------------
+You may want to look at the result of the reconciliation. Usually,
+reconciliation is transparent and safe. However, you may be interested in any
+changes being performed by the OCP build system.
 
 
 What changed this time?
+-----------------------
 Reconciliation has just been performed for the image: ${val.image}
 ${dockerfile_url}
+The reconciled (downstream OCP) Dockerfile can be viewed here:
+ - https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
-The reconciled (downstream OCP) Dockerfile can be view here: https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
-
-Please direct any questions to the Automated Release Team (#aos-cd-team on IRC).
-            """);
-        } catch (err_alias) {
-
-            echo "Failure resolving alias for email"
-            echo "${err_alias}"
-        }
+Please direct any questions to the Automated Release Tooling team (#aos-art on slack).
+        """);
     }
-
 }
 
 /**

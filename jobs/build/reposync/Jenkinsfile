@@ -49,7 +49,7 @@ node {
     buildlib.initialize(false)
 
     currentBuild.displayName = "v${SYNC_VERSION} RepoSync"
-    SYNC_DIR="/mnt/nfs/home/jenkins/reposync"
+    SYNC_DIR="/mnt/workspace/reposync"
     LOCAL_SYNC_DIR = "${SYNC_DIR}/${SYNC_VERSION}/"
     LOCAL_CACHE_DIR = "${SYNC_DIR}/cache/${SYNC_VERSION}/"
 

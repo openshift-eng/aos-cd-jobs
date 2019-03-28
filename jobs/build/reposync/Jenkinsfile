@@ -24,14 +24,6 @@ node {
                     ],
                     commonlib.suppressEmailParam(),
                     [
-                        name: 'MAIL_LIST_SUCCESS',
-                        description: 'Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: [
-                            'aos-team-art@redhat.com',
-                        ].join(',')
-                    ],
-                    [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
@@ -74,7 +66,11 @@ node {
 
             stage("push to mirror") {
                 sh "rsync -avzh --delete -e \"ssh -o StrictHostKeyChecking=no\" ${LOCAL_SYNC_DIR} ${MIRROR_TARGET}:${MIRROR_PATH} "
-                buildlib.invoke_on_use_mirror("push.enterprise.sh")
+                mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh")
+                if (mirror_result.contains("[FAILURE]")) {
+                    echo mirror_result
+                    error("Error running ${SYNC_VERSION} reposync push.enterprise.sh:\n${mirror_result}")
+                }
             }
         }
     } catch (err) {

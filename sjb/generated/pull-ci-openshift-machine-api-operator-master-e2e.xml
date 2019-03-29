@@ -296,6 +296,8 @@ cd &#34;\${HOME}&#34;
 export GOPATH=/data
 cd \$GOPATH/src/github.com/openshift/cluster-api-provider-kubemark
 sudo kubectl apply -f examples/machine-set.yaml
+sudo kubectl apply -f examples/static-machine.yaml
+sudo kubectl apply -f examples/worker-machinesets.yaml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

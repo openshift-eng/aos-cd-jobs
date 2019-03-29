@@ -126,8 +126,9 @@ to merge in your pull request by entering in your pull request number in the app
 starting the job.
 
 Note: the `sjb/push-update{,-automatic}.sh` scripts expect `$USERNAME` and `$PASSWORD` to be set as envars when they are run.
-These are the credentials with which you log in to the Jenkins master at [ci.openshift](http://ci.openshift.redhat.com/) and are
-used for basic auth against the server on push actions.
+`$USERNAME` is your user with which you log in to the Jenkins master at [ci.openshift](http://ci.openshift.redhat.com/).
+`$PASSWORD` is a Jenkins API token you have to generate through the Jenkins UI. As a logged-in user, click your username in the upper right hand of the UI. After the account page loads, click "Configure" on the right hand side, and after the configuration page loads, you will see an option to generate a new token. Copy this to your password store, since it is only displayed for copy/pasting when you first generate it.
+The `$USERNAME` and `$PASSWORD` are used for basic auth against the server on push actions.
 
 ## Pull Request approvers under `approvers/`
 

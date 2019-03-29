@@ -232,6 +232,7 @@ ansible-playbook -vv --become  \
                  -i localhost, \
                  --tags e2e    \
                  --become-user root \
+                 \${EXTRA_EVARS:-} \
                  --connection local \
                  /go/src/github.com/kubernetes-sigs/cri-o/contrib/test/integration/main.yml
 SCRIPT

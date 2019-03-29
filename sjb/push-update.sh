@@ -38,6 +38,9 @@ function retry_post() {
 			tput setaf 1
 			tput bold
 			echo "[ERROR] Failed to POST ${url}: ${response}"
+			if [[ "${response}" == "403" ]]; then
+			    echo "Please see https://github.com/openshift/aos-cd-jobs/#push-credentials"
+			fi
 			tput sgr0
 			break
 		else

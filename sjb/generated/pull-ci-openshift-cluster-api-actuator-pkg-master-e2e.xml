@@ -268,13 +268,11 @@ cd &#34;\${HOME}&#34;
 export GOPATH=/data
 cd \$GOPATH/src/github.com/openshift/machine-api-operator/
 
-# TODO(jchaloup): once 220 gets merge, remove this
-git remote add origin https://github.com/openshift/machine-api-operator
-git fetch origin pull/220/head:220
-git checkout 220
+MAO_IMAGE=\$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
+docker pull \$MAO_IMAGE
+docker tag \$MAO_IMAGE docker.io/openshift/origin-machine-api-operator:v4.0.0
 
 # deploy expected cluster and machineset objects
-sed -i &#34;s/image: docker\.io\/openshift\/origin-machine-api-operator:v4\.0\.0/image: docker\.io\/gofed\/machine-api-operator:v0\.1\.0-181-g4b6bfc4/&#34; install/0000_30_machine-api-operator_09_deployment.yaml
 sudo make deploy-kubemark
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -291,7 +289,11 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 export GOPATH=/data
 cd \$GOPATH/src/github.com/openshift/cluster-autoscaler-operator/
-sed -i  &#34;s/image: docker\.io\/openshift\/origin-cluster-autoscaler-operator:v4\.0/image: quay\.io\/openshift\/origin-cluster-autoscaler-operator:v4\.0/&#34; install/0000_50_cluster-autoscaler-operator_04_deployment.yaml
+
+CAO_IMAGE=\$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image cluster-autoscaler-operator)
+docker pull \$CAO_IMAGE
+docker tag \$CAO_IMAGE docker.io/openshift/origin-cluster-autoscaler-operator:v4.0
+
 kustomize build | sudo kubectl apply -f -
 SCRIPT
 chmod +x &#34;${script}&#34;

@@ -1066,6 +1066,7 @@ def watch_brew_task_and_retry(name, taskId, brewUrl) {
         echo msg
         try {
             retry(2) {
+		sleep(120)  // brew state takes time to settle, so wait to retry
                 commonlib.shell "brew resubmit ${taskId}"
             }
         } catch (err2) {

@@ -813,8 +813,10 @@ node {
                     echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"
                 }
 
-                parallel "atomic-openshift": { buildlib.watch_brew_task_and_retry("atomic-openshift RPM", oseTaskId, OSE_BREW_URL) },
-                         "openshift-ansible": { buildlib.watch_brew_task_and_retry("openshift-ansible RPM", oaTaskId, OA_BREW_URL) }
+                # [lmeyer 2019-04-01] (not a joke) this would be nice in parallel except that
+                # commonlib.shell turns out not to be safe for concurrency. Keep it serial for now.
+                buildlib.watch_brew_task_and_retry("atomic-openshift RPM", oseTaskId, OSE_BREW_URL)
+                buildlib.watch_brew_task_and_retry("openshift-ansible RPM", oaTaskId, OA_BREW_URL)
             }
 
             stage("doozer build rpms") {

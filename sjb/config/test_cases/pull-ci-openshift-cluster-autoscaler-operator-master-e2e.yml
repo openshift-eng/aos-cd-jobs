@@ -46,6 +46,11 @@ extensions:
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/machine-api-operator/
+
+        MAO_IMAGE=$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
+        docker pull $MAO_IMAGE
+        docker tag $MAO_IMAGE docker.io/openshift/origin-machine-api-operator:v4.0.0
+
         # deploy expected cluster and machineset objects
         sudo make deploy-kubemark
     - type: "script"

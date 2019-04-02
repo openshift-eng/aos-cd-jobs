@@ -24,6 +24,7 @@ node {
 
     puddle = buildlib.build_puddle(
 	puddleConf,
+	null,
         "-b",   // do not fail if we are missing dependencies
         "-d",   // print debug information
         "-n"    // do not send an email for this puddle

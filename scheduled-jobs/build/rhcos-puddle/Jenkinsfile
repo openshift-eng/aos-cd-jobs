@@ -23,7 +23,7 @@ node {
     def puddleConf = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/puddle-conf/atomic_openshift-4.1.el8.conf"
 
     puddle = buildlib.build_puddle(
-	$puddleConf,
+	puddleConf,
         "-b",   // do not fail if we are missing dependencies
         "-d",   // print debug information
         "-n"    // do not send an email for this puddle

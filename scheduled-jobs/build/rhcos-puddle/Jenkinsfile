@@ -1,0 +1,34 @@
+#!/usr/bin/env groovy
+
+node {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '360'
+                )
+            ),
+            disableConcurrentBuilds(),
+        ]
+    )
+
+    echo "Initializing puddle build #${currentBuild.number}"
+
+    def puddleConf = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/puddle-conf/atomic_openshift-4.1.el8.conf"
+
+    puddle = buildlib.build_puddle(
+	$puddleConf,
+        "-b",   // do not fail if we are missing dependencies
+        "-d",   // print debug information
+        "-n"    // do not send an email for this puddle
+    )
+
+    echo "View the package list here: http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift.el8/4.1/latest/x86_64/os/Packages/"
+
+}

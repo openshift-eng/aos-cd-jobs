@@ -35,7 +35,7 @@ node {
     // Location of the image stream to apply
     def ocIsObject = "${mirrorWorking}/release-is.yaml"
     // Locally stored image stream stub
-    def baseImageStream = "/home/jenkins/base-art-latest-imagestream.yaml"
+    def baseImageStream = "/home/jenkins/base-art-latest-imagestream-${params.BUILD_VERSION}.yaml"
     // Kubeconfig allowing ART to interact with api.ci.openshift.org
     def ciKubeconfig = "/home/jenkins/kubeconfigs/art-publish.kubeconfig"
 

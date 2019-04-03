@@ -13,7 +13,7 @@ extensions:
   - type: "script"
     title: "clone cri-o and check out the correct refs"
     script: |-
-      cd /go/src/github.com/kubernetes-sigs/cri-o
+      cd /go/src/github.com/cri-o/cri-o
       git fetch origin
       git checkout "${PULL_BASE_SHA}"
   - type: "script"
@@ -25,4 +25,4 @@ extensions:
                        --tags e2e    \
                        --become-user root \
                        --connection local \
-                       /go/src/github.com/kubernetes-sigs/cri-o/contrib/test/integration/main.yml
+                       /go/src/github.com/cri-o/cri-o/contrib/test/integration/main.yml

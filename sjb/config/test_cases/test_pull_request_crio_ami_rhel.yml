@@ -32,9 +32,9 @@ extensions:
         sudo mkdir /go
         sudo chmod a+rwx /go
         sudo echo "GOPATH=/go" >> /etc/environment
-        mkdir -p /go/src/github.com/kubernetes-sigs
-        cd /go/src/github.com/kubernetes-sigs
-        git clone https://github.com/kubernetes-sigs/cri-o.git
+        mkdir -p /go/src/github.com/cri-o
+        cd /go/src/github.com/cri-o
+        git clone https://github.com/cri-o/cri-o.git
         cd cri-o
         git branch target "${PULL_BASE_SHA}"
         git checkout target
@@ -48,7 +48,7 @@ extensions:
                          --tags setup  \
                          --become-user root \
                          --connection local \
-                         /go/src/github.com/kubernetes-sigs/cri-o/contrib/test/integration/main.yml
+                         /go/src/github.com/cri-o/cri-o/contrib/test/integration/main.yml
     - type: "host_script"
       title: "package the AMI"
       script: |-
@@ -62,4 +62,4 @@ extensions:
                          --tags integration,critest,e2e,e2e-features \
                          --become-user root \
                          --connection local \
-                         /go/src/github.com/kubernetes-sigs/cri-o/contrib/test/integration/main.yml
+                         /go/src/github.com/cri-o/cri-o/contrib/test/integration/main.yml

@@ -144,8 +144,8 @@ post_actions:
 artifacts:
   - /go/src/k8s.io/kubernetes/artifacts
   - /go/src/k8s.io/kubernetes/e2e.log
-  - /go/src/github.com/kubernetes-sigs/cri-o/testout.txt
-  - /go/src/github.com/kubernetes-sigs/cri-o/reports
+  - /go/src/github.com/cri-o/cri-o/testout.txt
+  - /go/src/github.com/cri-o/cri-o/reports
   - /tmp/artifacts/*
   - /tmp/kubelet.log
   - /tmp/kube-apiserver.log

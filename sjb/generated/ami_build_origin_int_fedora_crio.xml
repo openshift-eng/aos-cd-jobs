@@ -227,9 +227,9 @@ sudo mkdir /go
 sudo chmod a+rwx /go
 sudo chmod o+rw /etc/environment
 sudo echo &#34;GOPATH=/go&#34; &gt;&gt; /etc/environment
-mkdir -p /go/src/github.com/kubernetes-sigs
-cd /go/src/github.com/kubernetes-sigs
-git clone https://github.com/kubernetes-sigs/cri-o.git
+mkdir -p /go/src/github.com/cri-o
+cd /go/src/github.com/cri-o
+git clone https://github.com/cri-o/cri-o.git
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -248,7 +248,7 @@ ansible-playbook -vv --become  \
                  --tags setup  \
                  --become-user root \
                  --connection local \
-                 /go/src/github.com/kubernetes-sigs/cri-o/contrib/test/integration/main.yml
+                 /go/src/github.com/cri-o/cri-o/contrib/test/integration/main.yml
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -296,13 +296,13 @@ if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdev
     ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /go/src/k8s.io/kubernetes/e2e.log
     scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/go/src/k8s.io/kubernetes/e2e.log &#34;${ARTIFACT_DIR}&#34;
 fi
-if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /go/src/github.com/kubernetes-sigs/cri-o/testout.txt; then
-    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /go/src/github.com/kubernetes-sigs/cri-o/testout.txt
-    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/go/src/github.com/kubernetes-sigs/cri-o/testout.txt &#34;${ARTIFACT_DIR}&#34;
+if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /go/src/github.com/cri-o/cri-o/testout.txt; then
+    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /go/src/github.com/cri-o/cri-o/testout.txt
+    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/go/src/github.com/cri-o/cri-o/testout.txt &#34;${ARTIFACT_DIR}&#34;
 fi
-if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /go/src/github.com/kubernetes-sigs/cri-o/reports; then
-    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /go/src/github.com/kubernetes-sigs/cri-o/reports
-    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/go/src/github.com/kubernetes-sigs/cri-o/reports &#34;${ARTIFACT_DIR}&#34;
+if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /go/src/github.com/cri-o/cri-o/reports; then
+    ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /go/src/github.com/cri-o/cri-o/reports
+    scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel:/go/src/github.com/cri-o/cri-o/reports &#34;${ARTIFACT_DIR}&#34;
 fi
 if ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo stat /tmp/artifacts/*; then
     ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel sudo chmod -R o+rX /tmp/artifacts/*

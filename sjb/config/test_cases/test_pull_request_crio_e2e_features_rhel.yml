@@ -15,7 +15,7 @@ extensions:
   - type: "script"
     title: "clone cri-o and check out the correct refs"
     script: |-
-      cd /go/src/github.com/kubernetes-sigs/cri-o
+      cd /go/src/github.com/cri-o/cri-o
       git fetch origin
       git checkout master
       git branch -D target || true
@@ -33,4 +33,4 @@ extensions:
                        --tags e2e-features    \
                        --become-user root \
                        --connection local \
-                       /go/src/github.com/kubernetes-sigs/cri-o/contrib/test/integration/main.yml
+                       /go/src/github.com/cri-o/cri-o/contrib/test/integration/main.yml

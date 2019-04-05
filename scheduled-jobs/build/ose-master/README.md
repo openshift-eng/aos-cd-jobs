@@ -1,1 +1,1 @@
-Runs OCP build of ose/master regularly.
+Runs an incremental OCP build of ose/master regularly.

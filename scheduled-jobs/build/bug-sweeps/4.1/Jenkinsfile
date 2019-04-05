@@ -1,0 +1,30 @@
+properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '90'
+            )
+        ),
+	disableConcurrentBuilds(),
+    ]
+)
+
+description = ""
+failed = false
+
+b = build job: 'sweep', propagate: false, parameters: [
+    [
+	$class: 'StringParameterValue',
+	name: 'BUILD_VERSION',
+	value: '4.1'
+    ]
+]
+
+description += "${b.displayName} - ${b.result}\n"
+currentBuild.description = description.trim()
+currentBuild.displayName = "${b.displayName}"
+failed |= (b.result != "SUCCESS")
+currentBuild.result = failed?"FAILURE":"SUCCESS"

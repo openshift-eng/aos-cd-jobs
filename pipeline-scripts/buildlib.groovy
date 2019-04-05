@@ -1076,4 +1076,15 @@ def watch_brew_task_and_retry(name, taskId, brewUrl) {
     }
 }
 
+def getGroupBranch(doozerOpts) {
+    // for given doozer options determine the distgit branch from the group.yml file
+    def branch = doozer("${doozerOpts} config:read-group branch", [capture: true]).trim()
+    if (branch == "" ) {
+        error("failed to read branch from group.yml")
+    } else if (branch.contains("\n")) {
+        error("reading branch from group.yml got multiple lines:\n${branch}")
+    }
+    return branch
+}
+
 return this

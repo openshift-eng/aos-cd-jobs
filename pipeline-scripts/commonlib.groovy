@@ -85,7 +85,7 @@ def suppressEmailParam() {
         name: 'SUPPRESS_EMAIL',
         description: 'Do not actually send email, just archive it',
         $class: 'BooleanParameterDefinition',
-        defaultValue: false
+        defaultValue: !env.JOB_NAME.startsWith("aos-cd-builds/"),
     ]
 }
 

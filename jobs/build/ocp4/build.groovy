@@ -6,6 +6,7 @@ commonlib = buildlib.commonlib
 // Properties that should be initialized and not updated
 version = [
     stream: "",     // "X.Y" e.g. "4.0"
+    branch: "",     // e.g. "rhaos-4.0-rhel-7"
     full: "",       // e.g. "4.0.0"
     release: "",    // e.g. "201901011200"
     major: 0,       // X in X.Y, e.g. 4
@@ -46,8 +47,9 @@ def initialize() {
     echo "Initializing build: ${currentBuild.displayName}"
 
     version.stream = params.BUILD_VERSION.trim()
-    version << determineBuildVersion(version.stream)
     doozerOpts += " --group 'openshift-${version.stream}'"
+    version.branch = buildlib.getGroupBranch(doozerOpts)
+    version << determineBuildVersion(version.stream, version.branch)
 
     buildPlan << [
         dryRun: params.DRY_RUN,
@@ -101,10 +103,10 @@ def initialize() {
     return planBuilds()
 }
 
-def latestOpenshiftRpmBuild(stream) {
+def latestOpenshiftRpmBuild(branch) {
     retry(3) {
         commonlib.shell(
-            script: "brew latest-build --quiet rhaos-${stream}-rhel-7-candidate openshift | awk '{print \$1}'",
+            script: "brew latest-build --quiet ${branch}-candidate openshift | awk '{print \$1}'",
             returnStdout: true,
         ).trim()
     }
@@ -123,11 +125,11 @@ def extractBuildVersion(build) {
  * @param stream: OCP minor version "X.Y"
  * @return a map to merge into the "version" property representing the determined version
  */
-def determineBuildVersion(stream) {
+def determineBuildVersion(stream, branch) {
     def full = "${stream}.0"  // default
     def release = new Date().format("yyyyMMddHHmm")
 
-    def prevBuild = latestOpenshiftRpmBuild(stream)
+    def prevBuild = latestOpenshiftRpmBuild(branch)
     if(params.NEW_VERSION.trim() == "+") {
         // increment previous build version
         full = extractBuildVersion(prevBuild)
@@ -319,7 +321,7 @@ def stageBuildCompose() {
 
     // we may or may not have (successfully) built the openshift RPM in this run.
     // in order to script the correct version to publish later, determine what's there now.
-    finalRpmVersionRelease = latestOpenshiftRpmBuild(version.stream).replace("openshift-", "")
+    finalRpmVersionRelease = latestOpenshiftRpmBuild(version.branch).replace("openshift-", "")
 
     if (!buildPlan.buildRpms && !buildPlan.forceBuild) {
         // a force build of just images is likely to want to pick up new dependencies,

@@ -1087,4 +1087,17 @@ def getGroupBranch(doozerOpts) {
     return branch
 }
 
+def cleanWorkdir(workdir) {
+    // get a fresh workdir; removing the old one is left in the background.
+    // NOTE: if wrapped in commonlib.shell, this would wait for the background process;
+    // this is designed to run instantly and never fail, so just run it in a normal shell.
+    sh """
+        mkdir -p ${workdir}
+        mv ${workdir} ${workdir}.rm.${currentBuild.number}
+        mkdir -p ${workdir}
+        # see discussion at https://stackoverflow.com/a/37161006 re:
+        JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'rm -rf ${workdir}.rm.*' &
+    """
+}
+
 return this

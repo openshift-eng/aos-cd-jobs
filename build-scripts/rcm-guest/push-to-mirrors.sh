@@ -162,13 +162,17 @@ $MIRROR_SSH sh -s <<-EOF
   ln -sfn ${MIRROR_PATH}/${VERSIONED_DIR} ${SYMLINK_NAME}
 
   # Synchronize the changes to the mirrors; If this fails, ops mirrors are usually full.
+  log=\$(mktemp)  # push.enterprise.sh does not indicate errors with rc so check output
 
-  timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v
+  timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v |& tee -a \$log
 
-  timeout 1h /usr/local/bin/push.enterprise.sh all -v
+  timeout 1h /usr/local/bin/push.enterprise.sh all -v |& tee -a \$log
 
   if [ ! -z "$LINK_FROM" ]; then
-      timeout 1h /usr/local/bin/push.enterprise.sh ${LINK_FROM} -v
+      timeout 1h /usr/local/bin/push.enterprise.sh ${LINK_FROM} -v |& tee -a \$log
   fi
 
+  grep -q '\\[FAILURE\\]' \$log && rc=1 || rc=0
+  rm -f \$log
+  exit \$rc
 EOF

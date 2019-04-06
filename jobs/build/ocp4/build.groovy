@@ -173,15 +173,27 @@ def determineBuildVersion(stream, branch) {
  */
 def planBuilds() {
     if (buildPlan.forceBuild) {
-        echo "Building all as requested regardless of whether source has changed."
         currentBuild.description = "Force building (whether source changed or not).\n"
-        if (!buildPlan.buildRpms) {
-            currentBuild.description += "RPMs: not building.\n"
-        }
+        currentBuild.description +=
+            (!buildPlan.buildRpms) ? "RPMs: not building.\n" :
+            (buildPlan.rpmsIncluded) ? "RPMs: building ${buildPlan.rpmsIncluded}.\n" :
+            (buildPlan.rpmsExcluded) ? "RPMs: building all except ${buildPlan.rpmsExcluded}.\n" :
+            "RPMs: building all.\n"
+        currentBuild.displayName +=
+            (buildPlan.rpmsIncluded) ? " [${buildPlan.rpmsIncluded.split(',').size()} RPMs]" :
+            (buildPlan.rpmsExcluded) ? " [-${buildPlan.rpmsExcluded.split(',').size()} RPMs]" :
+            (buildPlan.buildRpms) ? " [all RPMs]" : ""
+
         currentBuild.description += "Will create RPM compose.\n"
-        if (!buildPlan.buildImages) {
-            currentBuild.description += "Images: not building.\n"
-        }
+        currentBuild.description +=
+            (!buildPlan.buildImages) ? "Images: not building.\n" :
+            (buildPlan.imagesIncluded) ? "Images: building ${buildPlan.imagesIncluded}.\n" :
+            (buildPlan.imagesExcluded) ? "Images: building all except ${buildPlan.imagesExcluded}.\n" :
+            "Images: building all.\n"
+        currentBuild.displayName +=
+            (buildPlan.imagesIncluded) ? " [${buildPlan.imagesIncluded.split(',').size()} images]" :
+            (buildPlan.imagesExcluded) ? " [-${buildPlan.imagesExcluded.split(',').size()} images]" :
+            (buildPlan.buildImages) ? " [all images]" : ""
         return buildPlan
     }
 
@@ -213,10 +225,12 @@ def planBuilds() {
             report "Will create RPM compose."
             buildPlan.rpmsIncluded = changed.rpms.join(",")
             buildPlan.rpmsExcluded = ""
+            currentBuild.displayName += " [${changed.rpms.size()} RPM(s)]"
         } else {
             buildPlan.buildRpms = false
             report "RPMs: none changed."
             report "Will not create RPM compose."
+            currentBuild.displayName += " [no changed RPMs]"
         }
 
         if (!buildPlan.buildImages) {
@@ -225,7 +239,7 @@ def planBuilds() {
         } else if (!changed.images) {
             report "Images: none changed."
             buildPlan.buildImages = false
-            currentBuild.displayName += " [no changes]"
+            currentBuild.displayName += " [no changed images]"
             return buildPlan
         }
         report "Found ${changed.images.size()} image(s) with changes:\n  " + changed.images.join("\n  ")
@@ -263,6 +277,7 @@ def planBuilds() {
         }
         buildPlan.imagesIncluded = images.join(",")
         buildPlan.imagesExcluded = ""
+        currentBuild.displayName += " [${images.size()} image(s)]"
 
         // NOTE: it might be nice not to rebase child images where the source hasn't changed.
         // However we would still need to update dockerfile for those images; but running doozer

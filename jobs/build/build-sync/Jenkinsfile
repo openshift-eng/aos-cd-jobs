@@ -43,9 +43,7 @@ node {
     // This is the template for the SRC=DEST strings mentioned above.
     def ocFmtStr = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v4.0-art-dev:{version}-{release}-{image_name_short}"
 
-    //Clear out previous work
-    sh "rm -rf ${mirrorWorking}"
-    sh "mkdir -p ${mirrorWorking}"
+    buildlib.cleanWorkdir(mirrorWorking)
 
     stage("Version dumps") {
         buildlib.doozer "--version"

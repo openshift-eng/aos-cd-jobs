@@ -98,9 +98,7 @@ node(TARGET_NODE) {
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
     env.DOOZER_WORKING = DOOZER_WORKING
-    //Clear out previous work
-    sh "rm -rf ${DOOZER_WORKING}"
-    sh "mkdir -p ${DOOZER_WORKING}"
+    buildlib.cleanWorkdir(DOOZER_WORKING)
 
     // Login to new registry.ops to enable pushes
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.reg-aws',

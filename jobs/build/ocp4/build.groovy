@@ -41,6 +41,7 @@ finalRpmVersionRelease = ""  // set before building a compose
  * @return map which is the buildPlan property of this build.
 */
 def initialize() {
+    buildlib.cleanWorkdir(doozerWorking)
     GITHUB_BASE = "git@github.com:openshift"  // buildlib uses this :eyeroll:
 
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}.??"
@@ -90,16 +91,6 @@ def initialize() {
     if (!buildPlan.buildRpms) { currentBuild.displayName += " [no RPMs]" }
     if (!buildPlan.buildImages) { currentBuild.displayName += " [no images]" }
 
-    // get a fresh doozerWorking; removing the old one is left in the background.
-    // NOTE: this waits for the background process if wrapped in commonlib.shell;
-    // as this is designed to run instantly and never fail, just run it in a normal shell.
-    sh """
-        mkdir -p ${doozerWorking}
-        mv ${doozerWorking} ${doozerWorking}.rm.${currentBuild.number}
-        mkdir -p ${doozerWorking}
-        # see discussion at https://stackoverflow.com/a/37161006 re:
-        JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'rm -rf ${doozerWorking}.rm.*' &
-    """
     return planBuilds()
 }
 

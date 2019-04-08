@@ -50,9 +50,7 @@ node {
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
-    //Clear out previous work
-    sh "rm -rf ${DOOZER_WORKING}"
-    sh "mkdir -p ${DOOZER_WORKING}"
+    buildlib.cleanWorkdir(DOOZER_WORKING)
 
     try {
         sshagent(['openshift-bot']) {

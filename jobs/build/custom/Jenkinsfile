@@ -97,9 +97,7 @@ node {
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     doozer_working = "${WORKSPACE}/doozer_working"
-    //Clear out previous workspace
-    sh "rm -rf ${doozer_working}"
-    sh "mkdir -p ${doozer_working}"
+    buildlib.cleanWorkdir(doozer_working)
 
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"

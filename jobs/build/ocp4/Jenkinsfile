@@ -12,8 +12,8 @@ node {
                 logRotator(
                     artifactDaysToKeepStr: '',
                     artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '1000')),
+                    daysToKeepStr: '60',
+                    numToKeepStr: '')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

@@ -10,26 +10,68 @@ node {
                 logRotator(
                     artifactDaysToKeepStr: '',
                     artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '360'
+                    daysToKeepStr: '60',
+                    numToKeepStr: ''
                 )
             ),
             disableConcurrentBuilds(),
         ]
     )
 
-    echo "Initializing puddle build #${currentBuild.number}"
+    def buildException = null
+    try {
+        buildlib.kinit()
+        stage("openshift rpm") {
+            buildlib.commonlib.shell(
+                '''
+                set -exuo pipefail
+                tmpdir=$(mktemp -d XXXXXXXXXX.distgit)
+                pushd $tmpdir
+                rhpkg --user ocp-build clone rpms/openshift --branch rhaos-4.1-rhel-8
+                cd openshift
+                git checkout origin/rhaos-4.1-rhel-7 -- *
+                rc=0
+                if git commit -m "Automated copy from RHEL7 branch"; then
+                    # we have changes to build
+                    for i in 1 2 3; do
+                        if rhpkg push && rhpkg build; then
+                            rc=0
+                            break
+                        fi
+                        rc=1
+                        sleep 60
+                    done
+                fi
+                popd
+                rm -rf $tmpdir
+                exit $rc
+                '''
+            )
+        }
+    } catch(e) {
+        // still run puddle when the rpm build fails
+        echo "Package build failed:\n${e}"
+        buildException = e
+    }
 
-    def puddleConf = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/puddle-conf/atomic_openshift-4.1.el8.conf"
+    stage("run puddle") {
+        echo "Initializing puddle build #${currentBuild.number}"
 
-    puddle = buildlib.build_puddle(
-	puddleConf,
-	null,
-        "-b",   // do not fail if we are missing dependencies
-        "-d",   // print debug information
-        "-n"    // do not send an email for this puddle
-    )
+        def puddleConf = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/puddle-conf/atomic_openshift-4.1.el8.conf"
 
-    echo "View the package list here: http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift.el8/4.1/latest/x86_64/os/Packages/"
+        puddle = buildlib.build_puddle(
+        puddleConf,
+        null,
+            "-b",   // do not fail if we are missing dependencies
+            "-d",   // print debug information
+            "-n"    // do not send an email for this puddle
+        )
 
+        echo "View the package list here: http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift.el8/4.1/latest/x86_64/os/Packages/"
+
+    }
+
+    if(buildException) {
+        throw buildException
+    }
 }

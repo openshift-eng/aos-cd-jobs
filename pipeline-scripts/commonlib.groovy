@@ -13,18 +13,16 @@ ocp3Versions = [
     "3.1",
 ]
 
-ocp4DefaultVersion = "4.0"
+ocp4DefaultVersion = "4.1"
 // Determines which version is currently the master branch:
 // update when development switches streams
 ocp4MasterVersion = "4.1"
 ocp4Versions = [
     "4.1",
-    "4.0",
 ]
 
 ocpMergeVersions = [
     "4.1",
-    "4.0",
     "3.11",
     "3.10",
     "3.9",
@@ -230,7 +228,7 @@ def shell(arg) {
 
         // want the error message to be user-directed, so trim it a bit
         if (output.size() > 5) {
-            output = [ "[...see full archive #${shellIndex}...]" ] + array_to_list(output)[-5..-1] 
+            output = [ "[...see full archive #${shellIndex}...]" ] + array_to_list(output)[-5..-1]
         }
         error(  // TODO: use a custom exception class with attrs
 """\
@@ -261,8 +259,8 @@ def array_to_list(array) {
 
 /**
  * Find the highest build of the openshift pkg in our candidate tag
- * @param buildVersion a major+minor version like "4.0"
- * @return Returns a brew build like "openshift-4.0.0-1.el7" or "" if none found
+ * @param buildVersion a major+minor version like "4.1"
+ * @return Returns a brew build like "openshift-4.1.0-1.el7" or "" if none found
  */
 def currentOpenshiftBuildFor(buildVersion) {
     return sh(
@@ -271,7 +269,7 @@ def currentOpenshiftBuildFor(buildVersion) {
     ).trim()
 }
 
-// extract "4.0.0" from "openshift-4.0.0-1.el7"
+// extract "4.1.0" from "openshift-4.1.0-1.el7"
 @NonCPS
 def extractOpenShiftBuildVersion(build) {
     def match = build =~ /(?x) ^openshift- (  \d+  ( \. \d+ )+  )-/
@@ -280,8 +278,8 @@ def extractOpenShiftBuildVersion(build) {
 
 /**
  * Find the highest version of the openshift pkg built tagged for buildVersion
- * @param buildVersion a major+minor version like "4.0"
- * @return Returns a version like "4.0.0" or "" if none found
+ * @param buildVersion a major+minor version like "4.1"
+ * @return Returns a version like "4.1.0" or "" if none found
  */
 def currentOpenshiftVersionFor(buildVersion) {
     def build = currentOpenshiftBuildFor(buildVersion)

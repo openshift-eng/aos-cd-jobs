@@ -24,16 +24,14 @@ node {
         ]
     )
 
-    echo "Initializing bug sweep for ${params.BUILD_VERSION}. Sync: #${currentBuild.number}"
 
-    currentBuild.displayName = "${params.BUILD_VERSION} bug sweep"
+    stage("Init") {
+	echo "Initializing bug sweep for ${params.BUILD_VERSION}. Sync: #${currentBuild.number}"
+	currentBuild.displayName = "${params.BUILD_VERSION} bug sweep"
 
-    stage("Version dumps") {
         buildlib.elliott "--version"
         sh "which elliott"
-    }
 
-    stage("kinit") {
 	buildlib.kinit()
     }
 
@@ -45,5 +43,6 @@ node {
 	}
     } catch (findBugsError) {
 	currentBuild.description = "Error sweeping:\n${findBugsError}"
+	throw findBugsError
     }
 }

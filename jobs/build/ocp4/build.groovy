@@ -280,7 +280,7 @@ def planBuilds() {
 def getChanges(yamlData) {
     def changed = ["rpms": [], "images": []]
     changed.each { kind, list ->
-        yamlData[kind].each { 
+        yamlData[kind].each {
             if (it["changed"]) {
                 list.add(it["name"])
             }
@@ -428,9 +428,9 @@ def stageMirrorRpms() {
 
     def binaryPkgName = "openshift"
     if(buildPlan.dryRun) {
-        echo("invoke_on_rcm_guest publish-oc-binary.sh ${version.stream} ${finalRpmVersionRelease} ${binaryPkgName}")
+        echo("invoke_on_rcm_guest publish-oc-v4-binary.sh ${version.stream} ${finalRpmVersionRelease} ${binaryPkgName}")
     } else {
-        buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", version.stream, finalRpmVersionRelease, binaryPkgName)
+        buildlib.invoke_on_rcm_guest("publish-oc-v4-binary.sh", version.stream, finalRpmVersionRelease, binaryPkgName)
     }
 
     echo "Finished building OCP ${versionRelease}"

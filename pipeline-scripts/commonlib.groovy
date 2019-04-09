@@ -229,8 +229,8 @@ def shell(arg) {
         def output = readFile("${filename}.combo.txt").split("\n")
 
         // want the error message to be user-directed, so trim it a bit
-        if (output.size() > 3) {
-            output = [ "[...see full archive #${shellIndex}...]" ] + array_to_list(output)[-3..-1] 
+        if (output.size() > 5) {
+            output = [ "[...see full archive #${shellIndex}...]" ] + array_to_list(output)[-5..-1] 
         }
         error(  // TODO: use a custom exception class with attrs
 """\

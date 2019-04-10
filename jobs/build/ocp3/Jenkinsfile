@@ -410,13 +410,11 @@ node {
             }
 
             stage("set build mode") {
-                master_spec = buildlib.read_spec_info(GITHUB_BASE_PATHS['ose'] + "/origin.spec")
-
                 // If the target version resides in ose#master
-                IS_SOURCE_IN_MASTER = (params.BUILD_VERSION == master_spec.major_minor)
+                IS_SOURCE_IN_MASTER = false  // master is of no concern for 3.x ever again
 
                 if (BUILD_MODE == "auto") {
-                    echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${params.BUILD_VERSION}, master_version: ${master_spec.major_minor}"
+                    echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${params.BUILD_VERSION}"
                     // INPUTS:
                     //   BUILD_MODE
                     //   BUILD_VERSION
@@ -424,7 +422,7 @@ node {
                     releases = buildlib.get_releases(GITHUB_URLS['ose'])
                     echo "AUTO-MODE: release repo: ${GITHUB_URLS['ose']}"
                     echo "AUTO-MODE: releases: ${releases}"
-                    BUILD_MODE = buildlib.auto_mode(params.BUILD_VERSION, master_spec.major_minor, releases)
+                    BUILD_MODE = buildlib.auto_mode(params.BUILD_VERSION, '4.x', releases)
                     echo "BUILD_MODE = ${BUILD_MODE}"
                 }
             }

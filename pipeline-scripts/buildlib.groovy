@@ -603,22 +603,10 @@ def initialize_ose() {
         sh 'git fetch --all'
         spec = this.read_spec_info( "origin.spec" )
 
-        // Perform some sanity checks
-
-        if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/origin.git release-${spec.major_minor}" ).trim() != "" ) {
-            error( "origin has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
-        }
-
-        if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/openshift-ansible.git release-${spec.major_minor}" ).trim() != "" ) {
-            error( "openshift-ansible has a release branch for ${spec.major_minor}; ose should have a similar enterprise branch and ose#master's spec Version minor should be bumped" )
-        }
-
-        // origin-web-console does not work like the other repos. It always has a enterprise branch for any release in origin#master.
-        // origin-web-console#master contains changes for the latest origin-web-console#enterprise-X.Y which need to be be merged into
-        // it when building X.Y.
-        if ( sh( returnStdout: true, script: "git ls-remote --heads ${GITHUB_BASE}/origin-web-console.git enterprise-${spec.major_minor}" ).trim() == "" ) {
-            error( "origin-web-console does not yet have an enterprise branch for ${spec.major_minor}; one should be created" )
-        }
+        // In the past this would perform some sanity checks based on the spec in master.
+        // But 3.x has all the release branches it will ever have and 4.x branch policy
+        // is changing, so 3.x no longer looks at master. Vars below are likely cruft that
+        // needs to be carefully removed.
 
         env.OSE_MASTER_MAJOR_MINOR = OSE_MASTER_MAJOR_MINOR = spec.major_minor
         env.OSE_MASTER_MAJOR = OSE_MASTER_MAJOR = spec.major

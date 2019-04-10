@@ -5,7 +5,7 @@ properties(
         ] )
 
 
-b = build       job: '../aos-cd-builds/build%2Focp', propagate: false,
+b = build       job: 'build%2Focp3', propagate: false,
                 parameters: [   [$class: 'StringParameterValue', name: 'BUILD_VERSION', value: '3.7'],
                                 [$class: 'StringParameterValue', name: 'BUILD_MODE', value: 'release'],
                                 ]

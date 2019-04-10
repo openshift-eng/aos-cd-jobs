@@ -64,7 +64,7 @@ rsync \
     -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
     -e "ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no" \
     "${OUTDIR}" ${OSE_VERSION} latest \
-    use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/
+    use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/oc/
 ssh -l jenkins_aos_cd_bot -o StrictHostKeychecking=no \
     use-mirror-upload.ops.rhcloud.com \
     timeout 15m /usr/local/bin/push.pub.sh openshift-v4 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v4 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v4 -v

@@ -94,7 +94,19 @@ beta:release-gen
             sh "cat ${ocIsObject}"
             try {
                 buildlib.oc "apply --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
-		currentBuild.description = "Success updating image stream"
+                currentBuild.description = "Success updating image stream"
+
+                // ######################################################################
+                echo "Temporary hack while we get '4.1' CI stood up"
+                // Update the image stream we produced in
+                // stage(Generate SRC=DEST input) to also publish to
+                // the 4.0 stream
+                sh "sed -i 's/4.1-art-latest/4.0-art-latest/' ${ocIsObject}"
+                buildlib.oc "apply --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
+                currentBuild.description = "Success updating both image streams"
+                // End temporary hack
+                // ######################################################################
+
             } catch (apply_error) {
                 currentBuild.description = "Error updating image stream:\n${apply_error}"
                 error(currentBuild.description)

@@ -34,7 +34,7 @@ node {
     )
 
     try {
-        sshagent([params.SSH_KEY_ID]) {
+        sshagent(['aos-cd-test']) {
             stage("sync odo") {
                 buildlib.invoke_on_rcm_guest("publish-odo-binary.sh")
             }

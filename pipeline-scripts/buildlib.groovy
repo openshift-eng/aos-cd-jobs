@@ -1096,4 +1096,64 @@ def cleanWorkdir(workdir) {
     """
 }
 
+def latestOpenshiftRpmBuild(stream, branch) {
+    pkg = stream.startsWith("3") ? "atomic-openshift" : "openshift"
+    retry(3) {
+        commonlib.shell(
+            script: "brew latest-build --quiet ${branch}-candidate ${pkg} | awk '{print \$1}'",
+            returnStdout: true,
+        ).trim()
+    }
+}
+
+def defaultReleaseFor(stream) {
+    return stream.startsWith("3") ? "1" : new Date().format("yyyyMMddHHmm")
+}
+
+// From a brew NVR of openshift, return just the V part.
+@NonCPS  // unserializable regex not allowed in combination with pipeline steps (error|echo)
+def extractBuildVersion(build) {
+    def match = build =~ /(?x) openshift- (  \d+  ( \. \d+ )+  )-/
+    return match ? match[0][1] : "" // first group in the regex
+}
+
+/**
+ * Given build parameters, determine the version for this build.
+ * @param stream: OCP minor version "X.Y"
+ * @param stream: distgit branch "rhaos-X.Y-rhel-[78]"
+ * @param versionParam: a version "X.Y.Z", empty to reuse latest version, "+" to increment latest .Z
+ * @return the version determined "X.Y.Z"
+ */
+def determineBuildVersion(stream, branch, versionParam) {
+    def version = "${stream}.0"  // default
+
+    def prevBuild = latestOpenshiftRpmBuild(stream, branch)
+    if(versionParam == "+") {
+        // increment previous build version
+        version = extractBuildVersion(prevBuild)
+        if (!version) { error("Could not determine version from last build '${prevBuild}'") }
+
+        def segments = version.tokenize(".").collect { it.toInteger() }
+        segments[-1]++
+        version = segments.join(".")
+        echo("Using version ${version} incremented from latest openshift package ${prevBuild}")
+    } else if(versionParam) {
+        // explicit version given
+        version = commonlib.standardVersion(versionParam, false)
+        echo("Using parameter for build version: ${version}")
+    } else if (prevBuild) {
+        // use version from previous build
+        version = extractBuildVersion(prevBuild)
+        if (!version) { error("Could not determine version from last build '${prevBuild}'") }
+        echo("Using version ${version} from latest openshift package ${prevBuild}")
+    }
+
+    if (! version.startsWith("${stream}.")) {
+        // The version we came up with somehow doesn't match what we expect to build; abort
+        error("Determined a version, '${version}', that does not begin with '${stream}.'")
+    }
+
+    return version
+}
+
 return this

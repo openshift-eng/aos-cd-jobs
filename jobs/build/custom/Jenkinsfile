@@ -61,11 +61,9 @@ node {
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
-                        description: 'Success Mailing List',
+                        description: '(Optional) Success Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: [
-                            'aos-team-art@redhat.com',
-                        ].join(',')
+                        defaultValue: "",
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -200,12 +198,14 @@ node {
                 }
             }
 
-            commonlib.email(
-                to: "${params.MAIL_LIST_SUCCESS}",
-                from: "aos-team-art@redhat.com",
-                subject: "Successful custom OCP build: ${currentBuild.displayName}",
-                body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}",
-            )
+            if (params.MAIL_LIST_SUCCESS.trim()) {
+                commonlib.email(
+                    to: params.MAIL_LIST_SUCCESS,
+                    from: "aos-team-art@redhat.com",
+                    subject: "Successful custom OCP build: ${currentBuild.displayName}",
+                    body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}",
+                )
+            }
         }
     } catch (err) {
         currentBuild.description += "\nerror: ${err.getMessage()}"

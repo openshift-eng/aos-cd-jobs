@@ -102,6 +102,14 @@ def elliott(cmd, opts=[:]){
         script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/elliott --user=ocp-build ${cmd.trim()}")
 }
 
+def elliotttest(cmd, opts=[:]){
+    cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
+    cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
+    return commonlib.shell(
+        returnStdout: opts.capture ?: false,
+        script: "elliott ${cmd.trim()}")
+}
+
 def oc(cmd, opts=[:]){
     cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
     cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them

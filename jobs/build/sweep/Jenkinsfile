@@ -29,7 +29,7 @@ node {
 	echo "Initializing bug sweep for ${params.BUILD_VERSION}. Sync: #${currentBuild.number}"
 	currentBuild.displayName = "${params.BUILD_VERSION} bug sweep"
 
-        buildlib.elliott "--version"
+        buildlib.elliotttest "--version"
         sh "which elliott"
 
 	buildlib.kinit()
@@ -38,7 +38,7 @@ node {
     try {
 	stage("Sweep bugs") {
 	    currentBuild.description = "Searching for and attaching bugs"
-	    buildlib.elliott "--group=openshift-${params.BUILD_VERSION} find-bugs --auto --use-default-advisory rpm"
+	    buildlib.elliotttest "--group=openshift-${params.BUILD_VERSION} find-bugs --auto --use-default-advisory rpm"
 	    currentBuild.description = "Ran bug attaching command without errors"
 	}
     } catch (findBugsError) {

@@ -62,7 +62,7 @@ def registry_login() {
 
 def registry_quay_dev_login() {
     // 2018-11-30 - Login to the
-    // openshift-release-dev/ocp-v4.0-art-dev registry This is just
+    // openshift-release-dev/ocp-v4.1-art-dev registry This is just
     // for test purposes right now
 
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io',

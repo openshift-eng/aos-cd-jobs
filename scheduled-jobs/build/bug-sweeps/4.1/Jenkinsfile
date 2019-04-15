@@ -15,7 +15,7 @@ properties(
 description = ""
 failed = false
 
-b = build job: '../../aos-cd-builds/sweep', propagate: false, parameters: [
+b = build job: '../../aos-cd-builds/build%2Fsweep', propagate: false, parameters: [
     [
 	$class: 'StringParameterValue',
 	name: 'BUILD_VERSION',

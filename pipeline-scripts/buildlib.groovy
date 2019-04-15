@@ -907,15 +907,15 @@ def notify_dockerfile_reconciliations(doozerWorking, buildVersion) {
     for (i = 0; i < distgit_notify.size(); i++) {
         distgit = distgit_notify[i][0]
         val = distgit_notify[i][1]
+        if (!val.owners) { continue }
 
         alias = val.source_alias
         url = dockerfile_url_for(alias.origin_url, alias.branch, val.source_dockerfile_subpath)
         dockerfile_url = url ? "Upstream source file: ${url}" : ""
 
-        // always mail team; val.owners will be comma delimited or empty
         commonlib.email(
-            to: "aos-team-art@redhat.com,${val.owners}",
-            from: "aos-cicd@redhat.com",
+            to: val.owners,
+            from: "aos-team-art@redhat.com",
             subject: "${val.image} Dockerfile reconciliation for OCP v${buildVersion}",
             body: """
 Why am I receiving this?
@@ -996,7 +996,7 @@ The following logs are just the container build portion of the OSBS build:
             }
             commonlib.email(
                 from: returnAddress,
-                to: failure.owners ?: defaultOwner,
+                to: "${returnAddress},${failure.owners ?: defaultOwner}",
                 subject: "Failed OCP build of ${failure.image}:${failure.version}",
                 body: """
 ART's brew/OSBS build of OCP image ${failure.image}:${failure.version} has failed.

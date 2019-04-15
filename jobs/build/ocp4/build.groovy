@@ -155,6 +155,14 @@ def determineBuildVersion(stream, branch) {
     ]
 }
 
+def displayTagFor(commaList, kind, isExcluded=false){
+    def items = commaList.split(',')
+    def desc = items.size() == 1 ? items[0] : "${items.size()}"
+    def plurality = items.size() == 1 ? kind : "${kind}s"
+    return isExcluded ? " [${kind}s except ${desc}]" : " [${desc} ${plurality}]"
+}
+
+
 /**
  * Plan what will be built.
  * Figure out whether we're building RPMs and/or images, and which ones, based on
@@ -171,8 +179,8 @@ def planBuilds() {
             (buildPlan.rpmsExcluded) ? "RPMs: building all except ${buildPlan.rpmsExcluded}.\n" :
             "RPMs: building all.\n"
         currentBuild.displayName +=
-            (buildPlan.rpmsIncluded) ? " [${buildPlan.rpmsIncluded.split(',').size()} RPMs]" :
-            (buildPlan.rpmsExcluded) ? " [-${buildPlan.rpmsExcluded.split(',').size()} RPMs]" :
+            (buildPlan.rpmsIncluded) ? displayTagFor(buildPlan.rpmsIncluded, "RPM") :
+            (buildPlan.rpmsExcluded) ? displayTagFor(buildPlan.rpmsExcluded, "RPM", true) :
             (buildPlan.buildRpms) ? " [all RPMs]" : ""
 
         currentBuild.description += "Will create RPM compose.\n"
@@ -182,8 +190,8 @@ def planBuilds() {
             (buildPlan.imagesExcluded) ? "Images: building all except ${buildPlan.imagesExcluded}.\n" :
             "Images: building all.\n"
         currentBuild.displayName +=
-            (buildPlan.imagesIncluded) ? " [${buildPlan.imagesIncluded.split(',').size()} images]" :
-            (buildPlan.imagesExcluded) ? " [-${buildPlan.imagesExcluded.split(',').size()} images]" :
+            (buildPlan.imagesIncluded) ? displayTagFor(buildPlan.imagesIncluded, "image") :
+            (buildPlan.imagesExcluded) ? displayTagFor(buildPlan.imagesExcluded, "image", true) :
             (buildPlan.buildImages) ? " [all images]" : ""
         return buildPlan
     }
@@ -216,7 +224,7 @@ def planBuilds() {
             report "Will create RPM compose."
             buildPlan.rpmsIncluded = changed.rpms.join(",")
             buildPlan.rpmsExcluded = ""
-            currentBuild.displayName += " [${changed.rpms.size()} RPM(s)]"
+            currentBuild.displayName += displayTagFor(buildPlan.rpmsIncluded, "RPM")
         } else {
             buildPlan.buildRpms = false
             report "RPMs: none changed."
@@ -268,7 +276,7 @@ def planBuilds() {
         }
         buildPlan.imagesIncluded = images.join(",")
         buildPlan.imagesExcluded = ""
-        currentBuild.displayName += " [${images.size()} image(s)]"
+        currentBuild.displayName += displayTagFor(buildPlan.imagesIncluded, "image")
 
         // NOTE: it might be nice not to rebase child images where the source hasn't changed.
         // However we would still need to update dockerfile for those images; but running doozer
@@ -463,7 +471,7 @@ def stageReportSuccess() {
     def builtNothing = buildPlan.dryRun || !(buildPlan.buildRpms || buildPlan.buildImages)
     def recordLog = builtNothing ? [:] : buildlib.parse_record_log(doozerWorking)
     def timingReport = getBuildTimingReport(recordLog)
-    currentBuild.description += timingReport
+    currentBuild.description += "\n-----------------\nBuild results:\n\n${timingReport}"
 
     def stateYaml = builtNothing ? [:] : readYaml(file: "${doozerWorking}/state.yaml")
     messageSuccess(rpmMirror.url)
@@ -578,7 +586,7 @@ def getBuildTimingReport(recordLog) {
     metrics = recordLog['image_build_metrics']
 
     if (metrics == null || metrics.size() == 0) {
-        return ""
+        return "No images actually built."
     }
 
     return """

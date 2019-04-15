@@ -51,7 +51,7 @@ node {
                     ],
                     [
                         name: 'RPM_LIST',
-                        description: '(Optional) Comma/space-separated list to include/exclude per BUILD_RPMS (e.g. openshift,openshift-kuryr.yml)',
+                        description: '(Optional) Comma/space-separated list to include/exclude per BUILD_RPMS (e.g. openshift,openshift-kuryr)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -117,7 +117,7 @@ node {
         }
         stage("report success") { build.stageReportSuccess() }
     } catch (err) {
-        currentBuild.description += "${err}"
+        currentBuild.description += "\n-----------------\n\n${err}"
         currentBuild.result = "FAILURE"
 
         if (params.MAIL_LIST_FAILURE.trim()) {

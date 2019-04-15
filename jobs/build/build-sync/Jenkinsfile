@@ -41,7 +41,7 @@ node {
 
     // See 'oc image mirror --help' for more information.
     // This is the template for the SRC=DEST strings mentioned above.
-    def ocFmtStr = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v${params.BUILD_VERSION}-art-dev:{version}-{release}-{image_name_short}"
+    def ocFmtStr = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v4.0-art-dev:{version}-{release}-{image_name_short}"
 
     buildlib.cleanWorkdir(mirrorWorking)
 

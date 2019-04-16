@@ -94,64 +94,18 @@ def initialize() {
     return planBuilds()
 }
 
-def latestOpenshiftRpmBuild(branch) {
-    retry(3) {
-        commonlib.shell(
-            script: "brew latest-build --quiet ${branch}-candidate openshift | awk '{print \$1}'",
-            returnStdout: true,
-        ).trim()
-    }
-}
-
-// From a brew NVR of openshift, return just the V part.
-@NonCPS
-def extractBuildVersion(build) {
-    // closure also keeps regex away from pipeline steps (error|echo)
-    def match = build =~ /(?x) ^openshift- (  \d+  ( \. \d+ )+  )-/
-    return match ? match[0][1] : "" // first group in the regex
-}
-
 /**
  * From the minor version (stream) and parameters, determine which version to build.
  * @param stream: OCP minor version "X.Y"
  * @return a map to merge into the "version" property representing the determined version
  */
 def determineBuildVersion(stream, branch) {
-    def full = "${stream}.0"  // default
-    def release = new Date().format("yyyyMMddHHmm")
-
-    def prevBuild = latestOpenshiftRpmBuild(branch)
-    if(params.NEW_VERSION.trim() == "+") {
-        // increment previous build version
-        full = extractBuildVersion(prevBuild)
-        if (!full) { error("Could not determine version from last build '${prevBuild}'") }
-
-        def segments = full.tokenize(".").collect { it.toInteger() }
-        segments[-1]++
-        full = segments.join(".")
-        echo("Using version ${full} incremented from latest openshift package ${prevBuild}")
-    } else if(params.NEW_VERSION) {
-        // explicit version given
-        full = commonlib.standardVersion(params.NEW_VERSION, false)
-        echo("Using NEW_VERSION parameter for version: ${full}")
-    } else if (prevBuild) {
-        // use version from previous build
-        full = extractBuildVersion(prevBuild)
-        if (!full) { error("Could not determine version from last build '${prevBuild}'") }
-        echo("Using version ${full} from latest openshift package ${prevBuild}")
-    }
-
-    if (! full.startsWith("${stream}.")) {
-        // The version we came up with somehow doesn't match what we expect to build; abort
-        error("Determined a version, '${full}', that does not begin with '${stream}.'")
-    }
-
-    stream = stream.tokenize('.').collect { it.toInteger() }
+    def segments = stream.tokenize('.').collect { it.toInteger() }
     return [
-        major: stream[0],
-        minor: stream[1],
-        full: full,
-        release: release,
+        major: segments[0],
+        minor: segments[1],
+        full: buildlib.determineBuildVersion(stream, branch, params.NEW_VERSION.trim()),
+        release: buildlib.defaultReleaseFor(stream),
     ]
 }
 
@@ -335,7 +289,7 @@ def stageBuildCompose() {
 
     // we may or may not have (successfully) built the openshift RPM in this run.
     // in order to script the correct version to publish later, determine what's there now.
-    finalRpmVersionRelease = latestOpenshiftRpmBuild(version.branch).replace("openshift-", "")
+    finalRpmVersionRelease = buildlib.latestOpenshiftRpmBuild(version.stream, version.branch).replace("openshift-", "")
 
     if (!buildPlan.buildRpms && !buildPlan.forceBuild) {
         // a force build of just images is likely to want to pick up new dependencies,

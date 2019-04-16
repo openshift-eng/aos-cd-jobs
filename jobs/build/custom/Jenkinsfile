@@ -17,13 +17,13 @@ node {
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     [
                         name: 'VERSION',
-                        description: 'Version string for build (e.g. 4.1.0)',
+                        description: '(Optional) version for build (e.g. 4.1.0) instead of most recent\nor "+" to bump most recent version',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
                         name: 'RELEASE',
-                        description: 'Release string for build',
+                        description: '(Optional) Release string for build instead of default (1 for 3.x, timestamp for 4.x)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -61,11 +61,9 @@ node {
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
-                        description: 'Success Mailing List',
+                        description: '(Optional) Success Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: [
-                            'aos-team-art@redhat.com',
-                        ].join(',')
+                        defaultValue: "",
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -85,19 +83,23 @@ node {
     buildlib.initialize(false)
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
-    majorVersion = params.BUILD_VERSION.split('\\.')[0]
-    minorVersion = params.BUILD_VERSION.split('\\.')[1]
-    master_ver = commonlib.ocpDefaultVersion
-    version = commonlib.standardVersion(params.VERSION)
-    release = params.RELEASE.trim()
-    repo_type = params.SIGNED ? "signed" : "unsigned"
-    images = commonlib.cleanCommaList(params.IMAGES)
-    exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
-    rpms = commonlib.cleanCommaList(params.RPMS)
-
     // doozer_working must be in WORKSPACE in order to have artifacts archived
-    doozer_working = "${WORKSPACE}/doozer_working"
+    def doozer_working = "${WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
+
+    def majorVersion = params.BUILD_VERSION.split('\\.')[0]
+    def minorVersion = params.BUILD_VERSION.split('\\.')[1]
+    def doozerOpts = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+    def version = params.BUILD_VERSION
+    def release = "?"
+    if (params.IMAGE_MODE != "nothing") {
+        version = buildlib.determineBuildVersion(params.BUILD_VERSION, buildlib.getGroupBranch(doozerOpts), params.VERSION)
+        release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION) 
+    }
+    def repo_type = params.SIGNED ? "signed" : "unsigned"
+    def images = commonlib.cleanCommaList(params.IMAGES)
+    def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
+    def rpms = commonlib.cleanCommaList(params.RPMS)
 
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
@@ -196,12 +198,14 @@ node {
                 }
             }
 
-            commonlib.email(
-                to: "${params.MAIL_LIST_SUCCESS}",
-                from: "aos-team-art@redhat.com",
-                subject: "Successful custom OCP build: ${currentBuild.displayName}",
-                body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}",
-            )
+            if (params.MAIL_LIST_SUCCESS.trim()) {
+                commonlib.email(
+                    to: params.MAIL_LIST_SUCCESS,
+                    from: "aos-team-art@redhat.com",
+                    subject: "Successful custom OCP build: ${currentBuild.displayName}",
+                    body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}",
+                )
+            }
         }
     } catch (err) {
         currentBuild.description += "\nerror: ${err.getMessage()}"

@@ -256,34 +256,4 @@ def array_to_list(array) {
     return l
 }
 
-
-/**
- * Find the highest build of the openshift pkg in our candidate tag
- * @param buildVersion a major+minor version like "4.1"
- * @return Returns a brew build like "openshift-4.1.0-1.el7" or "" if none found
- */
-def currentOpenshiftBuildFor(buildVersion) {
-    return sh(
-        returnStdout: true,
-        script: "brew latest-build --quiet rhaos-${buildVersion}-rhel-7-candidate openshift | awk '{print \$1}'"
-    ).trim()
-}
-
-// extract "4.1.0" from "openshift-4.1.0-1.el7"
-@NonCPS
-def extractOpenShiftBuildVersion(build) {
-    def match = build =~ /(?x) ^openshift- (  \d+  ( \. \d+ )+  )-/
-    return match ? match[0][1] : "" // first group in the regex
-}
-
-/**
- * Find the highest version of the openshift pkg built tagged for buildVersion
- * @param buildVersion a major+minor version like "4.1"
- * @return Returns a version like "4.1.0" or "" if none found
- */
-def currentOpenshiftVersionFor(buildVersion) {
-    def build = currentOpenshiftBuildFor(buildVersion)
-    return build ? extractOpenShiftBuildVersion(build) : ""
-}
-
 return this

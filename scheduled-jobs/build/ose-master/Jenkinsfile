@@ -4,7 +4,7 @@ properties([
     disableConcurrentBuilds(),
 ])
 
-currentBuild.displayName += "4.1 incremental build"
+currentBuild.displayName += " 4.1 incremental build"
 def b = build job: '../aos-cd-builds/build%2Fose4.1', propagate: false
 
 currentBuild.result = (b.result == "SUCCESS") ? "SUCCESS" : "FAILURE"

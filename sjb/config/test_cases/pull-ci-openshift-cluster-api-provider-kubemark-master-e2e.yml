@@ -4,6 +4,7 @@ overrides:
   sync:
     - "openshift,machine-api-operator=master"
     - "openshift,cluster-autoscaler-operator=master"
+    - "openshift,kubernetes-autoscaler=master"
 extensions:
   actions:
     - type: "script"
@@ -42,6 +43,12 @@ extensions:
         chmod u+x kustomize_*_linux_amd64
         sudo mv kustomize_*_linux_amd64 /usr/bin/kustomize
     - type: "script"
+      title: "Install imagebuilder"
+      script: |-
+        export GOPATH=/data
+        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+        sudo mv /data/bin/imagebuilder /usr/bin
+    - type: "script"
       title: "Build kubemark machine controllers"
       script: |-
         export GOPATH=/data
@@ -50,13 +57,18 @@ extensions:
         sudo mv /data/bin/imagebuilder /usr/bin
         sudo make images IMAGE=docker.io/gofed/kubemark-machine-controllers VERSION=v1.0 NO_DOCKER=1
     - type: "script"
+      title: "Build cluster autoscaler"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/kubernetes-autoscaler
+
+        sudo imagebuilder -f images/cluster-autoscaler/Dockerfile -t "docker.io/openshift/origin-cluster-autoscaler:v4.0" .
+    - type: "script"
       title: "Deploy machine API operator"
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/machine-api-operator
         make build
-        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
-        sudo mv /data/bin/imagebuilder /usr/bin
         sudo imagebuilder -t "docker.io/openshift/origin-machine-api-operator:v4.0.0" .
         sudo make deploy-kubemark
     - type: "script"

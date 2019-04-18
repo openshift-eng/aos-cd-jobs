@@ -53,13 +53,10 @@ extensions:
       title: "Deploy machine API operator"
       script: |-
         export GOPATH=/data
-        cd $GOPATH/src/github.com/openshift/machine-api-operator/
-
-        MAO_IMAGE=$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
-        docker pull $MAO_IMAGE
-        docker tag $MAO_IMAGE docker.io/openshift/origin-machine-api-operator:v4.0.0
-
-        # deploy expected cluster and machineset objects
+        cd $GOPATH/src/github.com/openshift/machine-api-operator
+        go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+        sudo mv /data/bin/imagebuilder /usr/bin
+        sudo imagebuilder -t "docker.io/openshift/origin-machine-api-operator:v4.0.0" .
         sudo make deploy-kubemark
     - type: "script"
       title: "Deploy cluster autoscaler operator"
@@ -67,10 +64,7 @@ extensions:
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-autoscaler-operator/
 
-        CAO_IMAGE=$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image cluster-autoscaler-operator)
-        docker pull $CAO_IMAGE
-        docker tag $CAO_IMAGE docker.io/openshift/origin-cluster-autoscaler-operator:v4.0
-
+        sudo imagebuilder -t "quay.io/openshift/origin-cluster-autoscaler-operator:v4.0" .
         kustomize build | sudo kubectl apply -f -
     - type: "script"
       title: "Deploy cluster resources"

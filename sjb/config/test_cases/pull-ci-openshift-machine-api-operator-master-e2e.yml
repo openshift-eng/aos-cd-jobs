@@ -56,6 +56,11 @@ extensions:
       script: |-
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-autoscaler-operator/
+
+        CAO_IMAGE=$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image cluster-autoscaler-operator)
+        docker pull $CAO_IMAGE
+        docker tag $CAO_IMAGE quay.io/openshift/origin-cluster-autoscaler-operator:v4.0
+
         kustomize build | sudo kubectl apply -f -
     - type: "script"
       title: "Deploy cluster resources"

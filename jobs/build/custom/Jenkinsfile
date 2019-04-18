@@ -160,7 +160,7 @@ node {
 
                 command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
                 command += "--latest-parent-version ${include_exclude} "
-                command += "images:${params.IMAGE_MODE} --version ${version} --release ${release} "
+                command += "images:${params.IMAGE_MODE} --version v${version} --release ${release} "
                 command += "--repo-type ${repo_type} "
                 command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
                 buildlib.doozer command

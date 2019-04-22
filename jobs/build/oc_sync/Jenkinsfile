@@ -38,6 +38,8 @@ node {
         ]
     )
 
+    commonlib.checkMock()
+
     try {
         sshagent(['aos-cd-test']) {
             stage("sync ocp clients") {

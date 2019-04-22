@@ -21,7 +21,7 @@ node {
                         name: 'STREAM',
                         description: 'Build stream to sync client from',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "4.1.0-0.ci"
+                        defaultValue: "4.1.0-0.nightly"
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',

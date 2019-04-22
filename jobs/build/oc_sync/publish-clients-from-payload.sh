@@ -7,7 +7,7 @@ STREAM=$2
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
 # get latest release from GitHub API
-wget https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${STREAM}/latest
+wget https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${STREAM}/latest -O latest
 #extract pull_spec
 PULL_SPEC=`jq -r '.pullSpec' latest`
 #extract name

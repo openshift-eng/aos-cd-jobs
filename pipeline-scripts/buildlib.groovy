@@ -86,36 +86,30 @@ def initialize_openshift_dir() {
     echo "Initialized env.OPENSHIFT_DIR: ${env.OPENSHIFT_DIR}"
 }
 
+def cleanWhitespace(cmd) {
+    return (cmd
+        .replaceAll( '\\\n', ' ' ) // If caller included line continuation characters, remove them
+        .replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
+        .trim()
+    )
+}
+
 def doozer(cmd, opts=[:]){
-    cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
-    cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
-        script: "doozer ${cmd.trim()}")
+        script: "doozer ${cleanWhitespace(cmd)}")
 }
 
 def elliott(cmd, opts=[:]){
-    cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
-    cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
-        script: "${env.ENTERPRISE_IMAGES_DIR}/tools/bin/elliott --user=ocp-build ${cmd.trim()}")
-}
-
-def elliotttest(cmd, opts=[:]){
-    cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
-    cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
-    return commonlib.shell(
-        returnStdout: opts.capture ?: false,
-        script: "elliott ${cmd.trim()}")
+        script: "elliott ${cleanWhitespace(cmd)}")
 }
 
 def oc(cmd, opts=[:]){
-    cmd = cmd.replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
-    cmd = cmd.replaceAll( ' \\ ', ' ' ) // If caller included line continuation characters, remove them
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
-        script: "/usr/bin/oc ${cmd.trim()}"
+        script: "/usr/bin/oc ${cleanWhitespace(cmd)}"
     )
 }
 

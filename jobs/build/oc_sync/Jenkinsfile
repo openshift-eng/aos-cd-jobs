@@ -40,9 +40,13 @@ node {
 
     commonlib.checkMock()
 
+    buildlib.cleanWorkdir("${env.WORKSPACE}")
+
     try {
         sshagent(['aos-cd-test']) {
             stage("sync ocp clients") {
+		// must be able to access remote registry to extract image contents
+		buildlib.registry_quay_dev_login()
                 sh "./publish-clients-from-payload.sh ${env.WORKSPACE} ${STREAM}"
             }
         }

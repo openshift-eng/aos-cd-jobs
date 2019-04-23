@@ -23,7 +23,7 @@ else
 fi
 
 
-TMPDIR=${WORKSPACE}/tools/
+TMPDIR=${WORKSPACE}/tools
 mkdir -p "${TMPDIR}"
 cd ${TMPDIR}
 
@@ -32,11 +32,12 @@ mkdir -p ${OUTDIR}
 pushd ${OUTDIR}
 
 #extract all release assests
+oc version
 oc adm release extract --tools --command-os=* ${PULL_SPEC} --to=${OUTDIR}
 popd
 
 # create latest symlink
-ln -sf ${VERSION} latest
+ln -svf ${VERSION} latest
 
 #sync to use-mirror-upload
 rsync \

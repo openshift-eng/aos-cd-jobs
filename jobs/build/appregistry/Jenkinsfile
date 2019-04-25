@@ -1,3 +1,21 @@
+@NonCPS
+def processImages(lines) {
+    def data = []
+    lines.split().each { line ->
+        // label, name, nvr, version
+        def fields = line.split(',')
+        if (fields[0] == 'true') {
+            data.add([
+                name: fields[1],
+                nvr: fields[2],
+                version: fields[3],
+            ])
+        }
+    }
+    return data
+}
+
+
 node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -17,13 +35,13 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                    commonlib.suppressEmailParam(),
                     [
-                        name: 'MAIL_LIST_SUCCESS',
-                        description: 'Success Mailing List',
+                        name: 'IMAGES',
+                        description: '(Optional) List of images to limit selection (default all)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
+                    commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
@@ -41,36 +59,46 @@ node {
 
     buildlib.initialize(false)
 
-    // doozer_working must be in WORKSPACE in order to have artifacts archived
-    DOOZER_WORKING = "${env.WORKSPACE}/doozer_working"
-    buildlib.cleanWorkdir(DOOZER_WORKING)
+    workDir = "${env.WORKSPACE}/workDir"
+    buildlib.cleanWorkdir(workDir)
 
     currentBuild.description = "Collecting appregistry images for ${params.BUILD_VERSION}"
+    currentBuild.displayName += " - ${params.BUILD_VERSION}"
 
     try {
+        def data = []
         sshagent(["openshift-bot"]) {
             stage("fetch appregistry images") {
-                buildlib.doozer "--working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}' images:print --label 'com.redhat.delivery.appregistry' --short '{label},{name},{build},{version}' | tee ${env.WORKSPACE}/appreg.list"
-
-                sh "python appreg.py ${env.WORKSPACE}/appreg.list ${env.WORKSPACE}/appreg.yaml"
+                def include = params.IMAGES.trim()
+                if (include) {
+                    include = "--images " + commonlib.cleanCommaList(include)
+                }
+                def lines = buildlib.doozer """
+                    --working-dir ${workDir}
+                    --group 'openshift-${params.BUILD_VERSION}'
+                    ${include}
+                    images:print
+                    --label 'com.redhat.delivery.appregistry'
+                    --short '{label},{name},{build},{version}'
+                """, [capture: true]
+                data = processImages(lines)
+                writeYaml file: "${workDir}/appreg.yaml", data: data
+                currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}"
             }
-
-            currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}"
         }
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-team-art@redhat.com",
-            subject: "Unexpected error during OCP Merge!",
-            body: "Encountered an unexpected error while running OCP merge: ${err}"
+            subject: "Unexpected error during appregistry job",
+            body: "Encountered an unexpected error while running appregistry:\n${err}"
         )
-
-        currentBuild.description = "Failed collecting appregistry images for ${params.BUILD_VERSION}"
+        currentBuild.description = "Job failed: ${err}\n-----------------\n${currentBuild.description}"
 
         throw err
     } finally {
         commonlib.safeArchiveArtifacts([
-            "appreg.yaml"
+            "workDir/appreg.yaml"
         ])
     }
 }

@@ -319,7 +319,7 @@ Jenkins job: ${env.BUILD_URL}
             try {
                 buildlib.elliott """
  --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
- advisory:find-builds
+ find-builds
  --kind image
  --attach ${ADVISORY_ID}
 """

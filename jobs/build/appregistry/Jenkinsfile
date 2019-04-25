@@ -70,7 +70,7 @@ node {
         throw err
     } finally {
         commonlib.safeArchiveArtifacts([
-            "${env.WORKSPACE}/appreg.yaml"
+            "appreg.yaml"
         ])
     }
 }

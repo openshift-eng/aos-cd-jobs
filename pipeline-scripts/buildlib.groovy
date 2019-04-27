@@ -724,26 +724,31 @@ def sync_images(major, minor, mail_list, build_number) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
     // stream is updated with the new tags and pullspecs.
+    // Also update the app registry with operator manifests.
+    // If builds don't succeed, email and set result to UNSTABLE.
     if(major < 4) {
         currentBuild.description = "Invalid sync request: Sync images only applies to 4.x+ builds"
         error(currentBuild.description)
     }
     def fullVersion = "${major}.${minor}"
-    try {
-        build(job: 'build%2Fbuild-sync', parameters:
+    def results = []
+    parallel "build-sync": {
+        results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
             [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
         )
-    } catch(err) {
-        commonlib.email(
-            to: "${mail_list}",
-            from: "aos-team-art@redhat.com",
-            subject: "Error syncing images after ${fullVersion} build #${build_number}",
-            body: [
-                "Encountered an error: ${err}",
-                "Jenkins job: ${env.BUILD_URL}"
-            ].join('\n')
+    }, appregistry: {
+        results.add build(job: 'build%2Fappregistry', propagate: false, parameters:
+            [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
         )
-        throw err  // may want the build status to reflect that this didn't work
+    }
+    if ( results.any { it.result != 'SUCCESS' } ) {
+        commonlib.email(
+            to: mail_list,
+            from: "aos-team-art@redhat.com",
+            subject: "Problem syncing images after ${currentBuild.displayName}",
+            body: "Jenkins console: ${env.BUILD_URL}/console",
+        )
+        currentBuild.result = 'UNSTABLE'
     }
 }
 

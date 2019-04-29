@@ -1,3 +1,52 @@
+@NonCPS
+def processImages(lines) {
+    def data = []
+    lines.split().each { line ->
+        // label, name, nvr, version
+        def fields = line.split(',')
+        if (fields[0] == 'true') {
+            data.add([
+                name: fields[1],
+                nvr: fields[2],
+                version: fields[3].replace("v", ""),
+            ])
+        }
+    }
+    return data
+}
+
+
+def retrieveBotToken() {
+    def token = ""
+    withCredentials([usernamePassword(credentialsId: 'quay_appregistry_omps_bot', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+        def requestJson = """
+        {
+            "user": {
+                "username": "${QUAY_USERNAME}",
+                "password": "${QUAY_PASSWORD}"
+            }
+        }
+        """
+        retry(3) {
+            def response = httpRequest(
+                url: "https://quay.io/cnr/api/v1/users/login",
+                httpMode: 'POST',
+                contentType: 'APPLICATION_JSON',
+                requestBody: requestJson,
+                timeout: 60,
+                validResponseCodes: "200:599",
+            )
+            if (response.status != 200) {
+                sleep(5)
+                error "Quay token request failed: ${response.status} ${response.content}"
+            }
+            token = readJSON(text: response.content).token
+        }
+    }
+    return token
+}
+
+
 node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -17,21 +66,24 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                    commonlib.suppressEmailParam(),
-                    [
-                        name: 'MAIL_LIST_SUCCESS',
-                        description: 'Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
+                    string(
+                        name: 'IMAGES',
+                        description: '(Optional) List of images to limit selection (default all)',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    booleanParam(
+                        name: 'SKIP_PUSH',
+                        defaultValue: false,
+                        description: "Do not push operator metadata"
+                    ),
+                    commonlib.suppressEmailParam(),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-team-art@redhat.com',
                         ].join(',')
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -41,36 +93,78 @@ node {
 
     buildlib.initialize(false)
 
-    // doozer_working must be in WORKSPACE in order to have artifacts archived
-    DOOZER_WORKING = "${env.WORKSPACE}/doozer_working"
-    buildlib.cleanWorkdir(DOOZER_WORKING)
+    workDir = "${env.WORKSPACE}/workDir"
+    buildlib.cleanWorkdir(workDir)
 
     currentBuild.description = "Collecting appregistry images for ${params.BUILD_VERSION}"
+    currentBuild.displayName += " - ${params.BUILD_VERSION}"
 
     try {
+        def operatorData = []
         sshagent(["openshift-bot"]) {
             stage("fetch appregistry images") {
-                buildlib.doozer "--working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}' images:print --label 'com.redhat.delivery.appregistry' --short '{label},{name},{build},{version}' | tee ${env.WORKSPACE}/appreg.list"
-
-                sh "python appreg.py ${env.WORKSPACE}/appreg.list ${env.WORKSPACE}/appreg.yaml"
+                def include = params.IMAGES.trim()
+                if (include) {
+                    include = "--images " + commonlib.cleanCommaList(include)
+                }
+                def lines = buildlib.doozer """
+                    --working-dir ${workDir}
+                    --group 'openshift-${params.BUILD_VERSION}'
+                    ${include}
+                    images:print
+                    --label 'com.redhat.delivery.appregistry'
+                    --short '{label},{name},{build},{version}'
+                """, [capture: true]
+                operatorData = processImages(lines)
+                writeYaml file: "${workDir}/appreg.yaml", data: operatorData
+                currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
             }
+            stage("push metadata") {
+                if (params.SKIP_PUSH) {
+                    currentBuild.description += "\nskipping metadata push."
+                    return
+                }
+                if (!operatorData) {
+                    currentBuild.description += "\nno operator metadata to push."
+                    return
+                }
 
-            currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}"
+                currentBuild.description += "\npushing operator metadata."
+                withCredentials([usernamePassword(credentialsId: 'quay_appregistry_omps_bot', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+                    def token = retrieveBotToken()
+                    for (def i = 0; i < operatorData.size(); i++) {
+                        def build = operatorData[i]
+                        retry(3) {
+                            def response = httpRequest(
+                                url: "https://omps-prod.cloud.paas.upshift.redhat.com/v2/redhat-operators-art/koji/${build.nvr}",
+                                httpMode: 'POST',
+                                customHeaders: [[name: 'Authorization', value: token]],
+                                timeout: 60,
+                                validResponseCodes: "200:599",
+                            )
+                            if (response.status != 200) {
+                                sleep(5)
+                                error "OMPS request for ${build.nvr} failed: ${response.status} ${response.content}"
+                            }
+                        }
+                        currentBuild.description += "\n  ${build.nvr}"
+                    }
+                }
+            }
         }
     } catch (err) {
+        currentBuild.description = "Job failed: ${err}\n-----------------\n${currentBuild.description}"
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-team-art@redhat.com",
-            subject: "Unexpected error during OCP Merge!",
-            body: "Encountered an unexpected error while running OCP merge: ${err}"
+            subject: "Unexpected error during appregistry job",
+            body: "Console output: ${env.BUILD_URL}console\n${currentBuild.description}",
         )
-
-        currentBuild.description = "Failed collecting appregistry images for ${params.BUILD_VERSION}"
 
         throw err
     } finally {
         commonlib.safeArchiveArtifacts([
-            "${env.WORKSPACE}/appreg.yaml"
+            "workDir/appreg.yaml"
         ])
     }
 }

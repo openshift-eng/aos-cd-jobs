@@ -128,3 +128,5 @@ def stageCrossRef() {
     // cross ref tool not ready yet
     echo "Empty Stage"
 }
+
+return this

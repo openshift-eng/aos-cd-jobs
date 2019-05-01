@@ -36,13 +36,19 @@ node {
     }
 
     try {
+	stage("Repair bugs") {
+	    currentBuild.description = "Searching for and repairing bugs in invalid states"
+	    buildlib.elliott "--group=openshift-${params.BUILD_VERSION} repair-bugs --auto --use-default-advisory rpm"
+	    currentBuild.description = "Ran bug repair command without errors"
+	}
+
 	stage("Sweep bugs") {
 	    currentBuild.description = "Searching for and attaching bugs"
 	    buildlib.elliott "--group=openshift-${params.BUILD_VERSION} find-bugs --auto --use-default-advisory rpm"
-	    currentBuild.description = "Ran bug attaching command without errors"
+	    currentBuild.description = "Ran bug repair and attaching commands without errors"
 	}
     } catch (findBugsError) {
-	currentBuild.description = "Error sweeping:\n${findBugsError}"
+	currentBuild.description = "Error repair/sweeping:\n${findBugsError}"
 	throw findBugsError
     }
 }

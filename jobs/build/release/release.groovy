@@ -1,6 +1,8 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 
+oc_cmd = "oc --config=/home/jenkins/kubeconfigs/art-publish.kubeconfig"
+
 // dump important tool versions to console
 def stageVersions() {
     sh "oc version"
@@ -12,7 +14,7 @@ def stageValidation() {
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
         returnAll: true,
-        script: "oc adm release info ${params.NAME}"
+        script: "${oc_cmd} adm release info ${params.NAME}"
     )
 
     if(res.returnStatus == 0){
@@ -42,7 +44,7 @@ def stageGenPayload() {
     metadata += "}"
 
     // build oc command
-    def cmd = "oc adm release new "
+    def cmd = "${oc_cmd} adm release new "
     cmd += "--from-release=registry.svc.ci.openshift.org/ocp/release:${params.FROM_RELEASE_TAG} "
     cmd += "--name ${params.NAME} "
     cmd += "--metadata '${metadata}' "
@@ -59,7 +61,7 @@ def stageGenPayload() {
 
 def stageTagStable() {
     def name = params.NAME
-    def cmd = "oc tag quay.io/openshift-release-dev/ocp-release:${name} ocp/release:${name}"
+    def cmd = "${oc_cmd} tag quay.io/openshift-release-dev/ocp-release:${name} ocp/release:${name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -107,6 +109,20 @@ def stageWaitForStable() {
     if (stable != params.NAME){
         error("Stable release has not updated to ${params.NAME} in the allotted time. Aborting.")
     }
+}
+
+def stageGetReleaseInfo(){
+    def cmd = "${oc_cmd} adm release info --pullspecs quay.io/openshift-release-dev/ocp-release:${params.NAME}"
+    def res = commonlib.shell(
+            returnAll: true,
+            script: cmd
+    )
+
+    if (res.rc != 0){
+        error(res.stderr)
+    }
+
+    return res.stdout.trim()
 }
 
 def stageClientSync() {

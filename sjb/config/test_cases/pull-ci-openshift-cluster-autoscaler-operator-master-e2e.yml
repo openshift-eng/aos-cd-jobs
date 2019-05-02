@@ -49,6 +49,13 @@ extensions:
         go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
         sudo mv /data/bin/imagebuilder /usr/bin
     - type: "script"
+      title: "Build kubemark machine controllers"
+      script: |-
+        export GOPATH=/data
+        cd $GOPATH/src/github.com/openshift/cluster-api-provider-kubemark
+
+        sudo make images IMAGE=docker.io/gofed/kubemark-machine-controllers VERSION=v1.0 NO_DOCKER=1
+    - type: "script"
       title: "Build cluster autoscaler"
       script: |-
         export GOPATH=/data

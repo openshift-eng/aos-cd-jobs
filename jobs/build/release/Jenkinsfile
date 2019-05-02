@@ -85,6 +85,7 @@ node {
 
     try {
         sshagent(['aos-cd-test']) {
+            def release_info = ""
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
@@ -92,6 +93,9 @@ node {
             stage("payload") { release.stageGenPayload() }
             stage("tag stable") { release.stageTagStable() }
             stage("wait for stable") { release.stageWaitForStable() }
+            stage("get release info") {
+                release_info = release.stageGetReleaseInfo()
+            }
             stage("client sync") { release.stageClientSync() }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
@@ -102,8 +106,11 @@ node {
             from: "aos-cicd@redhat.com",
             subject: "Success building release payload: ${params.NAME}",
             body: """
+Jenkins Job: ${env.BUILD_URL}
 Release Page: https://openshift-release.svc.ci.openshift.org/releasestream/4-stable/release/${params.NAME}
-Quay PullSpec: quay.io/ocp/release:${params.NAME}
+Quay PullSpec: quay.io/openshift-release-dev/ocp-release:${params.NAME}
+
+${release_info}
         """);
     } catch (err) {
         commonlib.email(

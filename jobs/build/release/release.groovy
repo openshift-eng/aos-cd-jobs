@@ -1,7 +1,6 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 
-
 // dump important tool versions to console
 def stageVersions() {
     sh "oc version"
@@ -111,10 +110,15 @@ def stageWaitForStable() {
 }
 
 def stageClientSync() {
+    if (params.DRY_RUN) {
+        echo "Would have run oc_sync job"
+        return
+    }
+
     build(
         job: 'build%2Foc_sync',
         parameters: [
-            param('String', 'STREAM', '4-stable')
+            buildlib.param('String', 'STREAM', '4-stable')
         ]
     )
 }

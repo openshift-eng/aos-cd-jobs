@@ -103,7 +103,7 @@ def stageWaitForStable() {
         }
 
         count++
-        sleep(60000) //wait for 60 seconds between tries
+        sleep(60) //wait for 60 seconds between tries
     }
 
     if (stable != params.NAME){
@@ -113,6 +113,12 @@ def stageWaitForStable() {
 
 def stageGetReleaseInfo(){
     def cmd = "${oc_cmd} adm release info --pullspecs quay.io/openshift-release-dev/ocp-release:${params.NAME}"
+
+    if (params.DRY_RUN) {
+        echo "Would have run \n ${cmd}"
+        return "Dry Run - No Info"
+    }
+
     def res = commonlib.shell(
             returnAll: true,
             script: cmd

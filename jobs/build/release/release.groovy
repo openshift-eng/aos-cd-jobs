@@ -39,13 +39,16 @@ def stageGenPayload() {
     // build metadata blob
     def metadata = "{\"description\": \"${params.DESCRIPTION}\""
     if (params.ADVISORY != "") {
-        metadata += ", \"advisory_url\": \"https://errata.devel.redhat.com/advisory/${params.ADVISORY}\""
+        metadata += ", \"url\": \"https://errata.devel.redhat.com/advisory/${params.ADVISORY}\""
     }
     metadata += "}"
 
     // build oc command
     def cmd = "${oc_cmd} adm release new "
     cmd += "--from-release=registry.svc.ci.openshift.org/ocp/release:${params.FROM_RELEASE_TAG} "
+    if (params.PREVIOUS != "") {
+        cmd += "--previous \"${params.PREVIOUS}\" "
+    }
     cmd += "--name ${params.NAME} "
     cmd += "--metadata '${metadata}' "
     cmd += "--to-image=quay.io/openshift-release-dev/ocp-release:${params.NAME} "

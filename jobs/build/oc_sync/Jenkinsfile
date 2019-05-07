@@ -40,7 +40,7 @@ node {
 
     commonlib.checkMock()
 
-    buildlib.cleanWorkdir("${env.WORKSPACE}")
+
 
     try {
         sshagent(['aos-cd-test']) {
@@ -60,4 +60,5 @@ node {
         currentBuild.result = "FAILURE"
         throw err
     }
+    buildlib.cleanWorkdir("${env.WORKSPACE}")
 }

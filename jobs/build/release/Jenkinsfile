@@ -44,7 +44,7 @@ node {
                     ],
                     [
                         name: 'PREVIOUS',
-                        description: 'Optional: Tag of release this can upgrade FROM',
+                        description: 'Optional: Tag(s) (comma separated) of release this can upgrade FROM',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],

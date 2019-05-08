@@ -36,14 +36,11 @@ oc version
 oc adm release extract --tools --command-os=* ${PULL_SPEC} --to=${OUTDIR}
 popd
 
-# create latest symlink
-ln -svf ${VERSION} latest
-
 #sync to use-mirror-upload
 rsync \
     -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
     -e "ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no" \
-    "${OUTDIR}" latest \
+    "${OUTDIR}" \
     use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/ocp/
 
 # kick off full mirror push

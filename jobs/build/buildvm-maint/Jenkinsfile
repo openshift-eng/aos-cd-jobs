@@ -32,6 +32,11 @@ node('openshift-build-1') {
     def commonlib = load( "pipeline-scripts/commonlib.groovy")
     commonlib.initialize()
 
+    def buildlib = load( "pipeline-scripts/buildlib.groovy" )
+    // doozer_working must be in WORKSPACE in order to have artifacts archived
+    def doozer_working = "${WORKSPACE}/doozer_working"
+    buildlib.cleanWorkdir(doozer_working)
+
     try {
         buildlib = load('pipeline-scripts/buildlib.groovy')
         buildlib.initialize()
@@ -46,9 +51,12 @@ node('openshift-build-1') {
             try {
                 stage("push images") {
                     dir ( "enterprise-images" ) {
-                        sh 'doozer --group sync-3.9 images:push --to-defaults'
-                        sh 'doozer --group sync-misc images:push --to-defaults'
-                        sh 'doozer --group sync-3.7 images:push --to-defaults'
+                        sh 'doozer --working-dir ${doozer_working} --group sync-3.9 images:push --to-defaults'
+                        buildlib.cleanWorkdir(doozer_working)
+                        sh 'doozer --working-dir ${doozer_working} --group sync-misc images:push --to-defaults'
+                        buildlib.cleanWorkdir(doozer_working)
+                        sh 'doozer --working-dir ${doozer_working} --group sync-3.7 images:push --to-defaults'
+                        buildlib.cleanWorkdir(doozer_working)
                     }
                 }
             } catch ( ex1 ) {

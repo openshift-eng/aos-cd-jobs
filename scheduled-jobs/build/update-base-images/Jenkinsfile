@@ -1,0 +1,6 @@
+
+properties( [
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '60', numToKeepStr: '')),
+    disableConcurrentBuilds()] )
+
+b = build       job: '../aos-cd-builds/build%2Fupdate-base-images'

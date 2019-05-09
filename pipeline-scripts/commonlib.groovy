@@ -13,6 +13,14 @@ ocp3Versions = [
     "3.1",
 ]
 
+ocp3UpdateCVEVersions = [
+        "3.10",
+        "3.9",
+        "3.8",
+        "3.7",
+        "3.6",
+]
+
 ocp4DefaultVersion = "4.2"
 // Determines which version is currently the master branch:
 // update when development switches streams

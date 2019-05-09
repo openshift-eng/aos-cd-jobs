@@ -1,0 +1,96 @@
+node {
+    checkout scm
+    def commonlib = load("pipeline-scripts/commonlib.groovy")
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '100')
+            ),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    [
+                        name: 'VERSIONS',
+                        description: 'CSV list of openshift versions to update streams.yml.',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: commonlib.ocp3UpdateCVEVersions.join(',')
+                    ],
+                    [
+                        name: 'COMMIT_DEPTH',
+                        description: 'How deep to clone to ensure merges have a common base',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "1"
+                    ],
+                    commonlib.suppressEmailParam(),
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                        ].join(',')
+                    ],
+                    commonlib.mockParam(),
+                ]
+            ],
+            disableConcurrentBuilds()
+        ]
+    )
+
+    commonlib.checkMock()
+
+    ocpVersions = params.VERSIONS.split(',')
+    repo = "git@github.com:openshift/ocp-build-data.git"
+
+
+
+    commitDepth = params.COMMIT_DEPTH.trim().toInteger()
+
+    currentBuild.displayName = "#${currentBuild.number} Update CVEs versions ${params.VERSIONS}"
+    currentBuild.description = ""
+
+    try {
+        successful = []
+        sshagent(["openshift-bot"]) {
+            stage("Clone ocp-build-data ") {
+             for(int i = 0; i < ocpVersions.size(); ++i) {
+                def branch = "openshift-" + ocpVersions[i]
+                def workDir = "${env.WORKSPACE}/openshift-" + ocpVersions[i]
+                def targetFile =  "${workDir}/streams.yml"
+
+                sh "rm -rf ${workDir}"
+                sh "git clone ${repo} --single-branch --branch ${branch} --depth ${commitDepth} ${workDir}"
+                sh "python ./update-cves.py -f ${targetFile}"
+                sh "cd ${workDir}"
+                sh "git diff"
+                sh "git add ${targetFile}"
+                sh "git commit -m 'updating ${branch} streams.yml'"
+                sh "git push origin HEAD:${branch}"
+             }
+
+            }
+        }
+
+    } catch (err) {
+        commonlib.email(
+            to: "${params.MAIL_LIST_FAILURE}",
+            from: "aos-team-art@redhat.com",
+            subject: "Unexpected error during CVEs update streams.yml!",
+            body: "Encountered an unexpected error while running CVEs update streams.yml: ${err}"
+        )
+
+        throw err
+    }
+}

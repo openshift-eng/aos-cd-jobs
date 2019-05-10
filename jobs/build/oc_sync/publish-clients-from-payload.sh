@@ -32,8 +32,8 @@ mkdir -p ${OUTDIR}
 pushd ${OUTDIR}
 
 #extract all release assests
-oc version
-oc adm release extract --tools --command-os=* ${PULL_SPEC} --to=${OUTDIR}
+GOTRACEBACK=all oc version
+GOTRACEBACK=all oc adm release extract --tools --command-os=* ${PULL_SPEC} --to=${OUTDIR}
 popd
 
 #sync to use-mirror-upload

@@ -51,11 +51,11 @@ node('openshift-build-1') {
             try {
                 stage("push images") {
                     dir ( "enterprise-images" ) {
-                        sh 'doozer --working-dir ${doozer_working} --group sync-3.9 images:push --to-defaults'
+                        sh "doozer --working-dir ${doozer_working} --group sync-3.9 images:push --to-defaults"
                         buildlib.cleanWorkdir(doozer_working)
-                        sh 'doozer --working-dir ${doozer_working} --group sync-misc images:push --to-defaults'
+                        sh "doozer --working-dir ${doozer_working} --group sync-misc images:push --to-defaults"
                         buildlib.cleanWorkdir(doozer_working)
-                        sh 'doozer --working-dir ${doozer_working} --group sync-3.7 images:push --to-defaults'
+                        sh "doozer --working-dir ${doozer_working} --group sync-3.7 images:push --to-defaults"
                         buildlib.cleanWorkdir(doozer_working)
                     }
                 }

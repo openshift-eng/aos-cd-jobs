@@ -1045,14 +1045,14 @@ List<List<?>> mapToList(Map map) {
 def watch_brew_task_and_retry(name, taskId, brewUrl) {
     // Watch brew task to make sure it succeeds. If it fails, retry twice before giving up.
     try {
-        commonlib.shell "brew watch-task ${taskId}"
+        commonlib.shell "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew watch-task ${taskId}"
     } catch (err) {
         msg = "Error in ${name} build task: ${err}\nSee failed brew task ${brewUrl}"
         echo msg
         try {
             retry(2) {
 		sleep(120)  // brew state takes time to settle, so wait to retry
-                commonlib.shell "brew resubmit ${taskId}"
+                commonlib.shell "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew resubmit ${taskId}"
             }
         } catch (err2) {
             echo "giving up on ${name} build after three failures"
@@ -1089,7 +1089,7 @@ def latestOpenshiftRpmBuild(stream, branch) {
     pkg = stream.startsWith("3") ? "atomic-openshift" : "openshift"
     retry(3) {
         commonlib.shell(
-            script: "brew latest-build --quiet ${branch}-candidate ${pkg} | awk '{print \$1}'",
+            script: "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew latest-build --quiet ${branch}-candidate ${pkg} | awk '{print \$1}'",
             returnStdout: true,
         ).trim()
     }

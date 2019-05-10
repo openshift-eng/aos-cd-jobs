@@ -109,7 +109,7 @@ def elliott(cmd, opts=[:]){
 def oc(cmd, opts=[:]){
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
-        script: "/usr/bin/oc ${cleanWhitespace(cmd)}"
+        script: "GOTRACEBACK=all /usr/bin/oc ${cleanWhitespace(cmd)}"
     )
 }
 

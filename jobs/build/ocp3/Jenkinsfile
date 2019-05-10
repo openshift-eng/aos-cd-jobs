@@ -52,7 +52,7 @@ def get_changelog(rpm_name, record_log) {
         changelog = sh(
             returnStdout: true,
             script: [
-                "brew buildinfo ${build_id} --changelog",
+                "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew buildinfo ${build_id} --changelog",
                 "sed -n '/Changelog/,\$p'"
             ].join(' | ')
         ).trim()
@@ -397,7 +397,7 @@ node {
 
             PREV_BUILD = sh(
                 returnStdout: true,
-                script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'"
+                script: "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'"
             ).trim()
 
             stage("ose repo") {
@@ -855,7 +855,7 @@ images:rebase --version v${NEW_VERSION}
 """
                 buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
             }
-    
+
             stage("build images") {
                 if (params.BUILD_CONTAINER_IMAGES) {
                     try {
@@ -974,10 +974,10 @@ Jenkins job: ${env.BUILD_URL}
 
         ATTN = ""
         try {
-            NEW_BUILD = sh(returnStdout: true, script: "brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
+            NEW_BUILD = sh(returnStdout: true, script: "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
             if (PREV_BUILD != null && PREV_BUILD != NEW_BUILD) {
                 // Untag anything tagged by this build if an error occured at any point
-                sh "brew --user=ocp-build untag-build rhaos-${params.BUILD_VERSION}-rhel-7-candidate ${NEW_BUILD}"
+                sh "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew --user=ocp-build untag-build rhaos-${params.BUILD_VERSION}-rhel-7-candidate ${NEW_BUILD}"
             }
         } catch (err2) {
             ATTN = " - UNABLE TO UNTAG!"

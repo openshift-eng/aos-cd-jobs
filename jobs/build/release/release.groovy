@@ -14,7 +14,7 @@ def stageValidation() {
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
         returnAll: true,
-        script: "${oc_cmd} adm release info quay.io/openshift-release-dev/ocp-release:${params.NAME}"
+        script: "GOTRACEBACK=all ${oc_cmd} adm release info quay.io/openshift-release-dev/ocp-release:${params.NAME}"
     )
 
     if(res.returnStatus == 0){
@@ -44,7 +44,7 @@ def stageGenPayload() {
     metadata += "}"
 
     // build oc command
-    def cmd = "${oc_cmd} adm release new "
+    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
     cmd += "--from-release=registry.svc.ci.openshift.org/ocp/release:${params.FROM_RELEASE_TAG} "
     if (params.PREVIOUS != "") {
         cmd += "--previous \"${params.PREVIOUS}\" "
@@ -64,7 +64,7 @@ def stageGenPayload() {
 
 def stageTagStable() {
     def name = params.NAME
-    def cmd = "${oc_cmd} tag quay.io/openshift-release-dev/ocp-release:${name} ocp/release:${name}"
+    def cmd = "GOTRACEBACK=all ${oc_cmd} tag quay.io/openshift-release-dev/ocp-release:${name} ocp/release:${name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -115,7 +115,7 @@ def stageWaitForStable() {
 }
 
 def stageGetReleaseInfo(){
-    def cmd = "${oc_cmd} adm release info --pullspecs quay.io/openshift-release-dev/ocp-release:${params.NAME}"
+    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs quay.io/openshift-release-dev/ocp-release:${params.NAME}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"

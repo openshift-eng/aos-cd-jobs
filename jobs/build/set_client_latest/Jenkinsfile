@@ -45,7 +45,6 @@ node {
     try {
         sshagent(['aos-cd-test']) {
             stage("sync ocp clients") {
-                if ()
                 sh "./set-latest.sh ${env.WORKSPACE} ${RELEASE}"
             }
         }

@@ -27,6 +27,14 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "1"
                     ],
+                    [
+                        name: 'REPO_URL',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'git@github.com:openshift/ocp-build-data.git',
+                        ].join(',')
+                    ],
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -52,7 +60,7 @@ node {
     commonlib.checkMock()
 
     ocpVersions = params.VERSIONS.split(',')
-    repo = "git@github.com:openshift/ocp-build-data.git"
+    repo = params.REPO_URL
 
 
 

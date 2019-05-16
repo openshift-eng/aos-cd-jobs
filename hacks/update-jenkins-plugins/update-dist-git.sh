@@ -36,9 +36,9 @@ workingdir=$(mktemp -d /tmp/jenkins-plugin-XXXXXX)
 cd ${workingdir}
 
 echo "Cloning dist-git repository ...."
-rhpkg ${USER_INFO} clone ${repo}
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_INFO} clone ${repo}
 pushd ${repo}
-rhpkg switch-branch rhaos-${rhaos_release}-rhel-7
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg switch-branch rhaos-${rhaos_release}-rhel-7
 popd
 
 mkdir -p ${workingdir}/build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
@@ -129,12 +129,11 @@ cd "${workingdir}/${repo}"
 cp ${workingdir}/build/SPECS/${repo}.spec .
 git add ${repo}.spec
 
-rhpkg new-sources ${topdir}/SOURCES/*.hpi
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg new-sources ${topdir}/SOURCES/*.hpi
 
-rhpkg ${USER_INFO} commit -p -m "Update to ${VERSION}"
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_INFO} commit -p -m "Update to ${VERSION}"
 
-rhpkg ${USER_INFO} build
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_INFO} build
 
 # cleanup
 # rm -rf "${workingdir}"
-

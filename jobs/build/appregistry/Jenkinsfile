@@ -93,11 +93,14 @@ node {
 
     buildlib.initialize(false)
 
-    workDir = "${env.WORKSPACE}/workDir"
+    def workDir = "${env.WORKSPACE}/workDir"
     buildlib.cleanWorkdir(workDir)
 
     currentBuild.description = "Collecting appregistry images for ${params.BUILD_VERSION}"
     currentBuild.displayName += " - ${params.BUILD_VERSION}"
+
+    // temporarily disable 4.2 pushes until we have figured out what we need to do for them
+    def skipPush = (params.BUILD_VERSION == '4.2') ? true : params.SKIP_PUSH
 
     try {
         def operatorData = []
@@ -120,7 +123,7 @@ node {
                 currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
             }
             stage("push metadata") {
-                if (params.SKIP_PUSH) {
+                if (skipPush) {
                     currentBuild.description += "\nskipping metadata push."
                     return
                 }

@@ -9,9 +9,9 @@ node {
                 logRotator(
                     artifactDaysToKeepStr: '',
                     artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '100')
-            ),
+                    daysToKeepStr: '60',
+                    numToKeepStr: '')
+            ), disableConcurrentBuilds()
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
@@ -22,25 +22,10 @@ node {
                         defaultValue: commonlib.ocp3UpdateCVEVersions.join(',')
                     ],
                     [
-                        name: 'COMMIT_DEPTH',
-                        description: 'How deep to clone to ensure merges have a common base',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "1"
-                    ],
-                    [
                         name: 'REPO_URL',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: [
-                            'git@github.com:openshift/ocp-build-data.git',
-                        ].join(',')
-                    ],
-                    commonlib.suppressEmailParam(),
-                    [
-                        name: 'MAIL_LIST_SUCCESS',
-                        description: 'Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
+                        defaultValue: 'git@github.com:openshift/ocp-build-data.git',
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -61,11 +46,6 @@ node {
 
     ocpVersions = params.VERSIONS.split(',')
     repo = params.REPO_URL
-
-
-
-    commitDepth = params.COMMIT_DEPTH.trim().toInteger()
-
     currentBuild.displayName = "#${currentBuild.number} Update CVEs versions ${params.VERSIONS}"
     currentBuild.description = ""
 
@@ -78,14 +58,16 @@ node {
                 def workDir = "${env.WORKSPACE}/openshift-" + ocpVersions[i]
                 def targetFile =  "${workDir}/streams.yml"
 
-                sh "rm -rf ${workDir}"
-                sh "git clone ${repo} --single-branch --branch ${branch} --depth ${commitDepth} ${workDir}"
-                sh "python ./update-cves.py -f ${targetFile}"
-                sh "cd ${workDir}"
-                sh "git diff"
-                sh "git add ${targetFile}"
-                sh "git commit -m 'updating ${branch} streams.yml'"
-                sh "git push origin HEAD:${branch}"
+                commonlib.shell """
+                    rm -rf ${workDir}"
+                    git clone ${repo} --single-branch --branch ${branch} --depth 1 ${workDir}"
+                    python ./update-cves.py -f ${targetFile}"
+                    cd ${workDir}"
+                    git diff"
+                    git add ${targetFile}"
+                    git commit -m 'updating ${branch} streams.yml'"
+                    git push origin HEAD:${branch}"
+                """
              }
 
             }

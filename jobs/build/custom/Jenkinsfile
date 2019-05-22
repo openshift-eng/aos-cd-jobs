@@ -10,7 +10,7 @@ node {
                     artifactDaysToKeepStr: '',
                     artifactNumToKeepStr: '',
                     daysToKeepStr: '',
-                    numToKeepStr: '1000')),
+                    numToKeepStr: '')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
@@ -94,7 +94,7 @@ node {
     def release = "?"
     if (params.IMAGE_MODE != "nothing") {
         version = buildlib.determineBuildVersion(params.BUILD_VERSION, buildlib.getGroupBranch(doozerOpts), params.VERSION)
-        release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION) 
+        release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION)
     }
     def repo_type = params.SIGNED ? "signed" : "unsigned"
     def images = commonlib.cleanCommaList(params.IMAGES)

@@ -10,7 +10,7 @@ node {
                     artifactDaysToKeepStr: '',
                     artifactNumToKeepStr: '',
                     daysToKeepStr: '',
-                    numToKeepStr: '100')
+                    numToKeepStr: '')
             ),
             [
                 $class: 'ParametersDefinitionProperty',

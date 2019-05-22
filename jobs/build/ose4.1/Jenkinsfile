@@ -1,10 +1,10 @@
 #!/usr/bin/env groovy
 
-node { 
+node {
     checkout scm
     def commonlib = load("pipeline-scripts/commonlib.groovy")
     properties([
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '60', numToKeepStr: '')),
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '')),
         disableConcurrentBuilds(),
         [
             $class: 'ParametersDefinitionProperty',

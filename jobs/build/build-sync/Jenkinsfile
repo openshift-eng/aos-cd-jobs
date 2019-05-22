@@ -12,7 +12,7 @@ node {
                     artifactDaysToKeepStr: '',
                     artifactNumToKeepStr: '',
                     daysToKeepStr: '',
-                    numToKeepStr: '360'
+                    numToKeepStr: ''
                 )
             ),
             [

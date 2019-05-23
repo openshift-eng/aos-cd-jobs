@@ -14,7 +14,7 @@ fi
 OSE_MASTER="3.5"
 if [ "$#" -ne 2 ]; then
   MAJOR="3"
-  MINOR="2"  
+  MINOR="2"
   echo "Please pass in MAJOR and MINOR version"
   echo "Using default of ${MAJOR} and ${MINOR}"
 else
@@ -80,7 +80,7 @@ echo
 echo "=========="
 echo "Tito building in brew"
 echo "=========="
-TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
+TASK_NUMBER=`REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
 echo "TASK NUMBER: ${TASK_NUMBER}"
 echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
 echo

@@ -794,7 +794,7 @@ node {
                 dir(OSE_DIR) {
                     oseTaskId = sh(
                         returnStdout: true,
-                        script: "tito release --debug --yes --test aos-${params.BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                        script: "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt tito release --debug --yes --test aos-${params.BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
                     OSE_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${oseTaskId }"
                     echo "atomic-openshift rpm brew task: ${OSE_BREW_URL}"
@@ -803,7 +803,7 @@ node {
                 dir(OPENSHIFT_ANSIBLE_DIR) {
                     oaTaskId = sh(
                         returnStdout: true,
-                        script: "tito release --debug --yes --test aos-${params.BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
+                        script: "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt tito release --debug --yes --test aos-${params.BUILD_VERSION} | grep 'Created task:' | awk '{print \$3}'"
                     )
                     OA_BREW_URL = "https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${oaTaskId}"
                     echo "openshift-ansible rpm brew task: ${OA_BREW_URL}"

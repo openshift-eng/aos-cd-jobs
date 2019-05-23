@@ -215,7 +215,7 @@ echo
 echo "=========="
 echo "Tito Building: ose"
 echo "=========="
-TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
+TASK_NUMBER=`REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
 echo "TASK NUMBER: ${TASK_NUMBER}"
 echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
 echo
@@ -261,7 +261,7 @@ echo
 echo "=========="
 echo "Tito Building: openshift-ansible"
 echo "=========="
-TASK_NUMBER=`tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
+TASK_NUMBER=`REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt tito release --yes --test aos-${OSE_VERSION} | grep 'Created task:' | awk '{print $3}'`
 echo "TASK NUMBER: ${TASK_NUMBER}"
 echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
 echo

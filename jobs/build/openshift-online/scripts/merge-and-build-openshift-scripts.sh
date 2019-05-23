@@ -122,7 +122,7 @@ else
     echo "=========="
     echo "Tito building in brew"
     echo "=========="
-    TASK_NUMBER=`tito release --yes --test brew | grep 'Created task:' | awk '{print $3}'`
+    TASK_NUMBER=`REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt tito release --yes --test brew | grep 'Created task:' | awk '{print $3}'`
     echo "TASK NUMBER: ${TASK_NUMBER}"
     echo "TASK URL: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=${TASK_NUMBER}"
     echo

@@ -227,7 +227,7 @@ tools, as well as RHCOS bare-betal message digests.
         print(to_send)
     else:
         producer = get_bus_producer(env, client_cert, client_key, ca_certs)
-        producer.send_msg({'tester': requestor, 'to': 'test_msg'}, to_send)
+        producer.send_msg({}, to_send)
         print("Message we sent over the bus:")
         print(to_send)
         print("Submitted request for signing. The mirror-artifacts job should be triggered when a response is sent back")
@@ -249,6 +249,12 @@ tools, as well as RHCOS bare-betal message digests.
 def json_digest(ctx, requestor, product, request_id, sig_keyname,
                 release_name, client_cert, client_key, env, noop,
                 ca_certs):
+    """Sign a 'json digest'. These are JSON blobs that associate a
+pullspec with a sha256 digest. In the ART world, this is for "signing
+payload images". After the json digest is signed we publish the
+signature in a location which follows a specific directory pattern,
+thus allowing the signature to be looked up programmatically.
+    """
     # NOTE: The example claim JSON I've seen includes an 'optional' section
     # like this (same level as 'critical'):
     #
@@ -313,7 +319,7 @@ def json_digest(ctx, requestor, product, request_id, sig_keyname,
         print(to_send)
     else:
         producer = get_bus_producer(env, client_cert, client_key, ca_certs)
-        producer.send_msg({'tester': requestor, 'to': 'test_msg'}, to_send)
+        producer.send_msg({}, to_send)
         print("Message we sent the bus:")
         print(to_send)
         print("Submitted request for signing. The mirror-artifacts job should be triggered when a response is sent back")

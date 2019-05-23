@@ -87,15 +87,15 @@ def stageWaitForStable() {
         return
     }
 
-    // New build may take a while to show up
-    // Check every minute until it does or 30 minutes hit
-    while (count < 30) { // wait for 30 minutes
+    // 2019-05-23 - As of now jobs will not be tagged as `Accepted`
+    // until they pass an upgrade test, hence the 2 hour wait loop
+    while (count < 24) { // wait for 5m * 24 = 120m = 2 hours
         def res = commonlib.shell(
             returnAll: true,
             script: cmd
         )
 
-        if(res.returnStatus != 0){
+        if (res.returnStatus != 0){
             echo "Error fetching latest stable: ${res.stderr}"
         }
         else {
@@ -106,7 +106,7 @@ def stageWaitForStable() {
         }
 
         count++
-        sleep(60) //wait for 60 seconds between tries
+        sleep(300) //wait for 5 minutes between tries
     }
 
     if (stable != params.NAME){

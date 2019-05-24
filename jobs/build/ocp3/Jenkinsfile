@@ -149,8 +149,8 @@ ${oa_changelog}
                     messageContent: "New build for OpenShift ${target}: ${version}",
                     messageProperties:
                         """build_mode=${BUILD_MODE}
-                        puddle_url=${mirrorURL}/${OCP_PUDDLE}
-                        image_registry_root=registry.reg-aws.openshift.com:443
+                        PUDDLE_URL=${mirrorURL}/${OCP_PUDDLE}
+                        IMAGE_REGISTRY_ROOT=registry.reg-aws.openshift.com:443
                         brew_task_url_openshift=${OSE_BREW_URL}
                         brew_task_url_openshift_ANSIBLE=${OA_BREW_URL}
                         product=OpenShift Container Platform

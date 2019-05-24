@@ -38,8 +38,8 @@ def stageValidation() {
 def stageGenPayload() {
     // build metadata blob
     def metadata = "{\"description\": \"${params.DESCRIPTION}\""
-    if (params.ADVISORY != "") {
-        metadata += ", \"url\": \"https://errata.devel.redhat.com/advisory/${params.ADVISORY}\""
+    if (params.ERRATA_URL != "") {
+        metadata += ", \"url\": \"${params.ERRATA_URL}\""
     }
     metadata += "}"
 

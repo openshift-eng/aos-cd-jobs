@@ -43,6 +43,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'ERRATA_URL',
+                        description: 'Optional: Public release errata URL (e.g. https://access.redhat.com/errata/RHBA-2019:0758-09)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
                         name: 'PREVIOUS',
                         description: 'Optional: Tag(s) (comma separated) of release this can upgrade FROM',
                         $class: 'hudson.model.StringParameterDefinition',

@@ -8,12 +8,6 @@ node {
     // Expose properties for a parameterized build
     properties(
         [
-            buildDiscarder(
-                logRotator(
-                    artifactDaysToKeepStr: '',
-                    artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
@@ -67,7 +61,7 @@ node {
 	def noop = params.DRY_RUN ? " --noop" : " "
 
 	wrap([$class: 'BuildUser']) {
-	    echo "Submitting signing requests as user: ${BUILD_USER}"
+	    echo "Submitting signing requests as user: ${env.BUILD_USER}"
 
 	    withCredentials([file(credentialsId: 'msg-openshift-art-signatory-prod.crt', variable: 'busCertificate'),
 			     file(credentialsId: 'msg-openshift-art-signatory-prod.key', variable: 'busKey')]) {
@@ -77,15 +71,17 @@ node {
 		sh 'ls -l ${busCertificate} ${busKey}'
 
 		// ######################################################################
-		def baseUmbParams = "--requestor ${BUILD_USER} --sig-keyname ${params.KEY_NAME}"
-		baseUmbParams += " --release-name ${params.NAME} --client-cert ${busCertificate}"
-		baseUmbParams += " --client-key ${busKey} --env ${params.ENV}"
-		baseUmbParams += "${noop}"
+		def baseUmbParams = buildlib.cleanWhitespace("""
+                    --requestor ${env.BUILD_USER} --sig-keyname ${params.KEY_NAME}
+                    --release-name ${params.NAME} --client-cert ${busCertificate}
+                    --client-key ${busKey} --env ${params.ENV}
+                """)
 
 		// ######################################################################
-		def openshiftJsonSignParams = "${baseUmbParams}"
-		openshiftJsonSignParams += "--product openshift"
-		openshiftJsonSignParams += "--request-id 'openshift-json-digest ${env.BUILD_URL}"
+		def openshiftJsonSignParams = buildlib.cleanWhitespace("""
+		    ${baseUmbParams} --product openshift
+		    --request-id 'openshift-json-digest ${env.BUILD_URL}' ${noop}
+                """)
 
 		echo "Submitting OpenShift Payload JSON claim signature request"
 		res = commonlib.shell(
@@ -94,9 +90,10 @@ node {
 		)
 
 		// ######################################################################
-		def openshiftSha256SignParams = "${baseUmbParams}"
-		openshiftSha256SignParams += "--product openshift"
-		openshiftSha256SignParams += "--request-id 'openshift-message-digest ${env.BUILD_URL}"
+		def openshiftSha256SignParams = buildlib.cleanWhitespace("""
+                    ${baseUmbParams} --product openshift
+                    --request-id 'openshift-message-digest ${env.BUILD_URL}' ${noop}
+                """)
 
 		echo "Submitting OpenShift sha256 message-digest signature request"
 		res = commonlib.shell(
@@ -110,9 +107,10 @@ node {
 		// what we're going for when we hit GA.
 		//
 		// ######################################################################
-		// def rhcosSha256SignParams = "${baseUmbParams}"
-		// rhcosSha256SignParams += "--product rhcos"
-		// rhcosSha256SignParams += "--request-id 'rhcos-message-digest ${env.BUILD_URL}"
+		// def rhcosSha256SignParams = buildlib.cleanWhitespace("""
+                //     ${baseUmbParams} --product rhcos
+                //     --request-id 'rhcos-message-digest ${env.BUILD_URL} ${noop}'
+                // """)
 
 		// echo "Submitting RHCOS sha256 message-digest signature request"
 		// res = commonlib.shell(

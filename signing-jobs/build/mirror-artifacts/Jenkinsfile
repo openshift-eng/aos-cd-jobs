@@ -108,4 +108,9 @@ node {
 
 
     }
+
+    stage ('archive artifacts') {
+	/* We have been requested to archive any artifacts we receive
+	as part of the signing process. */
+    }
 }

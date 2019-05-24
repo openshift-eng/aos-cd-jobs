@@ -143,12 +143,13 @@ def get_payload_meta():
     if res.status_code == 200:
         return res.json()
     else:
-        raise(Exception(res.reason))
+        raise Exception(res.reason)
 
 
 def presend_validation(message):
-    """Verify the message we want send over the bus has all the required
-fields"""
+    """Verify the message we want to send over the bus has all the
+required fields
+    """
     for field in SIGN_REQUEST_MESSAGE_FIELDS:
         if field not in message:
             return field
@@ -168,8 +169,8 @@ call
 
 def get_bus_producer(env, certificate, private_key, trusted_certificates):
     """This is just a wrapper around creating a producer. We're going to
-do need this in multiple places though, so we want to ensure we do it
-the same way each time.
+need this in multiple places so we want to ensure we do it the
+same way each time.
     """
     return AMQProducer(urls=URLS[env or 'stage'],
                        certificate=certificate,

@@ -52,7 +52,8 @@ node {
     )
 
     commonlib.checkMock()
-    buildlib.cleanWorkdir(env.WORKSPACE)
+    def workDir = "${env.WORKSPACE}/working"
+    buildlib.cleanWorkdir(workDir)
 
     // must be able to access remote registry for verification
     buildlib.registry_quay_dev_login()
@@ -72,8 +73,8 @@ node {
 
 		// ######################################################################
 		def baseUmbParams = buildlib.cleanWhitespace("""
-                    --requestor ${env.BUILD_USER} --sig-keyname ${params.KEY_NAME}
-                    --release-name ${params.NAME} --client-cert ${busCertificate}
+                    --requestor "${env.BUILD_USER}" --sig-keyname ${params.KEY_NAME}
+                    --release-name "${params.NAME}" --client-cert ${busCertificate}
                     --client-key ${busKey} --env ${params.ENV}
                 """)
 
@@ -84,8 +85,7 @@ node {
                 """)
 
 		echo "Submitting OpenShift Payload JSON claim signature request"
-		res = commonlib.shell(
-		    returnAll: true,
+		commonlib.shell(
 		    script: "./umb_producer.py json-digest ${openshiftJsonSignParams}"
 		)
 
@@ -96,8 +96,7 @@ node {
                 """)
 
 		echo "Submitting OpenShift sha256 message-digest signature request"
-		res = commonlib.shell(
-		    returnAll: true,
+		commonlib.shell(
 		    script: "./umb_producer.py message-digest ${openshiftSha256SignParams}"
 		)
 

@@ -62,7 +62,7 @@ node {
 	def noop = params.DRY_RUN ? " --noop" : " "
 
 	wrap([$class: 'BuildUser']) {
-	    echo "Submitting signing requests as user: ${env.BUILD_USER}"
+	    echo "Submitting signing requests as user: ${env.BUILD_USER_ID}"
 
 	    withCredentials([file(credentialsId: 'msg-openshift-art-signatory-prod.crt', variable: 'busCertificate'),
 			     file(credentialsId: 'msg-openshift-art-signatory-prod.key', variable: 'busKey')]) {
@@ -73,7 +73,7 @@ node {
 
 		// ######################################################################
 		def baseUmbParams = buildlib.cleanWhitespace("""
-                    --requestor "${env.BUILD_USER}" --sig-keyname ${params.KEY_NAME}
+                    --requestor "${env.BUILD_USER_ID}" --sig-keyname ${params.KEY_NAME}
                     --release-name "${params.NAME}" --client-cert ${busCertificate}
                     --client-key ${busKey} --env ${params.ENV}
                 """)
@@ -81,7 +81,7 @@ node {
 		// ######################################################################
 		def openshiftJsonSignParams = buildlib.cleanWhitespace("""
 		    ${baseUmbParams} --product openshift
-		    --request-id 'openshift-json-digest ${env.BUILD_URL}' ${noop}
+		    --request-id 'openshift-json-digest-${env.BUILD_ID}' ${noop}
                 """)
 
 		echo "Submitting OpenShift Payload JSON claim signature request"
@@ -92,7 +92,7 @@ node {
 		// ######################################################################
 		def openshiftSha256SignParams = buildlib.cleanWhitespace("""
                     ${baseUmbParams} --product openshift
-                    --request-id 'openshift-message-digest ${env.BUILD_URL}' ${noop}
+                    --request-id 'openshift-message-digest-${env.BUILD_ID}' ${noop}
                 """)
 
 		echo "Submitting OpenShift sha256 message-digest signature request"
@@ -108,7 +108,7 @@ node {
 		// ######################################################################
 		// def rhcosSha256SignParams = buildlib.cleanWhitespace("""
                 //     ${baseUmbParams} --product rhcos
-                //     --request-id 'rhcos-message-digest ${env.BUILD_URL} ${noop}'
+                //     --request-id 'rhcos-message-digest-${env.BUILD_ID} ${noop}'
                 // """)
 
 		// echo "Submitting RHCOS sha256 message-digest signature request"

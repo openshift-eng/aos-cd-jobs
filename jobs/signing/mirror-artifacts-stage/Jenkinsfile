@@ -16,9 +16,9 @@ node {
 			    $class: 'ActiveMQSubscriberProviderData',
 			    checks: [
 			    ],
-			    name: 'SIGNING - ART UMB - Prod',
+			    name: 'SIGNING - ART UMB - Stage',
 			    overrides: [
-				topic: 'Consumer.openshift-art-signatory.prod.VirtualTopic.eng.robosignatory.art.sign'
+				topic: 'Consumer.openshift-art-signatory.stage.VirtualTopic.eng.robosignatory.art.sign'
 			    ],
 			    selector: '',
 			    timeout: null

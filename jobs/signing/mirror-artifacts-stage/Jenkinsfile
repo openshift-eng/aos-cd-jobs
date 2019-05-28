@@ -16,7 +16,7 @@ node {
 			    $class: 'ActiveMQSubscriberProviderData',
 			    checks: [
 			    ],
-			    name: 'SIGNING - ART UMB - Stage',
+			    name: 'signing-stage',
 			    overrides: [
 				topic: 'Consumer.openshift-art-signatory.stage.VirtualTopic.eng.robosignatory.art.sign'
 			    ],

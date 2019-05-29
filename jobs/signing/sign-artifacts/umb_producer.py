@@ -5,10 +5,13 @@ import logging
 import ssl
 import subprocess
 import sys
+import threading
 
 import click
 import requests
 from rhmsg.activemq.producer import AMQProducer
+from rhmsg.activemq.consumer import AMQConsumer
+
 
 # Expose errors during signing for debugging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -56,6 +59,8 @@ SIGN_REQUEST_MESSAGE_FIELDS = [
     "requestor",
     "sig_keyname",
 ]
+
+ART_CONSUMER = 'Consumer.openshift-art-signatory.{env}.VirtualTopic.eng.robosignatory.art.sign'
 
 
 ######################################################################
@@ -179,6 +184,65 @@ same way each time.
                        topic=TOPIC)
 
 
+def producer_thread(producer, args):
+    print(args)
+    producer.send_msg(*args)
+
+
+def producer_send_msg(producer, *args):
+    t = threading.Thread(target=producer_thread, args=(producer, args))
+    t.start()
+    t.join()
+
+
+def get_bus_consumer(env, certificate, private_key, trusted_certificates):
+    """This is just a wrapper around creating a consumer. We're going to
+do need this in multiple places though, so we want to ensure we do it
+the same way each time.
+    """
+    return AMQConsumer(urls=URLS[env or 'stage'], certificate=certificate,
+                       private_key=private_key, trusted_certificates=trusted_certificates)
+
+
+def art_consumer_callback(msg, notsure):
+    """`msg` is a `Message` object which has various attributes. Such as `body`.
+
+    `notsure` I am not sure what that is. I only got as far as knowing
+    this callback requires two parameters.
+    """
+    print(msg)
+    body = json.loads(msg.body)
+    print(json.dumps(body, indent=4))
+    if body['msg']['signing_status'] != 'success':
+        print("ERROR: robosignatory failed to sign artifact")
+        exit(1)
+    else:
+        # example: https://datagrepper.stage.engineering.redhat.com/id?id=2019-0304004b-d1e6-4e03-b28d-cfa1e5f59948&is_raw=true&size=extra-large
+        result = body['msg']['signed_artifact']
+        out_file = body['msg']['artifact_meta']['name']
+        with open(out_file, 'w') as fp:
+            fp.write(base64.decodestring(result))
+            fp.flush()
+        print("Wrote {} to disk".format(body['msg']['artifact_meta']['name']))
+        return True
+
+
+def consumer_thread(consumer):
+    consumer.consume(ART_CONSUMER.format(env=env), art_consumer_callback)
+
+
+def consumer_start(consumer):
+    t = threading.Thread(target=consumer_thread, args=(consumer,))
+    t.start()
+    return t
+
+
+def get_producer_consumer(env, certificate, private_key, trusted_certificates):
+    producer = get_bus_producer(env, certificate, private_key, trusted_certificates)
+    consumer = get_bus_consumer(env, certificate, private_key, trusted_certificates)
+    return (producer, consumer)
+
+
 ######################################################################
 @cli.command("message-digest", short_help="Sign a sha256sum.txt file")
 @requestor
@@ -226,11 +290,14 @@ tools, as well as RHCOS bare-betal message digests.
         print("Message we would have sent over the bus:")
         print(to_send)
     else:
-        producer = get_bus_producer(env, client_cert, client_key, ca_certs)
-        producer.send_msg({}, to_send)
+        producer, consumer = get_producer_consumer(env, client_cert, client_key, ca_certs)
+        consumer_thread = consumer_start(consumer)
+        producer_send_msg(producer, {}, to_send)
         print("Message we sent over the bus:")
         print(to_send)
         print("Submitted request for signing. The mirror-artifacts job should be triggered when a response is sent back")
+        print("Waiting for consumer to receive data back from request")
+        consumer_thread.join()
 
 
 ######################################################################
@@ -292,7 +359,6 @@ thus allowing the signature to be looked up programmatically.
     print("ARTIFACT to send for signing (WILL BE base64 encoded first):")
     print(json.dumps(json_claim, indent=4))
 
-
     message = {
         "artifact": base64.b64encode(json.dumps(json_claim).encode()).decode(),
         "artifact_meta": {
@@ -318,13 +384,17 @@ thus allowing the signature to be looked up programmatically.
         print("Message we would have sent over the bus:")
         print(to_send)
     else:
-        producer = get_bus_producer(env, client_cert, client_key, ca_certs)
-        producer.send_msg({}, to_send)
-        print("Message we sent the bus:")
+        producer, consumer = get_producer_consumer(env, client_cert, client_key, ca_certs)
+        consumer_thread = consumer_start(consumer)
+        producer_send_msg(producer, {}, to_send)
+        print("Message we sent over the bus:")
         print(to_send)
         print("Submitted request for signing. The mirror-artifacts job should be triggered when a response is sent back")
+        print("Waiting for consumer to receive data back from request")
+        consumer_thread.join()
 
 ######################################################################
+
 
 if __name__ == '__main__':
     cli()

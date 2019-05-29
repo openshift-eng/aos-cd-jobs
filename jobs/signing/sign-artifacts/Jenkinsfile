@@ -144,10 +144,10 @@ node {
         // like this:
         //
         //     "artifact_meta": {
-        //	 "product": "openshift",
-        //	 "release_name": "4.1.0-rc.5",
-        //	 "type": "json-digest",
-        //	 "name": "sha256=dc67ad5edd91ca48402309fe0629593e5ae3333435ef8d0bc52c2b62ca725021"
+        //	     "product": "openshift",
+        //	     "release_name": "4.1.0-rc.5",
+        //	     "type": "json-digest",
+        //	     "name": "sha256=dc67ad5edd91ca48402309fe0629593e5ae3333435ef8d0bc52c2b62ca725021"
         //     }
         //
         // We receive that same object back in the signing
@@ -160,11 +160,11 @@ node {
         //
         // </OLD-COMMENT>
 
+        MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
         if(params.DRY_RUN) {
-                // this is silly, but we can't use *args to DRY -- see https://issues.jenkins-ci.org/browse/JENKINS-46163
             echo "Would have archived artifacts in jenkins"
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
-                echo("    invoke_on_rcm_guest push-to-mirrors.sh PARAM1 PARAM2 pre-release")
+            echo "    invoke_on_use_mirror push.enterprise.sh MIRROR_PATH" 
         } else {
             echo "Archiving artifacts in jenkins:"
             commonlib.safeArchiveArtifacts([
@@ -172,10 +172,8 @@ node {
                 "*.sig",
                 "working/*.sig",
                 "working/sha256=*",
-            ]
-            )
+            ])
             echo "Mirroring artifacts to mirror.openshift.com/pub/"
-
 
             // ######################################################################
 
@@ -207,8 +205,25 @@ node {
 
             // DO THE MIRRORING HERE FOR JSON DIGESTS
 
-            // ######################################################################
+            // transform the file into a directory containing the file
+            commonlib.shell("""
+                for file in ${workDir}/sha256=*; do
+                    mv \$file ${workdir}/signature-1
+                    mkdir \$file
+                    mv ${workdir}/signature-1 \$file
+                done
+            """)
+            sshagent(["openshift-bot"]) {
+                MIRROR_PATH = "openshift-v4/signatures/openshift/release"
+                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" ${workDir}/sha256=* ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/"
+                mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh", MIRROR_PATH)
+                if (mirror_result.contains("[FAILURE]")) {
+                    echo mirror_result
+                    error("Error running signed artifact sync push.enterprise.sh:\n${mirror_result}")
+                }
+            }
 
+            // ######################################################################
 
             // sha256sum.txt.sig
             //
@@ -236,8 +251,15 @@ node {
             //  ------> sha256sum.txt.sig
             //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
 
-
-
+            sshagent(["openshift-bot"]) {
+                MIRROR_PATH = "openshift-v4/clients/ocp/${params.NAME}"
+                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" ${workDir}/sha256sum.txt.sig ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/sha256sum.txt.sig"
+                mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh", MIRROR_PATH)
+                if (mirror_result.contains("[FAILURE]")) {
+                    echo mirror_result
+                    error("Error running signed artifact sync push.enterprise.sh:\n${mirror_result}")
+                }
+            }
         }
     }
 }

@@ -341,17 +341,6 @@ thus allowing the signature to be looked up programmatically.
     }
 
     payload_meta = get_payload_meta()
-    if payload_meta['name'] != release_name:
-        print("!!!!! ONLY SIGN THINGS YOU INTEND TO RELEASE !!!!!")
-        print("ERROR: Release stream 'name' does not match given release name")
-        print("\t{} != {}".format(payload_meta['name'], release_name))
-        print("IF YOU INTEND TO RELEASE {} THEN YOU MUST UPDATE THE RELEASE STREAM TAG".format(
-            release_name))
-        print("Current release stream: {}".format(json.dumps(payload_meta, indent=4)))
-        exit(1)
-    else:
-        print("Given release name matches 4-stable release stream (this is required to continue)")
-
     image_meta = oc_image_info(payload_meta['pullSpec'])
     json_claim['critical']['image']['docker-manifest-digest'] = image_meta['digest']
     json_claim['critical']['identity']['docker-reference'] = payload_meta['pullSpec']

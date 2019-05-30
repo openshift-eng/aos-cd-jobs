@@ -340,10 +340,10 @@ thus allowing the signature to be looked up programmatically.
         },
     }
 
-    payload_meta = get_payload_meta()
-    image_meta = oc_image_info(payload_meta['pullSpec'])
+    pullspec = "quay.io/openshift-release-dev/ocp-release:{}".format(release_name)
+    image_meta = oc_image_info(pullspec)
     json_claim['critical']['image']['docker-manifest-digest'] = image_meta['digest']
-    json_claim['critical']['identity']['docker-reference'] = payload_meta['pullSpec']
+    json_claim['critical']['identity']['docker-reference'] = pullspec
 
     print("ARTIFACT to send for signing (WILL BE base64 encoded first):")
     print(json.dumps(json_claim, indent=4))

@@ -64,58 +64,61 @@ node {
         wrap([$class: 'BuildUser']) {
             echo "Submitting signing requests as user: ${env.BUILD_USER_ID}"
 
-            withCredentials([file(credentialsId: 'msg-openshift-art-signatory-prod.crt', variable: 'busCertificate'),
-                             file(credentialsId: 'msg-openshift-art-signatory-prod.key', variable: 'busKey')]) {
-                echo "Authenticating with bus cert/key at: ${busCertificate}/${busKey}"
-                // Following line is for debugging when we're
-                // initially testing this
-                sh 'ls -l ${busCertificate} ${busKey}'
+            dir(workDir) {
 
-                // ######################################################################
-                def baseUmbParams = buildlib.cleanWhitespace("""
-                            --requestor "${env.BUILD_USER_ID}" --sig-keyname ${params.KEY_NAME}
-                            --release-name "${params.NAME}" --client-cert ${busCertificate}
-                            --client-key ${busKey} --env ${params.ENV}
-                        """)
+                withCredentials([file(credentialsId: 'msg-openshift-art-signatory-prod.crt', variable: 'busCertificate'),
+                                 file(credentialsId: 'msg-openshift-art-signatory-prod.key', variable: 'busKey')]) {
+                    echo "Authenticating with bus cert/key at: ${busCertificate}/${busKey}"
+                    // Following line is for debugging when we're
+                    // initially testing this
+                    sh 'ls -l ${busCertificate} ${busKey}'
 
-                // ######################################################################
-                def openshiftJsonSignParams = buildlib.cleanWhitespace("""
-                    ${baseUmbParams} --product openshift
-                    --request-id 'openshift-json-digest-${env.BUILD_ID}' ${noop}
-                        """)
+                    // ######################################################################
+                    def baseUmbParams = buildlib.cleanWhitespace("""
+                                --requestor "${env.BUILD_USER_ID}" --sig-keyname ${params.KEY_NAME}
+                                --release-name "${params.NAME}" --client-cert ${busCertificate}
+                                --client-key ${busKey} --env ${params.ENV}
+                            """)
 
-                echo "Submitting OpenShift Payload JSON claim signature request"
-                commonlib.shell(
-                    script: "./umb_producer.py json-digest ${openshiftJsonSignParams}"
-                )
+                    // ######################################################################
+                    def openshiftJsonSignParams = buildlib.cleanWhitespace("""
+                        ${baseUmbParams} --product openshift
+                        --request-id 'openshift-json-digest-${env.BUILD_ID}' ${noop}
+                            """)
 
-                // ######################################################################
-                def openshiftSha256SignParams = buildlib.cleanWhitespace("""
-                            ${baseUmbParams} --product openshift
-                            --request-id 'openshift-message-digest-${env.BUILD_ID}' ${noop}
-                        """)
+                    echo "Submitting OpenShift Payload JSON claim signature request"
+                    commonlib.shell(
+                        script: "../umb_producer.py json-digest ${openshiftJsonSignParams}"
+                    )
 
-                echo "Submitting OpenShift sha256 message-digest signature request"
-                commonlib.shell(
-                    script: "./umb_producer.py message-digest ${openshiftSha256SignParams}"
-                )
+                    // ######################################################################
+                    def openshiftSha256SignParams = buildlib.cleanWhitespace("""
+                                ${baseUmbParams} --product openshift
+                                --request-id 'openshift-message-digest-${env.BUILD_ID}' ${noop}
+                            """)
 
-                // Comment this out for now. I don't think we even
-                // have a sha256sum.txt file on the rhcos mirror
-                // endpoint right now. Also, that url structure isn't
-                // what we're going for when we hit GA.
-                //
-                // ######################################################################
-                // def rhcosSha256SignParams = buildlib.cleanWhitespace("""
-                        //     ${baseUmbParams} --product rhcos
-                        //     --request-id 'rhcos-message-digest-${env.BUILD_ID} ${noop}'
-                        // """)
+                    echo "Submitting OpenShift sha256 message-digest signature request"
+                    commonlib.shell(
+                        script: "../umb_producer.py message-digest ${openshiftSha256SignParams}"
+                    )
 
-                // echo "Submitting RHCOS sha256 message-digest signature request"
-                // res = commonlib.shell(
-                //     returnAll: true,
-                //     script: "./umb_producer.py message-digest ${rhcosSha256SignParams}"
-                // )
+                    // Comment this out for now. I don't think we even
+                    // have a sha256sum.txt file on the rhcos mirror
+                    // endpoint right now. Also, that url structure isn't
+                    // what we're going for when we hit GA.
+                    //
+                    // ######################################################################
+                    // def rhcosSha256SignParams = buildlib.cleanWhitespace("""
+                            //     ${baseUmbParams} --product rhcos
+                            //     --request-id 'rhcos-message-digest-${env.BUILD_ID} ${noop}'
+                            // """)
+
+                    // echo "Submitting RHCOS sha256 message-digest signature request"
+                    // res = commonlib.shell(
+                    //     returnAll: true,
+                    //     script: "../umb_producer.py message-digest ${rhcosSha256SignParams}"
+                    // )
+                }
             }
         }
     }
@@ -164,7 +167,7 @@ node {
         if(params.DRY_RUN) {
             echo "Would have archived artifacts in jenkins"
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
-            echo "    invoke_on_use_mirror push.enterprise.sh MIRROR_PATH" 
+            echo "    invoke_on_use_mirror push.pub.sh MIRROR_PATH" 
         } else {
             echo "Archiving artifacts in jenkins:"
             commonlib.safeArchiveArtifacts([
@@ -175,89 +178,88 @@ node {
             ])
             echo "Mirroring artifacts to mirror.openshift.com/pub/"
 
-            // ######################################################################
+            dir(workDir) {
+                // ######################################################################
 
-            // the umb producer script should have generated two
-            // files. One is a 'sha26=.......' and one is
-            // 'sha256sum.txt.sig'
+                // the umb producer script should have generated two
+                // files. One is a 'sha26=.......' and one is
+                // 'sha256sum.txt.sig'
 
-            // sha256=...........
-            //
-            // 1) JSON digest claims. They get mirrored to
-            // mirror.openshift.com/pub/openshift-v4/ using this directory
-            // structure:
-            //
-            // signatures/openshift/release/
-            //   -> sha256=<IMAGE-DIGEST>/signature-1
-            //
-            // where <IMAGE-DIGEST> is the digest of the payload image and
-            // the signed artifact is 'signature-1'
-            //
-            // 2) A message digest (sha256sum.txt) is mirrored to
-            // https://mirror.openshift.com/pub/openshift-v4/clients/
-            // using this directory structure:
-            //
-            // ocp/
-            //  -> <RELEASE-NAME>/sha256sum.txt.sig
-            //
-            // where <RELEASE-NAME> is something like '4.1.0-rc.5'
+                // sha256=...........
+                //
+                // 1) JSON digest claims. They get mirrored to
+                // mirror.openshift.com/pub/openshift-v4/ using this directory
+                // structure:
+                //
+                // signatures/openshift/release/
+                //   -> sha256=<IMAGE-DIGEST>/signature-1
+                //
+                // where <IMAGE-DIGEST> is the digest of the payload image and
+                // the signed artifact is 'signature-1'
+                //
+                // 2) A message digest (sha256sum.txt) is mirrored to
+                // https://mirror.openshift.com/pub/openshift-v4/clients/
+                // using this directory structure:
+                //
+                // ocp/
+                //  -> <RELEASE-NAME>/sha256sum.txt.sig
+                //
+                // where <RELEASE-NAME> is something like '4.1.0-rc.5'
 
-
-            // DO THE MIRRORING HERE FOR JSON DIGESTS
-
-            // transform the file into a directory containing the file
-            commonlib.shell("""
-                for file in ${workDir}/sha256=*; do
-                    mv \$file ${workdir}/signature-1
-                    mkdir \$file
-                    mv ${workdir}/signature-1 \$file
-                done
-            """)
-            sshagent(["openshift-bot"]) {
-                MIRROR_PATH = "openshift-v4/signatures/openshift/release"
-                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" ${workDir}/sha256=* ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/"
-                mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh", MIRROR_PATH)
-                if (mirror_result.contains("[FAILURE]")) {
-                    echo mirror_result
-                    error("Error running signed artifact sync push.enterprise.sh:\n${mirror_result}")
+                // transform the file into a directory containing the file
+                commonlib.shell('''
+                    for file in sha256=*; do
+                        mv $file signature-1
+                        mkdir $file
+                        mv signature-1 $file
+                    done
+                ''')
+                sshagent(["openshift-bot"]) {
+                    MIRROR_PATH = "openshift-v4/signatures/openshift/release"
+                    sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/"
+                    mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", MIRROR_PATH)
+                    if (mirror_result.contains("[FAILURE]")) {
+                        echo mirror_result
+                        error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
+                    }
                 }
-            }
 
-            // ######################################################################
+                // ######################################################################
 
-            // sha256sum.txt.sig
-            //
-            // For message digests (mirroring type 2) we'll see instead
-            // that .artifact_meta.type says 'message-digest'. Take this
-            // for example (request to sign the sha256sum.txt file from
-            // 4.1.0-rc.5):
-            //
-            //     "artifact_meta": {
-            //	 "product": "openshift",
-            //	 "release_name": "4.1.0-rc.5",
-            //	 "type": "message-digest",
-            //	 "name": "sha256sum.txt.sig"
-            //     }
-            //
-            // Note that the 'product' key will become important when we
-            // are sending RHCOS bare metal message-digests in the
-            // future. From the .artifact_meta above we know that we have
-            // just received the sha256sum.txt.sig file for openshift
-            // release 4.1.0-rc.5. We will mirror this file to:
-            //
-            // https://mirror.openshift.com/pub/openshift-v4/clients/
-            //  --> ocp/
-            //  ----> `.artifacts.name`/
-            //  ------> sha256sum.txt.sig
-            //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
+                // sha256sum.txt.sig
+                //
+                // For message digests (mirroring type 2) we'll see instead
+                // that .artifact_meta.type says 'message-digest'. Take this
+                // for example (request to sign the sha256sum.txt file from
+                // 4.1.0-rc.5):
+                //
+                //     "artifact_meta": {
+                //	 "product": "openshift",
+                //	 "release_name": "4.1.0-rc.5",
+                //	 "type": "message-digest",
+                //	 "name": "sha256sum.txt.sig"
+                //     }
+                //
+                // Note that the 'product' key will become important when we
+                // are sending RHCOS bare metal message-digests in the
+                // future. From the .artifact_meta above we know that we have
+                // just received the sha256sum.txt.sig file for openshift
+                // release 4.1.0-rc.5. We will mirror this file to:
+                //
+                // https://mirror.openshift.com/pub/openshift-v4/clients/
+                //  --> ocp/
+                //  ----> `.artifacts.name`/
+                //  ------> sha256sum.txt.sig
+                //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
 
-            sshagent(["openshift-bot"]) {
-                MIRROR_PATH = "openshift-v4/clients/ocp/${params.NAME}"
-                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" ${workDir}/sha256sum.txt.sig ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/sha256sum.txt.sig"
-                mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh", MIRROR_PATH)
-                if (mirror_result.contains("[FAILURE]")) {
-                    echo mirror_result
-                    error("Error running signed artifact sync push.enterprise.sh:\n${mirror_result}")
+                sshagent(["openshift-bot"]) {
+                    MIRROR_PATH = "openshift-v4/clients/ocp/${params.NAME}"
+                    sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/sha256sum.txt.sig"
+                    mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", MIRROR_PATH)
+                    if (mirror_result.contains("[FAILURE]")) {
+                        echo mirror_result
+                        error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
+                    }
                 }
             }
         }

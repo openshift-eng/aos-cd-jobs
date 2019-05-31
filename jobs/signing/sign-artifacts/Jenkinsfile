@@ -18,6 +18,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'SIGNATURE_NAME',
+                        description: 'Signature name\nOnly increment if adding an additional signature to a release!',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "signature-1"
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -35,7 +41,7 @@ node {
                     ],
                     [
                         name: 'KEY_NAME',
-                        description: 'Which key to sign with (if ENV==stage, everything becomes "test")',
+                        description: 'Which key to sign with\nIf ENV==stage everything becomes "test"\nFor prod we currently use "beta2"',
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "test",
@@ -169,13 +175,6 @@ node {
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
             echo "    invoke_on_use_mirror push.pub.sh MIRROR_PATH"
         } else {
-            echo "Archiving artifacts in jenkins:"
-            commonlib.safeArchiveArtifacts([
-                "sha256=*",
-                "*.sig",
-                "working/*.sig",
-                "working/sha256=*",
-            ])
             echo "Mirroring artifacts to mirror.openshift.com/pub/"
 
             dir(workDir) {
@@ -206,12 +205,16 @@ node {
                 //
                 // where <RELEASE-NAME> is something like '4.1.0-rc.5'
 
-                // transform the file into a directory containing the file
+                // transform the file into a directory containing the
+                // file, mirror to google
                 commonlib.shell('''
                     for file in sha256=*; do
-                        mv $file signature-1
+                        mv $file ${params.SIGNATURE_NAME}
                         mkdir $file
-                        mv signature-1 $file
+                        mv ${params.SIGNATURE_NAME} $file
+                        until gsutil cp -n -v -L cp.log -r $file gs://openshift-release/official/signatures/openshift/release; do
+                          sleep 1
+                        done
                     done
                 ''')
                 sshagent(["openshift-bot"]) {
@@ -234,13 +237,13 @@ node {
                 // 4.1.0-rc.5):
                 //
                 //     "artifact_meta": {
-                //	 "product": "openshift",
-                //	 "release_name": "4.1.0-rc.5",
-                //	 "type": "message-digest",
-                //	 "name": "sha256sum.txt.sig"
+                //         "product": "openshift",
+                //         "release_name": "4.1.0-rc.5",
+                //         "type": "message-digest",
+                //         "name": "sha256sum.txt.sig"
                 //     }
                 //
-                // Note that the 'product' key will become important when we
+                // Note that the 'product' key WILL become important when we
                 // are sending RHCOS bare metal message-digests in the
                 // future. From the .artifact_meta above we know that we have
                 // just received the sha256sum.txt.sig file for openshift
@@ -262,6 +265,13 @@ node {
                     }
                 }
             }
+
+            echo "Archiving artifacts in jenkins:"
+            commonlib.safeArchiveArtifacts([
+                "working/cp.log",
+                "working/*.sig",
+                "working/sha256=*",
+            ])
         }
     }
 

@@ -167,7 +167,7 @@ node {
         if(params.DRY_RUN) {
             echo "Would have archived artifacts in jenkins"
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
-            echo "    invoke_on_use_mirror push.pub.sh MIRROR_PATH" 
+            echo "    invoke_on_use_mirror push.pub.sh MIRROR_PATH"
         } else {
             echo "Archiving artifacts in jenkins:"
             commonlib.safeArchiveArtifacts([
@@ -263,5 +263,9 @@ node {
                 }
             }
         }
+    }
+
+    stage('log sync'){
+        sh "/bin/rsync --inplace -avzh /mnt/workspace/jenkins/builds/signing-jobs/signing%2Fsign-artifacts /mnt/art-build-artifacts/signing-jobs/signing%2Fsign-artifacts"
     }
 }

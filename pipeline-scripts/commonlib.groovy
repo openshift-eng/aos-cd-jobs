@@ -44,6 +44,14 @@ ocpMajorDefaultVersion = [
     "all": ocp4DefaultVersion,
 ]
 
+ocpBaseImages = [
+        "ansible-runner",
+        "elasticsearch",
+        "jboss.openjdk18.rhel7",
+        "rhscl.nodejs.6.rhel7",
+        "rhel7",
+]
+
 /**
  * Handles any common setup required by the library
  */

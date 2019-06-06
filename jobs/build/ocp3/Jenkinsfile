@@ -469,7 +469,7 @@ node {
                             UPSTREAM_SOURCE_BRANCH = "upstream/release-${params.BUILD_VERSION}"
                         }
                         // Create the non-master source branch and have it track the origin ose repo
-                        sh "git checkout -b ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
+                        sh "git checkout -B ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
                     }
 
                     echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
@@ -598,7 +598,7 @@ node {
 
                 dir(WEB_CONSOLE_DIR) {
                     WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
-                    sh "git checkout -b ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
+                    sh "git checkout -B ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
                     if (IS_SOURCE_IN_MASTER) {
 
                         // jwforres asked that master *not* merge into the 3.8 branch.
@@ -729,7 +729,7 @@ node {
                         } else {
                             OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${params.BUILD_VERSION}"
                         }
-                        sh "git checkout -b ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
+                        sh "git checkout -B ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
                     } else {
                         sh "git checkout master"
                     }

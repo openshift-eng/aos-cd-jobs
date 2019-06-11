@@ -217,7 +217,7 @@ node {
 		            // -v - print url of item
 		            // -L - write to log for auto re-processing
 		            // -r - recursive
-                    commonlib.shell("""
+                    commonlib.shell('''
                         for file in sha256=*; do
                             mv $file ${params.SIGNATURE_NAME}
                             mkdir $file
@@ -229,7 +229,7 @@ node {
                                 if [ $i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
                             done
                         done
-                    """)
+                    ''')
                     sshagent(["openshift-bot"]) {
                         MIRROR_PATH = "openshift-v4/signatures/openshift/release"
                         sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/"

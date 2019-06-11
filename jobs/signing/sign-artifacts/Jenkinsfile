@@ -294,6 +294,8 @@ node {
     }
 
     stage('log sync'){
-        sh "/bin/rsync --inplace -avzh /mnt/workspace/jenkins/builds/signing-jobs/signing%2Fsign-artifacts /mnt/art-build-artifacts/signing-jobs/signing%2Fsign-artifacts"
+        buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
+        dirName = buildArtifactPath.split('/')[-1]
+        sh "/bin/rsync --inplace -avzh ${buildArtifactPath}/[0-9]* /mnt/art-build-artifacts/signing-jobs/${dirName}"
     }
 }

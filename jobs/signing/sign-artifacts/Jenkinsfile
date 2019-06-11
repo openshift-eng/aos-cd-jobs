@@ -172,7 +172,7 @@ node {
         //
         // </OLD-COMMENT>
 
-        MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
+        mirrorTarget = "use-mirror-upload.ops.rhcloud.com"
         if(params.DRY_RUN) {
             echo "Would have archived artifacts in jenkins"
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
@@ -217,23 +217,25 @@ node {
 		            // -v - print url of item
 		            // -L - write to log for auto re-processing
 		            // -r - recursive
+                    def googleStoragePath = (params.ENV == 'stage') ? 'test-1' : 'official'
+                    def gsutil = '/mnt/nfs/home/jenkins/google-cloud-sdk/bin/gsutil'  // doesn't seem to be in path
                     commonlib.shell("""
                         for file in sha256=*; do
                             mv \$file ${params.SIGNATURE_NAME}
                             mkdir \$file
                             mv ${params.SIGNATURE_NAME} \$file
                             i=1
-                            until gsutil cp -n -v -L cp.log -r \$file gs://openshift-release/official/signatures/openshift/release; do
+                            until ${gsutil} cp -n -v -L cp.log -r \$file gs://openshift-release/${googleStoragePath}/signatures/openshift/release; do
                                 sleep 1
                                 i=\$(( \$i + 1 ))
                                 if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
                             done
                         done
                     """)
+                    def mirrorReleasePath = "openshift-v4/signatures/openshift/${(params.ENV == 'stage') ? 'test' : 'release'}"
                     sshagent(["openshift-bot"]) {
-                        MIRROR_PATH = "openshift-v4/signatures/openshift/release"
-                        sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/"
-                        mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", MIRROR_PATH)
+                        sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/"
+                        mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                         if (mirror_result.contains("[FAILURE]")) {
                             echo mirror_result
                             error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
@@ -271,7 +273,7 @@ node {
                     /* temporarily do not mirror client sigs.
                     sshagent(["openshift-bot"]) {
                         MIRROR_PATH = "openshift-v4/clients/ocp/${params.NAME}"
-                        sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/sha256sum.txt.sig"
+                        sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${MIRROR_PATH}/sha256sum.txt.sig"
                         mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", MIRROR_PATH)
                         if (mirror_result.contains("[FAILURE]")) {
                             echo mirror_result
@@ -293,6 +295,8 @@ node {
     }
 
     stage('log sync'){
-        sh "/bin/rsync --inplace -avzh /mnt/workspace/jenkins/builds/signing-jobs/signing%2Fsign-artifacts /mnt/art-build-artifacts/signing-jobs/signing%2Fsign-artifacts"
+        buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
+        dirName = buildArtifactPath.split('/')[-1]
+        sh "/bin/rsync --inplace -avzh ${buildArtifactPath}/[0-9]* /mnt/art-build-artifacts/signing-jobs/${dirName}"
     }
 }

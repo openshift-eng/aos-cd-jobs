@@ -98,6 +98,8 @@ node {
                     )
 
                     // ######################################################################
+                    
+                    /* temporarily do not sign clients.
                     def openshiftSha256SignParams = buildlib.cleanWhitespace("""
                                 ${baseUmbParams} --product openshift
                                 --request-id 'openshift-message-digest-${env.BUILD_ID}' ${noop}
@@ -107,6 +109,7 @@ node {
                     commonlib.shell(
                         script: "../umb_producer.py message-digest ${openshiftSha256SignParams}"
                     )
+                    */
 
                     // Comment this out for now. I don't think we even
                     // have a sha256sum.txt file on the rhcos mirror
@@ -265,6 +268,7 @@ node {
                     //  ------> sha256sum.txt.sig
                     //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
 
+                    /* temporarily do not mirror client sigs.
                     sshagent(["openshift-bot"]) {
                         MIRROR_PATH = "openshift-v4/clients/ocp/${params.NAME}"
                         sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${MIRROR_TARGET}:/srv/pub/${MIRROR_PATH}/sha256sum.txt.sig"
@@ -274,6 +278,7 @@ node {
                             error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
                         }
                     }
+                    */
                 } finally {
                     echo "Archiving artifacts in jenkins:"
                     commonlib.safeArchiveArtifacts([

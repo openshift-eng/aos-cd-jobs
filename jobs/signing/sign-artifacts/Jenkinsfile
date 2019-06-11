@@ -219,14 +219,14 @@ node {
 		            // -r - recursive
                     commonlib.shell("""
                         for file in sha256=*; do
-                            mv \$file \${params.SIGNATURE_NAME}
-                            mkdir \$file
-                            mv ${params.SIGNATURE_NAME} \$file
+                            mv $file ${params.SIGNATURE_NAME}
+                            mkdir $file
+                            mv ${params.SIGNATURE_NAME} $file
                             i=1
-                            until gsutil cp -n -v -L cp.log -r \$file gs://openshift-release/official/signatures/openshift/release; do
+                            until gsutil cp -n -v -L cp.log -r $file gs://openshift-release/official/signatures/openshift/release; do
                                 sleep 1
-                                i=\$(( \$i + 1 ))
-                                if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
+                                i=$(( $i + 1 ))
+                                if [ $i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
                             done
                         done
                     """)

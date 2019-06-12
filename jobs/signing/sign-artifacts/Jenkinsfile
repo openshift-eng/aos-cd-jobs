@@ -99,7 +99,6 @@ node {
 
                     // ######################################################################
                     
-                    /* temporarily do not sign clients.
                     def openshiftSha256SignParams = buildlib.cleanWhitespace("""
                                 ${baseUmbParams} --product openshift
                                 --request-id 'openshift-message-digest-${env.BUILD_ID}' ${noop}
@@ -109,7 +108,6 @@ node {
                     commonlib.shell(
                         script: "../umb_producer.py message-digest ${openshiftSha256SignParams}"
                     )
-                    */
 
                     // Comment this out for now. I don't think we even
                     // have a sha256sum.txt file on the rhcos mirror
@@ -232,8 +230,8 @@ node {
                             done
                         done
                     """)
-                    def mirrorReleasePath = "openshift-v4/signatures/openshift/${(params.ENV == 'stage') ? 'test' : 'release'}"
                     sshagent(["openshift-bot"]) {
+                        def mirrorReleasePath = "openshift-v4/signatures/openshift/${(params.ENV == 'stage') ? 'test' : 'release'}"
                         sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/"
                         mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                         if (mirror_result.contains("[FAILURE]")) {
@@ -270,17 +268,16 @@ node {
                     //  ------> sha256sum.txt.sig
                     //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
 
-                    /* temporarily do not mirror client sigs.
                     sshagent(["openshift-bot"]) {
-                        MIRROR_PATH = "openshift-v4/clients/ocp/${params.NAME}"
-                        sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${MIRROR_PATH}/sha256sum.txt.sig"
-                        mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", MIRROR_PATH)
+                        def mirrorReleasePath = "openshift-v4/clients/ocp/${params.NAME}"
+                        def sigFileName = (params.ENV == 'stage') ? 'sha256sum.txt.sig.test' : 'sha256sum.txt.sig'
+                        sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/${sigFileName}"
+                        mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                         if (mirror_result.contains("[FAILURE]")) {
                             echo mirror_result
                             error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
                         }
                     }
-                    */
                 } finally {
                     echo "Archiving artifacts in jenkins:"
                     commonlib.safeArchiveArtifacts([

@@ -40,7 +40,7 @@ build_common() {
 }
 
 case "$1" in
-        ansible-runner)
+        ansible.runner)
             build_common $1 ansible-runner:latest 0
             ;;
 

@@ -422,7 +422,7 @@ node {
                     releases = buildlib.get_releases(GITHUB_URLS['ose'])
                     echo "AUTO-MODE: release repo: ${GITHUB_URLS['ose']}"
                     echo "AUTO-MODE: releases: ${releases}"
-                    BUILD_MODE = buildlib.auto_mode(params.BUILD_VERSION, '4.x', releases)
+                    BUILD_MODE = buildlib.auto_mode(params.BUILD_VERSION, '4.0', releases)
                     echo "BUILD_MODE = ${BUILD_MODE}"
                 }
             }

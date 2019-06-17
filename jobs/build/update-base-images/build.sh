@@ -57,6 +57,9 @@ case "$1" in
         rhel7)
             build_common $1 rhel7:7-released 0
             ;;
+        ubi7)
+            build_common $1 ubi7:7-released 0
+            ;;
         *)
             echo $"Usage: $0 image_tag image_name"
             exit 1

@@ -676,7 +676,7 @@ oct deprovision</command>
       <userMetadata/>
     </hudson.plugins.s3.S3BucketPublisher>
     <hudson.tasks.Mailer plugin="mailer@1.16">
-      <recipients>aos-auth-team@redhat.com</recipients>
+      <recipients>aos-apiserver@redhat.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>

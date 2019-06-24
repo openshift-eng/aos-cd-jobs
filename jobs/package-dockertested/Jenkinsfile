@@ -10,15 +10,11 @@ def runScript(script, args=[]) {
     sh "ssh -F ${ssh_config} -t openshiftdevel \"bash -l -c '/tmp/${script} ${args.join(' ')}'\""
 }
 node('openshift-build-1') {
-	properties ([[
-		$class: 'PipelineTriggersJobProperty',
-		triggers: [[
-			$class: 'TimerTrigger',
-			spec: 'H H/3 * * *'
-		]]
-	],[
+	properties ([
+	    [
 		$class: 'DisableConcurrentBuildsJobProperty',
-	]])
+	    ]
+	])
 	// https://issues.jenkins-ci.org/browse/JENKINS-33511
 	env.WORKSPACE = pwd()
 	def packages = ['docker', 'container-selinux', 'container-storage-setup', 'skopeo', 'atomic', 'python-pytoml', 'oci-register-machine', 'oci-umount']

@@ -19,7 +19,13 @@ node {
                         name: 'BASE_IMAGE_TAGS',
                         description: 'list of openshift cve base images.',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: commonlib.ocpBaseImages.join(',')
+                        defaultValue: commonlib.ocpBaseImages.join(' ')
+                    ],
+                    [
+                        name: 'PACKAGE_LIST',
+                        description: 'list of packages to update (all if empty).',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: '',
                     ],
                     commonlib.suppressEmailParam(),
                     [
@@ -38,6 +44,7 @@ node {
     commonlib.checkMock()
     buildlib.initialize()
     def imageName = params.BASE_IMAGE_TAGS.replaceAll(',', ' ').split()
+    def packages = params.PACKAGE_LIST.replaceAll(',', ' ').split()
 
 
     currentBuild.displayName = "#${currentBuild.number} Update base images"
@@ -46,7 +53,7 @@ node {
 		for(int i = 0; i < imageName.size(); ++i) {
              currentBuild.description += "Built ${imageName[i]}\n"
              commonlib.shell(
-                script: "./build.sh ${imageName[i]}"
+                script: "./build.sh ${imageName[i]} ${packages}"
              )
         }
     } catch (err) {

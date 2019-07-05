@@ -157,6 +157,7 @@ node {
         }
     } catch (err) {
         currentBuild.description = "Job failed: ${err}\n-----------------\n${currentBuild.description}"
+        if (skipPush) { return }  // don't spam on failures we don't care about
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-team-art@redhat.com",

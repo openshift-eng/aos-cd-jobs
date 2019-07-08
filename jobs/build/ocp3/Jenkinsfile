@@ -272,7 +272,7 @@ node {
                         defaultValue: [
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
-                            'aos-team-art@redhat.com',
+                            'aos-art-automation+new-ocp3-build@redhat.com',
                         ].join(',')
                     ],
                     [
@@ -280,7 +280,7 @@ node {
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
-                            'aos-team-art@redhat.com'
+                            'aos-art-automation+failed-ocp3-build@redhat.com'
                         ].join(',')
                     ],
                     [

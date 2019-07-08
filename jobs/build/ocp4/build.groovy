@@ -514,7 +514,8 @@ ${imageList}
 
     commonlib.email(
         to: mailList,
-        from: "aos-team-art@redhat.com",
+        from: "aos-art-automation@redhat.com",
+        replyTo: "aos-team-art@redhat.com",
         subject: "[ART] New build for OCP: ${version.full}${subjectTags}",
         body:
 """\
@@ -571,4 +572,3 @@ def getImageBuildReport(recordLog) {
 }
 
 return this
-

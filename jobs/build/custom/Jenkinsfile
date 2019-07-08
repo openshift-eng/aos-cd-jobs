@@ -192,7 +192,7 @@ node {
                     buildlib.sync_images(
                         majorVersion,
                         minorVersion,
-                        "aos-team-art@redhat.com",
+                        "aos-team-art@redhat.com", // "reply to"
                         currentBuild.number
                     )
                 }

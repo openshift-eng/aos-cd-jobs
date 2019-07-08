@@ -81,7 +81,7 @@ node {
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
-                            'aos-team-art@redhat.com',
+                            'aos-art-automation+failed-appregistry@redhat.com',
                         ].join(',')
                     ),
                     commonlib.mockParam(),
@@ -160,7 +160,8 @@ node {
         if (skipPush) { return }  // don't spam on failures we don't care about
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-team-art@redhat.com",
+            from: "aos-art-automation@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
             subject: "Unexpected error during appregistry job",
             body: "Console output: ${env.BUILD_URL}console\n${currentBuild.description}",
         )

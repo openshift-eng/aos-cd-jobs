@@ -1,0 +1,32 @@
+---
+parent: 'common/test_cases/minimal.yml'
+extensions:
+  actions:
+  - type: "script"
+    title: "build and install s2i"
+    timeout: 300
+    repository: "source-to-image"
+    script: |-
+      export BUILD_GO_VERSION=go1.12.5 
+      wget -q https://dl.google.com/go/${BUILD_GO_VERSION}.linux-amd64.tar.gz && sudo tar -C /usr/local -xzf ${BUILD_GO_VERSION}.linux-amd64.tar.gz && sudo rm /bin/go* && sudo ln -s /usr/local/go/bin/go /usr/local/go/bin/godoc /usr/local/go/bin/gofmt /bin
+      make build
+      sudo cp /data/src/github.com/openshift/source-to-image/_output/local/bin/linux/amd64/s2i /usr/bin
+      echo "Printing s2i version"
+      s2i version
+  - type: script
+    title: build test images
+    repository: source-to-image
+    script: |-
+      hack/build-test-images.sh
+  - type: script
+    title: execute docker integration tests
+    repository: source-to-image
+    timeout: 7200
+    script: |-
+      make test-docker
+  - type: script
+    title: execute s2i runimage tests
+    repository: source-to-image
+    timeout: 7200
+    script: |-
+      hack/test-stirunimage.sh

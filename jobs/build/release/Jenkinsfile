@@ -68,6 +68,7 @@ node {
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
                             'aos-team-art@redhat.com',
+                            'aos-art-automation+new-release@redhat.com',
                         ].join(',')
                     ],
                     [
@@ -75,7 +76,7 @@ node {
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
-                            'aos-team-art@redhat.com'
+                            'aos-art-automation+failed-release@redhat.com'
                         ].join(',')
                     ],
                     commonlib.mockParam(),
@@ -112,7 +113,8 @@ node {
 
         commonlib.email(
             to: "${params.MAIL_LIST_SUCCESS}",
-            from: "aos-cicd@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
+            from: "aos-art-automation@redhat.com",
             subject: "${dry_subject}Success building release payload: ${params.NAME}",
             body: """
 Jenkins Job: ${env.BUILD_URL}
@@ -124,7 +126,8 @@ ${release_info}
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-cicd@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
+            from: "aos-art-automation@redhat.com",
             subject: "Error running OCP Release",
             body: "Encountered an error while running OCP release: ${err}");
         currentBuild.description = "Error while running OCP release:\n${err}"

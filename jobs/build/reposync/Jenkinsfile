@@ -28,7 +28,7 @@ node {
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
-                            'aos-team-art@redhat.com',
+                            'aos-art-automation+failed-reposync@redhat.com',
                         ].join(',')
                     ],
                     commonlib.mockParam(),
@@ -74,7 +74,8 @@ node {
     } catch (err) {
         commonlib.email(
             to: "${MAIL_LIST_FAILURE}",
-            from: "aos-team-art@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
+            from: "aos-art-automation@redhat.com",
             subject: "Error syncing v${SYNC_VERSION} repos",
             body: """Encountered an error while running OCP pipeline: ${err}
 

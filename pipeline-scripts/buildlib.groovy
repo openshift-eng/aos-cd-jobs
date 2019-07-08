@@ -743,8 +743,9 @@ def sync_images(major, minor, mail_list, build_number) {
     }
     if ( results.any { it.result != 'SUCCESS' } ) {
         commonlib.email(
-            to: mail_list,
-            from: "aos-team-art@redhat.com",
+            replyTo: mail_list,
+            to: "aos-art-automation+failed-image-sync@redhat.com",
+            from: "aos-art-automation@redhat.com",
             subject: "Problem syncing images after ${currentBuild.displayName}",
             body: "Jenkins console: ${env.BUILD_URL}/console",
         )
@@ -962,7 +963,7 @@ presto:
     task_url: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=20415814
     message: "Exception occurred: ;;; Traceback (most recent call last): [...]"
 
- * param returnAddress: email will come "from" this
+ * param returnAddress: replies to the email will go to this
  * param defaultOwner: if no owner is listed, send build failure email to this
 **/
 def mail_build_failure_owners(failed_builds, returnAddress, defaultOwner) {
@@ -984,8 +985,9 @@ The following logs are just the container build portion of the OSBS build:
                 container_log = ""
             }
             commonlib.email(
-                from: returnAddress,
-                to: "${returnAddress},${failure.owners ?: defaultOwner}",
+                replyTo: returnAddress,
+                from: "aos-art-automation@redhat.com",
+                to: "aos-art-automation+failed-ocp-build@redhat.com,${failure.owners ?: defaultOwner}",
                 subject: "Failed OCP build of ${failure.image}:${failure.version}",
                 body: """
 ART's brew/OSBS build of OCP image ${failure.image}:${failure.version} has failed.

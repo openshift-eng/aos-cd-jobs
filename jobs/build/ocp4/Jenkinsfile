@@ -85,7 +85,7 @@ node {
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
-                            'aos-team-art@redhat.com'
+                            'aos-art-automation+failed-ocp4-build@redhat.com'
                         ].join(',')
                     ],
                     [

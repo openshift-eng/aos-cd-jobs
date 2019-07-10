@@ -44,7 +44,7 @@ node {
     commonlib.checkMock()
     buildlib.initialize()
     def imageName = params.BASE_IMAGE_TAGS.replaceAll(',', ' ').split()
-    def packages = params.PACKAGE_LIST.replaceAll(',', ' ').split()
+    def packages = params.PACKAGE_LIST.replaceAll(',', ' ')
 
 
     currentBuild.displayName = "#${currentBuild.number} Update base images"

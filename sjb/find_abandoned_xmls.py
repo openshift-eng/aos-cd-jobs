@@ -1,3 +1,4 @@
+from __future__ import print_function
 from os import listdir, path
 
 if __name__ == "__main__":
@@ -9,5 +10,5 @@ if __name__ == "__main__":
 
     for file in listdir("generated"):
         if file not in generated_xmls:
-            print path.join("generated", file)
+            print(path.join("generated", file))
 

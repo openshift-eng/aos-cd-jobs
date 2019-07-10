@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """ Script to help find AWS AMI's based on tags """
+from __future__ import print_function
 # vim: expandtab:tabstop=4:shiftwidth=4
 # Ignoring module name
 # pylint: disable=invalid-name
@@ -86,16 +87,16 @@ class OOEC2FindAMI(object):
         if self.args.show_all:
             for ami in self.amis:
                 if self.args.verbose:
-                    print "id: {}, name: {}, create_date: {}".format(ami['ImageId'], ami['Name'], ami['CreationDate'])
+                    print("id: {}, name: {}, create_date: {}".format(ami['ImageId'], ami['Name'], ami['CreationDate']))
                 else:
-                    print ami['ImageId']
+                    print(ami['ImageId'])
         else:
 
             if self.args.verbose:
-                print "id: {}, name: {}, create_date: {}".format(self.amis[-1]['ImageId'], self.amis[-1]['Name'],
-                                                                 self.amis[-1]['CreationDate'])
+                print("id: {}, name: {}, create_date: {}".format(self.amis[-1]['ImageId'], self.amis[-1]['Name'],
+                                                                 self.amis[-1]['CreationDate']))
             else:
-                print self.amis[-1]['ImageId']
+                print(self.amis[-1]['ImageId'])
 
     def main(self):
         """ main function """

@@ -1,5 +1,6 @@
 #!/usr/bin/python -tt
 
+from __future__ import print_function
 import os
 import collections
 import urllib
@@ -55,16 +56,16 @@ def _curl(url, method='GET', content='application/json', output='application/jso
     # attempt the command
     try:
         if DEBUG:
-            print 'Attempting URL: %s' % url
-            print 'full command: %s' % cmd
+            print('Attempting URL: %s' % url)
+            print('full command: %s' % cmd)
         cmd += [url]
         rv, output = run(cmd, can_fail=True)
-        if DEBUG and output: print 'OUTPUT:\n', output
+        if DEBUG and output: print('OUTPUT:\n', output)
     finally:
         if data_file:
             # Make sure to remove the tempory data file once curl is complete
             try: os.unlink(data_file)
-            except: print "Warning: could not delete %s" %data_file
+            except: print("Warning: could not delete %s" %data_file)
 
 
     # Handle exceptions
@@ -382,5 +383,5 @@ def new_advisory(etype, impact, product, release, solution, desc, email,
     return _curl('%s/api/v1/erratum' % ET_SERVER, method='POST', data=data)
 
 if __name__ == '__main__':
-    print 'This is a library.'
+    print('This is a library.')
 

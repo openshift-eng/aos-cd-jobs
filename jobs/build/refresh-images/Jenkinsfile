@@ -92,12 +92,13 @@ node {
                     ],
                     [
                         name: 'ADVISORY_ID',
-                        description: 'Advisory Number to attach new images to',
+                        description: 'Advisory Number to attach new images to. \'default\' use number from ocp-build-data, leave it empty if you do not want add',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ''
+                        defaultValue: 'default'
                     ]
                 ]
-            ]
+            ],
+            disableConcurrentBuilds(),
         ]
     )
 
@@ -316,13 +317,14 @@ Jenkins job: ${env.BUILD_URL}
 
     stage ('Attach Images') {
         if (ADVISORY_ID != "") {
+            def attach = ADVISORY_ID == "default" ? "--use-default-advisory image" : "--attach ${ADVISORY_ID}"
             try {
-                buildlib.elliott """
- --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
- find-builds
- --kind image
- --attach ${ADVISORY_ID}
-"""
+                buildlib.elliott """ 
+                --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
+                find-builds 
+                --kind image
+                ${attach}
+                """
             } catch ( attach_err ) {
                 // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
                 commonlib.email(

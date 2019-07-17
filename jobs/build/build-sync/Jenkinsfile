@@ -60,7 +60,7 @@ node {
         stage("Generate SRC=DEST input") {
             buildlib.doozer """
 --working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
-beta:release-gen
+release:gen-payload
 --src-dest ${ocMirrorInput}
 --image-stream ${ocIsObject}
 --is-base ${baseImageStream}
@@ -110,6 +110,17 @@ beta:release-gen
             } catch (apply_error) {
                 currentBuild.description = "Error updating image stream:\n${apply_error}"
                 error(currentBuild.description)
+            }
+        }
+
+        def stateYaml = readYaml(file: "${doozerWorking}/state.yaml")
+        def result = stateYaml.get("release:gen-payload", [:])
+        if (result['success'] != result['total']) {
+            if (result['success'] == 0) {
+                currentBuild.result = "FAILURE"
+            }
+            else {
+                currentBuild.result = "UNSTABLE"
             }
         }
     } finally {

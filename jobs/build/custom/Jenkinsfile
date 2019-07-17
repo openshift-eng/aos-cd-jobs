@@ -53,6 +53,18 @@ node {
                         defaultValue: 'images:rebase',
                     ],
                     [
+                        name: 'DOOZER_WORKING_DIR',
+                        description: '(Optional) Unless you want to override it, default is ${WORKSPACE}/doozer_working',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'DOOZER_DATA_PATH',
+                        description: '(Optional) Unless you want to override it, default is pulling from gitlab.cee.redhat.com/openshift-art/ocp-build-data',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
                         name: 'SIGNED',
                         description: 'Build images against signed RPMs?',
                         $class: 'hudson.model.BooleanParameterDefinition',
@@ -85,6 +97,9 @@ node {
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     def doozer_working = "${WORKSPACE}/doozer_working"
+    if (params.DOOZER_WORKING_DIR != "") {
+        doozer_working = params.DOOZER_WORKING_DIR    
+    }
     buildlib.cleanWorkdir(doozer_working)
 
     def majorVersion = params.BUILD_VERSION.split('\\.')[0]
@@ -103,6 +118,12 @@ node {
 
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
+
+    if (params.DOOZER_DATA_PATH != "") {
+        environment {
+            DOOZER_WORKING_DIR = params.DOOZER_DATA_PATH
+        }
+    }
 
     try {
         sshagent(["openshift-bot"]) {

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+set -e
+set -o pipefail
+
 export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 
 #➜  ~ docker run -it brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/jboss/openjdk18-rhel7:latest id

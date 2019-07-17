@@ -52,9 +52,15 @@ node {
     try {
 		for(int i = 0; i < imageName.size(); ++i) {
              currentBuild.description += "Built ${imageName[i]}\n"
-             commonlib.shell(
-                script: "./build.sh ${imageName[i]} ${packages}"
+             def rc = commonlib.shell(
+                script: "./build.sh ${imageName[i]} ${packages}",
+                returnStatus: true,
              )
+             if (rc != 0) {
+                //if we build failed, use this to mark the step as yellow
+                // but still process the next steps
+                currentBuild.result = 'UNSTABLE'
+             }
         }
     } catch (err) {
         commonlib.email(

@@ -17,7 +17,7 @@ usage() {
 }
 
 # clone jenkins distgit
-# switch to latest branch 
+# switch to latest branch
 setup_dist_git() {
   workingdir="$SCRIPTS_DIR/working"
   rm -rf $workingdir
@@ -25,15 +25,15 @@ setup_dist_git() {
 
 
   if ! klist &>${workingdir}/logs/${JENKINS_DIST_GIT}.output ; then
-    echo "Error: Kerberos token not found." ; 
+    echo "Error: Kerberos token not found." ;
     exit 1
   fi
 
   cd ${workingdir}
-  rhpkg ${USER_USERNAME} clone "${JENKINS_DIST_GIT}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
+  REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_USERNAME} clone "${JENKINS_DIST_GIT}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
   if [ -d ${JENKINS_DIST_GIT} ] ; then
     cd ${JENKINS_DIST_GIT}
-    rhpkg switch-branch "${BRANCH}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
+    REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg switch-branch "${BRANCH}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
   else
     echo " Failed to clone package: ${JENKINS_DIST_GIT}"
     exit 1
@@ -52,19 +52,19 @@ update_dist_git () {
         # Get the spec and supporting files from a prior release
         git pull --no-edit --allow-unrelated-histories origin rhaos-3.7-rhel-7
   fi
-  rhpkg new-sources jenkins.${UVERSION}.war
+  REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg new-sources jenkins.${UVERSION}.war
   $SCRIPTS_DIR/rpm-bump-version.sh "${UVERSION}"
 }
 
 # rhpkg commit
 # rhpkg push
 commit_and_push() {
-  rhpkg commit -p -m "Update Jenkins war to ${VERSION}"
+  REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg commit -p -m "Update Jenkins war to ${VERSION}"
 }
 
 # rhpkg build
 build_jenkins() {
-  rhpkg build --skip-nvr-check
+  REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg build --skip-nvr-check
 }
 
 # Make sure they passed something in for us

@@ -43,13 +43,9 @@ extensions:
     - type: "script"
       title: "Install kustomize"
       script: |-
-        curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest |\
-          grep browser_download |\
-          grep linux |\
-          cut -d '"' -f 4 |\
-          xargs curl -O -L
-        chmod u+x kustomize_*_linux_amd64
-        sudo mv kustomize_*_linux_amd64 /usr/bin/kustomize
+        curl -Lo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/v2.1.0/kustomize_2.1.0_linux_amd64
+        chmod u+x kustomize
+        sudo mv kustomize /usr/bin/kustomize
     - type: "script"
       title: "Install imagebuilder"
       script: |-

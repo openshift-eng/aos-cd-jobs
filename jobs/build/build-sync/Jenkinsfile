@@ -113,7 +113,7 @@ release:gen-payload
             }
         }
 
-        def stateYaml = readYaml(file: "${doozerWorking}/state.yaml")
+        def stateYaml = readYaml(file: "${mirrorWorking}/state.yaml")
         def result = stateYaml.get("release:gen-payload", [:])
         if (result['success'] != result['total']) {
             if (result['success'] == 0) {

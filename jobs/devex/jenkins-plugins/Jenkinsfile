@@ -25,13 +25,13 @@ properties(
                     name: 'MAIL_LIST_SUCCESS',
                     description: 'Success Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: ' aos-art-automation@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
+                    defaultValue: 'aos-art-automation+passed-jenkins-plugins-update@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
                 ],
                 [
                     name: 'MAIL_LIST_FAILURE',
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: ' aos-art-automation@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
+                    defaultValue: 'aos-art-automation+failed-jenkins-plugins-update@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
                 ],
                 [
                     name: 'TARGET_NODE',
@@ -59,8 +59,8 @@ def mail_success() {
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",
-        from: "aos-cicd@redhat.com",
-        replyTo: 'jupierce@redhat.com',
+        from: "aos-art-automation@redhat.com",
+        replyTo: 'aos-team-art@redhat.com',
         subject: "jenkins plugins RPM for OCP ${OCP_RELEASE} updated in dist-git",
         body: """The Jenkins plugins RPM for OCP ${OCP_RELEASE} has been updated in dist-git:
 ${distgit_link}
@@ -78,8 +78,8 @@ def mail_failure(err) {
 
     mail(
         to: "${MAIL_LIST_FAILURE}",
-        from: "aos-cicd@redhat.com",
-        replyTo: 'jupierce@redhat.com',
+        from: "aos-art-automation@redhat.com",
+        replyTo: 'aos-team-art@redhat.com',
         subject: "Error during jenkins plugin RPM update on dist-git",
         body: """The job to update the jenkins plugins RPM in dist-git encountered an error:
 ${err}

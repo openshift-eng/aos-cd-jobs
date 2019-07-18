@@ -19,13 +19,13 @@ properties(
                     name: 'MAIL_LIST_SUCCESS',
                     description: 'Success Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com'
+                    defaultValue: 'aos-art-automation+passed-jenkins-bump-version@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
                 ],
                 [
                     name: 'MAIL_LIST_FAILURE',
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'jupierce@redhat.com,smunilla@redhat.com,ahaile@redhat.com,gmontero@redhat.com,bparees@redhat.com'
+                    defaultValue: 'aos-art-automation+failed-jenkins-bump-version@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
                 ],
                 [
                     name: 'TARGET_NODE',
@@ -34,11 +34,11 @@ properties(
                     defaultValue: 'openshift-build-1'
                 ],
                 [
-                    $class: 'hudson.model.BooleanParameterDefinition', 
+                    $class: 'hudson.model.BooleanParameterDefinition',
                     defaultValue: false,
-                    description: 'Mock run to pickup new Jenkins parameters?', 
+                    description: 'Mock run to pickup new Jenkins parameters?',
                     name: 'MOCK'
-                ],            
+                ],
             ]
         ],
         disableConcurrentBuilds()
@@ -52,8 +52,8 @@ def mail_success() {
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",
-        from: "aos-cicd@redhat.com",
-        replyTo: 'jupierce@redhat.com',
+        from: "aos-art-automation@redhat.com",
+        replyTo: 'aos-team-art@redhat.com',
         subject: "jenkins RPM for OCP v${OCP_RELEASE} updated in dist-git",
         body: """The Jenkins RPM for ${OCP_RELEASE} has been updated in dist-git:
 ${distgit_link}
@@ -65,11 +65,10 @@ RPM update job: ${env.BUILD_URL}
 }
 
 def mail_failure(err) {
-
     mail(
         to: "${MAIL_LIST_FAILURE}",
-        from: "aos-cicd@redhat.com",
-        replyTo: 'jupierce@redhat.com',
+        from: "aos-art-automation@redhat.com",
+        replyTo: 'aos-team-art@redhat.com',
         subject: "Error during jenkins OCP v${OCP_RELEASE} RPM update on dist-git",
         body: """The job to update the jenkins RPM in dist-git encountered an error:
 ${err}

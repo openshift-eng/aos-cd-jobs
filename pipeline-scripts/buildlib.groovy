@@ -113,6 +113,25 @@ def oc(cmd, opts=[:]){
     )
 }
 
+def getDefaultAdvisoryID(version, type) {
+    // Get the ID of the default advisory for the given version of the
+    // specified type (rpm/image/security)
+    //
+    // @param version: The openshift version param, e.g. '4.2'
+    // @param type: The kind of advisory to look up, e.g. rpm/image/security
+    def result = this.elliott "--group=openshift-${version} get --use-default-advisory ${type} --id-only", capture: true
+    return result.stdout
+}
+
+def getErrataWhitelist(version) {
+    // Get the advisories that should go into an errata_whitelist
+    // puddle config
+    //
+    // @param version: The openshift version param, e.g. '4.2'
+    def result = this.elliott "--group=openshift-${version} puddle-advisories", capture: true
+    return result.stdout
+}
+
 def initialize_ose_dir() {
     this.initialize_openshift_dir()
     dir( OPENSHIFT_DIR ) {

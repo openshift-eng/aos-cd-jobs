@@ -43,6 +43,7 @@ node {
         stage("Sweep bugs") {
             currentBuild.description = "Searching for and attaching bugs"
             buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --use-default-advisory ${major == '4' ? 'image' : 'rpm'}"
+            buildlib.elliott "--group=openshift-${version} repair-bugs --mode --use-default-advisory ${major == '4' ? 'image' : 'rpm'} --auto" 
             currentBuild.description = "Ran bug attaching command without errors"
         }
     } catch (findBugsError) {

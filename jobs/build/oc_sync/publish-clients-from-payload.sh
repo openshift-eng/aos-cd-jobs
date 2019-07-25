@@ -3,6 +3,7 @@ set -eux
 
 WORKSPACE=$1
 STREAM=$2
+PUB=$3
 
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
@@ -14,7 +15,7 @@ PULL_SPEC=`jq -r '.pullSpec' latest`
 VERSION=`jq -r '.name' latest`
 
 #check if already exists
-if ssh ${SSH_OPTS} "[ -d /srv/pub/openshift-v4/clients/ocp/${VERSION} ]";
+if ssh ${SSH_OPTS} "[ -d ${PUB}${VERSION} ]";
 then
     echo "Already have latest version"
     exit 0
@@ -41,7 +42,7 @@ rsync \
     -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
     -e "ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no" \
     "${OUTDIR}" \
-    use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/ocp/
+    use-mirror-upload.ops.rhcloud.com:${PUB}
 
 # kick off full mirror push
 ssh ${SSH_OPTS} timeout 15m /usr/local/bin/push.pub.sh openshift-v4 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v4 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v4 -v

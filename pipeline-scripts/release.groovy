@@ -13,8 +13,8 @@ def stageVersions() {
 def stageValidation(quay_url) {
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
-        returnAll: true,
-        script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${params.NAME}"
+            returnAll: true,
+            script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${params.NAME}"
     )
 
     if(res.returnStatus == 0){
@@ -25,8 +25,8 @@ def stageValidation(quay_url) {
     if (params.ADVISORY != "") {
         echo "Verifying advisory exists"
         res = commonlib.shell(
-            returnAll: true,
-            script: "elliott get ${params.ADVISORY}"
+                returnAll: true,
+                script: "elliott get ${params.ADVISORY}"
         )
 
         if(res.returnStatus != 0){
@@ -58,11 +58,11 @@ def stageGenPayload(quay_url) {
     }
 
     commonlib.shell(
-        script: cmd
+            script: cmd
     )
 }
 
-def stageTagStable(quay_url) {
+def stageTagRelease(quay_url) {
     def name = params.NAME
     def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${name} ocp/release:${name}"
 
@@ -72,10 +72,11 @@ def stageTagStable(quay_url) {
     }
 
     commonlib.shell(
-        script: cmd
+            script: cmd
     )
 }
 
+// this function is only use for build/release job
 def stageWaitForStable() {
     def count = 0
     def stream = "https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/4-stable/latest"
@@ -91,8 +92,8 @@ def stageWaitForStable() {
     // until they pass an upgrade test, hence the 2 hour wait loop
     while (count < 24) { // wait for 5m * 24 = 120m = 2 hours
         def res = commonlib.shell(
-            returnAll: true,
-            script: cmd
+                returnAll: true,
+                script: cmd
         )
 
         if (res.returnStatus != 0){
@@ -134,17 +135,17 @@ def stageGetReleaseInfo(quay_url){
     return res.stdout.trim()
 }
 
-def stageClientSync() {
+def stageClientSync(stream, path) {
     if (params.DRY_RUN) {
         echo "Would have run oc_sync job"
         return
     }
 
     build(
-        job: 'build%2Foc_sync',
-        parameters: [
-            buildlib.param('String', 'STREAM', '4-stable')
-        ]
+            job: 'build%2Foc_sync',
+            parameters: [
+                    buildlib.param('String', 'STREAM', stream, 'String', 'PATH', path)
+            ]
     )
 }
 

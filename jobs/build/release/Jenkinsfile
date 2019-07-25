@@ -104,7 +104,7 @@ node {
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url)
             }
-            stage("client sync") { release.stageClientSync() }
+            stage("client sync") { release.stageClientSync('4-stable', '/srv/pub/openshift-v4/clients/ocp/') }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
         }

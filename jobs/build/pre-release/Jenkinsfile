@@ -32,18 +32,6 @@ node {
                         defaultValue: ""
                     ],
                     [
-                        name: 'DESCRIPTION',
-                        description: 'Release description for metadata',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'PREVIOUS',
-                        description: 'Optional: Tag(s) (comma separated) of release this can upgrade FROM',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -78,7 +66,7 @@ node {
 
             stage("validation") { prerelease.stageValidation(quay_url) }
 
-            stage("payload") { prerelease.stageGenPayload(quay_url) }
+            stage("payload") { prerelease.stageGenPayload(quay_url, "", "", "") }
 
             stage("tag prerelease") { prerelease.stageTagRelease(quay_url) }
 

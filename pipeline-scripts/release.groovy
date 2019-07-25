@@ -35,22 +35,24 @@ def stageValidation(quay_url) {
     }
 }
 
-def stageGenPayload(quay_url) {
+def stageGenPayload(quay_url, description, previous, errata_url) {
     // build metadata blob
-    def metadata = "{\"description\": \"${params.DESCRIPTION}\""
-    if (params.ERRATA_URL != "") {
-        metadata += ", \"url\": \"${params.ERRATA_URL}\""
+    def metadata = "{\"description\": \"${description}\""
+    if (errata_url != "") {
+        metadata += ", \"url\": \"${errata_url}\""
     }
     metadata += "}"
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
     cmd += "--from-release=registry.svc.ci.openshift.org/ocp/release:${params.FROM_RELEASE_TAG} "
-    if (params.PREVIOUS != "") {
-        cmd += "--previous \"${params.PREVIOUS}\" "
+    if (previous != "") {
+        cmd += "--previous \"${previous}\" "
     }
     cmd += "--name ${params.NAME} "
-    cmd += "--metadata '${metadata}' "
+    if (description != "") {
+        cmd += "--metadata '${metadata}' "
+    }
     cmd += "--to-image=${quay_url}:${params.NAME} "
 
     if (params.DRY_RUN){

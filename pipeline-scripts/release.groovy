@@ -142,10 +142,10 @@ def stageClientSync(stream, path) {
     }
 
     build(
-            job: 'build%2Foc_sync',
-            parameters: [
-                    buildlib.param('String', 'STREAM', stream, 'String', 'PATH', path)
-            ]
+        job: 'build%2Foc_sync',
+        parameters: [
+            buildlib.param('String', 'STREAM', stream, 'String', 'PATH', path)
+        ]
     )
 }
 

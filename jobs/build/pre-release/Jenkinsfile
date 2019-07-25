@@ -81,7 +81,7 @@ node {
 
             stage("payload") { prerelease.stageGenPayload(quay_url) }
 
-            stage("tag stable") { prerelease.stageTagStable(quay_url) }
+            stage("tag stable") { prerelease.stageTagRelease(quay_url) }
 
             // stage("wait for stable") { prerelease.stageWaitForStable() }
 

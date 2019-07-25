@@ -10,7 +10,7 @@ def stageVersions() {
     sh "elliott --version"
 }
 
-def stageValidation(quay_url) {
+def stageValidation(quay_url, advisory) {
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
             returnAll: true,
@@ -22,15 +22,15 @@ def stageValidation(quay_url) {
     }
 
     // AMH - This may be optional?
-    if (params.ADVISORY != "") {
+    if (advisory != "") {
         echo "Verifying advisory exists"
         res = commonlib.shell(
                 returnAll: true,
-                script: "elliott get ${params.ADVISORY}"
+                script: "elliott get ${advisory}"
         )
 
         if(res.returnStatus != 0){
-            error("Advisory ${params.ADVISORY} does not exist! Cannot continue.")
+            error("Advisory ${advisory} does not exist! Cannot continue.")
         }
     }
 }

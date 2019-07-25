@@ -151,6 +151,11 @@ def stageClientSync(stream, path) {
 }
 
 def stageSetClientLatest(name) {
+    if (params.DRY_RUN) {
+        echo "Would have run set_client_latest job"
+        return
+    }
+
     build(
             job: 'build%2set_client_latest',
             parameters: [

@@ -24,7 +24,7 @@ node {
                         defaultValue: "4.1.0-0.nightly"
                     ],
                     [
-                        name: 'PATH',
+                        name: 'OC_MIRROR_DIR',
                         description: 'artifacts path of https://mirror.openshift.com',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "/srv/pub/openshift-v4/clients/ocp/"
@@ -53,7 +53,7 @@ node {
             stage("sync ocp clients") {
 		// must be able to access remote registry to extract image contents
 		buildlib.registry_quay_dev_login()
-                sh "./publish-clients-from-payload.sh ${env.WORKSPACE} ${STREAM} ${PATH}"
+                sh "./publish-clients-from-payload.sh ${env.WORKSPACE} ${STREAM} ${OC_MIRROR_DIR}"
             }
         }
     } catch (err) {

@@ -21,13 +21,7 @@ node {
                 parameterDefinitions: [
                     [
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Build tag to pull from (i.e. 4.1.0-0.nightly-2019-04-22-005054)',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'NAME',
-                        description: 'Release name (i.e. 4.1.0-rc0)',
+                        description: 'Build tag to pull from (i.e. 4.1.0-0.nightly-2019-04-22-005054), pre-release job the release name is same as FROM_RELEASE_TAG',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -64,16 +58,16 @@ node {
 
             stage("versions") { prerelease.stageVersions() }
 
-            stage("validation") { prerelease.stageValidation(quay_url, "") }
+            stage("validation") { prerelease.stageValidation(quay_url, ${params.FROM_RELEASE_TAG}, "") }
 
-            stage("payload") { prerelease.stageGenPayload(quay_url, "", "", "") }
+            stage("payload") { prerelease.stageGenPayload(quay_url, ${params.FROM_RELEASE_TAG}, ${params.FROM_RELEASE_TAG}, "", "", "") }
 
-            stage("tag prerelease") { prerelease.stageTagRelease(quay_url) }
+            stage("tag prerelease") { prerelease.stageTagRelease(quay_url, ${params.FROM_RELEASE_TAG}) }
 
             stage("client sync") { prerelease.stageClientSync("${params.FROM_RELEASE_TAG}",
             '/srv/pub/openshift-v4/clients/ocp-dev-preview/') }
 
-            stage("set client latest") { prerelease.stageSetClientLatest("${params.NAME}")}
+            stage("set client latest") { prerelease.stageSetClientLatest("${params.FROM_RELEASE_TAG}")}
         }
 
         dry_subject = ""

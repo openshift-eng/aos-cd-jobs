@@ -2,7 +2,7 @@
 
 node {
     checkout scm
-    def prerelease = load("../release/release.groovy")
+    def prerelease = load("pipeline-scripts/release.groovy")
     def buildlib = prerelease.buildlib
     def commonlib = prerelease.commonlib
     def quay_url = "quay.io/openshift-release-dev/ocp-release-nightly"
@@ -98,9 +98,9 @@ node {
             to: "${params.MAIL_LIST_FAILURE}",
             replyTo: "aos-team-art@redhat.com",
             from: "aos-art-automation@redhat.com",
-            subject: "Error running OCP Release",
-            body: "Encountered an error while running OCP release: ${err}");
-        currentBuild.description = "Error while running OCP release:\n${err}"
+            subject: "Error running OCP Pre-Release",
+            body: "Encountered an error while running OCP pre release: ${err}");
+        currentBuild.description = "Error while running OCP pre release:\n${err}"
         currentBuild.result = "FAILURE"
         throw err
     }

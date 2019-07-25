@@ -98,7 +98,7 @@ node {
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("validation") { release.stageValidation(quay_url) }
-            stage("payload") { release.stageGenPayload(quay_url) }
+            stage("payload") { release.stageGenPayload(quay_url, ${params.DESCRIPTION}, ${params.PREVIOUS}, ${params.ERRATA_URL}) }
             stage("tag stable") { release.stageTagRelease(quay_url) }
             stage("wait for stable") { release.stageWaitForStable() }
             stage("get release info") {

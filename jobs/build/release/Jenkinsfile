@@ -5,6 +5,7 @@ node {
     def release = load("release.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
+    def quay_url = "quay.io/openshift-release-dev/ocp-release"
 
     // Expose properties for a parameterized build
     properties(
@@ -96,12 +97,12 @@ node {
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
-            stage("validation") { release.stageValidation() }
-            stage("payload") { release.stageGenPayload() }
-            stage("tag stable") { release.stageTagStable() }
+            stage("validation") { release.stageValidation(quay_url) }
+            stage("payload") { release.stageGenPayload(quay_url) }
+            stage("tag stable") { release.stageTagStable(quay_url) }
             stage("wait for stable") { release.stageWaitForStable() }
             stage("get release info") {
-                release_info = release.stageGetReleaseInfo()
+                release_info = release.stageGetReleaseInfo(quay_url)
             }
             stage("client sync") { release.stageClientSync() }
             stage("advisory update") { release.stageAdvisoryUpdate() }

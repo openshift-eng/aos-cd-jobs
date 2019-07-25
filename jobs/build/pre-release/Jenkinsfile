@@ -73,6 +73,7 @@ node {
             stage("client sync") { prerelease.stageClientSync("${params.FROM_RELEASE_TAG}",
             '/srv/pub/openshift-v4/clients/ocp-dev-preview/') }
 
+            stage("set client latest") { prerelease.stageSetClientLatest("${params.NAME}")}
         }
 
         dry_subject = ""

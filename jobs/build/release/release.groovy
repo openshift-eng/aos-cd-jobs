@@ -10,11 +10,11 @@ def stageVersions() {
     sh "elliott --version"
 }
 
-def stageValidation() {
+def stageValidation(quay_url) {
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
         returnAll: true,
-        script: "GOTRACEBACK=all ${oc_cmd} adm release info quay.io/openshift-release-dev/ocp-release:${params.NAME}"
+        script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${params.NAME}"
     )
 
     if(res.returnStatus == 0){
@@ -35,7 +35,7 @@ def stageValidation() {
     }
 }
 
-def stageGenPayload() {
+def stageGenPayload(quay_url) {
     // build metadata blob
     def metadata = "{\"description\": \"${params.DESCRIPTION}\""
     if (params.ERRATA_URL != "") {
@@ -51,7 +51,7 @@ def stageGenPayload() {
     }
     cmd += "--name ${params.NAME} "
     cmd += "--metadata '${metadata}' "
-    cmd += "--to-image=quay.io/openshift-release-dev/ocp-release:${params.NAME} "
+    cmd += "--to-image=${quay_url}:${params.NAME} "
 
     if (params.DRY_RUN){
         cmd += "--dry-run=true "
@@ -62,9 +62,9 @@ def stageGenPayload() {
     )
 }
 
-def stageTagStable() {
+def stageTagStable(quay_url) {
     def name = params.NAME
-    def cmd = "GOTRACEBACK=all ${oc_cmd} tag quay.io/openshift-release-dev/ocp-release:${name} ocp/release:${name}"
+    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${name} ocp/release:${name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -114,8 +114,8 @@ def stageWaitForStable() {
     }
 }
 
-def stageGetReleaseInfo(){
-    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs quay.io/openshift-release-dev/ocp-release:${params.NAME}"
+def stageGetReleaseInfo(quay_url){
+    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${params.NAME}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"

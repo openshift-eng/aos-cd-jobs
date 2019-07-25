@@ -2,7 +2,7 @@
 
 node {
     checkout scm
-    def release = load("release.groovy")
+    def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
     def quay_url = "quay.io/openshift-release-dev/ocp-release"

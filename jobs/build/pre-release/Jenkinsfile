@@ -66,7 +66,7 @@ node {
 
             stage("tag prerelease") { prerelease.stageTagRelease(quay_url, from_release_tag) }
 
-            stage("client sync") { prerelease.stageClientSync(from_release_tag, '/srv/pub/openshift-v4/clients/ocp-dev-preview/') }
+            stage("client sync") { prerelease.stageClientSync(from_release_tag, 'ocp-dev-preview') }
 
             stage("set client latest") { prerelease.stageSetClientLatest(from_release_tag) }
         }

@@ -50,9 +50,7 @@ def stageGenPayload(quay_url, name, from_release_tag, description, previous, err
         cmd += "--previous \"${previous}\" "
     }
     cmd += "--name ${name} "
-    if (description != "") {
-        cmd += "--metadata '${metadata}' "
-    }
+    cmd += "--metadata '${metadata}' "
     cmd += "--to-image=${quay_url}:${name} "
 
     if (params.DRY_RUN){

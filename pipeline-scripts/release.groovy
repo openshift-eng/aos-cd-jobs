@@ -148,7 +148,7 @@ def stageClientSync(stream, path) {
     )
 }
 
-def stageSetClientLatest(name) {
+def stageSetClientLatest(name, path) {
     if (params.DRY_RUN) {
         echo "Would have run set_client_latest job"
         return
@@ -157,7 +157,7 @@ def stageSetClientLatest(name) {
     build(
             job: 'build%2set_client_latest',
             parameters: [
-                    buildlib.param('String', 'RELEASE', name)
+                    buildlib.param('String', 'RELEASE', name, 'String', 'OC_MIRROR_DIR', path)
             ]
     )
 }

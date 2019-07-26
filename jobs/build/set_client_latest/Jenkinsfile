@@ -24,6 +24,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'OC_MIRROR_DIR',
+                        description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "ocp"
+                    ],
+                    [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
@@ -45,7 +51,7 @@ node {
     try {
         sshagent(['aos-cd-test']) {
             stage("sync ocp clients") {
-                sh "./set-latest.sh ${env.WORKSPACE} ${RELEASE}"
+                sh "./set-latest.sh ${env.WORKSPACE} ${RELEASE} ${OC_MIRROR_DIR}"
             }
         }
     } catch (err) {

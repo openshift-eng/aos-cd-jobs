@@ -40,6 +40,7 @@ node {
                         ].join(',')
                     ],
                     commonlib.mockParam(),
+                    commonlib.suppressEmailParam(),
                 ]
             ],
             disableConcurrentBuilds()

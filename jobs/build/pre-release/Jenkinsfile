@@ -55,21 +55,21 @@ node {
         sshagent(['aos-cd-test']) {
             release_info = ""
             from_release_tag = "${params.FROM_RELEASE_TAG}"
-
+            name = from_release_tag.split("nightly")[0]+"nightly"
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
 
             stage("versions") { prerelease.stageVersions() }
 
-            stage("validation") { prerelease.stageValidation(quay_url, from_release_tag, "") }
+            stage("validation") { prerelease.stageValidation(quay_url, name, "") }
 
-            stage("payload") { prerelease.stageGenPayload(quay_url, from_release_tag, from_release_tag, "", "", "") }
+            stage("payload") { prerelease.stageGenPayload(quay_url, name, from_release_tag, "", "", "") }
 
-            stage("tag prerelease") { prerelease.stageTagRelease(quay_url, from_release_tag) }
+            stage("tag prerelease") { prerelease.stageTagRelease(quay_url, name) }
 
-            stage("client sync") { prerelease.stageClientSync(from_release_tag, 'ocp-dev-preview') }
+            stage("client sync") { prerelease.stageClientSync(name, 'ocp-dev-preview') }
 
-            stage("set client latest") { prerelease.stageSetClientLatest(from_release_tag) }
+            stage("set client latest") { prerelease.stageSetClientLatest(name) }
         }
 
         dry_subject = ""

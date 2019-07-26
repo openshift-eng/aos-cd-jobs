@@ -25,9 +25,9 @@ node {
                     ],
                     [
                         name: 'OC_MIRROR_DIR',
-                        description: 'artifacts path of https://mirror.openshift.com',
+                        description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "/srv/pub/openshift-v4/clients/ocp/"
+                        defaultValue: "ocp"
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',

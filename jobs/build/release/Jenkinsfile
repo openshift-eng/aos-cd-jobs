@@ -99,7 +99,7 @@ node {
             stage("versions") { release.stageVersions() }
             stage("validation") { release.stageValidation(quay_url) }
             stage("payload") { release.stageGenPayload(quay_url) }
-            stage("tag stable") { release.stageTagStable(quay_url) }
+            stage("tag stable") { release.stageTagRelease(quay_url) }
             stage("wait for stable") { release.stageWaitForStable() }
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url)

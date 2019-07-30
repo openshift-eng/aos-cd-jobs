@@ -3,7 +3,7 @@ set -eux
 
 WORKSPACE=$1
 STREAM=$2
-OC_MIRROR_DIR=$3
+OC_MIRROR_DIR="/srv/pub/openshift-v4/clients/$3/"
 
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 

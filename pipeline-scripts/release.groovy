@@ -10,48 +10,48 @@ def stageVersions() {
     sh "elliott --version"
 }
 
-def stageValidation(quay_url) {
+def stageValidation(quay_url, name, advisory) {
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
             returnAll: true,
-            script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${params.NAME}"
+            script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${name}"
     )
 
     if(res.returnStatus == 0){
-        error("Payload ${params.NAME} already exists! Cannot continue.")
+        error("Payload ${name} already exists! Cannot continue.")
     }
 
     // AMH - This may be optional?
-    if (params.ADVISORY != "") {
+    if (advisory != "") {
         echo "Verifying advisory exists"
         res = commonlib.shell(
                 returnAll: true,
-                script: "elliott get ${params.ADVISORY}"
+                script: "elliott get ${advisory}"
         )
 
         if(res.returnStatus != 0){
-            error("Advisory ${params.ADVISORY} does not exist! Cannot continue.")
+            error("Advisory ${advisory} does not exist! Cannot continue.")
         }
     }
 }
 
-def stageGenPayload(quay_url) {
+def stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) {
     // build metadata blob
-    def metadata = "{\"description\": \"${params.DESCRIPTION}\""
-    if (params.ERRATA_URL != "") {
-        metadata += ", \"url\": \"${params.ERRATA_URL}\""
+    def metadata = "{\"description\": \"${description}\""
+    if (errata_url != "") {
+        metadata += ", \"url\": \"${errata_url}\""
     }
     metadata += "}"
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
-    cmd += "--from-release=registry.svc.ci.openshift.org/ocp/release:${params.FROM_RELEASE_TAG} "
-    if (params.PREVIOUS != "") {
-        cmd += "--previous \"${params.PREVIOUS}\" "
+    cmd += "--from-release=registry.svc.ci.openshift.org/ocp/release:${from_release_tag} "
+    if (previous != "") {
+        cmd += "--previous \"${previous}\" "
     }
-    cmd += "--name ${params.NAME} "
+    cmd += "--name ${name} "
     cmd += "--metadata '${metadata}' "
-    cmd += "--to-image=${quay_url}:${params.NAME} "
+    cmd += "--to-image=${quay_url}:${name} "
 
     if (params.DRY_RUN){
         cmd += "--dry-run=true "
@@ -62,8 +62,7 @@ def stageGenPayload(quay_url) {
     )
 }
 
-def stageTagRelease(quay_url) {
-    def name = params.NAME
+def stageTagRelease(quay_url, name) {
     def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${name} ocp/release:${name}"
 
     if (params.DRY_RUN) {
@@ -115,8 +114,8 @@ def stageWaitForStable() {
     }
 }
 
-def stageGetReleaseInfo(quay_url){
-    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${params.NAME}"
+def stageGetReleaseInfo(quay_url, name){
+    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -142,9 +141,25 @@ def stageClientSync(stream, path) {
     }
 
     build(
-            job: 'build%2Foc_sync',
+        job: 'build%2Foc_sync',
+        parameters: [
+            buildlib.param('String', 'STREAM', stream),
+            buildlib.param('String', 'OC_MIRROR_DIR', path),
+        ]
+    )
+}
+
+def stageSetClientLatest(name, path) {
+    if (params.DRY_RUN) {
+        echo "Would have run set_client_latest job"
+        return
+    }
+
+    build(
+            job: 'build%2Fset_client_latest',
             parameters: [
-                    buildlib.param('String', 'STREAM', stream, 'String', 'PATH', path)
+                    buildlib.param('String', 'RELEASE', name),
+                    buildlib.param('String', 'OC_MIRROR_DIR', path),
             ]
     )
 }

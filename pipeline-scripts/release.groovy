@@ -143,7 +143,8 @@ def stageClientSync(stream, path) {
     build(
         job: 'build%2Foc_sync',
         parameters: [
-            buildlib.param('String', 'STREAM', stream, 'String', 'OC_MIRROR_DIR', path)
+            buildlib.param('String', 'STREAM', stream),
+            buildlib.param('String', 'OC_MIRROR_DIR', path),
         ]
     )
 }
@@ -155,9 +156,10 @@ def stageSetClientLatest(name, path) {
     }
 
     build(
-            job: 'build%2set_client_latest',
+            job: 'build%2Fset_client_latest',
             parameters: [
-                    buildlib.param('String', 'RELEASE', name, 'String', 'OC_MIRROR_DIR', path)
+                    buildlib.param('String', 'RELEASE', name),
+                    buildlib.param('String', 'OC_MIRROR_DIR', path),
             ]
     )
 }

@@ -94,17 +94,24 @@ node {
     try {
         sshagent(['aos-cd-test']) {
             release_info = ""
+            name = "${params.NAME}"
+            from_release_tag = "${params.FROM_RELEASE_TAG}"
+            description = "${params.DESCRIPTION}"
+            advisory = "${params.ADVISORY}"
+            previous = "${params.PREVIOUS}"
+            errata_url = "${params.ERRATA_URL}"
+
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
-            stage("validation") { release.stageValidation(quay_url) }
-            stage("payload") { release.stageGenPayload(quay_url) }
-            stage("tag stable") { release.stageTagRelease(quay_url) }
+            stage("validation") { release.stageValidation(quay_url, name, advisory) }
+            stage("payload") { release.stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) }
+            stage("tag stable") { release.stageTagRelease(quay_url, name) }
             stage("wait for stable") { release.stageWaitForStable() }
             stage("get release info") {
-                release_info = release.stageGetReleaseInfo(quay_url)
+                release_info = release.stageGetReleaseInfo(quay_url, name)
             }
-            stage("client sync") { release.stageClientSync('4-stable', '/srv/pub/openshift-v4/clients/ocp/') }
+            stage("client sync") { release.stageClientSync('4-stable', 'ocp') }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
         }

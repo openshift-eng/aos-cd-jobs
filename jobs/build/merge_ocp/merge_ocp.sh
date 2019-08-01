@@ -16,11 +16,13 @@ git fetch origin "${OSE_SOURCE_BRANCH}:origin-${OSE_SOURCE_BRANCH}" --depth "${D
 git fetch upstream "${UPSTREAM_SOURCE_BRANCH}:upstream-${UPSTREAM_SOURCE_BRANCH}" --depth "${DEPTH}"
 git checkout -B "${OSE_SOURCE_BRANCH}" "origin-${OSE_SOURCE_BRANCH}"
 
-# Enable fake merge driver used in our .gitattributes
-git config merge.ours.driver true
-# Use fake merge driver on specific packages
-echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes
-echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes
+if [[ $OSE_SOURCE_BRANCH == enterprise-3.* ]]; then
+    # Enable fake merge driver used in our .gitattributes
+    git config merge.ours.driver true
+    # Use fake merge driver on specific packages
+    echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes
+    echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes
+fi
 git merge -m "Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}" "upstream-${UPSTREAM_SOURCE_BRANCH}"
 
 git push origin "${OSE_SOURCE_BRANCH}:${OSE_SOURCE_BRANCH}"

@@ -53,6 +53,12 @@ node {
                         defaultValue: 'images:rebase',
                     ],
                     [
+                        name: 'DOOZER_DATA_PATH',
+                        description: '(Optional) Unless you want to override it',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "https://gitlab.cee.redhat.com/openshift-art/ocp-build-data"
+                    ],
+                    [
                         name: 'SIGNED',
                         description: 'Build images against signed RPMs?',
                         $class: 'hudson.model.BooleanParameterDefinition',
@@ -87,9 +93,10 @@ node {
     def doozer_working = "${WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
 
+    def doozer_data_path = params.DOOZER_DATA_PATH
     def majorVersion = params.BUILD_VERSION.split('\\.')[0]
     def minorVersion = params.BUILD_VERSION.split('\\.')[1]
-    def doozerOpts = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+    def doozerOpts = "--working-dir ${doozer_working} --data-path ${doozer_data_path} --group 'openshift-${params.BUILD_VERSION}' "
     def version = params.BUILD_VERSION
     def release = "?"
     if (params.IMAGE_MODE != "nothing") {
@@ -103,7 +110,7 @@ node {
 
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
-
+    
     try {
         sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
@@ -113,7 +120,7 @@ node {
                 if (rpms.toUpperCase() != "NONE") {
                     currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
                     currentBuild.description = "building RPM(s): ${rpms}\n"
-                    command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                    command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
                     command += "rpms:build --version ${version} --release ${release} "
                     buildlib.doozer command
@@ -158,7 +165,7 @@ node {
                 currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
                 if (params.IMAGE_MODE == "nothing") { return }
 
-                command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                command = doozerOpts
                 command += "--latest-parent-version ${include_exclude} "
                 command += "images:${params.IMAGE_MODE} --version v${version} --release ${release} "
                 command += "--repo-type ${repo_type} "
@@ -168,7 +175,7 @@ node {
 
             stage("build images") {
                 if (!any_images_to_build) { return }
-                command = "--working-dir ${doozer_working} --group 'openshift-${params.BUILD_VERSION}' "
+                command = doozerOpts
                 command += "${include_exclude} images:build --push-to-defaults --repo-type ${repo_type} "
                 try {
                     buildlib.doozer command

@@ -24,7 +24,7 @@ node {
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
                         providerName: 'Red Hat UMB'
                     )
-                    writeFile file: "${release}.current" text: "${latestRelease}"
+                    writeFile file: "${release}.current", text: "${latestRelease}"
                 }
             }
         }

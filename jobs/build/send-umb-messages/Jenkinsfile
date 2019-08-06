@@ -9,7 +9,7 @@ node {
     releases = ["4-stable", "4.2.0-0.nightly"]
 
     stage("send UMB messages for new releases") {
-        dir ("~/.cache/releases") {
+        dir ("/mnt/nfs/home/jenkins/.cache/releases") {
             for (String release : releases) {
                 latestRelease = sh(
                     returnStdout: true,

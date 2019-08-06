@@ -20,7 +20,7 @@ node {
                     sendCIMessage(
                         messageContent: "New release payload for OpenShift ${release}",
                         messageProperties: "${latestRelease}",
-                        messageType: 'custom',
+                        messageType: 'Custom',
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
                         providerName: 'Red Hat UMB'
                     )

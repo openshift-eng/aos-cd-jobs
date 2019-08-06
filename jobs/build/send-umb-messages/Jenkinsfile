@@ -15,11 +15,26 @@ node {
                     returnStdout: true,
                     script: "curl -s https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${release}/latest",
                 ).trim()
-                previousRelease = readFile("${release}.current")
+		try {
+                    previousRelease = readFile("${release}.current")
+		} catch (readex) {
+		    // The first time this job is ran and the first
+		    // time any new release is added the 'readFile'
+		    // won't find the file and will raise a
+		    // NoSuchFileException exception.
+		    touch file: "${release}.current"
+		    previousRelease = ""
+		}
+
                 if ( latestRelease != previousRelease ) {
+		    def msgJson = readJSON file: '', text: latestRelease
+		    def messageProperties = """name=${msgJson.name}
+pullSpec=${msgJson.pullSpec}
+downloadURL=${msgJson.downloadURL}
+"""
                     sendCIMessage(
                         messageContent: "New release payload for OpenShift ${release}",
-                        messageProperties: "${latestRelease}",
+                        messageProperties: "${messageProperties}",
                         messageType: 'Custom',
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
                         providerName: 'Red Hat UMB'

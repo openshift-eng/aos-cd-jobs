@@ -2,11 +2,19 @@
 
 node {
     properties([
-        disableConcurrentBuilds(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '30',
+                    numToKeepStr: ''
+                )
+            ),
+            disableConcurrentBuilds(),
     ])
 
     // we only care to publish messages for the following releases
-    releases = ["4-stable", "4.2.0-0.nightly"]
+    releases = ["4-stable", "4.2.0-0.nightly", "4.1.0-0.nightly"]
     currentBuild.description = ""
     currentBuild.displayName = ""
 

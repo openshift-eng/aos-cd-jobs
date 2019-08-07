@@ -7,6 +7,8 @@ node {
 
     // we only care to publish messages for the following releases
     releases = ["4-stable", "4.2.0-0.nightly"]
+    currentBuild.description = ""
+    currentBuild.displayName = ""
 
     stage("send UMB messages for new releases") {
         dir ("/mnt/nfs/home/jenkins/.cache/releases") {
@@ -27,6 +29,8 @@ node {
 		}
 
                 if ( latestRelease != previousRelease ) {
+		    currentBuild.displayName += "🆕: ${release} "
+		    currentBuild.description += "\n🆕: ${release}"
 		    def msgJson = readJSON file: '', text: latestRelease
 		    def messageProperties = """name=${msgJson.name}
 pullSpec=${msgJson.pullSpec}
@@ -40,7 +44,9 @@ downloadURL=${msgJson.downloadURL}
                         providerName: 'Red Hat UMB'
                     )
                     writeFile file: "${release}.current", text: "${latestRelease}"
-                }
+                } else {
+		    currentBuild.description += "\nUnchanged: ${release}"
+		}
             }
         }
     }

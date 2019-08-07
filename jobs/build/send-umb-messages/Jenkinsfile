@@ -39,15 +39,12 @@ node {
                 if ( latestRelease != previousRelease ) {
 		    currentBuild.displayName += "🆕: ${release} "
 		    currentBuild.description += "\n🆕: ${release}"
-		    def msgJson = readJSON file: '', text: latestRelease
-		    def messageProperties = """name=${msgJson.name}
-pullSpec=${msgJson.pullSpec}
-downloadURL=${msgJson.downloadURL}
-"""
+
                     sendCIMessage(
-                        messageContent: "New release payload for OpenShift ${release}",
-                        messageProperties: "${messageProperties}",
+                        messageProperties: "release=${release}",
+			messageContent: latestRelease,
                         messageType: 'Custom',
+			failOnError: true,
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
                         providerName: 'Red Hat UMB'
                     )

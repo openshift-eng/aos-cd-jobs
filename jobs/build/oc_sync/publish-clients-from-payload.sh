@@ -3,14 +3,21 @@ set -eux
 
 WORKSPACE=$1
 STREAM=$2
-OC_MIRROR_DIR="/srv/pub/openshift-v4/clients/$3/"
+MIRROR=$3
+OC_MIRROR_DIR="/srv/pub/openshift-v4/clients/$MIRROR/"
 
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
-# get latest release from GitHub API
+# get latest release from release-controller API
 wget https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${STREAM}/latest -O latest
+
 #extract pull_spec
 PULL_SPEC=`jq -r '.pullSpec' latest`
+if [ "$MIRROR" = "ocp-dev-preview" ]; then
+  # point at the published pre-release that will stay around -- registry.svc.ci gets GCed
+  PULL_SPEC="${PULL_SPEC/registry.svc.ci.openshift.org\/ocp\/release/quay.io/openshift-release-dev/ocp-release-nightly}"
+fi
+
 #extract name
 VERSION=`jq -r '.name' latest`
 

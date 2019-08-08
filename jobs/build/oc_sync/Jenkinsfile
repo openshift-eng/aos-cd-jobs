@@ -20,13 +20,22 @@ node {
                     [
                         name: 'STREAM',
                         description: 'Build stream to sync client from',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "4.1.0-0.nightly"
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "4-stable",
+                            "4.1.0-0.nightly",
+                            "4.2.0-0.nightly",
+                        ].join("\n"),
+                        defaultValue: "4-stable"
                     ],
                     [
                         name: 'OC_MIRROR_DIR',
-                        description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
-                        $class: 'hudson.model.StringParameterDefinition',
+                        description: 'artifacts path under https://mirror.openshift.com',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "ocp",
+                            "ocp-dev-preview",
+                        ].join("\n"),
                         defaultValue: "ocp"
                     ],
                     [
@@ -37,6 +46,7 @@ node {
                             'aos-team-art@redhat.com'
                         ].join(',')
                     ],
+                    commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
                 ]
             ],

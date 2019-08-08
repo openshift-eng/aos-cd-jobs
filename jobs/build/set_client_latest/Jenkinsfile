@@ -19,7 +19,7 @@ node {
                 parameterDefinitions: [
                     [
                         name: 'RELEASE',
-                        description: 'Release on mirror.openshift.com to set to latest',
+                        description: 'Release Version on mirror.openshift.com to set to latest (e.g. 4.1.0)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],

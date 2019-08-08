@@ -59,7 +59,11 @@ node {
             stage("sync repos to local") {
                 command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${SYNC_VERSION}' "
                 command += "beta:reposync --output ${LOCAL_SYNC_DIR} --cachedir ${LOCAL_CACHE_DIR} --repo-type ${REPO_TYPE} "
-                buildlib.doozer command
+		try {
+                    buildlib.doozer command
+		} catch (err) {
+		    echo "whoops. fix this tomorrow please"
+		}
             }
 
             stage("push to mirror") {

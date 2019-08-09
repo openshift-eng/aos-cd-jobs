@@ -80,10 +80,11 @@ node('openshift-build-1') {
                     snapshot_diff = sh(returnStdout: true, script: "./scripts/snapshot.sh /home/jenkins").trim()
                     if ( snapshot_diff != "") {
                       def snapshot = readFile("/home/jenkins/new_snapshot.txt")
-                      mail(to: "jupierce@redhat.com,ahaile@redhat.com,smunilla@redhat.com",
-                              from: "aos-cicd@redhat.com",
-                              subject: "BuildVM Snapshot",
-                              body: "${snapshot}");
+                      mail(to: "aos-art-automation+new-buildvm-snapshot@redhat.com",
+                           from: "aos-art-automation@redhat.com",
+			   replyTo: 'aos-team-art@redhat.com',
+                           subject: "BuildVM Snapshot",
+                           body: "${snapshot}");
                     }
                 }
             } catch ( ex3 ) {
@@ -107,10 +108,11 @@ node('openshift-build-1') {
 
     } catch ( err ) {
         // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
-        mail(to: "jupierce@redhat.com,tbielawa@redhat.com",
-                from: "aos-cicd@redhat.com",
-                subject: "Error running buildvm maintenance",
-                body: """${err}
+        mail(to: "aos-art-automation+failed-buildvm-maintenance@redhat.com",
+             from: "aos-art-automation@redhat.com",
+	     replyTo: "aos-team-art@redhat.com",
+             subject: "Error running buildvm maintenance",
+             body: """${err}
 
 
 Jenkins job: ${env.BUILD_URL}

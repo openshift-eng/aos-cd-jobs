@@ -139,7 +139,7 @@ node {
                         def build = operatorData[i]
                         retry(3) {
                             def response = httpRequest(
-                                url: "https://omps-prod.cloud.paas.upshift.redhat.com/v2/redhat-operators-art/koji/${build.nvr}",
+                                url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${build.nvr}",
                                 httpMode: 'POST',
                                 customHeaders: [[name: 'Authorization', value: token]],
                                 timeout: 60,

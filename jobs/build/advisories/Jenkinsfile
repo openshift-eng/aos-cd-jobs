@@ -1,0 +1,208 @@
+#!/usr/bin/env groovy
+
+import java.text.SimpleDateFormat
+
+node {
+    wrap([$class: 'BuildUser']) {
+        def buildUserEmail = env.BUILD_USER_EMAIL
+
+        checkout scm
+        def buildlib = load("pipeline-scripts/buildlib.groovy")
+        def commonlib = buildlib.commonlib
+
+        def dateFormat = new SimpleDateFormat("yyyy-MMM-dd")
+        def date = new Date()
+
+        // Expose properties for a parameterized build
+        properties(
+            [
+                buildDiscarder(
+                    logRotator(
+                        artifactDaysToKeepStr: '',
+                        artifactNumToKeepStr: '',
+                        daysToKeepStr: '',
+                        numToKeepStr: '')),
+                [
+                    $class: 'ParametersDefinitionProperty',
+                    parameterDefinitions: [
+                        commonlib.ocpVersionParam('VERSION'),
+                        [
+                            name: 'ASSIGNED_TO',
+                            description: 'To whom the advisories must be assigned',
+                            $class: 'hudson.model.StringParameterDefinition',
+                            defaultValue: "openshift-qe-errata@redhat.com"
+                        ],
+                        [
+                            name: 'MANAGER',
+                            description: 'Who is the boss?',
+                            $class: 'hudson.model.StringParameterDefinition',
+                            defaultValue: "vlaad@redhat.com"
+                        ],
+                        [
+                            name: 'PACKAGE_OWNER',
+                            description: "Owner's email address",
+                            $class: 'hudson.model.StringParameterDefinition',
+                            defaultValue: "${buildUserEmail}"
+                        ],
+                        [
+                            name: 'IMPETUS',
+                            description: 'For which reason are those advisories being created',
+                            $class: 'hudson.model.ChoiceParameterDefinition',
+                            choices: [
+                                "standard",
+                                "cve",
+                                "ga",
+                                "test",
+                            ].join("\n"),
+                        ],
+                        [
+                            name: 'DATE',
+                            description: 'Format: YYYY-Mon-dd (i.e.: 2050-Jan-01)',
+                            $class: 'hudson.model.StringParameterDefinition',
+                            defaultValue: "${dateFormat.format(date)}"
+                        ],
+                        [
+                            name: 'DRY_RUN',
+                            description: 'Take no action, just echo what the job would have done.',
+                            $class: 'hudson.model.BooleanParameterDefinition',
+                            defaultValue: true
+                        ],
+                        commonlib.mockParam(),
+                        commonlib.suppressEmailParam(),
+                        [
+                            name: 'MAIL_LIST_FAILURE',
+                            description: 'Failure Mailing List',
+                            $class: 'hudson.model.StringParameterDefinition',
+                            defaultValue: [
+                                'aos-art-automation+failed-ocp4-build@redhat.com'
+                            ].join(',')
+                        ],
+                        [
+                            name: 'SPECIAL_NOTES',
+                            description: '(Optional) special notes to include in the email',
+                            $class: 'hudson.model.TextParameterDefinition',
+                            defaultValue: ""
+                        ],
+                    ]
+                ],
+            ]
+        )
+
+        commonlib.checkMock()
+
+        currentBuild.description = ""
+        try {
+            stage("kinit") {
+                buildlib = load("pipeline-scripts/buildlib.groovy")
+                buildlib.kinit()
+            }
+            stage("create rpm advisory") {
+                cmd = """
+                    -g openshift-${params.VERSION}
+                    create -k rpm
+                    --assigned-to ${params.ASSIGNED_TO}
+                    --manager ${params.MANAGER}
+                    --package-owner ${params.PACKAGE_OWNER}
+                    --impetus ${params.IMPETUS}
+                    ${params.DATE ? "--date ${params.DATE} " : ""}
+                    ${params.DRY_RUN ? "" : "--yes"}
+                """
+
+                echo "elliott cmd: ${cmd}"
+                out = buildlib.elliott(cmd, [capture: true])
+                echo "out: ${out}"
+
+                rpm_advisory_id = buildlib.extractAdvisoryId(out)
+                echo "extracted rpm_advisory_id: ${rpm_advisory_id}"
+            }
+            stage("create image advisory") {
+                cmd = """
+                    -g openshift-${params.VERSION}
+                    create -k image
+                    --assigned-to ${params.ASSIGNED_TO}
+                    --manager ${params.MANAGER}
+                    --package-owner ${params.PACKAGE_OWNER}
+                    --impetus ${params.IMPETUS}
+                    ${params.DATE ? "--date ${params.DATE} " : ""}
+                    ${params.DRY_RUN ? "" : "--yes"}
+                """
+
+                echo "elliott cmd: ${cmd}"
+                out = buildlib.elliott(cmd, [capture: true])
+                echo "out: ${out}"
+
+                image_advisory_id = buildlib.extractAdvisoryId(out)
+                echo "extracted image_advisory_id: ${image_advisory_id}"
+            }
+            stage("update job description with advisory links") {
+                currentBuild.displayName = "${params.VERSION}.z advisories${params.DRY_RUN ? " [DRY_RUN]" : ""}"
+                currentBuild.description = """
+                    https://errata.devel.redhat.com/advisory/${rpm_advisory_id}\n
+                    https://errata.devel.redhat.com/advisory/${image_advisory_id}
+                """
+            }
+            stage("commit new advisories to ocp-build-data") {
+                cmd = """
+                    rm -rf ocp-build-data ;
+                    git clone --single-branch --branch openshift-${params.VERSION} git@gitlab.cee.redhat.com:openshift-art/ocp-build-data.git ;
+                    cd ocp-build-data ;
+                    sed -e 's/image:.*/image: ${image_advisory_id}/' -e 's/rpm:.*/rpm: ${rpm_advisory_id}/' -i group.yml ;
+                    git diff ;
+                    git add . ;
+                    git commit -m 'Update advisories on group.yml' ;
+                    git push origin openshift-${params.VERSION}
+                """
+
+                echo "shell cmd: ${cmd}"
+                if (params.DRY_RUN) {
+                    out = "DRY RUN mode, command did not run"
+                } else {
+                    out = commonlib.shell(
+                        returnStdout: true,
+                        script: cmd
+                    )
+                }
+                echo "out: ${out}"
+            }
+            stage("create & attach placeholder bug to advisory") {
+                kind = params.VERSION.startsWith("3") ? "image" : "rpm"
+
+                cmd = "-g openshift-${params.VERSION} "
+                cmd+= "create-placeholder "
+                cmd+= "--kind ${kind} "
+                cmd+= "--use-default-advisory ${kind}"
+
+                echo "elliott cmd: ${cmd}"
+                if (params.DRY_RUN) {
+                    out = "DRY RUN mode, command did not run"
+                } else {
+                    out = buildlib.elliott(cmd, [capture: true])
+                }
+                echo "out: ${out}"
+            }
+        } catch (err) {
+            currentBuild.description += "\n-----------------\n\n${err}"
+            currentBuild.result = "FAILURE"
+
+            if (params.MAIL_LIST_FAILURE.trim()) {
+                commonlib.email(
+                    to: params.MAIL_LIST_FAILURE,
+                    from: "aos-team-art@redhat.com",
+                    subject: "Error building OCP ${params.BUILD_VERSION}",
+                    body:
+                    """\
+    Pipeline build "${currentBuild.displayName}" encountered an error:
+    ${currentBuild.description}
+
+
+    View the build artifacts and console output on Jenkins:
+    - Jenkins job: ${env.BUILD_URL}
+    - Console output: ${env.BUILD_URL}console
+
+    """
+                )
+            }
+            throw err  // gets us a stack trace FWIW
+        }
+    }
+}

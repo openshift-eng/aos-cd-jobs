@@ -119,7 +119,7 @@ def getDefaultAdvisoryID(version, type) {
     //
     // @param version: The openshift version param, e.g. '4.2'
     // @param type: The kind of advisory to look up, e.g. rpm/image/security
-    def result = this.elliott "--group=openshift-${version} get --use-default-advisory ${type} --id-only", capture: true
+    def result = this.elliott "--group=openshift-${version} get --use-default-advisory ${type} --id-only", [capture: true]
     return result.stdout
 }
 
@@ -128,7 +128,7 @@ def getErrataWhitelist(version) {
     // puddle config
     //
     // @param version: The openshift version param, e.g. '4.2'
-    def result = this.elliott "--group=openshift-${version} puddle-advisories", capture: true
+    def result = this.elliott "--group=openshift-${version} puddle-advisories", [capture: true]
     return result.stdout
 }
 

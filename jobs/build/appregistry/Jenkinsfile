@@ -9,6 +9,7 @@ def processImages(lines) {
                 name: fields[1],
                 nvr: fields[2],
                 version: fields[3].replace("v", ""),
+                metadata_nvr: fields[2].replace("-operator-container", "-operator-metadata-container"),
             ])
         }
     }
@@ -71,6 +72,18 @@ node {
                         description: '(Optional) List of images to limit selection (default all)',
                         defaultValue: ""
                     ),
+                    [
+                        name: 'STREAM',
+                        description: 'OMPS appregistry',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['dev', 'stage', 'prod']
+                        defaultValue: 'dev',
+                    ],
+                    string(
+                        name: 'ADVISORY',
+                        description: 'Should not be filled if STREAM is "dev"',
+                        defaultValue: '',
+                    ),
                     booleanParam(
                         name: 'SKIP_PUSH',
                         defaultValue: false,
@@ -122,6 +135,10 @@ node {
                 writeYaml file: "${workDir}/appreg.yaml", data: operatorData
                 currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
             }
+            stage("build metadata container") {
+                cmd = "operator:metadata ${build.nvr} --merge-branch ${params.STREAM}"
+                buildlib.doozer(cmd)
+            }
             stage("push metadata") {
                 if (skipPush) {
                     currentBuild.description += "\nskipping metadata push."
@@ -132,25 +149,36 @@ node {
                     return
                 }
 
-                currentBuild.description += "\npushing operator metadata."
-                withCredentials([usernamePassword(credentialsId: 'quay_appregistry_omps_bot', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
-                    def token = retrieveBotToken()
-                    for (def i = 0; i < operatorData.size(); i++) {
-                        def build = operatorData[i]
-                        retry(3) {
-                            def response = httpRequest(
-                                url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${build.nvr}",
-                                httpMode: 'POST',
-                                customHeaders: [[name: 'Authorization', value: token]],
-                                timeout: 60,
-                                validResponseCodes: "200:599",
-                            )
-                            if (response.status != 200) {
-                                sleep(5)
-                                error "OMPS request for ${build.nvr} failed: ${response.status} ${response.content}"
+                if (params.STREAM == 'dev') {
+                    currentBuild.description += "\npushing operator metadata."
+                    withCredentials([usernamePassword(credentialsId: 'quay_appregistry_omps_bot', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+                        def token = retrieveBotToken()
+                        for (def i = 0; i < operatorData.size(); i++) {
+                            def build = operatorData[i]
+                            retry(3) {
+                                def response = httpRequest(
+                                    url: "https://omps-prod.cloud.paas.upshift.redhat.com/v2/redhat-operators-art/koji/${build.metadata_nvr}",
+                                    httpMode: 'POST',
+                                    customHeaders: [[name: 'Authorization', value: token]],
+                                    timeout: 60,
+                                    validResponseCodes: "200:599",
+                                )
+                                if (response.status != 200) {
+                                    sleep(5)
+                                    error "OMPS request for ${build.metadata_nvr} failed: ${response.status} ${response.content}"
+                                }
                             }
+                            currentBuild.description += "\n  ${build.metadata_nvr}"
                         }
-                        currentBuild.description += "\n  ${build.nvr}"
+                    }
+                } else {
+                    if (params.ADVISORY) {
+                        cmd = """--group openshift-${params.BUILD_VERSION}
+                            find-builds -k image
+                            --build ${build.metadata_nvr}
+                            --attach ${params.ADVISORY}
+                        """
+                        buildlib.elliott(cmd)
                     }
                 }
             }

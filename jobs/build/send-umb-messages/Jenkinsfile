@@ -40,9 +40,52 @@ node {
                     currentBuild.displayName += "🆕: ${release} "
                     currentBuild.description += "\n🆕: ${release}"
 
+                    def object = readJSON text: latestRelease
+
+                    def downloadURL = object.downloadURL
+                    def version = object.name
+                    def pullRef = object.pullSpec
+                    def digest = "MISSING_DIGEST_FIX_PLEASE"
+                    string repo = "somerepo"
+
+                    def ts = sh (
+                        returnStdout: true,
+                        script: 'date "+%Y-%m-%d\'T\'%H:%M:%S.%N\'Z\'"',
+                    ).trim()
+
+                    def msg = [
+                            artifact: [
+                                type: "container-image",
+                                repository: "${repo}",
+                                digest: "${digest}",
+                                issuer: "OpenShift Automated Release Team",
+                                pull_ref: "${pullRef}",
+                                scratch: false,
+                                id: "${repo}@${digest}",
+                            ],
+                            contact: [
+                                name: "Nightly-pipeline for OCP 4.x",
+                                team: "AOS QE",
+                                docs: "https://somewhere.com/user-documentation",
+                                email: "aos-qe@redhat.com",
+                                irc: "#aos-qe"
+                            ],
+                            decision: [
+                                result: "go",
+                                summary: "1 of 1 required tests passed",
+                                url: "https://datagrepper.somewhere.com/id?id=2018-21cc85d6"
+                            ],
+                            generated_at: "${ts}",
+                            version: "${version}",
+                            downloadURL: "${downloadURL}"
+                        ]
+
+                    def json = groovy.json.JsonOutput.toJson(msg)
+                    json = groovy.json.JsonOutput.prettyPrint(json)
+
                     sendCIMessage(
                         messageProperties: "release=${release}",
-                        messageContent: latestRelease,
+                        messageContent: json,
                         messageType: 'Custom',
                         failOnError: true,
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],

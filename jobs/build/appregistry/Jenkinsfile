@@ -76,7 +76,7 @@ node {
                         name: 'STREAM',
                         description: 'OMPS appregistry',
                         $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: ['dev', 'stage', 'prod']
+                        choices: ['dev', 'stage', 'prod'],
                         defaultValue: 'dev',
                     ],
                     string(

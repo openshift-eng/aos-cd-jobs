@@ -25,33 +25,33 @@ node {
                     returnStdout: true,
                     script: "curl -s https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${release}/latest",
                 ).trim()
-		try {
+                try {
                     previousRelease = readFile("${release}.current")
-		} catch (readex) {
-		    // The first time this job is ran and the first
-		    // time any new release is added the 'readFile'
-		    // won't find the file and will raise a
-		    // NoSuchFileException exception.
-		    touch file: "${release}.current"
-		    previousRelease = ""
-		}
+                } catch (readex) {
+                    // The first time this job is ran and the first
+                    // time any new release is added the 'readFile'
+                    // won't find the file and will raise a
+                    // NoSuchFileException exception.
+                    touch file: "${release}.current"
+                    previousRelease = ""
+                }
 
                 if ( latestRelease != previousRelease ) {
-		    currentBuild.displayName += "🆕: ${release} "
-		    currentBuild.description += "\n🆕: ${release}"
+                    currentBuild.displayName += "🆕: ${release} "
+                    currentBuild.description += "\n🆕: ${release}"
 
                     sendCIMessage(
                         messageProperties: "release=${release}",
-			messageContent: latestRelease,
+                        messageContent: latestRelease,
                         messageType: 'Custom',
-			failOnError: true,
+                        failOnError: true,
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
                         providerName: 'Red Hat UMB'
                     )
                     writeFile file: "${release}.current", text: "${latestRelease}"
                 } else {
-		    currentBuild.description += "\nUnchanged: ${release}"
-		}
+                    currentBuild.description += "\nUnchanged: ${release}"
+                }
             }
         }
     }

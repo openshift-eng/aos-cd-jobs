@@ -136,8 +136,11 @@ node {
                 currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
             }
             stage("build metadata container") {
-                cmd = "operator:metadata ${build.nvr} --merge-branch ${params.STREAM}"
-                buildlib.doozer(cmd)
+                for (def i = 0; i < operatorData.size(); i++) { // @TODO: pass all NVRs simultaneously to doozer
+                    def build = operatorData[i]
+                    cmd = "operator:metadata ${build.nvr} --merge-branch ${params.STREAM}"
+                    buildlib.doozer(cmd)
+                }
             }
             stage("push metadata") {
                 if (skipPush) {

@@ -43,7 +43,7 @@ node {
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
-                            'aos-team-art@redhat.com'
+                            'aos-art-automation+failed-oc-sync@redhat.com'
                         ].join(',')
                     ],
                     commonlib.suppressEmailParam(),
@@ -67,11 +67,17 @@ node {
             }
         }
     } catch (err) {
+        def buildURL = env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888')
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-cicd@redhat.com",
+            from: "aos-art-automation@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
             subject: "Error syncing ocp client from payload",
-            body: "Encountered an error while syncing ocp client from payload: ${err}");
+            body: """Encountered an error while syncing ocp client from payload: ${err}
+
+Jenkins Job: ${buildURL}
+
+""");
         currentBuild.description = "Error while syncing ocp client from payload:\n${err}"
         currentBuild.result = "FAILURE"
         throw err

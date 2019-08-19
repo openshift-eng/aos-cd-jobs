@@ -766,7 +766,7 @@ def sync_images(major, minor, mail_list, build_number) {
             to: "aos-art-automation+failed-image-sync@redhat.com",
             from: "aos-art-automation@redhat.com",
             subject: "Problem syncing images after ${currentBuild.displayName}",
-            body: "Jenkins console: ${env.BUILD_URL}/console",
+            body: "Jenkins console: ${commonlib.buildURL('console')}",
         )
         currentBuild.result = 'UNSTABLE'
     }

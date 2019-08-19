@@ -120,6 +120,40 @@ def cleanCommaList(str) {
     return str.replaceAll(',', ' ').split().join(',')
 }
 
+// A reusable way to generate a working build URL. Translates it into
+// localhost for us. Then later when we get rid of that localhost
+// thing we'll be able to undo this all at once. This can be directly
+// used in strings. See EXAMPLES below.
+//
+// @param append: OPTIONAL: Location to append to the end. No '/'s
+// required. For reference, here are some common ones you might use:
+//
+// * console - Go to the console log
+// * input - Go to any pending input prompts
+//
+// EXAMPLES:
+//
+// Assign to a variable the build url or the user input page:
+//     def buildURL = commonlib.buildURL()
+//     def buildURL = commonlib.buildURL('input')
+//
+// Simply print it out:
+//     echo("Jenkins job: ${commonlib.buildURL()}")
+//
+// Use it in an email:
+//   commonlib.email(
+//       to: params.MAIL_LIST_INPUT,
+//       from: "aos-art-automation+input-required@redhat.com",
+//       replyTo: "aos-team-art@redhat.com",
+//       subject: "Input required for job ${currentBuild.number}",
+//       body: """
+//         Job requires input to continue:
+//           Jenkins Input: ${commonlib.buildURL('input')}
+//   """)
+def buildURL(String append='') {
+    env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888') + append
+}
+
 emailIndex = 0
 /**
  * Wrapper to persist email as an artifact and enable suppressing actual email

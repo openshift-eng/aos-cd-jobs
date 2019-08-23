@@ -26,10 +26,13 @@ build_common() {
 
     cd ${TARGET_DIR}
     echo "$img" > additional-tags
-    echo """FROM $from
+    echo """
+    FROM $from
 
     USER root
-    RUN yum update -y $@ && yum clean all
+    RUN echo 'skip_missing_names_on_install=0' >> /etc/yum.conf \\
+     && yum update -y $@ \\
+     && yum clean all
     USER $user
 
     LABEL \\

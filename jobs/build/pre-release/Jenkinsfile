@@ -32,6 +32,12 @@ node {
                         defaultValue: false
                     ],
                     [
+                        name: 'MIRROR',
+                        description: 'Sync clients to mirror.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
+                    [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
@@ -59,21 +65,21 @@ node {
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
 
+            currentBuild.displayName = "#${currentBuild.number} - ${from_release_tag}"
+            if (params.DRY_RUN) { currentBuild.displayName += " [dry run]"}
+            if (!params.MIRROR) { currentBuild.displayName += " [no mirror]"}
+
             stage("versions") { prerelease.stageVersions() }
 
             stage("validation") { prerelease.stageValidation(quay_url, from_release_tag, "") }
 
             stage("payload") { prerelease.stageGenPayload(quay_url, from_release_tag, from_release_tag, "", "", "") }
 
-            stage("client sync") { prerelease.stageClientSync(name, 'ocp-dev-preview') }
-
-            stage("set client latest") { prerelease.stageSetClientLatest(from_release_tag, 'ocp-dev-preview') }
+            if (params.MIRROR) {
+                stage("client sync") { prerelease.stageClientSync(name, 'ocp-dev-preview') }
+                stage("set client latest") { prerelease.stageSetClientLatest(from_release_tag, 'ocp-dev-preview') }
+            }
         }
-
-        dry_subject = ""
-        if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}
-
-
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",

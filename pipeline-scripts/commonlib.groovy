@@ -188,6 +188,15 @@ def email(args) {
 
         // this is a bit silly but writeYaml and writeFile lack finesse
         body = args.remove("body")  // unreadable when written as yaml
+	body += """
+------------------------------------------------------
+
+NOTE: These job links are only available to ART. Please contact us if
+you need to see something specific from the logs.
+
+Jenkins Job: ${buildURL()}
+Console Log: ${buildURL('console')}
+"""
         writeYaml file: filename, data: args
         yaml = readFile filename
         writeFile file: filename, text: yaml + "\n\n" + body

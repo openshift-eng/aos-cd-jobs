@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eux
+set -euxo pipefail
 
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
@@ -29,10 +29,7 @@ mkdir "${OUTDIR}"
 pushd ${OUTDIR}
 
 #download all release assests
-for item in ${DOWNLOADS};
-do
-    wget ${item}
-done
+echo $DOWNLOADS | xargs wget
 popd
 
 # create latest symlink

@@ -138,8 +138,12 @@ node {
             stage("build metadata container") {
                 for (def i = 0; i < operatorData.size(); i++) { // @TODO: pass all NVRs simultaneously to doozer
                     def build = operatorData[i]
-                    cmd = "--working-dir ${workDir} operator:metadata ${build.nvr} --merge-branch ${params.STREAM}"
-                    buildlib.doozer(cmd)
+                    buildlib.doozer """
+                        --working-dir ${workDir}
+                        --group openshift-${params.BUILD_VERSION}
+                        operator:metadata ${build.nvr}
+                        --merge-branch ${params.STREAM}
+                    """
                 }
             }
             stage("push metadata") {

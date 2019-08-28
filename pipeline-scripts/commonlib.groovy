@@ -53,6 +53,7 @@ ocpBaseImages = [
         "rhscl.nodejs.6.rhel7",
         "rhel7",
         "ubi7",
+        "ubi8",
 ]
 
 /**

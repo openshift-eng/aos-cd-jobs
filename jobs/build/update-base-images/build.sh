@@ -13,8 +13,6 @@ export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 # `rhel7` is root 0`
 # `nodejs6` is 1001`
 
-TAG="rhaos-4.0-rhel-7"
-URL="http://pkgs.devel.redhat.com/cgit/containers/openshift-enterprise-base/plain/.oit/signed.repo?h=${TAG}"
 USER_USERNAME="--user=ocp-build"
 
 build_common() {
@@ -22,7 +20,14 @@ build_common() {
     shift; shift; shift
     TARGET_DIR=build-$img
     rm -rf ${TARGET_DIR}
-    rhpkg ${USER_USERNAME} clone --branch ${TAG} containers/openshift-enterprise-base ${TARGET_DIR}
+    # for RHEL/UBI 8 and RHEL/UBI 7 we use different tags
+    case "$img" in
+        # for RHEL7 rhaos-4.0-rhel-7 is not in use, for RHEL8 rhaos-4.1-rhel-8 is not in use.
+        ubi8) BRANCH="rhaos-4.1-rhel-8" ;;
+        *) BRANCH="rhaos-4.0-rhel-7" ;;
+    esac
+    URL="http://pkgs.devel.redhat.com/cgit/containers/openshift-enterprise-base/plain/.oit/signed.repo?h=${BRANCH}"
+    rhpkg ${USER_USERNAME} clone --branch ${BRANCH} containers/openshift-enterprise-base ${TARGET_DIR}
 
     cd ${TARGET_DIR}
     echo "$img" > additional-tags
@@ -67,6 +72,9 @@ case "$img" in
             ;;
         ubi7)
             build_common $img ubi7:7-released 0 $@
+            ;;
+        ubi8)
+            build_common $img ubi8:8-released 0 $@
             ;;
         *)
             echo $"Usage: $0 image_tag [package [...]]"

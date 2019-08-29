@@ -180,12 +180,16 @@ node {
                     }
                 } else {
                     if (params.ADVISORY) {
+                        buildlib.elliott("change-state -s NEW_FILES -a ${params.ADVISORY} ${params.DRY_RUN ? "--noop" : ""}")
+
                         cmd = """--group openshift-${params.BUILD_VERSION}
                             find-builds -k image
                             --build ${build.metadata_nvr}
                             --attach ${params.ADVISORY}
                         """
                         buildlib.elliott(cmd)
+
+                        buildlib.elliott("change-state -s QE -a ${params.ADVISORY} ${params.DRY_RUN ? "--noop" : ""}")
                     }
                 }
             }

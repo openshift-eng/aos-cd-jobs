@@ -95,7 +95,7 @@ stage ('prometheus_scale_test') {
 					to: 'sejug@redhat.com, nelluri@redhat.com',
 					subject: '${JOB} job failed',
 					body: """\
-						Encoutered an error while running the ${JOB} job: ${e.getMessage()}\n\n
+						Encountered an error while running the ${JOB} job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

@@ -82,7 +82,7 @@ stage('ns_per_cluster_scale_test') {
       					to: 'nelluri@redhat.com',
       					subject: 'NS_PER_CLUSTER job failed',
       					body: """\
-						Encoutered an error while running the ns_per_clusterical-scale-test job: ${e.getMessage()}\n\n
+						Encountered an error while running the ns_per_clusterical-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

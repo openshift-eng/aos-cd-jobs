@@ -71,7 +71,7 @@ stage ('logging_scale_test') {
 					to: 'nelluri@redhat.com',
 					subject: 'Nodevertical-scale-test job failed',
 					body: """\
-						Encoutered an error while running the logging-scale-test job: ${e.getMessage()}\n\n
+						Encountered an error while running the logging-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

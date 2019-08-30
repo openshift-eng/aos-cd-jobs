@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from pprint import pprint as pp
 import os
 import time
 import sys
@@ -12,6 +13,8 @@ def rpmdiffs_ran(advisory):
     rpmdiffs = advisory.externalTests(test_type='rpmdiff')
 
     print("Checking to see if RPM diffs have finished running")
+    print("Current RPM Diff status data:")
+    pp(rpmdiffs)
     not_finished_diffs = []
     for diff in rpmdiffs:
         if diff['attributes']['status'] in ['QUEUED_FOR_TEST', 'RUNNING']:
@@ -30,6 +33,9 @@ def rpmdiffs_resolved(advisory):
     rpmdiffs = advisory.externalTests(test_type='rpmdiff')
     completed_diffs = []
     incomplete_diffs = []
+
+    print("Current RPM Diff status data:")
+    pp(rpmdiffs)
 
     for diff in rpmdiffs:
         if diff['attributes']['status'] in ['INFO', 'WAIVED']:

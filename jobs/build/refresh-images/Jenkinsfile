@@ -275,7 +275,7 @@ images:push
                 final version_release = buildlib.doozer([
                         "--working-dir ${DOOZER_WORKING}",
                         "--group openshift-${OSE_MAJOR}.${OSE_MINOR}",
-                        '--images openshift-enterprise-docker',
+                        '--images openshift-enterprise-cli',
                         '--quiet',
                         'images:print --short {version}-{release}',
                 ].join(' '), [capture: true]).split('-')

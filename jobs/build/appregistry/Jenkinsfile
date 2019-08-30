@@ -4,14 +4,11 @@ def processImages(lines) {
     lines.split().each { line ->
         // label, name, nvr, version
         def fields = line.split(',')
-        if (fields[0] == 'true') {
-            data.add([
-                name: fields[1],
-                nvr: fields[2],
-                version: fields[3].replace("v", ""),
-                metadata_nvr: fields[2].replace("-operator-container", "-operator-metadata-container"),
-            ])
-        }
+        data.add([
+            name: fields[1],
+            nvr: fields[2],
+            version: fields[3].replace("v", ""),
+        ])
     }
     return data
 }
@@ -117,8 +114,7 @@ node {
     currentBuild.description = "Collecting appregistry images for ${params.BUILD_VERSION}"
     currentBuild.displayName += " - ${params.BUILD_VERSION}"
 
-    // temporarily disable 4.2 pushes until we have figured out what we need to do for them
-    def skipPush = (params.BUILD_VERSION == '4.2') ? true : params.SKIP_PUSH
+    def skipPush = params.SKIP_PUSH
 
     try {
         def operatorData = []
@@ -141,16 +137,15 @@ node {
                 currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
             }
             stage("build metadata container") {
-                for (def i = 0; i < operatorData.size(); i++) { // @TODO: pass all NVRs simultaneously to doozer
-                    def build = operatorData[i]
-                    buildlib.doozer """
-                        --working-dir ${workDir}
-                        --group openshift-${params.BUILD_VERSION}
-                        operator:metadata ${build.nvr}
-                        ${params.FORCE_METADATA_BUILD ? "-f" : ""}
-                        --merge-branch ${params.STREAM}
-                    """
-                }
+                def nvrs = operatorData.collect { item -> item.nvr }
+
+                buildlib.doozer """
+                    --working-dir ${workDir}
+                    --group openshift-${params.BUILD_VERSION}
+                    operator-metadata:build ${nvrs.join(' ')}
+                    ${params.FORCE_METADATA_BUILD ? "-f" : ""}
+                    --merge-branch ${params.STREAM}
+                """
             }
             stage("push metadata") {
                 if (skipPush) {
@@ -168,9 +163,11 @@ node {
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
+                            def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
+
                             retry(3) {
                                 def response = httpRequest(
-                                    url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${build.metadata_nvr}",
+                                    url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
                                     httpMode: 'POST',
                                     customHeaders: [[name: 'Authorization', value: token]],
                                     timeout: 60,
@@ -178,24 +175,41 @@ node {
                                 )
                                 if (response.status != 200) {
                                     sleep(5)
-                                    error "OMPS request for ${build.metadata_nvr} failed: ${response.status} ${response.content}"
+                                    error "OMPS request for ${metadata_nvr} failed: ${response.status} ${response.content}"
                                 }
                             }
-                            currentBuild.description += "\n  ${build.metadata_nvr}"
+                            currentBuild.description += "\n  ${metadata_nvr}"
                         }
                     }
                 } else {
                     if (params.ADVISORY) {
-                        buildlib.elliott("change-state -s NEW_FILES -a ${params.ADVISORY} ${params.DRY_RUN ? "--noop" : ""}")
 
-                        cmd = """--group openshift-${params.BUILD_VERSION}
+                        // obtaining metadata NVRs of all builds
+                        def build_names = []
+                        operatorData.each { build -> build_names.add(build.name) }
+                        doozer_cmd = "--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build_names.join(' ')}"
+                        def metadata_nvrs = buildlib.doozer(doozer_cmd, [capture: true])
+
+                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
+                            change-state -s NEW_FILES
+                            -a ${params.ADVISORY}
+                            ${params.DRY_RUN ? "--noop" : ""}
+                        """
+
+                        def elliott_build_flags = []
+                        metadata_nvrs.split("\n").each { nvr -> elliott_build_flags.add("--build ${nvr}") }
+
+                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
                             find-builds -k image
-                            --build ${build.metadata_nvr}
+                            ${elliott_build_flags.join(" ")}
                             --attach ${params.ADVISORY}
                         """
-                        buildlib.elliott(cmd)
 
-                        buildlib.elliott("change-state -s QE -a ${params.ADVISORY} ${params.DRY_RUN ? "--noop" : ""}")
+                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
+                            change-state -s QE
+                            -a ${params.ADVISORY}
+                            ${params.DRY_RUN ? "--noop" : ""}
+                        """
                     }
                 }
             }

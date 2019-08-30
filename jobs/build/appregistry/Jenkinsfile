@@ -85,6 +85,11 @@ node {
                         defaultValue: '',
                     ),
                     booleanParam(
+                        name: 'FORCE_METADATA_BUILD',
+                        defaultValue: false,
+                        description: "Always attempt to build the operator metadata repo, even if there is nothing new to be built"
+                    ),
+                    booleanParam(
                         name: 'SKIP_PUSH',
                         defaultValue: false,
                         description: "Do not push operator metadata"
@@ -142,6 +147,7 @@ node {
                         --working-dir ${workDir}
                         --group openshift-${params.BUILD_VERSION}
                         operator:metadata ${build.nvr}
+                        ${params.FORCE_METADATA_BUILD ? "-f" : ""}
                         --merge-branch ${params.STREAM}
                     """
                 }

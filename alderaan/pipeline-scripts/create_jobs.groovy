@@ -50,7 +50,7 @@ stage ('Create jobs in OpenShift QE jenkins') {
 					to: 'nelluri@redhat.com',
 					subject: 'ALDERAAN-CREATE-JOBS job failed',
 					body: """\
-						Encoutered an error while running the jobs-scale-test job: ${e.getMessage()}\n\n
+						Encountered an error while running the jobs-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

@@ -132,8 +132,8 @@ ${currentBuild.description}
 
 
 View the build artifacts and console output on Jenkins:
-    - Jenkins job: ${env.BUILD_URL}
-    - Console output: ${env.BUILD_URL}console
+    - Jenkins job: ${commonlib.buildURL()}
+    - Console output: ${commonlib.buildURL('console')}
 
 """
             )

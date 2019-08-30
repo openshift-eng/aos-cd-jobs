@@ -12,7 +12,7 @@ def mail_success(commonlib) {
             replyTo: 'aos-team-art@redhat.com',
             subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
             body: """\
-Jenkins job: ${env.BUILD_URL}
+Jenkins job: ${commonlib.buildURL()}
 ${OSE_MAJOR}.${OSE_MINOR}
 """);
 }
@@ -228,8 +228,8 @@ images:build
                             from: "aos-cicd@redhat.com",
                             subject: "RESUMABLE Error during Refresh Images for OCP v${OSE_MAJOR}.${OSE_MINOR}",
                             body: """Encountered an error: ${err}
-Input URL: ${env.BUILD_URL}input
-Jenkins job: ${env.BUILD_URL}
+Input URL: ${commonlib.buildURL('input')}
+Jenkins job: ${commonlib.buildURL()}
 
 BUILD / PUSH FAILURES:
 ${failed_map}
@@ -296,10 +296,10 @@ images:push
                 to: "${params.MAIL_LIST_FAILURE}",
                 from: "aos-cicd@redhat.com",
                 subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
-                body: """Encoutered an error while running ${env.JOB_NAME}: ${err}
+                body: """Encountered an error while running ${env.JOB_NAME}: ${err}
 
 
-Jenkins job: ${env.BUILD_URL}
+Jenkins job: ${commonlib.buildURL()}
 """);
             // Re-throw the error in order to fail the job
             throw err

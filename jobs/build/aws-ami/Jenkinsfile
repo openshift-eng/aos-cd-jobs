@@ -108,7 +108,7 @@ node('openshift-build-1') {
         mail(to: "${MAIL_LIST_FAILURE}",
                 from: 'aos-cicd@redhat.com',
                 subject: "Error building aws ami",
-                body: """Encoutered an error while running build_ami.yml: ${err}
+                body: """Encountered an error while running build_ami.yml: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}

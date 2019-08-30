@@ -69,7 +69,7 @@ stage ('setup_pbench') {
 					to: 'nelluri@redhat.com',
 					subject: 'Setup-tooling job failed',
 					body: """\
-						Encoutered an error while running the setup-tooling job: ${e.getMessage()}\n\n
+						Encountered an error while running the setup-tooling job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

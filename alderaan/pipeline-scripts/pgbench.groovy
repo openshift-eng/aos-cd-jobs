@@ -79,7 +79,7 @@ stage ('pgbench_scale_test_glusterfs') {
 					to: 'ekuric@redhat.com',
 					subject: 'pgbench-scale-test job failed',
 					body: """\
-						Encoutered an error while running the pgbench-scale-test job: ${e.getMessage()}\n\n
+						Encountered an error while running the pgbench-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"
@@ -163,7 +163,7 @@ stage ('pgbench_scale_test_gluster_block') {
 								to: 'ekuric@redhat.com',
 								subject: 'pgbench-scale-test job failed',
 								body: """\
-										Encoutered an error while running the pgbench-scale-test job: ${e.getMessage()}\n\n
+										Encountered an error while running the pgbench-scale-test job: ${e.getMessage()}\n\n
 										Jenkins job: ${env.BUILD_URL}
 						""")
 						currentBuild.result = "FAILURE"

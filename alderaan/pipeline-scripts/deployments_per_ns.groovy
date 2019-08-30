@@ -81,7 +81,7 @@ stage ('deployments_per_ns_scale_test') {
 					to: 'nelluri@redhat.com',
 					subject: 'Deployments per namespace cluster limits job failed',
 					body: """\
-						Encoutered an error while running the deployments_per_ns-scale-test job: ${e.getMessage()}\n\n
+						Encountered an error while running the deployments_per_ns-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

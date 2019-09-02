@@ -41,7 +41,7 @@ stage ('BROWBEAT') {
 					to: 'nelluri@redhat.com',
 					subject: 'Browbeat job failed',
 					body: """\
-						Encountered an error while running the browbeat job: ${e.getMessage()}\n\n
+						Encoutered an error while running the browbeat job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

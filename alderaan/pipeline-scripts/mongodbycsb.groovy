@@ -59,7 +59,7 @@ stage ('mongoycsb_scale_test_glusterfs') {
 								to: 'ekuric@redhat.com',
 								subject: 'mongodb-ycsb-test job failed',
 								body: """\
-										Encountered an error while running the mongodb-ycsb-test job: ${e.getMessage()}\n\n
+										Encoutered an error while running the mongodb-ycsb-test job: ${e.getMessage()}\n\n
 										Jenkins job: ${env.BUILD_URL}
 						""")
 						currentBuild.result = "FAILURE"
@@ -122,7 +122,7 @@ stage ('mongoycsb_scale_test_gluster_block') {
 								to: 'ekuric@redhat.com',
 								subject: 'mongodb-ycsb-test job failed',
 								body: """\
-										Encountered an error while running the mongodb-ycsb-test job: ${e.getMessage()}\n\n
+										Encoutered an error while running the mongodb-ycsb-test job: ${e.getMessage()}\n\n
 										Jenkins job: ${env.BUILD_URL}
 						""")
 						currentBuild.result = "FAILURE"

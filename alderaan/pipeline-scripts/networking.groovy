@@ -57,7 +57,7 @@ stage (node_label) {
 					to: 'nelluri@redhat.com',
 					subject: 'Networking-test job failed',
 					body: """\
-						Encountered an error while running the networking-scale-test job: ${e.getMessage()}\n\n
+						Encoutered an error while running the networking-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

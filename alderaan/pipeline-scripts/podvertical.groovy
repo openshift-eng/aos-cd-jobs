@@ -83,7 +83,7 @@ stage ('podvertical_scale_test') {
 					to: 'nelluri@redhat.com',
 					subject: 'Podvertical-scale-test job failed',
 					body: """\
-						Encountered an error while running the podvertical-scale-test job: ${e.getMessage()}\n\n
+						Encoutered an error while running the podvertical-scale-test job: ${e.getMessage()}\n\n
 						Jenkins job: ${env.BUILD_URL}
 				""")
 				currentBuild.result = "FAILURE"

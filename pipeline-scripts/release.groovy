@@ -88,8 +88,8 @@ def stageWaitForStable() {
     }
 
     // 2019-05-23 - As of now jobs will not be tagged as `Accepted`
-    // until they pass an upgrade test, hence the 2 hour wait loop
-    while (count < 24) { // wait for 5m * 24 = 120m = 2 hours
+    // until they pass an upgrade test, hence the 3 hour wait loop
+    while (count < 36) { // wait for 5m * 36 = 180m = 3 hours
         def res = commonlib.shell(
                 returnAll: true,
                 script: cmd

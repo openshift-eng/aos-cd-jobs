@@ -37,7 +37,11 @@ def kinit() {
     echo "Initializing ocp-build kerberos credentials"
     // Keytab for old os1 build machine
     // sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
-    sh "kinit -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"
+    //
+    // The '-f' ensures that the ticket is forwarded to remote hosts
+    // when using SSH. This is required for when we build signed
+    // puddles.
+    sh "kinit -f -k -t /home/jenkins/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"
 }
 
 def registry_login() {
@@ -111,25 +115,6 @@ def oc(cmd, opts=[:]){
         returnStdout: opts.capture ?: false,
         script: "GOTRACEBACK=all /usr/bin/oc ${cleanWhitespace(cmd)}"
     )
-}
-
-def getDefaultAdvisoryID(version, type) {
-    // Get the ID of the default advisory for the given version of the
-    // specified type (rpm/image/security)
-    //
-    // @param version: The openshift version param, e.g. '4.2'
-    // @param type: The kind of advisory to look up, e.g. rpm/image/security
-    def result = this.elliott "--group=openshift-${version} get --use-default-advisory ${type} --id-only", [capture: true]
-    return result.stdout
-}
-
-def getErrataWhitelist(version) {
-    // Get the advisories that should go into an errata_whitelist
-    // puddle config
-    //
-    // @param version: The openshift version param, e.g. '4.2'
-    def result = this.elliott "--group=openshift-${version} puddle-advisories", [capture: true]
-    return result.stdout
 }
 
 def initialize_ose_dir() {

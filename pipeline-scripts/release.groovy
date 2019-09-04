@@ -10,7 +10,9 @@ def stageVersions() {
     sh "elliott --version"
 }
 
-def stageValidation(quay_url, name, advisory) {
+Map stageValidation(String quay_url, String name, int advisory = 0) {
+    def retval = [:]
+    def version = commonlib.extractMajorMinorVersion(name)
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
             returnAll: true,
@@ -21,24 +23,64 @@ def stageValidation(quay_url, name, advisory) {
         error("Payload ${name} already exists! Cannot continue.")
     }
 
-    // AMH - This may be optional?
-    if (advisory != "") {
-        echo "Verifying advisory exists"
+    if (!advisory) {
+        echo "Getting current advisory for OCP $version from build data..."
         res = commonlib.shell(
                 returnAll: true,
-                script: "elliott get ${advisory}"
-        )
+                script: "elliott --group=openshift-${version} get --json - --use-default-advisory image",
+            )
+        if(res.returnStatus != 0) {
+            error("🚫 Advisory number for OCP $version couldn't be found from ocp_build_data.")
+        }
+    } else {
+        echo "Verifying advisory ${advisory} exists"
+        res = commonlib.shell(
+                returnAll: true,
+                script: "elliott --group=openshift-${version} get --json - -- ${advisory}",
+            )
 
         if(res.returnStatus != 0){
             error("Advisory ${advisory} does not exist! Cannot continue.")
         }
     }
+
+    def advisoryInfo = readJSON text: res.stdout
+    retval.advisoryInfo = advisoryInfo
+
+    echo "Verifying advisory ${advisoryInfo.id} (https://errata.engineering.redhat.com/advisory/${advisoryInfo.id}) status"
+    if (advisoryInfo.status != 'QE') {
+        error("🚫 Advisory ${advisoryInfo.id} is not in QE state.")
+    }
+    echo "✅ Advisory ${advisoryInfo.id} is in QE state."
+
+    // Extract live ID from advisory info
+    // Examples:
+    // - advisory with live ID:
+    //     "errata_id": 2681,
+    //     "fulladvisory": "RHBA-2019:2681-02",
+    //     "id": 46049,
+    //     "old_advisory": "RHBA-2019:46049-02",
+    // - advisory without:
+    //     "errata_id": 46143,
+    //     "fulladvisory": "RHBA-2019:46143-01",
+    //     "id": 46143,
+    //     "old_advisory": null,
+    if (advisoryInfo.errata_id != advisoryInfo.id && advisoryInfo.fulladvisory && advisoryInfo.old_advisory) {
+        retval.liveID = (advisoryInfo.fulladvisory =~ /^(RH[EBS]A-\d+:\d+)-\d+$/)[0][1] // remove "-XX" suffix
+        retval.errataUrl ="https://access.redhat.com/errata/${retval.liveID}"
+        echo "ℹ️ Got Errata URL from advisory ${advisoryInfo.id}: ${retval.errataUrl}"
+    } else {
+        // Fail if live ID hasn't been assigned
+        error("🚫 Advisory ${advisoryInfo.id} doesn't seem to be associated with a live ID.")
+    }
+
+    return retval
 }
 
 def stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) {
     // build metadata blob
     def metadata = "{\"description\": \"${description}\""
-    if (errata_url != "") {
+    if (errata_url) {
         metadata += ", \"url\": \"${errata_url}\""
     }
     metadata += "}"

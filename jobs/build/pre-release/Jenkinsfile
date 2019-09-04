@@ -71,7 +71,7 @@ node {
 
             stage("versions") { prerelease.stageVersions() }
 
-            stage("validation") { prerelease.stageValidation(quay_url, from_release_tag, "") }
+            stage("validation") { prerelease.stageValidation(quay_url, from_release_tag) }
 
             stage("payload") { prerelease.stageGenPayload(quay_url, from_release_tag, from_release_tag, "", "", "") }
 

@@ -313,4 +313,13 @@ def array_to_list(array) {
     return l
 }
 
+/**
+ * Given a version string x.y.z,
+ * returns the x.y part.
+ * e.g. "4.1.0-rc.9" => "4.1"
+ */
+String extractMajorMinorVersion(String version) {
+    return (version =~ /^(\d+\.\d+)/)[0][1]
+}
+
 return this

@@ -19,30 +19,25 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    // [
-                    //     name: 'ADVISORY',
-                    //     description: 'Optional: RPM/Bug fix advisory number\nIf not provided then the default advisory will be used.',
-                    //     $class: 'hudson.model.StringParameterDefinition',
-                    //     defaultValue: ""
-                    // ],
-                    // [
-                    //     name: 'BUILDS',
-                    //     description: 'Optional: Only attach these brew builds (accepts numeric id or NVR)\nComma separated list\nOverrides SKIP_ADDING_BUILDS',
-                    //     $class: 'hudson.model.StringParameterDefinition',
-                    //     defaultValue: ""
-                    // ],
-                    // [
-                    //     name: 'SKIP_ADDING_BUILDS',
-                    //     description: 'Do not bother adding more builds\nfor example: if you are already satisfied with what is already attached and just need to run the rpmdiff/signing process',
-                    //     $class: 'BooleanParameterDefinition',
-                    //     defaultValue: false
-                    // ],
-                    // [
-                    //     name: 'DRY_RUN',
-                    //     description: 'Do not change anything. Just show what would have happened',
-                    //     $class: 'BooleanParameterDefinition',
-                    //     defaultValue: false
-                    // ],
+                    commonlib.suppressEmailParam(),
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: '(Optional) Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "aos-art-automation+new-signed-composes@redhat.com",
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: 'aos-art-automation+failed-signed-puddle@redhat.com',
+                    ],
+                    [
+                        name: 'DRY_RUN',
+                        description: 'Do not update the puddle. Just show what would have happened',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                 ]
@@ -51,27 +46,59 @@ node {
         ]
     )
 
-    def advisory = buildlib.getDefaultAdvisoryID(params.BULID_VERSION, 'rpm')
+    commonlib.checkMock()
+    def advisory = buildlib.elliott("--group=openshift-${params.BUILD_VERSION} get --use-default-advisory rpm --id-only", [capture: true]).trim()
 
     stage("Initialize") {
-	buildlib.elliott "--version"
-	buildlib.kinit()
-	build.initialize()
-    }
-    sshagent(["openshift-bot"]) {
-	stage("Advisory is NEW_FILES") { build.signedComposeStateNewFiles() }
-	stage("Attach builds") { build.signedComposeAttachBuilds() }
-	stage("RPM diffs ran") { build.signedComposeRpmdiffsRan(advisory) }
-	stage("RPM diffs resolved") { build.signedComposeRpmdiffsResolved(advisory) }
-	stage("Advisory is QE") { build.signedComposeStateQE() }
-	stage("Signing completing") { build.signedComposeRpmsSigned() }
-	stage("New compose") { build.signedComposeNewCompose() }
+        buildlib.elliott "--version"
+        buildlib.kinit()
+        currentBuild.displayName = "#${currentBuild.number} OCP ${params.BUILD_VERSION}"
+        build.initialize(advisory)
     }
 
+    try {
+        sshagent(["openshift-bot"]) {
+            stage("Advisory is NEW_FILES") { build.signedComposeStateNewFiles() }
+            stage("Attach builds") { build.signedComposeAttachBuilds() }
+            stage("RPM diffs ran") { build.signedComposeRpmdiffsRan(advisory) }
+            stage("RPM diffs resolved") { build.signedComposeRpmdiffsResolved(advisory) }
+            stage("Advisory is QE") { build.signedComposeStateQE() }
+            stage("Signing completing") { build.signedComposeRpmsSigned() }
+            stage("New el7 compose") { build.signedComposeNewComposeEl7() }
+            // Ensure the rhel8 tag script can read the required cert
+            withEnv(['REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt']) {
+                stage("New el8 compose") { build.signedComposeNewComposeEl8() }
+            }
+        }
+        build.mailForSuccess()
+    } catch (err) {
+        currentBuild.description += "\n-----------------\n\n${err}\n-----------------\n"
+        currentBuild.result = "FAILURE"
 
-    // ######################################################################
-    // Email results
-
-    //
-    // ######################################################################
+        if (params.MAIL_LIST_FAILURE.trim()) {
+            commonlib.email(
+                to: params.MAIL_LIST_FAILURE,
+                from: "aos-art-automation+failed-signed-compose@redhat.com",
+                replyTo: "aos-team-art@redhat.com",
+                subject: "Error building OCP Signed Puddle ${params.BUILD_VERSION}",
+                body:
+                    """\
+Pipeline build "${currentBuild.displayName}" encountered an error:
+${currentBuild.description}
+View the build artifacts and console output on Jenkins:
+    - Jenkins job: ${commonlib.buildURL()}
+    - Console output: ${commonlib.buildURL('console')}
+"""
+            )
+        }
+        throw err  // gets us a stack trace FWIW
+    } finally {
+        commonlib.safeArchiveArtifacts([
+                'email/*',
+                'shell/*',
+                "${build.workdir}/changelog*.log",
+                "${build.workdir}/puddle*.log",
+            ]
+        )
+    }
 }

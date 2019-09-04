@@ -29,7 +29,7 @@ def signedComposeStateNewFiles() {
 // EL7 and EL8.
 def signedComposeAttachBuilds() {
     // Don't actually attach builds if this is just a dry run
-    def advs = (params.DRY_RUN == true) ? advisoryOpt : ''
+    def advs = params.DRY_RUN ? '' : advisoryOpt
     def cmd = "${elliottOpts} find-builds --kind rpm ${advs}"
     def cmdEl8 = "${elliottOpts} --branch rhaos-${params.BUILD_VERSION}-rhel-8 find-builds --kind rpm ${advs}"
 

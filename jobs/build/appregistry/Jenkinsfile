@@ -144,7 +144,7 @@ node {
                     --group openshift-${params.BUILD_VERSION}
                     operator-metadata:build ${nvrs.join(' ')}
                     ${params.FORCE_METADATA_BUILD ? "-f" : ""}
-                    --merge-branch ${params.STREAM}
+                    --stream ${params.STREAM}
                 """
             }
             stage("push metadata") {

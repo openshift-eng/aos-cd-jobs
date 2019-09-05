@@ -67,7 +67,9 @@ node {
             stage("New el7 compose") { build.signedComposeNewComposeEl7() }
             // Ensure the rhel8 tag script can read the required cert
             withEnv(['REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt']) {
-                stage("New el8 compose") { build.signedComposeNewComposeEl8() }
+                if (build.requiresRhel8()) {
+                    stage("New el8 compose") { build.signedComposeNewComposeEl8() }
+                }
             }
         }
         build.mailForSuccess()

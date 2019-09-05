@@ -95,7 +95,7 @@ def stageRunBackup() {
 
     scpRes = commonlib.shell(
             returnAll: true,
-            script: "scp ${tarballPath} ${backupPlan.destHost}:${tarballPath}"
+            script: "scp ${tarballPath} root@${backupPlan.destHost}:${tarballPath}"
     )
 
     if (scpRes.returnStatus != 0) {

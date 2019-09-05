@@ -4,11 +4,13 @@ def processImages(lines) {
     lines.split().each { line ->
         // label, name, nvr, version
         def fields = line.split(',')
-        data.add([
-            name: fields[1],
-            nvr: fields[2],
-            version: fields[3].replace("v", ""),
-        ])
+        if (fields[0]) {
+            data.add([
+                name: fields[1],
+                nvr: fields[2],
+                version: fields[3].replace("v", ""),
+            ])
+        }
     }
     return data
 }

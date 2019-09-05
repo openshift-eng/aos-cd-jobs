@@ -15,10 +15,11 @@ echo "Substituting in errata_whitelist with provided value: ${ERRATA}"
 sed -i -r "s|errata_whitelist.*|errata_whitelist = ${ERRATA}|" $CONF
 
 echo "Running puddle command"
-puddle $CONF -b -d -n
+puddle $CONF -b -d -n --label=building
 # "-b",   // do not fail if we are missing dependencies
 # "-d",   // print debug information
 # "-n"    // do not send an email for this puddle
+# "--label=building"  // update "building" symlink instead of default "latest"
 
 echo "Cleaning up"
 rm -vf $CONF

@@ -36,6 +36,7 @@ backupPlan = [
         '/usr/lib/jenkins',
 
         // Jenkins configuration, plugins, etc
+        '/mnt/nfs/jenkins_home/*.xml',
         '/mnt/nfs/jenkins_home/plugins',
         '/mnt/nfs/jenkins_home/users',
         '/mnt/nfs/jenkins_home/userContent',

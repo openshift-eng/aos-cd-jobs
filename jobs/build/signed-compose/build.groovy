@@ -34,8 +34,10 @@ def signedComposeAttachBuilds() {
     def cmdEl8 = "${elliottOpts} --branch rhaos-${params.BUILD_VERSION}-rhel-8 find-builds --kind rpm ${advs}"
 
     try {
-        def attachResult = buildlib.elliott(cmd, [capture: true]).trim().split('\n')[-1]
-        def attachResultEl8 = buildlib.elliott(cmdEl8, [capture: true]).trim().split('\n')[-1]
+        buildlib.elliott(cmd, [capture: true]).trim().split('\n')[-1]
+        if (requiresRhel8()) {
+            buildlib.elliott(cmdEl8, [capture: true]).trim().split('\n')[-1]
+        }
     } catch (err) {
         echo("Problem running elliott")
         currentBuild.description += """
@@ -267,7 +269,8 @@ ${tagResult.combined}
 // format a useful email.
 def mailForSuccess() {
     def puddleMetaEl7 = analyzePuddleLogs()
-    def puddleMetaEl8 = analyzePuddleLogs('-el8')
+    def puddleMetaEl8 = requiresRhel8() ? analyzePuddleLogs('-el8') : ["newPuddle": "n/a", "changeLog": "n/a"]
+
     def successMessage = """New signed composes created for OpenShift ${params.BUILD_VERSION}
 
   Errata Whitelist included advisories: ${errataList}
@@ -405,5 +408,10 @@ def analyzePuddleLogs(String dist='') {
     }
 }
 
+// Does this version require the rhel 8 branch and compose?
+// Only if it's 4.x+
+def requiresRhel8(version=null) {
+    return !(version ?: params.BUILD_VERSION).startsWith("3.")
+}
 
 return this

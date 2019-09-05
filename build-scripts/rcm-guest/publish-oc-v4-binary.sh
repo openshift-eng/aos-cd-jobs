@@ -4,7 +4,7 @@ set -eux
 rpm_name() {
     printf "${RPM}" "${arch}"
     [[ "${arch}" == x86_64 ]] && printf %s -redistributable
-    printf %s "-${VERSION}"
+    printf %s "-*.git."
 }
 
 extract() {

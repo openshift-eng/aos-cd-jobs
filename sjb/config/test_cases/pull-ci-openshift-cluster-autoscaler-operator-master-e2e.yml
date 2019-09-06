@@ -82,21 +82,21 @@ extensions:
         sudo kubectl apply -f examples/static-machine.yaml
         sudo kubectl apply -f examples/worker-machinesets.yaml
     - type: "script"
-      title: "Install go 1.10.1"
+      title: "Install go 1.12.9"
       script: |-
         mkdir -p ~/bin
         curl -sL -o ~/bin/gimme https://raw.githubusercontent.com/travis-ci/gimme/master/gimme
         chmod +x ~/bin/gimme
-        gimme 1.10.1
-        source ~/.gimme/envs/go1.10.1.env
-        sudo cp /home/origin/.gimme/versions/go1.10.1.linux.amd64/bin/go /bin/go
+        gimme 1.12.9
+        source ~/.gimme/envs/go1.12.9.env
+        sudo cp /home/origin/.gimme/versions/go1.12.9.linux.amd64/bin/go /bin/go
     - type: "script"
       title: "Run e2e tests"
       script: |-
         set +x
         export GOPATH=/data
         cd $GOPATH/src/github.com/openshift/cluster-autoscaler-operator/
-        source ~/.gimme/envs/go1.10.1.env
+        source ~/.gimme/envs/go1.12.9.env
         sudo -E make test-e2e NAMESPACE="kube-system"
   system_journals:
     - systemd-journald.service

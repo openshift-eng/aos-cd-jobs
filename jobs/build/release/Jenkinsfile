@@ -21,37 +21,37 @@ node {
                 parameterDefinitions: [
                     [
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Build tag to pull from (i.e. 4.1.0-0.nightly-2019-04-22-005054)',
+                        description: 'Build tag to pull from (e.g. 4.1.0-0.nightly-2019-04-22-005054)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
                         name: 'NAME',
-                        description: 'Release name (i.e. 4.1.0-rc0)',
+                        description: 'Release name (e.g. 4.1.0)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
                         name: 'DESCRIPTION',
-                        description: 'Release description for metadata',
+                        description: '[deprecated] Release description for metadata',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
                         name: 'ADVISORY',
-                        description: 'Optional: Image release advisory number',
+                        description: '[DO NOT USE]: Image release advisory number',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
                         name: 'ERRATA_URL',
-                        description: 'Optional: Public release errata URL (e.g. https://access.redhat.com/errata/RHBA-2019:0758-09)',
+                        description: 'Optional: Public release errata URL (e.g. https://access.redhat.com/errata/RHBA-2019:0758)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
                         name: 'PREVIOUS',
-                        description: 'Optional: Tag(s) (comma separated) of release this can upgrade FROM',
+                        description: 'Optional: Tag(s) (comma separated) of last 10 releases this can upgrade FROM',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],

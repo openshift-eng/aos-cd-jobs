@@ -11,20 +11,18 @@ extract() {
     local arch rpm
     mkdir macosx windows
     for arch in x86_64 ${ARCH}; do
-        rpm=$(echo "$(rpm_name "${arch}")"*)
+        rpm=$(ls $(rpm_name "${arch}")*)
         if [[ "${arch}" != x86_64 && ! -e "${rpm}" ]]; then continue; fi
         mkdir "${arch}"
         if [[ "${arch}" != x86_64 ]]; then
             rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/oc
             mv usr/bin/oc "${arch}"
         else
-            rpm2cpio "${rpm}" \
-                | cpio -idm --quiet \
-                    ./usr/share/${PKG}/{linux,macosx}/oc \
-                    ./usr/share/${PKG}/windows/oc.exe
-            mv usr/share/${PKG}/linux/oc x86_64/
-            mv usr/share/${PKG}/macosx/oc macosx/
-            mv usr/share/${PKG}/windows/oc.exe windows/
+            rpm2cpio "${rpm}" | cpio -idm --quiet "./usr/share/*"
+            # In 4.1, /usr/share/openshift. In 4.2 and subsequent, /usr/share/openshift-clients.
+            mv usr/share/*/linux/oc x86_64/
+            mv usr/share/*/macosx/oc macosx/
+            mv usr/share/*/windows/oc.exe windows/
         fi
     done
 }

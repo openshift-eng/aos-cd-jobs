@@ -3,4 +3,9 @@ properties( [
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
     disableConcurrentBuilds()] )
 
+build job: '../aos-cd-maintenance/maintenance%2Fbuildvm_backup',
+    parameters: [
+        booleanParam(name: 'SUPPRESS_EMAIL', value: false),
+    ], propagate: false
+
 b = build       job: '../aos-cd-builds/build%2Fbuildvm-maint'

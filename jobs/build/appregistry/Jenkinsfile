@@ -162,12 +162,13 @@ node {
                 if (params.STREAM == 'dev') {
                     currentBuild.description += "\npushing operator metadata."
                     withCredentials([usernamePassword(credentialsId: 'quay_appregistry_omps_bot', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+                        def errors = []
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
                             def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
 
-                            retry(3) {
+                            retry(5) {
                                 def response = httpRequest(
                                     url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
                                     httpMode: 'POST',
@@ -176,11 +177,18 @@ node {
                                     validResponseCodes: "200:599",
                                 )
                                 if (response.status != 200) {
-                                    sleep(5)
-                                    error "OMPS request for ${metadata_nvr} failed: ${response.status} ${response.content}"
+                                    sleep(60)
+                                    errors.add([
+                                        metadata_nvr: metadata_nvr,
+                                        response_status: response.status,
+                                        response_content: response.content
+                                    ])
                                 }
                             }
                             currentBuild.description += "\n  ${metadata_nvr}"
+                        }
+                        if (!errors.isEmpty()) {
+                            error "${errors}"
                         }
                     }
                 } else {

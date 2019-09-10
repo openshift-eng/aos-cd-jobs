@@ -168,7 +168,7 @@ node {
                             def build = operatorData[i]
                             def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
 
-                            retry(5) {
+                            retry(10) {
                                 def response = httpRequest(
                                     url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
                                     httpMode: 'POST',

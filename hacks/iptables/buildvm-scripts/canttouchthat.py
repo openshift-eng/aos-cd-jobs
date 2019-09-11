@@ -3,84 +3,135 @@
 
 from __future__ import print_function
 
-import argparse
 import click
 import subprocess
-import shlex
 
-RULE_COMMENT = "Rule managed by ART"
-LOG_COMMENT = "Log rule managed by ART"
 LOG_PREFIX_ALL_CONNECTION = "New Connection: "
 LOG_PREFIX_DISALLOWED_CONNECTION = "Disallowed Connection: "
 
 
-def make_output_args(cidr):
-    return ['OUTPUT',
-            '-d', cidr,
-            '-j', 'ACCEPT',
-            '-m', 'comment',
-            '--comment', RULE_COMMENT
-            ]
+def reload_permanent_rules():
+    subprocess.check_output(['firewall-cmd', '--reload'])
 
 
-def make_output_log_args(prefix):
-    return [
-        'OUTPUT',
+def remove_permanent_rules():
+    subprocess.check_output(['firewall-cmd',
+                             '--permanent',
+                             '--direct',
+                             '--remove-rules',
+                             'ipv4',
+                             'filter',
+                             'OUTPUT',
+                             ])
+    subprocess.check_output(['firewall-cmd',
+                             '--permanent',
+                             '--direct',
+                             '--remove-rules',
+                             'ipv6',
+                             'filter',
+                             'OUTPUT',
+                             ])
+
+
+def install_logging_rule(priority, space, prefix, dry_run):
+    cmd = [
+        'firewall-cmd',
+        '--permanent',
+        '--direct',
+        '--add-rule',
+        space,
+        'filter',
+        'OUTPUT', '{}'.format(priority),
         '!', '-o', 'lo',  # Avoid logging loopback communication
         '-m', 'state',
         '--state', 'NEW',
         '-j', 'LOG',
-        '--log-prefix', prefix,
-        '-m', 'comment',
-        '--comment', LOG_COMMENT
+        '--log-prefix', '"{}"'.format(prefix),
     ]
 
-@click.command()
+    if dry_run:
+        print('Would have run: {}'.format(cmd))
+    else:
+        print('Adding logging rule in {} with prefix \'{}\''.format(space, prefix))
+        subprocess.check_output(cmd)
+
+
+def install_drop_rule(priority, space, dry_run):
+    cmd = [
+        'firewall-cmd',
+        '--permanent',
+        '--direct',
+        '--add-rule',
+        space,
+        'filter',
+        'OUTPUT', '{}'.format(priority),
+        '!', '-o', 'lo',  # Avoid affecting loopback communication
+        '-j' 'DROP'
+    ]
+
+    if dry_run:
+        print('Would have run: {}'.format(cmd))
+    else:
+        print('Adding default DROP rule for {}'.format(space))
+        subprocess.check_output(cmd)
+
+
+@click.command(short_help="Manage OUTPUT rules using firewalld")
 @click.option('-n', '--output-networks', metavar='FILE',
               multiple=True,
               help='File(s) with allowed cidr on each line',
               required=False,
               default=[])
+@click.option('--enforce', default=False, is_flag=True,
+              help='If specified, DROP all other output')
 @click.option('--dry-run', default=False, is_flag=True,
               help='Print what would have been done')
-@click.option('--save', default=False, is_flag=True,
-              help='Save resultant iptables configuration for next boot')
 @click.option('--clean', default=False, is_flag=True,
               help='Clean out all rules installed by this program')
-def main(output_networks, dry_run, save, clean):
+def main(output_networks, enforce, dry_run, clean):
+    """Manage persistent outgoing connection network rules for the system.
 
+One or more input files provided by '-n' are read and compared with
+the current system state. The system is updated to match the given
+rule sets. Existing rules are removed from the system if not present
+in the input files, missing rules are added.
+
+Example input format:
+
+\b
+    10.0.0.0/8
+    224.0.0.0/4
+    140.211.0.0/16
+    140.82.112.0/20
+    2001:db8:abcd:8000::/50
+    2406:daff:8000::/40
+
+By default rules are only added, they are not enforced. That is to
+say, packets will not be dropped. If the `--enforce` option is given
+then a catch-all `DROP` rule is installed after all of the the
+`ACCEPT` rules. Running this again without the `--enforce` option will
+remove the `DROP` rule, effectively opening up outgoing traffic once
+again.
+
+Running with `--clean` will remove all installed rules.
+"""
     if (not clean and not output_networks) or (clean and output_networks):
         print('Either --output-networks XOR --clean is required')
         exit(1)
 
-    # Read in the current state of iptables
-    iptables_start = subprocess.check_output('iptables-save').strip().split('\n')
+    if clean:
+        if dry_run:
+            print('Would have removed all permanent rules and reloaded')
+        else:
+            remove_permanent_rules()
+            reload_permanent_rules()
+        exit(0)
 
-    print('There are presently {} iptable rules installed'.format(len(iptables_start)))
-
-    parser = argparse.ArgumentParser(description='inner argpase for iptables argument parsing')
-    parser.add_argument('-d', '--destination', default=None, help='The destination')
-
-    # Maps cidr -> rule string
-    iptables_output_map = {}
-    logging_rules = []
-
-    for rule in iptables_start:
-
-        if not rule.strip().startswith('-'):
-            continue
-
-        rule_args = shlex.split(rule)
-        parsed_args = parser.parse_known_args(rule_args)[0]
-
-        if ' OUTPUT ' in rule:
-            if parsed_args.destination and RULE_COMMENT in rule:
-                iptables_output_map[parsed_args.destination] = rule
-            elif LOG_COMMENT in rule:
-                logging_rules.append(rule)
-
-    print('There are {} OUTPUT rules under management'.format(len(iptables_output_map)))
-    print('There are {} OUTPUT logging rules under management'.format(len(logging_rules)))
+    if dry_run:
+        print('Would have reset all permanent rules')
+    else:
+        print('Removing all existing permanent rules')
+        remove_permanent_rules()
 
     cidr_set = set()
     # For each input file specified, add cidrs to the set
@@ -100,80 +151,37 @@ def main(output_networks, dry_run, save, clean):
                 cidr_set.add(cidr)
 
     for cidr in cidr_set:
-        if cidr in iptables_output_map:
-            # This rule is already mapped; ignore it
-            print('Rule already present for {}'.format(cidr))
-            del iptables_output_map[cidr]
-            continue
 
-        cmd = ['iptables', '-I']
-        cmd.extend(make_output_args(cidr))
+        space = 'ipv4'
+        if ':' in cidr:  # e.g. XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX/32
+            space = 'ipv6'
 
-        if dry_run:
-            print('Would have ADDED rule: {}'.format(cmd))
-        else:
-            print('Adding rule for: {}'.format(cidr))
-            subprocess.check_output(cmd)
-
-    # Remove old logging rules so we can re-insert them in the right locations
-    for old_logging_rule in logging_rules:
-        # During insertion / append into delete rule
-        delete_it = old_logging_rule.replace('-I OUTPUT', '-D OUTPUT').replace('-A OUTPUT', '-D OUTPUT')
-        cmd = ['iptables']
-        cmd.extend(shlex.split(delete_it))
-
-        if dry_run:
-            print('Would have DELETED old logging rule: {}'.format(cmd))
-        else:
-            print('Deleting old logging rule')
-            subprocess.check_output(cmd)
-
-    if not clean:
-        new_connection_cmd = [
-            'iptables',
-            '-I'  # Insert at the top of the chain
+        cmd = [
+            'firewall-cmd',
+            '--permanent',
+            '--direct',
+            '--add-rule',
+            space,
+            'filter',
+            'OUTPUT', '5',
+            '-d', cidr,
+            '-j', 'ACCEPT'
         ]
-        new_connection_cmd.extend(make_output_log_args(LOG_PREFIX_ALL_CONNECTION))
-        if dry_run:
-            print('Would have added new connection LOG: {}'.format(new_connection_cmd))
-        else:
-            print('Adding new connection logging rule')
-            subprocess.check_output(new_connection_cmd)
-
-        disallowed_connection_cmd = [
-            'iptables',
-            '-A'  # Insert at the bottom of the chain
-        ]
-        disallowed_connection_cmd.extend(make_output_log_args(LOG_PREFIX_DISALLOWED_CONNECTION))
-        if dry_run:
-            print('Would have added disallowed connection LOG: {}'.format(disallowed_connection_cmd))
-        else:
-            print('Adding disallowed connection logging rule')
-            subprocess.check_output(disallowed_connection_cmd)
-
-    # Iterate through the remaining rules; they are old and should be removed
-    for cidr in iptables_output_map:
-        rule = iptables_output_map[cidr]
-        delete_it = rule.replace('-I OUTPUT', '-D OUTPUT').replace('-A OUTPUT', '-D OUTPUT')
-        cmd = [ 'iptables' ]
-        cmd.extend(shlex.split(delete_it))
 
         if dry_run:
-            print('Would have DELETED old rule: {}'.format(cmd))
+            print('Would have run: {}'.format(cmd))
         else:
-            print('Deleting rule for: {}'.format(cidr))
+            print('Adding rule for {}'.format(cidr))
             subprocess.check_output(cmd)
 
-    if save:
-        cmd = ['/sbin/service',
-               'iptables',
-               'save']
+    for space in ['ipv4', 'ipv6']:
+        install_logging_rule(0, space, LOG_PREFIX_ALL_CONNECTION, dry_run)
+        install_logging_rule(10, space, LOG_PREFIX_DISALLOWED_CONNECTION, dry_run)
+        if enforce:
+            install_drop_rule(100, space, dry_run)
 
-        if dry_run:
-            print('Would have saved iptables with: {}'.format(cmd))
-        else:
-            print('Saving iptables configuration')
-            subprocess.check_output(cmd)
+    if not dry_run:
+        reload_permanent_rules()
 
 
 if __name__ == '__main__':

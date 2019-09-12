@@ -51,7 +51,7 @@ node {
     currentBuild.displayName = "v${SYNC_VERSION}_${ARCH}"
     REPOSYNC_BASE_DIR="/mnt/workspace/reposync"
     LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${SYNC_VERSION}"
-    LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}/cache/${SYNC_VERSION}"
+    LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${SYNC_VERSION}"
 
     MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
     MIRROR_REPOSYNC_BASE_DIR = "/srv/enterprise/reposync/"
@@ -98,7 +98,7 @@ node {
                 }
 
                 stage("push to mirror") {
-                    sh "rsync -avzh --delete -e \"ssh -o StrictHostKeyChecking=no\" ${REPOSYNC_BASE_DIR}/ ${MIRROR_TARGET}:${MIRROR_REPOSYNC_BASE_DIR} "
+                    sh "rsync -avzh --chmod=a+rwx,g-w,o-w --delete -e \"ssh -o StrictHostKeyChecking=no\" ${REPOSYNC_BASE_DIR}/ ${MIRROR_TARGET}:${MIRROR_REPOSYNC_BASE_DIR} "
                     mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh")
                     if (mirror_result.contains("[FAILURE]")) {
                         echo mirror_result

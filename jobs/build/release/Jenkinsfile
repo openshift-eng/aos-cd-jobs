@@ -39,13 +39,7 @@ node {
                     ],
                     [
                         name: 'ADVISORY',
-                        description: '[DO NOT USE]: Image release advisory number',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'ERRATA_URL',
-                        description: 'Optional: Public release errata URL (e.g. https://access.redhat.com/errata/RHBA-2019:0758)',
+                        description: 'Optional: Image release advisory number. If not given, the number will be retrived from ocp-build-data.',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -97,14 +91,18 @@ node {
             name = "${params.NAME}"
             from_release_tag = "${params.FROM_RELEASE_TAG}"
             description = "${params.DESCRIPTION}"
-            advisory = "${params.ADVISORY}"
+            advisory = params.ADVISORY? Integer.parseInt(params.ADVISORY.toString()) : 0
             previous = "${params.PREVIOUS}"
-            errata_url = "${params.ERRATA_URL}"
+            String errata_url
 
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
-            stage("validation") { release.stageValidation(quay_url, name, advisory) }
+            stage("validation") {
+                def retval = release.stageValidation(quay_url, name, advisory)
+                advisory = advisory?:retval.advisoryInfo.id
+                errata_url = retval.errataUrl
+            }
             stage("payload") { release.stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) }
             stage("tag stable") { release.stageTagRelease(quay_url, name) }
             stage("wait for stable") { release.stageWaitForStable() }

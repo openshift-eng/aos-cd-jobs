@@ -1151,4 +1151,16 @@ def determineBuildVersion(stream, branch, versionParam) {
     return version
 }
 
+@NonCPS
+String extractAdvisoryId(String elliottOut) {
+    def matches = (elliottOut =~ /https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)/)
+    matches[0][1]
+}
+
+@NonCPS
+String extractBugId(String bugzillaOut) {
+    def matches = (bugzillaOut =~ /#([0-9]+)/)
+    matches[0][1]
+}
+
 return this

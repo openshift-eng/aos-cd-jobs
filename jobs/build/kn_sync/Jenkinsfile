@@ -34,10 +34,11 @@ node {
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
-                            'aos-team-art@redhat.com',
-                            'nshaikh@redhat.com'
+                            'nshaikh@redhat.com',
+                            'aos-art-automation+failed-kn-client-sync@redhat.com',
                         ].join(',')
                     ],
+                    commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
                 ]
             ],
@@ -55,7 +56,8 @@ node {
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-cicd@redhat.com",
+            from: "aos-art-automation+failed-kn-client-sync@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
             subject: "Error syncing kn client",
             body: "Encountered an error while syncing kn client: ${err}");
         currentBuild.description = "Error while syncing kn client:\n${err}"

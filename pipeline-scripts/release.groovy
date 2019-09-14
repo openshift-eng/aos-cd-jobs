@@ -10,6 +10,18 @@ def stageVersions() {
     sh "elliott --version"
 }
 
+/**
+ * Validate that we have not released the same thing already, and that
+ * we have a valid advisory if needed.
+ * quay_url: quay repo location for nightly images
+ * name: tag for the specific image that will be released
+ * advisory: if applicable, the advisory number intended for this release
+ *      if less than 0 (pre-release), an advisory is not looked for.
+ *      if greater than 0, this advisory is validated.
+ *      if 0, the default image advisory from group.yml is validated.
+ *      Valid advisories must be in QE state and have a live ID so we can
+ *      include in release metadata the URL where it will be published.
+ */
 Map stageValidation(String quay_url, String name, int advisory = 0) {
     def retval = [:]
     def version = commonlib.extractMajorMinorVersion(name)
@@ -23,16 +35,11 @@ Map stageValidation(String quay_url, String name, int advisory = 0) {
         error("Payload ${name} already exists! Cannot continue.")
     }
 
-    if (!advisory) {
-        echo "Getting current advisory for OCP $version from build data..."
-        res = commonlib.shell(
-                returnAll: true,
-                script: "elliott --group=openshift-${version} get --json - --use-default-advisory image",
-            )
-        if(res.returnStatus != 0) {
-            error("🚫 Advisory number for OCP $version couldn't be found from ocp_build_data.")
-        }
-    } else {
+    if (advisory < 0) {
+        // pre-release; do not look for any advisory to exist.
+        return retval
+    } else if (advisory) {
+        // specified advisory, go find it
         echo "Verifying advisory ${advisory} exists"
         res = commonlib.shell(
                 returnAll: true,
@@ -41,6 +48,16 @@ Map stageValidation(String quay_url, String name, int advisory = 0) {
 
         if(res.returnStatus != 0){
             error("Advisory ${advisory} does not exist! Cannot continue.")
+        }
+    } else {
+        // unspecified advisory, look for it in group.yml
+        echo "Getting current advisory for OCP $version from build data..."
+        res = commonlib.shell(
+                returnAll: true,
+                script: "elliott --group=openshift-${version} get --json - --use-default-advisory image",
+            )
+        if(res.returnStatus != 0) {
+            error("🚫 Advisory number for OCP $version couldn't be found from ocp_build_data.")
         }
     }
 

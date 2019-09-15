@@ -168,8 +168,9 @@ node {
                             def build = operatorData[i]
                             def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
 
-                            retry(10) {
-                                def response = httpRequest(
+                            def response = [:]
+                            retry(errors ? 3 : 20) {
+                                response = httpRequest(
                                     url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
                                     httpMode: 'POST',
                                     customHeaders: [[name: 'Authorization', value: token]],
@@ -177,13 +178,16 @@ node {
                                     validResponseCodes: "200:599",
                                 )
                                 if (response.status != 200) {
-                                    sleep(60)
-                                    errors.add([
-                                        metadata_nvr: metadata_nvr,
-                                        response_status: response.status,
-                                        response_content: response.content
-                                    ])
+                                    sleep(30)
+                                    error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
                                 }
+                            }
+                            if (response.status != 200) {
+                                errors.add([
+                                    metadata_nvr: metadata_nvr,
+                                    response_status: response.status,
+                                    response_content: response.content
+                                ])
                             }
                             currentBuild.description += "\n  ${metadata_nvr}"
                         }

@@ -132,7 +132,7 @@ node('openshift-build-1') {
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cicd@redhat.com",
                     subject: "Error creating puddles: ${OSE_MAJOR}.${OSE_MINOR}",
-                    body: """Encoutered an error while creating puddles: ${err}
+                    body: """Encountered an error while creating puddles: ${err}
 
 
 Jenkins job: ${env.BUILD_URL}

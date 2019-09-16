@@ -51,7 +51,7 @@ python -m aos_cd_jobs.updater
       from: "aos-cicd@redhat.com",
       subject: 'aos-cd-jobs-branches job: error',
       body: """\
-Encoutered an error while running the aos-cd-jobs-branches job: ${err}\n\n
+Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
 Jenkins job: ${env.BUILD_URL}
 """)
     throw err

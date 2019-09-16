@@ -210,7 +210,7 @@ node {
                     to: params.MAIL_LIST_SUCCESS,
                     from: "aos-team-art@redhat.com",
                     subject: "Successful custom OCP build: ${currentBuild.displayName}",
-                    body: "Jenkins job: ${env.BUILD_URL}\n${currentBuild.description}",
+                    body: "Jenkins job: ${commonlib.buildURL()}\n${currentBuild.description}",
                 )
             }
         }
@@ -224,8 +224,8 @@ node {
 
 ${currentBuild.description}
 
-Jenkins job: ${env.BUILD_URL}
-Job console: ${env.BUILD_URL}/console
+Jenkins job: ${commonlib.buildURL()}
+Job console: ${commonlib.buildURL('console')}
     """)
 
         currentBuild.result = "FAILURE"

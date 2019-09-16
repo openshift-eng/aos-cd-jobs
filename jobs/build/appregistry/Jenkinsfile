@@ -169,25 +169,33 @@ node {
                             def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
 
                             def response = [:]
-                            retry(errors ? 3 : 20) {
-                                response = httpRequest(
-                                    url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
-                                    httpMode: 'POST',
-                                    customHeaders: [[name: 'Authorization', value: token]],
-                                    timeout: 60,
-                                    validResponseCodes: "200:599",
-                                )
-                                if (response.status != 200) {
-                                    sleep(30)
-                                    error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
+                            try {
+                                retry(errors ? 3 : 30) { // retry the first failing pkg for 15m; after that, give up after 1m30s
+                                    response = [:] // ensure we aren't looking at a previous response
+                                    response = httpRequest(
+                                        url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
+                                        httpMode: 'POST',
+                                        customHeaders: [[name: 'Authorization', value: token]],
+                                        timeout: 60,
+                                        validResponseCodes: "200:599",
+                                    )
+                                    if (response.status != 200) {
+                                        sleep(30)
+                                        error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
+                                    }
                                 }
-                            }
-                            if (response.status != 200) {
-                                errors.add([
-                                    metadata_nvr: metadata_nvr,
-                                    response_status: response.status,
-                                    response_content: response.content
-                                ])
+                            } catch (err) {
+                                if (response.status != 200) {
+                                    errors.add([
+                                        metadata_nvr: metadata_nvr,
+                                        response_status: response.status,
+                                        response_content: response.content
+                                    ])
+                                } else {
+                                    // failed because of something other than bad request; note that instead
+                                    errors.add(err)
+                                }
+                                continue // without claiming any success
                             }
                             currentBuild.description += "\n  ${metadata_nvr}"
                         }

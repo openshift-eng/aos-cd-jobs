@@ -263,7 +263,7 @@ node(TARGET_NODE) {
             mail(to: "${MAIL_LIST_FAILURE}",
                     from: "aos-cicd@redhat.com",
                     subject: "Error building OSE: ${OSE_MAJOR}.${OSE_MINOR}${ATTN}",
-                    body: """Encoutered an error while running merge-and-build.sh: ${err}
+                    body: """Encountered an error while running merge-and-build.sh: ${err}
 
 Jenkins job: ${env.BUILD_URL}
 """);

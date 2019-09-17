@@ -39,8 +39,8 @@ node {
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
-                            'aos-team-art@redhat.com',
-                        ].join(',')
+                            'aos-art-automation+failed-ocp-merge@redhat.com',
+                        ]
                     ],
                     commonlib.mockParam(),
                 ]
@@ -94,7 +94,8 @@ node {
 
                         commonlib.email(
                             to: "${params.MAIL_LIST_FAILURE}",
-                            from: "aos-team-art@redhat.com",
+                            from: "aos-art-automation@redhat.com",
+                            replyTo: "aos-team-art@redhat.com",
                             subject: "Error merging OCP v${version}",
                             body: "Encountered an error while running OCP merge:\n${env.BUILD_URL}\n\n${err}"
                         )
@@ -110,7 +111,8 @@ node {
             // success email only if requested for this build
             commonlib.email(
                 to: "${params.MAIL_LIST_SUCCESS}",
-                from: "aos-team-art@redhat.com",
+                from: "aos-art-automation@redhat.com",
+                replyTo: "aos-team-art@redhat.com",
                 subject: "Success merging OCP versions: ${successful.join(', ')}",
                 body: "Success running OCP merges:\n${env.BUILD_URL}"
             )
@@ -119,7 +121,8 @@ node {
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-team-art@redhat.com",
+            from: "aos-art-automation@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
             subject: "Unexpected error during OCP Merge!",
             body: "Encountered an unexpected error while running OCP merge: ${err}"
         )

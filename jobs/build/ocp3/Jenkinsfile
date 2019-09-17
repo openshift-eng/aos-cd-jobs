@@ -112,7 +112,8 @@ ${image_list}
 
     commonlib.email(
         to: "${mail_list}",
-        from: "aos-cicd@redhat.com",
+        from: "aos-art-automation@redhat.com",
+        replyTo: "aos-team-art@redhat.com",
         subject: "[aos-cicd] New${PARTIAL}build for OpenShift ${target}: ${version}${exclude_subject}",
         body: """\
 OpenShift Version: v${version}
@@ -273,7 +274,7 @@ node {
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
                             'aos-art-automation+new-ocp3-build@redhat.com',
-                        ].join(',')
+                        ]
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -281,7 +282,7 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-ocp3-build@redhat.com'
-                        ].join(',')
+                        ]
                     ],
                     [
                         name: 'BUILD_MODE',
@@ -985,7 +986,8 @@ Jenkins job: ${env.BUILD_URL}
 
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-cicd@redhat.com",
+            from: "aos-art-automation@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
             subject: "Error building OSE: ${params.BUILD_VERSION}${ATTN}",
             body: """Encountered an error while running OCP pipeline: ${err}
 

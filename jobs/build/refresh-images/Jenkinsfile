@@ -8,7 +8,7 @@ def version(f) {
 def mail_success(commonlib) {
     commonlib.email(
             to: "${params.MAIL_LIST_SUCCESS}",
-            from: "aos-cicd@redhat.com",
+            from: "aos-art-automation@redhat.com",
             replyTo: 'aos-team-art@redhat.com',
             subject: "Images have been refreshed: ${OSE_MAJOR}.${OSE_MINOR}",
             body: """\
@@ -62,13 +62,13 @@ node {
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: 'aos-team-art@redhat.com'
+                        defaultValue: 'aos-art-automation+failed-refresh-images@redhat.com'
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: 'aos-team-art@redhat.com'
+                        defaultValue: 'aos-art-automation+failed-refresh-images@redhat.com'
                     ],
                     commonlib.mockParam(),
                     // TODO reenable when the mirrors have the necessary puddles
@@ -225,7 +225,8 @@ images:build
 
                         commonlib.email(
                             to: "${params.MAIL_LIST_FAILURE}",
-                            from: "aos-cicd@redhat.com",
+                            from: "aos-art-automation@redhat.com",
+                            replyTo: "aos-team-art@redhat.com",
                             subject: "RESUMABLE Error during Refresh Images for OCP v${OSE_MAJOR}.${OSE_MINOR}",
                             body: """Encountered an error: ${err}
 Input URL: ${commonlib.buildURL('input')}
@@ -294,7 +295,8 @@ images:push
             // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
             commonlib.email(
                 to: "${params.MAIL_LIST_FAILURE}",
-                from: "aos-cicd@redhat.com",
+                from: "aos-art-automation@redhat.com",
+                replyTo: "aos-team-art@redhat.com",
                 subject: "Error Refreshing Images: ${OSE_MAJOR}.${OSE_MINOR}",
                 body: """Encountered an error while running ${env.JOB_NAME}: ${err}
 
@@ -319,9 +321,9 @@ Jenkins job: ${commonlib.buildURL()}
         if (ADVISORY_ID != "") {
             def attach = ADVISORY_ID == "default" ? "--use-default-advisory image" : "--attach ${ADVISORY_ID}"
             try {
-                buildlib.elliott """ 
+                buildlib.elliott """
                 --group 'openshift-${OSE_MAJOR}.${OSE_MINOR}'
-                find-builds 
+                find-builds
                 --kind image
                 ${attach}
                 """
@@ -329,7 +331,8 @@ Jenkins job: ${commonlib.buildURL()}
                 // Replace flow control with: https://jenkins.io/blog/2016/12/19/declarative-pipeline-beta/ when available
                 commonlib.email(
                     to: "${params.MAIL_LIST_FAILURE}",
-                    from: "aos-cicd@redhat.com",
+                    from: "aos-art-automation@redhat.com",
+                    replyTo: "aos-team-art@redhat.com",
                     subject: "Error Attaching ${OSE_MAJOR}.${OSE_MINOR} images to ${ADVISORY_ID}","""
 
 

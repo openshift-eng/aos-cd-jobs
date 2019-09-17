@@ -1,3 +1,5 @@
+import groovy.json.*
+
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 
@@ -135,11 +137,13 @@ def stageTagRelease(quay_url, name) {
 }
 
 // this function is only use for build/release job
-def stageWaitForStable() {
+// also returns the latest release info from 4-stable stream
+def Map stageWaitForStable() {
     def count = 0
     def stream = "https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/4-stable/latest"
-    def cmd = "curl -H 'Cache-Control: no-cache' ${stream} | jq -r '.name'"
+    def cmd = "curl --fail -H 'Cache-Control: no-cache' ${stream}"
     def stable = ""
+    Map release
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -158,10 +162,11 @@ def stageWaitForStable() {
             echo "Error fetching latest stable: ${res.stderr}"
         }
         else {
-            stable = res.stdout.trim()
+            release = readJSON text: res.stdout.trim()
+            stable = release.name
             echo "${stable}"
             // found, move on
-            if (stable == params.NAME){ return }
+            if (stable == params.NAME){ return release}
         }
 
         count++
@@ -231,6 +236,55 @@ def stageAdvisoryUpdate() {
 def stageCrossRef() {
     // cross ref tool not ready yet
     echo "Empty Stage"
+}
+
+def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String releaseStreamName='4-stable', String providerName = 'Red Hat UMB') {
+    def releaseName = release.name
+    def message = [
+        "contact": [
+            "url": "https://mojo.redhat.com/docs/DOC-1178565",
+            "team": "OpenShift Automatic Release Team (ART)",
+            "email": "aos-team-art@redhat.com",
+            "name": "ART Jobs",
+            "slack": "#aos-art",
+        ],
+        "run": [
+            "url": env.BUILD_URL,
+            "log": "${env.BUILD_URL}console",
+        ],
+        "artifact": [
+            "type": "ocp-release",
+            "name": "ocp-release",
+            "version": releaseName,
+            "nvr": "ocp-release-${releaseName}",
+            "release_stream": releaseStreamName,
+            "release": release,
+            "advisory": [
+                "number": advisoryNumber,
+                "live_url": advisoryLiveUrl,
+            ],
+        ],
+        "generated_at": new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC')),
+        "version": "0.2.3",
+    ]
+
+    timeout(3) {
+        def sendResult = sendCIMessage(
+            messageProperties:
+                """release=${releaseName}
+                release_stream: ${releaseStreamName}
+                product=OpenShift Container Platform
+                """,
+            messageType: 'Custom',
+            failOnError: true,
+            overrides: [topic: "VirtualTopic.eng.ci.art.ocp-release.complete"],
+            providerName: providerName,
+            messageContent: JsonOutput.toJson(message),
+        )
+        echo 'Message sent.'
+        echo "Message ID: ${sendResult.getMessageId()}"
+        echo "Message content: ${sendResult.getMessageContent()}"
+    }
 }
 
 return this

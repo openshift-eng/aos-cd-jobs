@@ -94,6 +94,7 @@ node {
             advisory = params.ADVISORY? Integer.parseInt(params.ADVISORY.toString()) : 0
             previous = "${params.PREVIOUS}"
             String errata_url
+            Map release_obj
 
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
@@ -105,13 +106,14 @@ node {
             }
             stage("payload") { release.stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) }
             stage("tag stable") { release.stageTagRelease(quay_url, name) }
-            stage("wait for stable") { release.stageWaitForStable() }
+            stage("wait for stable") { release_obj = release.stageWaitForStable() }
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, name)
             }
             stage("client sync") { release.stageClientSync('4-stable', 'ocp') }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
+            stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }
         }
 
         dry_subject = ""

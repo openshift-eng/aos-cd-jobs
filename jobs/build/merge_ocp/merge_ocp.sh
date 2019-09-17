@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # usage: ./merge_ocp.sh ./working/ enterprise-3.11 release-3.11 1000
 set -e
 set -x
@@ -12,8 +14,13 @@ pushd ${WORKING_DIR}
 git reset --hard HEAD
 git clean -f
 
-git fetch origin "${OSE_SOURCE_BRANCH}:origin-${OSE_SOURCE_BRANCH}" --depth "${DEPTH}"
-git fetch upstream "${UPSTREAM_SOURCE_BRANCH}:upstream-${UPSTREAM_SOURCE_BRANCH}" --depth "${DEPTH}"
+DEPTH_ARG=""
+if [[ "${DEPTH}" != "0" ]]; then
+    DEPTH_ARG="--depth ${DEPTH}"
+fi
+
+git fetch origin "${OSE_SOURCE_BRANCH}:origin-${OSE_SOURCE_BRANCH}" ${DEPTH_ARG}
+git fetch upstream "${UPSTREAM_SOURCE_BRANCH}:upstream-${UPSTREAM_SOURCE_BRANCH}" ${DEPTH_ARG}
 git checkout -B "${OSE_SOURCE_BRANCH}" "origin-${OSE_SOURCE_BRANCH}"
 
 if [[ $OSE_SOURCE_BRANCH == enterprise-3.* ]]; then

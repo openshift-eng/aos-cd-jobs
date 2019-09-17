@@ -1,14 +1,20 @@
 #!/bin/bash
 set -euxo pipefail
 
-SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
+GITHUB_TOKEN="$1"
+if [[ -z "$GITHUB_TOKEN" ]]; then
+  echo Expecting an argument that will be used as the GitHub token. Exiting.>/dev/stderr
+  exit 2
+fi
+
+SSH_OPTS="-n -l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
 TMPDIR=$(mktemp -dt odobinary.XXXXXXXXXX)
 trap "rm -rf '${TMPDIR}'" EXIT INT TERM
 cd "${TMPDIR}"
 
 # get latest release from GitHub API
-wget https://api.github.com/repos/openshift/odo/releases/latest
+curl -sSL -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/openshift/odo/releases/latest > latest
 #extract tag version
 VERSION=`jq -r '.tag_name' latest`
 #extract download list

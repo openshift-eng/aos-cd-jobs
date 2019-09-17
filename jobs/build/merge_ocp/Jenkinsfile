@@ -23,7 +23,7 @@ node {
                     ],
                     [
                         name: 'COMMIT_DEPTH',
-                        description: 'How deep to clone to ensure merges have a common base',
+                        description: 'How deep to clone to ensure merges have a common base; 0 for full depth',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "100"
                     ],

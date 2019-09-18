@@ -1,17 +1,27 @@
 
 properties( [
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
-    disableConcurrentBuilds(),
-    ] )
+        disableConcurrentBuilds(),
+            ]
+)
 
 description = ""
 failed = false
 
-b = build       job: '../aos-cd-builds/build%2Freposync', propagate: false,
-                parameters: [[$class: 'StringParameterValue', name: 'SYNC_VERSION', value: '4.1']]
+def runFor(sync_version, arch="x86_64") {
+    echo "Triggering reposync for ${sync_version}-${arch}"
+    b = build       job: '/aos-cd-builds/build%2Freposync', propagate: false,
+                    parameters: [ string(name: 'SYNC_VERSION', value: sync_version),
+                                  string(name: 'ARCH', value: arch),
+                                ]
 
-description += "${b.displayName} - ${b.result}\n"
-failed |= (b.result != "SUCCESS")
+    description += "${sync_version}-${arch} - ${b.result}\n"
+    failed |= (b.result != "SUCCESS")
+}
+
+runFor("4.1")
+runFor("4.2")
+runFor("4.3")
 
 currentBuild.description = description.trim()
 currentBuild.result = failed ? "FAILURE" : "SUCCESS"

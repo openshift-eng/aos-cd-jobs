@@ -24,7 +24,7 @@ node {
                         defaultValue: [
                             'aos-art-automation+failed-odo-sync@redhat.com',
                             'moahmed@redhat.com'
-                        ]
+                        ].join(',')
                     ],
                     commonlib.mockParam(),
                 ]

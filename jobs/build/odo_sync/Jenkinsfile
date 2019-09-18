@@ -36,7 +36,9 @@ node {
     try {
         sshagent(['aos-cd-test']) {
             stage("sync odo") {
-                buildlib.invoke_on_rcm_guest("publish-odo-binary.sh")
+                withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'accessToken')]) {
+                    buildlib.invoke_on_rcm_guest("publish-odo-binary.sh ${accessToken}")
+                }
             }
         }
     } catch (err) {

@@ -274,7 +274,7 @@ node {
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
                             'aos-art-automation+new-ocp3-build@redhat.com',
-                        ]
+                        ].join(',')
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -282,7 +282,7 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-ocp3-build@redhat.com'
-                        ]
+                        ].join(',')
                     ],
                     [
                         name: 'BUILD_MODE',

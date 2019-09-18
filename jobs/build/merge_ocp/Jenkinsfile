@@ -40,7 +40,7 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-ocp-merge@redhat.com',
-                        ]
+                        ].join(',')
                     ],
                     commonlib.mockParam(),
                 ]

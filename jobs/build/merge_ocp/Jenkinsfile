@@ -21,12 +21,16 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: commonlib.ocpMergeVersions.join(',')
                     ],
-                    [
-                        name: 'COMMIT_DEPTH',
-                        description: 'How deep to clone to ensure merges have a common base; 0 for full depth',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "0"
-                    ],
+                    booleanParam(
+                        name: 'CLEAN_CLONE',
+                        defaultValue: false,
+                        description: 'Force all git repos to be re-pulled'
+                    ),
+                    booleanParam(
+                        name: 'SCHEDULE_INCREMENTAL',
+                        defaultValue: true,
+                        description: 'If changes are detected, schedule an incremental build (4.x only)'
+                    ),
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -55,7 +59,6 @@ node {
     mergeWorking = "${env.WORKSPACE}/ose"
     upstreamRemote = "git@github.com:openshift/origin.git"
     downstreamRemote = "git@github.com:openshift/ose.git"
-    commitDepth = params.COMMIT_DEPTH.trim().toInteger()
 
     currentBuild.displayName = "#${currentBuild.number} Merging versions ${params.VERSIONS}"
     currentBuild.description = ""
@@ -64,11 +67,63 @@ node {
         successful = []
         sshagent(["openshift-bot"]) {
             stage("Clone ose") {
-                sh "rm -rf ${mergeWorking}"
-                sh "git clone ${downstreamRemote} --single-branch --branch master --depth 1 ${mergeWorking}"
-                dir(mergeWorking) {
-                    sh "git remote add upstream ${upstreamRemote}"
+
+                if ( params.CLEAN_CLONE ) {
+                    sh "rm -rf ${mergeWorking}"
                 }
+
+                sh """
+                set -exuo pipefail
+
+                function reset_repo {
+                    cd "${env.WORKSPACE}"
+                    rm -rf ${mergeWorking}
+                    git clone ${downstreamRemote} ${mergeWorking}
+                    cd "${mergeWorking}"
+                    git remote add upstream ${upstreamRemote}
+                }
+
+
+                if [[ ! -d "${mergeWorking}/.git" ]]; then
+                    echo "invalid cached repo; resetting"
+                    reset_repo
+                    exit 0
+                fi
+
+                cd "${mergeWorking}"
+
+                echo "Pre-reset status"
+                git status
+                git remote -v
+
+                echo "Checking and resetting if necessary..."
+                # Check for anything fishy in the clone state. Reset if anything found.
+
+                if [[ `git remote get-url origin` != "${downstreamRemote}" ]]; then
+                    echo "origin repo has changed; resetting"
+                    reset_repo
+                    exit 0
+                fi
+
+                if [[ `git remote get-url upstream` != "${upstreamRemote}" ]]; then
+                    echo "upstream repo has changed; resetting"
+                    reset_repo
+                    exit 0
+                fi
+
+                if ! ( git fetch origin && git fetch upstream ) ; then
+                    echo "Error fetching origin or upstream; resetting"
+                    reset_repo
+                    exit 0
+                fi
+
+                git reset --hard HEAD
+                git clean -f -d
+                git checkout master
+                git reset --hard origin/master
+                git pull
+                """
+
             }
 
             stage("Merge") {
@@ -76,12 +131,43 @@ node {
                     def version = mergeVersions[i]
                     try {
 
-                        if(version == commonlib.ocp4MasterVersion) {
-                            sh "./merge_ocp.sh ${mergeWorking} master master ${commitDepth}"
-                        } else {
-                            upstream = "release-${version}"
-                            downstream = "enterprise-${version}"
-                            sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream} ${commitDepth}"
+                        // lock is just a precaution to sure we aren't merging during a build
+                        lock("github-activity-lock-${version}") {
+                            if(version == commonlib.ocp4MasterVersion) {
+                                sh "./merge_ocp.sh ${mergeWorking} master master"
+                            } else {
+                                upstream = "release-${version}"
+                                downstream = "enterprise-${version}"
+                                sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream}"
+                            }
+
+
+                            dir(mergeWorking) {
+                                // diff --stat will return nothing if there is nothing to push
+                                diffstat = sh(returnStdout: true, script: "git diff --cached --stat origin/${downstream}").trim()
+
+                                if (diffstat != "") {
+                                    echo "New commits from merge:\n${diffstat}"
+                                    sh "git push origin ${downstream}:${downstream}"
+
+                                    if (params.SCHEDULE_INCREMENTAL && version.startsWith('4.')) {
+                                        build(
+                                            job: 'build%2Focp4',
+                                            propagate: false,
+                                            wait: false,
+                                            parameters: [
+                                                string(name: 'BUILD_VERSION', value: version),
+                                                booleanParam(name: 'FORCE_BUILD', value: false),
+                                            ]
+                                        )
+                                        currentBuild.description += "triggered build: ${version}\n"
+                                    }
+
+                                } else{
+                                    echo "${downstream} was already up to date. Nothing to do."
+                                }
+                            }
+
                         }
 
                         successful.add(version)

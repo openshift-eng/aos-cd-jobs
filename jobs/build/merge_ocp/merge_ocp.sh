@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
-# usage: ./merge_ocp.sh ./working/ enterprise-3.11 release-3.11 1000
+# usage: ./merge_ocp.sh ./working/ enterprise-3.11 release-3.11
 set -e
 set -x
 WORKING_DIR=$1
 OSE_SOURCE_BRANCH=$2
 UPSTREAM_SOURCE_BRANCH=$3
-DEPTH=$4
 
 pushd ${WORKING_DIR}
 
@@ -14,13 +13,8 @@ pushd ${WORKING_DIR}
 git reset --hard HEAD
 git clean -f
 
-DEPTH_ARG=""
-if [[ "${DEPTH}" != "0" ]]; then
-    DEPTH_ARG="--depth ${DEPTH}"
-fi
-
-git fetch origin "${OSE_SOURCE_BRANCH}:origin-${OSE_SOURCE_BRANCH}" ${DEPTH_ARG}
-git fetch upstream "${UPSTREAM_SOURCE_BRANCH}:upstream-${UPSTREAM_SOURCE_BRANCH}" ${DEPTH_ARG}
+git fetch origin "${OSE_SOURCE_BRANCH}:origin-${OSE_SOURCE_BRANCH}"
+git fetch upstream "${UPSTREAM_SOURCE_BRANCH}:upstream-${UPSTREAM_SOURCE_BRANCH}"
 git checkout -B "${OSE_SOURCE_BRANCH}" "origin-${OSE_SOURCE_BRANCH}"
 
 if [[ $OSE_SOURCE_BRANCH == enterprise-3.* ]]; then
@@ -31,7 +25,5 @@ if [[ $OSE_SOURCE_BRANCH == enterprise-3.* ]]; then
     echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes
 fi
 git merge -m "Merge remote-tracking branch ${UPSTREAM_SOURCE_BRANCH}" "upstream-${UPSTREAM_SOURCE_BRANCH}"
-
-git push origin "${OSE_SOURCE_BRANCH}:${OSE_SOURCE_BRANCH}"
 
 popd

@@ -227,11 +227,15 @@ node {
                             --attach ${params.ADVISORY}
                         """
 
+                        /*
+                        // this would be convenient, except that we don't have a way
+                        // to set the CDN repos first, and can't move to QE without that.
                         buildlib.elliott """--group openshift-${params.BUILD_VERSION}
                             change-state -s QE
                             -a ${params.ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
+                        */
                     }
                 }
             }

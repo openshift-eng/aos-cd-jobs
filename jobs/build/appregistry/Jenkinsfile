@@ -254,7 +254,7 @@ node {
         throw err
     } finally {
         commonlib.safeArchiveArtifacts([
-            "workDir/appreg.yaml"
+            "workDir/*",
         ])
     }
 }

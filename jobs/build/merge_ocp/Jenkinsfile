@@ -133,13 +133,10 @@ node {
 
                         // lock is just a precaution to sure we aren't merging during a build
                         lock("github-activity-lock-${version}") {
-                            if(version == commonlib.ocp4MasterVersion) {
-                                sh "./merge_ocp.sh ${mergeWorking} master master"
-                            } else {
-                                upstream = "release-${version}"
-                                downstream = "enterprise-${version}"
-                                sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream}"
-                            }
+
+                            upstream = "release-${version}"
+                            downstream = "enterprise-${version}"
+                            sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream}"
 
 
                             dir(mergeWorking) {

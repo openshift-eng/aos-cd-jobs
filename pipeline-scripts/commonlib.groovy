@@ -24,7 +24,7 @@ ocp4Versions = [
 ]
 
 ocpMergeVersions = [
-    // "4.3", // don't actually want to merge 4.3 yet
+    "4.3",
     "4.2",
     "4.1",
     "3.11",

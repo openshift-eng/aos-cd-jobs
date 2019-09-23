@@ -35,7 +35,7 @@ node {
     commonlib.checkMock()
 
     def buildExceptions = []
-    def puddleVersions = ["4.1", "4.2"]
+    def puddleVersions = ["4.1", "4.2", "4.3"]
     puddleVersions.each { version ->
         try {
             buildlib.kinit()

@@ -119,8 +119,8 @@ node {
 
                 git reset --hard HEAD
                 git clean -f -d
-                git checkout master
-                git reset --hard origin/master
+                git checkout ${downstream}
+                git reset --hard origin/${downstream}
                 git pull
                 """
 
@@ -133,14 +133,9 @@ node {
 
                         // lock is just a precaution to sure we aren't merging during a build
                         lock("github-activity-lock-${version}") {
-                            if(version == commonlib.ocp4MasterVersion) {
-                                sh "./merge_ocp.sh ${mergeWorking} master master"
-                            } else {
-                                upstream = "release-${version}"
-                                downstream = "enterprise-${version}"
-                                sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream}"
-                            }
-
+                            upstream = "release-${version}"
+                            downstream = "enterprise-${version}"
+                            sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream}"
 
                             dir(mergeWorking) {
                                 // diff --stat will return nothing if there is nothing to push

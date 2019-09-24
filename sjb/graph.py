@@ -1,3 +1,4 @@
+from __future__ import print_function
 from os import listdir
 from os.path import isfile, join
 
@@ -93,4 +94,4 @@ constructSubgraph("common/test_cases", graph)
 constructSubgraph("test_suites", graph)
 constructSubgraph("test_cases", graph)
 
-print getGraphvizDotFormat(graph)
+print(getGraphvizDotFormat(graph))

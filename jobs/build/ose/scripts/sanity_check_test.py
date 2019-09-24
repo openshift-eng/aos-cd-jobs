@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import sys
 
@@ -59,7 +60,7 @@ class ValidateTests(unittest.TestCase):
         try:
             func(real_commits)
         except:
-            print "Unexpected error:", sys.exc_info()[0]
+            print("Unexpected error:", sys.exc_info()[0])
             raise
 
     ###################################

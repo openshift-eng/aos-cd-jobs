@@ -167,18 +167,14 @@ Proceed?
 
                 /**
                  * Determine if something other than the whole list should be built.
-                 * Note that --ignore-missing-base causes the rebase not to update a member image
-                 * it is based on if that member is not in the build. Thus the build will rely on
-                 * the member that was already in the Dockerfile, which was presumably already built.
-                 * Specifying the same image in both causes an error, so don't do that.
                  */
                 include = ""
                 exclude = ""
                 if (BUILD_ONLY != "") {
-                    include = "-i ${BUILD_ONLY} --ignore-missing-base"
+                    include = "-i ${BUILD_ONLY} --latest-parent-version"
                 }
                 if (BUILD_EXCLUSIONS != "") {
-                    exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
+                    exclude = "-x ${BUILD_EXCLUSIONS} --latest-parent-version"
                 }
 
                 /**

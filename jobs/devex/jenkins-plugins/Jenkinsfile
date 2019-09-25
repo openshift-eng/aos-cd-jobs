@@ -25,13 +25,13 @@ properties(
                     name: 'MAIL_LIST_SUCCESS',
                     description: 'Success Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'aos-art-automation+passed-jenkins-plugins-update@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
+                    defaultValue: 'aos-art-automation+passed-jenkins-plugins-update@redhat.com,openshift-dev-services+jenkins@redhat.com'
                 ],
                 [
                     name: 'MAIL_LIST_FAILURE',
                     description: 'Failure Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',
-                    defaultValue: 'aos-art-automation+failed-jenkins-plugins-update@redhat.com,gmontero@redhat.com,abenaiss@redhat.com,vbobade@redhat.com'
+                    defaultValue: 'aos-art-automation+failed-jenkins-plugins-update@redhat.com,openshift-dev-services+jenkins@redhat.com'
                 ],
                 [
                     name: 'TARGET_NODE',

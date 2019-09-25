@@ -131,44 +131,55 @@ node {
                     def version = mergeVersions[i]
                     try {
 
-                        // lock is just a precaution to sure we aren't merging during a build
-                        lock("github-activity-lock-${version}") {
+                        // this lock ensures we are not merging during an active build
+                        activityLockName = "github-activity-lock-${version}"
 
-                            upstream = "release-${version}"
-                            downstream = "enterprise-${version}"
-                            sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream}"
+                        // Check mergeVersions.size because, if the user requested a specific version
+                        // they will expect it to happen, even if they need to wait
+                        if (mergeVersions.size() == 1 || commonlib.canLock(activityLockName)) {
+
+                            // There is a vanishingly small race condition here, but it is not dangerous;
+                            // it can only lead to undesired delays (i.e. waiting to merge while a build is ongoing).
+                            lock(activityLockName) {
+
+                                upstream = "release-${version}"
+                                downstream = "enterprise-${version}"
+                                sh "./merge_ocp.sh ${mergeWorking} ${downstream} ${upstream}"
 
 
-                            dir(mergeWorking) {
-                                // diff --stat will return nothing if there is nothing to push
-                                diffstat = sh(returnStdout: true, script: "git diff --cached --stat origin/${downstream}").trim()
+                                dir(mergeWorking) {
+                                    // diff --stat will return nothing if there is nothing to push
+                                    diffstat = sh(returnStdout: true, script: "git diff --cached --stat origin/${downstream}").trim()
 
-                                if (diffstat != "") {
-                                    echo "New commits from merge:\n${diffstat}"
-                                    sh "git push origin ${downstream}:${downstream}"
+                                    if (diffstat != "") {
+                                        echo "New commits from merge:\n${diffstat}"
+                                        sh "git push origin ${downstream}:${downstream}"
 
-                                    if (params.SCHEDULE_INCREMENTAL && version.startsWith('4.')) {
-                                        build(
-                                            job: 'build%2Focp4',
-                                            propagate: false,
-                                            wait: false,
-                                            parameters: [
-                                                string(name: 'BUILD_VERSION', value: version),
-                                                booleanParam(name: 'FORCE_BUILD', value: false),
-                                            ]
-                                        )
-                                        currentBuild.description += "triggered build: ${version}\n"
+                                        if (params.SCHEDULE_INCREMENTAL && version.startsWith('4.')) {
+                                            build(
+                                                job: 'build%2Focp4',
+                                                propagate: false,
+                                                wait: false,
+                                                parameters: [
+                                                    string(name: 'BUILD_VERSION', value: version),
+                                                    booleanParam(name: 'FORCE_BUILD', value: false),
+                                                ]
+                                            )
+                                            currentBuild.description += "triggered build: ${version}\n"
+                                        }
+
+                                    } else{
+                                        echo "${downstream} was already up to date. Nothing to do."
                                     }
-
-                                } else{
-                                    echo "${downstream} was already up to date. Nothing to do."
                                 }
+
+                                successful.add(version)
+                                echo "Success running ${version} merge"
                             }
 
+                        } else {
+                            echo "Looks like there is another build ongoing for ${version} -- skipping for this run"
                         }
-
-                        successful.add(version)
-                        echo "Success running ${version} merge"
 
                     } catch (err) {
                         currentBuild.result = "UNSTABLE"

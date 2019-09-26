@@ -134,12 +134,60 @@ node {
                 image_advisory_id = buildlib.extractAdvisoryId(out)
                 echo "extracted image_advisory_id: ${image_advisory_id}"
             }
+            stage("create Extras advisory") {
+                if (params.VERSION.startsWith("4")) {
+                    cmd = """
+                        -g openshift-${params.VERSION}
+                        create -k image
+                        --assigned-to ${params.ASSIGNED_TO}
+                        --manager ${params.MANAGER}
+                        --package-owner ${params.PACKAGE_OWNER}
+                        --impetus extras
+                        ${params.DATE ? "--date ${params.DATE} " : ""}
+                        ${params.DRY_RUN ? "" : "--yes"}
+                    """
+
+                    echo "elliott cmd: ${cmd}"
+                    out = buildlib.elliott(cmd, [capture: true])
+                    echo "out: ${out}"
+
+                    extras_advisory_id = buildlib.extractAdvisoryId(out)
+                    echo "extracted extras_advisory_id: ${extras_advisory_id}"
+                }
+            }
+            stage("create OLM Operators metadata advisory") {
+                if (params.VERSION.startsWith("4")) {
+                    cmd = """
+                        -g openshift-${params.VERSION}
+                        create -k image
+                        --assigned-to ${params.ASSIGNED_TO}
+                        --manager ${params.MANAGER}
+                        --package-owner ${params.PACKAGE_OWNER}
+                        --impetus metadata
+                        ${params.DATE ? "--date ${params.DATE} " : ""}
+                        ${params.DRY_RUN ? "" : "--yes"}
+                    """
+
+                    echo "elliott cmd: ${cmd}"
+                    out = buildlib.elliott(cmd, [capture: true])
+                    echo "out: ${out}"
+
+                    metadata_advisory_id = buildlib.extractAdvisoryId(out)
+                    echo "extracted metadata_advisory_id: ${metadata_advisory_id}"
+                }
+            }
             stage("update job description with advisory links") {
                 currentBuild.displayName = "${params.VERSION}.z advisories${params.DRY_RUN ? " [DRY_RUN]" : ""}"
                 currentBuild.description = """
-                    https://errata.devel.redhat.com/advisory/${rpm_advisory_id}\n
-                    https://errata.devel.redhat.com/advisory/${image_advisory_id}
+                    RPM: https://errata.devel.redhat.com/advisory/${rpm_advisory_id}\n
+                    Image: https://errata.devel.redhat.com/advisory/${image_advisory_id}\n
                 """
+                if (params.VERSION.startsWith("4")) {
+                    currentBuild.description += """
+                        Extras: https://errata.devel.redhat.com/advisory/${operator_advisory_id}\n
+                        OLM Operators metadata: https://errata.devel.redhat.com/advisory/${metadata_advisory_id}\n
+                    """
+                }
             }
             stage("commit new advisories to ocp-build-data") {
                 cmd = """
@@ -147,6 +195,15 @@ node {
                     git clone --single-branch --branch openshift-${params.VERSION} git@gitlab.cee.redhat.com:openshift-art/ocp-build-data.git ;
                     cd ocp-build-data ;
                     sed -e 's/image:.*/image: ${image_advisory_id}/' -e 's/rpm:.*/rpm: ${rpm_advisory_id}/' -i group.yml ;
+                """
+                if (params.VERSION.startsWith("4")) {
+                    cmd += """
+                        sed -e 's/extras:.*/extras: ${operator_advisory_id}/' \
+                            -e 's/metadata:.*/metadata: ${metadata_advisory_id}/' \
+                        -i group.yml ;
+                    """
+                }
+                cmd += """
                     git diff ;
                     git add . ;
                     git commit -m 'Update advisories on group.yml' ;
@@ -164,7 +221,7 @@ node {
                 }
                 echo "out: ${out}"
             }
-            stage("create & attach placeholder bug to advisory") {
+            stage("add placeholder bugs to advisories") {
                 kind = params.VERSION.startsWith("3") ? "image" : "rpm"
 
                 cmd = "-g openshift-${params.VERSION} "
@@ -179,6 +236,42 @@ node {
                     out = buildlib.elliott(cmd, [capture: true])
                 }
                 echo "out: ${out}"
+
+                // Extras placeholder
+                if (params.VERSION.startsWith("4")) {
+                    cmd = """
+                        -g openshift-${params.VERSION}
+                        create-placeholder
+                        --kind extras
+                        --use-default-advisory extras
+                    """
+
+                    echo "elliott cmd: ${cmd}"
+                    if (params.DRY_RUN) {
+                        out = "DRY RUN mode, command did not run"
+                    } else {
+                        out = buildlib.elliott(cmd, [capture: true])
+                    }
+                    echo "out: ${out}"
+                }
+
+                // OLM Operators metadata placeholder
+                if (params.VERSION.startsWith("4")) {
+                    cmd = """
+                        -g openshift-${params.VERSION}
+                        create-placeholder
+                        --kind metadata
+                        --use-default-advisory metadata
+                    """
+
+                    echo "elliott cmd: ${cmd}"
+                    if (params.DRY_RUN) {
+                        out = "DRY RUN mode, command did not run"
+                    } else {
+                        out = buildlib.elliott(cmd, [capture: true])
+                    }
+                    echo "out: ${out}"
+                }
             }
         } catch (err) {
             currentBuild.description += "\n-----------------\n\n${err}"

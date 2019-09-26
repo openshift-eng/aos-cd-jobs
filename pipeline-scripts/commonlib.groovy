@@ -322,4 +322,27 @@ String extractMajorMinorVersion(String version) {
     return (version =~ /^(\d+\.\d+)/)[0][1]
 }
 
+/**
+ * Attempts, for a specified duration, to claim a Jenkins lock. If claimed, the
+ * lock is released before returning. Callers should be aware this leaves
+ * a race condition and there is no guarantee they will get the lock themselves. Thus, this
+ * method should only be used for optimization decisions and not relied on for
+ * guaranteed behavior.
+ * @param lockName The name of the lock to test
+ * @param timeout_seconds The number of seconds to try to acquire the lock before giving up
+ * @return Returns true if the lock was successfully able to be claimed.
+ */
+def canLock(lockName, timeout_seconds=10) {
+    try {
+        timeout(time: timeout_seconds, unit: 'SECONDS') {
+            lock(lockName) {
+                return true;
+            }
+        }
+    } catch ( e ) {
+        echo "Timeout waiting for lock ${lockName}"
+    }
+    return false;
+}
+
 return this

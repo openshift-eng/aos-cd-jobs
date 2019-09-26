@@ -129,21 +129,23 @@ node {
 
             stage("puddle: ose 'building'") {
                 if (rpms.toUpperCase() != "NONE") {
-                    AOS_CD_JOBS_COMMIT_SHA = commonlib.shell(
-                        returnStdout: true,
-                        script: "git rev-parse HEAD",
-                    ).trim()
-                    PUDDLE_CONF_BASE = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
-                    PUDDLE_CONF = "${PUDDLE_CONF_BASE}/atomic_openshift-${params.BUILD_VERSION}.conf"
-                    OCP_PUDDLE = buildlib.build_puddle(
-                        PUDDLE_CONF,    // The puddle configuration file to use
-                        null, // openshifthosted key
-                        "-b",   // do not fail if we are missing dependencies
-                        "-d",   // print debug information
-                        "-n",   // do not send an email for this puddle
-                        "-s",   // do not create a "latest" link since this puddle is for building images
-                        "--label=building"   // create a symlink named "building" for the puddle
-                    )
+                    lock("github-activity-lock-${params.BUILD_VERSION}") {
+                        AOS_CD_JOBS_COMMIT_SHA = commonlib.shell(
+                            returnStdout: true,
+                            script: "git rev-parse HEAD",
+                        ).trim()
+                        PUDDLE_CONF_BASE = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
+                        PUDDLE_CONF = "${PUDDLE_CONF_BASE}/atomic_openshift-${params.BUILD_VERSION}.conf"
+                        OCP_PUDDLE = buildlib.build_puddle(
+                            PUDDLE_CONF,    // The puddle configuration file to use
+                            null, // openshifthosted key
+                            "-b",   // do not fail if we are missing dependencies
+                            "-d",   // print debug information
+                            "-n",   // do not send an email for this puddle
+                            "-s",   // do not create a "latest" link since this puddle is for building images
+                            "--label=building"   // create a symlink named "building" for the puddle
+                        )
+                    }
                 }
             }
 
@@ -162,15 +164,17 @@ node {
 
             stage("update dist-git") {
                 if (!any_images_to_build) { return }
-                currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
                 if (params.IMAGE_MODE == "nothing") { return }
 
-                command = doozerOpts
-                command += "--latest-parent-version ${include_exclude} "
-                command += "images:${params.IMAGE_MODE} --version v${version} --release ${release} "
-                command += "--repo-type ${repo_type} "
-                command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
-                buildlib.doozer command
+                lock("github-activity-lock-${params.BUILD_VERSION}") {
+                    currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
+                    command = doozerOpts
+                    command += "--latest-parent-version ${include_exclude} "
+                    command += "images:${params.IMAGE_MODE} --version v${version} --release ${release} "
+                    command += "--repo-type ${repo_type} "
+                    command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
+                    buildlib.doozer command
+                }
             }
 
             stage("build images") {

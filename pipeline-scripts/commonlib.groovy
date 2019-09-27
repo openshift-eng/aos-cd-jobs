@@ -333,16 +333,17 @@ String extractMajorMinorVersion(String version) {
  * @return Returns true if the lock was successfully able to be claimed.
  */
 def canLock(lockName, timeout_seconds=10) {
+    def claimed = false
     try {
         timeout(time: timeout_seconds, unit: 'SECONDS') {
             lock(lockName) {
-                return true;
+                claimed = true
             }
         }
     } catch ( e ) {
         echo "Timeout waiting for lock ${lockName}"
     }
-    return false;
+    return claimed
 }
 
 return this

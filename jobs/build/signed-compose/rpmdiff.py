@@ -17,11 +17,11 @@ def rpmdiffs_ran(advisory):
     pp(rpmdiffs)
     not_finished_diffs = []
     for diff in rpmdiffs:
-        if diff['attributes']['status'] in ['QUEUED_FOR_TEST', 'RUNNING']:
+        if diff['attributes']['status'] in ['QUEUED_FOR_TEST', 'RUNNING', 'PENDING']:
             not_finished_diffs.append(diff)
 
     if not_finished_diffs:
-        print("There are {} rpmdiffs QUEUED_FOR_TEST or RUNNING".format(
+        print("There are {} rpmdiffs which have not ran or completed yet".format(
             len(not_finished_diffs)))
         return False
     else:

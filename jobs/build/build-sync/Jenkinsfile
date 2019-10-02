@@ -112,17 +112,6 @@ release:gen-payload
                 error(currentBuild.description)
             }
         }
-
-        def stateYaml = readYaml(file: "${mirrorWorking}/state.yaml")
-        def result = stateYaml.get("release:gen-payload", [:])
-        if (result['success'] != result['total']) {
-            if (result['success'] == 0) {
-                currentBuild.result = "FAILURE"
-            }
-            else {
-                currentBuild.result = "UNSTABLE"
-            }
-        }
     } finally {
         commonlib.safeArchiveArtifacts([
                 "MIRROR_working/oc_mirror_input",

@@ -845,7 +845,8 @@ def get_failed_builds(Map record_log, Boolean fullRecord=false) {
 //   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
 //   owners: bparees@redhat.com
 //   distgit: rpms/jenkins-slave-maven-rhel7-docker
-//   sha: 1b8903ef72878cd895b3f94bee1c6f5d60ce95c3
+//   sha: 1b8903ef72878cd895b3f94bee1c6f5d60ce95c3    (NOT PRESENT ON FAILURE)
+//   failure: ....error description....      (ONLY PRESENT ON FAILURE)
 def get_distgit_notify( record_log ) {
     def result = [:]
     // It's possible there were no commits or no one specified to notify
@@ -855,6 +856,7 @@ def get_distgit_notify( record_log ) {
 
     source = record_log.get("source_alias", [])
     commit = record_log["distgit_commit"]
+    def failure = record_log["distgit_commit_failure"]
     notify = record_log["dockerfile_notify"]
 
     int i = 0
@@ -877,8 +879,14 @@ def get_distgit_notify( record_log ) {
       }
     }
 
-    return result
+    // OR see if the notification is for a merge failure
+    for ( i = 0; i < failure.size(); i++ ) {
+      if(result.containsKey(failure[i]["distgit"])){
+        result[failure[i]["distgit"]]["failure"] = failure[i]["message"]
+      }
+    }
 
+    return result
 }
 
 @NonCPS
@@ -907,11 +915,8 @@ def notify_dockerfile_reconciliations(doozerWorking, buildVersion) {
         url = dockerfile_url_for(alias.origin_url, alias.branch, val.source_dockerfile_subpath)
         dockerfile_url = url ? "Upstream source file: ${url}" : ""
 
-        commonlib.email(
-            to: val.owners,
-            from: "aos-team-art@redhat.com",
-            subject: "${val.image} Dockerfile reconciliation for OCP v${buildVersion}",
-            body: """
+        // Populate the introduction for all emails to owners
+        explanation_body = """
 Why am I receiving this?
 ------------------------
 You are receiving this message because you are listed as an owner for an
@@ -928,8 +933,26 @@ repository which houses all Red Hat images:
 We call this programmatic modification "reconciliation" and you will receive an
 email when the upstream Dockerfile changes so that you can review the
 differences between the upstream & downstream Dockerfiles.
+"""
 
+        if ( val.failure) {
+            explanation_body += """
+What do I need to do?
+---------------------
+An error occurred during your reconciliation. Until this issue is addressed,
+your upstream changes may not be reflected in the product build.
 
+Please review the error message reported below to see if the issue is due to upstream
+content. If it is not, the Automated Release Tooling (ART) team will engage to address
+the issue. Please direct any questions to the ART team (#aos-art on slack).
+
+Error Reported
+--------------
+${val.failure}
+
+        """
+        } else if ( val.sha ) {
+            explanation_body += """
 What do I need to do?
 ---------------------
 You may want to look at the result of the reconciliation. Usually,
@@ -945,7 +968,16 @@ The reconciled (downstream OCP) Dockerfile can be viewed here:
  - https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
 
 Please direct any questions to the Automated Release Tooling team (#aos-art on slack).
-        """);
+        """
+        } else {
+            error("Unable to determine notification reason; something is broken")
+        }
+
+        commonlib.email(
+            to: val.owners,
+            from: "aos-team-art@redhat.com",
+            subject: "${val.image} Dockerfile reconciliation for OCP v${buildVersion}",
+            body: explanation_body);
     }
 }
 

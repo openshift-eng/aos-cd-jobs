@@ -103,21 +103,21 @@ node {
 
     currentBuild.description = ""
     try {
-        lock("github-activity-lock-${params.BUILD_VERSION}") {
-            stage("initialize") { build.initialize() }
+        stage("initialize") { build.initialize() }
 
-            sshagent(["openshift-bot"]) {
-                // To work on private repos, buildlib operations must run
-                // with the permissions of openshift-bot
+        sshagent(["openshift-bot"]) {
+            // To work on private repos, buildlib operations must run
+            // with the permissions of openshift-bot
+            lock("github-activity-lock-${params.BUILD_VERSION}") {
                 stage("build RPMs") { build.stageBuildRpms() }
                 stage("build compose") { build.stageBuildCompose() }
                 stage("update dist-git") { build.stageUpdateDistgit() }
-                stage("build images") { build.stageBuildImages() }
-                stage("mirror RPMs") { build.stageMirrorRpms() }
-                stage("sync images") { build.stageSyncImages() }
             }
-            stage("report success") { build.stageReportSuccess() }
+            stage("build images") { build.stageBuildImages() }
+            stage("mirror RPMs") { build.stageMirrorRpms() }
+            stage("sync images") { build.stageSyncImages() }
         }
+        stage("report success") { build.stageReportSuccess() }
     } catch (err) {
         currentBuild.description += "\n-----------------\n\n${err}"
         currentBuild.result = "FAILURE"

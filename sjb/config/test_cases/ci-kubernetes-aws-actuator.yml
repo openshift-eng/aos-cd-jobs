@@ -8,7 +8,7 @@ extensions:
          ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.aws"
          scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws
          ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.ssh"
-         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.ssh/devenv.pem openshiftdevel:~/.ssh/devenv.pem
+         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.ssh/openshift-dev.pem openshiftdevel:~/.ssh/openshift-dev.pem
     - type: "script"
       title: "Install minikube"
       script: |-
@@ -82,11 +82,11 @@ extensions:
         source hack/envs
         set -x
 
-        chmod 0600 ~/.ssh/devenv.pem
+        chmod 0600 ~/.ssh/openshift-dev.pem
 
         export CLUSTER_ID="pr-${BUILD_NUMBER}-${PULL_NUMBER}"
         export ENVIRONMENT_ID="${CLUSTER_ID}"
-        export SSH_PK="/home/origin/.ssh/devenv.pem"
+        export SSH_PK="/home/origin/.ssh/openshift-dev.pem"
 
         export CLUSTER_IP="$(sudo kubectl get service kubernetes -o json | jq '.spec.clusterIP' --raw-output)"
         export KUBECONFIG=/etc/kubernetes/admin.conf

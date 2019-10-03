@@ -138,7 +138,7 @@ Host rcm-guest rcm-guest.app.eng.bos.redhat.com
     ```
 - oct dependencies
   - Copy /home/jenkins/.aws/credentials from existing buildvm to target (needed for oct & dockertested job).
-  - Copy libra.pem (from shared-secrets repo) to /home/jenkins/.ssh/devenv.pem .
+  - Copy openshift-dev.pem (from shared-secrets repo) to /home/jenkins/.ssh/openshift-dev.pem .
 - In a temporary directory
   - git clone https://github.com/openshift/origin-web-console.git
   - cd origin-web-console

@@ -170,7 +170,7 @@ node {
 
                             def response = [:]
                             try {
-                                retry(errors ? 3 : 30) { // retry the first failing pkg for 15m; after that, give up after 1m30s
+                                retry(errors ? 3 : 60) { // retry the first failing pkg for 30m; after that, give up after 1m30s
                                     response = [:] // ensure we aren't looking at a previous response
                                     response = httpRequest(
                                         url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",

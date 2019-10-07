@@ -39,15 +39,27 @@ node {
         buildlib.kinit()
     }
 
-    try {
-        stage("Sweep bugs") {
-            currentBuild.description = "Searching for and attaching bugs"
-            buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --use-default-advisory ${major == '4' ? 'image' : 'rpm'}"
-            buildlib.elliott "--group=openshift-${version} repair-bugs --use-default-advisory ${major == '4' ? 'image' : 'rpm'} --auto" 
-            currentBuild.description = "Ran bug attaching command without errors"
+    currentBuild.description = "Repairing state and sweeping new bugs.\n"
+    def kind = (major == '4') ? 'image' : 'rpm'
+
+    stage("Repair bug state") {
+        try {
+            currentBuild.description += "* Moving attached bugs in MODIFIED state to ON_QA...\n"
+            buildlib.elliott "--group=openshift-${version} repair-bugs --use-default-advisory ${kind} --auto" 
+        } catch (elliottErr) {
+            currentBuild.description = "Error repairing:\n${elliottErr}"
+            throw elliottErr
         }
-    } catch (findBugsError) {
-        currentBuild.description = "Error sweeping:\n${findBugsError}"
-        throw findBugsError
     }
+
+    stage("Sweep bugs") {
+        try {
+            currentBuild.description += "* Searching for and attaching new bugs in MODIFIED state...\n"
+            buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --use-default-advisory ${kind}"
+        } catch (elliottErr) {
+            currentBuild.description = "Error sweeping:\n${elliottErr}"
+            throw elliottErr
+        }
+    }
+    currentBuild.description = "Ran without errors\n---------------\n" + currentBuild.description
 }

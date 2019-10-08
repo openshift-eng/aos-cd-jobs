@@ -512,7 +512,7 @@ fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
-                 --inventory sjb/inventory/ \
+                 --inventory sjb/inventory/release-39 \
                  -e openshift_deployment_type=origin  \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
                  -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
@@ -543,7 +543,7 @@ local_ip=&#34;\$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )&#34;
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
-                 --inventory sjb/inventory/ \
+                 --inventory sjb/inventory/release-39 \
                  -e openshift_deployment_type=origin  \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
                  -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
@@ -563,7 +563,7 @@ fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
-                 --inventory sjb/inventory/ \
+                 --inventory sjb/inventory/release-39 \
                  -e openshift_deployment_type=origin  \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \

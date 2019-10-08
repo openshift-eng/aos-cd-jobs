@@ -14,7 +14,7 @@ extensions:
          ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.aws"
          scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config ~/.aws/credentials openshiftdevel:~/.aws
          ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config openshiftdevel "mkdir -p ~/.ssh"
-         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.ssh/devenv.pem openshiftdevel:~/.ssh/devenv.pem
+         scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.ssh/openshift-dev.pem openshiftdevel:~/.ssh/openshift-dev.pem
     - type: "script"
       title: "Install minikube"
       script: |-

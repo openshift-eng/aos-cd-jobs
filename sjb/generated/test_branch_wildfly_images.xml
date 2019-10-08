@@ -115,8 +115,8 @@ source &#34;${WORKSPACE}/activate&#34;
 mkdir -p &#34;${OCT_CONFIG_HOME}&#34;
 rm -rf &#34;${OCT_CONFIG_HOME}/origin-ci-tool&#34;
 oct configure ansible-client verbosity 2
-oct configure aws-client &#39;keypair_name&#39; &#39;libra&#39;
-oct configure aws-client &#39;private_key_path&#39; &#39;/var/lib/jenkins/.ssh/devenv.pem&#39;</command>
+oct configure aws-client &#39;keypair_name&#39; &#39;openshift-dev&#39;
+oct configure aws-client &#39;private_key_path&#39; &#39;/var/lib/jenkins/.ssh/openshift-dev.pem&#39;</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash

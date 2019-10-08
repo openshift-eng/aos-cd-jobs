@@ -15,8 +15,8 @@ source "${WORKSPACE}/activate"
 mkdir -p "${OCT_CONFIG_HOME}"
 rm -rf "${OCT_CONFIG_HOME}/origin-ci-tool"
 oct configure ansible-client verbosity 2
-oct configure aws-client 'keypair_name' 'libra'
-oct configure aws-client 'private_key_path' '/var/lib/jenkins/.ssh/devenv.pem'"""
+oct configure aws-client 'keypair_name' 'openshift-dev'
+oct configure aws-client 'private_key_path' '/var/lib/jenkins/.ssh/openshift-dev.pem'"""
 
 
 class OCTInstallAction(Action):

@@ -936,6 +936,7 @@ differences between the upstream & downstream Dockerfiles.
 """
 
         if ( val.failure) {
+            email_subject = "FAILURE: Error reconciling Dockerfile for ${val.image} in OCP v${buildVersion}"
             explanation_body += """
 What do I need to do?
 ---------------------
@@ -952,6 +953,7 @@ ${val.failure}
 
         """
         } else if ( val.sha ) {
+            email_subject = "SUCCESS: Changed Dockerfile reconciled for ${val.image} in OCP v${buildVersion}"
             explanation_body += """
 What do I need to do?
 ---------------------
@@ -976,7 +978,7 @@ Please direct any questions to the Automated Release Tooling team (#aos-art on s
         commonlib.email(
             to: val.owners,
             from: "aos-team-art@redhat.com",
-            subject: "${val.image} Dockerfile reconciliation for OCP v${buildVersion}",
+            subject: email_subject,
             body: explanation_body);
     }
 }

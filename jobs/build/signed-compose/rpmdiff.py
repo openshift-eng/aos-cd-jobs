@@ -38,7 +38,7 @@ def rpmdiffs_resolved(advisory):
     pp(rpmdiffs)
 
     for diff in rpmdiffs:
-        if diff['attributes']['status'] in ['INFO', 'WAIVED']:
+        if diff['attributes']['status'] in ['INFO', 'WAIVED', 'FAILED', 'NEEDS_INSPECTION']:
             completed_diffs.append(diff)
         else:
             incomplete_diffs.append(diff)

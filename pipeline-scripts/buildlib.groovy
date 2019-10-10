@@ -855,9 +855,9 @@ def get_distgit_notify( record_log ) {
     }
 
     source = record_log.get("source_alias", [])
-    commit = record_log["distgit_commit"]
-    def failure = record_log["distgit_commit_failure"]
-    notify = record_log["dockerfile_notify"]
+    commit = record_log.get("distgit_commit", [])
+    def failure = record_log.get("distgit_commit_failure", [])
+    notify = record_log.get("dockerfile_notify", [])
 
     int i = 0
     def source_alias = [:]

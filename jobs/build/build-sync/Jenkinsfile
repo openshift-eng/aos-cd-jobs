@@ -2,8 +2,9 @@
 
 node {
     checkout scm
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    def commonlib = buildlib.commonlib
+    def build = load("build.groovy")
+    def buildlib = build.buildlib
+    def commonlib = build.commonlib
 
     properties(
         [
@@ -18,105 +19,80 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                ]
-            ],
-            disableConcurrentBuilds(),
+		    [
+			name: 'DEBUG',
+			description: 'Run "oc" commands with greater logging',
+			$class: 'BooleanParameterDefinition',
+			defaultValue: false,
+		    ],
+		    [
+			name: 'NOOP',
+			description: 'Run "oc" commands with the dry-run option set to true',
+			$class: 'BooleanParameterDefinition',
+			defaultValue: false,
+		    ],
+		    [
+			name: 'IMAGES',
+			description: '(Optional) Comma separated list of images to sync, for testing purposes',
+			$class: 'hudson.model.StringParameterDefinition',
+			defaultValue: "",
+		    ],
+		    [
+			name: 'ORGANIZATION',
+			description: '(Optional) Quay.io organization to mirror to',
+			$class: 'hudson.model.StringParameterDefinition',
+			defaultValue: "openshift-release-dev",
+		    ],
+		    [
+			name: 'REPOSITORY',
+			description: '(Optional) Quay.io repository to mirror to',
+			$class: 'hudson.model.StringParameterDefinition',
+			defaultValue: "ocp-v4.0-art-dev",
+		    ],
+		],
+	    ]
         ]
     )
 
-    echo "Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}"
-
-    // doozer_working must be in WORKSPACE in order to have artifacts archived
-    def mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
-    // Location of the SRC=DEST input file
-    def ocMirrorInput = "${mirrorWorking}/oc_mirror_input"
-    // Location of the image stream to apply
-    def ocIsObject = "${mirrorWorking}/release-is.yaml"
-    // Locally stored image stream stub
-    def baseImageStream = "/home/jenkins/base-art-latest-imagestream-${params.BUILD_VERSION}.yaml"
-    // Kubeconfig allowing ART to interact with api.ci.openshift.org
-    def ciKubeconfig = "/home/jenkins/kubeconfigs/art-publish.kubeconfig"
-
-    // See 'oc image mirror --help' for more information.
-    // This is the template for the SRC=DEST strings mentioned above.
-    def ocFmtStr = "registry.reg-aws.openshift.com:443/{repository}=quay.io/openshift-release-dev/ocp-v4.0-art-dev:{version}-{release}-{image_name_short}"
-
-    buildlib.cleanWorkdir(mirrorWorking)
+    commonlib.checkMock()
+    echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
+    build.initialize()
 
     stage("Version dumps") {
         buildlib.doozer "--version"
         sh "which doozer"
-        sh "oc version"
+        sh "oc version -o yaml"
     }
 
-    // TRY all of this so we can save the generated artifacts before
-    // throwing the exceptions
     try {
-        // ######################################################################
-        // This should create a list of SOURCE=DEST strings in the output file
-        // May take a few minutes because doozer must query brew for each image
-        stage("Generate SRC=DEST input") {
-            buildlib.doozer """
---working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
-release:gen-payload
---src-dest ${ocMirrorInput}
---image-stream ${ocIsObject}
---is-base ${baseImageStream}
-'${ocFmtStr}'
-"""
-            images_count = sh(returnStdout: true, script: "wc -l ${ocMirrorInput}").trim().split().first()
-            currentBuild.description = "Preparing to sync ${images_count} images"
+	// This stage is safe to run concurrently. Each build runs
+	// these steps in its own directory.
+        stage("Generate inputs") { build.buildSyncGenInputs() }
+	// Allow this job to run concurrently for different
+	// versions. That is to say, do not allow builds for the same
+	// version to run the business logic concurrently.
+        lock("mirroring-lock-OCP-${params.BUILD_VERSION}") {
+            stage("oc image mirror") { build.buildSyncMirrorImages() }
+	}
+        lock("oc-applying-lock-OCP-${params.BUILD_VERSION}") {
+            stage("oc apply") { build.buildSyncApplyImageStreams() }
         }
+    } catch ( err ) {
+        commonlib.email(
+            to: "aos-art-automation+failed-build-sync@redhat.com",
+            from: "aos-art-automation@redhat.com",
+            replyTo: "aos-team-art@redhat.com",
+            subject: "Error during OCP ${params.BUILD_VERSION} build sync",
+            body: """
+There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
 
-        // ######################################################################
-        // Now run the actual mirroring command. Wrapped this in a
-        // retry loop because it is known to fail occassionally
-        // depending on the health of the source/destination endpoints.
-        stage("oc image mirror") {
-            echo "Mirror SRC=DEST input:"
-            sh "cat ${ocMirrorInput}"
-            try {
-                retry (3) {
-                    buildlib.registry_quay_dev_login()
-                    buildlib.oc "image mirror --filename=${ocMirrorInput}"
-		    currentBuild.description = "Success mirroring images"
-                }
-            } catch (mirror_error) {
-                currentBuild.description = "Error mirroring images after 3 attempts:\n${mirror_error}"
-                error(currentBuild.description)
-            }
-        }
-
-        stage("oc apply") {
-            echo "ImageStream Object to apply:"
-            sh "cat ${ocIsObject}"
-            try {
-                buildlib.oc "apply --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
-                currentBuild.description = "Success updating image stream"
-
-                // ######################################################################
-                echo "Temporary hack while we get '4.1' CI stood up"
-                // Update the image stream we produced in
-                // stage(Generate SRC=DEST input) to also publish to
-                // the 4.0 stream
-                sh "sed -i 's/4.1-art-latest/4.0-art-latest/' ${ocIsObject}"
-                buildlib.oc "apply --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
-                currentBuild.description = "Success updating both image streams"
-                // End temporary hack
-                // ######################################################################
-
-            } catch (apply_error) {
-                currentBuild.description = "Error updating image stream:\n${apply_error}"
-                error(currentBuild.description)
-            }
-        }
+    ${err}
+""")
+        throw ( err )
     } finally {
-        commonlib.safeArchiveArtifacts([
-                "MIRROR_working/oc_mirror_input",
-                "MIRROR_working/release-is.yaml"
-            ]
-        )
+        commonlib.safeArchiveArtifacts(build.artifacts)
     }
 }

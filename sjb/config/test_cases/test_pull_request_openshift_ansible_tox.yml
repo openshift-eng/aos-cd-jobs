@@ -7,8 +7,7 @@ extensions:
     - type: "script"
       title: "install test dependencies"
       script: |-
-        sudo yum install -y gcc libffi-devel python-devel openssl-devel
-        curl https://bootstrap.pypa.io/get-pip.py | python -
+        sudo yum install -y gcc libffi-devel python-devel openssl-devel python-pip
         sudo pip install tox
     - type: "script"
       title: "run unit tests"

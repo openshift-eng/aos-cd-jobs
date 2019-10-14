@@ -165,7 +165,7 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
         fi
     done
 done
-clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,image-registry=release-3.9 --repo=openshift,openshift-ansible=release-3.9 --repo=openshift,kubernetes-metrics-server=release-3.9 --repo=openshift,origin-web-console-server=release-3.9 --repo=openshift,aos-cd-jobs=master }
+clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,openshift-ansible=master --repo=openshift,aos-cd-jobs=master }
 docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
 docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
@@ -371,33 +371,17 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: DETERMINE THE RELEASE COMMIT FOR ORIGIN IMAGES AND VERSION FOR RPMS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PULL AND TAG OTHER IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PULL AND TAG OTHER IMAGES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-registry_repo=&#34;/data/src/github.com/openshift/image-registry/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${registry_repo}/ORIGIN_COMMIT&#34;
-metrics_repo=&#34;/data/src/github.com/openshift/kubernetes-metrics-server/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${metrics_repo}/ORIGIN_COMMIT&#34;
-console_repo=&#34;/data/src/github.com/openshift/origin-web-console-server/&#34;
-git log -1 --pretty=%h &gt;&gt; &#34;\${console_repo}/ORIGIN_COMMIT&#34;
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD THE IMAGE REGISTRY CONTAINER IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD THE IMAGE REGISTRY CONTAINER IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/image-registry&#34;
-make build-images
-docker tag openshift/origin-docker-registry:latest &#34;openshift/origin-docker-registry:\$( cat ./ORIGIN_COMMIT )&#34;
+jobs_repo=&#34;/data/src/github.com/openshift/aos-cd-jobs/&#34;
+for i in console service-catalog web-console metrics-server docker-registry; do
+  docker pull openshift/origin-\$i:v4.0
+  docker tag openshift/origin-\$i:v4.0 &#34;openshift/origin-\$i:\$( cat \${jobs_repo}/ORIGIN_COMMIT )&#34;
+done
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -405,33 +389,29 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD THE KUBERNETES METRICS SERVER CONTAINER IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD THE KUBERNETES METRICS SERVER CONTAINER IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ENABLE ANSIBLE 2.6 REPO ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ENABLE ANSIBLE 2.6 REPO [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/kubernetes-metrics-server&#34;
-make build-images
-docker tag openshift/origin-metrics-server:latest &#34;openshift/origin-metrics-server:\$( cat ./ORIGIN_COMMIT )&#34;
+cd &#34;\${HOME}&#34;
+sudo touch /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+sudo chmod a+rw /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+cat &lt;&lt;REPO &gt;/etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+[rhel-7-server-ansible-2.6-rpms]
+name=rhel-7-server-ansible-2.6-rpms
+baseurl=https://mirror.openshift.com/enterprise/rhel/rhel-7-server-ansible-2.6-rpms/
+enabled=1
+sslclientcert=/var/lib/yum/client-cert.pem
+sslclientkey=/var/lib/yum/client-key.pem
+sslverify=0
+REPO
+
+sudo yum repolist
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
-        </hudson.tasks.Shell>
-        <hudson.tasks.Shell>
-          <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: BUILD THE ORIGIN WEB CONSOLE SERVER CONTAINER IMAGE ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: BUILD THE ORIGIN WEB CONSOLE SERVER CONTAINER IMAGE [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
-script=&#34;$( mktemp )&#34;
-cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
-#!/bin/bash
-set -o errexit -o nounset -o pipefail -o xtrace
-cd &#34;\${GOPATH}/src/github.com/openshift/origin-web-console-server&#34;
-make build-images
-docker tag openshift/origin-web-console:latest &#34;openshift/origin-web-console:\$( cat ./ORIGIN_COMMIT )&#34;
-SCRIPT
-chmod +x &#34;${script}&#34;
-scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
-ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 3600 ${script}\&#34;&#34; </command>
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 300 ${script}\&#34;&#34; </command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -504,6 +484,20 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: TAG OPENSHIFT/ORIGIN FOR SYSTEM CONTAINERS ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: TAG OPENSHIFT/ORIGIN FOR SYSTEM CONTAINERS [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+script=&#34;$( mktemp )&#34;
+cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
+#!/bin/bash
+set -o errexit -o nounset -o pipefail -o xtrace
+cd &#34;\${GOPATH}/src/github.com/openshift/aos-cd-jobs&#34;
+sudo docker tag openshift/origin:\$( cat ./ORIGIN_TAG ) openshift/origin:\$( cat ./ORIGIN_TAG ).\$(cat ORIGIN_PKG_VERSION | grep -Po &#34;^\-\w\.\w\.(\w)&#34; | cut -d &#39;.&#39; -f 3) || true
+SCRIPT
+chmod +x &#34;${script}&#34;
+scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
+ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdevel &#34;bash -l -c \&#34;timeout 14400 ${script}\&#34;&#34; </command>
+        </hudson.tasks.Shell>
+        <hudson.tasks.Shell>
+          <command>#!/bin/bash
 SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ORIGIN PREREQUISITES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ORIGIN PREREQUISITES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
@@ -518,9 +512,8 @@ fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
-                 --inventory sjb/inventory/ \
+                 --inventory sjb/inventory/release-39 \
                  -e openshift_deployment_type=origin  \
-                 -e openshift_image_tag=&#34;\$( cat ./ORIGIN_RELEASE )&#34; \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
                  -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
                  -e oreg_url=&#39;openshift/origin-\${component}:&#39;&#34;\$( cat ./ORIGIN_COMMIT )&#34; \
@@ -550,7 +543,7 @@ local_ip=&#34;\$( curl http://169.254.169.254/latest/meta-data/local-ipv4 )&#34;
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
-                 --inventory sjb/inventory/ \
+                 --inventory sjb/inventory/release-39 \
                  -e openshift_deployment_type=origin  \
                  -e openshift_pkg_version=&#34;\$( cat ./ORIGIN_PKG_VERSION )&#34;               \
                  -e openshift_release=&#34;\$( cat ./ORIGIN_RELEASE )&#34;                       \
@@ -570,7 +563,7 @@ fi
 ansible-playbook -vv --become               \
                  --become-user root         \
                  --connection local         \
-                 --inventory sjb/inventory/ \
+                 --inventory sjb/inventory/release-39 \
                  -e openshift_deployment_type=origin  \
                  -e etcd_data_dir=&#34;\${ETCD_DATA_DIR}&#34; \
                  -e openshift_master_default_subdomain=&#34;\${local_ip}.nip.io&#34;             \
@@ -604,7 +597,7 @@ ssh -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config -t openshiftdev
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
-SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: ENSURE BUILT VERSION OF ORIGIN IS INSTALLED ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: ENSURE BUILT VERSION OF ORIGIN IS INSTALLED [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
+SCRIPT_START_TIME=&#34;$( date +%s )&#34; &amp;&amp; export SCRIPT_START_TIME &amp;&amp; echo &#34;########## STARTING STAGE: PULL OSTREE IMAGES ##########&#34; &amp;&amp; trap &#39;export status=FAILURE&#39; ERR &amp;&amp; trap &#39;set +o xtrace; SCRIPT_END_TIME=&#34;$( date +%s )&#34;; ELAPSED_TIME=&#34;$(( SCRIPT_END_TIME - SCRIPT_START_TIME ))&#34;; echo &#34;########## FINISHED STAGE: ${status:-SUCCESS}: PULL OSTREE IMAGES [$( printf &#34;%02dh %02dm %02ds&#34; &#34;$(( ELAPSED_TIME/3600 ))&#34; &#34;$(( (ELAPSED_TIME%3600)/60 ))&#34; &#34;$(( ELAPSED_TIME%60 ))&#34; )] ##########&#34;&#39; EXIT &amp;&amp; set -o errexit -o nounset -o pipefail -o xtrace &amp;&amp; if [[ -s &#34;${WORKSPACE}/activate&#34; ]]; then source &#34;${WORKSPACE}/activate&#34;; fi
 script=&#34;$( mktemp )&#34;
 cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash

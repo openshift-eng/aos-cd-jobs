@@ -184,7 +184,7 @@ node {
                 """
                 if (params.VERSION.startsWith("4")) {
                     currentBuild.description += """
-                        Extras: https://errata.devel.redhat.com/advisory/${operator_advisory_id}\n
+                        Extras: https://errata.devel.redhat.com/advisory/${extras_advisory_id}\n
                         OLM Operators metadata: https://errata.devel.redhat.com/advisory/${metadata_advisory_id}\n
                     """
                 }
@@ -198,7 +198,7 @@ node {
                 """
                 if (params.VERSION.startsWith("4")) {
                     cmd += """
-                        sed -e 's/extras:.*/extras: ${operator_advisory_id}/' \
+                        sed -e 's/extras:.*/extras: ${extras_advisory_id}/' \
                             -e 's/metadata:.*/metadata: ${metadata_advisory_id}/' \
                         -i group.yml ;
                     """

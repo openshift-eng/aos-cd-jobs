@@ -296,8 +296,6 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin&#34;
-wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
-sudo yum install ./google-chrome-stable_current_*.rpm -y
 oc version
 oc cluster up --public-hostname=localhost --loglevel=5 --server-loglevel=5
 SCRIPT
@@ -313,6 +311,28 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 #!/bin/bash
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin-web-console&#34;
+# Chrome Version 76.0.3809.0 (Developer Build) (64-bit)
+# https://omahaproxy.appspot.com/
+BRANCH_BASE=&#34;665006&#34;
+BRANCH_SHA256SUM=&#34;a1ae2e0950828f991119825f62c24464ab3765aa219d150a94fb782a4c66a744&#34;
+CHROME_DIR=&#34;/tmp/__chrome_browser__&#34;
+CHROME_DOWNLOAD_URL=&#34;https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots&#34;
+
+# download
+mkdir -p &#34;\${CHROME_DIR}/\${BRANCH_BASE}&#34;
+curl -G &#34;\${CHROME_DOWNLOAD_URL}/o/Linux_x64%2F\${BRANCH_BASE}%2Fchrome-linux.zip&#34; \
+    -d &#34;alt=media&#34; \
+    &gt; &#34;\${CHROME_DIR}/chrome-linux-\${BRANCH_BASE}.zip&#34;
+unzip &#34;\${CHROME_DIR}/chrome-linux-\${BRANCH_BASE}.zip&#34; -d &#34;\${CHROME_DIR}/\${BRANCH_BASE}&#34;
+
+# check sha256sum
+if [ &#34;\$(sha256sum \${CHROME_DIR}/chrome-linux-\${BRANCH_BASE}.zip | cut -f 1 -d &#39; &#39;)&#34; != &#34;\${BRANCH_SHA256SUM}&#34; ];
+then
+  echo &#34;ERROR: chrmoe binary sha256 missmatch&#34;
+  exit 1
+fi
+
+export CHROME_BIN=&#34;\${CHROME_DIR}/\${BRANCH_BASE}/chrome-linux/chrome&#34;
 export PATH=\$PATH:\$(pwd)/node_modules/.bin
 make test
 SCRIPT

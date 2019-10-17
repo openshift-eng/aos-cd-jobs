@@ -103,12 +103,13 @@ node {
 
     currentBuild.description = ""
     try {
-        stage("initialize") { build.initialize() }
 
         sshagent(["openshift-bot"]) {
             // To work on private repos, buildlib operations must run
             // with the permissions of openshift-bot
             lock("github-activity-lock-${params.BUILD_VERSION}") {
+                stage("initialize") { build.initialize() }
+                buildlib.assertBuildPermitted(doozerOpts)
                 stage("build RPMs") { build.stageBuildRpms() }
                 stage("build compose") { build.stageBuildCompose() }
                 stage("update dist-git") { build.stageUpdateDistgit() }
@@ -119,6 +120,12 @@ node {
         }
         stage("report success") { build.stageReportSuccess() }
     } catch (err) {
+
+        if (!buildlib.isBuildPermitted(doozerOpts)) {
+            echo 'Exiting because this build is not permitted: ${err}'
+            return
+        }
+
         currentBuild.description += "\n-----------------\n\n${err}"
         currentBuild.result = "FAILURE"
 

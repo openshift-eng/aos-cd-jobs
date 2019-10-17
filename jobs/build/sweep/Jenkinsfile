@@ -29,9 +29,12 @@ node {
 
     def version = params.BUILD_VERSION
     def major = version[0]
+    doozerOpts = "--group openshift-${version}"
     stage("Init") {
         echo "Initializing bug sweep for ${version}. Sync: #${currentBuild.number}"
         currentBuild.displayName = "${version} bug sweep"
+
+        buildlib.assertBuildPermitted(doozerOpts)
 
         buildlib.elliott "--version"
         sh "which elliott"

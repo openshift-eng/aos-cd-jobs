@@ -222,7 +222,7 @@ node {
                         metadata_nvrs.split("\n").each { nvr -> elliott_build_flags.add("--build ${nvr}") }
 
                         buildlib.elliott """--group openshift-${params.BUILD_VERSION}
-                            find-builds
+                            find-builds -k image
                             ${elliott_build_flags.join(" ")}
                             --attach ${params.ADVISORY}
                         """

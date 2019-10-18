@@ -65,13 +65,11 @@ Map stageValidation(String quay_url, String name, int advisory = 0) {
 
     def advisoryInfo = readJSON text: res.stdout
     retval.advisoryInfo = advisoryInfo
-    if (name != '4.2.0') {  // 4.2.0 in REL_PREP, gets a pass
-        echo "Verifying advisory ${advisoryInfo.id} (https://errata.engineering.redhat.com/advisory/${advisoryInfo.id}) status"
-        if (advisoryInfo.status != 'QE') {
-            error("🚫 Advisory ${advisoryInfo.id} is not in QE state.")
-        }
-        echo "✅ Advisory ${advisoryInfo.id} is in QE state."
+    echo "Verifying advisory ${advisoryInfo.id} (https://errata.engineering.redhat.com/advisory/${advisoryInfo.id}) status"
+    if (advisoryInfo.status != 'QE') {
+        error("🚫 Advisory ${advisoryInfo.id} is not in QE state.")
     }
+    echo "✅ Advisory ${advisoryInfo.id} is in QE state."
 
     // Extract live ID from advisory info
     // Examples:

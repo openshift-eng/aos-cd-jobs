@@ -192,7 +192,7 @@ node {
             stage("commit new advisories to ocp-build-data") {
                 cmd = """
                     rm -rf ocp-build-data ;
-                    git clone --single-branch --branch openshift-${params.VERSION} git@gitlab.cee.redhat.com:openshift-art/ocp-build-data.git ;
+                    git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git ;
                     cd ocp-build-data ;
                     sed -e 's/image:.*/image: ${image_advisory_id}/' -e 's/rpm:.*/rpm: ${rpm_advisory_id}/' -i group.yml ;
                 """

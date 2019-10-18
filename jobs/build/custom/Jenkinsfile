@@ -54,9 +54,9 @@ node {
                     ],
                     [
                         name: 'DOOZER_DATA_PATH',
-                        description: '(Optional) Unless you want to override it',
+                        description: '(Optional) you may override with your fork',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "https://gitlab.cee.redhat.com/openshift-art/ocp-build-data"
+                        defaultValue: "https://github.com/openshift/ocp-build-data"
                     ],
                     [
                         name: 'SIGNED',

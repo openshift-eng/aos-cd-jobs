@@ -812,6 +812,24 @@ def parse_record_log( working_dir ) {
     return result
 }
 
+// Find the supported arches for this release
+//
+// @param branch <String>: The name of the branch to get configs
+//   for. For example: 'openshift-4.3'
+//
+// @return arches <List>: A list of the arches built for this branch
+def branch_arches(String branch) {
+    echo("Fetching group config for '${branch}'")
+    def groupConfigSource = "https://raw.githubusercontent.com/openshift/ocp-build-data/${branch}/group.yml"
+    def groupConfig = sh(
+        returnStdout: true,
+        script: "curl -s ${groupConfigSource}",
+    ).trim()
+
+    def datas = readYaml(text: groupConfig)
+    return datas.arches
+}
+
 // Search the build log for failed builds
 def get_failed_builds(String log_dir, Boolean fullRecord=false) {
     record_log = parse_record_log(log_dir)

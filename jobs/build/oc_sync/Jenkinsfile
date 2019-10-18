@@ -25,6 +25,7 @@ node {
                             "4-stable",
                             "4.1.0-0.nightly",
                             "4.2.0-0.nightly",
+                            "4.3.0-0.nightly",
                         ].join("\n"),
                         defaultValue: "4-stable"
                     ],

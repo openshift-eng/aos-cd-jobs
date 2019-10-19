@@ -31,11 +31,16 @@ openshift_logging_kibana_proxy_memory_limit: "64Mi"
 openshift_logging_mux_cpu_request: "400m"
 openshift_logging_mux_memory_limit: "256Mi"
 
-openshift_logging_elasticsearch_proxy_image: "docker.io/openshift/oauth-proxy:v1.0.0"
-
 # 3.11 and later requires es/es-ops nodes to be specified
 # in order that only the es nodes have the mmap sysctl applied
 openshift_logging_es_nodeselector:
   node-role.kubernetes.io/infra: "true"
 openshift_logging_es_ops_nodeselector:
   node-role.kubernetes.io/infra: "true"
+# the logging tests override oreg_url as
+# openshift/origin-${component}:$commithash
+# since there is no literal '${version}' string in it,
+# the regex match to replace the version does not work
+# so provide a l_os_non_standard_reg_url with that string
+# so proxy image version replacement will work
+l_os_non_standard_reg_url: "openshift/origin-${component}:${version}"

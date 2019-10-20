@@ -54,7 +54,6 @@ extensions:
                          -e debug_level=2           \
                          -e openshift_logging_image_prefix="openshift/origin-" \
                          -e openshift_logging_image_version="${release_commit:-latest}" \
-                         -e openshift_logging_elasticsearch_proxy_image_prefix="docker.io/openshift/" \
                          -e openshift_hosted_logging_hostname="kibana.127.0.0.1.nip.io"           \
                          -e openshift_logging_master_public_url="https://localhost:8443"          \
                          -e openshift_master_logging_public_url="https://kibana.127.0.0.1.nip.io" \
@@ -64,7 +63,6 @@ extensions:
                          -e openshift_logging_es_ops_allow_external=True                          \
                          -e openshift_logging_install_eventrouter=True                            \
                          -e oreg_url='openshift/origin-${component}:'"${release_commit:-latest}"                 \
-                         -e openshift_logging_elasticsearch_proxy_image="docker.io/openshift/oauth-proxy:v1.0.0" \
                          ${EXTRA_EVARS:-} \
                          ${playbook} \
                          ${logging_extras} \

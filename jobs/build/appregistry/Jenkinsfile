@@ -79,7 +79,7 @@ node {
                         defaultValue: 'dev',
                     ],
                     string(
-                        name: 'ADVISORY',
+                        name: 'TARGET_ADVISORY',
                         description: 'Should not be filled if STREAM is "dev"',
                         defaultValue: '',
                     ),
@@ -113,37 +113,71 @@ node {
     def workDir = "${env.WORKSPACE}/workDir"
     buildlib.cleanWorkdir(workDir)
 
-    currentBuild.description = "Collecting appregistry images for ${params.BUILD_VERSION}"
-    currentBuild.displayName += " - ${params.BUILD_VERSION}"
+    def buildVersion = params.BUILD_VERSION
+
+    currentBuild.description = "Collecting appregistry images for ${buildVersion}"
+    currentBuild.displayName += " - ${buildVersion}"
 
     def skipPush = params.SKIP_PUSH
+
+    def doozer = { cmd ->
+        buildlib.doozer("--working-dir ${workDir} -g openshift-${buildVersion} ${cmd}", [capture: true])
+    }
+
+    def elliott = { cmd ->
+        buildlib.elliott("-g openshift-${buildVersion} ${cmd}", [capture: true])
+    }
+
+    def getImagesData = { include ->
+        if (include) {
+            include = "--images " + commonlib.cleanCommaList(include)
+        }
+        doozer """
+            ${include}
+            images:print
+            --label 'com.redhat.delivery.appregistry'
+            --short '{label},{name},{build},{version}'
+        """
+    }
+
+    def pushToOMPS = { token, metadata_nvr ->
+        httpRequest(
+            url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
+            httpMode: 'POST',
+            customHeaders: [[name: 'Authorization', value: token]],
+            timeout: 60,
+            validResponseCodes: "200:599",
+        )
+    }
+
+    def getMetadataNVRs = { operatorNames ->
+        doozer("operator-metadata:latest-build ${operatorNames.join(" ")}")
+    }
+
+    def attachToAdvisory = { advisory, metadata_nvrs ->
+        def elliott_build_flags = []
+        metadata_nvrs.split().each { nvr -> elliott_build_flags.add("--build ${nvr}") }
+
+        elliott """
+            find-builds -k image
+            ${elliott_build_flags.join(" ")}
+            --attach ${advisory}
+        """
+    }
 
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
             stage("fetch appregistry images") {
-                def include = params.IMAGES.trim()
-                if (include) {
-                    include = "--images " + commonlib.cleanCommaList(include)
-                }
-                def lines = buildlib.doozer """
-                    --working-dir ${workDir}
-                    --group 'openshift-${params.BUILD_VERSION}'
-                    ${include}
-                    images:print
-                    --label 'com.redhat.delivery.appregistry'
-                    --short '{label},{name},{build},{version}'
-                """, [capture: true]
+                def lines = getImagesData(params.IMAGES.trim())
                 operatorData = processImages(lines)
                 writeYaml file: "${workDir}/appreg.yaml", data: operatorData
-                currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
+                currentBuild.description = "appregistry images collected for ${buildVersion}."
             }
             stage("build metadata container") {
                 def nvrs = operatorData.collect { item -> item.nvr }
 
-                buildlib.doozer """
-                    --working-dir ${workDir}
-                    --group openshift-${params.BUILD_VERSION}
+                doozer """
                     operator-metadata:build ${nvrs.join(' ')}
                     ${params.FORCE_METADATA_BUILD ? "-f" : ""}
                     --stream ${params.STREAM}
@@ -166,19 +200,13 @@ node {
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
-                            def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
+                            def metadata_nvr = doozer("operator-metadata:latest-build ${build.name}")
 
                             def response = [:]
                             try {
                                 retry(errors ? 3 : 60) { // retry the first failing pkg for 30m; after that, give up after 1m30s
                                     response = [:] // ensure we aren't looking at a previous response
-                                    response = httpRequest(
-                                        url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
-                                        httpMode: 'POST',
-                                        customHeaders: [[name: 'Authorization', value: token]],
-                                        timeout: 60,
-                                        validResponseCodes: "200:599",
-                                    )
+                                    response = pushToOMPS(token, metadata_nvr)
                                     if (response.status != 200) {
                                         sleep(30)
                                         error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
@@ -203,41 +231,31 @@ node {
                             error "${errors}"
                         }
                     }
-                } else {
-                    if (params.ADVISORY) {
+                }
+            }
+            stage("attach metadata to advisory") {
+                    if (params.TARGET_ADVISORY) {
 
-                        // obtaining metadata NVRs of all builds
-                        def build_names = []
-                        operatorData.each { build -> build_names.add(build.name) }
-                        doozer_cmd = "--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build_names.join(' ')}"
-                        def metadata_nvrs = buildlib.doozer(doozer_cmd, [capture: true])
+                        def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.name })
 
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
+                        elliott """
                             change-state -s NEW_FILES
-                            -a ${params.ADVISORY}
+                            -a ${params.TARGET_ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
 
-                        def elliott_build_flags = []
-                        metadata_nvrs.split("\n").each { nvr -> elliott_build_flags.add("--build ${nvr}") }
-
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
-                            find-builds -k image
-                            ${elliott_build_flags.join(" ")}
-                            --attach ${params.ADVISORY}
-                        """
+                        attachToAdvisory(params.TARGET_ADVISORY, metadata_nvrs)
 
                         /*
                         // this would be convenient, except that we don't have a way
                         // to set the CDN repos first, and can't move to QE without that.
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
+                        elliott """
                             change-state -s QE
-                            -a ${params.ADVISORY}
+                            -a ${params.TARGET_ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
                         */
                     }
-                }
             }
         }
     } catch (err) {

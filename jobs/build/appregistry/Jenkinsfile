@@ -150,6 +150,10 @@ node {
         )
     }
 
+    def getMetadataNVRs = { operatorNames ->
+        doozer("operator-metadata:latest-build ${operatorNames.join(" ")}")
+    }
+
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
@@ -221,11 +225,7 @@ node {
             stage("attach metadata to advisory") {
                     if (params.ADVISORY) {
 
-                        // obtaining metadata NVRs of all builds
-                        def build_names = []
-                        operatorData.each { build -> build_names.add(build.name) }
-                        doozer_cmd = "--group openshift-${buildVersion} operator-metadata:latest-build ${build_names.join(' ')}"
-                        def metadata_nvrs = doozer(doozer_cmd)
+                        def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.name })
 
                         elliott """
                             change-state -s NEW_FILES

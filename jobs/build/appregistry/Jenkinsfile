@@ -128,20 +128,23 @@ node {
         buildlib.elliott("-g openshift-${buildVersion} ${cmd}", [capture: true])
     }
 
+    def getImagesData = { include ->
+        if (include) {
+            include = "--images " + commonlib.cleanCommaList(include)
+        }
+        doozer """
+            ${include}
+            images:print
+            --label 'com.redhat.delivery.appregistry'
+            --short '{label},{name},{build},{version}'
+        """
+    }
+
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
             stage("fetch appregistry images") {
-                def include = params.IMAGES.trim()
-                if (include) {
-                    include = "--images " + commonlib.cleanCommaList(include)
-                }
-                def lines = doozer """
-                    ${include}
-                    images:print
-                    --label 'com.redhat.delivery.appregistry'
-                    --short '{label},{name},{build},{version}'
-                """
+                def lines = getImagesData(params.IMAGES.trim())
                 operatorData = processImages(lines)
                 writeYaml file: "${workDir}/appreg.yaml", data: operatorData
                 currentBuild.description = "appregistry images collected for ${buildVersion}."

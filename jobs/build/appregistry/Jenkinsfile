@@ -124,6 +124,10 @@ node {
         buildlib.doozer("--working-dir ${workDir} -g openshift-${buildVersion} ${cmd}", [capture: true])
     }
 
+    def elliott = { cmd ->
+        buildlib.elliott("-g openshift-${buildVersion} ${cmd}", [capture: true])
+    }
+
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
@@ -214,7 +218,7 @@ node {
                         doozer_cmd = "--group openshift-${buildVersion} operator-metadata:latest-build ${build_names.join(' ')}"
                         def metadata_nvrs = doozer(doozer_cmd)
 
-                        buildlib.elliott """--group openshift-${buildVersion}
+                        elliott """
                             change-state -s NEW_FILES
                             -a ${params.ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
@@ -223,7 +227,7 @@ node {
                         def elliott_build_flags = []
                         metadata_nvrs.split("\n").each { nvr -> elliott_build_flags.add("--build ${nvr}") }
 
-                        buildlib.elliott """--group openshift-${buildVersion}
+                        elliott """
                             find-builds -k image
                             ${elliott_build_flags.join(" ")}
                             --attach ${params.ADVISORY}
@@ -232,7 +236,7 @@ node {
                         /*
                         // this would be convenient, except that we don't have a way
                         // to set the CDN repos first, and can't move to QE without that.
-                        buildlib.elliott """--group openshift-${buildVersion}
+                        elliott """
                             change-state -s QE
                             -a ${params.ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}

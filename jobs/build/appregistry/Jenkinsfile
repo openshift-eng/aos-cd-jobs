@@ -125,6 +125,16 @@ node {
 
     def skipPush = params.SKIP_PUSH
 
+    def validate = { params ->
+        if (params.STREAM in ["stage", "prod"]) {
+            if (!params.SOURCE_ADVISORIES || !params.TARGET_ADVISORY) {
+                echo "ERROR: SOURCE_ADVISORIES and TARGET_ADVISORY parameters are required for selected STREAM."
+                return false
+            }
+        }
+        return true
+    }
+
     def doozer = { cmd ->
         buildlib.doozer("--working-dir ${workDir} -g openshift-${buildVersion} ${cmd}", [capture: true])
     }
@@ -173,6 +183,11 @@ node {
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
+            stage("validate params") {
+                if (!validate(params)) {
+                    sh "exit 1"
+                }
+            }
             stage("fetch appregistry images") {
                 def lines = getImagesData(params.IMAGES.trim())
                 operatorData = processImages(lines)

@@ -140,6 +140,16 @@ node {
         """
     }
 
+    def pushToOMPS = { token, metadata_nvr ->
+        httpRequest(
+            url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
+            httpMode: 'POST',
+            customHeaders: [[name: 'Authorization', value: token]],
+            timeout: 60,
+            validResponseCodes: "200:599",
+        )
+    }
+
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
@@ -181,13 +191,7 @@ node {
                             try {
                                 retry(errors ? 3 : 60) { // retry the first failing pkg for 30m; after that, give up after 1m30s
                                     response = [:] // ensure we aren't looking at a previous response
-                                    response = httpRequest(
-                                        url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
-                                        httpMode: 'POST',
-                                        customHeaders: [[name: 'Authorization', value: token]],
-                                        timeout: 60,
-                                        validResponseCodes: "200:599",
-                                    )
+                                    response = pushToOMPS(token, metadata_nvr)
                                     if (response.status != 200) {
                                         sleep(30)
                                         error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"

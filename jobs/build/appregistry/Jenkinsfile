@@ -154,6 +154,17 @@ node {
         doozer("operator-metadata:latest-build ${operatorNames.join(" ")}")
     }
 
+    def attachToAdvisory = { advisory, metadata_nvrs ->
+        def elliott_build_flags = []
+        metadata_nvrs.split().each { nvr -> elliott_build_flags.add("--build ${nvr}") }
+
+        elliott """
+            find-builds -k image
+            ${elliott_build_flags.join(" ")}
+            --attach ${advisory}
+        """
+    }
+
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
@@ -233,14 +244,7 @@ node {
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
 
-                        def elliott_build_flags = []
-                        metadata_nvrs.split("\n").each { nvr -> elliott_build_flags.add("--build ${nvr}") }
-
-                        elliott """
-                            find-builds -k image
-                            ${elliott_build_flags.join(" ")}
-                            --attach ${params.ADVISORY}
-                        """
+                        attachToAdvisory(params.ADVISORY, metadata_nvrs)
 
                         /*
                         // this would be convenient, except that we don't have a way

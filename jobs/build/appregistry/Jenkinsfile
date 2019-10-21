@@ -2,13 +2,14 @@
 def processImages(lines) {
     def data = []
     lines.split().each { line ->
-        // label, name, nvr, version
+        // label, name, nvr, version, component
         def fields = line.split(',')
         if (fields[0]) {
             data.add([
                 name: fields[1],
                 nvr: fields[2],
                 version: fields[3].replace("v", ""),
+                component: fields[4],
             ])
         }
     }
@@ -79,8 +80,13 @@ node {
                         defaultValue: 'dev',
                     ],
                     string(
+                        name: 'SOURCE_ADVISORIES',
+                        description: 'One or more advisories where OLM operators are attached\n* Required for "stage" and "prod" STREAMs',
+                        defaultValue: '',
+                    ),
+                    string(
                         name: 'TARGET_ADVISORY',
-                        description: 'Should not be filled if STREAM is "dev"',
+                        description: 'Advisory to attach corresponding metadata builds\n* Required for "stage" and "prod" STREAMs',
                         defaultValue: '',
                     ),
                     booleanParam(
@@ -120,6 +126,16 @@ node {
 
     def skipPush = params.SKIP_PUSH
 
+    def validate = { params ->
+        if (params.STREAM in ["stage", "prod"]) {
+            if (!params.SOURCE_ADVISORIES || !params.TARGET_ADVISORY) {
+                echo "ERROR: SOURCE_ADVISORIES and TARGET_ADVISORY parameters are required for selected STREAM."
+                return false
+            }
+        }
+        return true
+    }
+
     def doozer = { cmd ->
         buildlib.doozer("--working-dir ${workDir} -g openshift-${buildVersion} ${cmd}", [capture: true])
     }
@@ -136,8 +152,23 @@ node {
             ${include}
             images:print
             --label 'com.redhat.delivery.appregistry'
-            --short '{label},{name},{build},{version}'
+            --short '{label},{name},{build},{version},{component}'
         """
+    }
+
+    def fetchNVRsFromAdvisories = { advisories ->
+        commonlib.cleanCommaList(advisories).split(",").collect { advisory ->
+            readJSON(text: elliott("get --json - ${advisory}")).errata_builds.values().flatten()
+        }.flatten()
+    }
+
+    def replaceNVRsByFoundInAdvisories = { images, advisoriesNVRs ->
+        images.collect {
+            image -> [
+                name: image.name,
+                nvr: advisoriesNVRs.find { it.startsWith(image.component) }
+            ]
+        }
     }
 
     def pushToOMPS = { token, metadata_nvr ->
@@ -168,9 +199,33 @@ node {
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
+            stage("validate params") {
+                if (!validate(params)) {
+                    sh "exit 1"
+                }
+            }
             stage("fetch appregistry images") {
                 def lines = getImagesData(params.IMAGES.trim())
                 operatorData = processImages(lines)
+
+                if (params.STREAM in ["stage", "prod"]) {
+                    def advisoriesNVRs = fetchNVRsFromAdvisories(params.SOURCE_ADVISORIES)
+                    operatorData = replaceNVRsByFoundInAdvisories(operatorData, advisoriesNVRs)
+
+                    if (operatorData.any { it.nvr == null }) {
+                        echo """
+                        ERROR: The following operators were not found in provided advisories.
+                        ${operatorData.findAll { !it.nvr }.collect { it.name }.join(",")}
+
+                        Possible solutions:
+                        1. Add more advisories in SOURCE_ADVISORIES parameter, that have the missing operators attached
+                        2. Attach missing operators to at least one of the provided advisories: ${params.SOURCE_ADVISORIES}
+                        3. Limit the expected operators in IMAGES parameter: ${operatorData.findAll { it.nvr }.collect { it.name }.join(",")}
+                        """
+                        sh "exit 1"
+                    }
+                }
+
                 writeYaml file: "${workDir}/appreg.yaml", data: operatorData
                 currentBuild.description = "appregistry images collected for ${buildVersion}."
             }

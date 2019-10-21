@@ -79,8 +79,13 @@ node {
                         defaultValue: 'dev',
                     ],
                     string(
+                        name: 'SOURCE_ADVISORIES',
+                        description: 'One or more advisories where OLM operators are attached\n* Required for "stage" and "prod" STREAMs',
+                        defaultValue: '',
+                    ),
+                    string(
                         name: 'TARGET_ADVISORY',
-                        description: 'Should not be filled if STREAM is "dev"',
+                        description: 'Advisory to attach corresponding metadata builds\n* Required for "stage" and "prod" STREAMs',
                         defaultValue: '',
                     ),
                     booleanParam(

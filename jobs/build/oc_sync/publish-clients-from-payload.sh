@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eux
-
+export MOBY_DISABLE_PIGZ=true
 WORKSPACE=$1
 STREAM=$2
 MIRROR=$3

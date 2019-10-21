@@ -216,7 +216,9 @@ node {
                             error "${errors}"
                         }
                     }
-                } else {
+                }
+            }
+            stage("attach metadata to advisory") {
                     if (params.ADVISORY) {
 
                         // obtaining metadata NVRs of all builds
@@ -250,7 +252,6 @@ node {
                         """
                         */
                     }
-                }
             }
         }
     } catch (err) {

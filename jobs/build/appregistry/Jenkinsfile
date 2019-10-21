@@ -113,8 +113,10 @@ node {
     def workDir = "${env.WORKSPACE}/workDir"
     buildlib.cleanWorkdir(workDir)
 
-    currentBuild.description = "Collecting appregistry images for ${params.BUILD_VERSION}"
-    currentBuild.displayName += " - ${params.BUILD_VERSION}"
+    def buildVersion = params.BUILD_VERSION
+
+    currentBuild.description = "Collecting appregistry images for ${buildVersion}"
+    currentBuild.displayName += " - ${buildVersion}"
 
     def skipPush = params.SKIP_PUSH
 
@@ -128,7 +130,7 @@ node {
                 }
                 def lines = buildlib.doozer """
                     --working-dir ${workDir}
-                    --group 'openshift-${params.BUILD_VERSION}'
+                    --group 'openshift-${buildVersion}'
                     ${include}
                     images:print
                     --label 'com.redhat.delivery.appregistry'
@@ -136,14 +138,14 @@ node {
                 """, [capture: true]
                 operatorData = processImages(lines)
                 writeYaml file: "${workDir}/appreg.yaml", data: operatorData
-                currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
+                currentBuild.description = "appregistry images collected for ${buildVersion}."
             }
             stage("build metadata container") {
                 def nvrs = operatorData.collect { item -> item.nvr }
 
                 buildlib.doozer """
                     --working-dir ${workDir}
-                    --group openshift-${params.BUILD_VERSION}
+                    --group openshift-${buildVersion}
                     operator-metadata:build ${nvrs.join(' ')}
                     ${params.FORCE_METADATA_BUILD ? "-f" : ""}
                     --stream ${params.STREAM}
@@ -166,7 +168,7 @@ node {
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
-                            def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
+                            def metadata_nvr = buildlib.doozer("--group openshift-${buildVersion} operator-metadata:latest-build ${build.name}", [capture: true])
 
                             def response = [:]
                             try {
@@ -209,10 +211,10 @@ node {
                         // obtaining metadata NVRs of all builds
                         def build_names = []
                         operatorData.each { build -> build_names.add(build.name) }
-                        doozer_cmd = "--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build_names.join(' ')}"
+                        doozer_cmd = "--group openshift-${buildVersion} operator-metadata:latest-build ${build_names.join(' ')}"
                         def metadata_nvrs = buildlib.doozer(doozer_cmd, [capture: true])
 
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
+                        buildlib.elliott """--group openshift-${buildVersion}
                             change-state -s NEW_FILES
                             -a ${params.ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
@@ -221,7 +223,7 @@ node {
                         def elliott_build_flags = []
                         metadata_nvrs.split("\n").each { nvr -> elliott_build_flags.add("--build ${nvr}") }
 
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
+                        buildlib.elliott """--group openshift-${buildVersion}
                             find-builds -k image
                             ${elliott_build_flags.join(" ")}
                             --attach ${params.ADVISORY}
@@ -230,7 +232,7 @@ node {
                         /*
                         // this would be convenient, except that we don't have a way
                         // to set the CDN repos first, and can't move to QE without that.
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
+                        buildlib.elliott """--group openshift-${buildVersion}
                             change-state -s QE
                             -a ${params.ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}

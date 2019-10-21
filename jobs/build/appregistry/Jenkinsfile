@@ -79,7 +79,7 @@ node {
                         defaultValue: 'dev',
                     ],
                     string(
-                        name: 'ADVISORY',
+                        name: 'TARGET_ADVISORY',
                         description: 'Should not be filled if STREAM is "dev"',
                         defaultValue: '',
                     ),
@@ -234,24 +234,24 @@ node {
                 }
             }
             stage("attach metadata to advisory") {
-                    if (params.ADVISORY) {
+                    if (params.TARGET_ADVISORY) {
 
                         def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.name })
 
                         elliott """
                             change-state -s NEW_FILES
-                            -a ${params.ADVISORY}
+                            -a ${params.TARGET_ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
 
-                        attachToAdvisory(params.ADVISORY, metadata_nvrs)
+                        attachToAdvisory(params.TARGET_ADVISORY, metadata_nvrs)
 
                         /*
                         // this would be convenient, except that we don't have a way
                         // to set the CDN repos first, and can't move to QE without that.
                         elliott """
                             change-state -s QE
-                            -a ${params.ADVISORY}
+                            -a ${params.TARGET_ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
                         */

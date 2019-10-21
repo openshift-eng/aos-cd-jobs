@@ -120,6 +120,10 @@ node {
 
     def skipPush = params.SKIP_PUSH
 
+    def doozer = { cmd ->
+        buildlib.doozer("--working-dir ${workDir} -g openshift-${buildVersion} ${cmd}", [capture: true])
+    }
+
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
@@ -128,14 +132,12 @@ node {
                 if (include) {
                     include = "--images " + commonlib.cleanCommaList(include)
                 }
-                def lines = buildlib.doozer """
-                    --working-dir ${workDir}
-                    --group 'openshift-${buildVersion}'
+                def lines = doozer """
                     ${include}
                     images:print
                     --label 'com.redhat.delivery.appregistry'
                     --short '{label},{name},{build},{version}'
-                """, [capture: true]
+                """
                 operatorData = processImages(lines)
                 writeYaml file: "${workDir}/appreg.yaml", data: operatorData
                 currentBuild.description = "appregistry images collected for ${buildVersion}."
@@ -143,9 +145,7 @@ node {
             stage("build metadata container") {
                 def nvrs = operatorData.collect { item -> item.nvr }
 
-                buildlib.doozer """
-                    --working-dir ${workDir}
-                    --group openshift-${buildVersion}
+                doozer """
                     operator-metadata:build ${nvrs.join(' ')}
                     ${params.FORCE_METADATA_BUILD ? "-f" : ""}
                     --stream ${params.STREAM}
@@ -168,7 +168,7 @@ node {
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
-                            def metadata_nvr = buildlib.doozer("--group openshift-${buildVersion} operator-metadata:latest-build ${build.name}", [capture: true])
+                            def metadata_nvr = doozer("operator-metadata:latest-build ${build.name}")
 
                             def response = [:]
                             try {
@@ -212,7 +212,7 @@ node {
                         def build_names = []
                         operatorData.each { build -> build_names.add(build.name) }
                         doozer_cmd = "--group openshift-${buildVersion} operator-metadata:latest-build ${build_names.join(' ')}"
-                        def metadata_nvrs = buildlib.doozer(doozer_cmd, [capture: true])
+                        def metadata_nvrs = doozer(doozer_cmd)
 
                         buildlib.elliott """--group openshift-${buildVersion}
                             change-state -s NEW_FILES

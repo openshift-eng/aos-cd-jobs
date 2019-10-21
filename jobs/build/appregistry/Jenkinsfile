@@ -2,13 +2,14 @@
 def processImages(lines) {
     def data = []
     lines.split().each { line ->
-        // label, name, nvr, version
+        // label, name, nvr, version, component
         def fields = line.split(',')
         if (fields[0]) {
             data.add([
                 name: fields[1],
                 nvr: fields[2],
                 version: fields[3].replace("v", ""),
+                component: fields[4],
             ])
         }
     }
@@ -151,7 +152,7 @@ node {
             ${include}
             images:print
             --label 'com.redhat.delivery.appregistry'
-            --short '{label},{name},{build},{version}'
+            --short '{label},{name},{build},{version},{component}'
         """
     }
 

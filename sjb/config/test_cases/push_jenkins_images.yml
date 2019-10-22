@@ -2,12 +2,11 @@
 parent: 'test_cases/test_branch_jenkins_images.yml'
 overrides:
   email:
-    - bparees@redhat.com
-    - gmontero@redhat.com
-    - cdaley@redhat.com
-    - obulatov@redhat.com
-    - agladkov@redhat.com
-    - adkaplan@redhat.com
+    - abenaiss@redhat.com
+    - vbobade@redhat.com
+    - shbose@redhat.com
+    - olemefer@redhat.com
+    - openshift-dev-services+jenkins@redhat.com
 extensions:
   actions:
     - type: "script"

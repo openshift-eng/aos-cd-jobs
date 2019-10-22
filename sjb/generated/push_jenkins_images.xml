@@ -429,7 +429,7 @@ oct deprovision</command>
       <userMetadata/>
     </hudson.plugins.s3.S3BucketPublisher>
     <hudson.tasks.Mailer plugin="mailer@1.16">
-      <recipients>bparees@redhat.com gmontero@redhat.com cdaley@redhat.com obulatov@redhat.com agladkov@redhat.com adkaplan@redhat.com</recipients>
+      <recipients>abenaiss@redhat.com vbobade@redhat.com shbose@redhat.com olemefer@redhat.com openshift-dev-services+jenkins@redhat.com</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>

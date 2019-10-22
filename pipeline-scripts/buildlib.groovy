@@ -820,14 +820,10 @@ def parse_record_log( working_dir ) {
 // @return arches <List>: A list of the arches built for this branch
 def branch_arches(String branch) {
     echo("Fetching group config for '${branch}'")
-    def groupConfigSource = "https://raw.githubusercontent.com/openshift/ocp-build-data/${branch}/group.yml"
-    def groupConfig = sh(
-        returnStdout: true,
-        script: "curl -s ${groupConfigSource}",
-    ).trim()
-
-    def datas = readYaml(text: groupConfig)
-    return datas.arches
+    def d = doozer("--group=${branch} config:read-group --yaml arches",
+		   [capture: true]).trim()
+    def datas = readYaml(text: d)
+    return datas
 }
 
 // Search the build log for failed builds

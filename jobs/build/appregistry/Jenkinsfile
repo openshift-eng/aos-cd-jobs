@@ -203,7 +203,7 @@ node {
         sshagent(["openshift-bot"]) {
             stage("validate params") {
                 if (!validate(params)) {
-                    sh "exit 1"
+                    error "Parameter validation failed"
                 }
             }
             stage("fetch appregistry images") {

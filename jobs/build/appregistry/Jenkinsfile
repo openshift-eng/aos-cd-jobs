@@ -129,7 +129,9 @@ node {
     def validate = { params ->
         if (params.STREAM in ["stage", "prod"]) {
             if (!params.SOURCE_ADVISORIES || !params.TARGET_ADVISORY) {
-                echo "ERROR: SOURCE_ADVISORIES and TARGET_ADVISORY parameters are required for selected STREAM."
+                currentBuild.description += """\n
+                ERROR: SOURCE_ADVISORIES and TARGET_ADVISORY parameters are required for selected STREAM.
+                """
                 return false
             }
         }

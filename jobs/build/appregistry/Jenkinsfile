@@ -215,6 +215,9 @@ node {
                     operatorData = replaceNVRsByFoundInAdvisories(operatorData, advisoriesNVRs)
 
                     if (operatorData.any { it.nvr == null }) {
+                        currentBuild.description += """\n
+                        Advisories missing operators ${operatorData.findAll { it.nvr }.collect { it.name }.join(",")}
+                        """
                         echo """
                         ERROR: The following operators were not found in provided advisories.
                         ${operatorData.findAll { !it.nvr }.collect { it.name }.join(",")}

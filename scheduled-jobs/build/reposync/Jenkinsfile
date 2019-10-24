@@ -19,7 +19,7 @@ def runFor(sync_version, arch="x86_64") {
 }
 
 node() {
-    buildlib = load("/pipeline-scripts/buildlib.groovy")
+    buildlib = load("../../pipeline-scripts/buildlib.groovy")
     def versions = ['4.1', '4.2', '4.3', '4.4']
     for ( String version : versions ) {
 	def arches = buildlib.branch_arches("openshift-${version}")

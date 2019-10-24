@@ -1,4 +1,3 @@
-
 node {
     checkout scm
     def commonlib = load("pipeline-scripts/commonlib.groovy")
@@ -91,7 +90,7 @@ node {
                             script: "find ${syncDir} -name '*.${ARCH}.rpm' | wc -l"
                     )
 
-                    if(sanityCheckRes.stdout.trim().toInteger() <  10000){
+                    if(sanityCheckRes.stdout.trim().toInteger() < 7000){
                         error("Did not find a sufficient number of arch specific RPMs; human checks required!")
                     }
 

@@ -22,6 +22,7 @@ def runFor(sync_version, arch="x86_64") {
 runFor("4.1")
 runFor("4.2")
 runFor("4.3")
+runFor("4.4")
 
 currentBuild.description = description.trim()
 currentBuild.result = failed ? "FAILURE" : "SUCCESS"

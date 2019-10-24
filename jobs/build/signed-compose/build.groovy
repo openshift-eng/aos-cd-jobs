@@ -103,7 +103,12 @@ def signedComposeRpmdiffsResolved(advisory) {
 // you're having trouble getting a build to get signed in a reasonable
 // amount of time (10 minutes).
 def signedComposeStateQE() {
-    buildlib.elliott("${elliottOpts} change-state --state QE ${advisoryOpt}")
+    def seconds = 0
+    retry(3) {
+        sleep seconds
+        seconds = seconds + 30
+        buildlib.elliott("${elliottOpts} change-state --state QE ${advisoryOpt}")
+    }
 }
 
 // Poll the 'signed' status of all builds attached to the advisory. We

@@ -41,7 +41,7 @@ node {
                     ],
                     [
                         name: 'KEY_NAME',
-                        description: 'Which key to sign with\nIf ENV==stage everything becomes "test"\nFor prod we currently use "beta2"',
+                        description: 'Which key to sign with\nIf ENV==stage everything becomes "test"\nFor prod we currently use "redhatrelease2"',
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "test",

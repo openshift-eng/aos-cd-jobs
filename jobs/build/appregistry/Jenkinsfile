@@ -121,8 +121,8 @@ node {
 
     def buildVersion = params.BUILD_VERSION
 
-    currentBuild.description = "Collecting appregistry images for ${buildVersion}"
-    currentBuild.displayName += " - ${buildVersion}"
+    currentBuild.description = "Collecting appregistry images for ${buildVersion} (${params.STREAM} stream)"
+    currentBuild.displayName += " - ${buildVersion} (${params.STREAM})"
 
     def skipPush = params.SKIP_PUSH
 

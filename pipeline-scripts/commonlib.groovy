@@ -16,7 +16,6 @@ ocp3Versions = [
 ocp4DefaultVersion = "4.3"
 // Determines which version is currently the master branch:
 // update when development switches streams
-ocp4MasterVersion = "4.4"
 ocp4Versions = [
     "4.4",
     "4.3",

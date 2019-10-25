@@ -294,28 +294,30 @@ node {
                 }
             }
             stage("attach metadata to advisory") {
-                    if (params.METADATA_ADVISORY) {
-
-                        def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.name })
-
-                        elliott """
-                            change-state -s NEW_FILES
-                            -a ${params.METADATA_ADVISORY}
-                            ${params.DRY_RUN ? "--noop" : ""}
-                        """
-
-                        attachToAdvisory(params.METADATA_ADVISORY, metadata_nvrs)
-
-                        /*
-                        // this would be convenient, except that we don't have a way
-                        // to set the CDN repos first, and can't move to QE without that.
-                        elliott """
-                            change-state -s QE
-                            -a ${params.METADATA_ADVISORY}
-                            ${params.DRY_RUN ? "--noop" : ""}
-                        """
-                        */
+                    if (!params.METADATA_ADVISORY) {
+                        currentBuild.description += "\nskipping attach to advisory."
+                        return
                     }
+
+                    def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.name })
+
+                    elliott """
+                        change-state -s NEW_FILES
+                        -a ${params.METADATA_ADVISORY}
+                        ${params.DRY_RUN ? "--noop" : ""}
+                    """
+
+                    attachToAdvisory(params.METADATA_ADVISORY, metadata_nvrs)
+
+                    /*
+                    // this would be convenient, except that we don't have a way
+                    // to set the CDN repos first, and can't move to QE without that.
+                    elliott """
+                        change-state -s QE
+                        -a ${params.METADATA_ADVISORY}
+                        ${params.DRY_RUN ? "--noop" : ""}
+                    """
+                    */
             }
         }
     } catch (err) {

@@ -80,12 +80,12 @@ node {
                         defaultValue: 'dev',
                     ],
                     string(
-                        name: 'SOURCE_ADVISORIES',
+                        name: 'OLM_OPERATOR_ADVISORIES',
                         description: 'One or more advisories where OLM operators are attached\n* Required for "stage" and "prod" STREAMs',
                         defaultValue: '',
                     ),
                     string(
-                        name: 'TARGET_ADVISORY',
+                        name: 'METADATA_ADVISORY',
                         description: 'Advisory to attach corresponding metadata builds\n* Required for "stage" and "prod" STREAMs',
                         defaultValue: '',
                     ),
@@ -128,9 +128,9 @@ node {
 
     def validate = { params ->
         if (params.STREAM in ["stage", "prod"]) {
-            if (!params.SOURCE_ADVISORIES || !params.TARGET_ADVISORY) {
+            if (!params.OLM_OPERATOR_ADVISORIES || !params.METADATA_ADVISORY) {
                 currentBuild.description += """\n
-                ERROR: SOURCE_ADVISORIES and TARGET_ADVISORY parameters are required for selected STREAM.
+                ERROR: OLM_OPERATOR_ADVISORIES and METADATA_ADVISORY parameters are required for selected STREAM.
                 """
                 return false
             }
@@ -211,7 +211,7 @@ node {
                 operatorData = processImages(lines)
 
                 if (params.STREAM in ["stage", "prod"]) {
-                    def advisoriesNVRs = fetchNVRsFromAdvisories(params.SOURCE_ADVISORIES)
+                    def advisoriesNVRs = fetchNVRsFromAdvisories(params.OLM_OPERATOR_ADVISORIES)
                     operatorData = replaceNVRsByFoundInAdvisories(operatorData, advisoriesNVRs)
 
                     if (operatorData.any { it.nvr == null }) {
@@ -223,8 +223,8 @@ node {
                         ${operatorData.findAll { !it.nvr }.collect { it.name }.join(",")}
 
                         Possible solutions:
-                        1. Add more advisories in SOURCE_ADVISORIES parameter, that have the missing operators attached
-                        2. Attach missing operators to at least one of the provided advisories: ${params.SOURCE_ADVISORIES}
+                        1. Add more advisories in OLM_OPERATOR_ADVISORIES parameter, that have the missing operators attached
+                        2. Attach missing operators to at least one of the provided advisories: ${params.OLM_OPERATOR_ADVISORIES}
                         3. Limit the expected operators in IMAGES parameter: ${operatorData.findAll { it.nvr }.collect { it.name }.join(",")}
                         """
                         sh "exit 1"
@@ -294,24 +294,24 @@ node {
                 }
             }
             stage("attach metadata to advisory") {
-                    if (params.TARGET_ADVISORY) {
+                    if (params.METADATA_ADVISORY) {
 
                         def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.name })
 
                         elliott """
                             change-state -s NEW_FILES
-                            -a ${params.TARGET_ADVISORY}
+                            -a ${params.METADATA_ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
 
-                        attachToAdvisory(params.TARGET_ADVISORY, metadata_nvrs)
+                        attachToAdvisory(params.METADATA_ADVISORY, metadata_nvrs)
 
                         /*
                         // this would be convenient, except that we don't have a way
                         // to set the CDN repos first, and can't move to QE without that.
                         elliott """
                             change-state -s QE
-                            -a ${params.TARGET_ADVISORY}
+                            -a ${params.METADATA_ADVISORY}
                             ${params.DRY_RUN ? "--noop" : ""}
                         """
                         */

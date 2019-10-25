@@ -260,7 +260,7 @@ node {
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
-                            def metadata_nvr = doozer("operator-metadata:latest-build ${build.name}")
+                            def metadata_nvr = getMetadataNVRs([build.name])
 
                             def response = [:]
                             try {

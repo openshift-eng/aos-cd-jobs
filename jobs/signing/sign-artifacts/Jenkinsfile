@@ -13,13 +13,13 @@ node {
                 parameterDefinitions: [
                     [
                         name: 'NAME',
-                        description: 'Release name (e.g. 4.1.0-rc.0)',
+                        description: 'Release name (e.g. 4.2.0)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
                         name: 'SIGNATURE_NAME',
-                        description: 'Signature name\nOnly increment if adding an additional signature to a release!',
+                        description: 'Signature name\nStart with signature-1 and only increment if adding an additional signature to a release!',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "signature-1"
                     ],
@@ -37,7 +37,6 @@ node {
                             "stage",
                             "prod",
                         ].join("\n"),
-                        defaultValue: "stage"
                     ],
                     [
                         name: 'KEY_NAME',
@@ -46,9 +45,8 @@ node {
                         choices: [
                             "test",
                             "beta2",
-			    "redhatrelease2",
+                            "redhatrelease2",
                         ].join("\n"),
-                        defaultValue: "test"
                     ],
                     commonlib.mockParam(),
                 ]

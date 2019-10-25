@@ -4,8 +4,6 @@ import java.text.SimpleDateFormat
 
 node {
     wrap([$class: 'BuildUser']) {
-        def buildUserEmail = env.BUILD_USER_EMAIL
-
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
@@ -28,25 +26,25 @@ node {
                         commonlib.ocpVersionParam('VERSION'),
                         [
                             name: 'ASSIGNED_TO',
-                            description: 'To whom the advisories must be assigned',
+                            description: 'Advisories are assigned to QE',
                             $class: 'hudson.model.StringParameterDefinition',
                             defaultValue: "openshift-qe-errata@redhat.com"
                         ],
                         [
                             name: 'MANAGER',
-                            description: 'Who is the boss?',
+                            description: 'ART team manager (not release manager)',
                             $class: 'hudson.model.StringParameterDefinition',
                             defaultValue: "vlaad@redhat.com"
                         ],
                         [
                             name: 'PACKAGE_OWNER',
-                            description: "Owner's email address",
+                            description: "Must be an individual email address; may be anyone who wants random advisory spam",
                             $class: 'hudson.model.StringParameterDefinition',
-                            defaultValue: "${buildUserEmail}"
+                            defaultValue: "lmeyer@redhat.com"
                         ],
                         [
                             name: 'IMPETUS',
-                            description: 'For which reason are those advisories being created',
+                            description: 'For which reason are the advisories being created',
                             $class: 'hudson.model.ChoiceParameterDefinition',
                             choices: [
                                 "standard",
@@ -57,7 +55,7 @@ node {
                         ],
                         [
                             name: 'DATE',
-                            description: 'Format: YYYY-Mon-dd (i.e.: 2050-Jan-01)',
+                            description: 'Intended release date. Format: YYYY-Mon-dd (i.e.: 2050-Jan-01)',
                             $class: 'hudson.model.StringParameterDefinition',
                             defaultValue: "${dateFormat.format(date)}"
                         ],

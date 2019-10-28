@@ -1,53 +1,64 @@
 #!/bin/bash
-set -eux
+
+set -euxo pipefail
 
 export MOBY_DISABLE_PIGZ=true
 
 WORKSPACE=$1
 STREAM=$2
 MIRROR=$3
-VERSION="$4"
 OC_MIRROR_DIR="/srv/pub/openshift-v4/clients/$MIRROR/"
 
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
-if [[ "$STREAM" == none ]]; then
-  case "$MIRROR" in
-    ocp)
-      PULL_SPEC="quay.io/openshift-release-dev/ocp-release:$VERSION"
-      ;;
-    ocp-dev-preview)
-      PULL_SPEC="quay.io/openshift-release-dev/ocp-release-nightly:$VERSION"
-      ;;
-    *)
-      echo Unknown mirror $MIRROR. Exiting.>/dev/stderr
-      exit 1
-      ;;
-  esac
-else
-  # get latest release from release-controller API
-  wget https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${STREAM}/latest -O latest
-  
-  #extract pull_spec
-  PULL_SPEC=`jq -r '.pullSpec' latest`
-  if [[ "$MIRROR" == "ocp-dev-preview" ]]; then
-    # point at the published pre-release that will stay around -- registry.svc.ci gets GCed
-    PULL_SPEC="${PULL_SPEC/registry.svc.ci.openshift.org\/ocp\/release/quay.io/openshift-release-dev/ocp-release-nightly}"
+get_curl_arg() {
+  local version major minor tmp stream
+  stream="$1"
+
+  [[ "$stream" =~ -stable$ ]] || return
+  tmp="${stream%-*}"
+  major="${tmp%.*}"
+  minor="${tmp/*.}"
+
+  return "--data-urlencode 'in=>$major.$minor.0-0 <$major.$((minor + 1)).0-0'"
+}
+
+get_url() {
+  local major stream url
+  stream="$1"
+
+  if [[ "$stream" =~ -stable$ ]]; then
+    major="${stream%.*}"
+    url="https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/$major-stable/latest"
+  elif [[ "$stream" =~ -nightly$ ]]; then
+    url="https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/$stream/latest"
   fi
-  
-  #extract name
-  VERSION=`jq -r '.name' latest`
+
+  return "$url"
+}
+
+release_info="$(
+  curl --fail --silent --show-error --silent \
+    -X GET -G "$(get_url "$STREAM")" "$(get_curl_arg "$STREAM")"
+)"
+
+#extract pull_spec
+PULL_SPEC="$(jq -r '.pullSpec' <<<"$release_info")"
+#extract name
+VERSION="$(jq -r '.name' <<<"$release_info")"
+
+if [[ "$MIRROR" == "ocp-dev-preview" ]]; then
+  # point at the published pre-release that will stay around -- registry.svc.ci gets GCed
+  PULL_SPEC="${PULL_SPEC/registry.svc.ci.openshift.org\/ocp\/release/quay.io/openshift-release-dev/ocp-release-nightly}"
 fi
 
 #check if already exists
-if ssh ${SSH_OPTS} "[ -d ${OC_MIRROR_DIR}${VERSION} ]";
-then
-    echo "Already have latest version"
-    exit 0
-else
-    echo "Fetching OCP clients from payload ${VERSION}"
+if ssh ${SSH_OPTS} "[ -d ${OC_MIRROR_DIR}${VERSION} ]"; then
+  echo "Already have latest version"
+  exit 0
 fi
 
+echo "Fetching OCP clients from payload ${VERSION}" >/dev/stderr
 
 TMPDIR=${WORKSPACE}/tools
 mkdir -p "${TMPDIR}"

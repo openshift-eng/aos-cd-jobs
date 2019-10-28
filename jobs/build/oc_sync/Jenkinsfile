@@ -22,19 +22,13 @@ node {
                         description: 'Build stream to sync client from',
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
-                            "4-stable",
+                            "4.1-stable",
+                            "4.2-stable",
                             "4.1.0-0.nightly",
                             "4.2.0-0.nightly",
                             "4.3.0-0.nightly",
-                            "none",
                         ].join("\n"),
                         defaultValue: "4-stable"
-                    ],
-                    [
-                        name: 'VERSION',
-                        description: 'Build specific version, e.g. 4.1.20. Requires "none" for STREAM.',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
                     ],
                     [
                         name: 'OC_MIRROR_DIR',
@@ -71,7 +65,7 @@ node {
             stage("sync ocp clients") {
 		// must be able to access remote registry to extract image contents
 		buildlib.registry_quay_dev_login()
-                sh "./publish-clients-from-payload.sh ${env.WORKSPACE} ${STREAM} ${OC_MIRROR_DIR} ${VERSION}"
+                sh "./publish-clients-from-payload.sh ${env.WORKSPACE} ${STREAM} ${OC_MIRROR_DIR}"
             }
         }
     } catch (err) {

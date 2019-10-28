@@ -183,8 +183,9 @@ node {
         )
     }
 
-    def getMetadataNVRs = { operatorNames ->
-        doozer("operator-metadata:latest-build ${operatorNames.join(" ")}")
+    def getMetadataNVRs = { operatorNVRs, stream ->
+        def nvrFlags = operatorNVRs.collect { "--nvr ${it.nvr}" }.join(" ")
+        doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}")
     }
 
     def attachToAdvisory = { advisory, metadata_nvrs ->
@@ -260,7 +261,7 @@ node {
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
-                            def metadata_nvr = getMetadataNVRs([build.name])
+                            def metadata_nvr = getMetadataNVRs([build.nvr], params.STREAM)
 
                             def response = [:]
                             try {
@@ -299,7 +300,7 @@ node {
                         return
                     }
 
-                    def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.name })
+                    def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.nvr }, params.STREAM)
 
                     elliott """
                         change-state -s NEW_FILES

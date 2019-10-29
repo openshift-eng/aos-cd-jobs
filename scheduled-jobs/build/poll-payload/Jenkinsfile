@@ -1,0 +1,94 @@
+// poll-payload is a scheduled Jenkins job that polls payload changes on multiple release streams.
+// NOTE: This job relies on workspace for keeping last retrieved state.
+
+import groovy.transform.Field
+import java.io.FileNotFoundException
+import java.net.URLEncoder
+
+// The list of release stream names to be polled
+@Field final RELEASE_STREAMS = ["4.3.0-0.nightly"]
+
+// A map of release stream names and actions
+@Field final ACTIONS = [
+    "4.3.0-0.nightly": { releaseStream, changed, latestRelease, previousRelease ->
+        if (!changed)
+            return
+        build(
+            job: '/aos-cd-builds/build%2Fpre-release',
+            parameters: [
+                string(name: 'FROM_RELEASE_TAG', value: latestRelease.name),
+                // booleanParam(name: 'DRY_RUN', value: true),
+                booleanParam(name: 'MIRROR', value: true),
+                booleanParam(name: 'SUPPRESS_EMAIL', value: true),
+            ],
+        )
+    },
+]
+
+@Field final RELEASE_CONTROLLER_URL = "https://openshift-release.svc.ci.openshift.org"
+
+/**
+ * Determine if the latest release has been changed
+ * @param releaseStream release stream name
+ * @return [changed, latestRelease, previousRelease] If changed, changed is true.
+ *     latestRelease is the metadata of the latest release,
+*      and previousRelease is the metadata of the release checked last time.
+ */
+def checkLatestRelease(String releaseStream) {
+    def encodedName = URLEncoder.encode(releaseStream, "UTF-8")
+    def previousReleaseCache = "${encodedName}.json"
+    def previousRelease = null
+    try {
+        previousRelease = readJSON(file: previousReleaseCache)
+    } catch (FileNotFoundException ex) {
+        echo "Cached previous release is not found."
+    }
+    def url = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${encodedName}/latest"
+    def response = httpRequest(
+        url: url,
+        httpMode: 'GET',
+        contentType: 'APPLICATION_JSON',
+        timeout: 30,
+        validResponseCodes: "200:299",
+    )
+    def latestRelease = readJSON(text: response.content)
+
+    changed = false
+    if (!previousRelease || latestRelease.name != previousRelease.name) {
+        changed = true
+        writeFile(file: previousReleaseCache, text: response.content)
+    }
+    return [changed, latestRelease, previousRelease]
+}
+
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '30', numToKeepStr: '')),
+    disableConcurrentBuilds(),
+])
+
+node() {
+    description = ""
+    failed = false
+    jobBranches = [:]
+    for (releaseStream in RELEASE_STREAMS) {
+        def (changed, latestRelease, previousRelease) = checkLatestRelease(releaseStream)
+        description += "${releaseStream} -> ${latestRelease.name}"
+        if (!changed) {
+            description += " [no change]"
+        }
+        description += "\n"
+        jobBranches[releaseStream] = {
+            stage(releaseStream) {
+                action = ACTIONS[releaseStream]
+                if (!action) {
+                    echo "No action defined for ${releaseStream}."
+                }
+                else {
+                    ACTIONS[releaseStream](releaseStream, changed, latestRelease, previousRelease)
+                }
+            }
+        }
+    }
+    currentBuild.description = description.trim()
+    parallel jobBranches
+}

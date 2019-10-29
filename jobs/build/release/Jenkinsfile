@@ -95,6 +95,7 @@ node {
             previous = "${params.PREVIOUS}"
             String errata_url
             Map release_obj
+            (major, minor, tiny) = name.split("\\.")
 
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
@@ -110,7 +111,7 @@ node {
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, name)
             }
-            stage("client sync") { release.stageClientSync('4-stable', 'ocp') }
+            stage("client sync") { release.stageClientSync("${major}.${minor}-stable", 'ocp') }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }

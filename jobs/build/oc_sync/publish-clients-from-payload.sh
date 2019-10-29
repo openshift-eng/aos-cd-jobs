@@ -1,8 +1,7 @@
 #!/bin/bash
 
-set -euxo pipefail
-
 main() {
+  set -euxo pipefail
   # Command line arguments
   WORKSPACE="$1"
   STREAM="$2"
@@ -14,7 +13,7 @@ main() {
   SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
   release_info="$(
-    curl --fail --silent --show-error --silent \
+    curl --fail --show-error --silent --location \
       -X GET -G "$(get_url "$STREAM")" "$(get_curl_arg "$STREAM")"
   )"
 
@@ -34,26 +33,26 @@ get_curl_arg() {
   local version major minor tmp stream
   stream="$1"
 
-  [[ "$stream" =~ -stable$ ]] || return
+  [[ "$stream" =~ ^[0-9]+.[0-9]+-stable$ ]] || return
   tmp="${stream%-*}"
   major="${tmp%.*}"
   minor="${tmp/*.}"
 
-  return "--data-urlencode 'in=>$major.$minor.0-0 <$major.$((minor + 1)).0-0'"
+  echo "--data-urlencode 'in=>$major.$minor.0-0 <$major.$((minor + 1)).0-0'"
 }
 
 get_url() {
   local major stream url
   stream="$1"
 
-  if [[ "$stream" =~ -stable$ ]]; then
+  if [[ "$stream" =~ ^[0-9]+.[0-9]+-stable$ ]]; then
     major="${stream%.*}"
     url="https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/$major-stable/latest"
-  elif [[ "$stream" =~ -nightly$ ]]; then
+  else
     url="https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/$stream/latest"
   fi
 
-  return "$url"
+  echo "$url"
 }
 
 get_pull_spec() {
@@ -65,13 +64,13 @@ get_pull_spec() {
     # point at the published pre-release that will stay around -- registry.svc.ci gets GCed
     pull_spec="${pull_spec/registry.svc.ci.openshift.org\/ocp\/release/quay.io/openshift-release-dev/ocp-release-nightly}"
   fi
-  return pull_spec
+  echo "$pull_spec"
 }
 
 get_version() {
   local release_info
   release_info="$1"
-  return "$(jq -r '.name' <<<"$release_info")"
+  echo "$(jq -r '.name' <<<"$release_info")"
 }
 
 exit_if_mirrored() {

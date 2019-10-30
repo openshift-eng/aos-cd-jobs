@@ -1,14 +1,15 @@
 @NonCPS
-def processImages(lines) {
+def parseAndFilterOperators(lines) {
     def data = []
     lines.split().each { line ->
-        // label, name, nvr, version
+        // label, name, nvr, version, component
         def fields = line.split(',')
         if (fields[0]) {
             data.add([
                 name: fields[1],
                 nvr: fields[2],
                 version: fields[3].replace("v", ""),
+                component: fields[4],
             ])
         }
     }
@@ -79,8 +80,13 @@ node {
                         defaultValue: 'dev',
                     ],
                     string(
-                        name: 'ADVISORY',
-                        description: 'Should not be filled if STREAM is "dev"',
+                        name: 'OLM_OPERATOR_ADVISORIES',
+                        description: 'One or more advisories where OLM operators are attached\n* Required for "stage" and "prod" STREAMs',
+                        defaultValue: '',
+                    ),
+                    string(
+                        name: 'METADATA_ADVISORY',
+                        description: 'Advisory to attach corresponding metadata builds\n* Required for "stage" and "prod" STREAMs',
                         defaultValue: '',
                     ),
                     booleanParam(
@@ -113,37 +119,126 @@ node {
     def workDir = "${env.WORKSPACE}/workDir"
     buildlib.cleanWorkdir(workDir)
 
-    currentBuild.description = "Collecting appregistry images for ${params.BUILD_VERSION}"
-    currentBuild.displayName += " - ${params.BUILD_VERSION}"
+    def buildVersion = params.BUILD_VERSION
+
+    currentBuild.description = "Collecting appregistry images for ${buildVersion} (${params.STREAM} stream)"
+    currentBuild.displayName += " - ${buildVersion} (${params.STREAM})"
 
     def skipPush = params.SKIP_PUSH
+
+    def validate = { params ->
+        if (params.STREAM in ["stage", "prod"]) {
+            if (!params.OLM_OPERATOR_ADVISORIES || !params.METADATA_ADVISORY) {
+                currentBuild.description += """\n
+                ERROR: OLM_OPERATOR_ADVISORIES and METADATA_ADVISORY parameters are required for selected STREAM.
+                """
+                return false
+            }
+        }
+        return true
+    }
+
+    def doozer = { cmd ->
+        buildlib.doozer("--working-dir ${workDir} -g openshift-${buildVersion} ${cmd}", [capture: true])
+    }
+
+    def elliott = { cmd ->
+        buildlib.elliott("-g openshift-${buildVersion} ${cmd}", [capture: true])
+    }
+
+    def getImagesData = { include ->
+        if (include) {
+            include = "--images " + commonlib.cleanCommaList(include)
+        }
+        doozer """
+            ${include}
+            images:print
+            --label 'com.redhat.delivery.appregistry'
+            --short '{label},{name},{build},{version},{component}'
+        """
+    }
+
+    def fetchNVRsFromAdvisories = { advisories ->
+        commonlib.cleanCommaList(advisories).split(",").collect { advisory ->
+            readJSON(text: elliott("get --json - ${advisory}")).errata_builds.values().flatten()
+        }.flatten()
+    }
+
+    def findImageNVRsInAdvisories = { images, advisoriesNVRs ->
+        images.collect {
+            image -> [
+                name: image.name,
+                nvr: advisoriesNVRs.find { it.startsWith(image.component) }
+            ]
+        }
+    }
+
+    def pushToOMPS = { token, metadata_nvr ->
+        httpRequest(
+            url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
+            httpMode: 'POST',
+            customHeaders: [[name: 'Authorization', value: token]],
+            timeout: 60,
+            validResponseCodes: "200:599",
+        )
+    }
+
+    def getMetadataNVRs = { operatorNVRs, stream ->
+        def nvrFlags = operatorNVRs.collect { "--nvr ${it.nvr}" }.join(" ")
+        doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}")
+    }
+
+    def attachToAdvisory = { advisory, metadata_nvrs ->
+        def elliott_build_flags = []
+        metadata_nvrs.split().each { nvr -> elliott_build_flags.add("--build ${nvr}") }
+
+        elliott """
+            find-builds -k image
+            ${elliott_build_flags.join(" ")}
+            --attach ${advisory}
+        """
+    }
 
     try {
         def operatorData = []
         sshagent(["openshift-bot"]) {
-            stage("fetch appregistry images") {
-                def include = params.IMAGES.trim()
-                if (include) {
-                    include = "--images " + commonlib.cleanCommaList(include)
+            stage("validate params") {
+                if (!validate(params)) {
+                    error "Parameter validation failed"
                 }
-                def lines = buildlib.doozer """
-                    --working-dir ${workDir}
-                    --group 'openshift-${params.BUILD_VERSION}'
-                    ${include}
-                    images:print
-                    --label 'com.redhat.delivery.appregistry'
-                    --short '{label},{name},{build},{version}'
-                """, [capture: true]
-                operatorData = processImages(lines)
+            }
+            stage("fetch appregistry images") {
+                def lines = getImagesData(params.IMAGES.trim())
+                operatorData = parseAndFilterOperators(lines)
+
+                if (params.STREAM in ["stage", "prod"]) {
+                    def advisoriesNVRs = fetchNVRsFromAdvisories(params.OLM_OPERATOR_ADVISORIES)
+                    operatorData = findImageNVRsInAdvisories(operatorData, advisoriesNVRs)
+
+                    if (operatorData.any { it.nvr == null }) {
+                        currentBuild.description += """\n
+                        Advisories missing operators ${operatorData.findAll { it.nvr }.collect { it.name }.join(",")}
+                        """
+                        echo """
+                        ERROR: The following operators were not found in provided advisories.
+                        ${operatorData.findAll { !it.nvr }.collect { it.name }.join(",")}
+
+                        Possible solutions:
+                        1. Add more advisories in OLM_OPERATOR_ADVISORIES parameter, that have the missing operators attached
+                        2. Attach missing operators to at least one of the provided advisories: ${params.OLM_OPERATOR_ADVISORIES}
+                        3. Limit the expected operators in IMAGES parameter: ${operatorData.findAll { it.nvr }.collect { it.name }.join(",")}
+                        """
+                        error "operators not found"
+                    }
+                }
+
                 writeYaml file: "${workDir}/appreg.yaml", data: operatorData
-                currentBuild.description = "appregistry images collected for ${params.BUILD_VERSION}."
+                currentBuild.description = "appregistry images collected for ${buildVersion}."
             }
             stage("build metadata container") {
                 def nvrs = operatorData.collect { item -> item.nvr }
 
-                buildlib.doozer """
-                    --working-dir ${workDir}
-                    --group openshift-${params.BUILD_VERSION}
+                doozer """
                     operator-metadata:build ${nvrs.join(' ')}
                     ${params.FORCE_METADATA_BUILD ? "-f" : ""}
                     --stream ${params.STREAM}
@@ -166,19 +261,13 @@ node {
                         def token = retrieveBotToken()
                         for (def i = 0; i < operatorData.size(); i++) {
                             def build = operatorData[i]
-                            def metadata_nvr = buildlib.doozer("--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build.name}", [capture: true])
+                            def metadata_nvr = getMetadataNVRs([build.nvr], params.STREAM)
 
                             def response = [:]
                             try {
                                 retry(errors ? 3 : 60) { // retry the first failing pkg for 30m; after that, give up after 1m30s
                                     response = [:] // ensure we aren't looking at a previous response
-                                    response = httpRequest(
-                                        url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
-                                        httpMode: 'POST',
-                                        customHeaders: [[name: 'Authorization', value: token]],
-                                        timeout: 60,
-                                        validResponseCodes: "200:599",
-                                    )
+                                    response = pushToOMPS(token, metadata_nvr)
                                     if (response.status != 200) {
                                         sleep(30)
                                         error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
@@ -203,41 +292,33 @@ node {
                             error "${errors}"
                         }
                     }
-                } else {
-                    if (params.ADVISORY) {
-
-                        // obtaining metadata NVRs of all builds
-                        def build_names = []
-                        operatorData.each { build -> build_names.add(build.name) }
-                        doozer_cmd = "--group openshift-${params.BUILD_VERSION} operator-metadata:latest-build ${build_names.join(' ')}"
-                        def metadata_nvrs = buildlib.doozer(doozer_cmd, [capture: true])
-
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
-                            change-state -s NEW_FILES
-                            -a ${params.ADVISORY}
-                            ${params.DRY_RUN ? "--noop" : ""}
-                        """
-
-                        def elliott_build_flags = []
-                        metadata_nvrs.split("\n").each { nvr -> elliott_build_flags.add("--build ${nvr}") }
-
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
-                            find-builds -k image
-                            ${elliott_build_flags.join(" ")}
-                            --attach ${params.ADVISORY}
-                        """
-
-                        /*
-                        // this would be convenient, except that we don't have a way
-                        // to set the CDN repos first, and can't move to QE without that.
-                        buildlib.elliott """--group openshift-${params.BUILD_VERSION}
-                            change-state -s QE
-                            -a ${params.ADVISORY}
-                            ${params.DRY_RUN ? "--noop" : ""}
-                        """
-                        */
-                    }
                 }
+            }
+            stage("attach metadata to advisory") {
+                    if (!params.METADATA_ADVISORY) {
+                        currentBuild.description += "\nskipping attach to advisory."
+                        return
+                    }
+
+                    def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.nvr }, params.STREAM)
+
+                    elliott """
+                        change-state -s NEW_FILES
+                        -a ${params.METADATA_ADVISORY}
+                        ${params.DRY_RUN ? "--noop" : ""}
+                    """
+
+                    attachToAdvisory(params.METADATA_ADVISORY, metadata_nvrs)
+
+                    /*
+                    // this would be convenient, except that we don't have a way
+                    // to set the CDN repos first, and can't move to QE without that.
+                    elliott """
+                        change-state -s QE
+                        -a ${params.METADATA_ADVISORY}
+                        ${params.DRY_RUN ? "--noop" : ""}
+                    """
+                    */
             }
         }
     } catch (err) {

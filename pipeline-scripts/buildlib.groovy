@@ -1211,4 +1211,47 @@ String extractBugId(String bugzillaOut) {
     matches[0][1]
 }
 
+/**
+ * Checks the status of the freeze_automation key in the group.yml and
+ * returns whether the current run is permitted accordingly.
+ * @param doozerOpts A string containing, at least, a `--group` parameter.
+ */
+def isBuildPermitted(doozerOpts) {
+    // check whether the group should be built right now
+    def freeze_automation = buildlib.doozer("${doozerOpts} config:read-group --default 'no' freeze_automation",
+                                            [capture: true]).trim()
+
+    def builderEmail
+    wrap([$class: 'BuildUser']) {
+        builderEmail = env.BUILD_USER_EMAIL
+    }
+
+    echo "Group's freeze_automation flag: ${freeze_automation}"
+    echo "Builder email: ${builderEmail}"
+
+    if (freeze_automation == "yes") {
+        echo "All automation is currently disabled in group.yml."
+        return false
+    }
+
+    if (freeze_automation == "manual" && builderEmail == null) {
+        echo "Only manual runs are permitted in group.yml and this run appears to be non-manual."
+        return false
+    }
+
+    return true
+}
+
+/**
+ * Throws an exception if isBuildPermitted(...) returns false.
+ * @param doozerOpts A string containing, at least, a `--group` parameter.
+ */
+def assertBuildPermitted(doozerOpts) {
+    if (!isBuildPermitted(doozerOpts)) {
+        currentBuild.result = 'UNSTABLE'
+        currentBuild.description = 'Builds not permitted'
+        error('This build is being terminated because it is not permitted according to current group.yml')
+    }
+}
+
 return this

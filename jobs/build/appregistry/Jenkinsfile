@@ -184,7 +184,7 @@ node {
     }
 
     def getMetadataNVRs = { operatorNVRs, stream ->
-        def nvrFlags = operatorNVRs.collect { "--nvr ${it.nvr}" }.join(" ")
+        def nvrFlags = operatorNVRs.collect { "--nvr ${it}" }.join(" ")
         doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}")
     }
 

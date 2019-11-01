@@ -1234,8 +1234,13 @@ def isBuildPermitted(doozerOpts) {
         return false
     }
 
-    if (freeze_automation == "manual" && builderEmail == null) {
-        echo "Only manual runs are permitted in group.yml and this run appears to be non-manual."
+    if (freeze_automation == "manual") {
+        echo "All builds, including manual runs, are not permitted according to freeze_automation in group.yml."
+        return false
+    }
+
+    if (freeze_automation == "scheduled" && builderEmail != null) {
+        echo "Only manual runs are permitted according to freeze_automation in group.yml and this run appears to be non-manual."
         return false
     }
 

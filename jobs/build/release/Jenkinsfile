@@ -1,4 +1,7 @@
 #!/usr/bin/env groovy
+import groovy.transform.Field
+
+@Field final RELEASE_STREAM_NAME = "4-stable"
 
 node {
     checkout scm
@@ -106,11 +109,11 @@ node {
             }
             stage("payload") { release.stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) }
             stage("tag stable") { release.stageTagRelease(quay_url, name) }
-            stage("wait for stable") { release_obj = release.stageWaitForStable() }
+            stage("wait for stable") { release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, name) }
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, name)
             }
-            stage("client sync") { release.stageClientSync('4-stable', 'ocp') }
+            stage("client sync") { release.stageClientSync(RELEASE_STREAM_NAME, 'ocp') }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }

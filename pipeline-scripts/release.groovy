@@ -1,4 +1,8 @@
 import groovy.json.*
+import java.net.URLEncoder
+import groovy.transform.Field
+
+@Field final RELEASE_CONTROLLER_URL = "https://openshift-release.svc.ci.openshift.org"
 
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
@@ -135,45 +139,59 @@ def stageTagRelease(quay_url, name) {
     )
 }
 
+
 // this function is only use for build/release job
-// also returns the latest release info from 4-stable stream
-def Map stageWaitForStable() {
+// also returns the latest release info from the given release stream
+// @param releaseStream release stream name. e.g. "4-stable"
+// @param releaseName release name. e.g. "4.2.1"
+// @return latest release info
+def Map stageWaitForStable(String releaseStream, String releaseName) {
     def count = 0
-    def stream = "https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/4-stable/latest"
-    def cmd = "curl --fail -H 'Cache-Control: no-cache' ${stream}"
     def stable = ""
     Map release
 
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
+    def queryParams = [
+        "in": ">${major}.${minor}.0-0 < ${major}.${minor + 1}.0-0"
+    ]
+    def queryString = queryParams.collect {
+            (URLEncoder.encode(it.key, "utf-8") + "=" +  URLEncoder.encode(it.value, "utf-8"))
+        }.join('&')
+    def apiEndpoint = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${URLEncoder.encode(releaseStream, "utf-8")}/latest"
+    def url = "${apiEndpoint}?${queryString}"
+
     if (params.DRY_RUN) {
-        echo "Would have run \n ${cmd}"
-        return
+        echo "Would poll URL: \n ${url}"
+        return null
     }
 
     // 2019-05-23 - As of now jobs will not be tagged as `Accepted`
     // until they pass an upgrade test, hence the 3 hour wait loop
     while (count < 36) { // wait for 5m * 36 = 180m = 3 hours
-        def res = commonlib.shell(
-                returnAll: true,
-                script: cmd
-        )
-
-        if (res.returnStatus != 0){
-            echo "Error fetching latest stable: ${res.stderr}"
-        }
-        else {
-            release = readJSON text: res.stdout.trim()
+        def response = null
+        try {
+            response = httpRequest(
+                url: url,
+                httpMode: 'GET',
+                acceptType: 'APPLICATION_JSON',
+                timeout: 30,
+            )
+            release = readJSON text: response.content
             stable = release.name
-            echo "${stable}"
+            echo "stable=${stable}"
             // found, move on
-            if (stable == params.NAME){ return release}
+            if (stable == releaseName)
+                return release
+        } catch (ex) {
+            echo "Error fetching latest stable: ${ex}"
         }
 
         count++
         sleep(300) //wait for 5 minutes between tries
     }
 
-    if (stable != params.NAME){
-        error("Stable release has not updated to ${params.NAME} in the allotted time. Aborting.")
+    if (stable != releaseName){
+        error("Stable release has not updated to ${releaseName} in the allotted time. Aborting.")
     }
 }
 

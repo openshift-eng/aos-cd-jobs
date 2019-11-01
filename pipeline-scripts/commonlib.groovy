@@ -324,6 +324,15 @@ String extractMajorMinorVersion(String version) {
 }
 
 /**
+ * Returns the major and minor version numbers for a given version string.
+ * e.g. "4.1.0-rc.9" => [4, 1]
+ */
+def extractMajorMinorVersionNumbers(String version) {
+    return (version =~ /^(\d+)\.(\d+)/)[0].subList(1,3).collect { it as int }
+}
+
+
+/**
  * Attempts, for a specified duration, to claim a Jenkins lock. If claimed, the
  * lock is released before returning. Callers should be aware this leaves
  * a race condition and there is no guarantee they will get the lock themselves. Thus, this

@@ -19,75 +19,82 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    [
+                        name: 'NAME',
+                        description: 'The release name, like 4.2.0, or 4.2.0-0.nightly-2019-08-28-152644',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "",
+                    ],
+                    [
+                        name: 'RHCOS_MIRROR_PREFIX',
+                        description: 'Where to place this release under https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: (['pre-release', 'test'] + commonlib.ocp4Versions),
+                    ],
+                    [
+                        name: 'RHCOS_BUILD',
+                        description: 'ID of the RHCOS build to sync. e.g.: 42.80.20190828.2',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "",
+                    ],
+                    [
+                        name: 'NOOP',
+                        description: 'Run commands with their dry-run options enabled (test everything)',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false,
+                    ],
+                    [
+                        name: 'SYNC_LIST',
+                        description: 'Instead of figuring out items to sync from meta.json, use this input file.\nMust be a URL reachable from buildvm, contents must be reachable from use-mirror-upload',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "",
+                    ],
+                    [
+                        name: 'FORCE',
+                        description: 'Download (overwrite) and mirror items even if the destination directory already exists\nErases everything already in the target destination.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false,
+                    ],
+                    [
+                        name: 'NO_LATEST',
+                        description: 'Do not update the "latest" symlink after downloading',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false,
+                    ],
+                    [
+                        name: 'NO_MIRROR',
+                        description: 'Do not run the push.pub script after downloading"',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false,
+                    ],
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
-                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-		    [
-			name: 'DEBUG',
-			description: 'Run "oc" commands with greater logging',
-			$class: 'BooleanParameterDefinition',
-			defaultValue: false,
-		    ],
-		    [
-			name: 'NOOP',
-			description: 'Run "oc" commands with the dry-run option set to true',
-			$class: 'BooleanParameterDefinition',
-			defaultValue: false,
-		    ],
-		    [
-			name: 'IMAGES',
-			description: '(Optional) Comma separated list of images to sync, for testing purposes',
-			$class: 'hudson.model.StringParameterDefinition',
-			defaultValue: "",
-		    ],
-		    [
-			name: 'ORGANIZATION',
-			description: '(Optional) Quay.io organization to mirror to',
-			$class: 'hudson.model.StringParameterDefinition',
-			defaultValue: "openshift-release-dev",
-		    ],
-		    [
-			name: 'REPOSITORY',
-			description: '(Optional) Quay.io repository to mirror to',
-			$class: 'hudson.model.StringParameterDefinition',
-			defaultValue: "ocp-v4.0-art-dev",
-		    ],
-		],
-	    ]
+                ],
+            ]
         ]
     )
 
     commonlib.checkMock()
-    echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
+    echo("Initializing RHCOS-${params.RHCOS_MIRROR_PREFIX} sync: #${currentBuild.number}")
     build.initialize()
 
-    stage("Version dumps") {
-        buildlib.doozer "--version"
-        sh "which doozer"
-        sh "oc version -o yaml"
-    }
-
     try {
-	// This stage is safe to run concurrently. Each build runs
-	// these steps in its own directory.
-        stage("Generate inputs") { build.buildSyncGenInputs() }
-	// Allow this job to run concurrently for different
-	// versions. That is to say, do not allow builds for the same
-	// version to run the business logic concurrently.
-        lock("mirroring-lock-OCP-${params.BUILD_VERSION}") {
-            stage("oc image mirror") { build.buildSyncMirrorImages() }
+	if ( params.SYNC_LIST == "" ) {
+	    stage("Get/Generate sync list") { build.rhcosSyncPrintArtifacts() }
+	} else {
+	    stage("Get/Generate sync list") { build.rhcosSyncManualInput() }
 	}
-        lock("oc-applying-lock-OCP-${params.BUILD_VERSION}") {
-            stage("oc apply") { build.buildSyncApplyImageStreams() }
-        }
+	stage("Mirror artifacts") { build.rhcosSyncMirrorArtifacts() }
+	stage("Gen AMI docs") { build.rhcosSyncGenDocs() }
     } catch ( err ) {
         commonlib.email(
-            to: "aos-art-automation+failed-build-sync@redhat.com",
+            to: "aos-art-automation+failed-rhcos-sync@redhat.com",
             from: "aos-art-automation@redhat.com",
             replyTo: "aos-team-art@redhat.com",
-            subject: "Error during OCP ${params.BUILD_VERSION} build sync",
+            subject: "Error during OCP ${params.RHCOS_MIRROR_PREFIX} build sync",
             body: """
-There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
+There was an issue running build-sync for OCP ${params.RHCOS_MIRROR_PREFIX}:
 
     ${err}
 """)

@@ -1218,8 +1218,8 @@ String extractBugId(String bugzillaOut) {
  */
 def isBuildPermitted(doozerOpts) {
     // check whether the group should be built right now
-    def freeze_automation = buildlib.doozer("${doozerOpts} config:read-group --default 'no' freeze_automation",
-                                            [capture: true]).trim()
+    def freeze_automation = doozer("${doozerOpts} config:read-group --default 'no' freeze_automation",
+                                   [capture: true]).trim()
 
     def builderEmail
     wrap([$class: 'BuildUser']) {

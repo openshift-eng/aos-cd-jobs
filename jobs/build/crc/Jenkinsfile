@@ -53,32 +53,31 @@ node {
 
     stage("Initialize") {
         buildlib.kinit()
-	build.initialize()
-        currentBuild.displayName = "CVP #${currentBuild.number}"
+        currentBuild.displayName = "CRC #${currentBuild.number} "
+        currentBuild.description = params.RELEASE_URL
+        build.initialize()
     }
 
     try {
         sshagent(["openshift-bot"]) {
-            stage("Download release") { build.crcDownloadRelease(params.RELEASE_URL) }
-	    // stage("") {}
+            stage("Download release") { build.crcDownloadRelease() }
+            stage("Rsync the release") { build.crcRsyncRelease() }
+            stage("Push to mirrors") { build.crcPushPub() }
         }
-        // build.mailForSuccess()
     } catch (err) {
-        // currentBuild.description += "\n-----------------\n\n${err}\n-----------------\n"
         currentBuild.result = "FAILURE"
-
-//         if (params.MAIL_LIST_FAILURE.trim()) {
-//             commonlib.email(
-//                 to: params.MAIL_LIST_FAILURE,
-//                 from: "aos-art-automation+failed-crc-release@redhat.com",
-//                 replyTo: "aos-team-art@redhat.com",
-//                 subject: "Error releasing Code Ready Containers",
-//                 body:
-//                     """
-// message here
-// """
-//             )
-//         }
+        if (params.MAIL_LIST_FAILURE.trim()) {
+            commonlib.email(
+                to: params.MAIL_LIST_FAILURE,
+                from: "aos-art-automation+failed-crc-release@redhat.com",
+                replyTo: "aos-team-art@redhat.com",
+                subject: "Error releasing Code Ready Containers",
+                body:
+                    """
+${err}
+"""
+            )
+        }
         throw err  // gets us a stack trace FWIW
     } finally {
         commonlib.safeArchiveArtifacts([

@@ -149,24 +149,12 @@ $MIRROR_SSH sh -s <<-EOF
 
   # Synchronize the changes to the mirrors; If this fails, ops mirrors are usually full.
 
-  if ! timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v ; then
-    echo "Error pushing enterprise repo! Printing logs"
-    awk ' { print FILENAME } { print $0 } { print "" } ' /var/log/mirror.push/enterprise/error/*
-    exit 1
-  fi
+  timeout 1h /usr/local/bin/push.enterprise.sh ${REPO} -v
 
-  if ! timeout 1h /usr/local/bin/push.enterprise.sh all -v ; then
-    echo "Error pushing all repos! Printing logs"
-    awk ' { print FILENAME } { print $0 } { print "" } ' /var/log/mirror.push/enterprise/error/*
-    exit 1
-  fi
+  timeout 1h /usr/local/bin/push.enterprise.sh all -v
 
   if [ ! -z "$LINK_FROM" ]; then
-      if ! timeout 1h /usr/local/bin/push.enterprise.sh ${LINK_FROM} -v ; then
-        echo "Error pushing ${LINK_FROM} repo! Printing logs"
-        awk ' { print FILENAME } { print $0 } { print "" } ' /var/log/mirror.push/enterprise/error/*
-        exit 1
-      fi
+      timeout 1h /usr/local/bin/push.enterprise.sh ${LINK_FROM} -v
   fi
 
 EOF

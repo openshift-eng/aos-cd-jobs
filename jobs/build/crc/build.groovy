@@ -1,108 +1,62 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
-
+workdir = "crc"
+sourceDomain = "cdk-builds.usersys.redhat.com"
+releaseVer = ''
 
 def initialize() {
     buildlib.cleanWorkdir(workdir)
-    // echo("${currentBuild.displayName}: ${params.RELEASE_URL}")
-    // rpmDiffsUrl = rpmDiffsUrl.replace("ID", advisory)
-    // errataList += buildlib.elliott("${elliottOpts} puddle-advisories", [capture: true]).trim().replace(' ', '')
-    // currentBuild.description = "Signed puddle for advisory https://errata.devel.redhat.com/advisory/${advisory}"
-    // currentBuild.description += "\nErrata whitelist: ${errataList}"
+    if ( !params.RELEASE_URL.contains(sourceDomain) ) {
+	error("RELEASE_URL is not the expected host: ${sourceDomain}")
+    }
+
+    releaseVer = params.RELEASE_URL.split('/')[-1]
+    currentBuild.displayName += "${params.DRY_RUN ? '[NOOP]' : ''} ${releaseVer}"
 }
 
-// def signedComposeAttachBuilds() {
-//     // Don't actually attach builds if this is just a dry run
-//     def advs = params.DRY_RUN ? '' : advisoryOpt
-//     def cmd = "${elliottOpts} find-builds --kind rpm ${advs}"
-//     def cmdEl8 = "${elliottOpts} --branch rhaos-${params.BUILD_VERSION}-rhel-8 find-builds --kind rpm ${advs}"
+// Download the release directory contents. 'wget' will place the
+// results into a directory matching the hostname in
+// params.RELEASE_URL
+def crcDownloadRelease() {
+    // -r           => Recursive
+    // --level=1    => Do not descend or walk away
+    // --no-parent  => Do not download higher directories
+    // --cut-dirs=4 => Don't make the 4 extra parent directories on the file system
+    def cmd = "wget -r --level=1 --no-parent --cut-dirs=4 ${params.RELEASE_URL}"
+    dir ( workdir ) {
+	def result = commonlib.shell(script: cmd)
+	// Rename it from the domain name to the actual version
+	commonlib.shell(script: "mv ${sourceDomain} ${releaseVer}")
+	// And update 'latest' symlink, of course
+	commonlib.shell(script: "ln -s ${releaseVer} latest")
+    }
+}
 
-//     try {
-//         buildlib.elliott(cmd, [capture: true]).trim().split('\n')[-1]
-//         if (requiresRhel8()) {
-//             buildlib.elliott(cmdEl8, [capture: true]).trim().split('\n')[-1]
-//         }
-//     } catch (err) {
-//         echo("Problem running elliott")
-//         currentBuild.description += """
-// ----------------------------------------
-// ${err}
-// ----------------------------------------"""
-//         error("Could not process a find-builds command")
-//     }
-// }
+// Maybe rsync this stuff to the use-mirror staging ground. Noop mode
+// will just show you what would have been synced.
+def crcRsyncRelease() {
+    def dest = "use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/crc"
+    def dry = params.DRY_RUN ? '--dry-run' : ''
+    // The --exclude's remove the commonlib.shell directory files and
+    // the index.html files from the files to be transferred
+    cmd = "rsync ${dry} -av --delete-after --exclude='shell' --exclude='index*' --progress --no-g --omit-dir-times --chmod=Dug=rwX -e 'ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no' ${workdir}/${releaseVer} ${workdir}/latest ${dest}/"
+    commonlib.shell(
+	script: cmd,
+	returnAll: true
+    )
+}
 
-// // Check that each of the RPM Diffs for the given advisory have been
-// // resolved (waived/passed). RPM Diffs that require human intervention
-// // will be collected and then later emailed out to the team.
-// //
-// // The job will block here until the diffs are resolved and someone
-// // presses the `CONTINUE` button.
-// //
-// // @param <String> advisory: The ID of the advisory to check
-// def signedComposeRpmdiffsResolved(advisory) {
-//     def result = commonlib.shell(
-//         script: "./rpmdiff.py check-resolved ${advisory}",
-//         returnAll: true
-//     )
-
-//     if (result.returnStatus != 0) {
-//         currentBuild.description += "\nRPM Diff resolution required"
-//         mailForResolution(result.stdout)
-//     }
-// }
-
-// // @param <String> err: Error message from failed command
-// def mailForFailure(String err) {
-//     def failureMessage = """Error creating new signed compose OpenShift ${params.BUILD_VERSION}
-
-//   Errata Whitelist included advisories: ${errataList}
-//   Jenkins Console Log: ${commonlib.buildURL('console')}
-
-// ######################################################################
-// ${err}
-// ######################################################################
-
-// """
-
-//     echo("Mailing failure message: ")
-//     echo(failureMessage)
-
-//     commonlib.email(
-//         // to: "aos-art-automation@redhat.com",
-//         to: params.MAIL_LIST_FAILURE,
-//         from: "aos-art-automation+failed-signed-compose@redhat.com",
-//         replyTo: "aos-team-art@redhat.com",
-//         subject: "Error creating new signed compose for OpenShift ${params.BUILD_VERSION} job #${currentBuild.number}",
-//         body: failureMessage,
-//     )
-// }
-
-// def analyzePuddleLogs(String dist='') {
-//     dir(workdir) {
-//         // Get the generic 'latest', it will tell us the actual name of this new puddle
-//         commonlib.shell("wget ${puddleURL}${dist}/latest/logs/puddle.log -O puddle${dist}.log")
-//         // This the tag of our newly created puddle
-//         def latestTag = commonlib.shell(
-//             script: "awk -n '/now points to/{print \$NF}' puddle${dist}.log",
-//             returnStdout: true,
-//         ).trim()
-
-//         currentBuild.description += "\nTag${dist}: ${latestTag}"
-//         // Form the canonical URL to our new puddle
-//         def newPuddle = "${puddleURL}${dist}/${latestTag}"
-
-//         currentBuild.description += "Puddle: ${newPuddle}"
-//         // Save the changelog for emailing out
-//         commonlib.shell("wget ${newPuddle}/logs/changelog.log -O changelog${dist}.log")
-
-//         return [
-//             changeLog: readFile("changelog${dist}.log"),
-//             puddleLog: readFile("puddle${dist}.log"),
-//             latestTag: latestTag,
-//             newPuddle: newPuddle,
-//         ]
-//     }
-// }
+def crcPushPub() {
+    if ( params.DRY_RUN ) {
+	echo("[DRY-RUN] Would have ran 'push.pub.sh openshift-v4 -v' on use-mirror-upload")
+    } else {
+	echo("Running 'push.pub.sh openshift-v4 -v' on use-mirror-upload. This might take a little while.")
+	mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", "openshift-v4", '-v')
+	if (mirror_result.contains("[FAILURE]")) {
+	    echo(mirror_result)
+	    error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
+	}
+    }
+}
 
 return this

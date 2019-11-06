@@ -111,7 +111,7 @@ EOF
 
 # Copy the local puddle to a server used to stage files for the mirrors.
 # The new location should be a directory which includes the OCP version.
-rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX --perms -e "${MIRROR_SSH_BASE}" "${PUDDLEDIR}/${LASTDIR}/" "${MIRROR_SSH_SERVER}:${MIRROR_PATH}/${VERSIONED_DIR}/"
+rsync -aHv --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX,ug+r --perms -e "${MIRROR_SSH_BASE}" "${PUDDLEDIR}/${LASTDIR}/" "${MIRROR_SSH_SERVER}:${MIRROR_PATH}/${VERSIONED_DIR}/"
 
 $MIRROR_SSH sh -s <<-EOF
   set -e

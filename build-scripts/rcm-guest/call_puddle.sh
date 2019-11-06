@@ -6,7 +6,7 @@
 # SIGNED_KEYS is optional and should be in the format "<key>,<key>,<key>" with no spaces
 #
 
-# set -o xtrace
+set -o xtrace
 set -e
 
 usage()

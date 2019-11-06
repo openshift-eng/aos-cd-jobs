@@ -113,10 +113,10 @@ node {
                 stage("build RPMs") { build.stageBuildRpms() }
                 stage("build compose") { build.stageBuildCompose() }
                 stage("update dist-git") { build.stageUpdateDistgit() }
+                stage("build images") { build.stageBuildImages() }
+                stage("mirror RPMs") { build.stageMirrorRpms() }
+                stage("sync images") { build.stageSyncImages() }
             }
-            stage("build images") { build.stageBuildImages() }
-            stage("mirror RPMs") { build.stageMirrorRpms() }
-            stage("sync images") { build.stageSyncImages() }
         }
         stage("report success") { build.stageReportSuccess() }
     } catch (err) {

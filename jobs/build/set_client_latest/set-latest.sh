@@ -18,14 +18,30 @@ TMPDIR=${WORKSPACE}/tools
 mkdir -p "${TMPDIR}"
 cd ${TMPDIR}
 
-# create latest symlink
-ln -svf ${RELEASE} latest
+LESS=$(cat ${RELEASE} |awk -F '.' '{print $1 "." $2 "."  $3 "-0"}')
+ABOVE=$(cat ${RELEASE} |awk -F '.' '{print $1 "." $2+1 "."  $3 "-0"}')
+RELEASE_DIR=$(cat ${RELEASE} |awk -F '.' '{print $1 "." $2}')
+Z_LATEST=$(curl -X GET --fail -G https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/4-stable/latest --data-urlencode "in=>${LESS} <${ABOVE}" |jq  '.name')
+Y_LATEST=$(curl -X GET --fail -G https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/4-stable/latest |jq  '.name')
+
+if ["${RELEASE}" != "${Z_LATEST}"]; then
+    echo "Release ${RELEASE} is not the latest z-stream compare to ${Z_LATEST} on payload 4-stable/latest"
+    exit 1
+fi
+
+# create latest-{4.y} symlink
+ln -svf ${RELEASE} latest-${RELEASE_DIR}
+
+# if ${RELEASE} match the latest y stream, then update latest symlink
+if ["${RELEASE}" == "${Y_LATEST}"]; then
+    ln -svf latest-${RELEASE_DIR} latest
+fi
 
 #sync to use-mirror-upload
 rsync \
     -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
     -e "ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no" \
-    latest \
+    latest-${RELEASE_DIR} \
     use-mirror-upload.ops.rhcloud.com:${OC_MIRROR_DIR}
 
 # kick off full mirror push

@@ -66,7 +66,7 @@ $z - s390x
 img=$1; shift
 case "$img" in
         ansible.runner)
-            build_common $img ansible-runner:latest 0 $@
+            build_common $img ansible-runner:1.2.0-1.1571949727 0 $@
             ;;
 
         elasticsearch)

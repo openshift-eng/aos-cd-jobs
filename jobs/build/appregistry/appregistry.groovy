@@ -303,15 +303,17 @@ def stageAttachMetadata(operatorBuilds) {
 
     attachToAdvisory(params.METADATA_ADVISORY, metadata_nvrs)
 
-    /*
-    // this would be convenient, except that we don't have a way
-    // to set the CDN repos first, and can't move to QE without that.
-    elliott """
-        change-state -s QE
-        -a ${params.METADATA_ADVISORY}
-        ${params.DRY_RUN ? "--noop" : ""}
-    """
-    */
+    try {
+        elliott """
+            change-state -s QE
+            -a ${params.METADATA_ADVISORY}
+            ${params.DRY_RUN ? "--noop" : ""}
+        """
+    } catch(e) {
+        // the first time we do this for an advisory, we don't have a way to set the CDN repos first, so move to QE will fail.
+        echo "failed to move metadata advisory to QE state; check CDN repos and script output"
+        currentBuild.description += "\nFailed to move metadata advisory to QE state; check CDN repos and script output"
+    }
 }
 
 return this

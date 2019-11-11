@@ -164,13 +164,13 @@ def pushToOMPS(token, metadata_nvr) {
 */
 def getMetadataNVRs(operatorNVRs, stream) {
     def nvrFlags = operatorNVRs.collect { "--nvr ${it}" }.join(" ")
-    doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}")
+    return doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}").split()
 }
 
 // attach to given advisory a list of NVRs 
 def attachToAdvisory(advisory, metadata_nvrs) {
     def elliott_build_flags = []
-    metadata_nvrs.split().each { nvr -> elliott_build_flags.add("--build ${nvr}") }
+    metadata_nvrs.each { nvr -> elliott_build_flags.add("--build ${nvr}") }
 
     elliott """
         find-builds -k image
@@ -227,41 +227,50 @@ def stageBuildMetadata(operatorBuilds) {
     """
 }
 
+// wrap pushToOMPS with retries; it fails until the CVP for the container build completes
+def pushToOMPSWithRetries(token, metadata_nvr) {
+    def response = [:]
+    try {
+        retry(60) {  // retry failing pkg for 60m
+            response = [:]  // ensure we aren't left looking at a previous response when pushToOMPS fails
+            response = pushToOMPS(token, metadata_nvr)
+            if (response.status != 200) {
+                sleep(60)
+                error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
+            }
+        }
+    } catch (err) {
+        if (response.status != 200) {
+            return [
+                metadata_nvr: metadata_nvr,
+                response_status: response.status,
+                response_content: response.content
+            ]
+        } else {
+            // failed because of something other than bad request; note that instead
+            return err
+        }
+    }
+    return null
+}
 
 // Push to OMPS the latest dev metadata builds against a list of operator builds.
 def stagePushDevMetadata(operatorBuilds) {
-    def errors = []
     def token = retrieveBotToken()
-    for (def i = 0; i < operatorBuilds.size(); i++) {
-        def build = operatorBuilds[i]
-        def metadata_nvr = getMetadataNVRs([build.nvr], params.STREAM)
-
-        def response = [:]
-        try {
-            retry(errors ? 3 : 60) { // retry the first failing pkg for 30m; after that, give up after 1m30s
-                response = [:] // ensure we aren't left looking at a previous response when pushToOMPS fails
-                response = pushToOMPS(token, metadata_nvr)
-                if (response.status != 200) {
-                    sleep(30)
-                    error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
-                }
-            }
-        } catch (err) {
-            if (response.status != 200) {
-                errors.add([
-                    metadata_nvr: metadata_nvr,
-                    response_status: response.status,
-                    response_content: response.content
-                ])
+    def metadata_nvrs = getMetadataNVRs(operatorBuilds.collect { it.nvr }, "dev")
+    def errors = [:]
+    parallel metadata_nvrs.collectEntries { nvr -> [
+        (nvr.replaceAll("-operator-metadata-container.*", "")): { ->
+            err = pushToOMPSWithRetries(token, nvr)
+            if (err) {
+                errors[nvr] = err
             } else {
-                // failed because of something other than bad request; note that instead
-                errors.add(err)
+                currentBuild.description += "\n  ${nvr}"
             }
-            continue // without claiming any success
         }
-        currentBuild.description += "\n  ${metadata_nvr}"
-    }
-    if (!errors.isEmpty()) {
+    ]}
+   
+    if (errors) {
         error "${errors}"
     }
 }

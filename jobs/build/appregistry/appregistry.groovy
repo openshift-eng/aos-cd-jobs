@@ -139,24 +139,6 @@ def findImageNVRsInAdvisories(images, advisoriesNVRs) {
 }
 
 /*
-    Post an NVR to OMPS (Operator Manifest Push Service) for publication to redhat-operators-art appregistry
-    param token: temporary auth token for publishing to quay
-    param metadata_nvr: NVR of the metadata container we want to push
-    returns: the http response object
-*/
-def pushToOMPS(token, metadata_nvr) {
-    httpRequest(
-        url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
-        httpMode: 'POST',
-        customHeaders: [[name: 'Authorization', value: token]],
-        timeout: 60,
-        // we want to know what the response was even on failure,
-        // and we only get that if this doesn't raise an error:
-        validResponseCodes: "200:599",
-    )
-}
-
-/*
     Have doozer find the latest metadata container build NVRs from given operator container NVRs.
     param operatorNVRs: list of operator container NVRs
     param stream: dev|stage|prod depending on which we are looking for
@@ -227,31 +209,65 @@ def stageBuildMetadata(operatorBuilds) {
     """
 }
 
-// wrap pushToOMPS with retries; it fails until the CVP for the container build completes
+/*
+    Post an NVR to OMPS (Operator Manifest Push Service) for publication to redhat-operators-art appregistry
+    param token: temporary auth token for publishing to quay
+    param metadata_nvr: NVR of the metadata container we want to push
+    returns: the http response object
+*/
+def pushToOMPS(token, metadata_nvr) {
+    httpRequest(
+        url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
+        httpMode: 'POST',
+        customHeaders: [[name: 'Authorization', value: token]],
+        timeout: 60,
+        // we want to know what the response was even on failure,
+        // and we only get that if this doesn't raise an error:
+        validResponseCodes: "200:599",
+    )
+}
+
+/*
+    wrap pushToOMPS with retries:
+    retry until the CVP for the container build completes
+    retry 2 failures
+    timeout after an hour regardless
+*/
 def pushToOMPSWithRetries(token, metadata_nvr) {
-    def response = [:]
-    try {
-        retry(60) {  // retry failing pkg for 60m
-            response = [:]  // ensure we aren't left looking at a previous response when pushToOMPS fails
-            response = pushToOMPS(token, metadata_nvr)
-            if (response.status != 200) {
-                sleep(60)
-                error "${[metadata_nvr: metadata_nvr, response_content: response.content]}"
+    timeout (time: 1, unit: "HOURS") {
+        def err = null
+        def cvpTries = 0
+        def failures = 0
+        while (true) {
+            response = [:]
+            try {
+                response = pushToOMPS(token, metadata_nvr)
+                if (response.status == 200) {
+                    break  // success!
+                }
+                if (response.status == 400 && response.content.contains("required test results missing")) {
+                    // this is the error we get when the CVP hasn't run yet; retry until tests complete
+                    echo "waiting for CVP tests to complete (${cvpTries++})"
+                    sleep(60)
+                    continue
+                }
+                // something else went wrong - could be transient, record the error we end up with
+                err = [
+                    metadata_nvr: metadata_nvr,
+                    response_status: response.status,
+                    response_content: response.content,
+                ]
+            } catch (e) {
+                // failed because of something other than bad response; note that instead
+                err = e
             }
-        }
-    } catch (err) {
-        if (response.status != 200) {
-            return [
-                metadata_nvr: metadata_nvr,
-                response_status: response.status,
-                response_content: response.content
-            ]
-        } else {
-            // failed because of something other than bad request; note that instead
-            return err
+            
+            if (failures++ > 2) {
+                error(err)
+            }
+            sleep(60)
         }
     }
-    return null
 }
 
 // Push to OMPS the latest dev metadata builds against a list of operator builds.

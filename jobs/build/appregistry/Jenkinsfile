@@ -62,7 +62,6 @@ node {
                     commonlib.mockParam(),
                 ]
             ],
-            disableConcurrentBuilds()
         ]
     )
 
@@ -88,7 +87,9 @@ node {
                 currentBuild.description = "appregistry images collected for ${appregistry.buildVersion}."
             }
             stage("build metadata container") {
-                appregistry.stageBuildMetadata(operatorBuilds)
+                lock("appregistry-build-${params.STREAM}") {
+                    appregistry.stageBuildMetadata(operatorBuilds)
+                }
             }
             stage("push metadata") {
                 if (skipPush) {
@@ -107,7 +108,9 @@ node {
                         usernameVariable: 'QUAY_USERNAME',
                         passwordVariable: 'QUAY_PASSWORD',
                     )]) {
-                        appregistry.stagePushDevMetadata(operatorBuilds)
+                        lock("appregistry-push-dev") {
+                            appregistry.stagePushDevMetadata(operatorBuilds)
+                        }
                     }
                 }
             }
@@ -116,7 +119,9 @@ node {
                     currentBuild.description += "\nskipping attach to advisory."
                     return
                 }
-                appregistry.stageAttachMetadata(operatorBuilds)
+                lock("appregistry-attach-${appregistry.buildVersion}") {
+                    appregistry.stageAttachMetadata(operatorBuilds)
+                }
             }
         }
     } catch (err) {

@@ -10,27 +10,44 @@ def initialize(workDir) {
     buildlib.cleanWorkdir(workDir)
 }
 
+/*
+    Turn lines from doozer that look like:
+        label,distgit,nvr,component
+    into maps with these fields:
+        distgit: "foo-operator"
+        component: "foo-operator-container"
+        nvr: "foo-operator-container-v4.3.0-12345" (latest build of this component)
+    Keep those that have the appregistry label.
+*/ 
 @NonCPS
 def parseAndFilterOperators(lines) {
     def data = []
     lines.split().each { line ->
-        // label, name, nvr, version, component
+        // label, distgit, component, nvr
         def fields = line.split(',')
         if (fields[0]) {
             data.add([
-                name: fields[1],
-                nvr: fields[2],
-                version: fields[3].replace("v", ""),
-                component: fields[4],
+                distgit: fields[1],
+                component: fields[2],
+                nvr: fields[3],
             ])
         }
     }
     return data
 }
 
+/*
+    Use login credentials from Jenkins to generate a temporary token that we can
+    use to submit requests to OMPS for publishing metadata to the dev appregistry.
+    Returns: the token. Otherwise raises an error.
+*/
 def retrieveBotToken() {
     def token = ""
-    withCredentials([usernamePassword(credentialsId: 'quay_appregistry_omps_bot', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD')]) {
+    withCredentials([usernamePassword(
+        credentialsId: 'quay_appregistry_omps_bot',
+        usernameVariable: 'QUAY_USERNAME',
+        passwordVariable: 'QUAY_PASSWORD',
+    )]) {
         def requestJson = """
         {
             "user": {
@@ -46,6 +63,8 @@ def retrieveBotToken() {
                 contentType: 'APPLICATION_JSON',
                 requestBody: requestJson,
                 timeout: 60,
+                // we want to know what the response was even on failure,
+                // and we only get that if this doesn't raise an error:
                 validResponseCodes: "200:599",
             )
             if (response.status != 200) {
@@ -58,6 +77,7 @@ def retrieveBotToken() {
     return token
 }
 
+// validate job parameters
 def validate(params) {
     if (params.STREAM in ["stage", "prod"]) {
         if (!params.OLM_OPERATOR_ADVISORIES || !params.METADATA_ADVISORY) {
@@ -78,48 +98,76 @@ def elliott(cmd) {
     buildlib.elliott("-g openshift-${buildVersion} ${cmd}", [capture: true])
 }
 
-def getImagesData(include) {
-    if (include) {
-        include = "--images " + commonlib.cleanCommaList(include)
+/*
+    request dockerfile information for image configs from doozer
+    param limitImages: optional distgit names to limit the query
+    returns: lines of output with the desired information per image
+*/
+def getImagesData(limitImages) {
+    if (limitImages) {
+        limitImages = "--images " + commonlib.cleanCommaList(limitImages)
     }
     doozer """
-        ${include}
+        ${limitImages}
         images:print
         --label 'com.redhat.delivery.appregistry'
-        --short '{label},{name},{build},{version},{component}'
+        --short '{label},{name},{component},{build}'
     """
 }
 
+/*
+    List all the builds attached to given advisories.
+    param advisories (string): advisory numbers to search
+    returns: a list of NVR strings
+*/
 def fetchNVRsFromAdvisories(advisories) {
     commonlib.cleanCommaList(advisories).split(",").collect { advisory ->
         readJSON(text: elliott("get --json - ${advisory}")).errata_builds.values().flatten()
     }.flatten()
 }
 
+/*
+    Find the image builds from the advisories that correspond to the operator image configs doozer found.
+    param images: a list of image maps, each like [distgit: "foo", component: "foo-container", ...]
+    param advisoriesNVRs: a list of NVRs like "foo-container-4.2-123456"
+    return: the same list of maps, each with nvr replaced by an advisory nvr (or null)
+*/
 def findImageNVRsInAdvisories(images, advisoriesNVRs) {
     images.collect {
-        image -> [
-            name: image.name,
-            nvr: advisoriesNVRs.find { it.startsWith(image.component) }
-        ]
+        image -> image + [nvr: advisoriesNVRs.find { it.startsWith(image.component) }]
     }
 }
 
+/*
+    Post an NVR to OMPS (Operator Manifest Push Service) for publication to redhat-operators-art appregistry
+    param token: temporary auth token for publishing to quay
+    param metadata_nvr: NVR of the metadata container we want to push
+    returns: the http response object
+*/
 def pushToOMPS(token, metadata_nvr) {
     httpRequest(
         url: "https://omps-prod.cloud.paas.psi.redhat.com/v2/redhat-operators-art/koji/${metadata_nvr}",
         httpMode: 'POST',
         customHeaders: [[name: 'Authorization', value: token]],
         timeout: 60,
+        // we want to know what the response was even on failure,
+        // and we only get that if this doesn't raise an error:
         validResponseCodes: "200:599",
     )
 }
 
+/*
+    Have doozer find the latest metadata container build NVRs from given operator container NVRs.
+    param operatorNVRs: list of operator container NVRs
+    param stream: dev|stage|prod depending on which we are looking for
+    returns: a list of metadata container NVRs
+*/
 def getMetadataNVRs(operatorNVRs, stream) {
     def nvrFlags = operatorNVRs.collect { "--nvr ${it}" }.join(" ")
     doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}")
 }
 
+// attach to given advisory a list of NVRs 
 def attachToAdvisory(advisory, metadata_nvrs) {
     def elliott_build_flags = []
     metadata_nvrs.split().each { nvr -> elliott_build_flags.add("--build ${nvr}") }
@@ -131,34 +179,46 @@ def attachToAdvisory(advisory, metadata_nvrs) {
     """
 }
 
+/*
+    According to job parameters, find out which images (all or limited by param) are operators.
+    Find the latest operator builds for which we want metadata containers.
+    For stage and prod, use the operator builds that are attached to an advisory.
+    Returns a list of maps that have entries like:
+        distgit: "foo-operator"
+        component: "foo-operator-container"
+        nvr: "foo-operator-container-v4.3.0-12345"
+*/
 def stageFetchOperatorImages() {
-    operatorData = parseAndFilterOperators(getImagesData(params.IMAGES.trim()))
+    // get the images that are configured to be optional operators
+    operatorBuilds = parseAndFilterOperators(getImagesData(params.IMAGES.trim()))
 
     if (params.STREAM in ["stage", "prod"]) {
+        // look up the corresponding container builds that were attached to advisories
         def advisoriesNVRs = fetchNVRsFromAdvisories(params.OLM_OPERATOR_ADVISORIES)
-        operatorData = findImageNVRsInAdvisories(operatorData, advisoriesNVRs)
+        operatorBuilds = findImageNVRsInAdvisories(operatorBuilds, advisoriesNVRs)
 
-        if (operatorData.any { it.nvr == null }) {
+        if (operatorBuilds.any { it.nvr == null }) {
             currentBuild.description += """\n
-            Advisories missing operators ${operatorData.findAll { it.nvr }.collect { it.name }.join(",")}
+            Advisories missing operators ${operatorBuilds.findAll { it.nvr }.collect { it.distgit }.join(",")}
             """
             echo """
             ERROR: The following operators were not found in provided advisories.
-            ${operatorData.findAll { !it.nvr }.collect { it.name }.join(",")}
+            ${operatorBuilds.findAll { !it.nvr }.collect { it.distgit }.join(",")}
 
             Possible solutions:
             1. Add more advisories in OLM_OPERATOR_ADVISORIES parameter, that have the missing operators attached
             2. Attach missing operators to at least one of the provided advisories: ${params.OLM_OPERATOR_ADVISORIES}
-            3. Limit the expected operators in IMAGES parameter: ${operatorData.findAll { it.nvr }.collect { it.name }.join(",")}
+            3. Limit the expected operators in IMAGES parameter: ${operatorBuilds.findAll { it.nvr }.collect { it.distgit }.join(",")}
             """
             error "operators not found"
         }
     }
-    return operatorData
+    return operatorBuilds
 }
 
-def stageBuildMetadata(operatorData) {
-    def nvrs = operatorData.collect { item -> item.nvr }
+// use doozer to build metadata containers (if needed) for a given stream and list of operator builds
+def stageBuildMetadata(operatorBuilds) {
+    def nvrs = operatorBuilds.collect { item -> item.nvr }
 
     doozer """
         operator-metadata:build ${nvrs.join(' ')}
@@ -167,17 +227,19 @@ def stageBuildMetadata(operatorData) {
     """
 }
 
-def stagePushDevMetadata(operatorData) {
+
+// Push to OMPS the latest dev metadata builds against a list of operator builds.
+def stagePushDevMetadata(operatorBuilds) {
     def errors = []
     def token = retrieveBotToken()
-    for (def i = 0; i < operatorData.size(); i++) {
-        def build = operatorData[i]
+    for (def i = 0; i < operatorBuilds.size(); i++) {
+        def build = operatorBuilds[i]
         def metadata_nvr = getMetadataNVRs([build.nvr], params.STREAM)
 
         def response = [:]
         try {
             retry(errors ? 3 : 60) { // retry the first failing pkg for 30m; after that, give up after 1m30s
-                response = [:] // ensure we aren't looking at a previous response
+                response = [:] // ensure we aren't left looking at a previous response when pushToOMPS fails
                 response = pushToOMPS(token, metadata_nvr)
                 if (response.status != 200) {
                     sleep(30)
@@ -204,8 +266,9 @@ def stagePushDevMetadata(operatorData) {
     }
 }
 
-def stageAttachMetadata(operatorData) {
-    def metadata_nvrs = getMetadataNVRs(operatorData.collect { it.nvr }, params.STREAM)
+// Attach to the metadata advisory the latest stage/prod metadata builds against a list of operator builds.
+def stageAttachMetadata(operatorBuilds) {
+    def metadata_nvrs = getMetadataNVRs(operatorBuilds.collect { it.nvr }, params.STREAM)
 
     elliott """
         change-state -s NEW_FILES

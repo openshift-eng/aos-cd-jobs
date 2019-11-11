@@ -1,3 +1,4 @@
+// This will likely only make sense once you understand https://mojo.redhat.com/docs/DOC-1203429
 
 node {
     checkout scm
@@ -74,7 +75,7 @@ node {
     def skipPush = params.SKIP_PUSH
 
     try {
-        def operatorData = []
+        def operatorBuilds = []
         sshagent(["openshift-bot"]) {
             stage("validate params") {
                 if (!appregistry.validate(params)) {
@@ -82,19 +83,19 @@ node {
                 }
             }
             stage("fetch appregistry images") {
-                operatorData = appregistry.stageFetchOperatorImages()
-                writeYaml file: "${workDir}/appreg.yaml", data: operatorData
+                operatorBuilds = appregistry.stageFetchOperatorImages()
+                writeYaml file: "${workDir}/appreg.yaml", data: operatorBuilds
                 currentBuild.description = "appregistry images collected for ${appregistry.buildVersion}."
             }
             stage("build metadata container") {
-                appregistry.stageBuildMetadata(operatorData)
+                appregistry.stageBuildMetadata(operatorBuilds)
             }
             stage("push metadata") {
                 if (skipPush) {
                     currentBuild.description += "\nskipping metadata push."
                     return
                 }
-                if (!operatorData) {
+                if (!operatorBuilds) {
                     currentBuild.description += "\nno operator metadata to push."
                     return
                 }
@@ -106,7 +107,7 @@ node {
                         usernameVariable: 'QUAY_USERNAME',
                         passwordVariable: 'QUAY_PASSWORD',
                     )]) {
-                        appregistry.stagePushDevMetadata(operatorData)
+                        appregistry.stagePushDevMetadata(operatorBuilds)
                     }
                 }
             }
@@ -115,7 +116,7 @@ node {
                     currentBuild.description += "\nskipping attach to advisory."
                     return
                 }
-                appregistry.stageAttachMetadata(operatorData)
+                appregistry.stageAttachMetadata(operatorBuilds)
             }
         }
     } catch (err) {

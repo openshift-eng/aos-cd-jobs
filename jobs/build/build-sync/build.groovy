@@ -33,7 +33,17 @@ multiarch = false
 
 def initialize() {
     buildlib.cleanWorkdir(mirrorWorking)
-    arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}")
+    arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
+
+    /**
+     * We need to process x86_64 for some of our work. This is because building
+     * non-x86 releases requires the x86_64 imagestream to have been populated
+     * with a 'cli' tag, which the release controller will then use for non-x86
+     * release payloads.
+     */
+    arches.remove('x86_64')
+    arches.add(0, 'x86_64')
+
     multiarch = arches.size() > 1
     if ( params.NOOP) {
 	dryRun = "--dry-run=true"
@@ -44,7 +54,7 @@ def initialize() {
 	currentBuild.description = "Arches: ${arches.join(', ')}"
     } else {
 	currentBuild.displayName += " OCP: ${params.BUILD_VERSION}"
-	currentBuild.description = "Arches: default (amd64)"
+	currentBuild.description = "Arches: default (x86_64)"
 	artifacts.addAll(["MIRROR_working/oc_mirror_input", "MIRROR_working/release-is.yaml"])
     }
 
@@ -80,9 +90,6 @@ release:gen-multiarch-payload
 	echo("######################################################################")
 	sh("cat src_dest")
 	for ( String a: arches ) {
-	    if ( a == "x86_64" ) {
-		continue
-	    }
 	    echo("######################################################################")
 	    echo("src_dest.${a}")
 	    sh("cat src_dest.${a}")
@@ -115,35 +122,22 @@ release:gen-payload
 // health of the source/destination endpoints.
 def buildSyncMirrorImages() {
     if ( multiarch ) {
-	retry ( 3 ) {
-	    echo("Attempting to mirror default arch: amd64")
-	    // Always login again. It may expire between loops
-	    // depending on amount of time elapsed
-	    buildlib.registry_quay_dev_login()
-	    buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest"
-	    currentBuild.description += "\nMirrored: amd64"
-	}
-	// And again for each other arch
-	for ( String arch: arches ) {
-	    if ( arch == "x86_64" ) {
-		continue
-	    }
-
-	    retry ( 3 ) {
-		echo("Attempting to mirror arch: ${arch}")
-		// Always login again. It may expire between loops
-		// depending on amount of time elapsed
-		buildlib.registry_quay_dev_login()
-		buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch} --filter-by-os=${arch}"
-		currentBuild.description += ", ${arch}"
-	    }
-	}
+        for ( String arch: arches ) {
+            retry ( 3 ) {
+                echo("Attempting to mirror arch: ${arch}")
+                // Always login again. It may expire between loops
+                // depending on amount of time elapsed
+                buildlib.registry_quay_dev_login()
+                buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch} --filter-by-os=${arch}"
+                currentBuild.description += ", ${arch}"
+            }
+        }
     } else {
-	retry ( 3 ) {
-	    buildlib.registry_quay_dev_login()
-	    buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${ocMirrorInput}"
-	    currentBuild.description += "\nMirrored: default arch (amd64)"
-	}
+        retry ( 3 ) {
+            buildlib.registry_quay_dev_login()
+            buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${ocMirrorInput}"
+            currentBuild.description += "\nMirrored: default arch (amd64)"
+        }
     }
 }
 
@@ -151,26 +145,16 @@ def buildSyncMirrorImages() {
 def buildSyncApplyImageStreams() {
     if ( multiarch ) {
 	echo("Updating ImageStream's")
-
-	echo("Going to apply this ImageStream:")
-	sh("cat ${mirrorWorking}/image_stream.yaml")
-
-	buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.yaml --kubeconfig ${ciKubeconfig}"
-	currentBuild.description += "\nUpdated ImageStream: amd64"
-
-	// And one more time for each other stream
-	for ( String arch: arches ) {
-	    if ( arch == "x86_64" ) {
-		continue
-	    }
-	    echo("Going to apply this ImageStream:")
-	    sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
-	    buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}"
-	    currentBuild.description += ", ${arch}"
-	}
+        // And one more time for each other stream
+        for ( String arch: arches ) {
+            echo("Going to apply this ImageStream:")
+            sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
+            buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}"
+            currentBuild.description += ", ${arch}"
+        }
     } else {
-	buildlib.oc "${logLevel} apply ${dryRun} --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
-	currentBuild.description += "\nUpdated default ImageStream (amd64)"
+        buildlib.oc "${logLevel} apply ${dryRun} --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
+        currentBuild.description += "\nUpdated default ImageStream (amd64)"
     }
 }
 

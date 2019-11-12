@@ -155,79 +155,34 @@ def signedComposeRpmsSigned() {
     }
 }
 
-// Create a new RHEL7 compose. Take note of the following:
-//
-// The `puddle` command (which this step invokes) *REQUIRES* that the
-// user running it (ocp-build, in this case) has a valid kerberos
-// ticket. To ensure that this is ready and available for our use case
-// we must ensure a few things happen:
-//
-// * The `jenkins` user has enabled kerberos `ticket forwarding`
-//   option. When running `kinit` we *MUST* include the `-f` option
-//   flag. This requests a `forwardable` ticket for the user.
-//
-// * Additionally, ensure that the `jenkins` user has the:
-//
-//     `GSSAPIDelegateCredentials yes`
-//
-//  option set in their ~/.ssh/config file like this:
-//
-//     Host rcm-guest rcm-guest.app.eng.bos.redhat.com
-//     Hostname                   rcm-guest.app.eng.bos.redhat.com
-//     User                       ocp-build
-//     GSSAPIDelegateCredentials  yes
-//
-// That last line there, will tell the `ssh` command to try to
-// authenticate using GSSAPI (kerberos, in our case) credentials.
-//
-// FINALLY, the user on the remote end (`ocp-build`) *MUST* have their
-// `~/.k5login` file configured to include the principal we're
-// authenticating with.
-def signedComposeNewComposeEl7() {
-    if ( params.DRY_RUN ) {
-        currentBuild.description += "\nDry-run: EL7 Compose not actually built"
-        echo("Skipping running puddle. Would have used whitelist: ${errataList}")
-    } else {
-        def cmd = "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${buildlib.args_to_string(params.BUILD_VERSION, errataList)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle_advisory.sh"
-        def result = commonlib.shell(
-            script: cmd,
-            returnAll: true,
-        )
-
-        if ( result.returnStatus != 0 ) {
-            mailForFailure(result.combined)
-            error("Error running puddle command")
-        }
-    }
-}
-
-// Create a new signed RHEL8 puddle. This is a work-around of sorts.
+// Create a new signed puddle. This is a work-around of sorts.
 //
 // Due to limitations in 'puddle' (which is deprecated) we have to
-// assemble a RHEL8 brew tag with signed packages MANUALLY. This
+// assemble a brew tag with signed packages MANUALLY. This
 // script (ocp-tag-signed-errata-builds.py) was provided by Ryan
 // Hartman from RCM. This replaces our former process (pre September
 // 2019) wherein we would have to submit a ticket to RCM to have
-// packages assembled into a constantly changing brew tag.
+// packages assembled into a constantly changing brew tag for el8,
+// and turns out to be better for el7 too.
 //
 // Now, using this new process, we skip making a ticket. Instead, our
 // build account (kerberos principal:
 // ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM) has been
-// given permission to add packages into the new tags for RHEL8.
-def signedComposeNewComposeEl8() {
-    def tagCmd = "./ocp-tag-signed-errata-builds.py --errata-group RHOSE-${params.BUILD_VERSION} --errata-group 'RHOSE ASYNC' --errata-product RHOSE --errata-product-version OSE-${params.BUILD_VERSION}-RHEL-8 --brew-pending-tag rhaos-${params.BUILD_VERSION}-rhel-8-image-build --verbose"
+// given permission to add packages into the new tags.
+def signedComposeNewCompose(elMajor="8") {
+    def signedTag = "rhaos-${params.BUILD_VERSION}-rhel-${elMajor}-image-build"
+    // one of the things that changed with RHEL 8 is the product version convention
+    def productVersion = elMajor == "7" ? "RHEL-7-OSE-${params.BUILD_VERSION}" : "OSE-${params.BUILD_VERSION}-RHEL-8"
+    def tagCmd = "./ocp-tag-signed-errata-builds.py --errata-group RHOSE-${params.BUILD_VERSION} --errata-group 'RHOSE ASYNC' --errata-product RHOSE --errata-product-version ${productVersion} --brew-pending-tag ${signedTag} --verbose"
 
     if ( params.DRY_RUN ) {
-        currentBuild.description += "\nDry-run: EL8 Compose not actually built"
-        echo("Packages which would have been added to rhaos-${params.BUILD_VERSION}-rhel-8-image-build tag:")
+        currentBuild.description += "\nDry-run: EL${elMajor} Compose not actually built"
+        echo("Packages which would have been added to ${signedTag} tag:")
         def testTagCmd = tagCmd + " --test"
         def tagResult = commonlib.shell(
             script: testTagCmd,
             returnAll: true,
         )
-
-        echo("Sleeping 10 seconds to give brew some time to catch up")
-        sleep 10
 
         if ( tagResult.returnStatus == 0 ) {
             echo(tagResult.stdout)
@@ -240,7 +195,7 @@ ${tagResult.combined}
 """)
         }
     } else {
-        echo("Updating RHEL8 brew tag")
+        echo("Updating RHEL${elMajor} brew tag")
         def tagResult = commonlib.shell(
             script: tagCmd,
             returnAll: true,
@@ -261,9 +216,9 @@ ${tagResult.combined}
             }
 
             if ( newPkgs.size() > 0 ) {
-                currentBuild.description += "\n${newPkgs.size()} packages added to RHEL8 tag"
-                currentBuild.description += "\n${untaggedPkgs.size()} packages removed from RHEL8 tag"
-                currentBuild.displayName += " [+${newPkgs.size()}/-${untaggedPkgs.size()} EL8]"
+                currentBuild.description += "\n${newPkgs.size()} packages added to RHEL${elMajor} tag"
+                currentBuild.description += "\n${untaggedPkgs.size()} packages removed from RHEL${elMajor} tag"
+                currentBuild.displayName += " [+${newPkgs.size()}/-${untaggedPkgs.size()} EL${elMajor}]"
             }
         } else {
             mailForFailure(tagResult.combined)
@@ -274,15 +229,15 @@ ${tagResult.combined}
 """)
         }
 
-        echo("Building RHEL8 puddle")
-        def puddleCmd = "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${buildlib.args_to_string(params.BUILD_VERSION)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle_advisory_el8.sh"
+        echo("Building RHEL${elMajor} puddle")
+        def puddleCmd = "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${buildlib.args_to_string(params.BUILD_VERSION)} el${elMajor} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle_signed_tag.sh"
         def puddleResult = commonlib.shell(
             script: puddleCmd,
             returnAll: true,
         )
 
         if ( puddleResult.returnStatus == 0 ) {
-            echo("View the package list here: ${puddleURL}-el8")
+            echo("View the package list here: ${puddleURL}${elMajor == '8' ? '-el8' : ''}")
         } else {
             mailForFailure(puddleResult.combined)
             error("Error running puddle command")

@@ -724,6 +724,27 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
     }
 }
 
+def sweep(build_version, sweep_builds) {
+    def sweep_job = build(
+        job: 'build%2Fsweep',
+        prapagate: false,
+        parameters: [
+            param('String', 'BUILD_VERSION', build_version),
+            param('Boolean', 'SWEEP_BUILDS', sweep_builds),
+        ]
+    )
+    if (sweep_job.result != 'SUCCESS') {
+        commonlib.email(
+            replyTo: mail_list,
+            to: 'aos-art-automation+failed-sweep@redhat.com',
+            from: 'aos-art-automation@redhat.com',
+            subject: "Problem sweeping after ${currentBuild.displayName}",
+            body: "Jenkins console: ${commonlib.buildURL('console')}",
+        )
+        currentBuild.result = 'UNSTABLE'
+    }
+}
+
 def sync_images(major, minor, mail_list, build_number) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image

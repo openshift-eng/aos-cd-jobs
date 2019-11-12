@@ -91,32 +91,39 @@ node {
     try {
         sshagent(['aos-cd-test']) {
             release_info = ""
-            name = "${params.NAME}"
+            def dest_release_tag = "${params.NAME}"
             from_release_tag = "${params.FROM_RELEASE_TAG}"
             description = "${params.DESCRIPTION}"
             advisory = params.ADVISORY? Integer.parseInt(params.ADVISORY.toString()) : 0
             previous = "${params.PREVIOUS}"
             String errata_url
             Map release_obj
+            def CLIENT_TYPE = 'ocp'
+
 
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("validation") {
-                def retval = release.stageValidation(quay_url, name, advisory)
+                def retval = release.stageValidation(quay_url, dest_release_tag, advisory)
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }
-            stage("payload") { release.stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) }
-            stage("tag stable") { release.stageTagRelease(quay_url, name) }
-            stage("wait for stable") { release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, name) }
+            stage("build payload") { release.stageGenPayload(quay_url, dest_release_tag, from_release_tag, description, previous, errata_url) }
+            stage("tag stable") { release.stageTagRelease(quay_url, dest_release_tag) }
+            stage("wait for stable") { release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, dest_release_tag) }
             stage("get release info") {
-                release_info = release.stageGetReleaseInfo(quay_url, name)
+                release_info = release.stageGetReleaseInfo(quay_url, dest_release_tag)
             }
-            stage("client sync") { release.stageClientSync(RELEASE_STREAM_NAME, 'ocp') }
+            stage("mirror tools") { release.stagePublishClient(quay_url, params.FROM_RELEASE_TAG, CLIENT_TYPE) }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }
+
+            stage("set client latest") {
+                release.stageSetClientLatest(params.FROM_RELEASE_TAG, CLIENT_TYPE)
+            }
+
         }
 
         dry_subject = ""

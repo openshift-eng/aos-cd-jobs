@@ -64,6 +64,12 @@ node {
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
                     ],
+                    [
+                        name: 'SWEEP_BUILDS',
+                        description: 'Sweep and attach builds to advisories',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -206,6 +212,12 @@ node {
                         "aos-team-art@redhat.com", // "reply to"
                         currentBuild.number
                     )
+                }
+            }
+
+            stage('sweep') {
+                if (params.SWEEP_BUILDS) {
+                    buildlib.sweep(params.BUILD_VERSION, true)
                 }
             }
 

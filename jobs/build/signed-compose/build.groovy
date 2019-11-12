@@ -28,6 +28,10 @@ def signedComposeStateNewFiles() {
 // Search brew for, and then attach, any viable builds. Do this for
 // EL7 and EL8.
 def signedComposeAttachBuilds() {
+    if (!params.ATTACH_BUILDS) {
+        echo("Job configured not to attach builds; continuing using builds already attached")
+        return
+    }
     // Don't actually attach builds if this is just a dry run
     def advs = params.DRY_RUN ? '' : advisoryOpt
     def cmd = "${elliottOpts} find-builds --kind rpm ${advs}"
@@ -67,7 +71,7 @@ def signedComposeRpmdiffsRan(advisory) {
 //
 // @param <String> advisory: The ID of the advisory to check
 def signedComposeRpmdiffsResolved(advisory) {
-    echo "Action may be required: Complete any pending RPM Diff waivers to continue. Pending diffs will be printed."
+    echo("Action may be required: Complete any pending RPM Diff waivers to continue. Pending diffs will be printed.")
 
     def result = commonlib.shell(
         script: "./rpmdiff.py check-resolved ${advisory}",

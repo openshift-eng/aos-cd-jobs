@@ -234,7 +234,7 @@ def pushToOMPS(token, metadata_nvr) {
     timeout after an hour regardless
 */
 def pushToOMPSWithRetries(token, metadata_nvr) {
-    timeout (time: 1, unit: "HOURS") {
+    timeout (time: 2, unit: "HOURS") {
         def err = null
         def cvpTries = 0
         def failures = 0

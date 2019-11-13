@@ -22,12 +22,21 @@ def initialize(advisory) {
 
 // Set the advisory to the NEW_FILES state (allows builds to be added)
 def signedComposeStateNewFiles() {
+    if (params.DRY_RUN) {
+        echo("Skipping advisory state change for dry run.")
+        echo("would have run: ${elliottOpts} change-state --state NEW_FILES ${advisoryOpt}")
+        return
+    }
     buildlib.elliott("${elliottOpts} change-state --state NEW_FILES ${advisoryOpt}")
 }
 
 // Search brew for, and then attach, any viable builds. Do this for
 // EL7 and EL8.
 def signedComposeAttachBuilds() {
+    if (!params.ATTACH_BUILDS) {
+        echo("Job configured not to attach builds; continuing using builds already attached")
+        return
+    }
     // Don't actually attach builds if this is just a dry run
     def advs = params.DRY_RUN ? '' : advisoryOpt
     def cmd = "${elliottOpts} find-builds --kind rpm ${advs}"
@@ -67,7 +76,7 @@ def signedComposeRpmdiffsRan(advisory) {
 //
 // @param <String> advisory: The ID of the advisory to check
 def signedComposeRpmdiffsResolved(advisory) {
-    echo "Action may be required: Complete any pending RPM Diff waivers to continue. Pending diffs will be printed."
+    echo("Action may be required: Complete any pending RPM Diff waivers to continue. Pending diffs will be printed.")
 
     def result = commonlib.shell(
         script: "./rpmdiff.py check-resolved ${advisory}",
@@ -103,6 +112,11 @@ def signedComposeRpmdiffsResolved(advisory) {
 // you're having trouble getting a build to get signed in a reasonable
 // amount of time (10 minutes).
 def signedComposeStateQE() {
+    if (params.DRY_RUN) {
+        echo("Skipping advisory state change for dry run.")
+        echo("would have run: ${elliottOpts} change-state --state QE ${advisoryOpt}")
+        return
+    }
     def seconds = 0
     retry(3) {
         sleep seconds
@@ -117,6 +131,12 @@ def signedComposeStateQE() {
 // that possible condition we frob the state between NEW_FILES and
 // QE. Re-entering the QE state triggers the signing mechanism again.
 def signedComposeRpmsSigned() {
+    if (params.DRY_RUN) {
+        currentBuild.description += "\nDry-run: not actually signing any new builds"
+        echo("Skipping signing packages for dry run.")
+        echo("would have run: ${elliottOpts} poll-signed --minutes=10 ${advisoryOpt}")
+        return
+    }
     def signed = false
     retry(3) {
         try {
@@ -200,7 +220,7 @@ def signedComposeNewComposeEl8() {
     if ( params.DRY_RUN ) {
         currentBuild.description += "\nDry-run: EL8 Compose not actually built"
         echo("Packages which would have been added to rhaos-${params.BUILD_VERSION}-rhel-8-image-build tag:")
-        def testTagCmd = cmd + " --test"
+        def testTagCmd = tagCmd + " --test"
         def tagResult = commonlib.shell(
             script: testTagCmd,
             returnAll: true,

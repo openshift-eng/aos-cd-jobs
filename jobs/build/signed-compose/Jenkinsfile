@@ -19,6 +19,19 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.ocpVersionParam('BUILD_VERSION'),
+                    [
+                        name: 'ATTACH_BUILDS',
+                        description: 'Attach new package builds to rpm advisory',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
+                    [
+                        name: 'DRY_RUN',
+                        description: 'Do not attach builds or update the puddle. Just show what would have happened',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -32,14 +45,7 @@ node {
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: 'aos-art-automation+failed-signed-puddle@redhat.com',
                     ],
-                    [
-                        name: 'DRY_RUN',
-                        description: 'Do not update the puddle. Just show what would have happened',
-                        $class: 'BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
                     commonlib.mockParam(),
-                    commonlib.ocpVersionParam('BUILD_VERSION'),
                 ]
             ],
             disableConcurrentBuilds(),
@@ -52,7 +58,9 @@ node {
     stage("Initialize") {
         buildlib.elliott "--version"
         buildlib.kinit()
-        currentBuild.displayName = "#${currentBuild.number} OCP ${params.BUILD_VERSION}"
+        currentBuild.displayName = "#${currentBuild.number} OCP ${params.BUILD_VERSION}" +
+            (params.DRY_RUN ? " [DRY RUN]": "") +
+            (params.ATTACH_BUILDS ? "" : " [keep builds]")
         build.initialize(advisory)
     }
 

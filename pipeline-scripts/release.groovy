@@ -357,4 +357,18 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
     }
 }
 
+def signArtifacts(Map signingParams) {
+    build(
+        job: "signing%2Fsign-artifacts",
+        propagate: false,
+        parameters: [
+            param("String", "NAME", signingParams.name),
+            param("String", "SIGNATURE_NAME", signingParams.signature_name),
+            param("Boolean", "DRY_RUN", signingParams.dry_run),
+            param("String", "ENV", signingParams.env),
+            param("String", "KEY_NAME", signingParams.key_name),
+        ]
+    )
+}
+
 return this

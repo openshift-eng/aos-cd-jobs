@@ -24,10 +24,16 @@ node {
                         defaultValue: ""
                     ],
                     [
-                        name: 'OC_MIRROR_DIR',
+                        name: 'CLIENT_TYPE',
                         description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "ocp"
+                    ],
+                    [
+                        name: 'ARCHES',
+                        description: 'all, any, or a space delimited list of arches: "x86_64 s390x ..."',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "all"
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -49,11 +55,8 @@ node {
 
 
     try {
-        sshagent(['aos-cd-test']) {
-            stage("sync ocp clients") {
-                sh "./set-latest.sh ${env.WORKSPACE} ${RELEASE} ${OC_MIRROR_DIR}"
-            }
-        }
+        result = buildlib.invoke_on_use_mirror("set-v4-client-latest.sh", params.RELEASE, params.CLIENT_TYPE, params.ARCHES)
+        echo "${result}"
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",

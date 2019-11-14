@@ -2,9 +2,9 @@
 
 node {
     checkout scm
-    def prerelease = load("pipeline-scripts/release.groovy")
-    def buildlib = prerelease.buildlib
-    def commonlib = prerelease.commonlib
+    def release = load("pipeline-scripts/release.groovy")
+    def buildlib = release.buildlib
+    def commonlib = release.commonlib
     def quay_url = "quay.io/openshift-release-dev/ocp-release-nightly"
 
     // Expose properties for a parameterized build
@@ -21,7 +21,13 @@ node {
                 parameterDefinitions: [
                     [
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Build tag to pull from (i.e. 4.1.0-0.nightly-2019-04-22-005054), pre-release job the release name is same as FROM_RELEASE_TAG',
+                        description: 'Release tag on api.ci (e.g. 4.1.0-0.nightly-2019-04-22-005054)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'NAME_OVERRIDE',
+                        description: 'Release name (if not specified, uses FROM_RELEASE_TAG)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -34,6 +40,12 @@ node {
                     [
                         name: 'MIRROR',
                         description: 'Sync clients to mirror.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: true
+                    ],
+                    [
+                        name: 'SET_CLIENT_LATEST',
+                        description: 'Set latest links for client.',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: true
                     ],
@@ -59,26 +71,42 @@ node {
 
     try {
         sshagent(['aos-cd-test']) {
-            release_info = ""
-            from_release_tag = "${params.FROM_RELEASE_TAG}"
-            name = from_release_tag.split("nightly")[0]+"nightly"
-            // must be able to access remote registry for verification
-            buildlib.registry_quay_dev_login()
 
-            currentBuild.displayName = "#${currentBuild.number} - ${from_release_tag}"
+            currentBuild.displayName = "#${currentBuild.number} - ${params.FROM_RELEASE_TAG}"
             if (params.DRY_RUN) { currentBuild.displayName += " [dry run]"}
             if (!params.MIRROR) { currentBuild.displayName += " [no mirror]"}
 
-            stage("versions") { prerelease.stageVersions() }
-
-            stage("validation") { prerelease.stageValidation(quay_url, from_release_tag, -1) }
-
-            stage("payload") { prerelease.stageGenPayload(quay_url, from_release_tag, from_release_tag, "", "", "") }
-
-            if (params.MIRROR) {
-                stage("client sync") { prerelease.stageClientSync(name, 'ocp-dev-preview') }
-                stage("set client latest") { prerelease.stageSetClientLatest(from_release_tag, 'ocp-dev-preview') }
+            def dest_release_tag = params.FROM_RELEASE_TAG
+            if ( params.NAME_OVERRIDE.trim() != "" ) {
+                dest_release_tag = params.NAME_OVERRIDE
             }
+
+            stage("versions") { release.stageVersions() }
+
+            buildlib.registry_quay_dev_login()
+
+            def CLIENT_TYPE = "ocp-dev-preview"
+
+            stage("validation") {
+                release.stageValidation(quay_url, dest_release_tag, -1)
+            }
+
+            stage("build payload") {
+                release.stageGenPayload(quay_url, dest_release_tag, params.FROM_RELEASE_TAG, "", "", "")
+            }
+
+            stage("mirror tools") {
+                if ( params.MIRROR ) {
+                    release.stagePublishClient(quay_url, dest_release_tag, CLIENT_TYPE)
+                }
+            }
+
+            stage("set client latest") {
+                if ( params.MIRROR && params.SET_CLIENT_LATEST ) {
+                    release.stageSetClientLatest(dest_release_tag, CLIENT_TYPE)
+                }
+            }
+
         }
     } catch (err) {
         commonlib.email(

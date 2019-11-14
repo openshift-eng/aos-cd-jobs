@@ -10,10 +10,6 @@ artifacts = []
 // ######################################################################
 // Single arch options
 
-// Location of the SRC=DEST input file
-ocMirrorInput = "${mirrorWorking}/oc_mirror_input"
-// Location of the image stream to apply
-ocIsObject = "${mirrorWorking}/release-is.yaml"
 // Locally stored image stream stub
 baseImageStream = "/home/jenkins/base-art-latest-imagestream-${params.BUILD_VERSION}.yaml"
 // Kubeconfig allowing ART to interact with api.ci.openshift.org
@@ -76,12 +72,11 @@ def initialize() {
 // file(s). Will take a few minutes because we must query brew and the
 // registry for each image.
 def buildSyncGenInputs() {
-    if ( multiarch ) {
 	echo("Generating SRC=DEST and ImageStreams for arches")
 	buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
-release:gen-multiarch-payload
+release:gen-payload
 --is-name ${params.BUILD_VERSION}-art-latest
 --organization ${params.ORGANIZATION}
 --repository ${params.REPOSITORY}
@@ -98,22 +93,6 @@ release:gen-multiarch-payload
 	sh("mv src_dest* ${mirrorWorking}/")
 	sh("mv image_stream*.yaml ${mirrorWorking}/")
 	artifacts.addAll(["MIRROR_working/src_dest*", "MIRROR_working/image_stream*"])
-    } else {
-	echo("Generating SRC=DEST for one arch")
-	buildlib.doozer """
-${images}
---working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
-release:gen-payload
---src-dest ${ocMirrorInput}
---image-stream ${ocIsObject}
---is-base ${baseImageStream}
-'${ocFmtStr}'
-"""
-	echo("Generated file:")
-	echo("######################################################################")
-	echo("${ocMirrorInput}")
-	sh("cat ${ocMirrorInput}")
-    }
 }
 
 // ######################################################################
@@ -121,40 +100,27 @@ release:gen-payload
 // loop because it is known to fail occassionally depending on the
 // health of the source/destination endpoints.
 def buildSyncMirrorImages() {
-    if ( multiarch ) {
-        for ( String arch: arches ) {
-            retry ( 3 ) {
-                echo("Attempting to mirror arch: ${arch}")
-                // Always login again. It may expire between loops
-                // depending on amount of time elapsed
-                buildlib.registry_quay_dev_login()
-                buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch} --filter-by-os=${arch}"
-                currentBuild.description += ", ${arch}"
-            }
-        }
-    } else {
+    for ( String arch: arches ) {
         retry ( 3 ) {
+            echo("Attempting to mirror arch: ${arch}")
+            // Always login again. It may expire between loops
+            // depending on amount of time elapsed
             buildlib.registry_quay_dev_login()
-            buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${ocMirrorInput}"
-            currentBuild.description += "\nMirrored: default arch (amd64)"
+            buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch} --filter-by-os=${arch}"
+            currentBuild.description += ", ${arch}"
         }
     }
 }
 
 
 def buildSyncApplyImageStreams() {
-    if ( multiarch ) {
 	echo("Updating ImageStream's")
-        // And one more time for each other stream
-        for ( String arch: arches ) {
-            echo("Going to apply this ImageStream:")
-            sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
-            buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}"
-            currentBuild.description += ", ${arch}"
-        }
-    } else {
-        buildlib.oc "${logLevel} apply ${dryRun} --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"
-        currentBuild.description += "\nUpdated default ImageStream (amd64)"
+    // And one more time for each other stream
+    for ( String arch: arches ) {
+        echo("Going to apply this ImageStream:")
+        sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
+        buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}"
+        currentBuild.description += ", ${arch}"
     }
 }
 

@@ -48,10 +48,10 @@ def crcRsyncRelease() {
 
 def crcPushPub() {
     if ( params.DRY_RUN ) {
-        echo("[DRY-RUN] Would have ran 'push.pub.sh openshift-v4 -v' on use-mirror-upload")
+        echo("[DRY-RUN] Would have run 'push.pub.sh openshift-v4/clients/crc -v' on use-mirror-upload")
     } else {
-        echo("Running 'push.pub.sh openshift-v4 -v' on use-mirror-upload. This might take a little while.")
-        mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", "openshift-v4", '-v')
+        echo("Running 'push.pub.sh openshift-v4/clients/crc -v' on use-mirror-upload. This might take a little while.")
+        mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", "openshift-v4/clients/crc", '-v')
         if (mirror_result.contains("[FAILURE]")) {
             echo(mirror_result)
             error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")

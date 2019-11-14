@@ -41,6 +41,6 @@ openshift_logging_es_ops_nodeselector:
 # openshift/origin-${component}:$commithash
 # since there is no literal '${version}' string in it,
 # the regex match to replace the version does not work
-# so provide a l_os_non_standard_reg_url with that string
-# so proxy image version replacement will work
-l_os_non_standard_reg_url: "openshift/origin-${component}:${version}"
+# have to hardcode the proxy image name/version instead
+openshift_logging_elasticsearch_proxy_image: "openshift/oauth-proxy:v1.1.0"
+openshift_logging_kibana_proxy_image: "openshift/oauth-proxy:v1.1.0"

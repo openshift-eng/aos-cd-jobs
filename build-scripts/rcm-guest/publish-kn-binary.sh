@@ -25,7 +25,7 @@ pkg_tar() {
         aarch64|ppc64le|s390x) dir=linux-${1};;
     esac
     mkdir "${OUTDIR}/${dir}"
-    mv ./usr/share/openshift-serverless-clients-redistributable/${dir}/* ${OUTDIR}/${dir}
+    mv ./usr/share/openshift-serverless-clients-redistributable/${dir}/kn-* ${OUTDIR}/${dir}/kn
     cp ./usr/share/licenses/openshift-serverless-clients-redistributable/LICENSE ${OUTDIR}/${dir}
     tar --owner 0 --group 0 -C ${OUTDIR}/${dir} . -zcf ./kn-${dir}-amd64-${KN_VERSION}.tar.gz
 }
@@ -36,7 +36,7 @@ rpm2cpio *.rpm | cpio -idmv --quiet
 pkg_tar x86_64
 pkg_tar macos
 mkdir "${OUTDIR}/windows"
-mv ./usr/share/openshift-serverless-clients-redistributable/windows/kn-windows-amd64.exe ${OUTDIR}/windows/
+mv ./usr/share/openshift-serverless-clients-redistributable/windows/kn-windows-amd64.exe ${OUTDIR}/windows/kn.exe
 cp ./usr/share/licenses/openshift-serverless-clients-redistributable/LICENSE ${OUTDIR}/windows/
 zip --quiet --junk-path - ${OUTDIR}/windows/* > "${OUTDIR}/kn-windows-amd64-${KN_VERSION}.zip"
 

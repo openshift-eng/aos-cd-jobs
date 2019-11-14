@@ -28,17 +28,17 @@ def stageVersions() {
  *      Valid advisories must be in QE state and have a live ID so we can
  *      include in release metadata the URL where it will be published.
  */
-Map stageValidation(String quay_url, String name, int advisory = 0) {
+Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0) {
     def retval = [:]
-    def version = commonlib.extractMajorMinorVersion(name)
+    def version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
             returnAll: true,
-            script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${name}"
+            script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${dest_release_tag}"
     )
 
     if(res.returnStatus == 0){
-        error("Payload ${name} already exists! Cannot continue.")
+        error("Payload ${dest_release_tag} already exists! Cannot continue.")
     }
 
     if (advisory < 0) {
@@ -99,7 +99,7 @@ Map stageValidation(String quay_url, String name, int advisory = 0) {
     return retval
 }
 
-def stageGenPayload(quay_url, name, from_release_tag, description, previous, errata_url) {
+def stageGenPayload(dest_repo, dest_release_tag, ci_release_tag, description, previous, errata_url) {
     // build metadata blob
     def metadata = "{\"description\": \"${description}\""
     if (errata_url) {
@@ -107,15 +107,23 @@ def stageGenPayload(quay_url, name, from_release_tag, description, previous, err
     }
     metadata += "}"
 
+    def cloned_imagestream = getClonedImagestreamName(ci_release_tag)
+    def arch = getReleaseTagArch(from_release_tag)
+
+    echo "Generating release payload"
+    echo "CI release name: ${ci_release_tag}"
+    echo "Calculated source imagestream name and arch: ${cloned_imagestream} ${arch}"
+
+
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
-    cmd += "--from-release=registry.svc.ci.openshift.org/ocp/release:${from_release_tag} "
+    cmd += "-n ocp --from-image-stream=${cloned_imagestream} "
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }
-    cmd += "--name ${name} "
+    cmd += "--name ${dest_release_tag} "
     cmd += "--metadata '${metadata}' "
-    cmd += "--to-image=${quay_url}:${name} "
+    cmd += "--to-image=${dest_repo}:${dest_release_tag} "
 
     if (params.DRY_RUN){
         cmd += "--dry-run=true "
@@ -126,8 +134,27 @@ def stageGenPayload(quay_url, name, from_release_tag, description, previous, err
     )
 }
 
-def stageTagRelease(quay_url, name) {
-    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${name} ocp/release:${name}"
+def stageSetClientLatest(ci_release_tag, client_type) {
+    def arch = getReleaseTagArch(ci_release_tag)
+
+    if (params.DRY_RUN) {
+        echo "Would have tried to set latest for ${ci_release_tag} (client type: ${client_type}, arch: {$arch})"
+        return
+    }
+
+    build(
+        job: 'build%2Fset_client_latest',
+        parameters: [
+            buildlib.param('String', 'RELEASE', ci_release_tag),
+            buildlib.param('String', 'CLIENT_TYPE', client_type),
+            buildlib.param('String', 'ARCHES', RELEASE_TAG_ARCH),
+        ]
+    )
+
+}
+
+def stageTagRelease(quay_url, release_tag) {
+    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp/release:${release_tag}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -195,8 +222,8 @@ def Map stageWaitForStable(String releaseStream, String releaseName) {
     }
 }
 
-def stageGetReleaseInfo(quay_url, name){
-    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${name}"
+def stageGetReleaseInfo(quay_url, release_tag){
+    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${release_tag}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -215,36 +242,6 @@ def stageGetReleaseInfo(quay_url, name){
     return res.stdout.trim()
 }
 
-def stageClientSync(stream, path) {
-    if (params.DRY_RUN) {
-        echo "Would have run oc_sync job"
-        return
-    }
-
-    build(
-        job: 'build%2Foc_sync',
-        parameters: [
-            buildlib.param('String', 'STREAM', stream),
-            buildlib.param('String', 'OC_MIRROR_DIR', path),
-        ]
-    )
-}
-
-def stageSetClientLatest(name, path) {
-    if (params.DRY_RUN) {
-        echo "Would have run set_client_latest job"
-        return
-    }
-
-    build(
-            job: 'build%2Fset_client_latest',
-            parameters: [
-                    buildlib.param('String', 'RELEASE', name),
-                    buildlib.param('String', 'OC_MIRROR_DIR', path),
-            ]
-    )
-}
-
 def stageAdvisoryUpdate() {
     // Waiting on new elliott features from Sam for this.
     echo "Empty Stage"
@@ -255,7 +252,79 @@ def stageCrossRef() {
     echo "Empty Stage"
 }
 
+def stagePublishClient(quay_url, ci_release_tag, client_type) {
+    def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
+    def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
+
+    // Anything under this directory will be sync'd to MIRROR_HOST /srv/pub/openshift-v4/...
+    def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
+    sh "rm -rf ${BASE_TO_MIRROR_DIR}"
+    def RELEASE_TAG_ARCH = getReleaseTagArch(ci_release_tag)
+
+    // From the newly built release, extract the client tools into the workspace following the directory structure
+    // we expect to publish to on the use-mirror system.
+    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${RELEASE_TAG_ARCH}/clients/${client_type}/${ci_release_tag}"
+    sh "mkdir -p ${CLIENT_MIRROR_DIR}"
+    def tools_extract_cmd = "GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
+                                " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${ci_release_tag}"
+
+    if (!params.DRY_RUN) {
+        commonlib.shell(script: tools_extract_cmd)
+    } else {
+        echo "Would have run: ${tools_extract_cmd}"
+    }
+
+    // DO NOT use --delete. We only built a part of openshift-v4 locally and don't want to remove
+    // anything on the mirror.
+    rsync_cmd = "rsync -avzh --chmod=a+rwx,g-w,o-w -e 'ssh -o StrictHostKeyChecking=no' "+
+                " ${BASE_TO_MIRROR_DIR}/ ${MIRROR_HOST}:${MIRROR_V4_BASE_DIR}/ "
+
+    if ( ! params.DRY_RUN ) {
+        commonlib.shell(script: rsync_cmd)
+        commonlib.shell(script: "ssh -o StrictHostKeyChecking='no' ${MIRROR_HOST} timeout 15m /usr/local/bin/push.pub.sh openshift-v4")
+    } else {
+        echo "Not mirroring; would have run: ${rsync_cmd}"
+    }
+
+}
+
+/**
+ * Derive the name of the imagestream for the release that the release controller created
+ * when it saw an art-latest imagestream updated.
+ * @returns eg. '4.4-art-latest-2019-11-08-213727' or for s390x arch '4.4-art-latest-s390x-2019-11-08-213727'
+ */
+def getClonedImagestreamName(ci_release_tag) {
+    // e.g. 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   4.1-art-latest-s390x-2019-11-08-213727
+    def cloned_imagestream = ci_release_tag.replace('.0-0.nightly', '-art-latest')
+    return cloned_imagestream
+}
+
+/**
+ * Derive an architecture name from a CI release tag.
+ * e.g. 4.1-art-latest-s390x-2019-11-08-213727  will return s390x
+ */
+def getReleaseTagArch(ci_release_tag) {
+    // 4.1-art-latest-s390x-2019-11-08-213727  ->  [4.1, art, latest, s390x, 2019, 11, 08, 213727]
+    // x86_64   4.1-art-latest-2019-11-08-213727 ->  [4.1, art, latest, 2019, 11, 08, 213727]
+    def nameComponents = getClonedImagestreamName(ci_release_tag).split('-')
+    def arch = null
+    try {
+        nameComponents[3].toInteger() // this is either year or an arch; arches will throw an exception in attempt
+        arch = 'x86_64'  // If there was no arch, this is x86
+    } catch ( e ) {
+        arch = nameComponents[3] // return the arch
+    }
+    echo "Derived architecture based on release tag name: ${arch}"
+    return arch
+}
+
 def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String releaseStreamName='4-stable', String providerName = 'Red Hat UMB') {
+
+    if (params.DRY_RUN) {
+        echo "Would have sent release complete message"
+        return
+    }
+
     def releaseName = release.name
     def message = [
         "contact": [

@@ -128,7 +128,6 @@ def buildSyncMirrorImages() {
                 // depending on amount of time elapsed
                 buildlib.registry_quay_dev_login()
                 buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch} --filter-by-os=${arch}"
-                currentBuild.description += ", ${arch}"
             }
         }
     } else {
@@ -149,7 +148,6 @@ def buildSyncApplyImageStreams() {
             echo("Going to apply this ImageStream:")
             sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
             buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}"
-            currentBuild.description += ", ${arch}"
         }
     } else {
         buildlib.oc "${logLevel} apply ${dryRun} --filename=${ocIsObject} --kubeconfig ${ciKubeconfig}"

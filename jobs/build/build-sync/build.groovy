@@ -88,7 +88,6 @@ release:gen-multiarch-payload
 """
 	echo("Generated files:")
 	echo("######################################################################")
-	sh("cat src_dest")
 	for ( String a: arches ) {
 	    echo("######################################################################")
 	    echo("src_dest.${a}")

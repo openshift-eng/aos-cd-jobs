@@ -133,9 +133,7 @@ def stageGenPayload(dest_repo, dest_release_tag, ci_release_tag, description, pr
     )
 }
 
-def stageSetClientLatest(ci_release_tag, client_type) {
-    def arch = getReleaseTagArch(ci_release_tag)
-
+def stageSetClientLatest(ci_release_tag, arch, client_type) {
     if (params.DRY_RUN) {
         echo "Would have tried to set latest for ${ci_release_tag} (client type: ${client_type}, arch: {$arch})"
         return
@@ -146,7 +144,7 @@ def stageSetClientLatest(ci_release_tag, client_type) {
         parameters: [
             buildlib.param('String', 'RELEASE', ci_release_tag),
             buildlib.param('String', 'CLIENT_TYPE', client_type),
-            buildlib.param('String', 'ARCHES', RELEASE_TAG_ARCH),
+            buildlib.param('String', 'ARCHES', arch),
         ]
     )
 
@@ -251,18 +249,17 @@ def stageCrossRef() {
     echo "Empty Stage"
 }
 
-def stagePublishClient(quay_url, ci_release_tag, client_type) {
+def stagePublishClient(quay_url, ci_release_tag, arch, client_type) {
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 
     // Anything under this directory will be sync'd to MIRROR_HOST /srv/pub/openshift-v4/...
     def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
     sh "rm -rf ${BASE_TO_MIRROR_DIR}"
-    def RELEASE_TAG_ARCH = getReleaseTagArch(ci_release_tag)
 
     // From the newly built release, extract the client tools into the workspace following the directory structure
     // we expect to publish to on the use-mirror system.
-    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${RELEASE_TAG_ARCH}/clients/${client_type}/${ci_release_tag}"
+    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${ci_release_tag}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
     def tools_extract_cmd = "GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
                                 " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${ci_release_tag}"

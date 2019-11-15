@@ -92,6 +92,7 @@ node {
         sshagent(['aos-cd-test']) {
             release_info = ""
             def dest_release_tag = "${params.NAME}"
+            arch = release.getReleaseTagArch(params.FROM_RELEASE_TAG)
             from_release_tag = "${params.FROM_RELEASE_TAG}"
             description = "${params.DESCRIPTION}"
             advisory = params.ADVISORY? Integer.parseInt(params.ADVISORY.toString()) : 0
@@ -115,7 +116,7 @@ node {
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, dest_release_tag)
             }
-            stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, CLIENT_TYPE) }
+            stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, arch, CLIENT_TYPE) }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }

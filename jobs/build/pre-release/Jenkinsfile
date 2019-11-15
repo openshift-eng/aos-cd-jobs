@@ -76,6 +76,8 @@ node {
             if (params.DRY_RUN) { currentBuild.displayName += " [dry run]"}
             if (!params.MIRROR) { currentBuild.displayName += " [no mirror]"}
 
+            arch = release.getReleaseTagArch(params.FROM_RELEASE_TAG)
+
             def dest_release_tag = params.FROM_RELEASE_TAG
             if ( params.NAME_OVERRIDE.trim() != "" ) {
                 dest_release_tag = params.NAME_OVERRIDE
@@ -97,13 +99,13 @@ node {
 
             stage("mirror tools") {
                 if ( params.MIRROR ) {
-                    release.stagePublishClient(quay_url, dest_release_tag, CLIENT_TYPE)
+                    release.stagePublishClient(quay_url, dest_release_tag, arch, CLIENT_TYPE)
                 }
             }
 
             stage("set client latest") {
                 if ( params.MIRROR && params.SET_CLIENT_LATEST ) {
-                    release.stageSetClientLatest(dest_release_tag, CLIENT_TYPE)
+                    release.stageSetClientLatest(dest_release_tag, arch, CLIENT_TYPE)
                 }
             }
 

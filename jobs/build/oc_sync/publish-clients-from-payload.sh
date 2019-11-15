@@ -67,4 +67,4 @@ retry() {
 }
 
 # kick off full mirror push
-retry ssh ${SSH_OPTS} timeout 15m /usr/local/bin/push.pub.sh openshift-v4 -v
+retry ssh ${SSH_OPTS} timeout 15m /usr/local/bin/push.pub.sh "openshift-v4/${ARCH}/clients/${CLIENT_TYPE}/${VERSION}" -v

@@ -120,10 +120,6 @@ node {
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }
 
-            stage("set client latest") {
-                release.stageSetClientLatest(params.FROM_RELEASE_TAG, CLIENT_TYPE)
-            }
-
         }
 
         dry_subject = ""

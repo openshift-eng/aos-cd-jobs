@@ -83,7 +83,6 @@ release:gen-payload
 """
 	echo("Generated files:")
 	echo("######################################################################")
-	sh("cat src_dest")
 	for ( String a: arches ) {
 	    echo("######################################################################")
 	    echo("src_dest.${a}")
@@ -106,8 +105,7 @@ def buildSyncMirrorImages() {
             // Always login again. It may expire between loops
             // depending on amount of time elapsed
             buildlib.registry_quay_dev_login()
-            buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch} --filter-by-os=${arch}"
-            currentBuild.description += ", ${arch}"
+            buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch}"
         }
     }
 }
@@ -120,7 +118,6 @@ def buildSyncApplyImageStreams() {
         echo("Going to apply this ImageStream:")
         sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
         buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}"
-        currentBuild.description += ", ${arch}"
     }
 }
 

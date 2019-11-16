@@ -107,17 +107,16 @@ def stageGenPayload(dest_repo, dest_release_tag, ci_release_tag, description, pr
     }
     metadata += "}"
 
-    def cloned_imagestream = getClonedImagestreamName(ci_release_tag)
     def arch = getReleaseTagArch(from_release_tag)
 
     echo "Generating release payload"
     echo "CI release name: ${ci_release_tag}"
-    echo "Calculated source imagestream name and arch: ${cloned_imagestream} ${arch}"
+    echo "Calculated arch: ${arch}"
 
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
-    cmd += "-n ocp --from-image-stream=${cloned_imagestream} "
+    cmd += "-n ocp --from-release=registry.svc.ci.openshift.org/ocp/release:${from_release_tag} "
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }
@@ -134,9 +133,7 @@ def stageGenPayload(dest_repo, dest_release_tag, ci_release_tag, description, pr
     )
 }
 
-def stageSetClientLatest(ci_release_tag, client_type) {
-    def arch = getReleaseTagArch(ci_release_tag)
-
+def stageSetClientLatest(ci_release_tag, arch, client_type) {
     if (params.DRY_RUN) {
         echo "Would have tried to set latest for ${ci_release_tag} (client type: ${client_type}, arch: {$arch})"
         return
@@ -147,7 +144,7 @@ def stageSetClientLatest(ci_release_tag, client_type) {
         parameters: [
             buildlib.param('String', 'RELEASE', ci_release_tag),
             buildlib.param('String', 'CLIENT_TYPE', client_type),
-            buildlib.param('String', 'ARCHES', RELEASE_TAG_ARCH),
+            buildlib.param('String', 'ARCHES', arch),
         ]
     )
 
@@ -252,18 +249,17 @@ def stageCrossRef() {
     echo "Empty Stage"
 }
 
-def stagePublishClient(quay_url, ci_release_tag, client_type) {
+def stagePublishClient(quay_url, ci_release_tag, arch, client_type) {
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 
     // Anything under this directory will be sync'd to MIRROR_HOST /srv/pub/openshift-v4/...
     def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
     sh "rm -rf ${BASE_TO_MIRROR_DIR}"
-    def RELEASE_TAG_ARCH = getReleaseTagArch(ci_release_tag)
 
     // From the newly built release, extract the client tools into the workspace following the directory structure
     // we expect to publish to on the use-mirror system.
-    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${RELEASE_TAG_ARCH}/clients/${client_type}/${ci_release_tag}"
+    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${ci_release_tag}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
     def tools_extract_cmd = "GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
                                 " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${ci_release_tag}"
@@ -289,30 +285,18 @@ def stagePublishClient(quay_url, ci_release_tag, client_type) {
 }
 
 /**
- * Derive the name of the imagestream for the release that the release controller created
- * when it saw an art-latest imagestream updated.
- * @returns eg. '4.4-art-latest-2019-11-08-213727' or for s390x arch '4.4-art-latest-s390x-2019-11-08-213727'
- */
-def getClonedImagestreamName(ci_release_tag) {
-    // e.g. 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   4.1-art-latest-s390x-2019-11-08-213727
-    def cloned_imagestream = ci_release_tag.replace('.0-0.nightly', '-art-latest')
-    return cloned_imagestream
-}
-
-/**
  * Derive an architecture name from a CI release tag.
  * e.g. 4.1-art-latest-s390x-2019-11-08-213727  will return s390x
  */
 def getReleaseTagArch(ci_release_tag) {
-    // 4.1-art-latest-s390x-2019-11-08-213727  ->  [4.1, art, latest, s390x, 2019, 11, 08, 213727]
-    // x86_64   4.1-art-latest-2019-11-08-213727 ->  [4.1, art, latest, 2019, 11, 08, 213727]
-    def nameComponents = getClonedImagestreamName(ci_release_tag).split('-')
-    def arch = null
+    // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
+    def nameComponents = ci_release_tag.split('-')
+    def arch = nameComponents[2]
     try {
-        nameComponents[3].toInteger() // this is either year or an arch; arches will throw an exception in attempt
+        arch.toInteger() // this is either year or an arch; arches will throw an exception in attempt
         arch = 'x86_64'  // If there was no arch, this is x86
     } catch ( e ) {
-        arch = nameComponents[3] // return the arch
+        // The arch is not a year, so it is what we are looking for
     }
     echo "Derived architecture based on release tag name: ${arch}"
     return arch

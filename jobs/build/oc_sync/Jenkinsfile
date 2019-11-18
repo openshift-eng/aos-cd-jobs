@@ -69,7 +69,7 @@ node {
             stage("sync ocp clients") {
                 // must be able to access remote registry to extract image contents
                 buildlib.registry_quay_dev_login()
-                sh "./publish-clients-from-payload.sh ${env.WORKSPACE} ${FROM_RELEASE_TAG} ${CLIENT_TYPE} '${pull_spec}'"
+                commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${FROM_RELEASE_TAG} ${CLIENT_TYPE} '${pull_spec}'"
             }
         }
     } catch (err) {

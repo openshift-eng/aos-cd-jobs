@@ -36,7 +36,7 @@ node {
                     ],
                     [
                         name: 'DESCRIPTION',
-                        description: '[deprecated] Release description for metadata',
+                        description: 'Should be empty unless you know otherwise',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],

@@ -46,7 +46,7 @@ node {
                     ],
                     [
                         name: 'PREVIOUS',
-                        description: 'Optional: Tag(s) (comma separated) of last 10 releases this can upgrade FROM',
+                        description: 'Check item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],

@@ -4,11 +4,12 @@ set -euxo pipefail
 # Download conf file from URL and call puddle with given advisories
 
 VERSION=$1
+RHEL=${2:-el8}
 CONF=`mktemp`
-echo "Making new signed compose for OCP ${VERSION}-el8"
+echo "Making new signed compose for OCP ${VERSION}-${RHEL}"
 
 echo "Fetching default errata-puddle config file for ${VERSION}"
-wget https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/puddle-conf/errata-puddle-${VERSION}-signed.el8.conf -O $CONF
+wget https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/puddle-conf/errata-puddle-${VERSION}-signed.${RHEL}.conf -O $CONF
 
 echo "Running puddle command"
 puddle $CONF -b -d -n

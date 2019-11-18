@@ -72,11 +72,11 @@ node {
             stage("RPM diffs resolved") { build.signedComposeRpmdiffsResolved(advisory) }
             stage("Advisory is QE") { build.signedComposeStateQE() }
             stage("Signing completing") { build.signedComposeRpmsSigned() }
-            stage("New el7 compose") { build.signedComposeNewComposeEl7() }
-            // Ensure the rhel8 tag script can read the required cert
+            // Ensure the tag script can read the required cert
             withEnv(['REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt']) {
+                stage("New el7 compose") { build.signedComposeNewCompose("7") }
                 if (build.requiresRhel8()) {
-                    stage("New el8 compose") { build.signedComposeNewComposeEl8() }
+                    stage("New el8 compose") { build.signedComposeNewCompose("8") }
                 }
             }
         }

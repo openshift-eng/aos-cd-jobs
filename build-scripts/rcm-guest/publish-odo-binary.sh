@@ -48,5 +48,20 @@ rsync \
     "${OUTDIR}" latest \
     use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/
 
-#kick off full mirror push
-ssh ${SSH_OPTS} timeout 15m /usr/local/bin/push.pub.sh openshift-v4 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v4 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v4 -v
+
+retry() {
+  local count exit_code
+  count=0
+  until "$@"; do
+    exit_code="$?"
+    count=$((count + 1))
+    if [[ $count -lt 4 ]]; then
+      sleep 5
+    else
+      return "$exit_code"
+    fi
+  done
+}
+
+# kick off mirror push
+retry ssh ${SSH_OPTS} timeout 15m /usr/local/bin/push.pub.sh openshift-v4/clients/odo -v

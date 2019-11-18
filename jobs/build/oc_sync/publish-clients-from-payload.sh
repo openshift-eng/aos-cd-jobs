@@ -2,35 +2,27 @@
 set -eux
 export MOBY_DISABLE_PIGZ=true
 WORKSPACE=$1
-STREAM=$2
-ARCH=$3
-CLIENT_TYPE=$4
-OC_MIRROR_DIR="/srv/pub/openshift-v4/${ARCH}/clients/${CLIENT_TYPE}/"
+VERSION=$2
+CLIENT_TYPE=$3
+PULL_SPEC=$4
+
+ARCH=$(skopeo inspect docker://${PULL_SPEC} -config | jq .architecture -r)
+if [[ "${ARCH}" == "amd64" ]]; then
+    ARCH="x86_64"
+fi
+
+OC_MIRROR_DIR="/srv/pub/openshift-v4/${ARCH}/clients/${CLIENT_TYPE}"
 
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
 
-# get latest release from release-controller API
-wget https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${STREAM}/latest -O latest
-
-#extract pull_spec
-PULL_SPEC=`jq -r '.pullSpec' latest`
-if [ "${CLIENT_TYPE}" = "ocp-dev-preview" ]; then
-  # point at the published pre-release that will stay around -- registry.svc.ci gets GCed
-  PULL_SPEC="${PULL_SPEC/registry.svc.ci.openshift.org\/ocp\/release/quay.io/openshift-release-dev/ocp-release-nightly}"
-fi
-
-#extract name
-VERSION=`jq -r '.name' latest`
-
 #check if already exists
-if ssh ${SSH_OPTS} "[ -d ${OC_MIRROR_DIR}${VERSION} ]";
+if ssh ${SSH_OPTS} "[ -d ${OC_MIRROR_DIR}/${VERSION} ]";
 then
     echo "Already have latest version"
     exit 0
 else
     echo "Fetching OCP clients from payload ${VERSION}"
 fi
-
 
 TMPDIR=${WORKSPACE}/tools
 mkdir -p "${TMPDIR}"
@@ -50,7 +42,7 @@ rsync \
     -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
     -e "ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no" \
     "${OUTDIR}" \
-    use-mirror-upload.ops.rhcloud.com:${OC_MIRROR_DIR}
+    use-mirror-upload.ops.rhcloud.com:${OC_MIRROR_DIR}/
 
 retry() {
   local count exit_code

@@ -18,16 +18,10 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     [
-                        name: 'STREAM',
-                        description: 'Build stream to sync client from',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: [
-                            "4-stable",
-                            "4.1.0-0.nightly",
-                            "4.2.0-0.nightly",
-                            "4.3.0-0.nightly",
-                        ].join("\n"),
-                        defaultValue: "4-stable"
+                        name: 'FROM_RELEASE_TAG',
+                        description: 'Release tag to pull tools from (e.g. 4.2.6 or 4.3.0-0.nightly-2019-11-13-233341)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
                     ],
                     [
                         name: 'CLIENT_TYPE',
@@ -60,11 +54,22 @@ node {
 
 
     try {
+        currentBuild.displayName = "#${currentBuild.number} - ${FROM_RELEASE_TAG} - ${CLIENT_TYPE}"
+
+        if (params.CLIENT_TYPE == 'ocp') {
+            if (params.FROM_RELEASE_TAG.contains('nightly')) {
+                error("I'm not sure you want to publish a nightly out as the ocp client type")
+            }
+            pull_spec = "quay.io/openshift-release-dev/ocp-release:${params.FROM_RELEASE_TAG}"
+        } else {
+            pull_spec = "quay.io/openshift-release-dev/ocp-release-nightly:${params.FROM_RELEASE_TAG}"
+        }
+
         sshagent(['aos-cd-test']) {
             stage("sync ocp clients") {
-		// must be able to access remote registry to extract image contents
-		buildlib.registry_quay_dev_login()
-                sh "./publish-clients-from-payload.sh ${env.WORKSPACE} ${STREAM} x86_64 ${CLIENT_TYPE}"
+                // must be able to access remote registry to extract image contents
+                buildlib.registry_quay_dev_login()
+                commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${FROM_RELEASE_TAG} ${CLIENT_TYPE} '${pull_spec}'"
             }
         }
     } catch (err) {

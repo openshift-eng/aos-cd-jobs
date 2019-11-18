@@ -13,17 +13,12 @@ fi
 
 set -x
 
-if [[ -z "$3" ]]; then
-    ARCHES="x86_64"
-else
-    ARCHES="$3"  # e.g. "x86_64 ppc64le s390x"  OR  "all" to detect arches automatically
-fi
-
 # Start enforcing unbound check
 set -u
 
 RELEASE=$1    # e.g. 4.2.0 or 4.3.0-0.nightly-2019-11-08-080321
 CLIENT_TYPE=$2   # e.g. ocp or ocp-dev-preview
+ARCHES="${3:-x86_64}"  # e.g. "x86_64 ppc64le s390x"  OR  "all" to detect arches automatically
 
 BASE_DIR="/srv/pub/openshift-v4"
 MAJOR_MINOR=$(echo ${RELEASE} |awk -F '[.-]' '{print $1 "." $2}')  # e.g. 4.3.0-0.nightly-2019-11-08-080321 -> 4.3
@@ -68,40 +63,32 @@ function create_latest_links {
 }
 
 
-# We are transitioning to multi-arch builds. At the time of this writing, directories like
-# ${BASE_DIR}/${arch}/clients don't exist -- only ${BASE_DIR}/clients does. This script attempts to account
-# for the present and future. if x86_64 doesn't exist yet, we assume clients/ contains the x864_64 payload.
-
-if [[ ! -d "${BASE_DIR}/x86_64" ]]; then
-    echo "Can't find x86_64 arch; assuming single arch mode is still in place"
-    create_latest_links ${BASE_DIR}/clients/${CLIENT_TYPE}
-else
-
-    # Otherwise, multi-arch is enabled. Run the links logic for each architecture passed in.
-    cd "${BASE_DIR}"
-    MODE="${ARCHES}"
-    if [[ "${MODE}" == "all" || "${MODE}" == "any" ]]; then
-        # Find any subdirectory with a clients directory; it should be an arch
-        ARCHES=$(dirname $(ls -d */clients/))
-    fi
-
-    for arch in ${ARCHES}; do
-        target_dir="${BASE_DIR}/${arch}/clients/${CLIENT_TYPE}"
-        # Check that the clients for this arch exists.
-        if [[ ! -d "${target_dir}" ]]; then
-            echo "Unable to find clients directory under: ${target_dir}"
-            continue
-        fi
-
-        if ! create_latest_links "${target_dir}"; then
-            echo "Failure creating links in ${target_dir}"
-            if [[ "${MODE}" != "any" ]]; then
-                echo "This was a required operation; exiting with failure"
-                exit 1
-            fi
-        fi
-    done
-
+# Run the links logic for each architecture passed in.
+cd "${BASE_DIR}"
+MODE="${ARCHES}"
+if [[ "${MODE}" == "all" || "${MODE}" == "any" ]]; then
+    # Find any subdirectory with a clients directory; it should be an arch
+    ARCHES=$(dirname $(ls -d */clients/))
 fi
 
-timeout 15m /usr/local/bin/push.pub.sh openshift-v4 -v || timeout 5m /usr/local/bin/push.pub.sh openshift-v4 -v
+for arch in ${ARCHES}; do
+    target_path="${arch}/clients/${CLIENT_TYPE}"
+    target_dir="${BASE_DIR}/${target_path}"
+    # Check that the clients for this arch exists.
+    if [[ ! -d "${target_dir}" ]]; then
+        echo "Unable to find clients directory under: ${target_dir}"
+        continue
+    fi
+
+    if ! create_latest_links "${target_dir}"; then
+        echo "Failure creating links in ${target_dir}"
+        if [[ "${MODE}" != "any" ]]; then
+            echo "This was a required operation; exiting with failure"
+            exit 1
+        fi
+    fi
+    timeout 15m /usr/local/bin/push.pub.sh "openshift-v4/$target_path" -v || \
+        timeout 5m /usr/local/bin/push.pub.sh "openshift-v4/$target_path" -v
+done
+
+

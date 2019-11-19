@@ -19,15 +19,26 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.ocpVersionParam('BUILD_VERSION'),
+                    [
+                        name: 'ARCH',
+                        description: 'The architecture for this release',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "x86_64",
+                            "s390x",
+                            "ppc64le",
+                        ].join("\n"),
+                    ],
                     [
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Release tag on api.ci (e.g. 4.1.0-0.nightly-2019-04-22-005054)',
+                        description: 'Optional. If not specified, an attempt will be made to detect the latest nightly. e.g. 4.1.0-0.nightly-2019-04-22-005054',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
                     [
-                        name: 'NAME_OVERRIDE',
-                        description: 'Release name (if not specified, uses FROM_RELEASE_TAG)',
+                        name: 'NEW_NAME_OVERRIDE',
+                        description: 'Release name (if not specified, uses detected name or FROM_RELEASE_TAG)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -72,15 +83,36 @@ node {
     try {
         sshagent(['aos-cd-test']) {
 
-            currentBuild.displayName = "#${currentBuild.number} - ${params.FROM_RELEASE_TAG}"
+            def from_release_tag = params.FROM_RELEASE_TAG.trim()
+
+            if ( from_release_tag == "" ) {
+                // If no name was specified, interrogate the stream
+                def releaseStream = "${params.BUILD_VERSION}.0-0.nightly"
+                if ( params.ARCH != 'x86_64' ) {
+                    releaseStream += "-${params.ARCH}"
+                }
+                // Search for the latest version in this X.Y, but less than X.Y+1
+                def queryEndpoint = "https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${releaseStream}/latest"
+                from_release_tag = commonlib.shell(
+                    returnStdout: true,
+                    script: "curl --fail -s -X GET -G ${queryEndpoint} | jq '.name' -r"
+                ).trim()
+                echo "Detected latest release in ${params.BUILD_VERSION}: ${from_release_tag}"
+            }
+
+            currentBuild.displayName = "#${currentBuild.number} - ${from_release_tag}"
             if (params.DRY_RUN) { currentBuild.displayName += " [dry run]"}
             if (!params.MIRROR) { currentBuild.displayName += " [no mirror]"}
 
-            arch = release.getReleaseTagArch(params.FROM_RELEASE_TAG)
+            if (!from_release_tag.startsWith(params.BUILD_VERSION)) {
+                error("The source release tag ${from_release_tag} does not start with the ${params.BUILD_VERSION}")
+            }
 
-            def dest_release_tag = params.FROM_RELEASE_TAG
-            if ( params.NAME_OVERRIDE.trim() != "" ) {
-                dest_release_tag = params.NAME_OVERRIDE
+            arch = release.getReleaseTagArch(from_release_tag)
+
+            def dest_release_tag = from_release_tag
+            if ( params.NEW_NAME_OVERRIDE.trim() != "" ) {
+                dest_release_tag = params.NEW_NAME_OVERRIDE
             }
 
             stage("versions") { release.stageVersions() }
@@ -94,7 +126,7 @@ node {
             }
 
             stage("build payload") {
-                release.stageGenPayload(quay_url, dest_release_tag, params.FROM_RELEASE_TAG, "", "", "")
+                release.stageGenPayload(quay_url, dest_release_tag, from_release_tag, "", "", "")
             }
 
             stage("mirror tools") {

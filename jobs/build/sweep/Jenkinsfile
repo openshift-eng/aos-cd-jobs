@@ -76,7 +76,11 @@ node {
         }
         try {
             currentBuild.description += "* Searching for and attaching new builds...\n"
-            buildlib.elliott "-g openshift-${version} find-builds -k ${kind} --use-default-advisory ${kind}"
+            buildlib.elliott "-g openshift-${version} find-builds -k rpm --use-default-advisory rpm"
+            if (major == '4') {
+                buildlib.elliott "-g openshift-${version} --branch rhaos-${version}-rhel-8 find-builds -k rpm --use-default-advisory rpm"
+            }
+            buildlib.elliott "-g openshift-${version} find-builds -k image --use-default-advisory image"
         } catch (elliottErr) {
             currentBuild.description += "Error sweeping builds:\n${elliottErr}"
             throw elliottErr

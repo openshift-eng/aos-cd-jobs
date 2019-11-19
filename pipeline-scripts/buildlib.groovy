@@ -727,7 +727,7 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
 def sweep(build_version, sweep_builds) {
     def sweep_job = build(
         job: 'build%2Fsweep',
-        prapagate: false,
+        propagate: false,
         parameters: [
             param('String', 'BUILD_VERSION', build_version),
             param('Boolean', 'SWEEP_BUILDS', sweep_builds),
@@ -735,7 +735,7 @@ def sweep(build_version, sweep_builds) {
     )
     if (sweep_job.result != 'SUCCESS') {
         commonlib.email(
-            replyTo: mail_list,
+            replyTo: 'aos-art-team@redhat.com',
             to: 'aos-art-automation+failed-sweep@redhat.com',
             from: 'aos-art-automation@redhat.com',
             subject: "Problem sweeping after ${currentBuild.displayName}",

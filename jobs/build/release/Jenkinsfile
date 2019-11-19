@@ -120,7 +120,15 @@ node {
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }
-
+            stage("sign artifacts") {
+                release.signArtifacts(
+                    name: name,
+                    signature_name: "signature-1",
+                    dry_run: params.DRY_RUN,
+                    env: "prod",
+                    key_name: "redhatrelease2",
+                )
+            }
         }
 
         dry_subject = ""

@@ -99,7 +99,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0) 
     return retval
 }
 
-def stageGenPayload(dest_repo, dest_release_tag, ci_release_tag, description, previous, errata_url) {
+def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, previous, errata_url) {
     // build metadata blob
     def metadata = "{\"description\": \"${description}\""
     if (errata_url) {
@@ -110,7 +110,7 @@ def stageGenPayload(dest_repo, dest_release_tag, ci_release_tag, description, pr
     def arch = getReleaseTagArch(from_release_tag)
 
     echo "Generating release payload"
-    echo "CI release name: ${ci_release_tag}"
+    echo "CI release name: ${from_release_tag}"
     echo "Calculated arch: ${arch}"
 
 
@@ -133,16 +133,16 @@ def stageGenPayload(dest_repo, dest_release_tag, ci_release_tag, description, pr
     )
 }
 
-def stageSetClientLatest(ci_release_tag, arch, client_type) {
+def stageSetClientLatest(from_release_tag, arch, client_type) {
     if (params.DRY_RUN) {
-        echo "Would have tried to set latest for ${ci_release_tag} (client type: ${client_type}, arch: {$arch})"
+        echo "Would have tried to set latest for ${from_release_tag} (client type: ${client_type}, arch: {$arch})"
         return
     }
 
     build(
         job: 'build%2Fset_client_latest',
         parameters: [
-            buildlib.param('String', 'RELEASE', ci_release_tag),
+            buildlib.param('String', 'RELEASE', from_release_tag),
             buildlib.param('String', 'CLIENT_TYPE', client_type),
             buildlib.param('String', 'ARCHES', arch),
         ]
@@ -249,7 +249,7 @@ def stageCrossRef() {
     echo "Empty Stage"
 }
 
-def stagePublishClient(quay_url, ci_release_tag, arch, client_type) {
+def stagePublishClient(quay_url, from_release_tag, arch, client_type) {
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 
@@ -259,10 +259,10 @@ def stagePublishClient(quay_url, ci_release_tag, arch, client_type) {
 
     // From the newly built release, extract the client tools into the workspace following the directory structure
     // we expect to publish to on the use-mirror system.
-    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${ci_release_tag}"
+    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${from_release_tag}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
     def tools_extract_cmd = "GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
-                                " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${ci_release_tag}"
+                                " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
 
     if (!params.DRY_RUN) {
         commonlib.shell(script: tools_extract_cmd)
@@ -288,9 +288,9 @@ def stagePublishClient(quay_url, ci_release_tag, arch, client_type) {
  * Derive an architecture name from a CI release tag.
  * e.g. 4.1-art-latest-s390x-2019-11-08-213727  will return s390x
  */
-def getReleaseTagArch(ci_release_tag) {
+def getReleaseTagArch(from_release_tag) {
     // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
-    def nameComponents = ci_release_tag.split('-')
+    def nameComponents = from_release_tag.split('-')
     def arch = nameComponents[2]
     try {
         arch.toInteger() // this is either year or an arch; arches will throw an exception in attempt

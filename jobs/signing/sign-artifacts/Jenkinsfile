@@ -12,6 +12,16 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     [
+                        name: 'ARCH',
+                        description: 'The architecture for this release',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "x86_64",
+                            "s390x",
+                            "ppc64le",
+                        ].join("\n"),
+                    ],
+                    [
                         name: 'NAME',
                         description: 'Release name (e.g. 4.2.0)',
                         $class: 'hudson.model.StringParameterDefinition',
@@ -267,7 +277,7 @@ node {
                     //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
 
                     sshagent(["openshift-bot"]) {
-                        def mirrorReleasePath = "openshift-v4/clients/ocp/${params.NAME}"
+                        def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/ocp/${params.NAME}"
                         def sigFileName = (params.ENV == 'stage') ? 'sha256sum.txt.sig.test' : 'sha256sum.txt.sig'
                         sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/${sigFileName}"
                         mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)

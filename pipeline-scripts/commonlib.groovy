@@ -356,4 +356,22 @@ def canLock(lockName, timeout_seconds=10) {
     return claimed
 }
 
+/**
+ * Each OCP architecture gets its own release controller. They are hosted
+ * on different routes. This method returns a URL based on the name of the
+ * release stream you want to query.
+ * @param releaseStreamName - e.g. 4-stable or 4-stable-s390x
+ * @return Returns something like "https://openshift-release-s390x.svc.ci.openshift.org"
+ */
+def getReleaseControllerURL(releaseStreamName) {
+    def archSuffix = ''
+    def streamNameComponents = releaseStreamName.split('-') // e.g. ['4', 'stable', 's390x']  or [ '4', 'stable' ]
+    if ('s390x' in streamNameComponents) {
+        archSuffix = "-s390x" // e.g. -s390x
+    } else if ('ppc64le' in streamNameComponents) {
+        archSuffix = "-ppc64le"
+    }
+    return "https://openshift-release${archSuffix}.svc.ci.openshift.org"
+}
+
 return this

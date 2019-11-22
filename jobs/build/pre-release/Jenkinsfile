@@ -91,8 +91,11 @@ node {
                 if ( params.ARCH != 'x86_64' ) {
                     releaseStream += "-${params.ARCH}"
                 }
+                // There are different release controllers for OCP - one for each architecture.
+                RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
+
                 // Search for the latest version in this X.Y, but less than X.Y+1
-                def queryEndpoint = "https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${releaseStream}/latest"
+                def queryEndpoint = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${releaseStream}/latest"
                 from_release_tag = commonlib.shell(
                     returnStdout: true,
                     script: "curl --fail -s -X GET -G ${queryEndpoint} | jq '.name' -r"

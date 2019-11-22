@@ -373,6 +373,7 @@ def signArtifacts(Map signingParams) {
             param("Boolean", "DRY_RUN", signingParams.dry_run),
             param("String", "ENV", signingParams.env),
             param("String", "KEY_NAME", signingParams.key_name),
+            param("String", "ARCH", signingParams.arch),
         ]
     )
 }

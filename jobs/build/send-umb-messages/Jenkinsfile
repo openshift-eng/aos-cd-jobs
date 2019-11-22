@@ -1,6 +1,10 @@
 #!/usr/bin/env groovy
 
 node {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
     properties([
             buildDiscarder(
                 logRotator(
@@ -21,9 +25,11 @@ node {
     stage("send UMB messages for new releases") {
         dir ("/mnt/nfs/home/jenkins/.cache/releases") {
             for (String release : releases) {
+                // There are different release controllers for OCP - one for each architecture.
+                RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
                 latestRelease = sh(
                     returnStdout: true,
-                    script: "curl -s https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/${release}/latest",
+                    script: "curl -s ${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${release}/latest",
                 ).trim()
 		try {
                     previousRelease = readFile("${release}.current")

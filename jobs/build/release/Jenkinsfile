@@ -1,8 +1,6 @@
 #!/usr/bin/env groovy
 import groovy.transform.Field
 
-@Field final RELEASE_STREAM_NAME = "4-stable"
-
 node {
     checkout scm
     def release = load("pipeline-scripts/release.groovy")
@@ -93,6 +91,13 @@ node {
             release_info = ""
             def dest_release_tag = "${params.NAME}"
             arch = release.getReleaseTagArch(params.FROM_RELEASE_TAG)
+            archSuffix = ''
+            if ( arch != 'x86_64' ) {
+                archSuffix = "-${arch}"
+            }
+            RELEASE_STREAM_NAME = "4-stable${archSuffix}"
+
+
             from_release_tag = "${params.FROM_RELEASE_TAG}"
             description = "${params.DESCRIPTION}"
             advisory = params.ADVISORY? Integer.parseInt(params.ADVISORY.toString()) : 0
@@ -141,7 +146,7 @@ node {
             subject: "${dry_subject}Success building release payload: ${params.NAME}",
             body: """
 Jenkins Job: ${env.BUILD_URL}
-Release Page: https://openshift-release.svc.ci.openshift.org/releasestream/4-stable/release/${params.NAME}
+Release Page: https://openshift-release${archSuffix}.svc.ci.openshift.org/releasestream/4-stable${archSuffix}/release/${params.NAME}
 Quay PullSpec: quay.io/openshift-release-dev/ocp-release:${params.NAME}
 
 ${release_info}

@@ -46,10 +46,7 @@ MESSAGE_DIGESTS = {
     'rhcos': 'https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.1/{release_name}/'
 }
 DEFAULT_CA_CHAIN = "/etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt"
-# HTTP endpoint to get metadata about the latest stable 4.x payload
-#
-# NOTE: Only accounts for one minor ('Y' in X.Y, eg: '4.1' => '1')
-PAYLOAD_META = "https://openshift-release.svc.ci.openshift.org/api/v1/releasestream/4-stable/latest"
+
 # This is the JSON we send OVER the bus when requesting signatures
 SIGN_REQUEST_MESSAGE_FIELDS = [
     "artifact",
@@ -136,19 +133,6 @@ def get_digest_base64(location):
         return base64.b64encode(res.text.encode()).decode()
     else:
         raise(Exception(res.reason))
-
-
-def get_payload_meta():
-    """Get the releasestream metadata for the payload.
-
-    :return: A `dict` of the JSON at the release stream endpoint
-"""
-    res = requests.get(PAYLOAD_META,
-                       verify=ssl.get_default_verify_paths().openssl_cafile)
-    if res.status_code == 200:
-        return res.json()
-    else:
-        raise Exception(res.reason)
 
 
 def presend_validation(message):

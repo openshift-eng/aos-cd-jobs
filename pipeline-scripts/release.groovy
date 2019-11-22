@@ -2,8 +2,6 @@ import groovy.json.*
 import java.net.URLEncoder
 import groovy.transform.Field
 
-@Field final RELEASE_CONTROLLER_URL = "https://openshift-release.svc.ci.openshift.org"
-
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 
@@ -166,7 +164,7 @@ def stageTagRelease(quay_url, release_tag) {
 
 // this function is only use for build/release job
 // also returns the latest release info from the given release stream
-// @param releaseStream release stream name. e.g. "4-stable"
+// @param releaseStream release stream name. e.g. "4-stable" or "4-stable-s390x"
 // @param releaseName release name. e.g. "4.2.1"
 // @return latest release info
 def Map stageWaitForStable(String releaseStream, String releaseName) {
@@ -181,6 +179,10 @@ def Map stageWaitForStable(String releaseStream, String releaseName) {
     def queryString = queryParams.collect {
             (URLEncoder.encode(it.key, "utf-8") + "=" +  URLEncoder.encode(it.value, "utf-8"))
         }.join('&')
+
+    // There are different release controllers for OCP - one for each architecture.
+    RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
+
     def apiEndpoint = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${URLEncoder.encode(releaseStream, "utf-8")}/latest"
     def url = "${apiEndpoint}?${queryString}"
 

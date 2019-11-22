@@ -111,10 +111,14 @@ def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, 
     echo "CI release name: ${from_release_tag}"
     echo "Calculated arch: ${arch}"
 
+    def archSuffix = ''
+    if (arch != 'x86_64') {
+        archSuffix = "-${arch}"
+    }
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
-    cmd += "-n ocp --from-release=registry.svc.ci.openshift.org/ocp/release:${from_release_tag} "
+    cmd += "-n ocp${archSuffix} --from-release=registry.svc.ci.openshift.org/ocp${archSuffix}/release${archSuffix}:${from_release_tag} "
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }

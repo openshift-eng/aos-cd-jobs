@@ -133,6 +133,7 @@ node {
                     dry_run: params.DRY_RUN,
                     env: "prod",
                     key_name: "redhatrelease2",
+                    arch: arch,
                 )
             }
         }

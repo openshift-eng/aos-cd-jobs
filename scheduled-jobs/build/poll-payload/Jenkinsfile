@@ -25,8 +25,6 @@ import java.net.URLEncoder
     },
 ]
 
-@Field final RELEASE_CONTROLLER_URL = "https://openshift-release.svc.ci.openshift.org"
-
 /**
  * Determine if the latest release has been changed
  * @param releaseStream release stream name
@@ -43,6 +41,10 @@ def checkLatestRelease(String releaseStream) {
     } catch (FileNotFoundException ex) {
         echo "Cached previous release is not found."
     }
+
+    // There are different release controllers for OCP - one for each architecture.
+    RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
+
     def url = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${encodedName}/latest"
     def response = httpRequest(
         url: url,
@@ -67,6 +69,10 @@ properties([
 ])
 
 node() {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
     description = ""
     failed = false
     jobBranches = [:]

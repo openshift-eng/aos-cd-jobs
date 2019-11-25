@@ -128,6 +128,20 @@ node {
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, dest_release_tag)
             }
+            stage("advisory image list") {
+                filename = "${params.NAME}-image-list.txt"
+                retry (3) {
+                    commonlib.shell(script: "elliott advisory-images -a ${advisory} > ${filename}")
+                }
+                archiveArtifacts(artifacts: filename, fingerprint: true)
+                commonlib.email(
+                    to: "openshift-ccs@redhat.com",
+                    cc: "aos-team-art@redhat.com",
+                    replyTo: "aos-team-art@redhat.com",
+                    subject: "OCP ${params.NAME} Image List",
+                    body: readFile(filename)
+                )
+            }
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
             stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, arch, CLIENT_TYPE) }
             stage("advisory update") { release.stageAdvisoryUpdate() }

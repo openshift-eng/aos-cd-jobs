@@ -78,6 +78,7 @@ node {
         currentBuild.displayName += "- ${params.NAME}"
         if (noop) {
             currentBuild.displayName += " (dry-run)"
+            currentBuild.description += "[DRY RUN]"
         }
 
         wrap([$class: 'BuildUser']) {

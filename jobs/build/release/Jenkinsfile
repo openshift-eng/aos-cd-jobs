@@ -110,6 +110,7 @@ node {
             currentBuild.displayName += "- ${name}"
             if (params.DRY_RUN) {
                 currentBuild.displayName += " (dry-run)"
+                currentBuild.description += "[DRY RUN]"
             }
 
 

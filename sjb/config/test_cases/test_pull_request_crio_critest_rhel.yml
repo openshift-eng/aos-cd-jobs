@@ -17,7 +17,7 @@ extensions:
     script: |-
       cd /go/src/github.com/cri-o/cri-o
       git fetch origin
-      git checkout master
+      git checkout -f master
       git branch -D target || true
       git branch -D pr || true
       git branch target "${PULL_BASE_SHA}"

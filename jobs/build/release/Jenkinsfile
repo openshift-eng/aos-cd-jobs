@@ -107,6 +107,13 @@ node {
             def CLIENT_TYPE = 'ocp'
 
 
+            currentBuild.displayName += "- ${name}"
+            if (params.DRY_RUN) {
+                currentBuild.displayName += " (dry-run)"
+                currentBuild.description += "[DRY RUN]"
+            }
+
+
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }

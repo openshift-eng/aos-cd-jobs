@@ -75,6 +75,12 @@ node {
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
 
+        currentBuild.displayName += "- ${params.NAME}"
+        if (noop) {
+            currentBuild.displayName += " (dry-run)"
+            currentBuild.description += "[DRY RUN]"
+        }
+
         wrap([$class: 'BuildUser']) {
             echo "Submitting signing requests as user: ${env.BUILD_USER_ID}"
 

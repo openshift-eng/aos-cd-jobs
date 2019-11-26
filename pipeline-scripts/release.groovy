@@ -267,7 +267,7 @@ def stagePublishClient(quay_url, from_release_tag, arch, client_type) {
     // we expect to publish to on the use-mirror system.
     def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${from_release_tag}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
-    def tools_extract_cmd = "GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
+    def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
                                 " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
 
     if (!params.DRY_RUN) {

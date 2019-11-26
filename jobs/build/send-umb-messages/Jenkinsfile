@@ -26,7 +26,7 @@ node {
         dir ("/mnt/nfs/home/jenkins/.cache/releases") {
             for (String release : releases) {
                 // There are different release controllers for OCP - one for each architecture.
-                RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
+                RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(release)
                 latestRelease = sh(
                     returnStdout: true,
                     script: "curl -s ${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${release}/latest",

@@ -72,6 +72,18 @@ node {
                         defaultValue: "",
                     ],
                     [
+                        name: 'IMAGE_ADVISORY_ID',
+                        description: 'Advisory Number to attach new images to. \'default\' use number from ocp-build-data, leave it empty if you do not want add',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "",
+                    ],
+                    [
+                        name: 'RPM_ADVISORY_ID',
+                        description: 'Advisory Number to attach new rpms to. \'default\' use number from ocp-build-data, leave it empty if you do not want add',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "",
+                    ],
+                    [
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         $class: 'hudson.model.StringParameterDefinition',
@@ -206,6 +218,30 @@ node {
                         "aos-team-art@redhat.com", // "reply to"
                         currentBuild.number
                     )
+                }
+            }
+
+            stage ('Attach Images') {
+                if (params.IMAGE_ADVISORY_ID != "") {
+                    def attach = params.IMAGE_ADVISORY_ID == "default" ? "--use-default-advisory image" : "--attach ${params.IMAGE_ADVISORY_ID}"
+                    buildlib.elliott """
+                    --data-path ${doozer_data_path}
+                    --group 'openshift-${majorVersion}.${minorVersion}'
+                    find-builds
+                    --kind image
+                    ${attach}
+                    """
+                }
+
+                if (params.RPM_ADVISORY_ID != "") {
+                    def attach = params.RPM_ADVISORY_ID == "default" ? "--use-default-advisory rpm" : "--attach ${params.RPM_ADVISORY_ID}"
+                    buildlib.elliott """
+                    --data-path ${doozer_data_path}
+                    --group 'openshift-${majorVersion}.${minorVersion}'
+                    find-builds
+                    --kind rpm
+                    ${attach}
+                    """
                 }
             }
 

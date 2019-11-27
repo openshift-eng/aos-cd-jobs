@@ -131,7 +131,7 @@ def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, 
     }
 
     commonlib.shell(
-            script: cmd
+        script: cmd
     )
 }
 
@@ -161,7 +161,7 @@ def stageTagRelease(quay_url, release_tag) {
     }
 
     commonlib.shell(
-            script: cmd
+        script: cmd
     )
 }
 
@@ -234,8 +234,8 @@ def stageGetReleaseInfo(quay_url, release_tag){
     }
 
     def res = commonlib.shell(
-            returnAll: true,
-            script: cmd
+        returnAll: true,
+        script: cmd
     )
 
     if (res.returnStatus != 0){

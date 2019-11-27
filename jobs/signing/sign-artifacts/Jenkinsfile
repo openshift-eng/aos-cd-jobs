@@ -76,7 +76,7 @@ node {
         def noop = params.DRY_RUN ? " --noop" : " "
 
         currentBuild.displayName += "- ${params.NAME}"
-        if (noop) {
+        if (params.DRY_RUN) {
             currentBuild.displayName += " (dry-run)"
             currentBuild.description += "[DRY RUN]"
         }

@@ -1275,4 +1275,38 @@ def assertBuildPermitted(doozerOpts) {
     }
 }
 
+/**
+ * Run elliott find-builds and attach to given advisory, if not running a DRY_RUN.
+ * It looks for builds twice (rhel-7 and rhel-8) for OCP 4.y
+ * Side-effect: Advisory states are changed to "NEW FILES" in order to attach builds.
+ *
+ * @param String[] kinds: List of build kinds you want to find (e.g. ["rpm", "image"])
+ */
+def attachBuildsToAdvisory(String[] kinds) {
+    if (params.DRY_RUN) {
+        echo("Skipping attach builds to advisory for dry run")
+        return
+    }
+    def groupOpt = "-g openshift-${params.BUILD_VERSION}"
+    def isOCP4 = params.BUILD_VERSION.startsWith("4.")
+    def rhel8branchOpt = "--branch rhaos-${params.BUILD_VERSION}-rhel-8"
+
+    try {
+        if ("rpm" in kinds) {
+            elliott("${groupOpt} change-stage -s NEW_FILES --use-default-advisory rpm")
+            elliott("${groupOpt} find-builds -k rpm --use-default-advisory rpm")
+            if (isOCP4) {
+                elliott("${groupOpt} find-builds -k rpm --use-default-advisory rpm ${rhel8branchOpt}")
+            }
+        }
+        if ("image" in kinds) {
+            elliott("${groupOpt} change-stage -s NEW_FILES --use-default-advisory image")
+            elliott("${groupOpt} find-builds -k image --use-default-advisory image")
+        }
+    } catch (err) {
+        currentBuild.description += "ERROR: ${err}"
+        error("elliott find-builds failed: ${err}")
+    }
+}
+
 return this

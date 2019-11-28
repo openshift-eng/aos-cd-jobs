@@ -68,7 +68,7 @@ cd "${BASE_DIR}"
 MODE="${ARCHES}"
 if [[ "${MODE}" == "all" || "${MODE}" == "any" ]]; then
     # Find any subdirectory with a clients directory; it should be an arch
-    ARCHES=$(dirname $(ls -d */clients/))
+    ARCHES=$(ls -d */clients/ | awk -F '/' '{print $1}')
 fi
 
 for arch in ${ARCHES}; do
@@ -90,5 +90,3 @@ for arch in ${ARCHES}; do
     timeout 15m /usr/local/bin/push.pub.sh "openshift-v4/$target_path" -v || \
         timeout 5m /usr/local/bin/push.pub.sh "openshift-v4/$target_path" -v
 done
-
-

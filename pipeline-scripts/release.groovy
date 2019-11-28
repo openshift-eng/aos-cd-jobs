@@ -368,12 +368,13 @@ def signArtifacts(Map signingParams) {
         job: "signing%2Fsign-artifacts",
         propagate: false,
         parameters: [
-            param("String", "NAME", signingParams.name),
-            param("String", "SIGNATURE_NAME", signingParams.signature_name),
-            param("Boolean", "DRY_RUN", signingParams.dry_run),
-            param("String", "ENV", signingParams.env),
-            param("String", "KEY_NAME", signingParams.key_name),
-            param("String", "ARCH", signingParams.arch),
+            string(name: 'BUILD_VERSION', value: '4.4')
+            string(name: "NAME", value: signingParams.name),
+            string(name: "SIGNATURE_NAME", value: signingParams.signature_name),
+            booleanParam(name: "DRY_RUN", value: signingParams.dry_run),
+            string(name: "ENV", value: signingParams.env),
+            string(name: "KEY_NAME", value: signingParams.key_name),
+            string(name: "ARCH", value: signingParams.arch),
         ]
     )
 }

@@ -130,9 +130,16 @@ def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, 
         cmd += "--dry-run=true "
     }
 
-    commonlib.shell(
-        script: cmd
+    def output = commonlib.shell(
+        script: cmd,
+        returnStdout: true
     )
+    output.eachLine {
+        if (it =~ /^sha256:/) {
+            payloadDigest = it.split(' ')[0]
+            currentBuild.description += " ${payloadDigest}"
+        }
+    }
 }
 
 def stageSetClientLatest(from_release_tag, arch, client_type) {
@@ -375,6 +382,7 @@ def signArtifacts(Map signingParams) {
             string(name: "ENV", value: signingParams.env),
             string(name: "KEY_NAME", value: signingParams.key_name),
             string(name: "ARCH", value: signingParams.arch),
+            string(name: "DIGEST", value: signingParams.digest),
         ]
     )
 }

@@ -58,6 +58,12 @@ node {
                             "redhatrelease2",
                         ].join("\n"),
                     ],
+                    [
+                        name: 'DIGEST',
+                        description: 'The digest of the release. Example value: "sha256=f28cbabd1227352fe704a00df796a4511880174042dece96233036a10ac61639"\nCan be taken from the Release job.',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
                     commonlib.mockParam(),
                 ]
             ],
@@ -74,6 +80,7 @@ node {
 
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
+        def digest = params.DIGEST ? "--digest ${params.DIGEST}" : ""
 
         currentBuild.displayName += "- ${params.NAME}"
         if (params.DRY_RUN) {
@@ -103,7 +110,7 @@ node {
                     // ######################################################################
                     def openshiftJsonSignParams = buildlib.cleanWhitespace("""
                         ${baseUmbParams} --product openshift
-                        --request-id 'openshift-json-digest-${env.BUILD_ID}' ${noop}
+                        --request-id 'openshift-json-digest-${env.BUILD_ID}' ${digest} ${noop}
                             """)
 
                     echo "Submitting OpenShift Payload JSON claim signature request"
@@ -185,7 +192,7 @@ node {
         // </OLD-COMMENT>
 
         mirrorTarget = "use-mirror-upload.ops.rhcloud.com"
-        if(params.DRY_RUN) {
+        if (params.DRY_RUN) {
             echo "Would have archived artifacts in jenkins"
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
             echo "    invoke_on_use_mirror push.pub.sh MIRROR_PATH"
@@ -308,6 +315,11 @@ node {
     stage('log sync'){
         buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
         dirName = buildArtifactPath.split('/')[-1]
-        sh "/bin/rsync --inplace -avzh ${buildArtifactPath}/[0-9]* /mnt/art-build-artifacts/signing-jobs/${dirName}"
+        def cmd =  "/bin/rsync --inplace -avzh ${buildArtifactPath}/[0-9]* /mnt/art-build-artifacts/signing-jobs/${dirName}"
+        if (params.DRY_RUN) {
+            echo "Would have run: ${cmd}"
+        } else {
+            sh cmd
+        }
     }
 }

@@ -155,6 +155,7 @@ node {
                     env: "prod",
                     key_name: "redhatrelease2",
                     arch: arch,
+                    digest: payloadDigest,
                 )
             }
         }

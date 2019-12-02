@@ -729,8 +729,8 @@ def sweep(build_version, sweep_builds) {
         job: 'build%2Fsweep',
         propagate: false,
         parameters: [
-            param('String', 'BUILD_VERSION', build_version),
-            param('Boolean', 'SWEEP_BUILDS', sweep_builds),
+            string(name: 'BUILD_VERSION', value: build_version),
+            booleanParam(name: 'SWEEP_BUILDS', value: sweep_builds),
         ]
     )
     if (sweep_job.result != 'SUCCESS') {

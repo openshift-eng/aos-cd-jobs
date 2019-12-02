@@ -27,7 +27,11 @@ def signedComposeAttachBuilds() {
         echo("Job configured not to attach builds; continuing using builds already attached")
         return
     }
-    buildlib.attachBuildsToAdvisory(["rpm"])
+    if (!params.DRY_RUN) {
+        echo("Skipping attach builds to advisory for dry run")
+        return
+    }
+    buildlib.attachBuildsToAdvisory(["rpm"], params.BUILD_VERSION)
 }
 
 // Monitor and wait for all of the RPM diffs to run.

@@ -1281,15 +1281,12 @@ def assertBuildPermitted(doozerOpts) {
  * Side-effect: Advisory states are changed to "NEW FILES" in order to attach builds.
  *
  * @param String[] kinds: List of build kinds you want to find (e.g. ["rpm", "image"])
+ * @param String build_version: OCP build version (e.g. 4.2, 4.1, 3.11)
  */
-def attachBuildsToAdvisory(String[] kinds) {
-    if (params.DRY_RUN) {
-        echo("Skipping attach builds to advisory for dry run")
-        return
-    }
-    def groupOpt = "-g openshift-${params.BUILD_VERSION}"
-    def isOCP4 = params.BUILD_VERSION.startsWith("4.")
-    def rhel8branchOpt = "--branch rhaos-${params.BUILD_VERSION}-rhel-8"
+def attachBuildsToAdvisory(String[] kinds, String build_version) {
+    def groupOpt = "-g openshift-${build_version}"
+    def isOCP4 = build_version.startsWith("4.")
+    def rhel8branchOpt = "--branch rhaos-${build_version}-rhel-8"
 
     try {
         if ("rpm" in kinds) {

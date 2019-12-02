@@ -74,7 +74,11 @@ node {
             currentBuild.description += "* Not sweeping builds\n"
             return
         }
-        buildlib.attachBuildsToAdvisory(["rpm", "image"])
+        if (params.DRY_RUN) {
+            echo("Skipping attach builds to advisory for dry run")
+            return
+        }
+        buildlib.attachBuildsToAdvisory(["rpm", "image"], params.BUILD_VERSION)
     }
     currentBuild.description = "Ran without errors\n---------------\n" + currentBuild.description
 }

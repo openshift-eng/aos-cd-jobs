@@ -21,7 +21,7 @@ extensions:
       git branch -D target || true
       git branch -D pr || true
       git branch target "${PULL_BASE_SHA}"
-      git checkout target
+      git checkout -f target
       git fetch origin "pull/${PULL_NUMBER}/head:pr"
       git merge "${PULL_PULL_SHA}"
   - type: "script"

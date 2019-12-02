@@ -15,7 +15,7 @@ extensions:
     script: |-
       cd /go/src/github.com/cri-o/cri-o
       git fetch origin
-      git checkout "${PULL_BASE_SHA}"
+      git checkout -f "${PULL_BASE_SHA}"
   - type: "script"
     title: "run the cri-o e2e tests"
     timeout: "21600"  # 6 hours.  Playbook has shorter timeout for the test-task.

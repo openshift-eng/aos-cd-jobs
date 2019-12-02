@@ -92,8 +92,8 @@ def initialize_openshift_dir() {
 
 def cleanWhitespace(cmd) {
     return (cmd
-        .replaceAll( '\\\n', ' ' ) // If caller included line continuation characters, remove them
-        .replaceAll( '\n', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
+        .replaceAll( ' *\\\n *', ' ' ) // If caller included line continuation characters, remove them
+        .replaceAll( ' *\n *', ' ' ) // Allow newlines in command for readability, but don't let them flow into the sh
         .trim()
     )
 }

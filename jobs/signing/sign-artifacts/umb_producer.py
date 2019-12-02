@@ -96,6 +96,7 @@ ca_certs = click.option("--ca-certs", type=click.Path(exists=True),
                         default=DEFAULT_CA_CHAIN,
                         help="Manually specify the path to the RHIT CA Trust Chain. "
                         "Default: {}".format(DEFAULT_CA_CHAIN))
+digest = click.option("--digest", metavar="DIGEST", help="Pass the digest that should be signed")
 
 # ---------------------------------------------------------------------
 
@@ -296,10 +297,11 @@ tools, as well as RHCOS bare-betal message digests.
 @env
 @noop
 @ca_certs
+@digest
 @click.pass_context
 def json_digest(ctx, requestor, product, request_id, sig_keyname,
                 release_name, client_cert, client_key, env, noop,
-                ca_certs):
+                ca_certs, digest):
     """Sign a 'json digest'. These are JSON blobs that associate a
 pullspec with a sha256 digest. In the ART world, this is for "signing
 payload images". After the json digest is signed we publish the
@@ -325,9 +327,12 @@ thus allowing the signature to be looked up programmatically.
     }
 
     pullspec = "quay.io/openshift-release-dev/ocp-release:{}".format(release_name)
-    image_meta = oc_image_info(pullspec)
-    json_claim['critical']['image']['docker-manifest-digest'] = image_meta['digest']
     json_claim['critical']['identity']['docker-reference'] = pullspec
+
+    if not digest:
+        digest = oc_image_info(pullspec)['digest']
+
+    json_claim['critical']['image']['docker-manifest-digest'] = digest
 
     print("ARTIFACT to send for signing (WILL BE base64 encoded first):")
     print(json.dumps(json_claim, indent=4))
@@ -337,7 +342,7 @@ thus allowing the signature to be looked up programmatically.
         "artifact_meta": {
             "product": product,
             "release_name": release_name,
-            "name": image_meta['digest'].replace(':', '='),
+            "name": json_claim['critical']['image']['docker-manifest-digest'].replace(':', '='),
             "type": "json-digest",
         },
         "request_id": request_id,

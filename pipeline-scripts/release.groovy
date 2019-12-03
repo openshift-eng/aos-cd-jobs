@@ -368,7 +368,6 @@ def signArtifacts(Map signingParams) {
         job: "signing%2Fsign-artifacts",
         propagate: false,
         parameters: [
-            string(name: 'BUILD_VERSION', value: '4.4')
             string(name: "NAME", value: signingParams.name),
             string(name: "SIGNATURE_NAME", value: signingParams.signature_name),
             booleanParam(name: "DRY_RUN", value: signingParams.dry_run),

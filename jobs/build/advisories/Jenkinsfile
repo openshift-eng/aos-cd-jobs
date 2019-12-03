@@ -271,6 +271,46 @@ node {
                     echo "out: ${out}"
                 }
             }
+            stage("Create RHSAs") {
+                cmd = """
+                    -g openshift-${params.VERSION}
+                    find-cve-trackers
+                    --status MODIFIED
+                    | tail -n +3
+                    | awk '{ print \$1 }'
+                """
+                modified_cves = buildlib.elliott(cmd, [capture: true]).split()
+                echo "MODIFIED CVEs: ${modified_cves}"
+
+                currentBuild.description += "\nRHSAs:"
+                modified_cves.each { bz ->
+                    cmd = """
+                        -g openshift-${params.VERSION}
+                        create
+                        -k rpm
+                        --impetus cve
+                        -t RHSA
+                        --date ${params.DATE}
+                        --assigned-to ${params.ASSIGNED_TO}
+                        --manager ${params.MANAGER}
+                        --package-owner ${params.PACKAGE_OWNER}
+                        --bugs ${bz}
+                        ${params.DRY_RUN ? "" : "--yes"}
+                    """
+                    echo "elliott cmd: ${cmd}"
+                    out = buildlib.elliott(cmd, [capture: true])
+                    echo "out: ${out}"
+
+                    rhsa_id = buildlib.extractAdvisoryId(out)
+                    echo "extracted rhsa_id: ${rhsa_id}"
+
+                    currentBuild.description += "- https://errata.devel.redhat.com/advisory/${rhsa_id}\n"
+                }
+
+                if (modified_cves.isEmpty()) {
+                    currentBuild.description += "- None\n"
+                }
+            }
         } catch (err) {
             currentBuild.description += "\n-----------------\n\n${err}"
             currentBuild.result = "FAILURE"

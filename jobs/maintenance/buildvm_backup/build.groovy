@@ -48,6 +48,9 @@ backupPlan = [
         '/mnt/nfs/jenkins_home/update-center-rootCAs',
         '/mnt/nfs/jenkins_home/jobs/*/jobs/*/config.xml',
         '/mnt/nfs/jenkins_home/jobs/*/config.xml',
+
+        // firewall rules
+        '/root/network',
     ],
 ]
 
@@ -96,7 +99,10 @@ def stageRunBackup() {
 
     scpRes = commonlib.shell(
             returnAll: true,
-            script: "scp ${tarballPath} root@${backupPlan.destHost}:${tarballPath}"
+            script: """
+              ssh -l root ${backupPlan.destHost} mkdir -p ${backupPlan.backupPath}
+              scp ${tarballPath} root@${backupPlan.destHost}:${tarballPath}
+            """
     )
 
     if (scpRes.returnStatus != 0) {

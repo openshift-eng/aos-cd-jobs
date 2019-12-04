@@ -491,9 +491,9 @@ cat &lt;&lt;FINISHED &gt;gcs/finished.json
 }
 FINISHED
 cat &#34;/var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log&#34; &gt; gcs/build-log.txt
-cp artifacts/generated/* gcs/artifacts/generated/
-cp artifacts/journals/* gcs/artifacts/journals/
-cp -r artifacts/gathered/* gcs/artifacts/
+cp -r artifacts/generated gcs/artifacts/
+cp -r artifacts/journals gcs/artifacts/
+cp -r artifacts/gathered/ gcs/artifacts/
 
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config -r &#34;$( pwd )/gcs&#34; openshiftdevel:/data
 scp -F ./.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json</command>

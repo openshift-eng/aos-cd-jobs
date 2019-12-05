@@ -4,63 +4,71 @@
 import groovy.transform.Field
 import java.io.FileNotFoundException
 import java.net.URLEncoder
+import groovy.json.JsonOutput
 
-// The list of release stream names to be polled
-@Field final RELEASE_STREAMS = ["4.3.0-0.nightly"]
 
-// A map of release stream names and actions
+@Field commonlib
+
+// A map of release stream names to be polled and and actions to be taken
 @Field final ACTIONS = [
-    "4.3.0-0.nightly": { releaseStream, changed, latestRelease, previousRelease ->
-        if (!changed)
-            return
-        build(
-            job: '/aos-cd-builds/build%2Fpre-release',
-            parameters: [
-                string(name: 'FROM_RELEASE_TAG', value: latestRelease.name),
-                // booleanParam(name: 'DRY_RUN', value: true),
-                booleanParam(name: 'MIRROR', value: true),
-                booleanParam(name: 'SUPPRESS_EMAIL', value: true),
-            ],
-        )
-    },
+    "4.3.0-0.nightly": this.&startPreReleaseJob,
+    "4.3.0-0.nightly-s390x": this.&startPreReleaseJob,
+    "4.3.0-0.nightly-ppc64le": this.&startPreReleaseJob,
+    "4.4.0-0.nightly": this.&startPreReleaseJob,
+    "4.4.0-0.nightly-s390x": this.&startPreReleaseJob,
+    "4.4.0-0.nightly-ppc64le": this.&startPreReleaseJob,
 ]
+
+def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRelease) {
+    def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
+    def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
+    build(
+        job: '/aos-cd-builds/build%2Fpre-release',
+        parameters: [
+            string(name: 'BUILD_VERSION', value: buildVersion),
+            string(name: 'ARCH', value: arch),
+            string(name: 'FROM_RELEASE_TAG', value: latestRelease.name),
+            booleanParam(name: 'MIRROR', value: true),
+            booleanParam(name: 'SUPPRESS_EMAIL', value: true),
+        ],
+    )
+}
+
 
 /**
  * Determine if the latest release has been changed
  * @param releaseStream release stream name
+ * @param releaseCacheFile is a file to cache last checked release
  * @return [changed, latestRelease, previousRelease] If changed, changed is true.
  *     latestRelease is the metadata of the latest release,
 *      and previousRelease is the metadata of the release checked last time.
  */
-def checkLatestRelease(String releaseStream) {
+def checkLatestRelease(String releaseStream, String releaseCacheFile) {
     def encodedName = URLEncoder.encode(releaseStream, "UTF-8")
-    def previousReleaseCache = "${encodedName}.json"
     def previousRelease = null
     try {
-        previousRelease = readJSON(file: previousReleaseCache)
+        previousRelease = readJSON(file: releaseCacheFile)
     } catch (FileNotFoundException ex) {
-        echo "Cached previous release is not found."
+        echo "Cached previous release for $releaseStream is not found."
     }
 
     // There are different release controllers for OCP - one for each architecture.
-    RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
+    def release_controller_url = commonlib.getReleaseControllerURL(releaseStream)
 
-    def url = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${encodedName}/latest"
+    def url = "${release_controller_url}/api/v1/releasestream/${encodedName}/latest"
     def response = httpRequest(
         url: url,
         httpMode: 'GET',
         contentType: 'APPLICATION_JSON',
         timeout: 30,
-        validResponseCodes: "200:299",
     )
     def latestRelease = readJSON(text: response.content)
-
-    changed = false
-    if (!previousRelease || latestRelease.name != previousRelease.name) {
-        changed = true
-        writeFile(file: previousReleaseCache, text: response.content)
-    }
+    def changed = !previousRelease || latestRelease.name != previousRelease.name
     return [changed, latestRelease, previousRelease]
+}
+
+def saveToReleaseCache(Map release, String releaseCacheFile) {
+    writeFile(file: releaseCacheFile, text: JsonOutput.toJson(release))
 }
 
 properties([
@@ -70,31 +78,42 @@ properties([
 
 node() {
     checkout scm
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    def commonlib = buildlib.commonlib
-
+    commonlib = load("pipeline-scripts/commonlib.groovy")
     description = ""
-    failed = false
-    jobBranches = [:]
-    for (releaseStream in RELEASE_STREAMS) {
-        def (changed, latestRelease, previousRelease) = checkLatestRelease(releaseStream)
-        description += "${releaseStream} -> ${latestRelease.name}"
-        if (!changed) {
-            description += " [no change]"
+    def actionArguments = [:]
+    for (releaseStream in ACTIONS.keySet()) {
+        def releaseCacheFile = "${releaseStream}.json"
+        def changed, latestRelease, previousRelease
+        try {
+            (changed, latestRelease, previousRelease) = checkLatestRelease(releaseStream, releaseCacheFile)
+            description += "${releaseStream} -> ${latestRelease.name}"
+            if (!changed) {
+                description += " [no change]\n"
+                continue
+            }
+            actionArguments[releaseStream] = [releaseStream, latestRelease, previousRelease]
+            saveToReleaseCache(latestRelease, "${releaseStream}.json")
+        } catch (Exception ex) {
+            echo "Error checking for latest release on $releaseStream: $ex"
+            description += "${releaseStream} [error]\n"
+            currentBuild.result = "UNSTABLE"
+            continue
         }
         description += "\n"
-        jobBranches[releaseStream] = {
-            stage(releaseStream) {
-                action = ACTIONS[releaseStream]
-                if (!action) {
-                    echo "No action defined for ${releaseStream}."
-                }
-                else {
-                    ACTIONS[releaseStream](releaseStream, changed, latestRelease, previousRelease)
-                }
-            }
-        }
     }
     currentBuild.description = description.trim()
-    parallel jobBranches
+
+    parallel(actionArguments.collectEntries({ releaseStream, args ->
+        [releaseStream, {
+            stage(releaseStream) {
+                try {
+                    echo "Invoking action for $releaseStream"
+                    ACTIONS[releaseStream](args[0], args[1], args[2])
+                } catch (Exception ex) {
+                    echo "Error invoking action for $releaseStream: $ex"
+                    currentBuild.result = "UNSTABLE"
+                }
+            }
+        }]
+    }))
 }

@@ -331,6 +331,17 @@ def extractMajorMinorVersionNumbers(String version) {
     return (version =~ /^(\d+)\.(\d+)/)[0].subList(1,3).collect { it as int }
 }
 
+/**
+    Returns the architecture name extracted from a release name.
+    Only known architecture names are recognized, defaulting to `defaultArch`.
+    e.g.
+        "4.4.0-0.nightly-ppc64le-2019-11-06-041852" => "ppc64le"
+        "4.4.0-0.nightly-s390x-2019-11-06-041852" => "s390x"
+        "4.4.0-0.nightly-2019-11-06-041852" => "x86_64"
+*/
+def extractArchFromReleaseName(String release, String defaultArch='x86_64') {
+    return (release =~ /(x86_64|ppc64le|s390x)?$/)[0][1] ?: defaultArch
+}
 
 /**
  * Attempts, for a specified duration, to claim a Jenkins lock. If claimed, the

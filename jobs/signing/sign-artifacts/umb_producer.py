@@ -42,8 +42,8 @@ TOPIC = 'VirtualTopic.eng.art.artifact.sign'
 # TODO: In the future we need to handle 'rhcos' having '4.1'
 # hard-coded into the URL path.
 MESSAGE_DIGESTS = {
-    'openshift': 'https://mirror.openshift.com/pub/openshift-v4/clients/ocp/{release_name}/sha256sum.txt',
-    'rhcos': 'https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.1/{release_name}/'
+    'openshift': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/clients/ocp/{release_name}/sha256sum.txt',
+    'rhcos': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/dependencies/rhcos/{release_name_xy}/{release_name}/sha256sum.txt'
 }
 DEFAULT_CA_CHAIN = "/etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt"
 
@@ -79,6 +79,9 @@ sig_keyname = click.option("--sig-keyname", required=True,
                            help="Name of the key to have sign our request")
 release_name = click.option("--release-name", required=True, metavar="SEMVER",
                             help="Numerical name of this release, for example: 4.1.0-rc.10")
+arch = click.option("--arch", required=True, metavar="ARCHITECTURE",
+                   type=click.Choice(['x86_64', 'ppc64le', 's390x']),
+                   help="Which architecture this release was built for")
 client_cert = click.option("--client-cert", required=True, metavar="CERT-PATH",
                            type=click.Path(exists=True),
                            help="Path to the client certificate for UMB authentication")
@@ -240,18 +243,31 @@ def get_producer_consumer(env, certificate, private_key, trusted_certificates):
 @env
 @noop
 @ca_certs
+@arch
 @click.pass_context
 def message_digest(ctx, requestor, product, request_id, sig_keyname,
                    release_name, client_cert, client_key, env, noop,
-                   ca_certs):
+                   ca_certs, arch):
     """Sign a 'message digest'. These are sha256sum.txt files produced by
 the 'sha256sum` command (hence the strange command name). In the ART
 world, this is for signing message digests from extracting OpenShift
 tools, as well as RHCOS bare-betal message digests.
-    """
+"""
+    if product == 'openshift':
+        artifact_url = MESSAGE_DIGESTS[product].format(
+            arch=arch,
+            release_name=release_name)
+    elif product == 'rhcos':
+        release_parts = release_name.split('.')
+        artifact_url = MESSAGE_DIGESTS[product].format(
+            arch=arch,
+            release_name_xy='.'.join(release_parts[:2]),
+            release_name=release_name)
+
+    artifact = get_digest_base64(artifact_url)
+
     message = {
-        "artifact": get_digest_base64(MESSAGE_DIGESTS[product].format(
-            release_name=release_name)),
+        "artifact": artifact,
         "artifact_meta": {
             "product": product,
             "release_name": release_name,

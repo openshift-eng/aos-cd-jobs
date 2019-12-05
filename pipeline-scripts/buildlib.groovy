@@ -1276,7 +1276,7 @@ def assertBuildPermitted(doozerOpts) {
 }
 
 /**
- * Run elliott find-builds and attach to given advisory, if not running a DRY_RUN.
+ * Run elliott find-builds and attach to given advisory.
  * It looks for builds twice (rhel-7 and rhel-8) for OCP 4.y
  * Side-effect: Advisory states are changed to "NEW FILES" in order to attach builds.
  *

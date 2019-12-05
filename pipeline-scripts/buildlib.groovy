@@ -724,7 +724,13 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
     }
 }
 
-def sweep(buildVersion, sweepBuilds) {
+/**
+ * Trigger sweep job.
+ *
+ * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
+ * @param Boolean sweepBuilds: Enable/disable build sweeping
+ */
+def sweep(String buildVersion, Boolean sweepBuilds) {
     def sweepJob = build(
         job: 'build%2Fsweep',
         propagate: false,

@@ -724,16 +724,16 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
     }
 }
 
-def sweep(build_version, sweep_builds) {
-    def sweep_job = build(
+def sweep(buildVersion, sweepBuilds) {
+    def sweepJob = build(
         job: 'build%2Fsweep',
         propagate: false,
         parameters: [
-            string(name: 'BUILD_VERSION', value: build_version),
-            booleanParam(name: 'SWEEP_BUILDS', value: sweep_builds),
+            string(name: 'BUILD_VERSION', value: buildVersion),
+            booleanParam(name: 'SWEEP_BUILDS', value: sweepBuilds),
         ]
     )
-    if (sweep_job.result != 'SUCCESS') {
+    if (sweepJob.result != 'SUCCESS') {
         commonlib.email(
             replyTo: 'aos-art-team@redhat.com',
             to: 'aos-art-automation+failed-sweep@redhat.com',
@@ -1281,12 +1281,12 @@ def assertBuildPermitted(doozerOpts) {
  * Side-effect: Advisory states are changed to "NEW FILES" in order to attach builds.
  *
  * @param String[] kinds: List of build kinds you want to find (e.g. ["rpm", "image"])
- * @param String build_version: OCP build version (e.g. 4.2, 4.1, 3.11)
+ * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
  */
-def attachBuildsToAdvisory(String[] kinds, String build_version) {
-    def groupOpt = "-g openshift-${build_version}"
-    def isOCP4 = build_version.startsWith("4.")
-    def rhel8branchOpt = "--branch rhaos-${build_version}-rhel-8"
+def attachBuildsToAdvisory(String[] kinds, String buildVersion) {
+    def groupOpt = "-g openshift-${buildVersion}"
+    def isOCP4 = buildVersion.startsWith("4.")
+    def rhel8branchOpt = "--branch rhaos-${buildVersion}-rhel-8"
 
     try {
         if ("rpm" in kinds) {

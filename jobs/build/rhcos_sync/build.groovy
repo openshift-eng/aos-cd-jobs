@@ -4,20 +4,24 @@ rhcosWorking = "${env.WORKSPACE}/rhcos_working"
 logLevel = ""
 dryRun = ""
 artifacts = []
-baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-%OCPVERSION%%ARCHSUFFIX%/%RHCOSBUILD%%ARCHDIR%"
+baseUrl = ""
 metaUrl = ""
-baseDir = "/srv/pub/openshift-v4/%ARCH%/dependencies/rhcos"
+baseDir = ""
 syncList = "rhcos-synclist-${currentBuild.number}.txt"
 
 def initialize() {
     buildlib.cleanWorkdir(rhcosWorking)
-    // Sub in those vars
-    baseUrl = baseUrl.replace("%OCPVERSION%", params.BUILD_VERSION)
-    baseUrl = baseUrl.replace("%RHCOSBUILD%", params.RHCOS_BUILD)
-    // baseUrl layout changed between 4.2 and 4.3; with 4.3 it began to include an arch subdir.
-    baseUrl = baseUrl.replace("%ARCHDIR%", buildlib.cmp_version(params.BUILD_VERSION, "4.2") == 1 ? "/${params.ARCH}" : "")
-    baseUrl = baseUrl.replace("%ARCHSUFFIX%", (params.ARCH == "x86_64") ? "" : "-${params.ARCH}")
-    baseDir = baseDir.replace("%ARCH%", params.ARCH)
+    // Sub in some vars according to params
+    def ocpVersion = params.BUILD_VERSION
+    def rhcosBuild = params.RHCOS_BUILD
+    def arch = params.ARCH
+    def archSuffix = arch == "x86_64" ? "" : "-${arch}"
+      // we do not plan to release a new 4.1 bootimage ever
+      // 4.2 is grandfathered in without the archDir in the path
+      // 4.3+ include archDir - ref. rhcos release browser
+    def archDir = ocpVersion == "4.2" ? "" : "/${arch}"
+    baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}${archDir}/${rhcosBuild}"
+    baseDir = "/srv/pub/openshift-v4/${arch}/dependencies/rhcos"
     // Actual meta.json
     metaUrl = baseUrl + "/meta.json"
 

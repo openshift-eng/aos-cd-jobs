@@ -97,6 +97,10 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0) 
     return retval
 }
 
+def getArchSuffix(arch) {
+    return arch == "x86_64" ? "" : "-${arch}"
+}
+
 def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, previous, errata_url) {
     // build metadata blob
     def metadata = "{\"description\": \"${description}\""
@@ -111,10 +115,7 @@ def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, 
     echo "CI release name: ${from_release_tag}"
     echo "Calculated arch: ${arch}"
 
-    def archSuffix = ''
-    if (arch != 'x86_64') {
-        archSuffix = "-${arch}"
-    }
+    def archSuffix = getArchSuffix(arch)
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
@@ -159,8 +160,9 @@ def stageSetClientLatest(from_release_tag, arch, client_type) {
 
 }
 
-def stageTagRelease(quay_url, release_tag) {
-    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp/release:${release_tag}"
+def stageTagRelease(quay_url, release_tag, arch) {
+    def archSuffix = getArchSuffix(arch)
+    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp${archSuffix}/release${archSuffix}:${release_tag}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"

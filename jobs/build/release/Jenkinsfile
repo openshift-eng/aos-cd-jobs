@@ -90,10 +90,7 @@ node {
             release_info = ""
             def dest_release_tag = "${params.NAME}"
             arch = release.getReleaseTagArch(params.FROM_RELEASE_TAG)
-            archSuffix = ''
-            if ( arch != 'x86_64' ) {
-                archSuffix = "-${arch}"
-            }
+            archSuffix = release.getArchSuffix(arch)
             RELEASE_STREAM_NAME = "4-stable${archSuffix}"
 
 
@@ -122,7 +119,7 @@ node {
                 errata_url = retval.errataUrl
             }
             stage("build payload") { release.stageGenPayload(quay_url, dest_release_tag, from_release_tag, description, previous, errata_url) }
-            stage("tag stable") { release.stageTagRelease(quay_url, dest_release_tag) }
+            stage("tag stable") { release.stageTagRelease(quay_url, dest_release_tag, arch) }
             stage("wait for stable") { release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, dest_release_tag) }
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, dest_release_tag)

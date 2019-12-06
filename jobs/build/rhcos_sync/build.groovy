@@ -62,7 +62,13 @@ def rhcosSyncPrintArtifacts() {
 
 def rhcosSyncMirrorArtifacts() {
     sh("scp -o StrictHostKeychecking=no ${syncList} use-mirror-upload.ops.rhcloud.com:/tmp/")
-    def invokeOpts = "-- --prefix ${params.RHCOS_MIRROR_PREFIX} --version ${params.NAME} --synclist /tmp/${syncList} --basedir ${baseDir}"
+    def invokeOpts = "--" +
+        " --prefix ${params.RHCOS_MIRROR_PREFIX}" +
+        " --arch ${params.ARCH}" +
+        " --buildid ${params.RHCOS_BUILD}" +
+        " --version ${params.NAME}" +
+        " --synclist /tmp/${syncList}" +
+        " --basedir ${baseDir}"
     if ( params.FORCE ) {
             invokeOpts += " --force"
     }

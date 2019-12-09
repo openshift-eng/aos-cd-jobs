@@ -1,7 +1,14 @@
 ---
-parent: 'common/test_cases/s2i.yml'
+parent: 'common/test_cases/minimal.yml'
 extensions:
   actions:
+    - type: "script"
+      title: "install s2i binary"
+      repository: "jenkins"
+      script: |-
+        wget -q https://github.com/openshift/source-to-image/releases/download/v1.2.0/source-to-image-v1.2.0-2a579ecd-linux-amd64.tar.gz && tar -xzf source-to-image-v1.2.0-2a579ecd-linux-amd64.tar.gz && sudo cp s2i /usr/bin
+        echo "Printing s2i version"
+        s2i version
     - type: "script"
       title: "build the jenkins images"
       repository: "jenkins"

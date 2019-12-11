@@ -62,7 +62,7 @@ node {
                         name: 'SIGNED',
                         description: 'Build images against signed RPMs?',
                         $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
+                        defaultValue: true
                     ],
                     commonlib.suppressEmailParam(),
                     [
@@ -122,7 +122,7 @@ node {
 
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
-    
+
     try {
         sshagent(["openshift-bot"]) {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot

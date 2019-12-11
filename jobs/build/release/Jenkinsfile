@@ -152,6 +152,7 @@ node {
                     key_name: "redhatrelease2",
                     arch: arch,
                     digest: payloadDigest,
+		    client_type: "ocp",
                 )
             }
         }

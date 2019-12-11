@@ -65,10 +65,10 @@ node {
                         defaultValue: true
                     ],
                     [
-                        name: 'SWEEP_BUILDS',
-                        description: 'Sweep and attach builds to advisories',
+                        name: 'SWEEP_BUGS',
+                        description: 'Sweep and attach bugs to advisories',
                         $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: true
+                        defaultValue: false
                     ],
                     commonlib.suppressEmailParam(),
                     [
@@ -252,8 +252,8 @@ node {
             }
 
             stage('sweep') {
-                if (params.SWEEP_BUILDS) {
-                    buildlib.sweep(params.BUILD_VERSION, true)
+                if (params.SWEEP_BUGS) {
+                    buildlib.sweep(params.BUILD_VERSION, false)
                 }
             }
 

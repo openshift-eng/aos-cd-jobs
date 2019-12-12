@@ -115,7 +115,7 @@ node {
 
             def dest_release_tag = from_release_tag
             if ( params.NEW_NAME_OVERRIDE.trim() != "" ) {
-                dest_release_tag = params.NEW_NAME_OVERRIDE
+                dest_release_tag = params.NEW_NAME_OVERRIDE.trim()
             }
 
             stage("versions") { release.stageVersions() }
@@ -129,12 +129,12 @@ node {
             }
 
             stage("build payload") {
-                release.stageGenPayload(quay_url, dest_release_tag, from_release_tag, "", "", "")
+                release.stageGenPayload(quay_url, dest_release_tag, dest_release_tag, from_release_tag, "", "", "")
             }
 
             stage("mirror tools") {
                 if ( params.MIRROR ) {
-                    release.stagePublishClient(quay_url, dest_release_tag, arch, CLIENT_TYPE)
+                    release.stagePublishClient(quay_url, dest_release_tag, dest_release_tag, arch, CLIENT_TYPE)
                 }
             }
 

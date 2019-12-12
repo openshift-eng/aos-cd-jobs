@@ -88,16 +88,17 @@ node {
     try {
         sshagent(['aos-cd-test']) {
             release_info = ""
-            def dest_release_tag = "${params.NAME}"
-            arch = release.getReleaseTagArch(params.FROM_RELEASE_TAG)
+            release_name = params.NAME.trim()
+            from_release_tag = params.FROM_RELEASE_TAG.trim()
+            arch = release.getReleaseTagArch(from_release_tag)
             archSuffix = release.getArchSuffix(arch)
             RELEASE_STREAM_NAME = "4-stable${archSuffix}"
+            dest_release_tag = release.destReleaseTag(release_name, arch)
 
 
-            from_release_tag = "${params.FROM_RELEASE_TAG}"
-            description = "${params.DESCRIPTION}"
-            advisory = params.ADVISORY? Integer.parseInt(params.ADVISORY.toString()) : 0
-            previous = "${params.PREVIOUS}"
+            description = params.DESCRIPTION
+            advisory = params.ADVISORY ? Integer.parseInt(params.ADVISORY.toString()) : 0
+            previous = params.PREVIOUS
             String errata_url
             Map release_obj
             def CLIENT_TYPE = 'ocp'
@@ -118,14 +119,14 @@ node {
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }
-            stage("build payload") { release.stageGenPayload(quay_url, dest_release_tag, from_release_tag, description, previous, errata_url) }
-            stage("tag stable") { release.stageTagRelease(quay_url, dest_release_tag, arch) }
-            stage("wait for stable") { release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, dest_release_tag) }
+            stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previous, errata_url) }
+            stage("tag stable") { release.stageTagRelease(quay_url, release_name, dest_release_tag, arch) }
+            stage("wait for stable") { release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, release_name) }
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, dest_release_tag)
             }
             stage("advisory image list") {
-                filename = "${params.NAME}-image-list.txt"
+                filename = "${dest_release_tag}-image-list.txt"
                 retry (3) {
                     commonlib.shell(script: "elliott advisory-images -a ${advisory} > ${filename}")
                 }
@@ -134,15 +135,15 @@ node {
                     to: "openshift-ccs@redhat.com",
                     cc: "aos-team-art@redhat.com",
                     replyTo: "aos-team-art@redhat.com",
-                    subject: "OCP ${params.NAME} Image List",
+                    subject: "OCP ${release_name} (${arch}) Image List",
                     body: readFile(filename)
                 )
             }
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
-            stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, arch, CLIENT_TYPE) }
+            stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE) }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
-            stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url) }
+            stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch) }
             stage("sign artifacts") {
                 release.signArtifacts(
                     name: name,
@@ -163,11 +164,11 @@ node {
             to: "${params.MAIL_LIST_SUCCESS}",
             replyTo: "aos-team-art@redhat.com",
             from: "aos-art-automation@redhat.com",
-            subject: "${dry_subject}Success building release payload: ${params.NAME}",
+            subject: "${dry_subject}Success building release payload: ${release_name} (${arch})",
             body: """
 Jenkins Job: ${env.BUILD_URL}
-Release Page: https://openshift-release${archSuffix}.svc.ci.openshift.org/releasestream/4-stable${archSuffix}/release/${params.NAME}
-Quay PullSpec: quay.io/openshift-release-dev/ocp-release:${params.NAME}
+Release Page: https://openshift-release${archSuffix}.svc.ci.openshift.org/releasestream/4-stable${archSuffix}/release/${release_name}
+Quay PullSpec: quay.io/openshift-release-dev/ocp-release:${dest_release_tag}
 
 ${release_info}
         """);

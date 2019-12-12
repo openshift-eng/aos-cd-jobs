@@ -39,9 +39,9 @@ def rpmdiffs_resolved(advisory):
     pp(rpmdiffs)
 
     for diff in rpmdiffs:
-        if diff['attributes']['status'] in ['INFO', 'WAIVED', 'NEEDS_INSPECTION']:
+        if diff['attributes']['status'] in ['INFO', 'WAIVED', 'PASSED']:
             completed_diffs.append(diff)
-        if diff['attributes']['status'] in ['FAILED']:
+        if diff['attributes']['status'] in ['NEEDS_INSPECTION', 'FAILED']:
             failed_diffs.append(diff)
         else:
             incomplete_diffs.append(diff)
@@ -50,13 +50,13 @@ def rpmdiffs_resolved(advisory):
         pass
     elif failed_diffs:
         print("One or more RPM Diffs FAILED and require inspection")
-            for diff in failed_diffs:
-                url = "https://rpmdiff.engineering.redhat.com/run/{}/".format(
-                    diff['attributes']['external_id'])
-                print("{status} - {nvr} - {url}\n".format(
-                    status=diff['attributes']['status'],
-                    nvr=diff['relationships']['brew_build']['nvr'],
-                    url=url))
+        for diff in failed_diffs:
+            url = "https://rpmdiff.engineering.redhat.com/run/{}/".format(
+                diff['attributes']['external_id'])
+            print("{status} - {nvr} - {url}\n".format(
+                status=diff['attributes']['status'],
+                nvr=diff['relationships']['brew_build']['nvr'],
+                url=url))
         # This will exit non-0 on its own after other checks
     else:
         print("All RPM diffs have been resolved")

@@ -278,7 +278,7 @@ node {
                         }
                     } else if ( params.PRODUCT == 'rhcos') {
 			sshagent(["openshift-bot"]) {
-			    def name_parts = params.NAME.split('.')
+			    def name_parts = params.NAME.split('\\.')
 			    def nameXY = "${name_parts[0]}.${name_parts[1]}"
                             def mirrorReleasePath = "openshift-v4/${params.ARCH}/dependencies/rhcos/${nameXY}/${params.NAME}"
                             sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.sig"

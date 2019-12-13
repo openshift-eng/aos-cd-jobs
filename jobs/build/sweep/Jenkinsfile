@@ -20,6 +20,11 @@ node {
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     commonlib.mockParam(),
+                    booleanParam(
+                        name: 'SWEEP_BUILDS',
+                        defaultValue: true,
+                        description: 'Sweep and attach builds to advisories',
+                    ),
                 ],
             ],
         ]
@@ -60,9 +65,20 @@ node {
             currentBuild.description += "* Searching for and attaching new bugs in MODIFIED state...\n"
             buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --use-default-advisory ${kind}"
         } catch (elliottErr) {
-            currentBuild.description = "Error sweeping:\n${elliottErr}"
+            currentBuild.description += "Error sweeping bugs:\n${elliottErr}"
             throw elliottErr
         }
+    }
+    stage("Sweep builds") {
+        if (!params.SWEEP_BUILDS) {
+            currentBuild.description += "* Not sweeping builds\n"
+            return
+        }
+        if (params.DRY_RUN) {
+            echo("Skipping attach builds to advisory for dry run")
+            return
+        }
+        buildlib.attachBuildsToAdvisory(["rpm", "image"], params.BUILD_VERSION)
     }
     currentBuild.description = "Ran without errors\n---------------\n" + currentBuild.description
 }

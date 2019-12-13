@@ -64,6 +64,12 @@ node {
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: true
                     ],
+                    [
+                        name: 'SWEEP_BUGS',
+                        description: 'Sweep and attach bugs to advisories',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -242,6 +248,12 @@ node {
                     --kind rpm
                     ${attach}
                     """
+                }
+            }
+
+            stage('sweep') {
+                if (params.SWEEP_BUGS) {
+                    buildlib.sweep(params.BUILD_VERSION, false)
                 }
             }
 

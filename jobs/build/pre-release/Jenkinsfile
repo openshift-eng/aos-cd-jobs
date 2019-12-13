@@ -138,6 +138,20 @@ node {
                 }
             }
 
+            stage("sign") {
+                if ( params.MIRROR ) {
+                    release.signArtifacts(
+			name: dest_release_tag,
+			signature_name: "signature-1",
+			dry_run: params.DRY_RUN,
+			env: "prod",
+			key_name: "beta2",
+			arch: arch,
+			client_type: 'ocp-dev-preview',
+		    )
+                }
+            }
+
             stage("set client latest") {
                 if ( params.MIRROR && params.SET_CLIENT_LATEST ) {
                     release.stageSetClientLatest(dest_release_tag, arch, CLIENT_TYPE)

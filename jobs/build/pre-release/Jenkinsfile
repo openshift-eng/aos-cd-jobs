@@ -141,7 +141,7 @@ node {
             stage("sign") {
                 if ( params.MIRROR ) {
                     release.signArtifacts(
-			name: foo,
+			name: dest_release_tag,
 			signature_name: "signature-1",
 			dry_run: params.DRY_RUN,
 			env: "prod",

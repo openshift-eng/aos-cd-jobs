@@ -66,7 +66,6 @@ node {
 
     try {
         sshagent(["openshift-bot"]) {
-            stage("Advisory is NEW_FILES") { build.signedComposeStateNewFiles() }
             stage("Attach builds") { build.signedComposeAttachBuilds() }
             stage("RPM diffs ran") { build.signedComposeRpmdiffsRan(advisory) }
             stage("RPM diffs resolved") { build.signedComposeRpmdiffsResolved(advisory) }

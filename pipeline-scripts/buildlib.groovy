@@ -724,6 +724,33 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
     }
 }
 
+/**
+ * Trigger sweep job.
+ *
+ * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
+ * @param Boolean sweepBuilds: Enable/disable build sweeping
+ */
+def sweep(String buildVersion, Boolean sweepBuilds) {
+    def sweepJob = build(
+        job: 'build%2Fsweep',
+        propagate: false,
+        parameters: [
+            string(name: 'BUILD_VERSION', value: buildVersion),
+            booleanParam(name: 'SWEEP_BUILDS', value: sweepBuilds),
+        ]
+    )
+    if (sweepJob.result != 'SUCCESS') {
+        commonlib.email(
+            replyTo: 'aos-art-team@redhat.com',
+            to: 'aos-art-automation+failed-sweep@redhat.com',
+            from: 'aos-art-automation@redhat.com',
+            subject: "Problem sweeping after ${currentBuild.displayName}",
+            body: "Jenkins console: ${commonlib.buildURL('console')}",
+        )
+        currentBuild.result = 'UNSTABLE'
+    }
+}
+
 def sync_images(major, minor, mail_list, build_number) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
@@ -1251,6 +1278,37 @@ def assertBuildPermitted(doozerOpts) {
         currentBuild.result = 'UNSTABLE'
         currentBuild.description = 'Builds not permitted'
         error('This build is being terminated because it is not permitted according to current group.yml')
+    }
+}
+
+/**
+ * Run elliott find-builds and attach to given advisory.
+ * It looks for builds twice (rhel-7 and rhel-8) for OCP 4.y
+ * Side-effect: Advisory states are changed to "NEW FILES" in order to attach builds.
+ *
+ * @param String[] kinds: List of build kinds you want to find (e.g. ["rpm", "image"])
+ * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
+ */
+def attachBuildsToAdvisory(kinds, buildVersion) {
+    def groupOpt = "-g openshift-${buildVersion}"
+    def isOCP4 = buildVersion.startsWith("4.")
+    def rhel8branchOpt = "--branch rhaos-${buildVersion}-rhel-8"
+
+    try {
+        if ("rpm" in kinds) {
+            elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory rpm")
+            elliott("${groupOpt} find-builds -k rpm --use-default-advisory rpm")
+            if (isOCP4) {
+                elliott("${groupOpt} ${rhel8branchOpt} find-builds -k rpm --use-default-advisory rpm")
+            }
+        }
+        if ("image" in kinds) {
+            elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory image")
+            elliott("${groupOpt} find-builds -k image --use-default-advisory image")
+        }
+    } catch (err) {
+        currentBuild.description += "ERROR: ${err}"
+        error("elliott find-builds failed: ${err}")
     }
 }
 

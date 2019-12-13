@@ -20,16 +20,6 @@ def initialize(advisory) {
     currentBuild.description += "\nErrata whitelist: ${errataList}"
 }
 
-// Set the advisory to the NEW_FILES state (allows builds to be added)
-def signedComposeStateNewFiles() {
-    if (params.DRY_RUN) {
-        echo("Skipping advisory state change for dry run.")
-        echo("would have run: ${elliottOpts} change-state --state NEW_FILES ${advisoryOpt}")
-        return
-    }
-    buildlib.elliott("${elliottOpts} change-state --state NEW_FILES ${advisoryOpt}")
-}
-
 // Search brew for, and then attach, any viable builds. Do this for
 // EL7 and EL8.
 def signedComposeAttachBuilds() {
@@ -37,24 +27,11 @@ def signedComposeAttachBuilds() {
         echo("Job configured not to attach builds; continuing using builds already attached")
         return
     }
-    // Don't actually attach builds if this is just a dry run
-    def advs = params.DRY_RUN ? '' : advisoryOpt
-    def cmd = "${elliottOpts} find-builds --kind rpm ${advs}"
-    def cmdEl8 = "${elliottOpts} --branch rhaos-${params.BUILD_VERSION}-rhel-8 find-builds --kind rpm ${advs}"
-
-    try {
-        buildlib.elliott(cmd, [capture: true]).trim().split('\n')[-1]
-        if (requiresRhel8()) {
-            buildlib.elliott(cmdEl8, [capture: true]).trim().split('\n')[-1]
-        }
-    } catch (err) {
-        echo("Problem running elliott")
-        currentBuild.description += """
-----------------------------------------
-${err}
-----------------------------------------"""
-        error("Could not process a find-builds command")
+    if (!params.DRY_RUN) {
+        echo("Skipping attach builds to advisory for dry run")
+        return
     }
+    buildlib.attachBuildsToAdvisory(["rpm"], params.BUILD_VERSION)
 }
 
 // Monitor and wait for all of the RPM diffs to run.

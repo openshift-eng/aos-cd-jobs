@@ -34,6 +34,14 @@ node {
                         defaultValue: "signature-1"
                     ],
                     [
+                        name: 'CLIENT_TYPE',
+                        description: 'Which type is it, stable (ocp) or dev (ocp-dev-preview)?',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                            "ocp",
+                            "ocp-dev-preview",
+                        ].join("\n"),
+                    ],                    [
                         name: 'PRODUCT',
                         description: 'Which product to sign',
                         $class: 'hudson.model.ChoiceParameterDefinition',
@@ -268,7 +276,7 @@ node {
                         //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
 
                         sshagent(["openshift-bot"]) {
-                            def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/ocp/${params.NAME}"
+                            def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.NAME}"
                             sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.sig"
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                             if (mirror_result.contains("[FAILURE]")) {

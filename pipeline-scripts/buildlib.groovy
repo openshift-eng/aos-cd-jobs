@@ -1,4 +1,7 @@
 #!/usr/bin/groovy
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.time.ZoneOffset
 
 commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
@@ -1150,7 +1153,7 @@ def latestOpenshiftRpmBuild(stream, branch) {
 }
 
 def defaultReleaseFor(stream) {
-    return stream.startsWith("3") ? "1" : new Date().format("yyyyMMddHHmm")
+    return stream.startsWith("3") ? "1" : DateTimeFormatter.ofPattern("yyyyMMddHHmm").withZone(ZoneOffset.UTC).format(Instant.now())
 }
 
 // From a brew NVR of openshift, return just the V part.

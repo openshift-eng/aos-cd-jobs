@@ -131,14 +131,21 @@ def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, 
         cmd += "--dry-run=true "
     }
 
-    def output = commonlib.shell(
+    def stdout = commonlib.shell(
         script: cmd,
         returnStdout: true
     )
-    output.eachLine {
+
+    payloadDigest = parseOcpRelease(stdout)
+
+    currentBuild.description += " ${payloadDigest}"
+}
+
+@NonCPS
+def parseOcpRelease(text) {
+    text.eachLine {
         if (it =~ /^sha256:/) {
-            payloadDigest = it.split(' ')[0]
-            currentBuild.description += " ${payloadDigest}"
+            return it.split(' ')[0]
         }
     }
 }

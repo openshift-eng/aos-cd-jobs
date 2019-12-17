@@ -147,6 +147,7 @@ node {
 			env: "prod",
 			key_name: "beta2",
 			arch: arch,
+			digest: payloadDigest,
 			client_type: 'ocp-dev-preview',
 		    )
                 }

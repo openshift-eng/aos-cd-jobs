@@ -23,6 +23,7 @@ def stageVersions() {
  * e.g.:
  *   (4.2.0-0.nightly-s390x-2019-12-10-202536, s390x) remains 4.2.0-0.nightly-s390x-2019-12-10-202536
  *   (4.3.0-0.nightly-2019-12-07-121211, x86_64) becomes 4.3.0-0.nightly-2019-12-07-121211-x86_64
+ */
 def destReleaseTag(String releaseName, String arch) {
     return releaseName.contains(arch) ? releaseName : "${releaseName}-${arch}"
 }
@@ -136,7 +137,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }
-    cmd += "--name ${dest_release_tag} "
+    cmd += "--name ${release_name} "
     cmd += "--metadata '${metadata}' "
     cmd += "--to-image=${dest_repo}:${dest_release_tag} "
 

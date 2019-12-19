@@ -244,16 +244,6 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     [
-                        name: 'GITHUB_BASE',
-                        description: 'Github base for repos',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: [
-                            "git@github.com:openshift",
-                            "git@github.com:adammhaile-aos-cd-bot",
-                        ].join("\n"),
-                        defaultValue: 'git@github.com:openshift'
-                    ],
-                    [
                         name: 'SSH_KEY_ID',
                         description: 'SSH credential id to use',
                         $class: 'hudson.model.ChoiceParameterDefinition',
@@ -936,39 +926,6 @@ images:build
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
-
-            // Don't make an github release unless this build it from the actual ose repo
-            if ( params.GITHUB_BASE == "git@github.com:openshift" ) {
-                try {
-                    withCredentials([string(credentialsId: 'github_token_ose', variable: 'GITHUB_TOKEN')]) {
-                        httpRequest(
-                            consoleLogResponseBody: true,
-                            httpMode: 'POST',
-                            ignoreSslErrors: true,
-                            responseHandle: 'NONE',
-                            url: "https://api.github.com/repos/openshift/ose/releases?access_token=${GITHUB_TOKEN}",
-                            requestBody: """{"tag_name": "v${NEW_VERSION}-${NEW_RELEASE}",
-"target_commitish": "${OSE_SOURCE_BRANCH}",
-"name": "v${NEW_VERSION}-${NEW_RELEASE}",
-"draft": true,
-"prerelease": false,
-"body": "Release of OpenShift Container Platform v${NEW_VERSION}-${NEW_RELEASE}\\nPuddle: ${mirror_url}/${OCP_PUDDLE}"
-}"""
-                        )
-                    }
-
-                } catch( release_ex ) {
-                    commonlib.email(
-                        to: "aos-team-art@redhat.com",
-                        from: "aos-cicd@redhat.com",
-                        subject: "Error creating ose release in github",
-                        body: """
-Jenkins job: ${env.BUILD_URL}
-"""
-                    );
-                    currentBuild.description = "Error creating ose release in github:\n${release_ex}"
-                }
-            }
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)
         }
     } catch (err) {

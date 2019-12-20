@@ -386,6 +386,7 @@ def signArtifacts(Map signingParams) {
         parameters: [
             string(name: "NAME", value: signingParams.name),
             string(name: "SIGNATURE_NAME", value: signingParams.signature_name),
+            string(name: "CLIENT_TYPE", value: signingParams.client_type),
             booleanParam(name: "DRY_RUN", value: signingParams.dry_run),
             string(name: "ENV", value: signingParams.env),
             string(name: "KEY_NAME", value: signingParams.key_name),

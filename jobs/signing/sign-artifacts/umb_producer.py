@@ -42,7 +42,7 @@ TOPIC = 'VirtualTopic.eng.art.artifact.sign'
 # TODO: In the future we need to handle 'rhcos' having '4.1'
 # hard-coded into the URL path.
 MESSAGE_DIGESTS = {
-    'openshift': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/clients/ocp/{release_name}/sha256sum.txt',
+    'openshift': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/clients/{release_stage}/{release_name}/sha256sum.txt',
     'rhcos': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/dependencies/rhcos/{release_name_xy}/{release_name}/sha256sum.txt'
 }
 DEFAULT_CA_CHAIN = "/etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt"
@@ -256,7 +256,8 @@ tools, as well as RHCOS bare-betal message digests.
     if product == 'openshift':
         artifact_url = MESSAGE_DIGESTS[product].format(
             arch=arch,
-            release_name=release_name)
+            release_name=release_name,
+            release_stage="ocp-dev-preview" if "nightly" in release_name else "ocp")
     elif product == 'rhcos':
         release_parts = release_name.split('.')
         artifact_url = MESSAGE_DIGESTS[product].format(
@@ -342,7 +343,8 @@ thus allowing the signature to be looked up programmatically.
         },
     }
 
-    pullspec = "quay.io/openshift-release-dev/ocp-release:{}".format(release_name)
+    release_stage = "ocp-release-nightly" if "nightly" in release_name else "ocp-release"
+    pullspec = "quay.io/openshift-release-dev/{}:{}".format(release_stage, release_name)
     json_claim['critical']['identity']['docker-reference'] = pullspec
 
     if not digest:

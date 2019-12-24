@@ -228,6 +228,8 @@ def get_rpm_specfile_path(record_log, package_name) {
 
 node {
     checkout scm
+    GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
+
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 

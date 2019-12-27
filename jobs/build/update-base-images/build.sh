@@ -77,7 +77,7 @@ case "$img" in
             build_common $img jboss/openjdk18-rhel7:latest 185 $@
             ;;
         rhscl.nodejs.6.rhel7)
-            build_common $img rhscl/nodejs-6-rhel7:6-53.1560797448 1001 $@
+            build_common $img rhscl/nodejs-6-rhel7:latest 1001 $@
             ;;
         rhel7)
             build_common $img rhel7:7-released 0 $@

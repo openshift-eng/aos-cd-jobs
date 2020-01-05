@@ -187,37 +187,39 @@ node {
                     """
                 }
             }
-            stage("commit new advisories to ocp-build-data") {
-                cmd = """
-                    rm -rf ocp-build-data ;
-                    git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git ;
-                    cd ocp-build-data ;
-                    sed -e 's/image:.*/image: ${image_advisory_id}/' -e 's/rpm:.*/rpm: ${rpm_advisory_id}/' -i group.yml ;
-                """
-                if (params.VERSION.startsWith("4")) {
-                    cmd += """
-                        sed -e 's/extras:.*/extras: ${extras_advisory_id}/' \
-                            -e 's/metadata:.*/metadata: ${metadata_advisory_id}/' \
-                        -i group.yml ;
+            sshagent(["openshift-bot"]) {
+                stage("commit new advisories to ocp-build-data") {
+                    cmd = """
+                        rm -rf ocp-build-data ;
+                        git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git ;
+                        cd ocp-build-data ;
+                        sed -e 's/image:.*/image: ${image_advisory_id}/' -e 's/rpm:.*/rpm: ${rpm_advisory_id}/' -i group.yml ;
                     """
-                }
-                cmd += """
-                    git diff ;
-                    git add . ;
-                    git commit -m 'Update advisories on group.yml' ;
-                    git push origin openshift-${params.VERSION}
-                """
+                    if (params.VERSION.startsWith("4")) {
+                        cmd += """
+                            sed -e 's/extras:.*/extras: ${extras_advisory_id}/' \
+                                -e 's/metadata:.*/metadata: ${metadata_advisory_id}/' \
+                            -i group.yml ;
+                        """
+                    }
+                    cmd += """
+                        git diff ;
+                        git add . ;
+                        git commit -m 'Update advisories on group.yml' ;
+                        git push origin openshift-${params.VERSION}
+                    """
 
-                echo "shell cmd: ${cmd}"
-                if (params.DRY_RUN) {
-                    out = "DRY RUN mode, command did not run"
-                } else {
-                    out = commonlib.shell(
-                        returnStdout: true,
-                        script: cmd
-                    )
+                    echo "shell cmd: ${cmd}"
+                    if (params.DRY_RUN) {
+                        out = "DRY RUN mode, command did not run"
+                    } else {
+                        out = commonlib.shell(
+                            returnStdout: true,
+                            script: cmd
+                        )
+                    }
+                    echo "out: ${out}"
                 }
-                echo "out: ${out}"
             }
             stage("add placeholder bugs to advisories") {
                 kind = params.VERSION.startsWith("3") ? "image" : "rpm"

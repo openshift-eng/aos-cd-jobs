@@ -68,19 +68,17 @@ node {
     }
 
     try {
-        sshagent(["openshift-bot"]) {
-            // This stage is safe to run concurrently. Each build runs
-            // these steps in its own directory.
-            stage("Generate inputs") { build.buildSyncGenInputs() }
-            // Allow this job to run concurrently for different
-            // versions. That is to say, do not allow builds for the same
-            // version to run the business logic concurrently.
-            lock("mirroring-lock-OCP-${params.BUILD_VERSION}") {
-                stage("oc image mirror") { build.buildSyncMirrorImages() }
-            }
-            lock("oc-applying-lock-OCP-${params.BUILD_VERSION}") {
-                stage("oc apply") { build.buildSyncApplyImageStreams() }
-            }
+        // This stage is safe to run concurrently. Each build runs
+        // these steps in its own directory.
+        stage("Generate inputs") { build.buildSyncGenInputs() }
+        // Allow this job to run concurrently for different
+        // versions. That is to say, do not allow builds for the same
+        // version to run the business logic concurrently.
+        lock("mirroring-lock-OCP-${params.BUILD_VERSION}") {
+            stage("oc image mirror") { build.buildSyncMirrorImages() }
+        }
+        lock("oc-applying-lock-OCP-${params.BUILD_VERSION}") {
+            stage("oc apply") { build.buildSyncApplyImageStreams() }
         }
     } catch (err) {
         commonlib.email(

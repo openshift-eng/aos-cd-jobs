@@ -60,6 +60,18 @@ SIGN_REQUEST_MESSAGE_FIELDS = [
 ART_CONSUMER = 'Consumer.openshift-art-signatory.{env}.VirtualTopic.eng.robosignatory.art.sign'
 
 
+def get_release_tag(release_name, arch):
+    """Determine the quay destination tag where a release image lives, based on the
+    release name and arch (since we can now have multiple arches for each release name)
+    - make sure it includes the arch in the tag to distinguish from any other releases of same name.
+
+    e.g.:
+    (4.2.0-0.nightly-s390x-2019-12-10-202536, s390x) remains 4.2.0-0.nightly-s390x-2019-12-10-202536
+    (4.3.0-0.nightly-2019-12-07-121211, x86_64) becomes 4.3.0-0.nightly-2019-12-07-121211-x86_64
+    """
+    return release_name if arch in release_name else "{}-{}".format(release_name, arch)
+
+
 ######################################################################
 # Click stuff! Define these here and reuse them later because having
 # 'required' options in the global context creates a poor user
@@ -344,7 +356,8 @@ thus allowing the signature to be looked up programmatically.
     }
 
     release_stage = "ocp-release-nightly" if "nightly" in release_name else "ocp-release"
-    pullspec = "quay.io/openshift-release-dev/{}:{}".format(release_stage, release_name)
+    release_tag = get_release_tag(release_name, arch)
+    pullspec = "quay.io/openshift-release-dev/{}:{}".format(release_stage, release_tag)
     json_claim['critical']['identity']['docker-reference'] = pullspec
 
     if not digest:

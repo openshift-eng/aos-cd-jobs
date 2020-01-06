@@ -4,6 +4,7 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    def release = load("pipeline-scripts/release.groovy")
 
     // Expose properties for a parameterized build
     properties(
@@ -18,10 +19,16 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     [
-                        name: 'FROM_RELEASE_TAG',
-                        description: 'Release tag to pull tools from (e.g. 4.2.6 or 4.3.0-0.nightly-2019-11-13-233341)',
+                        name: 'RELEASE_NAME',
+                        description: 'e.g. 4.2.6 or 4.3.0-0.nightly-2019-11-13-233341',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
+                    ],
+                    [
+                        name: 'ARCH',
+                        description: 'architecture being synced',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['x86_64', 's390x', 'ppc64le'].join('\n'),
                     ],
                     [
                         name: 'CLIENT_TYPE',
@@ -31,7 +38,6 @@ node {
                             "ocp",
                             "ocp-dev-preview",
                         ].join("\n"),
-                        defaultValue: "ocp"
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -54,22 +60,25 @@ node {
 
 
     try {
-        currentBuild.displayName = "#${currentBuild.number} - ${FROM_RELEASE_TAG} - ${CLIENT_TYPE}"
+        currentBuild.displayName = "#${currentBuild.number} - ${RELEASE_NAME} - ${CLIENT_TYPE}"
+
+        def arch = params.ARCH
+        def releaseTag = release.destReleaseTag(params.RELEASE_NAME, arch)
 
         if (params.CLIENT_TYPE == 'ocp') {
-            if (params.FROM_RELEASE_TAG.contains('nightly')) {
+            if (params.RELEASE_NAME.contains('nightly')) {
                 error("I'm not sure you want to publish a nightly out as the ocp client type")
             }
-            pull_spec = "quay.io/openshift-release-dev/ocp-release:${params.FROM_RELEASE_TAG}"
+            pull_spec = "quay.io/openshift-release-dev/ocp-release:${releaseTag}"
         } else {
-            pull_spec = "quay.io/openshift-release-dev/ocp-release-nightly:${params.FROM_RELEASE_TAG}"
+            pull_spec = "quay.io/openshift-release-dev/ocp-release-nightly:${releaseTag}"
         }
 
         sshagent(['aos-cd-test']) {
             stage("sync ocp clients") {
                 // must be able to access remote registry to extract image contents
                 buildlib.registry_quay_dev_login()
-                commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${FROM_RELEASE_TAG} ${CLIENT_TYPE} '${pull_spec}'"
+                commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${RELEASE_NAME} ${CLIENT_TYPE} '${pull_spec}'"
             }
         }
     } catch (err) {

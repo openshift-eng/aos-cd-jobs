@@ -15,6 +15,20 @@ def stageVersions() {
 }
 
 /**
+ * Determine the quay destination tag where a release image lives, based on the
+ * the release name and arch (since we can now have multiple arches for each
+ * release name) - make sure it includes the arch in the tag to distinguish
+ * from any other releases of same name.
+ *
+ * e.g.:
+ *   (4.2.0-0.nightly-s390x-2019-12-10-202536, s390x) remains 4.2.0-0.nightly-s390x-2019-12-10-202536
+ *   (4.3.0-0.nightly-2019-12-07-121211, x86_64) becomes 4.3.0-0.nightly-2019-12-07-121211-x86_64
+ */
+def destReleaseTag(String releaseName, String arch) {
+    return releaseName.contains(arch) ? releaseName : "${releaseName}-${arch}"
+}
+
+/**
  * Validate that we have not released the same thing already, and that
  * we have a valid advisory if needed.
  * quay_url: quay repo location for nightly images
@@ -101,7 +115,7 @@ def getArchSuffix(arch) {
     return arch == "x86_64" ? "" : "-${arch}"
 }
 
-def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, previous, errata_url) {
+def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag, description, previous, errata_url) {
     // build metadata blob
     def metadata = "{\"description\": \"${description}\""
     if (errata_url) {
@@ -123,7 +137,7 @@ def stageGenPayload(dest_repo, dest_release_tag, from_release_tag, description, 
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }
-    cmd += "--name ${dest_release_tag} "
+    cmd += "--name ${release_name} "
     cmd += "--metadata '${metadata}' "
     cmd += "--to-image=${dest_repo}:${dest_release_tag} "
 
@@ -167,9 +181,9 @@ def stageSetClientLatest(from_release_tag, arch, client_type) {
 
 }
 
-def stageTagRelease(quay_url, release_tag, arch) {
+def stageTagRelease(quay_url, release_name, release_tag, arch) {
     def archSuffix = getArchSuffix(arch)
-    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp${archSuffix}/release${archSuffix}:${release_tag}"
+    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp${archSuffix}/release${archSuffix}:${release_name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -271,7 +285,7 @@ def stageCrossRef() {
     echo "Empty Stage"
 }
 
-def stagePublishClient(quay_url, from_release_tag, arch, client_type) {
+def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 
@@ -281,7 +295,7 @@ def stagePublishClient(quay_url, from_release_tag, arch, client_type) {
 
     // From the newly built release, extract the client tools into the workspace following the directory structure
     // we expect to publish to on the use-mirror system.
-    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${from_release_tag}"
+    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
     def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
                                 " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
@@ -324,7 +338,7 @@ def getReleaseTagArch(from_release_tag) {
     return arch
 }
 
-def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String releaseStreamName='4-stable', String providerName = 'Red Hat UMB') {
+def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String releaseStreamName='4-stable', String providerName = 'Red Hat UMB', String arch = 'x86_64') {
 
     if (params.DRY_RUN) {
         echo "Would have sent release complete message"
@@ -349,6 +363,7 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
             "name": "ocp-release",
             "version": releaseName,
             "nvr": "ocp-release-${releaseName}",
+            "architecture": arch,
             "release_stream": releaseStreamName,
             "release": release,
             "advisory": [

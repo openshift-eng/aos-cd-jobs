@@ -183,7 +183,7 @@ def stageSetClientLatest(from_release_tag, arch, client_type) {
 
 def stageTagRelease(quay_url, release_name, release_tag, arch) {
     def archSuffix = getArchSuffix(arch)
-    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_name} ocp${archSuffix}/release${archSuffix}:${release_tag}"
+    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp${archSuffix}/release${archSuffix}:${release_name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"

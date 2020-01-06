@@ -362,7 +362,8 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
             "type": "ocp-release",
             "name": "ocp-release",
             "version": releaseName,
-            "nvr": "ocp-release-${destReleaseTag(releaseName, arch)}",
+            "nvr": "ocp-release-${releaseName}",
+            "architecture": arch,
             "release_stream": releaseStreamName,
             "release": release,
             "advisory": [

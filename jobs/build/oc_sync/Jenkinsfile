@@ -25,6 +25,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'ARCH',
+                        description: 'architecture being synced',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['x86_64', 's390x', 'ppc64le'].join('\n'),
+                    ],
+                    [
                         name: 'CLIENT_TYPE',
                         description: 'artifacts path under https://mirror.openshift.com',
                         $class: 'hudson.model.ChoiceParameterDefinition',
@@ -32,7 +38,6 @@ node {
                             "ocp",
                             "ocp-dev-preview",
                         ].join("\n"),
-                        defaultValue: "ocp"
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',
@@ -57,7 +62,7 @@ node {
     try {
         currentBuild.displayName = "#${currentBuild.number} - ${RELEASE_NAME} - ${CLIENT_TYPE}"
 
-        def arch = commonlib.extractArchFromReleaseName(params.RELEASE_NAME)
+        def arch = params.ARCH
         def releaseTag = release.destReleaseTag(params.RELEASE_NAME, arch)
 
         if (params.CLIENT_TYPE == 'ocp') {

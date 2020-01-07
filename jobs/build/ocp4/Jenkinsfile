@@ -116,7 +116,11 @@ node {
                 stage("build images") { build.stageBuildImages() }
                 stage("mirror RPMs") { build.stageMirrorRpms() }
                 stage("sync images") { build.stageSyncImages() }
-                stage("sweep") { buildlib.sweep(params.BUILD_VERSION, true) }
+                stage("sweep") {
+                    if (!params.DRY_RUN) {
+                        buildlib.sweep(params.BUILD_VERSION, true)
+                    }
+                }
             }
         }
         stage("report success") { build.stageReportSuccess() }

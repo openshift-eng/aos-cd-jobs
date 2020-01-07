@@ -117,11 +117,15 @@ def getArchSuffix(arch) {
 
 def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag, description, previous, errata_url) {
     // build metadata blob
-    def metadata = "{\"description\": \"${description}\""
-    if (errata_url) {
-        metadata += ", \"url\": \"${errata_url}\""
+
+    def metadata = ''
+    if (description || errata_url) {
+        metadata = "{\"description\": \"${description}\""
+        if (errata_url) {
+            metadata += ", \"url\": \"${errata_url}\""
+        }
+        metadata += "}"
     }
-    metadata += "}"
 
     def arch = getReleaseTagArch(from_release_tag)
 
@@ -138,7 +142,12 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
         cmd += "--previous \"${previous}\" "
     }
     cmd += "--name ${release_name} "
-    cmd += "--metadata '${metadata}' "
+
+    // Adding metadata will change the payload sha. Ideally, nightlies and
+    // pre-release shas match, so don't add it unnecessarily.
+    if (metadata) {
+        cmd += "--metadata '${metadata}' "
+    }
     cmd += "--to-image=${dest_repo}:${dest_release_tag} "
 
     if (params.DRY_RUN){

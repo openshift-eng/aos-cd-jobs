@@ -21,12 +21,13 @@ def runFor(sync_version, arch="x86_64") {
 node() {
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
-    def versions = ['4.1', '4.2', '4.3', '4.4']
+    commonlib = buildlib.commonlib
+    def versions = commonlib.ocp4Versions
     for ( String version : versions ) {
-	def arches = buildlib.branch_arches("openshift-${version}")
-	for ( String arch : arches ) {
-	    runFor(version, arch)
-	}
+        def arches = buildlib.branch_arches("openshift-${version}")
+        for ( String arch : arches ) {
+            runFor(version, arch)
+        }
     }
 }
 

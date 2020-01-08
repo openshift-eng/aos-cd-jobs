@@ -141,10 +141,15 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }
-    cmd += "--name ${release_name} "
 
-    // Adding metadata will change the payload sha. Ideally, nightlies and
-    // pre-release shas match, so don't add it unnecessarily.
+    // Specifying --name, even if it is identical to the incoming release tag, will cause
+    // the payload sha to change. Ideally, nightlies and pre-release image digests match, so
+    // don't set unnecessarily.
+    if (release_name != from_release_tag) {
+        cmd += "--name ${release_name} "
+    }
+
+    // Adding metadata will also change the payload digest. Don't add unnecessarily.
     if (metadata) {
         cmd += "--metadata '${metadata}' "
     }

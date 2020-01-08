@@ -43,16 +43,24 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
         tagged_builds: dict {nvr: build_info_hash}
         test=False
     """
+    failed = False
     for nvr in sorted(nvrs):
         if not nvr in tagged_builds:
             logging.debug("tag_builds: %s is not tagged.", nvr)
             if not test:
                 logging.info("tag_builds: Tagging build: %s", nvr)
-                koji_proxy.tagBuild(tag, nvr) # non-blocking
+                try:
+                    koji_proxy.tagBuild(tag, nvr) # non-blocking
+                except Exception as e:
+                    logging.warn("%s not allowed: %s", nvr, e)
+                    failed = e
             else:
                 logging.info("tag_builds: Would tag %s into %s", nvr, tag)
         else:
             logging.debug("tag_builds: Build %s is already tagged.", nvr)
+
+    if failed:
+        raise failed
 
 def untag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
     """

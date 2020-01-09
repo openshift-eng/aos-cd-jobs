@@ -51,6 +51,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'PERMIT_PAYLOAD_OVERWRITE',
+                        description: 'Allow the pipeline to overwrite an existing payload in quay. Do not use without team lead approval.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -115,7 +121,7 @@ node {
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("validation") {
-                def retval = release.stageValidation(quay_url, dest_release_tag, advisory)
+                def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE)
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }

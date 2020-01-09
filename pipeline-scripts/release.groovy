@@ -40,7 +40,7 @@ def destReleaseTag(String releaseName, String arch) {
  *      Valid advisories must be in QE state and have a live ID so we can
  *      include in release metadata the URL where it will be published.
  */
-Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0) {
+Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false) {
     def retval = [:]
     def version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
@@ -50,7 +50,14 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0) 
     )
 
     if(res.returnStatus == 0){
-        error("Payload ${dest_release_tag} already exists! Cannot continue.")
+        if ( permitPayloadOverwrite ) {
+            def cd = currentBuild.description
+            currentBuild.description = "${currentBuild.description} - INPUT REQUIRED"
+            input 'A payload with this name already exists. Overwriting it is destructive if this payload has been publicly released. Proceed anyway?'
+            currentBuild.description = cd
+        } else {
+            error("Payload ${dest_release_tag} already exists! Cannot continue.")
+        }
     }
 
     if (advisory < 0) {

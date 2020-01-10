@@ -89,9 +89,9 @@ request_id = click.option("--request-id", required=True, metavar="BUILDURL",
 sig_keyname = click.option("--sig-keyname", required=True,
                            type=click.Choice(['test', 'redhatrelease2', 'beta2']),
                            help="Name of the key to have sign our request")
-release_name = click.option("--release-name", required=True, metavar="SEMVER",
+release_name_opt = click.option("--release-name", required=True, metavar="SEMVER",
                             help="Numerical name of this release, for example: 4.1.0-rc.10")
-arch = click.option("--arch", required=True, metavar="ARCHITECTURE",
+arch_opt = click.option("--arch", required=True, metavar="ARCHITECTURE",
                    type=click.Choice(['x86_64', 'ppc64le', 's390x']),
                    help="Which architecture this release was built for")
 client_cert = click.option("--client-cert", required=True, metavar="CERT-PATH",
@@ -249,13 +249,13 @@ def get_producer_consumer(env, certificate, private_key, trusted_certificates):
 @product
 @request_id
 @sig_keyname
-@release_name
+@release_name_opt
 @client_cert
 @client_key
 @env
 @noop
 @ca_certs
-@arch
+@arch_opt
 @click.pass_context
 def message_digest(ctx, requestor, product, request_id, sig_keyname,
                    release_name, client_cert, client_key, env, noop,
@@ -320,7 +320,7 @@ tools, as well as RHCOS bare-betal message digests.
 @product
 @request_id
 @sig_keyname
-@release_name
+@release_name_opt
 @client_cert
 @client_key
 @env

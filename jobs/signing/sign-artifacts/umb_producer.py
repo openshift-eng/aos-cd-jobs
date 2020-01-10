@@ -327,10 +327,11 @@ tools, as well as RHCOS bare-betal message digests.
 @noop
 @ca_certs
 @digest
+@arch_opt
 @click.pass_context
 def json_digest(ctx, requestor, product, request_id, sig_keyname,
                 release_name, client_cert, client_key, env, noop,
-                ca_certs, digest):
+                ca_certs, digest, arch):
     """Sign a 'json digest'. These are JSON blobs that associate a
 pullspec with a sha256 digest. In the ART world, this is for "signing
 payload images". After the json digest is signed we publish the

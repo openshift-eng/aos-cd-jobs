@@ -128,7 +128,7 @@ node {
                     if ( params.PRODUCT == 'openshift' ) {
                         // ######################################################################
                         def openshiftJsonSignParams = buildlib.cleanWhitespace("""
-                             ${baseUmbParams} --product openshift
+                             ${baseUmbParams} --product openshift --arch ${params.ARCH}
                              --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digest} ${noop}
                          """)
 

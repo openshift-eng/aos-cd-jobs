@@ -1,6 +1,7 @@
 node {
     checkout scm
-    def commonlib = load("pipeline-scripts/commonlib.groovy")
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
 
     // Expose properties for a parameterized build
     properties(
@@ -134,6 +135,11 @@ node {
                         // this lock ensures we are not merging during an active build
                         activityLockName = "github-activity-lock-${version}"
 
+                        if (!buildlib.isBuildPermitted("--group 'openshift-${version}'")) {
+                            echo "Builds are not currently permitted for ${version} -- skipping"
+                            continue
+                        }
+
                         // Check mergeVersions.size because, if the user requested a specific version
                         // they will expect it to happen, even if they need to wait
                         if (mergeVersions.size() == 1 || commonlib.canLock(activityLockName)) {
@@ -141,6 +147,24 @@ node {
                             // There is a vanishingly small race condition here, but it is not dangerous;
                             // it can only lead to undesired delays (i.e. waiting to merge while a build is ongoing).
                             lock(activityLockName) {
+
+                                def scheduleBuild = false
+
+                                if (version.startsWith('4.')) {
+                                // Scan upstream for relevant changes
+                                    def yamlData = readYaml text: buildlib.doozer(
+                                        """
+                                        --group 'openshift-${version}'
+                                        config:scan-sources --yaml
+                                        """, [capture: true]
+                                    )
+                                    def changed = buildlib.getChanges(yamlData)
+                                    if ( changed.rpms || changed.images ) {
+                                        echo "Detected source changes: ${changed}"
+                                        scheduleBuild = true
+                                    }
+
+                                }
 
                                 upstream = "release-${version}"
                                 downstream = "enterprise-${version}"
@@ -152,29 +176,30 @@ node {
                                     diffstat = sh(returnStdout: true, script: "git diff --cached --stat origin/${downstream}").trim()
 
                                     if (diffstat != "") {
-                                        echo "New commits from merge:\n${diffstat}"
+                                        echo "New commits from openshift/origin merge:\n${diffstat}"
                                         sh "git push origin ${downstream}:${downstream}"
-
-                                        if (params.SCHEDULE_INCREMENTAL && version.startsWith('4.')) {
-                                            build(
-                                                job: 'build%2Focp4',
-                                                propagate: false,
-                                                wait: false,
-                                                parameters: [
-                                                    string(name: 'BUILD_VERSION', value: version),
-                                                    booleanParam(name: 'FORCE_BUILD', value: false),
-                                                ]
-                                            )
-                                            currentBuild.description += "triggered build: ${version}\n"
-                                        }
-
+                                        scheduleBuild = true
                                     } else{
-                                        echo "${downstream} was already up to date. Nothing to do."
+                                        echo "${downstream} openshift/ose was already up to date. Nothing to merge."
                                     }
                                 }
 
                                 successful.add(version)
                                 echo "Success running ${version} merge"
+
+                                if (params.SCHEDULE_INCREMENTAL && scheduleBuild) {
+                                    build(
+                                        job: 'build%2Focp4',
+                                        propagate: false,
+                                        wait: false,
+                                        parameters: [
+                                            string(name: 'BUILD_VERSION', value: version),
+                                            booleanParam(name: 'FORCE_BUILD', value: false),
+                                        ]
+                                    )
+                                    currentBuild.description += "triggered build: ${version}\n"
+                                }
+
                             }
 
                         } else {

@@ -1312,4 +1312,23 @@ def attachBuildsToAdvisory(kinds, buildVersion) {
     }
 }
 
+
+/**
+ * Scans data outputted by config:scan-sources yaml and records changed
+ * elements in the object it returns which has a .rpms list and an .images list.
+ * The lists are empty if no change was detected.
+ */
+@NonCPS
+def getChanges(yamlData) {
+    def changed = ["rpms": [], "images": []]
+    changed.each { kind, list ->
+        yamlData[kind].each {
+            if (it["changed"]) {
+                list.add(it["name"])
+            }
+        }
+    }
+    return changed
+}
+
 return this

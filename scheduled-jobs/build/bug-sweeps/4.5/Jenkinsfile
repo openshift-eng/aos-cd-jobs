@@ -1,0 +1,28 @@
+properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '90'
+            )
+        ),
+	disableConcurrentBuilds(),
+    ]
+)
+
+description = ""
+failed = false
+
+b = build job: '../../aos-cd-builds/build%2Fsweep', propagate: false, parameters: [
+    [
+	$class: 'StringParameterValue',
+	name: 'BUILD_VERSION',
+	value: '4.5'
+    ]
+]
+
+currentBuild.result = (b.result == "SUCCESS") ? "SUCCESS" : "FAILURE"
+currentBuild.displayName = "[${b.result}] ${b.displayName}"
+currentBuild.description = b.description

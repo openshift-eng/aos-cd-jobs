@@ -13,17 +13,21 @@ ocp3Versions = [
     "3.1",
 ]
 
-ocp4DefaultVersion = "4.3"
-// Determines which version is currently the master branch:
-// update when development switches streams
+// Which version of ocp4 build parameters should show by default
+ocp4DefaultVersion = "4.4"
+
+// All buildable versions of ocp4
 ocp4Versions = [
+    "4.5",
     "4.4",
     "4.3",
     "4.2",
     "4.1",
 ]
 
+// Which versions should undergo merges from origin->ose
 ocpMergeVersions = [
+    "4.5",
     "4.4",
     "4.3",
     "4.2",

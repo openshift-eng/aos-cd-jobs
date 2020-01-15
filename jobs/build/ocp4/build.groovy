@@ -164,7 +164,7 @@ def planBuilds() {
             config:scan-sources --yaml
             """, [capture: true]
         )
-        changed = getChanges(yamlData)
+        changed = buildlib.getChanges(yamlData)
 
         def report = { msg ->
             echo msg
@@ -241,20 +241,6 @@ def planBuilds() {
         throw err
     }
     return buildPlan
-}
-
-// extract the list of changed items of each kind
-@NonCPS
-def getChanges(yamlData) {
-    def changed = ["rpms": [], "images": []]
-    changed.each { kind, list ->
-        yamlData[kind].each {
-            if (it["changed"]) {
-                list.add(it["name"])
-            }
-        }
-    }
-    return changed
 }
 
 // determine what doozer parameter (if any) to use for includes/excludes

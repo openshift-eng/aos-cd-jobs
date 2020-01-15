@@ -4,7 +4,7 @@ rhcosWorking = "${env.WORKSPACE}/rhcos_working"
 logLevel = ""
 dryRun = ""
 artifacts = []
-baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-%OCPVERSION%/%RHCOSBUILD%/%ARCH%"
+baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-%OCPVERSION%%ARCHSUFFIX%/%RHCOSBUILD%/%ARCH%"
 metaUrl = ""
 baseDir = "/srv/pub/openshift-v4/%ARCH%/dependencies/rhcos"
 syncList = "rhcos-synclist-${currentBuild.number}.txt"
@@ -15,6 +15,7 @@ def initialize() {
     baseUrl = baseUrl.replace("%OCPVERSION%", params.BUILD_VERSION)
     baseUrl = baseUrl.replace("%RHCOSBUILD%", params.RHCOS_BUILD)
     baseUrl = baseUrl.replace("%ARCH%", params.ARCH)
+    baseUrl = baseUrl.replace("%ARCHSUFFIX%", (params.ARCH == "x86_64") ? "" : "-${params.ARCH}")
     baseDir = baseDir.replace("%ARCH%", params.ARCH)
     // Actual meta.json
     metaUrl = baseUrl + "/meta.json"

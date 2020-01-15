@@ -39,6 +39,12 @@ node {
                         defaultValue: "",
                     ],
                     [
+                        name: 'ARCH',
+                        description: 'architecture being synced',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['x86_64', 's390x', 'ppc64le'].join('\n'),
+                    ],
+                    [
                         name: 'NOOP',
                         description: 'Run commands with their dry-run options enabled (test everything)',
                         $class: 'BooleanParameterDefinition',

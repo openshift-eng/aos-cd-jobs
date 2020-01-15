@@ -86,13 +86,13 @@ node {
     build.initialize()
 
     try {
-	if ( params.SYNC_LIST == "" ) {
-	    stage("Get/Generate sync list") { build.rhcosSyncPrintArtifacts() }
-	} else {
-	    stage("Get/Generate sync list") { build.rhcosSyncManualInput() }
-	}
-	stage("Mirror artifacts") { build.rhcosSyncMirrorArtifacts() }
-	stage("Gen AMI docs") { build.rhcosSyncGenDocs() }
+        if ( params.SYNC_LIST == "" ) {
+            stage("Get/Generate sync list") { build.rhcosSyncPrintArtifacts() }
+        } else {
+            stage("Get/Generate sync list") { build.rhcosSyncManualInput() }
+        }
+        stage("Mirror artifacts") { build.rhcosSyncMirrorArtifacts() }
+        // stage("Gen AMI docs") { build.rhcosSyncGenDocs() }
     } catch ( err ) {
         commonlib.email(
             to: "aos-art-automation+failed-rhcos-sync@redhat.com",

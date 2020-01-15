@@ -178,8 +178,8 @@ ${tagResult.combined}
             returnAll: true,
         )
 
-        echo("Sleeping 10 seconds to give brew some time to catch up")
-        sleep 10
+        echo("Sleeping 2 minutes to give brew some time to catch up")
+        sleep 120
 
         if ( tagResult.returnStatus == 0 ) {
             def newPkgs = []

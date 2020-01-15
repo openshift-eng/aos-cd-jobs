@@ -223,11 +223,11 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 cd /go/src/github.com/cri-o/cri-o
 git fetch origin
-git checkout master
+git checkout -f master
 git branch -D target || true
 git branch -D pr || true
 git branch target &#34;\${PULL_BASE_SHA}&#34;
-git checkout target
+git checkout -f target
 git fetch origin &#34;pull/\${PULL_NUMBER}/head:pr&#34;
 git merge &#34;\${PULL_PULL_SHA}&#34;
 SCRIPT

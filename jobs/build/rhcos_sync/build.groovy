@@ -4,7 +4,7 @@ rhcosWorking = "${env.WORKSPACE}/rhcos_working"
 logLevel = ""
 dryRun = ""
 artifacts = []
-baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-%OCPVERSION%%ARCHSUFFIX%/%RHCOSBUILD%/%ARCH%"
+baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-%OCPVERSION%%ARCHSUFFIX%/%RHCOSBUILD%%ARCHDIR%"
 metaUrl = ""
 baseDir = "/srv/pub/openshift-v4/%ARCH%/dependencies/rhcos"
 syncList = "rhcos-synclist-${currentBuild.number}.txt"
@@ -15,7 +15,7 @@ def initialize() {
     baseUrl = baseUrl.replace("%OCPVERSION%", params.BUILD_VERSION)
     baseUrl = baseUrl.replace("%RHCOSBUILD%", params.RHCOS_BUILD)
     // baseUrl layout changed between 4.2 and 4.3; with 4.3 it began to include an arch subdir.
-    baseUrl = baseUrl.replace("%ARCH%", buildlib.cmp_version(params.BUILD_VERSION, "4.2") == 1 ? params.ARCH : "")
+    baseUrl = baseUrl.replace("%ARCHDIR%", buildlib.cmp_version(params.BUILD_VERSION, "4.2") == 1 ? "/${params.ARCH}" : "")
     baseUrl = baseUrl.replace("%ARCHSUFFIX%", (params.ARCH == "x86_64") ? "" : "-${params.ARCH}")
     baseDir = baseDir.replace("%ARCH%", params.ARCH)
     // Actual meta.json

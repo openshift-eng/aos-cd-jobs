@@ -1291,16 +1291,11 @@ def assertBuildPermitted(doozerOpts) {
  */
 def attachBuildsToAdvisory(kinds, buildVersion) {
     def groupOpt = "-g openshift-${buildVersion}"
-    def isOCP4 = buildVersion.startsWith("4.")
-    def rhel8branchOpt = "--branch rhaos-${buildVersion}-rhel-8"
 
     try {
         if ("rpm" in kinds) {
             elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory rpm")
             elliott("${groupOpt} find-builds -k rpm --use-default-advisory rpm")
-            if (isOCP4) {
-                elliott("${groupOpt} ${rhel8branchOpt} find-builds -k rpm --use-default-advisory rpm")
-            }
         }
         if ("image" in kinds) {
             elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory image")

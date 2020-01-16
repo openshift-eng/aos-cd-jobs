@@ -14,7 +14,8 @@ def initialize() {
     // Sub in those vars
     baseUrl = baseUrl.replace("%OCPVERSION%", params.BUILD_VERSION)
     baseUrl = baseUrl.replace("%RHCOSBUILD%", params.RHCOS_BUILD)
-    baseUrl = baseUrl.replace("%ARCH%", params.ARCH)
+    // baseUrl layout changed between 4.2 and 4.3; with 4.3 it began to include an arch subdir.
+    baseUrl = baseUrl.replace("%ARCH%", buildlib.cmp_version(params.BUILD_VERSION, "4.2") == 1 ? params.ARCH : "")
     baseUrl = baseUrl.replace("%ARCHSUFFIX%", (params.ARCH == "x86_64") ? "" : "-${params.ARCH}")
     baseDir = baseDir.replace("%ARCH%", params.ARCH)
     // Actual meta.json

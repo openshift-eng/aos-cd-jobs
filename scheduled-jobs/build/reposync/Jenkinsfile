@@ -22,7 +22,7 @@ node() {
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
-    def versions = commonlib.ocp4Versions
+    def versions = commonlib.ocp4Versions.sort(false)
     for ( String version : versions ) {
         def arches = buildlib.branch_arches("openshift-${version}")
         for ( String arch : arches ) {

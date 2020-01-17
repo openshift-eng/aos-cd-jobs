@@ -90,7 +90,7 @@ node {
                             script: "find ${syncDir} -name '*.${ARCH}.rpm' | wc -l"
                     )
 
-                    if(sanityCheckRes.stdout.trim().toInteger() < 7000){
+                    if(sanityCheckRes.stdout.trim().toInteger() < 50){
                         error("Did not find a sufficient number of arch specific RPMs; human checks required!")
                     }
 

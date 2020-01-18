@@ -52,7 +52,7 @@ node {
                     ],
                     [
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
-                        description: 'Allow the pipeline to overwrite an existing payload in quay. Do not use without team lead approval.',
+                        description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false
                     ],

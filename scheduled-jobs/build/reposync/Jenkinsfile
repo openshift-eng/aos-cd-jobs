@@ -18,12 +18,16 @@ def runFor(sync_version, arch="x86_64") {
     failed |= (b.result != "SUCCESS")
 }
 
+@NonCPS
+def sortedVersions() {
+  return commonlib.ocp4Versions.sort(false)
+}
+
 node() {
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
-    def versions = commonlib.ocp4Versions.sort(false)
-    for ( String version : versions ) {
+    for ( String version : sortedVersions() ) {
         def arches = buildlib.branch_arches("openshift-${version}")
         for ( String arch : arches ) {
             runFor(version, arch)

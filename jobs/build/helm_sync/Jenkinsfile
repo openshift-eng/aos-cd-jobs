@@ -27,6 +27,7 @@ pipeline {
         }
         stage("Download RPM") {
             steps {
+                sh "rm --force helm-redistributable.rpm"
                 sh "wget --no-verbose ${params.RPM_URL} --output-document=helm-redistributable.rpm"
             }
         }

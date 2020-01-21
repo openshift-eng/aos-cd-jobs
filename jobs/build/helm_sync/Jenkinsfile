@@ -27,15 +27,15 @@ pipeline {
         }
         stage("Download RPM") {
             steps {
-                sh "wget -nv ${params.RPM_URL} -O helm-redistributable.rpm"
+                sh "wget --no-verbose ${params.RPM_URL} --output-document=helm-redistributable.rpm"
             }
         }
         stage("Extract RPM contents") {
             steps {
-                sh "rpm2cpio helm-redistributable.rpm | cpio -id"
-                sh "rm -rf ${params.VERSION} && mkdir ${params.VERSION}"
-                sh "mv -v ./usr/share/helm-redistributable/* ${params.VERSION}/"
-                sh "mv -v ${params.VERSION}/*/* ${params.VERSION}/ && /bin/ls -d ${params.VERSION}/*/ | xargs rmdir"
+                sh "rpm2cpio helm-redistributable.rpm | cpio --extract --make-directories"
+                sh "rm --recursive --force ${params.VERSION} && mkdir ${params.VERSION}"
+                sh "mv --verbose ./usr/share/helm-redistributable/* ${params.VERSION}/"
+                sh "mv --verbose ${params.VERSION}/*/* ${params.VERSION}/ && /bin/ls --directory ${params.VERSION}/*/ | xargs rmdir"
                 sh "tree ${params.VERSION}"
             }
         }
@@ -43,7 +43,7 @@ pipeline {
             steps {
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/helm/"
-                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com ln -sf ${params.VERSION} /srv/pub/openshift-v4/clients/helm/latest"
+                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com ln --symbolic --force ${params.VERSION} /srv/pub/openshift-v4/clients/helm/latest"
                     sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.pub.sh openshift-v4/clients/helm -v"
                 }
             }

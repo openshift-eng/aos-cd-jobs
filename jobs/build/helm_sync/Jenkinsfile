@@ -27,15 +27,15 @@ pipeline {
         }
         stage("Download RPM") {
             steps {
-                sh "wget ${params.RPM_URL} -O helm-redistributable.rpm"
+                sh "wget -nv ${params.RPM_URL} -O helm-redistributable.rpm"
             }
         }
         stage("Extract RPM contents") {
             steps {
                 sh "rpm2cpio helm-redistributable.rpm | cpio -id"
                 sh "rm -rf ${VERSION} && mkdir ${VERSION}"
-                sh "mv ./usr/share/helm-redistributable/* ${VERSION}/"
-                sh "mv ${VERSION}/*/* ${VERSION}/ && /bin/ls -d ${VERSION}/*/ | xargs rmdir"
+                sh "mv -v ./usr/share/helm-redistributable/* ${VERSION}/"
+                sh "mv -v ${VERSION}/*/* ${VERSION}/ && /bin/ls -d ${VERSION}/*/ | xargs rmdir"
                 sh "tree ${VERSION}"
             }
         }

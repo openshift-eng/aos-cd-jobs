@@ -14,6 +14,6 @@ def b = build(
     ],
 )
 
-currentBuild.result = (b.result == "SUCCESS") ? "SUCCESS" : "FAILURE"
+currentBuild.result = b.result
 currentBuild.displayName = "[${b.result}] ${b.displayName}"
 currentBuild.description = b.description

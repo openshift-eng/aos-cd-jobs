@@ -7,6 +7,6 @@ properties([
 currentBuild.displayName += " 4.5 incremental build"
 def b = build job: '../aos-cd-builds/build%2Fose4.5', propagate: false
 
-currentBuild.result = (b.result == "SUCCESS") ? "SUCCESS" : "FAILURE"
+currentBuild.result = b.result
 currentBuild.displayName = "[${b.result}] ${b.displayName}"
 currentBuild.description = b.description

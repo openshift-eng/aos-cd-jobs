@@ -1,55 +1,43 @@
 #!/usr/bin/env groovy
 
-node {
-    checkout scm
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    def commonlib = buildlib.commonlib
+pipeline {
+    agent any
 
-    // Expose properties for a parameterized build
-    properties(
-        [
-            buildDiscarder(
-                logRotator(
-                    artifactDaysToKeepStr: '',
-                    artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '')),
-            [
-                $class: 'ParametersDefinitionProperty',
-                parameterDefinitions: [
-                    [
-                        name: 'MAIL_LIST_FAILURE',
-                        description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: [
-                            'aos-art-automation+failed-odo-sync@redhat.com',
-                            'moahmed@redhat.com'
-                        ].join(',')
-                    ],
-                    commonlib.mockParam(),
-                ]
-            ],
-            disableConcurrentBuilds()
-        ]
-    )
+    parameters {
+        string(
+            name: "RPM_URL",
+            description: "Redistributable RPM URL. Example: http://brew-task-repos.usersys.redhat.com/repos/official/openshift-odo/1.0.3/1.el7/x86_64/openshift-odo-redistributable-1.0.3-1.el7.x86_64.rpm",
+            defaultValue: ""
+        )
+        string(
+            name: "VERSION",
+            description: "Desired version name. Example: v1.0.3",
+            defaultValue: ""
+        )
+    }
 
-    try {
-        sshagent(['aos-cd-test']) {
-            stage("sync odo") {
-                withCredentials([string(credentialsId: 'GITHUB_TOKEN', variable: 'accessToken')]) {
-                    buildlib.invoke_on_rcm_guest("publish-odo-binary.sh ${accessToken}")
+    stages {
+        stage("Download RPM") {
+            steps {
+                sh "wget ${params.RPM_URL} -O odo.rpm"
+            }
+        }
+        stage("Extract RPM contents") {
+            steps {
+                sh "rpm2cpio odo.rpm | cpio -id"
+                sh "rm -rf ${VERSION} && mkdir ${VERSION}"
+                sh "mv ./usr/share/openshift-odo-redistributable/* ${VERSION}/"
+                sh "tree ${VERSION}"
+            }
+        }
+        stage("Sync to mirror") {
+            steps {
+                sshagent(['aos-cd-test']) {
+                    sh "scp -r ${VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"
+                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com ln -sf ${VERSION} /srv/pub/openshift-v4/clients/odo/latest"
+                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.pub.sh openshift-v4/clients/odo -v"
                 }
             }
         }
-    } catch (err) {
-        commonlib.email(
-            to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-art-automation@redhat.com",
-            replyTo: "aos-team-art@redhat.com",
-            subject: "Error syncing odo client",
-            body: "Encountered an error while syncing odo client: ${err}");
-        currentBuild.description = "Error while syncing odo client:\n${err}"
-        currentBuild.result = "FAILURE"
-        throw err
     }
 }

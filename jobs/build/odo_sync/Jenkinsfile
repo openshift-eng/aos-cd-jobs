@@ -27,6 +27,7 @@ pipeline {
         }
         stage("Download RPM") {
             steps {
+                sh "rm --force odo.rpm"
                 sh "wget --no-verbose ${params.RPM_URL} --output-document=odo.rpm"
             }
         }

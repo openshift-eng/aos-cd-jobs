@@ -44,7 +44,7 @@ pipeline {
             steps {
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/helm/"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com ln --symbolic --force ${params.VERSION} /srv/pub/openshift-v4/clients/helm/latest"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/helm/latest"
                     sh "ssh use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.pub.sh openshift-v4/clients/helm -v"
                 }
             }

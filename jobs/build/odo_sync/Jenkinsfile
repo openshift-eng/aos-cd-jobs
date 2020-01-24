@@ -34,16 +34,16 @@ pipeline {
         stage("Extract RPM contents") {
             steps {
                 sh "rpm2cpio odo.rpm | cpio --extract --make-directories"
-                sh "rm --recursive --force ${VERSION} && mkdir ${VERSION}"
-                sh "mv --verbose ./usr/share/openshift-odo-redistributable/* ${VERSION}/"
-                sh "tree ${VERSION}"
+                sh "rm --recursive --force ${params.VERSION} && mkdir ${params.VERSION}"
+                sh "mv --verbose ./usr/share/openshift-odo-redistributable/* ${params.VERSION}/"
+                sh "tree ${params.VERSION}"
             }
         }
         stage("Sync to mirror") {
             steps {
                 sshagent(['aos-cd-test']) {
-                    sh "scp -r ${VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"
-                    sh "ssh ln --symbolic --force --no-dereference ${VERSION} /srv/pub/openshift-v4/clients/odo/latest"
+                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"
+                    sh "ssh ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/odo/latest"
                     sh "ssh /usr/local/bin/push.pub.sh openshift-v4/clients/odo -v"
                 }
             }

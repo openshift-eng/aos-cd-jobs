@@ -9,7 +9,7 @@ def b = build(
     job: '../aos-cd-builds/build%2Fose4.3',
     propagate: false,
     parameters: [
-        // we might consider: string(name: 'NEW_VERSION', value: '+'),
+        string(name: 'NEW_VERSION', value: '+'),
         booleanParam(name: 'FORCE_BUILD', value: true),
     ],
 )

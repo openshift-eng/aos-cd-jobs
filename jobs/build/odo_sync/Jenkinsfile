@@ -34,7 +34,7 @@ pipeline {
             steps {
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"
-                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com ln -sf ${VERSION} /srv/pub/openshift-v4/clients/odo/latest"
+                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com ln -sfn ${VERSION} /srv/pub/openshift-v4/clients/odo/latest"
                     sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.pub.sh openshift-v4/clients/odo -v"
                 }
             }

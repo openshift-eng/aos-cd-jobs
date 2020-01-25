@@ -3,7 +3,7 @@
 import java.text.SimpleDateFormat
 
 node {
-    wrap([$class: 'BuildUser']) {
+    wrap([$class: "BuildUser"]) {
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
@@ -16,71 +16,63 @@ node {
             [
                 buildDiscarder(
                     logRotator(
-                        artifactDaysToKeepStr: '',
-                        artifactNumToKeepStr: '',
-                        daysToKeepStr: '',
-                        numToKeepStr: '')),
+                        artifactDaysToKeepStr: "",
+                        artifactNumToKeepStr: "",
+                        daysToKeepStr: "",
+                        numToKeepStr: "")),
                 [
-                    $class: 'ParametersDefinitionProperty',
+                    $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
-                        commonlib.ocpVersionParam('VERSION'),
-                        [
-                            name: 'ASSIGNED_TO',
-                            description: 'Advisories are assigned to QE',
-                            $class: 'hudson.model.StringParameterDefinition',
+                        commonlib.ocpVersionParam("VERSION"),
+                        string(
+                            name: "ASSIGNED_TO",
+                            description: "Advisories are assigned to QE",
                             defaultValue: "openshift-qe-errata@redhat.com"
-                        ],
-                        [
-                            name: 'MANAGER',
-                            description: 'ART team manager (not release manager)',
-                            $class: 'hudson.model.StringParameterDefinition',
+                        ),
+                        string(
+                            name: "MANAGER",
+                            description: "ART team manager (not release manager)",
                             defaultValue: "vlaad@redhat.com"
-                        ],
-                        [
-                            name: 'PACKAGE_OWNER',
+                        ),
+                        string(
+                            name: "PACKAGE_OWNER",
                             description: "Must be an individual email address; may be anyone who wants random advisory spam",
-                            $class: 'hudson.model.StringParameterDefinition',
                             defaultValue: "lmeyer@redhat.com"
-                        ],
-                        [
-                            name: 'IMPETUS',
-                            description: 'For which reason are the advisories being created',
-                            $class: 'hudson.model.ChoiceParameterDefinition',
+                        ),
+                        choice(
+                            name: "IMPETUS",
+                            description: "For which reason are the advisories being created",
                             choices: [
                                 "standard",
                                 "cve",
                                 "ga",
                                 "test",
                             ].join("\n"),
-                        ],
-                        [
-                            name: 'DATE',
-                            description: 'Intended release date. Format: YYYY-Mon-dd (i.e.: 2050-Jan-01)',
-                            $class: 'hudson.model.StringParameterDefinition',
+                        ),
+                        string(
+                            name: "DATE",
+                            description: "Intended release date. Format: YYYY-Mon-dd (i.e.: 2050-Jan-01)",
                             defaultValue: "${dateFormat.format(date)}"
-                        ],
-                        [
-                            name: 'DRY_RUN',
-                            description: 'Take no action, just echo what the job would have done.',
-                            $class: 'hudson.model.BooleanParameterDefinition',
-                            defaultValue: true
-                        ],
-                        commonlib.mockParam(),
+                        ),
+                        booleanParam(
+                            name: "DRY_RUN",
+                            description: "Take no action, just echo what the job would have done.",
+                            defaultValue: false
+                        ),
                         commonlib.suppressEmailParam(),
-                        [
-                            name: 'MAIL_LIST_FAILURE',
-                            description: 'Failure Mailing List',
-                            $class: 'hudson.model.StringParameterDefinition',
+                        string(
+                            name: "MAIL_LIST_FAILURE",
+                            description: "Failure Mailing List",
                             defaultValue: [
-                                'aos-art-automation+failed-ocp4-build@redhat.com'
-                            ].join(',')
-                        ],
-                        [
-                            name: 'SPECIAL_NOTES',
-                            description: '(Optional) special notes to include in the email',
-                            $class: 'hudson.model.TextParameterDefinition',
+                                "aos-art-automation+failed-ocp4-build@redhat.com"
+                            ].join(",")
+                        ),
+                        text(
+                            name: "SPECIAL_NOTES",
+                            description: "(Optional) special notes to include in the email",
                             defaultValue: ""
-                        ],
+                        ),
+                        commonlib.mockParam(),
                     ]
                 ],
             ]

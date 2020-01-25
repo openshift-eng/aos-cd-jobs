@@ -24,6 +24,11 @@ node {
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
                         commonlib.ocpVersionParam("VERSION"),
+                        booleanParam(
+                            name: "ENABLE_AUTOMATION",
+                            description: "Unfreeze automation to enable building and sweeping into the new advisories",
+                            defaultValue: true
+                        ),
                         string(
                             name: "ASSIGNED_TO",
                             description: "Advisories are assigned to QE",
@@ -193,6 +198,9 @@ node {
                                 -e 's/metadata:.*/metadata: ${metadata_advisory_id}/' \
                             -i group.yml ;
                         """
+                    }
+                    if (params.ENABLE_AUTOMATION) {
+                        cmd += "sed -e 's/freeze_automation:.*/freeze_automation: no/' -i group.yml ; "
                     }
                     cmd += """
                         git diff ;

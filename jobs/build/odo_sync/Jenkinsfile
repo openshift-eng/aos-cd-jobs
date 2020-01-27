@@ -17,25 +17,34 @@ pipeline {
     }
 
     stages {
+        stage("Validate params") {
+            if (!params.RPM_URL) {
+                error "RPM_URL must be specified"
+            }
+            if (!params.VERSION) {
+                error "VERSION must be specified"
+            }
+        }
         stage("Download RPM") {
             steps {
-                sh "wget ${params.RPM_URL} -O odo.rpm"
+                sh "rm --force odo.rpm"
+                sh "wget --no-verbose ${params.RPM_URL} --output-document=odo.rpm"
             }
         }
         stage("Extract RPM contents") {
             steps {
-                sh "rpm2cpio odo.rpm | cpio -id"
-                sh "rm -rf ${VERSION} && mkdir ${VERSION}"
-                sh "mv ./usr/share/openshift-odo-redistributable/* ${VERSION}/"
-                sh "tree ${VERSION}"
+                sh "rpm2cpio odo.rpm | cpio --extract --make-directories"
+                sh "rm --recursive --force ${params.VERSION} && mkdir ${params.VERSION}"
+                sh "mv --verbose ./usr/share/openshift-odo-redistributable/* ${params.VERSION}/"
+                sh "tree ${params.VERSION}"
             }
         }
         stage("Sync to mirror") {
             steps {
                 sshagent(['aos-cd-test']) {
-                    sh "scp -r ${VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"
-                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com ln -sfn ${VERSION} /srv/pub/openshift-v4/clients/odo/latest"
-                    sh "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com /usr/local/bin/push.pub.sh openshift-v4/clients/odo -v"
+                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"
+                    sh "ssh ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/odo/latest"
+                    sh "ssh /usr/local/bin/push.pub.sh openshift-v4/clients/odo -v"
                 }
             }
         }

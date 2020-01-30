@@ -27,7 +27,7 @@ def signedComposeAttachBuilds() {
         echo("Job configured not to attach builds; continuing using builds already attached")
         return
     }
-    if (!params.DRY_RUN) {
+    if (params.DRY_RUN) {
         echo("Skipping attach builds to advisory for dry run")
         return
     }

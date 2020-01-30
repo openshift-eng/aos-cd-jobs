@@ -19,7 +19,7 @@ ocp4Versions = [
 
 // Which versions should undergo merges from origin->ose
 ocpMergeVersions = [
-    "4.5",
+    // "4.5", // wait until master stops forwarding to 4.4
     "4.4",
     "4.3",
     "4.2",

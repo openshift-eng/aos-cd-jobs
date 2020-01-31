@@ -27,8 +27,14 @@ node {
                         defaultValue: "",
                     ],
                     [
+                        name: 'ARCH',
+                        description: 'Which architecture of RHCOS build to look for',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: (['x86_64', 's390x', 'ppc64le', 'aarch64']),
+                    ],
+                    [
                         name: 'RHCOS_MIRROR_PREFIX',
-                        description: 'Where to place this release under https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/',
+                        description: 'Where to place this release under https://mirror.openshift.com/pub/openshift-v4/ARCH/dependencies/rhcos/',
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: (['pre-release', 'test'] + commonlib.ocp4Versions),
                     ],
@@ -37,12 +43,6 @@ node {
                         description: 'ID of the RHCOS build to sync. e.g.: 42.80.20190828.2',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "",
-                    ],
-                    [
-                        name: 'ARCH',
-                        description: 'architecture being synced',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: ['x86_64', 's390x', 'ppc64le'].join('\n'),
                     ],
                     [
                         name: 'NOOP',
@@ -70,7 +70,7 @@ node {
                     ],
                     [
                         name: 'NO_MIRROR',
-                        description: 'Do not run the push.pub script after downloading"',
+                        description: 'Do not run the push.pub script after downloading',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false,
                     ],

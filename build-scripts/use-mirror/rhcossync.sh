@@ -1,10 +1,13 @@
 #!/bin/bash
 set -exo pipefail
 
-# RHCOS version, like 42.80.20190828.2
-VERSION=
-# Where to put this on the mirror, such as'4.2' or 'pre-release'
+# Where to put this on the mirror, such as '4.2' or 'pre-release':
 RHCOS_MIRROR_PREFIX=
+ARCH=x86_64
+# RHCOS version, like 42.80.20190828.2:
+BUILDID=
+# release version, like 4.2.0:
+VERSION=
 FORCE=0
 TEST=0
 BASEDIR=
@@ -62,8 +65,12 @@ function checkDestDir() {
 
 function downloadImages() {
     for img in $(<${SYNCLIST}); do
-	curl -L --retry 5 -O $img
+	curl -L --fail --retry 5 -O $img
     done
+    # rename files to indicate the release they match (including arch suffix)
+    release="$VERSION"
+    [[ $release == *${ARCH}* ]] || release="$release-$ARCH"
+    rename "$BUILDID" "$release" *
 }
 
 function genSha256() {
@@ -96,12 +103,18 @@ fi
 
 while [ $1 ]; do
     case "$1" in
-	"--version")
-	    shift
-	    VERSION=$1;;
 	"--prefix")
 	    shift
 	    RHCOS_MIRROR_PREFIX=$1;;
+	"--arch")
+	    shift
+	    ARCH=$1;;
+	"--buildid")
+	    shift
+	    BUILDID=$1;;
+	"--version")
+	    shift
+	    VERSION=$1;;
 	"--synclist")
 	    shift
 	    SYNCLIST=$1;;

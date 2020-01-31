@@ -60,16 +60,16 @@ def rhcosSyncMirrorArtifacts() {
     sh("scp -o StrictHostKeychecking=no ${syncList} use-mirror-upload.ops.rhcloud.com:/tmp/")
     def invokeOpts = "-- --prefix ${params.RHCOS_MIRROR_PREFIX} --version ${params.NAME} --synclist /tmp/${syncList} --basedir ${baseDir}"
     if ( params.FORCE ) {
-    	invokeOpts += " --force"
+            invokeOpts += " --force"
     }
     if ( params.NOOP ) {
-	    invokeOpts += " --test"
+            invokeOpts += " --test"
     }
     if ( params.NO_LATEST ) {
-	    invokeOpts += " --nolatest"
+            invokeOpts += " --nolatest"
     }
     if ( params.NO_MIRROR ) {
-	    invokeOpts += " --nomirror"
+            invokeOpts += " --nomirror"
     }
 
     buildlib.invoke_on_use_mirror("rhcossync.sh", invokeOpts)
@@ -77,7 +77,8 @@ def rhcosSyncMirrorArtifacts() {
 
 def rhcosSyncGenDocs() {
     dir( rhcosWorking ) {
-	    sh("sh ../gen-docs.sh < meta.json > rhcos-${params.RHCOS_BUILD}.adoc")
+        // TODO
+        // sh("sh ../gen-docs.sh < meta.json > rhcos-${params.RHCOS_BUILD}.adoc")
     }
     artifacts.add("rhcos_working/rhcos-${params.RHCOS_BUILD}.adoc")
 }

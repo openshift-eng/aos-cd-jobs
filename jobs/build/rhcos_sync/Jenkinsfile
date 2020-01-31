@@ -70,7 +70,7 @@ node {
                     ],
                     [
                         name: 'NO_MIRROR',
-                        description: 'Do not run the push.pub script after downloading"',
+                        description: 'Do not run the push.pub script after downloading',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false,
                     ],

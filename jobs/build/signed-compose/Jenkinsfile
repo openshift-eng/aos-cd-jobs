@@ -48,7 +48,6 @@ node {
                     commonlib.mockParam(),
                 ]
             ],
-            disableConcurrentBuilds(),
         ]
     )
 
@@ -66,16 +65,18 @@ node {
 
     try {
         sshagent(["openshift-bot"]) {
-            stage("Attach builds") { build.signedComposeAttachBuilds() }
-            stage("RPM diffs ran") { build.signedComposeRpmdiffsRan(advisory) }
-            stage("RPM diffs resolved") { build.signedComposeRpmdiffsResolved(advisory) }
-            stage("Advisory is QE") { build.signedComposeStateQE() }
-            stage("Signing completing") { build.signedComposeRpmsSigned() }
-            // Ensure the tag script can read the required cert
-            withEnv(['REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt']) {
-                stage("New el7 compose") { build.signedComposeNewCompose("7") }
-                if (build.requiresRhel8()) {
-                    stage("New el8 compose") { build.signedComposeNewCompose("8") }
+            lock("signed-compose-${params.BUILD_VERSION}") {
+                stage("Attach builds") { build.signedComposeAttachBuilds() }
+                stage("RPM diffs ran") { build.signedComposeRpmdiffsRan(advisory) }
+                stage("RPM diffs resolved") { build.signedComposeRpmdiffsResolved(advisory) }
+                stage("Advisory is QE") { build.signedComposeStateQE() }
+                stage("Signing completing") { build.signedComposeRpmsSigned() }
+                // Ensure the tag script can read the required cert
+                withEnv(['REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt']) {
+                    stage("New el7 compose") { build.signedComposeNewCompose("7") }
+                    if (build.requiresRhel8()) {
+                        stage("New el8 compose") { build.signedComposeNewCompose("8") }
+                    }
                 }
             }
         }

@@ -66,7 +66,7 @@ $z - s390x
 img=$1; shift
 case "$img" in
         ansible.runner)
-            build_common $img ansible-runner:1.2.0-1.1571949727 0 $@
+            build_common $img ansible-runner:1.2.0-1.1580117780 0 $@
             ;;
 
         elasticsearch)
@@ -77,7 +77,7 @@ case "$img" in
             build_common $img jboss/openjdk18-rhel7:latest 185 $@
             ;;
         rhscl.nodejs.6.rhel7)
-            build_common $img rhscl/nodejs-6-rhel7:6-53.1575996584 1001 $@
+            build_common $img rhscl/nodejs-6-rhel7:6-53.1580118007 1001 $@
             ;;
         rhel7)
             build_common $img rhel7:7-released 0 $@

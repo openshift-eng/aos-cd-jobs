@@ -247,8 +247,10 @@ def Map stageWaitForStable(String releaseStream, String releaseName) {
     }
 
     // 2019-05-23 - As of now jobs will not be tagged as `Accepted`
-    // until they pass an upgrade test, hence the 3 hour wait loop
-    while (count < 36) { // wait for 5m * 36 = 180m = 3 hours
+    // until they pass an upgrade test, hence the 6 hour wait loop
+    // 2020-02-10: Double wait time to 6 hours, as 3 hours turned out
+    // to not suffice.
+    while (count < 72) { // wait for 5m * 72 = 360m = 6 hours
         def response = null
         try {
             response = httpRequest(

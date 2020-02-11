@@ -70,6 +70,12 @@ node {
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
                     ],
+                    [
+                        name: 'IGNORE_LOCKS',
+                        description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
                     commonlib.suppressEmailParam(),
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -141,21 +147,25 @@ node {
                     command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
                     command += "rpms:build --version ${version} --release ${release} "
-                    buildlib.doozer command
+                    if (params.IGNORE_LOCKS) {
+                         buildlib.doozer command
+                    } else {
+                        lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
+                    }
                 }
             }
 
             stage("puddle: ose 'building'") {
                 if (rpms.toUpperCase() != "NONE") {
-                    lock("github-activity-lock-${params.BUILD_VERSION}") {
-                        AOS_CD_JOBS_COMMIT_SHA = commonlib.shell(
+                    lock("compose-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
+                        aosCdJobsCommitSha = commonlib.shell(
                             returnStdout: true,
                             script: "git rev-parse HEAD",
                         ).trim()
-                        PUDDLE_CONF_BASE = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${AOS_CD_JOBS_COMMIT_SHA}/build-scripts/puddle-conf"
-                        PUDDLE_CONF = "${PUDDLE_CONF_BASE}/atomic_openshift-${params.BUILD_VERSION}.conf"
-                        OCP_PUDDLE = buildlib.build_puddle(
-                            PUDDLE_CONF,    // The puddle configuration file to use
+                        puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${aosCdJobsCommitSha}/build-scripts/puddle-conf"
+                        puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
+                        buildlib.build_puddle(
+                            puddleConf,    // The puddle configuration file to use
                             null, // openshifthosted key
                             "-b",   // do not fail if we are missing dependencies
                             "-d",   // print debug information
@@ -184,14 +194,16 @@ node {
                 if (!any_images_to_build) { return }
                 if (params.IMAGE_MODE == "nothing") { return }
 
-                lock("github-activity-lock-${params.BUILD_VERSION}") {
-                    currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
-                    command = doozerOpts
-                    command += "--latest-parent-version ${include_exclude} "
-                    command += "images:${params.IMAGE_MODE} --version v${version} --release ${release} "
-                    command += "--repo-type ${repo_type} "
-                    command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
-                    buildlib.doozer command
+                currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
+                command = doozerOpts
+                command += "--latest-parent-version ${include_exclude} "
+                command += "images:${params.IMAGE_MODE} --version v${version} --release ${release} "
+                command += "--repo-type ${repo_type} "
+                command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
+                if (params.IGNORE_LOCKS) {
+                     buildlib.doozer command
+                } else {
+                    lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
                 }
             }
 

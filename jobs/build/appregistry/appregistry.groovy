@@ -18,7 +18,7 @@ def initialize(workDir) {
         component: "foo-operator-container"
         nvr: "foo-operator-container-v4.3.0-12345" (latest build of this component)
     Keep those that have the appregistry label.
-*/ 
+*/
 @NonCPS
 def parseAndFilterOperators(lines) {
     def data = []
@@ -110,6 +110,7 @@ def getImagesData(limitImages) {
     doozer """
         ${limitImages}
         images:print
+        --ignore-missing
         --label 'com.redhat.delivery.appregistry'
         --short '{label},{name},{component},{build}'
     """
@@ -149,7 +150,7 @@ def getMetadataNVRs(operatorNVRs, stream) {
     return doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}").split()
 }
 
-// attach to given advisory a list of NVRs 
+// attach to given advisory a list of NVRs
 def attachToAdvisory(advisory, metadata_nvrs) {
     def elliott_build_flags = []
     metadata_nvrs.each { nvr -> elliott_build_flags.add("--build ${nvr}") }
@@ -261,7 +262,7 @@ def pushToOMPSWithRetries(token, metadata_nvr) {
                 // failed because of something other than bad response; note that instead
                 err = e
             }
-            
+
             if (failures++ > 2) {
                 error(err)
             }
@@ -285,7 +286,7 @@ def stagePushDevMetadata(operatorBuilds) {
             }
         }
     ]}
-   
+
     if (errors) {
         error "${errors}"
     }

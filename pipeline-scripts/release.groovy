@@ -40,7 +40,7 @@ def destReleaseTag(String releaseName, String arch) {
  *      Valid advisories must be in QE state and have a live ID so we can
  *      include in release metadata the URL where it will be published.
  */
-Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false) {
+Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false) {
     def retval = [:]
     def version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
@@ -89,10 +89,10 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
     def advisoryInfo = readJSON text: res.stdout
     retval.advisoryInfo = advisoryInfo
     echo "Verifying advisory ${advisoryInfo.id} (https://errata.engineering.redhat.com/advisory/${advisoryInfo.id}) status"
-    if (advisoryInfo.status != 'QE') {
+    if (advisoryInfo.status != 'QE' && permitAnyAdvisoryState == false) {
         error("🚫 Advisory ${advisoryInfo.id} is not in QE state.")
     }
-    echo "✅ Advisory ${advisoryInfo.id} is in QE state."
+    echo "✅ Advisory ${advisoryInfo.id} is in ${advisoryInfo.status} state."
 
     // Extract live ID from advisory info
     // Examples:

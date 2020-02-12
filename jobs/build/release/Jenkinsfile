@@ -57,6 +57,12 @@ node {
                         defaultValue: false
                     ],
                     [
+                        name: 'PERMIT_ALL_ADVISORY_STATES',
+                        description: 'DO NOT USE without team lead approval. Allows release job to run when advisory is not in QE state.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -121,7 +127,7 @@ node {
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("validation") {
-                def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE)
+                def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES)
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }

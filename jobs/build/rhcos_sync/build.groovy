@@ -8,6 +8,9 @@ baseUrl = ""
 metaUrl = ""
 baseDir = ""
 syncList = "rhcos-synclist-${currentBuild.number}.txt"
+// RHCOS artifacts that were published in 4.2/4.3
+// TODO: keep list updated for each new release
+rhcos_whitelist = [ "gcp", "initramfs", "iso", "kernel", "metal", "openstack", "vmware" ]
 
 def initialize() {
     buildlib.cleanWorkdir(rhcosWorking)
@@ -52,7 +55,9 @@ def rhcosSyncPrintArtifacts() {
     dir ( rhcosWorking ) {
         def meta = readJSON file: 'meta.json', text: ''
         meta.images.eachWithIndex { name, value, i ->
-            imageUrls.add(baseUrl + "/${value.path}")
+            if (rhcos_whitelist.contains(name)) {
+                imageUrls.add(baseUrl + "/${value.path}")
+            }
         }
     }
     currentBuild.displayName += " [${imageUrls.size()} Images]"

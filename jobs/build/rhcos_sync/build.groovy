@@ -14,16 +14,26 @@ rhcos_whitelist = [ "gcp", "initramfs", "iso", "kernel", "metal", "openstack", "
 
 def initialize() {
     buildlib.cleanWorkdir(rhcosWorking)
+
+    // Example URL paths (visit https://releases-rhcos-art.cloud.privileged.psi.redhat.com/ to view yourself):
+    // 4.1 with x86 arch:       releases/rhcos-4.1/410.81.20200213.0/meta.json  (we do not plan to release a new 4.1 bootimage ever)
+    // 4.1 with non-x86 arch:   N/A
+
+    // 4.2 introduced an arch arch suffix
+    // 4.2 with x86 arch:       releases/rhcos-4.2/42.81.20200213.0/meta.json
+    // 4.2 with non-x86 arch:   releases/rhcos-4.2-s390x/42s390x.81.20200131.0/meta.json
+
+    // 4.3 introduced an arch subdirectory
+    // 4.3 with x86 arch:       releases/rhcos-4.3/43.81.202002130953.0/x86_64/meta.json
+    // 4.3 with non-x86 arch:   releases/rhcos-4.3-s390x/43.81.202001300441.0/s390x/meta.json
+
     // Sub in some vars according to params
     def ocpVersion = params.BUILD_VERSION
     def rhcosBuild = params.RHCOS_BUILD
     def arch = params.ARCH
     def archSuffix = arch == "x86_64" ? "" : "-${arch}"
-      // we do not plan to release a new 4.1 bootimage ever
-      // 4.2 is grandfathered in without the archDir in the path
-      // 4.3+ include archDir - ref. rhcos release browser
     def archDir = ocpVersion == "4.2" ? "" : "/${arch}"
-    baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}${archDir}/${rhcosBuild}"
+    baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}/${rhcosBuild}${archDir}"
     baseDir = "/srv/pub/openshift-v4/${arch}/dependencies/rhcos"
     // Actual meta.json
     metaUrl = baseUrl + "/meta.json"

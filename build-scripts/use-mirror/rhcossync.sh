@@ -80,8 +80,36 @@ function genSha256() {
 }
 
 function updateSymlinks() {
-    rm -f latest
-    ln -s $VERSION latest
+    MAJOR_MINOR=$(echo ${VERSION} |awk -F '[.-]' '{print $1 "." $2}')  # e.g. 4.3.0-0.nightly-2019-11-08-080321 -> 4.3
+    # We also need to know what Y stream comes after this one.
+    MAJOR_NEXT_MINOR=$(echo ${MAJOR_MINOR} |awk -F '[.-]' '{print $1 "." $2+1}')  # e.g. 4.3 -> 4.4
+
+    if [[ "${RHCOS_MIRROR_PREFIX}" == "pre-release" ]]; then
+        MAJOR_MINOR_LATEST="latest-${MAJOR_MINOR}"
+        ln -sfvn $VERSION $MAJOR_MINOR_LATEST   # e.g. latest-4.3 =links_to=>  4.3.0-0.nightly-2019-11-08-080321
+
+        # Is this major.minor the latest Y stream? If it is, we need to set
+        # the overall 'latest'. We already calculated MAJOR_NEXT_MINOR  (e.g. "4.5") so see if that
+        # exists someone on the mirror.
+        if ls -d "${MAJOR_NEXT_MINOR}".*/ > /dev/null  2>&1; then
+            echo "This is not the highest Y pre-release -- will not set overall latest"
+            return 0
+        fi
+
+    else
+
+        # Similar logic to pre-release latest link above, but for non-pre-release, the directory is just
+        # 4.x  (not 4.x.0.....)
+        if ls -d "${MAJOR_NEXT_MINOR}"/ > /dev/null  2>&1; then
+            echo "This is not the highest Y release -- will not set overall latest"
+            return 0
+        fi
+
+    fi
+
+    ln -svfn ${VERSION} latest
+    echo "Overall latest now points to ${RELEASE} in ${client_base_dir}"
+    return 0
 }
 
 function mirror() {

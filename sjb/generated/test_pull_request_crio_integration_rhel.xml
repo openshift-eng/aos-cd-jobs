@@ -391,10 +391,10 @@ if grep -q &#39;ID=&#34;centos&#34;&#39; /etc/os-release || \
 then
     sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
     sudo yum install -y jq docker
+    sudo systemctl start docker
 else  # assume fedora
-    sudo dnf install -y jq docker
+    sudo dnf install -y jq podman-docker
 fi
-sudo systemctl start docker
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

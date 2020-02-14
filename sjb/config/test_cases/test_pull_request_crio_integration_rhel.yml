@@ -31,5 +31,6 @@ extensions:
                        -i localhost, \
                        --tags integration \
                        --become-user root \
+                       ${EXTRA_EVARS:-} \
                        --connection local \
                        /go/src/github.com/cri-o/cri-o/contrib/test/integration/main.yml

@@ -60,7 +60,7 @@ node {
 
 
     try {
-        currentBuild.displayName = "#${currentBuild.number} - ${RELEASE_NAME} - ${CLIENT_TYPE}"
+        currentBuild.displayName = "#${currentBuild.number} - ${params.RELEASE_NAME} - ${params.CLIENT_TYPE}"
 
         def arch = params.ARCH
         def releaseTag = release.destReleaseTag(params.RELEASE_NAME, arch)
@@ -78,7 +78,7 @@ node {
             stage("sync ocp clients") {
                 // must be able to access remote registry to extract image contents
                 buildlib.registry_quay_dev_login()
-                commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${RELEASE_NAME} ${CLIENT_TYPE} '${pull_spec}'"
+                commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
             }
         }
     } catch (err) {

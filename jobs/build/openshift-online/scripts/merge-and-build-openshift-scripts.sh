@@ -175,7 +175,7 @@ else
     echo "=========="
     doozer --working-dir ${DOOZER_WORKING} --group oso-${RELEASE_VERSION} \
     images:build \
-    --push-to-defaults --repo-type unsigned
+    --push-to-defaults
 
     echo
     echo "=========="

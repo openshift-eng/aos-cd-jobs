@@ -309,7 +309,7 @@ echo "=========="
 if [ "$BUILD_CONTAINER_IMAGES" != "false" ]; then
     doozer --working-dir ${DOOZER_WORKING} --group openshift-${OSE_VERSION} \
 images:build \
---push-to-defaults --repo-type unsigned
+--push-to-defaults
 fi
 
 # Record the name of the puddle which was created

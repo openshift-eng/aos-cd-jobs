@@ -336,7 +336,7 @@ def stageBuildImages() {
             ${doozerOpts}
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
             images:build
-            --push-to-defaults --repo-type unsigned
+            --push-to-defaults
             """
         if(buildPlan.dryRun) {
             echo "doozer ${cmd}"

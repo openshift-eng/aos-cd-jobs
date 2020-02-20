@@ -165,8 +165,15 @@ node {
                     key_name: "redhatrelease2",
                     arch: arch,
                     digest: payloadDigest,
-		    client_type: "ocp",
+                    client_type: "ocp",
                 )
+            }
+            stage("request candidate edge on Cininnati") {
+                    b = build job: 'build%2Frequest_edge', propagate: false,
+                        parameters: [
+                            string(name: 'CANDIDATE_VERSION', value: params.NAME),
+                            string(name: 'NEXT_VERSION', value: ""),
+                        ]
             }
         }
 

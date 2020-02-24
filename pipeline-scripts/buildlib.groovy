@@ -1197,6 +1197,16 @@ def extractBuildVersion(build) {
 def determineBuildVersion(stream, branch, versionParam) {
     def version = "${stream}.0"  // default
 
+    def streamSegments = stream.tokenize(".").collect { it.toInteger() }
+    def major = streamSegments[0]
+    def minor = streamSegments[1]
+
+    // As of 4.4, let's try 4.x for everything (doozer will add patch version).
+    if (minor >= 4) {
+        echo "Forcing version ${stream} which is convention for this major.minor."
+        return stream
+    }
+
     def prevBuild = latestOpenshiftRpmBuild(stream, branch)
     if(versionParam == "+") {
         // increment previous build version

@@ -254,13 +254,13 @@ def pushToOMPSWithRetries(token, metadata_nvr) {
                     continue
                 }
                 // something else went wrong - could be transient, record the error we end up with
-                err = [
+                error([
                     metadata_nvr: metadata_nvr,
                     response_status: response.status,
                     response_content: response.content,
-                ]
+                ].toString())
             } catch (e) {
-                // failed because of something other than bad response; note that instead
+                // could also fail because of some error other than bad response
                 err = e
             }
 

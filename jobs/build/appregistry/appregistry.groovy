@@ -1,3 +1,5 @@
+import java.util.concurrent.ConcurrentHashMap
+
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 workDir = null
@@ -18,7 +20,7 @@ def initialize(workDir) {
         component: "foo-operator-container"
         nvr: "foo-operator-container-v4.3.0-12345" (latest build of this component)
     Keep those that have the appregistry label.
-*/ 
+*/
 @NonCPS
 def parseAndFilterOperators(lines) {
     def data = []
@@ -149,7 +151,7 @@ def getMetadataNVRs(operatorNVRs, stream) {
     return doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}").split()
 }
 
-// attach to given advisory a list of NVRs 
+// attach to given advisory a list of NVRs
 def attachToAdvisory(advisory, metadata_nvrs) {
     def elliott_build_flags = []
     metadata_nvrs.each { nvr -> elliott_build_flags.add("--build ${nvr}") }
@@ -261,9 +263,9 @@ def pushToOMPSWithRetries(token, metadata_nvr) {
                 // failed because of something other than bad response; note that instead
                 err = e
             }
-            
+
             if (failures++ > 2) {
-                error(err)
+                throw err
             }
             sleep(60)
         }
@@ -274,18 +276,18 @@ def pushToOMPSWithRetries(token, metadata_nvr) {
 def stagePushDevMetadata(operatorBuilds) {
     def token = retrieveBotToken()
     def metadata_nvrs = getMetadataNVRs(operatorBuilds.collect { it.nvr }, "dev")
-    def errors = [:]
+    def errors = new ConcurrentHashMap()
     parallel metadata_nvrs.collectEntries { nvr -> [
         (nvr.replaceAll("-operator-metadata-container.*", "")): { ->
-            err = pushToOMPSWithRetries(token, nvr)
-            if (err) {
-                errors[nvr] = err
-            } else {
+            try {
+                pushToOMPSWithRetries(token, nvr)
                 currentBuild.description += "\n  ${nvr}"
+            } catch(err) {
+                errors[nvr] = err
             }
         }
     ]}
-   
+
     if (errors) {
         error "${errors}"
     }

@@ -10,7 +10,21 @@ set -e
 # VARIABLES
 ############
 SYMLINK_NAME="${1}"
-FULL_VERSION="${2}"
+
+# There are two VERSION_ARG formats we accept: major.minor.patch-release and major.minor-release.
+# If it is the latter, we need to add .0 as the patch for full version.
+VERSION_ARG="${2}"
+# Split VERSION_ARG between version-release
+VERSION=$(echo "${VERSION_ARG}" | cut -d '-' -f 1)
+RELEASE=$(echo "${VERSION_ARG}" | cut -d '-' -f 2-)
+
+# If 4.4 is passed in, make it 4.4.0
+if [[ "$VERSION" =~ ^[0-9]\.[0-9]$ ]]; then
+    VERSION="${VERSION}.0"
+fi
+
+FULL_VERSION="${VERSION}-${RELEASE}"
+
 BUILD_MODE="${3}"
 BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
 MAJOR_MINOR=$(echo "${FULL_VERSION}" | cut -d . -f 1-2)

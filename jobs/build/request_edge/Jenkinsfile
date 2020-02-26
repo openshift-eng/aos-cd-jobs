@@ -3,6 +3,7 @@
 node {
     checkout scm
     def release = load("pipeline-scripts/release.groovy")
+    def slacklib = load("pipeline-scripts/slack.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
 
@@ -85,7 +86,8 @@ node {
             }
 
             stage("send msg to @architects-team") {
-                echo "will be available soon"
+                text = "@architects-team release canidate ${params.CANDIDATE_VERSION} PR on cincinnati-graph-data are ready for review: https://github.com/openshift/cincinnati-graph-data/pulls/openshift-bot"
+                slacklib.notifySlack('#team-art', text, [], null)
             }
         }
 

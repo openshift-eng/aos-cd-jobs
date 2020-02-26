@@ -3,7 +3,7 @@ import groovy.json.JsonOutput
 def notifySlack(channel, text, attachments=[], thread_ts=null) {
     // https://www.christopherrung.com/2017/05/04/slack-build-notifications/
 
-     withCredentials([string(credentialsId: 'slack_token_crel-bot', variable: 'SLACK_BOT_TOKEN')]) {
+     withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
 
         base = [   channel: channel,
                    icon_emoji: ":robot_face:",

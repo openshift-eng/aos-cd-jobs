@@ -1,0 +1,97 @@
+#!/usr/bin/env groovy
+
+node {
+    checkout scm
+    def release = load("pipeline-scripts/release.groovy")
+    def slacklib = load("pipeline-scripts/slack.groovy")
+    def buildlib = release.buildlib
+    def commonlib = release.commonlib
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    [
+                        name: 'GIT_REPO',
+                        description: 'the git repo',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "git@github.com:openshift/cincinnati-graph-data.git"
+                    ],
+                    [
+                        name: 'GIT_BRANCH',
+                        description: 'the git repo',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'OUT_DIR',
+                        description: 'the output dir',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "git@github.com:openshift/cincinnati-graph-data.git"
+                    ],
+                    [
+                        name: 'MAIL_LIST_SUCCESS',
+                        description: 'Success Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-team-art@redhat.com',
+                            'aos-art-automation+new-edge@redhat.com',
+                        ].join(',')
+                    ],
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-art-automation+failed-edge@redhat.com'
+                        ].join(',')
+                    ],
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+    buildlib.initialize()
+    buildlib.cleanWorkdir("${env.WORKSPACE}")
+
+    try {
+        sshagent(['openshift-bot']) {
+            currentBuild.description += "clean up: ${params.GIT_REPO} branch ${params.GIT_BRANCH}"
+            stage("clean up git branches") {
+                    commonlib.shell(script: "git clone ${params.GIT_REPO} ${params.OUT_DIR}")
+                    commonlib.shell(script: "pushd ${params.OUT_DIR}")
+                    commonlib.shell(script: "git push origin --delete ${params.GIT_BRANCH}")
+                    commonlib.shell(script: "popd ${params.OUT_DIR}")
+            }
+        }
+
+        commonlib.email(
+            to: "${params.MAIL_LIST_SUCCESS}",
+            replyTo: "aos-team-art@redhat.com",
+            from: "aos-art-automation@redhat.com",
+            subject: "Success requesting candidate realese on (${params.CANDIDATE_VERSION}, ${params.NEXT_VERSION})",
+            body: """Jenkins Job: ${env.BUILD_URL}"""
+        );
+
+    } catch (err) {
+        commonlib.email(
+            to: "${params.MAIL_LIST_FAILURE}",
+            replyTo: "aos-team-art@redhat.com",
+            from: "aos-art-automation@redhat.com",
+            subject: "Error running OCP Tarball sources",
+            body: "Encountered an error while running OCP Tarball sources: ${err}");
+        currentBuild.description = "Error while running OCP Tarball sources:\n${err}"
+        currentBuild.result = "FAILURE"
+        throw err
+    }
+}

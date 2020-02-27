@@ -38,6 +38,7 @@ node('openshift-build-1') {
 virtualenv ../env/
 . ../env/bin/activate
 pip install gitpython
+export GIT_PYTHON_TRACE=full
 ${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
 python -m aos_cd_jobs.updater
 """

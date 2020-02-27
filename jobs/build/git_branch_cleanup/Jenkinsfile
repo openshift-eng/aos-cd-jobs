@@ -35,7 +35,7 @@ node {
                         name: 'OUT_DIR',
                         description: 'the output dir',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "git@github.com:openshift/cincinnati-graph-data.git"
+                        defaultValue: "./test_repo"
                     ],
                     [
                         name: 'MAIL_LIST_SUCCESS',
@@ -69,9 +69,7 @@ node {
             currentBuild.description += "clean up: ${params.GIT_REPO} branch ${params.GIT_BRANCH}"
             stage("clean up git branches") {
                     commonlib.shell(script: "git clone ${params.GIT_REPO} ${params.OUT_DIR}")
-                    commonlib.shell(script: "pushd ${params.OUT_DIR}")
-                    commonlib.shell(script: "git push origin --delete ${params.GIT_BRANCH}")
-                    commonlib.shell(script: "popd ${params.OUT_DIR}")
+                    commonlib.shell(script: "git -C ${params.OUT_DIR} push origin --delete ${params.GIT_BRANCH}")
             }
         }
 

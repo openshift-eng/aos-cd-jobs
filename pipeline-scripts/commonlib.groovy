@@ -6,7 +6,7 @@ ocp3Versions = [
 ]
 
 // Which version of ocp4 build parameters should show by default
-ocp4DefaultVersion = "4.4"
+ocp4DefaultVersion = "4.5"
 
 // All buildable versions of ocp4
 ocp4Versions = [

@@ -326,4 +326,4 @@ gbr::parse_arguments "$@"
 gbr::post_validate_arguments
 gbr::print_header
 gbr::get_tagged_packages |\
-    xargs --max-args=1 --max-procs=1000 -I {} bash -c 'gbr::get_package_golang_info {}'
+    xargs --max-args=1 --max-procs=100 -I {} bash -c 'gbr::get_package_golang_info {}'

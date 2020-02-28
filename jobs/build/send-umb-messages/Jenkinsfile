@@ -31,20 +31,27 @@ node {
                     returnStdout: true,
                     script: "curl -s ${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${release}/latest",
                 ).trim()
+                echo "${release}: latestRelease=${latestRelease}"
 		try {
                     previousRelease = readFile("${release}.current")
+                    echo "${release}: previousRelease=${previousRelease}"
 		} catch (readex) {
 		    // The first time this job is ran and the first
 		    // time any new release is added the 'readFile'
 		    // won't find the file and will raise a
 		    // NoSuchFileException exception.
+			echo "${release}: Error reading revious release: ${readex}"
 		    touch file: "${release}.current"
 		    previousRelease = ""
 		}
 
                 if ( latestRelease != previousRelease ) {
-		    currentBuild.displayName += "🆕: ${release} "
-		    currentBuild.description += "\n🆕: ${release}"
+                    def latestReleaseVersion = readJSON(text: latestRelease).name
+                    def previousReleaseVersion = "0.0.0"
+                    if (previousRelease)
+                        previousReleaseVersion = readJSON(text: previousRelease).name
+		    currentBuild.displayName += "🆕 ${release}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
+		    currentBuild.description += "\n🆕 ${release}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
 
                     sendCIMessage(
                         messageProperties: "release=${release}",

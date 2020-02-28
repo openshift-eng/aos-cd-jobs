@@ -1,0 +1,19 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "elliott-poll-tags"
+spec:
+  runPolicy: "Serial"
+  completionDeadlineSeconds: 300
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        library identifier: 'art-ci-toolkit@demo-openshift-pipeline', changelog: false,
+          retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://github.com/vfreex/aos-cd-jobs.git'])
+        pollGitRefs(
+          "https://github.com/openshift/elliott.git",
+          "refs/tags/v*",
+          "elliott-release",
+          "H/10 * * * *",
+        )

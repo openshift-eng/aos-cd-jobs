@@ -1,0 +1,27 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "art-jenkins"
+  labels:
+    app: "jenkins"
+spec:
+  runPolicy: "Serial"
+  strategy:
+    dockerStrategy:
+      forcePull: true
+      dockerfilePath: openshift-pipelines/images/art-jenkins.Dockerfile
+  source:
+      git:
+        uri: "https://github.com/vfreex/aos-cd-jobs.git"
+        ref: "master"
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "art-jenkins:latest"
+  resources:
+    requests:
+      memory: "768Mi"
+      cpu: "300m"
+    limits:
+      memory: "1Gi"
+      cpu: "1"

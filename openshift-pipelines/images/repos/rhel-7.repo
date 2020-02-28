@@ -1,0 +1,32 @@
+[rhel-7-brew]
+name=Red Hat Enterprise Linux $releasever - $basearch
+baseurl=http://download.devel.redhat.com/brewroot/repos/rhel-7-build/latest/$basearch
+enabled=0
+gpgcheck=0
+
+[rhel-7.3.z-brew]
+name=Red Hat Enterprise Linux 7.3.z Brew
+baseurl=http://download.devel.redhat.com/brewroot/repos/rhel-7.3-z-build/latest/$basearch/
+enabled=0
+gpgcheck=0
+
+[rhel-7-server-rpms]
+name = Red Hat Enterprise Linux 7
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/$basearch/os/
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+
+[rhel-7-server-optional-rpms]
+name = Red Hat Enterprise Linux 7 Optional
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/$basearch/optional/os/
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+
+[rhel-7-server-extras-rpms]
+name = Red Hat Enterprise Linux 7 Extras
+baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/$basearch/extras/os/
+enabled = 1
+gpgcheck = 1
+gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release

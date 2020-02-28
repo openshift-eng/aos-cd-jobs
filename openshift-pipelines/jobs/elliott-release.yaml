@@ -1,0 +1,17 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "elliott-release"
+spec:
+  runPolicy: "Parallel"
+  completionDeadlineSeconds: 600
+  strategy:
+    type: JenkinsPipeline
+    jenkinsPipelineStrategy:
+      env:
+        - name: GIT_BRANCH
+          value: "master"
+      jenkinsfile: |-
+        library identifier: 'art-ci-toolkit@demo-openshift-pipeline', changelog: false,
+          retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://github.com/vfreex/aos-cd-jobs.git'])
+        artToolRelease("https://github.com/openshift/elliott.git", params.GIT_BRANCH, "art-pypi")

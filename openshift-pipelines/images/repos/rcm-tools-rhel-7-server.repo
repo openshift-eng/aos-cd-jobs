@@ -1,0 +1,27 @@
+[rcm-tools-rhel-7-server-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever Server (RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-7/compose/Server/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal
+
+[rcm-tools-rhel-7-server-source-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever Server (Source RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-7/compose/Server/source/tree/
+enabled=0
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal
+
+[rcm-tools-rhel-7-server-optional-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever Server - Optional (RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-7/compose/Server-optional/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal
+
+[rcm-tools-rhel-7-server-optional-source-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever Server - Optional (Source RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-7/compose/Server-optional/source/tree/
+enabled=1
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal

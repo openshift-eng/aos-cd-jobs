@@ -18,8 +18,8 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     [
-                        name: 'RELEASE',
-                        description: 'Release Version on mirror.openshift.com to set to latest (e.g. 4.1.0)',
+                        name: 'CHANNEL_OR_RELEASE',
+                        description: 'Pull latest from named channel (e.g. stable-4.3) or set to specific dir (e.g. 4.1.0)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -28,6 +28,13 @@ node {
                         description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "ocp"
+                    ],
+                    [
+                        name: 'LINK_NAME',
+                        description: 'The name of the links to establish. Specifying "latest" will establish a "latest-4.X" link for the release and potentially an overall "latest". "stable" will make a corresponding set of "stable-4.x" and "stable" links.',
+                        description: 'Link name to set',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: ['latest', 'stable', 'fast', 'candidate'].join('\n'),
                     ],
                     [
                         name: 'ARCHES',
@@ -55,7 +62,13 @@ node {
 
 
     try {
-        result = buildlib.invoke_on_use_mirror("set-v4-client-latest.sh", params.RELEASE, params.CLIENT_TYPE, params.ARCHES)
+
+        if ( params.CLIENT_TYPE == "ocp" &&  params.CHANNEL_OR_RELEASE.charAt(0).isDigit() ) {
+            // For released ocp clients, only support channel names.
+            error("Released ocp client links are managed automatically by polling Cincinnati. See set_cincinnati_links in scheduled-jobs")
+        }
+
+        result = buildlib.invoke_on_use_mirror("set-v4-client-latest.sh", params.CHANNEL_OR_RELEASE, params.CLIENT_TYPE, params.LINK_NAME, params.ARCHES)
         echo "${result}"
     } catch (err) {
         commonlib.email(

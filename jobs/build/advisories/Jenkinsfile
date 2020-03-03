@@ -190,12 +190,12 @@ node {
                         rm -rf ocp-build-data ;
                         git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git ;
                         cd ocp-build-data ;
-                        sed -E -e 's/^  image: [0-9]+$/  image: ${image_advisory_id}/' -e 's/^  rpm: [0-9]+$/  rpm: ${rpm_advisory_id}/' -i group.yml ;
+                        sed -E -e 's/^  image: [0-9]+\$/  image: ${image_advisory_id}/' -e 's/^  rpm: [0-9]+\$/  rpm: ${rpm_advisory_id}/' -i group.yml ;
                     """
                     if (params.VERSION.startsWith("4")) {
                         cmd += """
-                            sed -E -e 's/^  extras: [0-9]+$/  extras: ${extras_advisory_id}/' \
-                                   -e 's/^  metadata:  [0-9]+$/  metadata: ${metadata_advisory_id}/' \
+                            sed -E -e 's/^  extras: [0-9]+\$/  extras: ${extras_advisory_id}/' \
+                                   -e 's/^  metadata:  [0-9]+\$/  metadata: ${metadata_advisory_id}/' \
                             -i group.yml ;
                         """
                     }

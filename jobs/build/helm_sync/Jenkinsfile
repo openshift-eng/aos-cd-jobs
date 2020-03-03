@@ -18,11 +18,15 @@ pipeline {
 
     stages {
         stage("Validate params") {
-            if (!params.RPM_URL) {
-                error "RPM_URL must be specified"
-            }
-            if (!params.VERSION) {
-                error "VERSION must be specified"
+            steps {
+                script {
+                    if (!params.RPM_URL) {
+                        error "RPM_URL must be specified"
+                    }
+                    if (!params.VERSION) {
+                        error "VERSION must be specified"
+                    }
+                }
             }
         }
         stage("Download RPM") {

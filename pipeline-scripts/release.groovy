@@ -323,6 +323,33 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
 
     if (!params.DRY_RUN) {
         commonlib.shell(script: tools_extract_cmd)
+        commonlib.shell("""
+cd ${CLIENT_MIRROR_DIR}
+
+# External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
+# So whatever we extract, remove the version specific info and make a symlink with that name.
+for f in *.tar.gz *.bz *.zip *.tgz ; do
+
+    # Is this already a link?
+    if [[ -L "$f" ]]; then
+        continue
+    fi
+
+    # example file names:
+    #  - openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+    #  - openshift-client-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+    #  - openshift-install-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+    #  - openshift-client-linux-4.1.9.tar.gz
+    #  - openshift-install-mac-4.3.0-0.nightly-s390x-2020-01-06-081137.tar.gz
+    #  ...
+    # So, match, and store in a group, any non-digit up to the point we find -DIGIT. Ignore everything else
+    # until we match (and store in a group) one of the valid file extensions.
+    if [[ "$f" =~ ^([^0-9]+)-[0-9].*(tar.gz|tgz|bz|zip)$ ]]; then
+        # Create a symlink like openshift-client-linux.tgz => openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+        ln -sfn "$f" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+    fi
+done
+        """)
     } else {
         echo "Would have run: ${tools_extract_cmd}"
     }

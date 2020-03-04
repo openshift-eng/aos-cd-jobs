@@ -323,9 +323,7 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
 
     if (!params.DRY_RUN) {
         commonlib.shell(script: tools_extract_cmd)
-        commonlib.shell("""
-cd ${CLIENT_MIRROR_DIR}
-
+        commonlib.shell("cd ${CLIENT_MIRROR_DIR}\n" + '''
 # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
 # So whatever we extract, remove the version specific info and make a symlink with that name.
 for f in *.tar.gz *.bz *.zip *.tgz ; do
@@ -349,7 +347,7 @@ for f in *.tar.gz *.bz *.zip *.tgz ; do
         ln -sfn "$f" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
     fi
 done
-        """)
+        ''')
     } else {
         echo "Would have run: ${tools_extract_cmd}"
     }

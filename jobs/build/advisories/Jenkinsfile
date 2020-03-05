@@ -195,7 +195,7 @@ node {
                     if (params.VERSION.startsWith("4")) {
                         cmd += """
                             sed -E -e 's/^  extras: [0-9]+\$/  extras: ${extras_advisory_id}/' \
-                                   -e 's/^  metadata:  [0-9]+\$/  metadata: ${metadata_advisory_id}/' \
+                                   -e 's/^  metadata: [0-9]+\$/  metadata: ${metadata_advisory_id}/' \
                             -i group.yml ;
                         """
                     }

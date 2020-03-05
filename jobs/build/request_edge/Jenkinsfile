@@ -80,7 +80,7 @@ node {
                     // """
                     commonlib.shell(
                         returnAll: true,
-                        script: "python3 /home/jenkins/shiywang/elliott/elliott request-edge --candidate-version ${params.CANDIDATE_VERSION} --github-org ${github_org} --github-access-token ${access_token}",
+                        script: "python3 /home/jenkins/shiywang/elliott/elliott request-edge --candidate-version ${params.CANDIDATE_VERSION} ${release_args} --github-org ${github_org} --github-access-token ${access_token}",
                     )
                 }
             }

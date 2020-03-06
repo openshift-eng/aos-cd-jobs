@@ -66,7 +66,7 @@ node {
     MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
     MIRROR_RELATIVE_REPOSYNC = "reposync/${REPOSYNC_DIR}"
     MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
-    MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_REPOSYNC_BASE_DIR}"
+    MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"

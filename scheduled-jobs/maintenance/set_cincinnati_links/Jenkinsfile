@@ -1,0 +1,39 @@
+
+def runFor(version, channelPrefix, linkName) {
+    b = build(
+            job: '../aos-cd-builds/build%2Fset_client_latest',
+            parameters: [
+                string(name: 'CHANNEL_OR_RELEASE', value: "${channelPrefix}-${version}"),
+                string(name: 'CLIENT_TYPE', value: 'ocp'),
+                string(name: 'LINK_NAME', value: linkName),
+                string(name: 'ARCHES', value: 'any'),
+            ],
+            propagate: false,
+        )
+    description += "${channel}-${version} - ${b.result}\n"
+    failed |= (b.result != "SUCCESS")
+}
+
+@NonCPS
+def sortedVersions() {
+  return commonlib.ocp4Versions.sort(false)
+}
+
+node() {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+
+    for ( String version : sortedVersions() ) {
+        runFor(version, 'stable', 'stable')
+        if ( version == '4.1' ) {
+            // 4.1 is old and had a different channel scheme; ignore the prerelease-4.1 channel.
+            runFor(version, 'stable', 'latest')
+        } else {
+            runFor(version, 'fast', 'latest') // the latest links should track fast
+            runFor(version, 'fast', 'fast')
+            runFor(version, 'candidate', 'candidate')
+        }
+    }
+
+}

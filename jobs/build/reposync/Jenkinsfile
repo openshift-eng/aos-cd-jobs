@@ -89,7 +89,7 @@ node {
                     }
 
                     command = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
-                    command += "beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
+                    command += " beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
                     buildlib.doozer command
 
                     /**

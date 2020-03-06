@@ -14,7 +14,18 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('SYNC_VERSION'),
+                    [
+                        name: 'GROUP',
+                        description: 'The ocp-build-data group to synchronize (e.g. openshift-4.3)',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
+                    [
+                        name: 'REPOSYNC_DIR',
+                        description: 'The directory under reposync to write to',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: ""
+                    ],
                     [
                         name: 'ARCH',
                         description: 'Architecture of repo to synchronize; must have full definition in group.yml for release',
@@ -47,13 +58,15 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize(false)
 
-    currentBuild.displayName = "v${SYNC_VERSION}_${ARCH}"
+    currentBuild.displayName = "v${REPOSYNC_DIR}_${ARCH}"
     REPOSYNC_BASE_DIR="/mnt/workspace/reposync"
-    LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${SYNC_VERSION}"
-    LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${SYNC_VERSION}"
+    LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${REPOSYNC_DIR}"
+    LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${REPOSYNC_DIR}"
 
     MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
-    MIRROR_REPOSYNC_BASE_DIR = "/srv/enterprise/reposync/"
+    MIRROR_RELATIVE_REPOSYNC = "reposync/${REPOSYNC_DIR}"
+    MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
+    MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_REPOSYNC_BASE_DIR}"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
@@ -75,7 +88,7 @@ node {
                         syncDir = "${LOCAL_SYNC_DIR}_${ARCH}"
                     }
 
-                    command = "--working-dir ${DOOZER_WORKING} --group 'openshift-${SYNC_VERSION}' "
+                    command = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
                     command += "beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
                     buildlib.doozer command
 
@@ -97,11 +110,12 @@ node {
                 }
 
                 stage("push to mirror") {
-                    sh "rsync -avzh --chmod=a+rwx,g-w,o-w --delete -e \"ssh -o StrictHostKeyChecking=no\" ${REPOSYNC_BASE_DIR}/ ${MIRROR_TARGET}:${MIRROR_REPOSYNC_BASE_DIR} "
-                    mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh")
+                    sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}"
+                    sh "rsync -avzh --chmod=a+rwx,g-w,o-w --delete -e \"ssh -o StrictHostKeyChecking=no\" ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "
+                    mirror_result = buildlib.invoke_on_use_mirror("push.enterprise.sh ${MIRROR_RELATIVE_REPOSYNC}")
                     if (mirror_result.contains("[FAILURE]")) {
                         echo mirror_result
-                        error("Error running ${SYNC_VERSION} reposync push.enterprise.sh:\n${mirror_result}")
+                        error("Error running ${REPOSYNC_DIR} reposync push.enterprise.sh:\n${mirror_result}")
                     }
                 }
             }
@@ -111,7 +125,7 @@ node {
             to: "${MAIL_LIST_FAILURE}",
             replyTo: "aos-team-art@redhat.com",
             from: "aos-art-automation@redhat.com",
-            subject: "Error syncing v${SYNC_VERSION} repos",
+            subject: "Error syncing v${REPOSYNC_DIR} repos",
             body: """Encountered an error while running OCP pipeline: ${err}
 
 Jenkins job: ${env.BUILD_URL}

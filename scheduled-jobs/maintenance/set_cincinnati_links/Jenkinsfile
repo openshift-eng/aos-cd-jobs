@@ -1,3 +1,12 @@
+properties( [
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+            ]
+)
+
+
+description = ""
+failed = false
 
 def runFor(version, channelPrefix, linkName) {
     b = build(
@@ -10,7 +19,7 @@ def runFor(version, channelPrefix, linkName) {
             ],
             propagate: false,
         )
-    description += "${channel}-${version} - ${b.result}\n"
+    description += "${linkName} -> ${channelPrefix}-${version} - ${b.result}\n"
     failed |= (b.result != "SUCCESS")
 }
 
@@ -37,3 +46,6 @@ node() {
     }
 
 }
+
+currentBuild.description = description.trim()
+currentBuild.result = failed ? "FAILURE" : "SUCCESS"

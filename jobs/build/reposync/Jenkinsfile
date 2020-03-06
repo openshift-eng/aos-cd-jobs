@@ -58,7 +58,7 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     buildlib.initialize(false)
 
-    currentBuild.displayName = "v${REPOSYNC_DIR}_${ARCH}"
+    currentBuild.displayName = "${GROUP} - ${ARCH}"
     REPOSYNC_BASE_DIR="/mnt/workspace/reposync"
     LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${REPOSYNC_DIR}"
     LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${REPOSYNC_DIR}"

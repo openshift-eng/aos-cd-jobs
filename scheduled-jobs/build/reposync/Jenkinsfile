@@ -7,14 +7,15 @@ properties( [
 description = ""
 failed = false
 
-def runFor(sync_version, arch="x86_64") {
-    echo "Triggering reposync for ${sync_version}-${arch}"
+def runFor(group, dir, arch="x86_64") {
+    echo "Triggering reposync for ${group}-${arch}"
     b = build       job: '/aos-cd-builds/build%2Freposync', propagate: false,
-                    parameters: [ string(name: 'SYNC_VERSION', value: sync_version),
+                    parameters: [ string(name: 'GROUP', value: group ),
+                                  string(name: 'REPOSYNC_DIR', value: dir),
                                   string(name: 'ARCH', value: arch),
                                 ]
 
-    description += "${sync_version}-${arch} - ${b.result}\n"
+    description += "${group}-${arch} - ${b.result}\n"
     failed |= (b.result != "SUCCESS")
 }
 
@@ -28,11 +29,13 @@ node() {
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
     for ( String version : sortedVersions() ) {
-        def arches = buildlib.branch_arches("openshift-${version}")
+        group = "openshift-${version}"
+        def arches = buildlib.branch_arches(group)
         for ( String arch : arches ) {
-            runFor(version, arch)
+            runFor(group, version, arch)
         }
     }
+    runFor('ci-deps', 'ci-deps', 'x86_64')
 }
 
 currentBuild.description = description.trim()

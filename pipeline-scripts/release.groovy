@@ -186,6 +186,7 @@ def parseOcpRelease(text) {
 }
 
 def stageSetClientLatest(from_release_tag, arch, client_type) {
+
     if (params.DRY_RUN) {
         echo "Would have tried to set latest for ${from_release_tag} (client type: ${client_type}, arch: {$arch})"
         return
@@ -194,8 +195,9 @@ def stageSetClientLatest(from_release_tag, arch, client_type) {
     build(
         job: 'build%2Fset_client_latest',
         parameters: [
-            buildlib.param('String', 'RELEASE', from_release_tag),
+            buildlib.param('String', 'CHANNEL_OR_RELEASE', from_release_tag),
             buildlib.param('String', 'CLIENT_TYPE', client_type),
+            buildlib.param('String', 'LINK_NAME', 'latest'),
             buildlib.param('String', 'ARCHES', arch),
         ]
     )

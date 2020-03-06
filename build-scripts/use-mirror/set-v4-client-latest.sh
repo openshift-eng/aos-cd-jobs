@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eo pipefail
 
+# jq needs to be available and is installed in user's home
+export PATH="$PATH:/home/jenkins_aos_cd_bot/bin"
+
 if [[ "$#" -lt 3 ]]; then
     echo "Syntax: $0 <release_or_channel> <client_type> <link_name> [arches]"
     echo "  release_or_channel examples: stable-4.3  or  4.2.4   or   4.3.0-0.nightly-2019-11-08-080321"

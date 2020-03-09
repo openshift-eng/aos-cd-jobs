@@ -4,6 +4,7 @@ import groovy.transform.Field
 node {
     checkout scm
     def release = load("pipeline-scripts/release.groovy")
+    def slacklib = load("pipeline-scripts/slacklib.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
@@ -97,7 +98,8 @@ node {
 
     buildlib.cleanWorkdir("${env.WORKSPACE}")
 
-    try {
+    jobThread = slacklib.to(FROM_RELEASE_TAG)
+    jobThread.task("Public release prep for: ${FROM_RELEASE_TAG}") {
         sshagent(['aos-cd-test']) {
             release_info = ""
             release_name = params.NAME.trim()
@@ -185,15 +187,5 @@ Quay PullSpec: quay.io/openshift-release-dev/ocp-release:${dest_release_tag}
 
 ${release_info}
         """);
-    } catch (err) {
-        commonlib.email(
-            to: "${params.MAIL_LIST_FAILURE}",
-            replyTo: "aos-team-art@redhat.com",
-            from: "aos-art-automation@redhat.com",
-            subject: "Error running OCP Release",
-            body: "Encountered an error while running OCP release: ${err}");
-        currentBuild.description = "Error while running OCP release:\n${err}"
-        currentBuild.result = "FAILURE"
-        throw err
     }
 }

@@ -71,7 +71,7 @@ node {
                     ],
                     [
                         name: 'DIGEST',
-                        description: 'The digest of the release. Example value: "sha256=f28cbabd1227352fe704a00df796a4511880174042dece96233036a10ac61639"\nCan be taken from the Release job.',
+                        description: 'The digest of the release. Example value: "sha256:f28cbabd1227352fe704a00df796a4511880174042dece96233036a10ac61639"\nCan be taken from the Release job.',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],

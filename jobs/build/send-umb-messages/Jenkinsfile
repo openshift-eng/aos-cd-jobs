@@ -29,42 +29,42 @@ node {
                 RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(release)
                 latestRelease = sh(
                     returnStdout: true,
-                    script: "curl -s ${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${release}/latest",
+                    script: "curl -sf ${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${release}/latest",
                 ).trim()
+                latestReleaseVersion = readJSON(text: latestRelease).name
                 echo "${release}: latestRelease=${latestRelease}"
-		try {
+                try {
                     previousRelease = readFile("${release}.current")
                     echo "${release}: previousRelease=${previousRelease}"
-		} catch (readex) {
-		    // The first time this job is ran and the first
-		    // time any new release is added the 'readFile'
-		    // won't find the file and will raise a
-		    // NoSuchFileException exception.
-			echo "${release}: Error reading revious release: ${readex}"
-		    touch file: "${release}.current"
-		    previousRelease = ""
-		}
+                } catch (readex) {
+                    // The first time this job is ran and the first
+                    // time any new release is added the 'readFile'
+                    // won't find the file and will raise a
+                    // NoSuchFileException exception.
+                    echo "${release}: Error reading revious release: ${readex}"
+                    touch file: "${release}.current"
+                    previousRelease = ""
+                }
 
                 if ( latestRelease != previousRelease ) {
-                    def latestReleaseVersion = readJSON(text: latestRelease).name
                     def previousReleaseVersion = "0.0.0"
                     if (previousRelease)
                         previousReleaseVersion = readJSON(text: previousRelease).name
-		    currentBuild.displayName += "🆕 ${release}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
-		    currentBuild.description += "\n🆕 ${release}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
+		                currentBuild.displayName += "🆕 ${release}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
+		                currentBuild.description += "\n🆕 ${release}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
 
                     sendCIMessage(
                         messageProperties: "release=${release}",
-			messageContent: latestRelease,
+			            messageContent: latestRelease,
                         messageType: 'Custom',
-			failOnError: true,
+			            failOnError: true,
                         overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
                         providerName: 'Red Hat UMB'
                     )
                     writeFile file: "${release}.current", text: "${latestRelease}"
                 } else {
-		    currentBuild.description += "\nUnchanged: ${release}"
-		}
+                    currentBuild.description += "\nUnchanged: ${release}"
+                }
             }
         }
     }

@@ -210,7 +210,7 @@ node {
             stage("build images") {
                 if (!any_images_to_build) { return }
                 command = doozerOpts
-                command += "${include_exclude} images:build --push-to-defaults --repo-type ${repo_type} "
+                command += "${include_exclude} --profile ${repo_type} images:build --push-to-defaults"
                 try {
                     buildlib.doozer command
                 } catch (err) {

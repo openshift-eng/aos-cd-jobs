@@ -1202,7 +1202,7 @@ def determineBuildVersion(stream, branch, versionParam) {
     def minor = streamSegments[1]
 
     // As of 4.4, let's try 4.x for everything (doozer will add patch version).
-    if (minor >= 4) {
+    if (major >=4 && minor >= 4) {
         echo "Forcing version ${stream} which is convention for this major.minor."
         return stream
     }

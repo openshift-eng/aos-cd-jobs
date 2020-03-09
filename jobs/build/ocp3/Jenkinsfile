@@ -861,7 +861,7 @@ images:rebase --version v${NEW_VERSION}
 ${ODCS_FLAG}
 ${exclude}
 images:build
---push-to-defaults --repo-type unsigned ${ODCS_OPT}
+--push-to-defaults ${ODCS_OPT}
 """
                     }
                     catch (err) {

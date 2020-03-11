@@ -325,12 +325,24 @@ node {
     }
 
     stage('log sync'){
+        buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
+        echo "Artifact path (source to sync): ${buildArtifactPath}"
         if ( !params.DRY_RUN ) {
-            buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
-            dirName = buildArtifactPath.split('/')[-1]
-            sh "/bin/rsync --inplace -avzh ${buildArtifactPath}/[0-9]* /mnt/art-build-artifacts/signing-jobs/${dirName}"
+            // Find tool configuration for 'rclone' in bitwarden under
+            // "ART S3 Signing Job Logs Bucket"
+            //
+            // Option notes:
+            //   -v=verbose, -P=Progress
+            //   --no-traverse=Don't traverse destination file system
+            //       on copy (often faster when sending a few files,
+            //       or if you have a lot of files on the remote side)
+            //   --max-age=Consider items made within the last 1 week
+            //       for copying to the s3 bucket
+            sh "/bin/rclone -v copy -P --max-age 1w --no-traverse ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
         } else {
-            echo("DRY-RUN, not syncing logs")
+            echo "DRY-RUN, not syncing logs (but this would have happened):"
+            echo "Artifact path (source to sync): ${buildArtifactPath}"
+            sh "/bin/rclone -v --dry-run copy -P --max-age 1w --no-traverse ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
         }
     }
 }

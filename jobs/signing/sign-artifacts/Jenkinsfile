@@ -327,20 +327,25 @@ node {
     stage('log sync'){
         buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
         echo "Artifact path (source to sync): ${buildArtifactPath}"
+        // Find tool configuration for 'rclone' in bitwarden under
+        // "ART S3 Signing Job Logs Bucket"
+        //
+        // Option notes:
+        //   --max-age=Consider items modified within the period given
+        //   --low-level-retries 1=Don't bother retrying small
+        //       failures, just do full retries
+        //   --retries 10=Retry it all 10 times if there are failures
+        //   --local-no-check-updated=The log we are copying for this
+        //       job is constantly updating, it's ok, don't worry
+        //       about it. We'll update the remote version next time
+        def logCopyOpts = "--verbose copy --max-age 24h --local-no-check-updated --low-level-retries 1 --retries 10 ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
+
         if ( !params.DRY_RUN ) {
-            // Find tool configuration for 'rclone' in bitwarden under
-            // "ART S3 Signing Job Logs Bucket"
-            //
-            // Option notes:
-            //   --max-age=Consider items modified within the period given
-            //   --low-level-retries 1=Don't bother retrying small
-            //       failures, just do full retries
-            //   --retries 10=Retry it all 10 times if there are failures
-            sh "/bin/rclone --verbose copy --max-age 24h --low-level-retries 1 --retries 10 ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
+            sh "/bin/rclone ${logCopyOpts}"
         } else {
             echo "DRY-RUN, not syncing logs (but this would have happened):"
             echo "Artifact path (source to sync): ${buildArtifactPath}"
-            sh "/bin/rclone --verbose --dry-run copy --max-age 24h --low-level-retries 1 --retries 10 ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
+            sh "/bin/rclone --dry-run ${logCopyOpts}"
         }
     }
 }

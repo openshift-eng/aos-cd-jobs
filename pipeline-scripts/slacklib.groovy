@@ -4,25 +4,26 @@ import groovy.json.JsonOutput
  * Example usage:
  *  checkout scm
  *  slacklib = load('pipeline-scripts/slacklib.groovy')
- *  o1 = slacklib.to('4.1')  // channel will be determined by major.minor
+ *  slackChannel = slacklib.to('4.1')  // channel will be determined by major.minor
  *
  *  Best pattern:
- *    o1.task("Releasing ${something}") {
- *        it.say('progress...')
- *        it.say('progress...')
- *        it.say('progress...')
+ *    slackChannel.task("Releasing ${something}") {
+ *        taskThread ->
+ *        taskThread.say('progress...')
+ *        taskThread.say('progress...')
+ *        taskThread.say('progress...')
  *        error('Connection issue..')
  *    }  // Any exception will be caught, reported for the task, and rethrown
  *
  *  Non-closure based:
- *    jobThread = o1.say('starting a thread for this job')
+ *    jobThread = slackChannel.say('starting a thread for this job')
  *    jobThread.say('adding information to the thread')
  *    jobThread.say('another line')
  *    jobThread.failure('run images:rebase')
  *
  *  Custom channel:
- *    o2 = slacklib.to('#team-art') // channel identified explicitly
- *    o2.say('Hi @art-team')
+ *    slackChannel = slacklib.to('#team-art') // channel identified explicitly
+ *    slackChannel.say('Hi @art-team')
  */
 
 // Maps builder emails to slack usernames IF email username does not match
@@ -51,8 +52,8 @@ def getBuildURL() {
     return env.BUILD_URL
 }
 
-def getBuildNumber() {
-    return "${currentBuild.number}"
+def getDisplayName() {
+    return "${currentBuild.displayName}"
 }
 
 def notifySlack(channel, as_user, text, attachments=[], thread_ts=null, replyBroadcast=false, verbose=false) {
@@ -67,7 +68,7 @@ def notifySlack(channel, as_user, text, attachments=[], thread_ts=null, replyBro
             owner = "@${owner.split('@')[0]}"  // use the email username as a slack handle
         }
         attachments << [
-                title: "Job: <${getBuildURL()}console|#${getBuildNumber()}> by ${owner}",
+                title: "Job: ${env.JOB_NAME} <${getBuildURL()}console|${getDisplayName()}> by ${owner}",
                 color: '#439FE0',
         ]
     }

@@ -2,6 +2,7 @@
 
 commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
+slacklib = commonlib.slacklib
 
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]

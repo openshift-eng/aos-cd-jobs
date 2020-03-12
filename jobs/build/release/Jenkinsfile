@@ -7,6 +7,7 @@ node {
     def slacklib = load("pipeline-scripts/slacklib.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
+    def slacklib = commonlib.slacklib
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
 
     // Expose properties for a parameterized build
@@ -98,8 +99,9 @@ node {
 
     buildlib.cleanWorkdir("${env.WORKSPACE}")
 
-    jobThread = slacklib.to(FROM_RELEASE_TAG)
-    jobThread.task("Public release prep for: ${FROM_RELEASE_TAG}") {
+    slackChannel = slacklib.to(FROM_RELEASE_TAG)
+    slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}") {
+        taskThread ->
         sshagent(['aos-cd-test']) {
             release_info = ""
             release_name = params.NAME.trim()
@@ -134,11 +136,22 @@ node {
                 errata_url = retval.errataUrl
             }
             stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previous, errata_url) }
+
             stage("tag stable") { release.stageTagRelease(quay_url, release_name, dest_release_tag, arch) }
-            stage("wait for stable") { release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, release_name) }
+
+            stage("wait for stable") {
+                commonlib.retrySkipAbort("Waiting for stable ${release_name}",
+                                        "Release ${release_name} is not currently Accepted by release controller. Issue cluster-bot requests for each upgrade test. "
+                                         + "SKIP when at least one test passes for each upgrade type. Or RETRY if the release is finally Accepted.",
+                                         taskThread)  {
+                    release.stageWaitForStable(RELEASE_STREAM_NAME, release_name)
+                 }
+            }
+
             stage("get release info") {
                 release_info = release.stageGetReleaseInfo(quay_url, dest_release_tag)
             }
+
             stage("advisory image list") {
                 filename = "${dest_release_tag}-image-list.txt"
                 retry (3) {
@@ -153,23 +166,27 @@ node {
                     body: readFile(filename)
                 )
             }
+
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
             stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE) }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
-            stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch) }
+            stage("send release message") { release.sendReleaseCompleteMessage(params.NAME, advisory, errata_url, arch) }
             stage("sign artifacts") {
-                release.signArtifacts(
-                    name: name,
-                    signature_name: "signature-1",
-                    dry_run: params.DRY_RUN,
-                    env: "prod",
-                    key_name: "redhatrelease2",
-                    arch: arch,
-                    digest: payloadDigest,
-		    client_type: "ocp",
-                )
+                commonlib.retrySkipAbort("Signing artifacts", "Error running signing job", taskThread) {
+                    release.signArtifacts(
+                        name: name,
+                        signature_name: "signature-1",
+                        dry_run: params.DRY_RUN,
+                        env: "prod",
+                        key_name: "redhatrelease2",
+                        arch: arch,
+                        digest: payloadDigest,
+                        client_type: "ocp",
+                    )
+                }
             }
+
         }
 
         dry_subject = ""

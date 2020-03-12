@@ -4,6 +4,7 @@ import groovy.transform.Field
 
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
+slacklib = commonlib.slacklib
 
 oc_cmd = "oc --config=/home/jenkins/kubeconfigs/art-publish.kubeconfig"
 
@@ -386,14 +387,13 @@ def getReleaseTagArch(from_release_tag) {
     return arch
 }
 
-def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String releaseStreamName='4-stable', String providerName = 'Red Hat UMB', String arch = 'x86_64') {
+def void sendReleaseCompleteMessage(releaseName, int advisoryNumber, String advisoryLiveUrl, String releaseStreamName='4-stable', String providerName = 'Red Hat UMB', String arch = 'x86_64') {
 
     if (params.DRY_RUN) {
         echo "Would have sent release complete message"
         return
     }
 
-    def releaseName = release.name
     def message = [
         "contact": [
             "url": "https://mojo.redhat.com/docs/DOC-1178565",

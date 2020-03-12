@@ -1,3 +1,5 @@
+slacklib = load("pipeline-scripts/slacklib.groovy")
+
 ocp3DefaultVersion = "3.11"
 ocp3Versions = [
     "3.11",
@@ -377,6 +379,61 @@ def getReleaseControllerURL(releaseStreamName) {
         archSuffix = "-ppc64le"
     }
     return "https://openshift-release${archSuffix}.svc.ci.openshift.org"
+}
+
+def inputRequired(cl) {
+    def oldName = currentBuild.displayName
+    try {
+        currentBuild.displayName = "INPUT REQUIRED: ${oldName}"
+        cl()
+    } finally {
+        currentBuild.displayName = oldName
+    }
+}
+
+def retrySkipAbort(goal, prompt='', slackOutput=null, cl) {
+    def success = false
+    if (!slackOutput) {
+        slackOutput = slacklib.to(null)
+    }
+    while( !success ) {
+        try {
+            cl()
+            success = true
+        } catch ( retry_e ) {
+            def description = "Problem encountered during: ${goal} => ${retry_e}"
+            echo "${description}"
+            slackOutput.failure("[INPUT REQUIRED] ${description}")
+            inputRequired() {
+
+                if ( ! prompt ) {
+                    prompt = "Problem encountered during: ${goal}"
+                }
+
+                def resp = input message: prompt,
+                    parameters: [
+                        [
+                            $class     : 'hudson.model.ChoiceParameterDefinition',
+                            choices    : ['RETRY', 'SKIP', 'ABORT'].join('\n'),
+                            description : 'Retry this goal, Skip this goal, or Abort the pipeline',
+                            name       : 'action'
+                        ]
+                    ]
+
+                def action = (resp instanceof String)?resp:resp.action
+
+                switch(action) {
+                case 'RETRY':
+                    break
+                case 'SKIP':
+                    success = true  // fake it
+                    break
+                case 'ABORT':
+                    error('User chose to abort retries of: ${goal}')
+                }
+            }
+        }
+    }
 }
 
 return this

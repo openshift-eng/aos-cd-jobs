@@ -4,6 +4,9 @@ commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
 slacklib = commonlib.slacklib
 
+// Kubeconfig allowing ART to interact with api.ci.openshift.org
+ciKubeconfig = "/home/jenkins/kubeconfigs/art-publish.kubeconfig"
+
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
 
@@ -844,14 +847,25 @@ def parse_record_log( working_dir ) {
 //
 // @param branch <String>: The name of the branch to get configs
 //   for. For example: 'openshift-4.3'
+// @param gaOnly <boolean>: If you only want group arches and do not care about arches_override.
 //
 // @return arches <List>: A list of the arches built for this branch
-def branch_arches(String branch) {
+def branch_arches(String branch, boolean gaOnly=false) {
     echo("Fetching group config for '${branch}'")
-    def d = doozer("--group=${branch} config:read-group --yaml arches",
+
+    // Check if arches_override has been specified. This is used in group.yaml
+    // when we temporarily want to build for CPU architectures that are not yet GA.
+    def arches_override = doozer("--group=${branch} config:read-group --yaml arches_override --default '[]'",
+            [capture: true]).trim()
+    def arches_override_list = readYaml(text: arches_override)
+    if ( !gaOnly && arches_override_list ) {
+        return arches_override_list
+    }
+
+    def arches = doozer("--group=${branch} config:read-group --yaml arches",
 		   [capture: true]).trim()
-    def datas = readYaml(text: d)
-    return datas
+    def arches_list = readYaml(text: arches)
+    return arches_list
 }
 
 // Search the build log for failed builds

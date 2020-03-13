@@ -39,12 +39,18 @@ node {
         echo "Initializing bug sweep for ${version}. Sync: #${currentBuild.number}"
         currentBuild.displayName = "${version} bug sweep"
 
-        buildlib.assertBuildPermitted(doozerOpts)
-
         buildlib.elliott "--version"
         sh "which elliott"
 
         buildlib.kinit()
+    }
+
+    // short circuit to UNSTABLE (not FAILURE) when automation is frozen
+    if (!buildlib.isBuildPermitted(doozerOpts)) {
+        currentBuild.result = 'UNSTABLE'
+        currentBuild.description = 'Builds not permitted'
+        echo('This build is being terminated because it is not permitted according to current group.yml')
+        return
     }
 
     currentBuild.description = "Repairing state and sweeping new bugs.\n"

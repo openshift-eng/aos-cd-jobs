@@ -342,7 +342,7 @@ node {
         //       about it. We'll update the remote version next time
         //   --ignore-existing=We can't update s3 objects, so don't
         //       consider for syncing if they are already on the remote
-        def logCopyOpts = "--verbose copy --s3-chunk-size 1K --exclude 'program.dat' --no-traverse --max-age 24h --retries-sleep 10s --ignore-existing --local-no-check-updated --low-level-retries 1 --retries 5 ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
+        def logCopyOpts = "--verbose copy --s3-chunk-size 5M --exclude 'program.dat' --no-traverse --max-age 24h --retries-sleep 10s --ignore-existing --local-no-check-updated --low-level-retries 1 --retries 5 ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
 
 	sh "/bin/rclone version"
 

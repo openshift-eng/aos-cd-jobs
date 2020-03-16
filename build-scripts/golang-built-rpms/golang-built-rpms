@@ -1,0 +1,329 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+gbr_version='v0.0.1'
+available_output_formats=(csv yaml)
+
+default_output_format=csv
+default_verbosity=0
+
+export ocp_version=''
+export output_format="${default_output_format}"
+export verbose="${default_verbosity}"
+
+export gbr_yaml_template="
+- package: '%s'
+  latest_shipped: '%s'
+  latest_candidate: '%s'
+  candidate_target: '%s'
+  golang_requirement: '%s'
+  aarch64:
+    rpm: '%s'
+    buildroot: '%s'
+    designation: '%s'
+  x86_64:
+    rpm: '%s'
+    buildroot: '%s'
+    designation: '%s'
+  ppc64le:
+    rpm: '%s'
+    buildroot: '%s'
+    designation: '%s'
+  s390x:
+    rpm: '%s'
+    buildroot: '%s'
+    designation: '%s'"
+export gbr_csv_template="%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s\n"
+
+gbr::pre_validate_arguments() {
+    if [[ $# -eq 0 ]]; then
+        gbr::log_error "Please inform an OCP version"
+        exit 1
+    fi
+    if [[ "$1" =~ ^(-h|--help)$ ]]; then
+        gbr::show_help
+        exit 0
+    fi
+}
+
+gbr::parse_arguments() {
+    ocp_version="$1"
+    shift
+    while [[ $# -gt 0 ]]; do
+        key="$1"
+        case "${key}" in
+            -f|--format)
+                output_format="$2"
+                shift
+                shift
+                ;;
+            -v|--verbose)
+                verbose=1
+                shift
+                ;;
+            -h|--help)
+                gbr::show_help
+                exit 0
+                ;;
+            *)
+                gbr::log_error "Unrecognized argument: ${key}"
+                gbr::show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
+gbr::post_validate_arguments() {
+    if ! [[ "${ocp_version}" =~ ^[0-9]+\.[0-9]+$ ]]; then
+        gbr::log_error "\"${ocp_version}\" is not a valid OCP version."
+        exit 1
+    fi
+    if [[ " ${available_output_formats[*]} " != *" ${output_format} "* ]]; then
+        gbr::log_error "${output_format} is not an available format: ${available_output_formats[*]}"
+        exit 1
+    fi
+}
+
+gbr::log_error() {
+    gbr::log_to_stderr "\e[1;31mERROR:\e[0m $1"
+}
+export -f gbr::log_error
+
+gbr::log_skipped() {
+    test ${verbose} -gt 0 && gbr::log_to_stderr "$1"
+}
+export -f gbr::log_skipped
+
+gbr::log_to_stderr() {
+    >&2 echo -e "$1"
+}
+export -f gbr::log_to_stderr
+
+gbr::show_help() {
+    echo -e "$(cat << END
+\e[1mgolang-built-rpms ${gbr_version}\e[0m
+
+Find golang-built RPMs and print out their corresponding buildroots.
+
+\e[1mUsage:\e[0m
+    $ golang-built-rpms OCP_VERSION [OPTIONS]...
+
+\e[1mOptions:\e[0m
+    -f    --format     Choose an output format.
+                       Available formats: ${available_output_formats[*]}
+                       default: ${default_output_format}
+
+    -v    --verbose    Print skipped packages to STDERR
+                       default: ${default_verbosity}
+
+    -h    --help       Print this help
+
+\e[1mExamples:\e[0m
+    Most basic usage:
+    $ golang-built-rpms 3.11
+
+    Logging skipped (non-golang) packages to file:
+    $ golang-built-rpms 4.1 -v 2> non-golang-pkgs.log
+
+    YAML output to file
+    $ golang-built-rpms 4.2 -f yaml > pkg-buildroots.yaml
+END
+    )"
+}
+
+gbr::get_tagged_packages() {
+    {
+        brew list-pkgs --quiet --tag="rhaos-${ocp_version}-rhel-7";
+        brew list-pkgs --quiet --tag="rhaos-${ocp_version}-rhel-8";
+    } | awk '{ print $1 }' | sort -u
+}
+
+gbr::get_package_golang_info() {
+    package="$1"
+    # @TODO properly map latest_shipped_builds with latest_candidate_builds
+    # latest_shipped="$(gbr::get_latest_shipped_builds "${package}")"
+
+    latest_candidate_builds="$(gbr::get_latest_candidate_builds "${package}")"
+    if [[ -z "${latest_candidate_builds}" ]]; then
+        gbr::log_skipped "# Skipping ${package}, latest candidate not found"
+        exit 0
+    fi
+
+    for latest_candidate in ${latest_candidate_builds}; do
+        candidate_buildinfo="$(brew buildinfo "${latest_candidate}")"
+        candidate_target="$(gbr::get_build_target "${candidate_buildinfo}")"
+        candidate_rpms="$(gbr::get_build_rpms "${candidate_buildinfo}")"
+        if [[ -z "${candidate_rpms}" ]]; then
+            gbr::log_skipped "# Skipping ${package}, RPM artifacts not found"
+            exit 0
+        fi
+
+        src_rpm="$(gbr::get_rpm_path 'src' "${candidate_rpms}")"
+        if [[ -z "${src_rpm}" ]]; then
+            gbr::log_skipped "# Skipping ${package}, source RPM artifact not found"
+            exit 0
+        fi
+
+        src_rpm_url="$(gbr::get_rpm_url "${src_rpm}")"
+        golang_requirement="$(gbr::get_golang_requirement "${src_rpm_url}")"
+        if [[ -z "${golang_requirement}" ]]; then
+            gbr::log_skipped "# Skipping ${package}, golang requirement not found"
+            exit 0
+        fi
+
+        for arch in aarch64 x86_64 ppc64le s390x; do
+            arch_rpm="${arch}_rpm"
+            arch_buildroot="${arch}_buildroot"
+            arch_designation="${arch}_designation"
+
+            declare "${arch_rpm}=$(gbr::extract_rpm_name "$(gbr::get_rpm_path ${arch} "${candidate_rpms}")")"
+            if [[ -n "${!arch_rpm}" ]]; then
+                declare "${arch_buildroot}=$(gbr::get_rpm_buildroot "${!arch_rpm}")"
+            fi
+            if [[ -n "${!arch_buildroot}" ]]; then
+                declare "${arch_designation}=$(gbr::determine_designation "${!arch_buildroot}")"
+            fi
+        done
+
+        gbr::print_formatted_output \
+            "${package}" \
+            "latest_shipped_placeholder" \
+            "${latest_candidate}" \
+            "${candidate_target}" \
+            "${golang_requirement}" \
+            "${aarch64_rpm}" \
+            "${aarch64_buildroot}" \
+            "${aarch64_designation}" \
+            "${x86_64_rpm}" \
+            "${x86_64_buildroot}" \
+            "${x86_64_designation}" \
+            "${ppc64le_rpm}" \
+            "${ppc64le_buildroot}" \
+            "${ppc64le_designation}" \
+            "${s390x_rpm}" \
+            "${s390x_buildroot}" \
+            "${s390x_designation}"
+    done
+    exit 0
+}
+export -f gbr::get_package_golang_info
+
+gbr::get_latest_shipped_builds() {
+    package="$1"
+    {
+        brew latest-build --quiet "rhaos-${ocp_version}-rhel-7" "${package}";
+        brew latest-build --quiet "rhaos-${ocp_version}-rhel-8" "${package}";
+    } | awk '{ print $1 }'
+}
+export -f gbr::get_latest_shipped_builds
+
+gbr::get_latest_candidate_builds() {
+    package="$1"
+    {
+        brew latest-build --quiet "rhaos-${ocp_version}-rhel-7-candidate" "${package}";
+        brew latest-build --quiet "rhaos-${ocp_version}-rhel-8-candidate" "${package}";
+    } | awk '{ print $1 }'
+}
+export -f gbr::get_latest_candidate_builds
+
+gbr::get_build_target() {
+    brew_buildinfo_output="$1"
+    echo "${brew_buildinfo_output}" | grep -E '^Task: ' | sed -e 's/Task: //'
+}
+export -f gbr::get_build_target
+
+gbr::get_build_rpms() {
+    brew_buildinfo_output="$1"
+    echo "${brew_buildinfo_output}" | grep -E '\.rpm$'
+}
+export -f gbr::get_build_rpms
+
+gbr::get_rpm_path() {
+    needle="$1"
+    haystack="$2"
+    echo "${haystack}" | grep -m 1 -E "\.${needle}\.rpm$"
+}
+export -f gbr::get_rpm_path
+
+gbr::get_rpm_url() {
+    rpm_path="$1"
+    echo "${rpm_path}" | sed -e 's|/mnt/redhat|http://download.eng.bos.redhat.com|'
+}
+export -f gbr::get_rpm_url
+
+gbr::get_golang_requirement() {
+    src_rpm_url="$1"
+    rpm -qp --requires "${src_rpm_url}" | grep -E '(golang|go-toolset|go-compiler)'
+}
+export -f gbr::get_golang_requirement
+
+gbr::extract_rpm_name() {
+    rpm_path="$1"
+    echo "${rpm_path}" | rev | cut -d'/' -f1 | rev
+}
+export -f gbr::extract_rpm_name
+
+gbr::get_rpm_buildroot() {
+    rpm_name="$1"
+    brew rpminfo "${rpm_name}" | grep 'Buildroot:' | sed -e 's/Buildroot: //'
+}
+export -f gbr::get_rpm_buildroot
+
+gbr::determine_designation() {
+    buildroot="$1"
+
+    if [[ "${buildroot}" == *"rhaos-${ocp_version}"* ]]; then echo same
+    elif [[ "${buildroot}" == *"rhaos-"* ]]; then echo different
+    else echo foreign
+    fi
+}
+export -f gbr::determine_designation
+
+gbr::print_header() {
+    if [[ "${output_format}" == yaml ]]; then
+        echo '---'
+        return
+    fi
+    if [[ "${output_format}" == csv ]]; then
+        printf -- "${gbr_csv_template}" \
+            package \
+            latest_shipped \
+            latest_candidate \
+            candidate_target \
+            golang_requirement \
+            aarch64_rpm \
+            aarch64_buildroot \
+            aarch64_designation \
+            x86_64_rpm \
+            x86_64_buildroot \
+            x86_64_designation \
+            ppc64le_rpm \
+            ppc64le_buildroot \
+            ppc64le_designation \
+            s390x_rpm \
+            s390x_buildroot \
+            s390x_designation
+        return
+    fi
+}
+
+gbr::print_formatted_output() {
+    if [[ "${output_format}" == yaml ]]; then
+        printf -- "${gbr_yaml_template}" "$@"
+        return
+    fi
+    if [[ "${output_format}" == csv ]]; then
+        printf -- "${gbr_csv_template}" "$@"
+        return
+    fi
+}
+export -f gbr::print_formatted_output
+
+gbr::pre_validate_arguments "$@"
+gbr::parse_arguments "$@"
+gbr::post_validate_arguments
+gbr::print_header
+gbr::get_tagged_packages |\
+    xargs --max-args=1 --max-procs=100 -I {} bash -c 'gbr::get_package_golang_info {}'

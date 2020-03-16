@@ -68,7 +68,7 @@ main() {
   : ${browser:=${BROWSER-firefox}}
 
   urls=(
-    $(scheduled_builds)
+    $(buildvm)
     $(rhcos_urls)
     $(bugzilla)
     $(backlog)
@@ -138,7 +138,8 @@ repo_links() {
   done
 }
 
-scheduled_builds() {
+buildvm() {
+  echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/scheduled-builds/'
 }
 

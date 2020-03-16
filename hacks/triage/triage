@@ -65,7 +65,7 @@ main() {
     esac
   done
 
-  : ${browser:=$BROWSER}
+  : ${browser:=${BROWSER-firefox}}
 
   urls=(
     $(scheduled_builds)

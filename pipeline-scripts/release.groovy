@@ -445,7 +445,7 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
 def signArtifacts(Map signingParams) {
     build(
         job: "/signing-jobs/signing%2Fsign-artifacts",
-        propagate: false,
+        propagate: true,
         parameters: [
             string(name: "NAME", value: signingParams.name),
             string(name: "SIGNATURE_NAME", value: signingParams.signature_name),

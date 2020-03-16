@@ -102,7 +102,7 @@ gbr::log_to_stderr() {
 export -f gbr::log_to_stderr
 
 gbr::show_help() {
-    read -r -d '' help_text << END
+    echo -e "$(cat << END
 \e[1mgolang-built-rpms ${gbr_version}\e[0m
 
 Find golang-built RPMs and print out their corresponding buildroots.
@@ -130,14 +130,14 @@ Find golang-built RPMs and print out their corresponding buildroots.
     YAML output to file
     $ golang-built-rpms 4.2 -f yaml > pkg-buildroots.yaml
 END
-    echo -e "${help_text}"
+    )"
 }
 
 gbr::get_tagged_packages() {
     {
         brew list-pkgs --quiet --tag="rhaos-${ocp_version}-rhel-7";
         brew list-pkgs --quiet --tag="rhaos-${ocp_version}-rhel-8";
-    } | awk '{ print $1 }'
+    } | awk '{ print $1 }' | sort -u
 }
 
 gbr::get_package_golang_info() {
@@ -255,7 +255,7 @@ export -f gbr::get_rpm_url
 
 gbr::get_golang_requirement() {
     src_rpm_url="$1"
-    rpm -qp --requires "${src_rpm_url}" | grep -E '(golang|go-toolset)'
+    rpm -qp --requires "${src_rpm_url}" | grep -E '(golang|go-toolset|go-compiler)'
 }
 export -f gbr::get_golang_requirement
 

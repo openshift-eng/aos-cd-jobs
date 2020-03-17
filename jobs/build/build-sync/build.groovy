@@ -112,13 +112,45 @@ def buildSyncMirrorImages() {
 
 
 def buildSyncApplyImageStreams() {
-	echo("Updating ImageStream's")
-    // And one more time for each other stream
+    echo("Updating ImageStream's")
     for ( String arch: arches ) {
+        // Why be consistent when we could have more edge cases instead?
+        def a = (arch == "x86_64")? "": "-${arch}"
+        def theStream = "${params.BUILD_VERSION}-art-latest${a}"
+
+        // Get the current IS and save it to disk. We may need this for debugging.
+        def currentIS = getImageStream(theStream, arch)
+        writeJSON(file: "pre-apply-${theStream}.json", json: currentIS)
+        artifacts.addAll(["pre-apply-${theStream}.json"])
+
+        // We check for updates by comparing the object's 'generation'
+        def currentGeneration = currentIS.metadata.generation
+        echo("Current generation for ${theStream}: ${currentGeneration}")
+
+        // Ok, try the update. Jack that debug output up high, just in case
         echo("Going to apply this ImageStream:")
         sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
-        buildlib.oc "${logLevel} apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}"
+        buildlib.oc(" --loglevel=8 apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}")
+
+        // Now we verify that the change went through and save the bits as we go
+        def newIS = getImageStream(theStream, arch)
+        writeJSON(file: "post-apply-${theStream}.json", json: newIS)
+        artifacts.addAll(["post-apply-${theStream}.json"])
+        def newGeneration = newIS.metadata.generation
+        if ( newGeneration == currentGeneration ) {
+            echo("IS `.metadata.generation` has not updated, it should have updated. Please use the debug info above to report this issue")
+            throw new Exception("Image Stream ${theStream} did not update")
+        }
     }
+}
+
+// Get a JSON object of the named image stream in the ocp
+// namespace. The image stream is also saved locally for debugging
+// purposes.
+def getImageStream(is, arch) {
+    def a = (arch == "x86_64")? "ocp": "ocp-${arch}"
+    def isJson = readJSON(text: buildlib.oc(" get is ${is} -n ${a} -o json --kubeconfig ${ciKubeconfig}", [capture: true]))
+    return isJson
 }
 
 return this

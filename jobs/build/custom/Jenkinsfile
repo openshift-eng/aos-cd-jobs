@@ -1,6 +1,9 @@
 node {
     checkout scm
-    def commonlib = load("pipeline-scripts/commonlib.groovy")
+
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    buildlib.initialize(false)
+    def commonlib = buildlib.commonlib
 
     // Expose properties for a parameterized build
     properties(
@@ -109,8 +112,6 @@ node {
         ]
     )
 
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    buildlib.initialize(false)
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived

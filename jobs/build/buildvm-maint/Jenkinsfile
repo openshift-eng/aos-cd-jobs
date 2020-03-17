@@ -29,10 +29,9 @@ node('openshift-build-1') {
 
     checkout scm
 
-    def commonlib = load( "pipeline-scripts/commonlib.groovy")
-    commonlib.initialize()
-
     def buildlib = load( "pipeline-scripts/buildlib.groovy" )
+    def commonlib = buildlib.commonlib
+
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     def doozer_working = "${WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)

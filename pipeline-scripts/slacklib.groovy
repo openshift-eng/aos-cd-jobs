@@ -145,18 +145,18 @@ def to(channel_or_release, verbose=false, as_user='art-release-bot') {
             }
         }
     }
-    return new Outputter(this, channel, as_user, null, [], verbose)
+    return new SlackOutputter(this, channel, as_user, null, [], verbose)
 }
 
-class Outputter {
+class SlackOutputter {
     private channel
     private script
     private thread_ts
     private as_user
-    private pinnedAttachments // attachments which this Outputter will always send
+    private pinnedAttachments // attachments which this SlackOutputter will always send
     private verbose
 
-    public Outputter(script, channel, as_user, thread_ts=null, pinnedAttachments=[], verbose=false) {
+    public SlackOutputter(script, channel, as_user, thread_ts=null, pinnedAttachments=[], verbose=false) {
         this.script = script
         this.channel = channel
         this.as_user = as_user
@@ -183,11 +183,11 @@ class Outputter {
 
     /**
      * Sends a message to the channel (and possibly slack thread) associated with this
-     * Outputter.
+     * SlackOutputter.
      * @param msg The text to send.
      * @param attachments An array of slack attachments (https://api.slack.com/messaging/composing/layouts#attachments)
      * @param replyBroadcast if within a thread and true, also send to main channel
-     * @return Returns an Outputter that will append to the thread associated with the message.
+     * @return Returns an SlackOutputter that will append to the thread associated with the message.
      */
     public say(msg, attachments=[], replyBroadcast=false) {
         def new_thread_ts = this.thread_ts
@@ -197,7 +197,7 @@ class Outputter {
                 new_thread_ts = responseJson.message.ts
             }
         }
-        return new Outputter(this.script, this.channel, this.as_user, new_thread_ts, this.pinnedAttachments, this.verbose)
+        return new SlackOutputter(this.script, this.channel, this.as_user, new_thread_ts, this.pinnedAttachments, this.verbose)
     }
 
     public failure(description, exception=null, attachments=[]) {

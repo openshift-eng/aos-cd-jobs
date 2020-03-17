@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Data
+
+releases=(
+  3.11
+  4.1
+  4.2
+  4.3
+  4.4
+)
+
+gh_repos=(
+  aos-cd-jobs
+  ocp-build-data
+  doozer
+  elliott
+  art-ci-toolkit
+)
+
+bz_query_params=(
+  'bug_status=NEW'
+  'classification=Red%20Hat'
+  'component=Release'
+  'email1=lmeyer%40redhat'
+  'emailtype1=substring'
+  'product=OpenShift%20Container%20Platform'
+  'query_format=advanced'
+)
+
+bz_column_list=(
+  component
+  assigned_to
+  bug_severity
+  bug_status
+  resolution
+  short_desc
+  changeddate
+  cf_pm_score
+  target_release
+)
+
+halp() {
+  cat <<-EOF
+	$0: Open all links needed for the triage manager role in a single browser window.
+	Listens to the \$BROWSER environment variable to select the browser. Currently supports
+	chrome, firefox and qutebrowser.
+	For more information about the RedHat Openshift ART Triage manager role, visit
+	https://mojo.redhat.com/docs/DOC-1207451
+	EOF
+}
+
+main() {
+  for arg in "$@"; do
+    case "$arg" in
+      -h|--help|help)
+        halp
+        exit 0
+        ;;
+      *)
+        browser="$arg"
+        ;;
+    esac
+  done
+
+  : ${browser:=${BROWSER-firefox}}
+
+  urls=(
+    $(buildvm)
+    $(rhcos_urls)
+    $(bugzilla)
+    $(backlog)
+    $(repo_links)
+    $(triage_docs)
+  )
+
+  case "$browser" in
+    qutebrowser)
+      cmd="qutebrowser '${urls[0]}'"
+      fmt=" ':open --tab %s'"
+      ;;
+    firefox)
+      cmd="firefox -url '${urls[0]}'"
+      fmt=' -url "%s"'
+      ;;
+    chrome)
+      cmd="chromium-browser --new-window '${urls[0]}'"
+      fmt=' -url "%s"'
+      ;;
+    *)
+      echo "Do not understand browser $BROWSER. Exiting"
+      halp >/dev/stderr
+      exit 1
+      ;;
+  esac
+
+  cmd="$cmd $(printf "$fmt" "${urls[@]:1}")"
+
+  if [[ -n "$I3SOCK" ]]; then
+    # We are running in i3. Use i3-msg exec
+    cmd="i3-msg exec -- $cmd"
+  fi
+  echo "$cmd" >/dev/stderr
+  $cmd
+}
+
+bugzilla() {
+  local bz_components=(
+    $(
+      for r in "${releases[@]}"; do
+        echo "$r.0"
+        echo "$r.z"
+      done
+    )
+  )
+
+  local release_query="$(printf '&target_release=%s' "${bz_components[@]}")"
+  local column_query="columnlist=deadbeef$(printf "%%2C%s" "${bz_column_list[@]}")"
+  local query="$(printf '&%s' "${bz_query_params[@]}" "$column_query")"
+  local base_url='https://bugzilla.redhat.com/buglist.cgi?1=1'
+
+  echo "${base_url}${query}${release_query}"
+}
+
+rhcos_urls() {
+  for r in "${releases[@]}"; do
+    # openshift-4 and higher, ending with .0
+    [[ "$r" =~ ^[4-9][0-9]*\. ]] &&
+      echo "https://jenkins-rhcos-art.cloud.privileged.psi.redhat.com/job/rhcos-art-rhcos-$r/"
+  done
+}
+
+repo_links() {
+  for repo in "${gh_repos[@]}"; do
+    echo "https://github.com/openshift/$repo/"{issues,pulls}/
+  done
+}
+
+buildvm() {
+  echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
+  echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/scheduled-builds/'
+}
+
+backlog() {
+  echo 'https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=5334&view=planning.nodetail'
+}
+
+triage_docs() {
+  echo 'https://mojo.redhat.com/docs/DOC-1207451'
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

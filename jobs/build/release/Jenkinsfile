@@ -4,7 +4,6 @@ import groovy.transform.Field
 node {
     checkout scm
     def release = load("pipeline-scripts/release.groovy")
-    def slacklib = load("pipeline-scripts/slacklib.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
     def slacklib = commonlib.slacklib

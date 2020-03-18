@@ -2,9 +2,9 @@
 
 node {
     checkout scm
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    def commonlib = buildlib.commonlib
     def release = load("pipeline-scripts/release.groovy")
+    def buildlib = release.buildlib
+    def commonlib = buildlib.commonlib
 
     // Expose properties for a parameterized build
     properties(

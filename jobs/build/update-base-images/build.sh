@@ -11,7 +11,7 @@ export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 #➜  ~  docker run -it brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/ansible-runner:latest  id
 #uid=0(root) gid=0(root) groups=0(root)
 # `rhel7` is root 0`
-# `nodejs6` is 1001`
+# `nodejs{6,10,12}` is 1001`
 
 USER_USERNAME="--user=ocp-build"
 
@@ -65,31 +65,35 @@ $z - s390x
 
 img=$1; shift
 case "$img" in
-        ansible.runner)
-            build_common $img ansible-runner:1.2.0-1.1580117780 0 $@
-            ;;
-
-        elasticsearch)
-            build_common $img elasticsearch:latest 1000 $@
-            ;;
-
-        jboss.openjdk18.rhel7)
-            build_common $img jboss/openjdk18-rhel7:latest 185 $@
-            ;;
-        rhscl.nodejs.6.rhel7)
-            build_common $img rhscl/nodejs-6-rhel7:6-53.1580118007 1001 $@
-            ;;
-        rhel7)
-            build_common $img rhel7:7-released 0 $@
-            ;;
-        ubi7)
-            build_common $img ubi7:7-released 0 $@
-            ;;
-        ubi8)
-            build_common $img ubi8:8-released 0 $@
-            ;;
-        *)
-            echo $"Usage: $0 image_tag [package [...]]"
-            exit 1
-            ;;
+    ansible.runner)
+        build_common $img ansible-runner:1.2.0-1.1580117780 0 $@
+        ;;
+    elasticsearch)
+        build_common $img elasticsearch:latest 1000 $@
+        ;;
+    jboss.openjdk18.rhel7)
+        build_common $img jboss/openjdk18-rhel7:latest 185 $@
+        ;;
+    rhscl.nodejs.6.rhel7)
+        build_common $img rhscl/nodejs-6-rhel7:6-53.1580118007 1001 $@
+        ;;
+    rhscl.nodejs.10.rhel7)
+        build_common $img rhscl/nodejs-10-rhel7:1-27.1584463517 1001 $@
+        ;;
+    rhscl.nodejs.12.rhel7)
+        build_common $img rhscl/nodejs-12-rhel7:1-6.1582646197 1001 $@
+        ;;
+    rhel7)
+        build_common $img rhel7:7-released 0 $@
+        ;;
+    ubi7)
+        build_common $img ubi7:7-released 0 $@
+        ;;
+    ubi8)
+        build_common $img ubi8:8-released 0 $@
+        ;;
+    *)
+        echo $"Usage: $0 image_tag [package [...]]"
+        exit 1
+        ;;
 esac

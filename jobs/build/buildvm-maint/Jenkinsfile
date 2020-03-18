@@ -30,6 +30,7 @@ node('openshift-build-1') {
     checkout scm
 
     def buildlib = load( "pipeline-scripts/buildlib.groovy" )
+    buildlib.initialize()
     def commonlib = buildlib.commonlib
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
@@ -37,9 +38,6 @@ node('openshift-build-1') {
     buildlib.cleanWorkdir(doozer_working)
 
     try {
-        buildlib = load('pipeline-scripts/buildlib.groovy')
-        buildlib.initialize()
-
         sshagent(["openshift-bot"]) {
 
             // Capture exceptions and don't let one problem stop other cleanup from executing

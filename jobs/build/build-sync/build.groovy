@@ -123,9 +123,9 @@ def buildSyncApplyImageStreams() {
         writeJSON(file: "pre-apply-${theStream}.json", json: currentIS)
         artifacts.addAll(["pre-apply-${theStream}.json"])
 
-        // We check for updates by comparing the object's 'generation'
-        def currentGeneration = currentIS.metadata.generation
-        echo("Current generation for ${theStream}: ${currentGeneration}")
+        // We check for updates by comparing the object's 'resourceVersion'
+        def currentResourceVersion = currentIS.metadata.resourceVersion
+        echo("Current resourceVersion for ${theStream}: ${currentResourceVersion}")
 
         // Ok, try the update. Jack that debug output up high, just in case
         echo("Going to apply this ImageStream:")
@@ -136,9 +136,9 @@ def buildSyncApplyImageStreams() {
         def newIS = getImageStream(theStream, arch)
         writeJSON(file: "post-apply-${theStream}.json", json: newIS)
         artifacts.addAll(["post-apply-${theStream}.json"])
-        def newGeneration = newIS.metadata.generation
-        if ( newGeneration == currentGeneration ) {
-            echo("IS `.metadata.generation` has not updated, it should have updated. Please use the debug info above to report this issue")
+        def newResourceVersion = newIS.metadata.resourceVersion
+        if ( newResourceVersion == currentResourceVersion ) {
+            echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
             throw new Exception("Image Stream ${theStream} did not update")
         }
     }

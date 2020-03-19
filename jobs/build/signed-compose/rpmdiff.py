@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from __future__ import print_function
-from pprint import pprint as pp
 import os
 import time
 import sys
@@ -14,9 +13,9 @@ def rpmdiffs_ran(advisory):
 
     print("Checking to see if RPM diffs have finished running")
     print("Current RPM Diff status data:")
-    pp(rpmdiffs)
     not_finished_diffs = []
     for diff in rpmdiffs:
+        print_diff(diff)
         if diff['attributes']['status'] in ['QUEUED_FOR_TEST', 'RUNNING', 'PENDING']:
             not_finished_diffs.append(diff)
 
@@ -36,9 +35,9 @@ def rpmdiffs_resolved(advisory):
     failed_diffs = []
 
     print("Current RPM Diff status data:")
-    pp(rpmdiffs)
 
     for diff in rpmdiffs:
+        print_diff(diff)
         if diff['attributes']['status'] in ['INFO', 'WAIVED', 'PASSED']:
             completed_diffs.append(diff)
         elif diff['attributes']['status'] in ['NEEDS_INSPECTION', 'FAILED']:
@@ -51,25 +50,23 @@ def rpmdiffs_resolved(advisory):
     elif failed_diffs:
         print("One or more RPM Diffs FAILED and require inspection")
         for diff in failed_diffs:
-            url = "https://rpmdiff.engineering.redhat.com/run/{}/".format(
-                diff['attributes']['external_id'])
-            print("{status} - {nvr} - {url}\n".format(
-                status=diff['attributes']['status'],
-                nvr=diff['relationships']['brew_build']['nvr'],
-                url=url))
+            print_diff(diff)
         # This will exit non-0 on its own after other checks
     else:
         print("All RPM diffs have been resolved")
         exit(0)
 
     for diff in incomplete_diffs:
-        url = "https://rpmdiff.engineering.redhat.com/run/{}/".format(
-            diff['attributes']['external_id'])
-        print("{status} - {nvr} - {url}".format(
-            status=diff['attributes']['status'],
-            nvr=diff['relationships']['brew_build']['nvr'],
-            url=url))
+        print_diff(diff)
     exit(1)
+
+def print_diff(rpmdiff):
+    url = "https://rpmdiff.engineering.redhat.com/run/{}/".format(
+        rpmdiff['attributes']['external_id'])
+    print("{status} - {nvr} - {url}".format(
+        status=rpmdiff['attributes']['status'],
+        nvr=rpmdiff['relationships']['brew_build']['nvr'],
+        url=url))
 
 def usage():
     print("""Usage: {} <command> ADVISORY

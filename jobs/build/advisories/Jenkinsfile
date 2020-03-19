@@ -88,7 +88,6 @@ node {
         currentBuild.description = ""
         try {
             stage("kinit") {
-                buildlib = load("pipeline-scripts/buildlib.groovy")
                 buildlib.kinit()
             }
             stage("create rpm advisory") {

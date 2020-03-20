@@ -111,6 +111,11 @@ node {
             requestIdSuffix = ""
         }
 
+        if ( !(env.DIGEST ==~ /sha256:[0-9a-f]{64}/) ) {
+            currentBuild.description = "bad digest"
+            error("The digest does not look like 'sha256:hex64'. If you copied it from jenkins job output, it might include invisible unicode.")
+        }
+
         wrap([$class: 'BuildUser']) {
             def buildUserId = (env.BUILD_USER_ID == null) ? "automated-process" : env.BUILD_USER_ID
 	    if ( buildUserId == "automated-process" ) {

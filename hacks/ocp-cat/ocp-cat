@@ -1,0 +1,78 @@
+#!/bin/bash
+# ocp-cat
+
+usage() {
+  cat <<-EOUSAGE
+	ocp-cat: Display file from ocp-build-data in terminal
+	Set OCP_BUILD_DATA environment variable
+	usage:
+	  ocp-cat file [filter]
+	examples:
+	  ocp-cat stream.yml
+	  ocp-cat group.yml freeze_automation
+	  ocp-cat images/openshift-enterprise-console.yml from
+	  ocp-cat images/openshift-enterprise-console.yml from.builder
+	EOUSAGE
+}
+
+show_file() {
+  local branch file
+  branch="origin/openshift-$1"
+  file="$2"
+  GIT_DIR="$OCP_BUILD_DATA/.git" \
+    git show "${branch}:$file"
+}
+
+print_file() {
+  local file release
+  release="$1"
+  file="$2"
+  echo "======== $release ========"
+  if command -v bat &>/dev/null; then
+    show_file "$release" "$file" | bat --language "${file##*.}"
+  else
+    show_file
+  fi
+}
+
+filter() {
+  local object release
+  object="$1"
+  release="$2"
+  yq \
+    --yaml-output \
+    "$(printf '{"%s": {"%s": .%s}}' "$release" "$object" "$object")"
+}
+
+main() {
+  local release file object
+  file="$1"
+  object="$2"
+  [[ "$file" == help || "$file" == "-h" || "$file" == "--help" ]] && {
+    usage
+    exit 0
+  }
+  [[ -z "$OCP_BUILD_DATA" ]] && {
+    echo "Export OCP_BUILD_DATA to point to your local clone of ocp-build-data">/dev/stderr
+    exit 1
+  }
+  [[ -z "$file" ]] && {
+    usage >/dev/stderr
+    exit 1
+  }
+  for release in \
+    3.11 \
+    4.1 \
+    4.2 \
+    4.3 \
+    4.4 \
+    4.5; do
+    if [[ -z "$object" ]]; then
+      print_file "$release" "$file"
+    else
+      show_file "$release" "$file" | filter "$object" "$release"
+    fi
+  done
+}
+
+main "$@"

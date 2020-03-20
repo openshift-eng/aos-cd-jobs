@@ -3,7 +3,7 @@ apiVersion: "v1"
 metadata:
   name: "art-jenkins"
   labels:
-    app: "jenkins"
+    app: "art-jenkins"
 spec:
   runPolicy: "Serial"
   strategy:
@@ -12,7 +12,7 @@ spec:
       dockerfilePath: openshift-pipelines/images/art-jenkins.Dockerfile
   source:
       git:
-        uri: "https://github.com/vfreex/aos-cd-jobs.git"
+        uri: "https://github.com/openshift/aos-cd-jobs.git"
         ref: "master"
   output:
     to:

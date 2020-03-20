@@ -42,6 +42,15 @@ oc apply -f ./infra
 oc apply -f ./jobs
 ```
 
+## Grant permissions to art-jenkins-slave service account
+
+Some piepline jobs use `art-jenkins-slave` service account to edit API objects in art-jenkins namespace.
+To grant `edit` permission to `art-jenkins-slave` service account, run:
+
+``` bash
+oc adm policy add-role-to-user edit -z art-jenkins-slave
+```
+
 ## Build Images
 ```bash
 oc start-build art-jenkins

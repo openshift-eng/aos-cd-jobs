@@ -3,4 +3,4 @@ kind: ImageStream
 metadata:
   name: "art-jenkins"
   labels:
-    app: "jenkins"
+    app: "art-jenkins"

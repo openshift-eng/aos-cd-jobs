@@ -22,5 +22,8 @@ RUN yum install -y \
         rhpkg \
     && yum clean all
 
-RUN pip3 install -U koji tox twine requests>=2.20 setuptools wheel codecov rh-doozer rh-elliott rh-ocp-build-data-validator
+RUN pip3 install -U koji tox twine requests>=2.20 setuptools wheel codecov \
+    rh-elliott==1.0.3 \
+    rh-doozer==1.0.6 \
+    rh-ocp-build-data-validator==0.1.2
 USER 1001

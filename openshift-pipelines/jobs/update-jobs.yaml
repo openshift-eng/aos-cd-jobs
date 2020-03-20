@@ -1,7 +1,7 @@
 kind: "BuildConfig"
 apiVersion: "v1"
 metadata:
-  name: "elliott-release"
+  name: "update-jobs"
 spec:
   runPolicy: "Parallel"
   completionDeadlineSeconds: 600
@@ -12,6 +12,6 @@ spec:
         - name: GIT_BRANCH
           value: "master"
       jenkinsfile: |-
-        library identifier: 'art-ci-toolkit@master', changelog: false,
+        library identifier: 'art-ci-toolkit@master', changelog: true,
           retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://github.com/openshift/art-ci-toolkit.git'])
-        artToolRelease("https://github.com/openshift/elliott.git", params.GIT_BRANCH, "art-pypi")
+        artUpdateJobs("https://github.com/openshift/aos-cd-jobs.git", params.GIT_BRANCH)

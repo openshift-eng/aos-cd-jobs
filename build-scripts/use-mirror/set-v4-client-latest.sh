@@ -37,9 +37,9 @@ else
     USE_CHANNEL="${RELEASE}"
     CHANNEL_PREFIX=$(echo ${RELEASE} |awk -F '[.-]' '{print $1}')  # fast-4.3 -> fast
 fi
+
 # Later, we also need to know what Y stream comes after this one.
 MAJOR_NEXT_MINOR=$(echo ${MAJOR_MINOR} |awk -F '[.-]' '{print $1 "." $2+1}')  # e.g. 4.3 -> 4.4
-
 
 function idempotent_create_link {
     TARGET="$1"
@@ -78,16 +78,36 @@ function create_links {
     idempotent_create_link ${RELEASE} ${MAJOR_MINOR_LINK}
     echo "${MAJOR_MINOR_LINK}  now points to ${RELEASE} in ${client_base_dir}"
 
-    # Here's the harder part - is this major.minor the latest Y stream? If it is, we need to set
-    # the overall link name. We already calculated MAJOR_NEXT_MINOR  (e.g. "4.5") so see if that
-    # exists someone on the mirror.
-    if ls -d "${MAJOR_NEXT_MINOR}".*/ > /dev/null  2>&1; then
-        echo "This is not the highest Y release -- will not set overall ${LINK_NAME} link"
-        return 0
+    # Here's the harder part: we just created something like stable-4.x. If stable-4.x is the highest
+    # stable MINOR in a Cincinnati graph, we also want the 'stable' link to point to this release.
+    # The way we do this is subtle.. If the existing stable/* directory contains 4.x or anything
+    # less than 4.x, we assume we need to update it to point to this new release.
+    # Previous versions of this script tried to guess if there was a later minor releases by
+    # checking the content of the directory for 4.(x+1), but this is flawed because release
+    # candiates are published to these directories before they wind up in Cincinnati graphs.
+
+    if [[ ! -e "${LINK_NAME}" ]]; then
+      # If the overall LINK_NAME has never been established, go ahead and create it. Doesn't
+      # matter if we are the actual latest for LINK_NAME -- it will be corrected by subsequent runs. This should
+      # only happen if we are bootstrapping overall links for the very first time.
+      ln -sfn ${RELEASE} ${LINK_NAME}
+      echo "Boostrapping ${LINK_NAME} . It now points to ${RELEASE} in ${client_base_dir}"
+      return 0
     fi
 
-    idempotent_create_link ${RELEASE} ${LINK_NAME}
-    echo "Overall ${LINK_NAME} link now points to ${RELEASE} in ${client_base_dir}"
+    # If we reach here, the overall LINK_NAME link exists. We need to check if it points to a
+    # release <= the new release minor. CURRENT_OVERALL should evaluate to something like 4.y.z
+    CURRENT_OVERALL=$(basename $(readlink -f ${LINK_NAME}))
+
+    # e.g. "echo -e "4.3.5\n4.2.5" | sort -V | tail -n -1"   will print 4.3.5
+    HIGHER_RELEASE=$(echo -e "${CURRENT_OVERALL}\n${RELEASE}" | sort -V | tail -n -1)
+
+    if [[ "${HIGHER_RELEASE}" == ${RELEASE} ]]; then
+      # This release is ready to be overall
+      idempotent_create_link ${RELEASE} ${LINK_NAME}
+      echo "Overall ${LINK_NAME} link now points to ${RELEASE} in ${client_base_dir}"
+    fi
+
     return 0
 }
 

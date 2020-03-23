@@ -76,12 +76,19 @@ node('openshift-build-1') {
                 stage("snapshot system setup") {
                     snapshot_diff = sh(returnStdout: true, script: "./scripts/snapshot.sh /home/jenkins").trim()
                     if ( snapshot_diff != "") {
-                      def snapshot = readFile("/home/jenkins/new_snapshot.txt")
-                      mail(to: "aos-art-automation+new-buildvm-snapshot@redhat.com",
-                           from: "aos-art-automation@redhat.com",
-			   replyTo: 'aos-team-art@redhat.com',
-                           subject: "BuildVM Snapshot",
-                           body: "${snapshot}");
+                        // Want to see what's in the snapshots directory?
+                        //   $ rclone tree s3SigningLogs:art-build-artifacts/buildvm-snapshots/
+                        try {
+                            sh("/bin/rclone -v copyto /home/jenkins/new_snapshot.txt s3SigningLogs:art-build-artifacts/buildvm-snapshots/`date '+%Y%m%d'`.txt")
+                        } catch ( snapErr ) {
+                            e4 = snapErr
+                            def snapshot = readFile("/home/jenkins/new_snapshot.txt")
+                            mail(to: "aos-art-automation+new-buildvm-snapshot@redhat.com",
+                                 from: "aos-art-automation@redhat.com",
+                                 replyTo: 'aos-team-art@redhat.com',
+                                 subject: "BuildVM Snapshot",
+                                 body: "${snapshot}");
+                        }
                     }
                 }
             } catch ( ex3 ) {
@@ -99,6 +106,10 @@ node('openshift-build-1') {
 
             if ( e3 != null ) {
                 throw e3
+            }
+
+            if ( e4 != null ) {
+                throw e4
             }
 
         }

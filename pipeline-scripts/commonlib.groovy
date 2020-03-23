@@ -48,6 +48,8 @@ ocpBaseImages = [
         "elasticsearch",
         "jboss.openjdk18.rhel7",
         "rhscl.nodejs.6.rhel7",
+        "rhscl.nodejs.10.rhel7",
+        "rhscl.nodejs.12.rhel7",
         "rhel7",
         "ubi7",
         "ubi8",

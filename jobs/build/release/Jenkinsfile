@@ -152,18 +152,25 @@ node {
             }
 
             stage("advisory image list") {
-                filename = "${dest_release_tag}-image-list.txt"
-                retry (3) {
-                    commonlib.shell(script: "elliott advisory-images -a ${advisory} > ${filename}")
+                try {
+                    filename = "${dest_release_tag}-image-list.txt"
+                    retry (3) {
+                        commonlib.shell(script: "elliott advisory-images -a ${advisory} > ${filename}")
+                    }
+                    archiveArtifacts(artifacts: filename, fingerprint: true)
+                    if (!env.DRY_RUN) {
+                        commonlib.email(
+                            to: "openshift-ccs@redhat.com",
+                            cc: "aos-team-art@redhat.com",
+                            replyTo: "aos-team-art@redhat.com",
+                            subject: "OCP ${release_name} (${arch}) Image List",
+                            body: readFile(filename)
+                        )
+                    }
+                } catch (ex) {
+                    currentBuild.description += "Image list failed. Marked UNSTABLE and continuing."
+                    currentBuild.result = "UNSTABLE"
                 }
-                archiveArtifacts(artifacts: filename, fingerprint: true)
-                commonlib.email(
-                    to: "openshift-ccs@redhat.com",
-                    cc: "aos-team-art@redhat.com",
-                    replyTo: "aos-team-art@redhat.com",
-                    subject: "OCP ${release_name} (${arch}) Image List",
-                    body: readFile(filename)
-                )
             }
 
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired

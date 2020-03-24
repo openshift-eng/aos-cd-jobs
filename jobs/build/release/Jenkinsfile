@@ -143,7 +143,7 @@ node {
                                         "Release ${release_name} is not currently Accepted by release controller. Issue cluster-bot requests for each upgrade test. "
                                          + "SKIP when at least one test passes for each upgrade type. Or RETRY if the release is finally Accepted.",
                                          taskThread)  {
-                    release.stageWaitForStable(RELEASE_STREAM_NAME, release_name)
+                    release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, release_name)
                  }
             }
 
@@ -170,7 +170,7 @@ node {
             stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE) }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
-            stage("send release message") { release.sendReleaseCompleteMessage(params.NAME, advisory, errata_url, arch) }
+            stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch) }
             stage("sign artifacts") {
                 commonlib.retrySkipAbort("Signing artifacts", "Error running signing job", taskThread) {
                     release.signArtifacts(

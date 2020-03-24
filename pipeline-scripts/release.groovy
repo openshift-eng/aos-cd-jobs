@@ -387,7 +387,7 @@ def getReleaseTagArch(from_release_tag) {
     return arch
 }
 
-def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String releaseStreamName='4-stable', String providerName = 'Red Hat UMB', String arch = 'x86_64') {
+def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String arch = 'x86_64', String releaseStreamName='4-stable', String providerName = 'Red Hat UMB') {
 
     if (params.DRY_RUN) {
         echo "Would have sent release complete message"

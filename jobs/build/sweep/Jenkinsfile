@@ -57,24 +57,31 @@ node {
     def kind = (major == '4') ? 'image' : 'rpm'
 
     stage("Repair bug state") {
-        try {
-            currentBuild.description += "* Moving attached bugs in MODIFIED state to ON_QA...\n"
-            buildlib.elliott "--group=openshift-${version} repair-bugs --use-default-advisory ${kind} --auto" 
-        } catch (elliottErr) {
-            currentBuild.description = "Error repairing:\n${elliottErr}"
-            throw elliottErr
+        currentBuild.description += "* Moving attached bugs in MODIFIED state to ON_QA...\n"
+        retry (3) {
+            try {
+                buildlib.elliott "--group=openshift-${version} repair-bugs --use-default-advisory ${kind} --auto"
+            } catch (elliottErr) {
+                echo("Error repairing (will retry a few times):\n${elliottErr}")
+                sleep(time: 1, unit: 'MINUTES')
+                throw elliottErr
+            }
         }
     }
 
     stage("Sweep bugs") {
-        try {
-            currentBuild.description += "* Searching for and attaching new bugs in MODIFIED state...\n"
-            buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --use-default-advisory ${kind}"
-        } catch (elliottErr) {
-            currentBuild.description += "Error sweeping bugs:\n${elliottErr}"
-            throw elliottErr
+        currentBuild.description += "* Searching for and attaching new bugs in MODIFIED state...\n"
+        retry (3) {
+            try {
+                buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --use-default-advisory ${kind}"
+            } catch (elliottErr) {
+                echo("Error sweeping bugs (will retry a few times):\n${elliottErr}")
+                sleep(time: 1, unit: 'MINUTES')
+                throw elliottErr
+            }
         }
     }
+
     stage("Sweep builds") {
         if (!params.SWEEP_BUILDS) {
             currentBuild.description += "* Not sweeping builds\n"

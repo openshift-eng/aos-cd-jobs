@@ -18,6 +18,7 @@ gh_repos=(
   doozer
   elliott
   art-ci-toolkit
+  art-bot
 )
 
 bz_query_params=(

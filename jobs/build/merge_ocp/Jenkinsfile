@@ -149,8 +149,9 @@ node {
                             lock(activityLockName) {
 
                                 def scheduleBuild = false
+                                def isOCP4 = version.startsWith('4.')
 
-                                if (version.startsWith('4.')) {
+                                if (isOCP4) {
                                 // Scan upstream for relevant changes
                                     def yamlData = readYaml text: buildlib.doozer(
                                         """
@@ -187,7 +188,7 @@ node {
                                 successful.add(version)
                                 echo "Success running ${version} merge"
 
-                                if (params.SCHEDULE_INCREMENTAL && scheduleBuild) {
+                                if (isOCP4 && params.SCHEDULE_INCREMENTAL && scheduleBuild) {
                                     build(
                                         job: 'build%2Focp4',
                                         propagate: false,

@@ -87,6 +87,10 @@ main() {
       fmt=' -url "%s"'
       ;;
     chrome)
+      cmd="google-chrome --new-window '${urls[0]}'"
+      fmt=' -url "%s"'
+      ;;
+    chromium)
       cmd="chromium-browser --new-window '${urls[0]}'"
       fmt=' -url "%s"'
       ;;
@@ -99,12 +103,12 @@ main() {
 
   cmd="$cmd $(printf "$fmt" "${urls[@]:1}")"
 
-  if [[ -n "$I3SOCK" ]]; then
+  if [[ -n "${I3SOCK:-}" ]]; then
     # We are running in i3. Use i3-msg exec
     cmd="i3-msg exec -- $cmd"
   fi
   echo "$cmd" >/dev/stderr
-  $cmd
+  eval "$cmd"
 }
 
 bugzilla() {

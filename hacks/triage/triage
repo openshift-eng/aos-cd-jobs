@@ -149,6 +149,7 @@ buildvm() {
 }
 
 backlog() {
+  echo 'https://issues.redhat.com/secure/Dashboard.jspa?selectPageId=12331022'
   echo 'https://issues.redhat.com/secure/RapidBoard.jspa?rapidView=5334&view=planning.nodetail'
 }
 

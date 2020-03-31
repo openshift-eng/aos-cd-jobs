@@ -11,6 +11,7 @@ syncList = "rhcos-synclist-${currentBuild.number}.txt"
 // RHCOS artifacts that were published in 4.2/4.3
 // QEMU added because bare-metal IPI installs need it for now
 // TODO: keep list updated for each new release
+enforce_whitelist = false
 rhcos_whitelist = [ "gcp", "initramfs", "iso", "kernel", "metal", "openstack", "qemu", "vmware", "dasd" ]
 
 def initialize() {
@@ -66,7 +67,7 @@ def rhcosSyncPrintArtifacts() {
     dir ( rhcosWorking ) {
         def meta = readJSON file: 'meta.json', text: ''
         meta.images.eachWithIndex { name, value, i ->
-            if (rhcos_whitelist.contains(name)) {
+            if (!enforce_whitelist || rhcos_whitelist.contains(name)) {
                 imageUrls.add(baseUrl + "/${value.path}")
             }
         }

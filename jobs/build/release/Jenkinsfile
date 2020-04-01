@@ -64,6 +64,12 @@ node {
                         defaultValue: false
                     ],
                     [
+                        name: 'SKIP_IMAGE_LIST',
+                        description: 'Do not gather an advisory image list for docs. Use this for RCs and other test situations.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -152,6 +158,10 @@ node {
             }
 
             stage("advisory image list") {
+                if (env.SKIP_IMAGE_LIST) {
+                    currentBuild.description += "[No image list]"
+                    return
+                }
                 try {
                     filename = "${dest_release_tag}-image-list.txt"
                     retry (3) {

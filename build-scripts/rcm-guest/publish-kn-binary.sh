@@ -2,8 +2,8 @@
 set -euxo pipefail
 
 SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
-KN_VERSION=${1:-0.2.3}
-KN_URL=${2:-http://download.eng.bos.redhat.com/brewroot/vol/rhel-8/packages/openshift-serverless-clients/0.2.3/1.el8/data/signed/fd431d51/x86_64/openshift-serverless-clients-redistributable-0.2.3-1.el8.x86_64.rpm}
+KN_VERSION=${1}
+KN_URL=${2}
 
 # check if already exists
 ### TODO: figure out why the script exits regardless of test result when this is uncommented:
@@ -12,7 +12,7 @@ KN_URL=${2:-http://download.eng.bos.redhat.com/brewroot/vol/rhel-8/packages/open
 #    echo "Already have latest version"
 #    exit 0
 #fi
-echo "Fetching Knative client ${KN_VERSION}"
+echo "Fetching Knative client ${KN_VERSION} binaries"
 
 OUTDIR=$(mktemp -dt knbinary.XXXXXXXXXX)
 trap "rm -rf '${OUTDIR}'" EXIT INT TERM
@@ -24,24 +24,26 @@ pkg_tar() {
         macos) dir=macos;;
         aarch64|ppc64le|s390x) dir=linux-${1};;
     esac
-    mkdir "${OUTDIR}/${dir}"
-    mv ./usr/share/openshift-serverless-clients-redistributable/${dir}/kn-* ${OUTDIR}/${dir}/kn
-    cp ./usr/share/licenses/openshift-serverless-clients-redistributable/LICENSE ${OUTDIR}/${dir}
+    cp ./LICENSE ${OUTDIR}/${dir}
     tar --owner 0 --group 0 -C ${OUTDIR}/${dir} . -zcf ./kn-${dir}-amd64-${KN_VERSION}.tar.gz
 }
 
+
 pushd ${OUTDIR}
-wget "${KN_URL}"
-rpm2cpio *.rpm | cpio -idmv --quiet
+mkdir linux macos windows
+wget "${KN_URL}/signed/linux/kn-linux-amd64" -O linux/kn
+wget "${KN_URL}/signed/macos/kn-darwin-amd64" -O macos/kn
+wget "${KN_URL}/signed/windows/kn-windows-amd64.exe" -O windows/kn.exe
+wget https://raw.githubusercontent.com/openshift/knative-client/master/LICENSE
+
 pkg_tar x86_64
 pkg_tar macos
-mkdir "${OUTDIR}/windows"
-mv ./usr/share/openshift-serverless-clients-redistributable/windows/kn-windows-amd64.exe ${OUTDIR}/windows/kn.exe
-cp ./usr/share/licenses/openshift-serverless-clients-redistributable/LICENSE ${OUTDIR}/windows/
+cp ./LICENSE ${OUTDIR}/windows/
 zip --quiet --junk-path - ${OUTDIR}/windows/* > "${OUTDIR}/kn-windows-amd64-${KN_VERSION}.zip"
 
+sha256sum kn-* > sha256sum.txt
 mkdir ${KN_VERSION}
-mv *.tar.gz *.zip ${KN_VERSION}
+mv *.tar.gz *.zip sha256sum.txt ${KN_VERSION}
 ln -sf ${KN_VERSION} latest
 
 # sync to use-mirror-upload

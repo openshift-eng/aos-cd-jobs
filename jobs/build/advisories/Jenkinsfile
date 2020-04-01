@@ -234,6 +234,27 @@ node {
                         )
                     }
                     echo "out: ${out}"
+
+                    jira_cmd = """
+                    if command -v yq; then
+                      rm -rf ocp-build-data;
+                      git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git;
+                      cd ocp-build-data;
+                      yq -r '
+                        .advisories
+                        | keys_unsorted[] as \$k
+                        | "* *\\(\$k)*: https://errata.devel.redhat.com/advisory/\\(.[\$k])"
+                      ' group.yml;
+                    fi || true
+                    """
+                    try {
+                        commonlib.shell(
+                            returnStdout: true,
+                            script: jira_cmd
+                        )
+                    } catch (err) {
+                        echo "Ignoring error ${err}"
+                    }
                 }
             }
             stage("trigger full build") {

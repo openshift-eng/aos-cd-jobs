@@ -1,17 +1,66 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+pullspec() {
+  local tag package nvr
 
-export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
+  if yq -re --arg target "$target" '.$[target].pullspec' pullspecs.yaml 2>/dev/null; then
+    return
+  fi
 
-#➜  ~ docker run -it brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/jboss/openjdk18-rhel7:latest id
-#uid=185(jboss) gid=185(jboss) groups=185(jboss)
-#➜  ~ docker run -it  brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/elasticsearch:latest id
-#uid=1000(elasticsearch) gid=1000(elasticsearch) groups=1000(elasticsearch)
-#➜  ~  docker run -it brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888/ansible-runner:latest  id
-#uid=0(root) gid=0(root) groups=0(root)
-# `rhel7` is root 0`
-# `nodejs{6,10,12}` is 1001`
+  tag="$(
+    yq -re --arg target "$target" '.[$target].brew_tag' pullspecs.yaml
+  )"
+
+  package="$(
+    yq -re --arg target "$target" '.[$target].package' pullspecs.yaml
+  )"
+
+  nvr="$(
+    brew call --json-output listTagged "$tag" latest=true package="$package" | jq -re '.[0].nvr'
+  )"
+
+  # input: nvr
+  # output: registry-proxy.engineering.redhat.com/rh-osbs/rhscl-nodejs-10-rhel7:1-38
+  brew call --json-output getBuild "$nvr" | jq -re '.extra.image.index.pull[1]' 
+}
+
+user() {
+  yq -re --arg target "$target" '.[$target].user' pullspecs.yaml
+}
+
+main() {
+  local DRYRUN=0
+  local user
+  local pullspec
+
+  export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
+  USER_USERNAME="--user=ocp-build"
+  
+  for arg in "$@"; do
+    case "$arg" in
+      -d|--dry-run)
+        DRYRUN=1
+        ;;
+      -h|--help)
+        halp
+        exit 0
+        ;;
+      *)
+        target="$arg"
+        ;;
+    esac
+    shift
+  done
+
+  user="$(user)"
+  pullspec="$(pullspec)"
+
+  if ((DRYRUN)); then
+    echo "$target $pullspec $user"
+  else
+    build_common "$target" "$pullspec" "$user" $@
+  fi
+}
 
 build_common() {
     img=$1; from=$2; user=$3
@@ -65,59 +114,7 @@ $a - aarch64
     echo "${URL}&id=$(git rev-parse HEAD)"
 }
 
-img=$1; shift
-case "$img" in
-    ansible.runner)
-        build_common $img ansible-runner:1.2.0 0 $@
-        ;;
-    elasticsearch)
-        build_common $img elasticsearch:latest 1000 $@
-        ;;
-    jboss.openjdk18.rhel7)
-        build_common $img jboss/openjdk18-rhel7:latest 185 $@
-        ;;
-    rhscl.nodejs.6.rhel7)
-        build_common $img rhscl/nodejs-6-rhel7:6-53.1580118007 1001 $@
-        ;;
-    rhscl.nodejs.10.rhel7)
-        build_common $img rhscl/nodejs-10-rhel7:1-27.1584463517 1001 $@
-        ;;
-    rhscl.nodejs.12.rhel7)
-        # lock in nodejs 12.16.1, cannot be updated without corresponding
-        # update of headers tarball in ose-console
-        build_common $img rhscl/nodejs-12-rhel7:1-6.1582646197 1001 $@
-        ;;
-    rhscl.ruby.25.rhel7)
-        build_common $img rhscl/ruby-25-rhel7:latest 1001 $@
-        ;;
-    rhscl.python.36.rhel7)
-        build_common $img rhscl/python-36-rhel7:latest 1001 $@
-        ;;
-    rhel7)
-        build_common $img rhel7:7-released 0 $@
-        ;;
-    ubi7)
-        build_common $img ubi7:7-released 0 $@
-        ;;
-    ubi8)
-        build_common $img ubi8:8-released 0 $@
-        ;;
-    ubi8.nodejs.10)
-        build_common $img ubi8/nodejs-10:1-released 1001 $@
-        ;;
-    ubi8.nodejs.12)
-        # lock in nodejs 12.16.1, cannot be updated without corresponding
-        # update of headers tarball in ose-console
-        build_common $img ubi8/nodejs-12:1-45 1001 $@
-        ;;
-    ubi8.python.36)
-        build_common $img ubi8/python-36:1-released 1001 $@
-        ;;
-    ubi8.ruby.25)
-        build_common $img ubi8/ruby-25:1-released 1001 $@
-        ;;
-    *)
-        echo $"Usage: $0 image_tag [package [...]]"
-        exit 1
-        ;;
-esac
+set -euxo pipefail
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

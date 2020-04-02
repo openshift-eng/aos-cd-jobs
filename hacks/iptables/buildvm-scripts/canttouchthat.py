@@ -65,14 +65,14 @@ def install_drop_rule(priority, space, dry_run):
         space,
         'filter',
         'OUTPUT', '{}'.format(priority),
-        '!', '-o', 'lo',  # Avoid affecting loopback communication
-        '-j' 'DROP'
+        '!', '-o', 'lo',  # Avoid logging loopback communication
+        '-j', 'REJECT', '--reject-with', 'icmp-host-prohibited'
     ]
 
     if dry_run:
         print('Would have run: {}'.format(cmd))
     else:
-        print('Adding default DROP rule for {}'.format(space))
+        print('Adding default REJECT rule for {}'.format(space))
         subprocess.check_output(cmd)
 
 
@@ -83,7 +83,7 @@ def install_drop_rule(priority, space, dry_run):
               required=False,
               default=[])
 @click.option('--enforce', default=False, is_flag=True,
-              help='If specified, DROP all other output')
+              help='If specified, REJECT all other output')
 @click.option('--dry-run', default=False, is_flag=True,
               help='Print what would have been done')
 @click.option('--clean', default=False, is_flag=True,
@@ -108,9 +108,9 @@ Example input format:
 
 By default rules are only added, they are not enforced. That is to
 say, packets will not be dropped. If the `--enforce` option is given
-then a catch-all `DROP` rule is installed after all of the the
+then a catch-all `REJECT` rule is installed after all of the the
 `ACCEPT` rules. Running this again without the `--enforce` option will
-remove the `DROP` rule, effectively opening up outgoing traffic once
+remove the `REJECT` rule, effectively opening up outgoing traffic once
 again.
 
 Running with `--clean` will remove all installed rules.
@@ -169,7 +169,7 @@ Running with `--clean` will remove all installed rules.
         ]
 
         if dry_run:
-            print('Would have run: {}'.format(cmd))
+            print('Would have run: "{}"'.format(' '.join(cmd)))
         else:
             print('Adding rule for {}'.format(cidr))
             subprocess.check_output(cmd)

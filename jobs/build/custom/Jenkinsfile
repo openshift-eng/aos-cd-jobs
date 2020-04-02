@@ -8,6 +8,7 @@ node {
     // Expose properties for a parameterized build
     properties(
         [
+            disableResume(),
             buildDiscarder(
                 logRotator(
                     artifactDaysToKeepStr: '',

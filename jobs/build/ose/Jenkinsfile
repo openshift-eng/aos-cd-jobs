@@ -169,6 +169,7 @@ online:stg                {origin,origin-web-console,openshift-ansible}/stage ->
                 ],
             ]
         ],
+        disableResume(),
         disableConcurrentBuilds()
     ]
 )

@@ -2,6 +2,7 @@
 
 pipeline {
     agent any
+    options { disableResume() }
 
     parameters {
         string(

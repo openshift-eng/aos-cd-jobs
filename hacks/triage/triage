@@ -10,6 +10,7 @@ releases=(
   4.2
   4.3
   4.4
+  4.5
 )
 
 gh_repos=(
@@ -118,6 +119,7 @@ bugzilla() {
         echo "$r.0"
         echo "$r.z"
       done
+      echo "---"   # no target yet - likely to need triage
     )
   )
 

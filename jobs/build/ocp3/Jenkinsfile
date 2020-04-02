@@ -338,6 +338,7 @@ node {
                     ],
                 ]
             ],
+            disableResume(),
             disableConcurrentBuilds()
         ]
     )

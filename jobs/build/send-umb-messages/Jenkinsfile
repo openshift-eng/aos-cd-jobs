@@ -14,6 +14,7 @@ node {
                     numToKeepStr: ''
                 )
             ),
+            disableResume(),
             disableConcurrentBuilds(),
     ])
 

@@ -15,6 +15,7 @@ node {
                     numToKeepStr: ''
                 )
             ),
+            disableResume(),
             disableConcurrentBuilds(),
             [
                 $class: 'ParametersDefinitionProperty',

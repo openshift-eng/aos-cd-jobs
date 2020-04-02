@@ -21,6 +21,7 @@ properties(
                 ],
             ]
         ],
+        disableResume(),
         disableConcurrentBuilds()
     ]
 )

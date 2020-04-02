@@ -184,7 +184,11 @@ node {
             }
 
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
-            stage("mirror tools") { release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE) }
+            stage("mirror tools") { 
+              retry(3) {
+                release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
+              }
+            }
             stage("advisory update") { release.stageAdvisoryUpdate() }
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch) }

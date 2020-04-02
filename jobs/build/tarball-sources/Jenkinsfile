@@ -89,7 +89,7 @@ node {
             }
 
             stage("file ticket to RCM") {
-                // use awk to print out the sigle line cotains ${advisory}
+                // use awk to print out the lines that contain ${advisory}
                 // sth like this:
                 // RHEL-7-OSE-4.2/${advisory}/release/logging-fluentd-container-v4.2.26-202003230335.tar.gz 
                 cmd = """awk '/${advisory}/ { save=\$0 }END{ print save }' ${filename}"""

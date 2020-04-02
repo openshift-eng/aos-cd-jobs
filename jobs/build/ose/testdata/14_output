@@ -1,6 +1,0 @@
-pick ea572cb [CARRY][BRANDING] Branding updates
-pick 6e946e3 [CARRY][TMP] remove once we fix the test job
-fixup 29cfbfd [SQUASH][TMP] Revert "[CARRY][TMP] remove once we fix the test job"
-pick 1cb7cd3 [CARRY][BUILD] Tooling updates
-pick a630dfb [CARRY][BUILD_GEN] Generated tito diff
-fixup f2f22c7 Automatic commit of package [atomic-openshift] release [3.6.76-1].

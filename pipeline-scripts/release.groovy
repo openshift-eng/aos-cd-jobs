@@ -521,6 +521,7 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                     addToChannel = !isInChannel(releaseName, channelYaml.get('versions', []))
 
                     upgradeChannelYaml = [ name: upgradeChannel, versions: [] ]
+                    addToUpgradeChannel = false
                     releasesForUpgradeChannel = []
                     if (fileExists(upgradeChannelFile)) {
                         upgradeChannelYaml = readYaml(file: upgradeChannelFile)
@@ -646,17 +647,23 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                             git checkout ${branchName}
                             if [[ "${addToChannel}" == "true" ]]; then
                                 echo >> ${channelFile}    # add newline
-                                echo '# Errata: ${errata_url}' >> ${channelFile}    # add link to errata for reference
+                                echo '# ${releaseName} Errata: ${errata_url}' >> ${channelFile}    # add link to errata for reference
                                 echo '- ${releaseName}' >> ${channelFile}   # add the entry
                                 git add ${channelFile}
                             fi
                             if [[ "${addToUpgradeChannel}" == "true" ]]; then
-                                echo >> ${upgradeChannelFile}    # add newline
-                                echo '# Errata: ${errata_url}' >> ${upgradeChannelFile}    # add link to errata for reference
+                                # We want to insert the previous minors right after versions: so they stay above other entries.
+                                # Why not set it in right before the next minor begins? Because we don't confuse a comment line that might exist above the next minor.
+                                # First, create a file with the content we want to insert
+                                echo '# Allow upgrades from ${releaseName}. Errata: ${errata_url}' > ul.txt    # add link to errata for reference
                                 for urn in ${releasesForUpgradeChannel.join(' ')} ; do
-                                    echo "- \$urn" >> ${upgradeChannelFile}   # add the entry
-                                    git add ${upgradeChannelFile}
-                                done 
+                                    echo "- \$urn" >> ul.txt  # add the entry to lines to insert
+                                done
+                                echo >> ul.txt
+                                rm -f slice*  # Remove any files from previous csplit runs
+                                csplit ${upgradeChannelFile} '/versions:/+1' --prefix slice   # create slice00 (up to and including versions:) and slice01 (everything after)
+                                cat slice00 ul.txt slice01 > ${upgradeChannelFile} 
+                                git add ${upgradeChannelFile}
                             fi
                             git commit -m "${pr_title}"
                             git push -u origin ${branchName}

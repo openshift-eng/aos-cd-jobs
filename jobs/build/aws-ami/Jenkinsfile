@@ -11,6 +11,7 @@ def set_workspace() {
 properties(
     [
         disableConcurrentBuilds(),
+        disableResume(),
         [
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [

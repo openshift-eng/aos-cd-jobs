@@ -84,6 +84,7 @@ node {
                     commonlib.mockParam(),
                 ]
             ],
+            disableResume(),
             disableConcurrentBuilds()
         ]
     )

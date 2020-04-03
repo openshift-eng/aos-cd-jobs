@@ -32,6 +32,7 @@ node('openshift-build-1') {
     // Expose properties for a parameterized build
     properties(
         [
+            disableResume(),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

@@ -8,6 +8,7 @@ node {
 
     properties(
         [
+            disableResume(),
             buildDiscarder(
                 logRotator(
                     artifactDaysToKeepStr: '',

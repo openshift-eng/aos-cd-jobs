@@ -1,6 +1,7 @@
 properties(
         [
                 buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
+                disableResume(),
                 disableConcurrentBuilds()
         ] )
 

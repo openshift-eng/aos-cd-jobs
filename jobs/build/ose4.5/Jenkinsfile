@@ -5,6 +5,7 @@ node {
     def commonlib = load("pipeline-scripts/commonlib.groovy")
     properties([
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '')),
+        disableResume(),
         disableConcurrentBuilds(),
         [
             $class: 'ParametersDefinitionProperty',

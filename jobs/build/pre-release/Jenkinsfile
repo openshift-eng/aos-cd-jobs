@@ -72,6 +72,7 @@ node {
                     commonlib.suppressEmailParam(),
                 ]
             ],
+            disableResume(),
             disableConcurrentBuilds()
         ]
     )

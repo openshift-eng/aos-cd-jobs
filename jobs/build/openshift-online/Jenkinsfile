@@ -10,6 +10,7 @@ def set_workspace() {
 // Expose properties for a parameterized build
 properties(
     [
+        disableResume(),
         disableConcurrentBuilds(),
         [
             $class: 'ParametersDefinitionProperty',

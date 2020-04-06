@@ -208,6 +208,10 @@ node {
                 }
             }
 
+            stage("channel prs") {
+                release.openCincinnatiPRs(NAME, errata_url)
+            }
+
         }
 
         dry_subject = ""

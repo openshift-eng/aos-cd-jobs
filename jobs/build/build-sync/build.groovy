@@ -12,8 +12,6 @@ artifacts = []
 
 // Locally stored image stream stub
 baseImageStream = "/home/jenkins/base-art-latest-imagestream-${params.BUILD_VERSION}.yaml"
-// Kubeconfig allowing ART to interact with api.ci.openshift.org
-ciKubeconfig = "/home/jenkins/kubeconfigs/art-publish.kubeconfig"
 
 // See 'oc image mirror --help' for more information.
 // This is the template for the SRC=DEST strings mentioned above
@@ -130,7 +128,7 @@ def buildSyncApplyImageStreams() {
         // Ok, try the update. Jack that debug output up high, just in case
         echo("Going to apply this ImageStream:")
         sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
-        buildlib.oc(" --loglevel=8 apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${ciKubeconfig}")
+        buildlib.oc(" --loglevel=8 apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${buildlib.ciKubeconfig}")
 
         // Now we verify that the change went through and save the bits as we go
         def newIS = getImageStream(theStream, arch)
@@ -149,7 +147,7 @@ def buildSyncApplyImageStreams() {
 // purposes.
 def getImageStream(is, arch) {
     def a = (arch == "x86_64")? "ocp": "ocp-${arch}"
-    def isJson = readJSON(text: buildlib.oc(" get is ${is} -n ${a} -o json --kubeconfig ${ciKubeconfig}", [capture: true]))
+    def isJson = readJSON(text: buildlib.oc(" get is ${is} -n ${a} -o json --kubeconfig ${buildlib.ciKubeconfig}", [capture: true]))
     return isJson
 }
 

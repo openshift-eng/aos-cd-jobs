@@ -460,4 +460,236 @@ def signArtifacts(Map signingParams) {
     )
 }
 
+/**
+ * Opens a series of PRs against the cincinnati-graph-data GitHub repository.
+ *    Specifically, a PR for each channel prefix (e.g. candidate, fast, stable) associated with the specified release
+ *    and the next minor channels (major.minor+1) IFF those channels currently exist.
+ * @param releaseName The name of the release (e.g. "4.3.6")
+ * @param errata_url The errata associated with the release.
+ * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
+ *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
+ */
+def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
+    if ( major != '4' ) {
+        error("Unable to open PRs for unknown major minor: ${major}.${minor}")
+    }
+    def minorNext = "${minor.toInteger() + 1}"
+    dir(env.WORKSPACE) {
+        sshagent(["openshift-bot"]) {
+
+            // PRs that we open will be tracked in this file.
+            prs_file = "${env.WORKSPACE}/prs.txt"
+            sh "rm -f ${prs_file} && touch ${prs_file}"  // make sure we start with a clean slate
+
+            sh "git clone git@github.com:${ghorg}/cincinnati-graph-data.git"
+            dir('cincinnati-graph-data/channels') {
+                def prefixes = [ "candidate", "fast", "stable"]
+                if ( major == '4' && minor == '1' ) {
+                    prefixes = [ "prerelease", "stable"]
+                }
+
+                prURLs = [:]  // Will map channel to opened PR
+                for ( String prefix : prefixes ) {
+                    channel = "${prefix}-${major}.${minor}"
+                    channelFile = "${channel}.yaml"
+                    upgradeChannel = "${prefix}-${major}.${minorNext}"
+                    upgradeChannelFile = "${upgradeChannel}.yaml"
+
+                    channelYaml = [ name: channel, versions: [] ]
+                    if (fileExists(channelFile)) {
+                        channelYaml = readYaml(file: channelFile)
+                    } else {
+                        // create the channel if it does not already exist
+                        writeFile(file: channelFile, text: "name: ${channel}\nversions:\n" )
+                    }
+
+                    /**
+                     * @param name - The release name
+                     * @param version - a list of versions in a channel
+                     * @return Returns true if name or name+<arch> exists in list
+                     */
+                    isInChannel = { name, versions  ->
+                        for ( String version : versions ) {
+                            if ( version.startsWith( name + "+") || version.equals(name) ) {
+                                return true
+                            }
+                        }
+                        return false
+                    }
+
+                    addToChannel = !isInChannel(releaseName, channelYaml.get('versions', []))
+
+                    upgradeChannelYaml = [ name: upgradeChannel, versions: [] ]
+                    addToUpgradeChannel = false
+                    releasesForUpgradeChannel = []
+                    if (fileExists(upgradeChannelFile)) {
+                        upgradeChannelYaml = readYaml(file: upgradeChannelFile)
+                        upgradeChannelVersions = upgradeChannelYaml.get('versions', [])
+
+                        // at least one version must be present & make sure that releaseName is not already there
+                        if ( upgradeChannelVersions && !isInChannel(releaseName, upgradeChannelVersions) ) {
+                            /**
+                             * We need find the most recent version of 4.minor+1 and determine which
+                             * architectures it supports. If it only supports x86_64, the OTA team
+                             * only wants us to PR for 4.y+1 with a CPU suffix which limits upgrades
+                             * to 4.y+1 from this release's x86_64 image.
+                             */
+                            def spacedVersions = upgradeChannelVersions.join(' ')
+                            // Use sort -V to handle semver sorting of versions and choose the last
+                            def lastNextVer = sh(returnStdout: true, script: "echo ${spacedVersions} | tr ' ' '\\n' | grep ${major}[.]${minorNext}[.] | sort -V | tail -n 1").trim()
+                            if ( lastNextVer ) {
+
+                                /**
+                                 * @param name - The name of the release to look for
+                                 * @param arch - The architecture you want to know if the release is defined for
+                                 * @return Returns true if the release specified has support for the specified architecture
+                                 */
+                                def existsForArch = { name, arch ->
+                                    def suffix = getArchSuffix(arch)
+                                    // If there is an imagestream in the arch's api.ci namespace, it was built for that arch by ART.
+                                    // Check for both is/release and is/release-<ach> (the latter being an older style of release naming)
+                                    if ( sh(returnStdout: true, script: "oc get --kubeconfig ${buildlib.ciKubeconfig} --ignore-not-found -n ocp${suffix} -o=name is/${name} is/${name}${suffix}").trim() ) {
+                                        return true
+                                    } else {
+                                        return false
+                                    }
+                                }
+
+                                /**
+                                 * For each of the arches in the current release, see if a counterpart exists for the
+                                 * latest 4.y+1 release. If it is found, record that we are going to add an arch specific
+                                 * entry for the various channels (e.g. ["4.y.z+amd64", "4.y.z+s390x"] if both builds have
+                                 * x86_64 & s390x, but only 4.y.z has ppc64le)
+                                 */
+                                currentReleaseArches = buildlib.branch_arches('openshift-${major}.${minor}', true)
+                                for ( String arch : currentReleaseArches ) {
+                                    if ( existsForArch(lastNextVer, arch) ) {
+                                        def goArchName = (arch == 'x86_64'?'amd64':arch)
+                                        releasesForUpgradeChannel << "${releaseName}+${goArchName}"
+                                    }
+                                }
+
+                                if (currentReleaseArches.size() == releasesForUpgradeChannel.size()) {
+                                    // If all arches are supported, just put in the release name
+                                    releasesForUpgradeChannel = [ releaseName ]
+                                }
+
+                                if ( releasesForUpgradeChannel ) {
+                                    addToUpgradeChannel = true
+                                }
+                            }
+                        }
+                    }
+
+                    echo "Creating PR for ${prefix} channel(s)"
+                    branchName = "pr-${prefix}-${releaseName}"
+                    pr_title = "Enable ${releaseName} in ${prefix} channel(s)"
+
+                    labelArgs = ''
+
+                    pr_messages = [ pr_title ]
+                    switch(prefix) {
+                        case 'prerelease':
+                        case 'candidate':
+                            pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${errata_url} ."
+                            break
+                        case 'fast':
+                            pr_messages << "Please merge as soon as ${errata_url} is shipped live OR if a Cincinnati-first release is approved."
+                            if (prURLs.containsKey('candidate')) {
+                                pr_messages << "This should provide adequate soak time for candidate channel PR ${prURLs.candidate}"
+                            }
+                            // For non-candidate, put a hold on the PR to prevent accidental merging
+                            labelArgs = "-l 'do-not-merge/hold'"
+                            break
+                        case 'stable':
+                            // For non-candidate, put a hold on the PR to prevent accidental merging
+                            labelArgs = "-l 'do-not-merge/hold'"
+                            pr_messages << "Please merge within 48 hours of ${errata_url} shipping live OR a Cincinnati-first release."
+
+                            if (prURLs.containsKey('prerelease')) {
+                                pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
+                            }
+                            if (prURLs.containsKey('fast')) {
+                                pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
+                            }
+
+                            break
+                        default:
+                            error("Unknown prefix: ${prefix}")
+                    }
+
+                    if ( addToUpgradeChannel ) {
+                        pr_messages << "This PR will also enable upgrades from ${releaseName} to releases in ${upgradeChannel}"
+                    }
+
+                    if ( !addToChannel && !addToUpgradeChannel ) {
+                        def pr_info = "No Cincinnati PRs opened for ${prefix}. Might have been done by previous architecture's release build.\n"
+                        echo pr_info
+                        currentBuild.description += pr_info
+                        continue
+                    }
+
+                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'access_token')]) {
+                        def messageArgs = ''
+                        for ( String msg : pr_messages ) {
+                            messageArgs += "--message '${msg}' "
+                        }
+
+                        sh """
+                            set -euo pipefail
+                            set -o xtrace
+                            if git checkout origin/${branchName} ; then
+                                echo "The branch ${branchName} already exists in cincinnati-graph-data. No additional PRs will be created."
+                                exit 0
+                            fi
+                            git branch -f ${branchName} origin/master
+                            git checkout ${branchName}
+                            if [[ "${addToChannel}" == "true" ]]; then
+                                echo >> ${channelFile}    # add newline
+                                echo '# ${releaseName} Errata: ${errata_url}' >> ${channelFile}    # add link to errata for reference
+                                echo '- ${releaseName}' >> ${channelFile}   # add the entry
+                                git add ${channelFile}
+                            fi
+                            if [[ "${addToUpgradeChannel}" == "true" ]]; then
+                                # We want to insert the previous minors right after versions: so they stay above other entries.
+                                # Why not set it in right before the next minor begins? Because we don't confuse a comment line that might exist above the next minor.
+                                # First, create a file with the content we want to insert
+                                echo '# Allow upgrades from ${releaseName}. Errata: ${errata_url}' > ul.txt    # add link to errata for reference
+                                for urn in ${releasesForUpgradeChannel.join(' ')} ; do
+                                    echo "- \$urn" >> ul.txt  # add the entry to lines to insert
+                                done
+                                echo >> ul.txt
+                                rm -f slice*  # Remove any files from previous csplit runs
+                                csplit ${upgradeChannelFile} '/versions:/+1' --prefix slice   # create slice00 (up to and including versions:) and slice01 (everything after)
+                                cat slice00 ul.txt slice01 > ${upgradeChannelFile} 
+                                git add ${upgradeChannelFile}
+                            fi
+                            git commit -m "${pr_title}"
+                            git push -u origin ${branchName}
+                            export GITHUB_TOKEN=${access_token}
+                            hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
+                            cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
+                            """
+
+                        prURLs[prefix] = readFile("${prefix}.pr").trim()
+                    }
+                }
+
+                def prs = readFile(prs_file).trim()
+                if ( prs ) {  // did we open any?
+                    def slack_msg = "Hi @ota-monitor . ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
+                    if ( ghorg == 'openshift' ) {
+                        slacklib.to('#forum-release').say(slack_msg)
+                    } else {
+                        echo "Would have sent the following slack notification to #forum-release"
+                        echo slack_msg
+                    }
+                }
+
+            }
+        }
+    }
+}
+
 return this

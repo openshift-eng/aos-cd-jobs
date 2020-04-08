@@ -156,7 +156,7 @@ backlog() {
 }
 
 triage_docs() {
-  echo 'https://mojo.redhat.com/docs/DOC-1207451'
+  echo 'https://mojo.redhat.com/docs/DOC-1207451#jive_content_id_Find_and_attach_CVEs_of_next_upcoming_ystream_releases'
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

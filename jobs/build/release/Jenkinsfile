@@ -146,20 +146,20 @@ node {
             stage("tag stable") { release.stageTagRelease(quay_url, release_name, dest_release_tag, arch) }
 
             stage("request upgrade tests") {
-                def (major,minor) = extractMajorMinorVersion(NAME)
-                def previousList = PREVIOUS.trim().tokenize('\t ,')
-                def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
-                if ( major == '4' && minor == '1') {
-                    modeOptions = ['aws'] // gcp and azure were not supported in 4.1
-                }
-                def testIndex = 0
-                def testLines = []
-                for ( String from_release : previousList) {
-                    mode = modeOptions[testIndex % modeOptions.size()]
-                    testLines << "test upgrade ${from_release} ${NAME} ${mode}"
-                    testIndex++
-                }
                 try {  // don't let a slack outage break the job
+                    def (major,minor) = commonlib.extractMajorMinorVersion(NAME)
+                    def previousList = PREVIOUS.trim().tokenize('\t ,')
+                    def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
+                    if ( major == '4' && minor == '1') {
+                        modeOptions = ['aws'] // gcp and azure were not supported in 4.1
+                    }
+                    def testIndex = 0
+                    def testLines = []
+                    for ( String from_release : previousList) {
+                        mode = modeOptions[testIndex % modeOptions.size()]
+                        testLines << "test upgrade ${from_release} ${NAME} ${mode}"
+                        testIndex++
+                    }
                     def slackChannel = slacklib.to('#team-art')
                     slackChannel.say("Hi @release-artists . A new release is ready and needs some upgrade tests to be triggered. "
                         + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")

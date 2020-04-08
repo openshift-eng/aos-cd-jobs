@@ -28,6 +28,12 @@ node {
                         defaultValue: true
                     ],
                     [
+                        name: 'KEEP_ADVISORY_STATE',
+                        description: 'Run a compose without changing the state of advisory',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Do not attach builds or update the puddle. Just show what would have happened',
                         $class: 'BooleanParameterDefinition',

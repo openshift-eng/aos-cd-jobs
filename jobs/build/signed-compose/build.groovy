@@ -94,6 +94,10 @@ def signedComposeStateQE() {
         echo("would have run: ${elliottOpts} change-state --state QE ${advisoryOpt}")
         return
     }
+    if (params.KEEP_ADVISORY_STATE) {
+        echo("Would not change the state of adivosry since KEEP_ADVISORY_STATE was checked.")
+        return
+    }
     def seconds = 0
     retry(3) {
         sleep seconds

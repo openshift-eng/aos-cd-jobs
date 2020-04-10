@@ -355,16 +355,18 @@ done
         echo "Would have run: ${tools_extract_cmd}"
     }
 
-    // DO NOT use --delete. We only built a part of openshift-v4 locally and don't want to remove
-    // anything on the mirror.
-    rsync_cmd = "rsync -avzh --chmod=a+rwx,g-w,o-w -e 'ssh -o StrictHostKeyChecking=no' "+
+    timeout(time: 24, unit: 'HOURS') {
+        // DO NOT use --delete. We only built a part of openshift-v4 locally and don't want to remove
+        // anything on the mirror.
+        rsync_cmd = "rsync -avzh --chmod=a+rwx,g-w,o-w -e 'ssh -o StrictHostKeyChecking=no' " +
                 " ${BASE_TO_MIRROR_DIR}/ ${MIRROR_HOST}:${MIRROR_V4_BASE_DIR}/ "
 
-    if ( ! params.DRY_RUN ) {
-        commonlib.shell(script: rsync_cmd)
-        commonlib.shell(script: "ssh -o StrictHostKeyChecking='no' ${MIRROR_HOST} timeout 15m /usr/local/bin/push.pub.sh openshift-v4")
-    } else {
-        echo "Not mirroring; would have run: ${rsync_cmd}"
+        if (!params.DRY_RUN) {
+            commonlib.shell(script: rsync_cmd)
+            commonlib.shell(script: "ssh -o StrictHostKeyChecking='no' ${MIRROR_HOST} timeout 15m /usr/local/bin/push.pub.sh openshift-v4")
+        } else {
+            echo "Not mirroring; would have run: ${rsync_cmd}"
+        }
     }
 
 }

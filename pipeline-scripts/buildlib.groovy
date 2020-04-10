@@ -645,17 +645,21 @@ def args_to_string(Object... args) {
  * @return Returns the stdout of the operation
  */
 def invoke_on_rcm_guest(git_script_filename, Object... args ) {
-    return sh(
-            returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
-    ).trim()
+    timeout(time: 24, unit: 'HOURS') {
+        return sh(
+                returnStdout: true,
+                script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
+        ).trim()
+    }
 }
 
 def invoke_on_use_mirror(git_script_filename, Object... args ) {
-    return sh(
-            returnStdout: true,
-            script: "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/use-mirror/${git_script_filename}",
-    ).trim()
+    timeout(time: 24, unit: 'HOURS') {
+        return sh(
+                returnStdout: true,
+                script: "ssh -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/use-mirror/${git_script_filename}",
+        ).trim()
+    }
 }
 
 /**
@@ -682,15 +686,17 @@ def build_puddle(conf_url, keys, Object...args) {
     key_opt = (keys != null)?"--keys ${keys}":""
 
     // Ideally, we would call invoke_on_rcm_guest, but jenkins makes it absurd to invoke with conf_url as one of the arguments because the spread operator is not enabled.
-    def puddle_output = sh(
-            returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s -- --conf ${conf_url} ${key_opt} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
-    ).trim()
+    timeout(time: 24, unit: 'HOURS') {
+        def puddle_output = sh(
+                returnStdout: true,
+                script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s -- --conf ${conf_url} ${key_opt} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
+        ).trim()
 
-    echo "Puddle output:\n${puddle_output}"
-    def puddle_dir = this.extract_puddle_name( puddle_output )
-    echo "Detected puddle directory: ${puddle_dir}"
-    return puddle_dir
+        echo "Puddle output:\n${puddle_output}"
+        def puddle_dir = this.extract_puddle_name(puddle_output)
+        echo "Detected puddle directory: ${puddle_dir}"
+        return puddle_dir
+    }
 }
 
 def param(type, name, value) {

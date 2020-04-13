@@ -183,7 +183,7 @@ node {
             }
 
             stage("advisory image list") {
-                if (env.SKIP_IMAGE_LIST) {
+                if (params.SKIP_IMAGE_LIST) {
                     currentBuild.description += "[No image list]"
                     return
                 }

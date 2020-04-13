@@ -43,6 +43,12 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'PERMIT_PAYLOAD_OVERWRITE',
+                        description: 'Allows the pipeline to overwrite an existing payload in quay. Use only to recover from a pre-release that failed at client sync.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -126,7 +132,7 @@ node {
             def CLIENT_TYPE = "ocp-dev-preview"
 
             stage("validation") {
-                release.stageValidation(quay_url, dest_release_tag, -1)
+                release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE)
             }
 
             stage("build payload") {

@@ -202,7 +202,7 @@ class SlackOutputter {
 
     public failure(description, exception=null, attachments=[]) {
         attachments << [
-                title: "Job: <${this.script.getBuildURL()}console|#${this.script.getDisplayName()}>",
+                title: "Job: <${this.script.getBuildURL()}console|${this.script.getDisplayName()}>",
                 color: '#A12830',
         ]
         def msg = "Failure reported: ${description}"

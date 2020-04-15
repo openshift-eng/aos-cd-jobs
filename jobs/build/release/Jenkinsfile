@@ -160,7 +160,6 @@ node {
                         testLines << "test upgrade ${from_release} ${NAME} ${mode}"
                         testIndex++
                     }
-                    def slackChannel = slacklib.to('#team-art')
                     slackChannel.say("Hi @release-artists . A new release is ready and needs some upgrade tests to be triggered. "
                         + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
                     currentBuild.description += "\n@cluster-bot requests:\n${testLines.join('\n')}\n"

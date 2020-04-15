@@ -169,9 +169,9 @@ node {
             }
 
             stage("wait for stable") {
-                commonlib.retrySkipAbort("Waiting for stable ${release_name}",
+                commonlib.retryAbort("Waiting for stable ${release_name}",
                                         "Release ${release_name} is not currently Accepted by release controller. Issue cluster-bot requests for each upgrade test. "
-                                         + "SKIP when at least one test passes for each upgrade type. Or RETRY if the release is finally Accepted.",
+                                         + "RETRY when the release is finally Accepted.",
                                          taskThread)  {
                     release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, release_name)
                  }

@@ -428,7 +428,7 @@ def _retryWithOptions(goal, options, prompt='', slackOutput=null, cl) {
                 slackOutput.say("User selected: ${action}")
 
                 switch(action) {
-                    case 'RETRY'
+                    case 'RETRY':
                         echo "User chose to retry"
                         break
                     case 'SKIP':

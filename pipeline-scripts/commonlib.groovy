@@ -393,7 +393,7 @@ def inputRequired(cl) {
     }
 }
 
-def retrySkipAbort(goal, prompt='', slackOutput=null, cl) {
+def _retryWithOptions(goal, options, prompt='', slackOutput=null, cl) {
     def success = false
     if (!slackOutput) {
         slackOutput = slacklib.to(null)
@@ -413,29 +413,42 @@ def retrySkipAbort(goal, prompt='', slackOutput=null, cl) {
                 }
 
                 def resp = input message: prompt,
-                    parameters: [
-                        [
-                            $class     : 'hudson.model.ChoiceParameterDefinition',
-                            choices    : ['RETRY', 'SKIP', 'ABORT'].join('\n'),
-                            description : 'Retry this goal, Skip this goal, or Abort the pipeline',
-                            name       : 'action'
+                        parameters: [
+                                [
+                                        $class     : 'hudson.model.ChoiceParameterDefinition',
+                                        choices    : options.join('\n'),
+                                        description : 'Retry this goal, Skip this goal, or Abort the pipeline',
+                                        name       : 'action'
+                                ]
                         ]
-                    ]
 
                 def action = (resp instanceof String)?resp:resp.action
 
+                echo "User selected: ${action}"
+                slackOutput.say("User selected: ${action}")
+
                 switch(action) {
-                case 'RETRY':
-                    break
-                case 'SKIP':
-                    success = true  // fake it
-                    break
-                case 'ABORT':
-                    error('User chose to abort retries of: ${goal}')
+                    case 'RETRY'
+                        echo "User chose to retry"
+                        break
+                    case 'SKIP':
+                        echo "User chose to skip."
+                        success = true  // fake it
+                        break
+                    case 'ABORT':
+                        error('User chose to abort retries of: ${goal}')
                 }
             }
         }
     }
+}
+
+def retrySkipAbort(goal, prompt='', slackOutput=null, cl) {
+    _retryWithOptions(goal, ['RETRY', 'SKIP', 'ABORT'], prompt, slackOutput, cl)
+}
+
+def retryAbort(goal, prompt='', slackOutput=null, cl) {
+    _retryWithOptions(goal, ['RETRY', 'ABORT'], prompt, slackOutput, cl)
 }
 
 return this

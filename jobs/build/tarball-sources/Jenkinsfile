@@ -132,7 +132,7 @@ node {
                     commonlib.shell('chmod +x jira_login.sh')
                     commonlib.shell("./jira_login.sh ${JIRA_USERNAME} ${JIRA_PASSWORD}")
                     withEnv(["ds=${description}"]){
-                        cmd = 'jira create --noedit -p RCM -i Task -o summary="OCP Tarball sources" -o description="${ds}"'
+                        cmd = 'jira create --noedit -p "EXD SP Cloud Distribution" -i Task -o summary="OCP Tarball sources" -o description="${ds}"'
                         jira = commonlib.shell(
                             script: cmd,
                             returnStdout: true

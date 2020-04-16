@@ -471,10 +471,10 @@ def signArtifacts(Map signingParams) {
  */
 def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
-    if ( major != '4' ) {
+    if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
     }
-    def minorNext = "${minor.toInteger() + 1}"
+    def minorNext = minor + 1
     dir(env.WORKSPACE) {
         sshagent(["openshift-bot"]) {
 

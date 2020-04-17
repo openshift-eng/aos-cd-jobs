@@ -6,10 +6,11 @@ usage() {
 	ocp-cat: Display file from ocp-build-data in terminal
 	Set OCP_BUILD_DATA environment variable
 	usage:
-	  ocp-cat file [filter]
+	  ocp-cat file [filter]...
 	examples:
 	  ocp-cat stream.yml
 	  ocp-cat group.yml freeze_automation
+    ocp-cat group.yml arches arches_override
 	  ocp-cat images/openshift-enterprise-console.yml from
 	  ocp-cat images/openshift-enterprise-console.yml from.builder
 	EOUSAGE
@@ -36,18 +37,28 @@ print_file() {
 }
 
 filter() {
-  local object release
-  object="$1"
-  release="$2"
-  yq \
-    --yaml-output \
-    "$(printf '{"%s": {"%s": .%s}}' "$release" "$object" "$object")"
+  local release object
+  declare -a objects
+  release="$1"
+  shift
+  objects=$@
+  local sep=""
+  local jq_prog="{\"$release\": {"
+  for object in ${objects[@]}; do
+    jq_prog="$(printf '%s%s"%s": .%s' "$jq_prog" "$sep" "$object" "$object")"
+    sep=", "
+  done
+  jq_prog="$jq_prog }}"
+
+  yq --yaml-output "$jq_prog"
 }
 
 main() {
-  local release file object
+  local release file
+  declare -a objects
   file="$1"
-  object="$2"
+  shift
+  objects="$@"
   [[ "$file" == help || "$file" == "-h" || "$file" == "--help" ]] && {
     usage
     exit 0
@@ -67,10 +78,10 @@ main() {
     4.3 \
     4.4 \
     4.5; do
-    if [[ -z "$object" ]]; then
+    if [[ -z "$objects" ]]; then
       print_file "$release" "$file"
     else
-      show_file "$release" "$file" | filter "$object" "$release"
+      show_file "$release" "$file" | filter "$release" "${objects[@]}"
     fi
   done
 }

@@ -295,7 +295,9 @@ echo "=========="
 echo "Run Doozer rebase"
 echo "=========="
 
-doozer --working-dir ${DOOZER_WORKING} --group openshift-${OSE_VERSION} \
+doozer --working-dir ${DOOZER_WORKING} \
+--cache-dir ${HOME}/doozer_cache  \
+--group openshift-${OSE_VERSION} \
 --source ose ${OSE_DIR} \
 images:rebase --version v${VERSION} \
 --release 1 \
@@ -307,7 +309,8 @@ echo "Build Doozer images"
 echo "=========="
 
 if [ "$BUILD_CONTAINER_IMAGES" != "false" ]; then
-    doozer --working-dir ${DOOZER_WORKING} --group openshift-${OSE_VERSION} \
+    doozer --working-dir ${DOOZER_WORKING} \
+--group openshift-${OSE_VERSION} \
 images:build \
 --push-to-defaults
 fi

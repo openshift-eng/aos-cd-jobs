@@ -296,7 +296,7 @@ echo "Run Doozer rebase"
 echo "=========="
 
 doozer --working-dir ${DOOZER_WORKING} \
---cache-dir ${HOME}/doozer_cache  \
+--cache-dir /mnt/workspace/jenkins/doozer_cache  \
 --group openshift-${OSE_VERSION} \
 --source ose ${OSE_DIR} \
 images:rebase --version v${VERSION} \

@@ -105,7 +105,7 @@ def cleanWhitespace(cmd) {
 def doozer(cmd, opts=[:]){
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
-        script: "doozer --cache-dir \$HOME/doozer_cache ${cleanWhitespace(cmd)}")
+        script: "doozer --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
 }
 
 def elliott(cmd, opts=[:]){

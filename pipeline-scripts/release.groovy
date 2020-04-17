@@ -475,6 +475,7 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
     }
     def minorNext = minor + 1
+    boolean isReleaseCandidate = releaseName.toLowerCase().indexOf('rc') > -1
     dir(env.WORKSPACE) {
         sshagent(["openshift-bot"]) {
 
@@ -487,6 +488,11 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                 def prefixes = [ "candidate", "fast", "stable"]
                 if ( major == '4' && minor == '1' ) {
                     prefixes = [ "prerelease", "stable"]
+                }
+
+                if (isReleaseCandidate) {
+                    // Release Candidates never go past candidate
+                    prefixes = prefixes.subList(0, 1)
                 }
 
                 prURLs = [:]  // Will map channel to opened PR
@@ -592,7 +598,12 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                     switch(prefix) {
                         case 'prerelease':
                         case 'candidate':
-                            pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${errata_url} ."
+                            if ( isReleaseCandidate ) {
+                                // Errata is irrelevant for release candidate.
+                                pr_messages << "Please merge immediately."
+                            } else {
+                                pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${errata_url} ."
+                            }
                             break
                         case 'fast':
                             pr_messages << "Please merge as soon as ${errata_url} is shipped live OR if a Cincinnati-first release is approved."

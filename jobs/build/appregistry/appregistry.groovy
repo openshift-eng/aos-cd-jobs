@@ -259,6 +259,10 @@ def pushToOMPSWithRetries(token, metadata_nvr) {
                     response_status: response.status,
                     response_content: response.content,
                 ].toString())
+            } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                // This probably means we got a timeout or user abort *during* the request. We don't want to retry.
+                err = e
+                throw err
             } catch (e) {
                 // could also fail because of some error other than bad response
                 err = e

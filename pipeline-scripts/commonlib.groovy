@@ -1,14 +1,10 @@
 slacklib = load("pipeline-scripts/slacklib.groovy")
 
-ocp3DefaultVersion = "3.11"
 ocp3Versions = [
     "3.11",
     "3.10",
     "3.9",
 ]
-
-// Which version of ocp4 build parameters should show by default
-ocp4DefaultVersion = "4.5"
 
 // All buildable versions of ocp4
 ocp4Versions = [
@@ -29,18 +25,12 @@ ocpMergeVersions = [
     "3.11",
 ]
 
-ocpDefaultVersion = ocp4DefaultVersion
 ocpVersions = ocp4Versions + ocp3Versions
 
 ocpMajorVersions = [
     "4": ocp4Versions,
     "3": ocp3Versions,
     "all": ocpVersions,
-]
-ocpMajorDefaultVersion = [
-    "4": ocp4DefaultVersion,
-    "3": ocp3DefaultVersion,
-    "all": ocp4DefaultVersion,
 ]
 
 ocpBaseImages = [
@@ -87,7 +77,6 @@ def ocpVersionParam(name='MINOR_VERSION', majorVersion='all') {
         description: 'OSE Version',
         $class: 'hudson.model.ChoiceParameterDefinition',
         choices: ocpMajorVersions[majorVersion].join('\n'),
-        defaultValue: ocpMajorDefaultVersion[majorVersion],
     ]
 }
 

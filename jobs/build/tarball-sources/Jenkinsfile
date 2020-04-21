@@ -82,10 +82,13 @@ node {
 
             stage("rsync") {
                 cmd = "rsync -avz --chmod=go+rX ${outdir} ${rcm_guest}"
-                commonlib.shell(
+                res = commonlib.shell(
                     script: cmd,
                     returnAll: true
                 )
+                if(res.returnStatus != 0 || res.stderr != "") {
+                    error "rsync executing failed..."
+                }
             }
 
             stage("file ticket to RCM") {

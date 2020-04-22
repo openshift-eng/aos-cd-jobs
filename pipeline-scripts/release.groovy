@@ -465,15 +465,16 @@ def signArtifacts(Map signingParams) {
  *    Specifically, a PR for each channel prefix (e.g. candidate, fast, stable) associated with the specified release
  *    and the next minor channels (major.minor+1) IFF those channels currently exist.
  * @param releaseName The name of the release (e.g. "4.3.6")
- * @param errata_url The errata associated with the release.
+ * @param advisory The internal advisory number in errata tool.
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
  *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
  */
-def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
+def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
     }
+    def internal_errata_url = "https://errata.devel.redhat.com/advisory/${advisory}"
     def minorNext = minor + 1
     boolean isReleaseCandidate = releaseName.toLowerCase().indexOf('rc') > -1
     dir(env.WORKSPACE) {
@@ -602,11 +603,11 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                                 // Errata is irrelevant for release candidate.
                                 pr_messages << "Please merge immediately."
                             } else {
-                                pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${errata_url} ."
+                                pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
                             }
                             break
                         case 'fast':
-                            pr_messages << "Please merge as soon as ${errata_url} is shipped live OR if a Cincinnati-first release is approved."
+                            pr_messages << "Please merge as soon as ${internal_errata_url} is shipped live OR if a Cincinnati-first release is approved."
                             if (prURLs.containsKey('candidate')) {
                                 pr_messages << "This should provide adequate soak time for candidate channel PR ${prURLs.candidate}"
                             }
@@ -616,7 +617,7 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                         case 'stable':
                             // For non-candidate, put a hold on the PR to prevent accidental merging
                             labelArgs = "-l 'do-not-merge/hold'"
-                            pr_messages << "Please merge within 48 hours of ${errata_url} shipping live OR a Cincinnati-first release."
+                            pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
 
                             if (prURLs.containsKey('prerelease')) {
                                 pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
@@ -657,8 +658,7 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                             git branch -f ${branchName} origin/master
                             git checkout ${branchName}
                             if [[ "${addToChannel}" == "true" ]]; then
-                                echo >> ${channelFile}    # add newline
-                                echo '# ${releaseName} Errata: ${errata_url}' >> ${channelFile}    # add link to errata for reference
+                                echo >> ${channelFile}    # add newline to avoid if human has added something without newline
                                 echo '- ${releaseName}' >> ${channelFile}   # add the entry
                                 git add ${channelFile}
                             fi
@@ -666,7 +666,6 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                                 # We want to insert the previous minors right after versions: so they stay above other entries.
                                 # Why not set it in right before the next minor begins? Because we don't confuse a comment line that might exist above the next minor.
                                 # First, create a file with the content we want to insert
-                                echo '# Allow upgrades from ${releaseName}. Errata: ${errata_url}' > ul.txt    # add link to errata for reference
                                 for urn in ${releasesForUpgradeChannel.join(' ')} ; do
                                     echo "- \$urn" >> ul.txt  # add the entry to lines to insert
                                 done

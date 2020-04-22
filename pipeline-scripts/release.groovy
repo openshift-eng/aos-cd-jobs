@@ -568,7 +568,7 @@ def openCincinnatiPRs(releaseName, errata_url, ghorg = 'openshift') {
                                  * entry for the various channels (e.g. ["4.y.z+amd64", "4.y.z+s390x"] if both builds have
                                  * x86_64 & s390x, but only 4.y.z has ppc64le)
                                  */
-                                currentReleaseArches = buildlib.branch_arches('openshift-${major}.${minor}', true)
+                                currentReleaseArches = buildlib.branch_arches("openshift-${major}.${minor}", true)
                                 for ( String arch : currentReleaseArches ) {
                                     if ( existsForArch(lastNextVer, arch) ) {
                                         def goArchName = (arch == 'x86_64'?'amd64':arch)

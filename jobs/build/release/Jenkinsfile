@@ -65,6 +65,13 @@ node {
                         defaultValue: false
                     ],
                     [
+                        // https://coreos.slack.com/archives/CJARLA942/p1587651980096400?thread_ts=1587623714.067700&cid=CJARLA942
+                        name: 'OPEN_NON_X86_PR',
+                        description: 'Usually PRs will only be opened when x86_64 releases are created. If set, this will force their creation for any CPU arch.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'SKIP_IMAGE_LIST',
                         description: 'Do not gather an advisory image list for docs. Use this for RCs and other test situations.',
                         $class: 'BooleanParameterDefinition',
@@ -150,7 +157,7 @@ node {
                     def (major,minor) = commonlib.extractMajorMinorVersion(NAME)
                     def previousList = PREVIOUS.trim().tokenize('\t ,')
                     def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
-                    if ( major == '4' && minor == '1') {
+                    if ( major == 4 && minor == 1) {
                         modeOptions = ['aws'] // gcp and azure were not supported in 4.1
                     }
                     def testIndex = 0
@@ -169,10 +176,9 @@ node {
             }
 
             stage("wait for stable") {
-                commonlib.retryAbort("Waiting for stable ${release_name}",
+                commonlib.retryAbort("Waiting for stable ${release_name}", taskThread,
                                         "Release ${release_name} is not currently Accepted by release controller. Issue cluster-bot requests for each upgrade test. "
-                                         + "RETRY when the release is finally Accepted.",
-                                         taskThread)  {
+                                         + "RETRY when the release is finally Accepted.")  {
                     release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, release_name)
                  }
             }
@@ -217,7 +223,7 @@ node {
             stage("cross ref check") { release.stageCrossRef() }
             stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch) }
             stage("sign artifacts") {
-                commonlib.retrySkipAbort("Signing artifacts", "Error running signing job", taskThread) {
+                commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {
                     release.signArtifacts(
                         name: name,
                         signature_name: "signature-1",
@@ -232,7 +238,24 @@ node {
             }
 
             stage("channel prs") {
-                release.openCincinnatiPRs(NAME, errata_url)
+                if ( params.DRY_RUN ) {
+                    echo "Skipping PR creation for DRY_RUN"
+                    return
+                }
+                if (arch == 'x86_64' || params.OPEN_NON_X86_PR ) {
+                    commonlib.retrySkipAbort('Open Cincinnati PRs', taskThread) {
+                        build(
+                                job: 'build%2Fcincinnati-prs',  propagate: true,
+                                parameters: [
+                                        buildlib.param('String', 'RELEASE_NAME', NAME),
+                                        buildlib.param('String', 'ADVISORY_NUM', advisory),
+                                        buildlib.param('String', 'GITHUB_ORG', 'openshift'),
+                                ]
+                        )
+                    }
+                } else {
+                    echo "Skipping PR creation for non-x86 CPU arch"
+                }
             }
 
         }

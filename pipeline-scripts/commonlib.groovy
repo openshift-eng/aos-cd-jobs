@@ -382,7 +382,7 @@ def inputRequired(cl) {
     }
 }
 
-def _retryWithOptions(goal, options, prompt='', slackOutput=null, cl) {
+def _retryWithOptions(goal, options, slackOutput=null, prompt='', cl) {
     def success = false
     if (!slackOutput) {
         slackOutput = slacklib.to(null)
@@ -432,12 +432,12 @@ def _retryWithOptions(goal, options, prompt='', slackOutput=null, cl) {
     }
 }
 
-def retrySkipAbort(goal, prompt='', slackOutput=null, cl) {
-    _retryWithOptions(goal, ['RETRY', 'SKIP', 'ABORT'], prompt, slackOutput, cl)
+def retrySkipAbort(goal, slackOutput=null, prompt='', cl) {
+    _retryWithOptions(goal, ['RETRY', 'SKIP', 'ABORT'], slackOutput, prompt, cl)
 }
 
-def retryAbort(goal, prompt='', slackOutput=null, cl) {
-    _retryWithOptions(goal, ['RETRY', 'ABORT'], prompt, slackOutput, cl)
+def retryAbort(goal, slackOutput=null, prompt='', cl) {
+    _retryWithOptions(goal, ['RETRY', 'ABORT'], slackOutput, prompt, cl)
 }
 
 return this

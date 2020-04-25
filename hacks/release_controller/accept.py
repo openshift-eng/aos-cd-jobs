@@ -56,7 +56,7 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
 
         def make_release_accepted(obj):
             for annotations in (obj.model.image.metadata.annotations, obj.model.metadata.annotations, obj.model.tag.annotations):
-                annotations.pop('release.openshift.io/name', None)
+                annotations.pop('release.openshift.io/message', None)
                 annotations.pop('release.openshift.io/reason', None)
                 annotations['release.openshift.io/phase'] = 'Accepted'
 

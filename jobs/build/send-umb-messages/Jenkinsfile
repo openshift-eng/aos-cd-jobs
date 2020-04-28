@@ -19,7 +19,7 @@ node {
     ])
 
     // we only care to publish messages for the following releases
-    releases = ["4-stable", "4.6.0-0.nightly", "4.5.0-0.nightly", "4.4.0-0.nightly", "4.3.0-0.nightly", "4.2.0-0.nightly", "4.1.0-0.nightly"]
+    releases = commonlib.ocp4SendUMBVersions
     currentBuild.description = ""
     currentBuild.displayName = ""
 

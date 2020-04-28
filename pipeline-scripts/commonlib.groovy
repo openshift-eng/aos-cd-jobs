@@ -19,8 +19,7 @@ ocp4Versions = [
 // Send UMB messages for these new nightlies, yields a list like:
 //
 //     [4-stable, 4.1.0-0.nightly, 4.2.0-0.nightly, 4.3.0-0.nightly, ...]
-ocp4SendUMBVersions = ocp4Versions.collect([]) { it + ".0-0.nightly" }
-ocp4SendUMBVersions.add(0, "4-stable")
+ocp4SendUMBVersions = ocp4Versions.collect(["4-stable"]) { it + ".0-0.nightly" }
 
 // Which versions should undergo merges from origin->ose
 ocpMergeVersions = [

@@ -378,10 +378,14 @@ def getReleaseControllerURL(releaseStreamName) {
     return "https://openshift-release${archSuffix}.svc.ci.openshift.org"
 }
 
-def inputRequired(cl) {
+def inputRequired(slackOutput=null, cl) {
+    if (!slackOutput) {
+        slackOutput = slacklib.to(null)
+    }
     def oldName = currentBuild.displayName
     try {
         currentBuild.displayName = "INPUT REQUIRED: ${oldName}"
+        slackOutput.say('This job is waiting for input')
         cl()
     } finally {
         currentBuild.displayName = oldName

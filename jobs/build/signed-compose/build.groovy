@@ -102,7 +102,8 @@ def signedComposeStateQE() {
     retry(3) {
         sleep seconds
         seconds = seconds + 30
-        buildlib.elliott("${elliottOpts} change-state --state QE ${advisoryOpt}")
+        out = buildlib.elliott("${elliottOpts} change-state --state QE ${advisoryOpt}", [capture: true])
+        echo("${out}")
     }
 }
 

@@ -48,9 +48,9 @@ node {
                     ],
                     [
                         name: 'PREVIOUS',
-                        description: 'Check item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
+                        description: 'Use auto to be prompted later in the job with suggested previous. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
+                        defaultValue: "auto"
                     ],
                     [
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
@@ -123,11 +123,11 @@ node {
             archSuffix = release.getArchSuffix(arch)
             RELEASE_STREAM_NAME = "4-stable${archSuffix}"
             dest_release_tag = release.destReleaseTag(release_name, arch)
+            def (major,minor) = commonlib.extractMajorMinorVersion(NAME)
 
 
             description = params.DESCRIPTION
             advisory = params.ADVISORY ? Integer.parseInt(params.ADVISORY.toString()) : 0
-            previous = params.PREVIOUS
             String errata_url
             Map release_obj
             def CLIENT_TYPE = 'ocp'
@@ -139,6 +139,34 @@ node {
                 currentBuild.description += "[DRY RUN]"
             }
 
+            PREVIOUS_LIST_STR = params.PREVIOUS
+            if ( params.PREVIOUS.trim() == 'auto' ) {
+                taskThread.task('Gather PREVIOUS for release') {
+                    def suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${major}.${minor}", [capture: true])
+                    prevMinor = minor - 1
+                    commonlib.inputRequired(taskThread) {
+                        def resp = input(
+                            message: "What PREVIOUS releases should be included in the new release",
+                            parameters: [
+                                string(
+                                        defaultValue: "4.${prevMinor}.?",
+                                        description: "This is release ${NAME}. What release is in flight for the previous minor release 4.${prevMinor}?",
+                                        name: 'IN_FLIGHT_PREV',
+                                ),
+                                string(
+                                        defaultValue: "${suggest_previous}.?",
+                                        description: "Doozer thinks these are the other releases to include. Edit as necessary (comma delimited).",
+                                        name: 'SUGGESTED',
+                                ),
+                            ]
+                        )
+
+                        def splitlist = resp.SUGGESTED.replaceAll("\\s","").split(',').toList()
+                        splitlist << resp.IN_FLIGHT_PREV.trim()
+                        PREVIOUS_LIST_STR = splitlist.join(',')
+                    }
+                }
+            }
 
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
@@ -148,14 +176,13 @@ node {
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }
-            stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previous, errata_url) }
+            stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, PREVIOUS_LIST_STR, errata_url) }
 
             stage("tag stable") { release.stageTagRelease(quay_url, release_name, dest_release_tag, arch) }
 
             stage("request upgrade tests") {
                 try {  // don't let a slack outage break the job
-                    def (major,minor) = commonlib.extractMajorMinorVersion(NAME)
-                    def previousList = PREVIOUS.trim().tokenize('\t ,')
+                    def previousList = PREVIOUS_LIST_STR.trim().tokenize('\t ,')
                     def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
                     if ( major == 4 && minor == 1) {
                         modeOptions = ['aws'] // gcp and azure were not supported in 4.1

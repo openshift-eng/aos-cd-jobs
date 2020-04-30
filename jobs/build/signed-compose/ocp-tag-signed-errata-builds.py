@@ -7,12 +7,14 @@ PURPOSE
  * Builds get into released/main tag via move-pushed-erratum in errata tool in post push tasks
  * Original/legacy script is still available as sync_brew_with_errata (lot of redundancy and slow)
 """
+from __future__ import print_function
 import optparse
 import urllib3
 import koji
 import xmlrpclib
 import logging
 import sys
+import time
 from kobo.rpmlib import compare_nvr
 
 def get_logger_name():
@@ -43,6 +45,7 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
         tagged_builds: dict {nvr: build_info_hash}
         test=False
     """
+    tasks = []  # lists of tasks associated with the tagging requests
     failed = False
     for nvr in sorted(nvrs):
         if not nvr in tagged_builds:
@@ -50,7 +53,9 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
             if not test:
                 logging.info("tag_builds: Tagging build: %s", nvr)
                 try:
-                    koji_proxy.tagBuild(tag, nvr) # non-blocking
+                    task = koji_proxy.tagBuild(tag, nvr) # non-blocking
+                    # Returned task is a type int
+                    tasks.append(task)
                 except Exception as e:
                     logging.warn("%s not allowed: %s", nvr, e)
                     failed = e
@@ -58,6 +63,21 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
                 logging.info("tag_builds: Would tag %s into %s", nvr, tag)
         else:
             logging.debug("tag_builds: Build %s is already tagged.", nvr)
+
+    task_failures = False
+    for task_id in tasks:
+        print('Waiting for task {} to finish'.format(task_id))
+        while not koji_proxy.taskFinished(task_id):
+            print('.', end='')
+            time.sleep(30)
+        print()
+        tag_res = koji_proxy.getTaskResult(task_id, raise_fault=False)
+        if 'faultCode' in tag_res:
+            print('Failed tagging task! {}\n{}'.format(task_id, tag_res))
+            task_failures = True
+
+    if task_failures:
+        raise IOError('At least one tagging task failed')
 
     if failed:
         raise failed
@@ -136,7 +156,7 @@ def get_errata_builds(errata_proxy, errata_group,
         if advisory["status"] in SHIPPED_STATES:
             logging.debug("Skipping advisory as it is SHIPPED and it's already in released tag.")
             continue
-        
+
         if advisory["status"] == "NEW FILES":
             logging.debug("Skipping advisory as it is in New Files thus it doesn't contain signed builds")
             continue
@@ -281,9 +301,9 @@ def main():
         log_level = logging.DEBUG
 
     logging.basicConfig(level=log_level)
-    
 
-        
+
+
 
     # Disabling all urllib3 warnings to hide all noise caused by old python version
     # on RHEL 6.9 (lack of SNI support and an outdated ssl module).

@@ -536,56 +536,8 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
 
                         // at least one version must be present & make sure that releaseName is not already there
                         if ( upgradeChannelVersions && !isInChannel(releaseName, upgradeChannelVersions) ) {
-                            /**
-                             * We need find the most recent version of 4.minor+1 and determine which
-                             * architectures it supports. If it only supports x86_64, the OTA team
-                             * only wants us to PR for 4.y+1 with a CPU suffix which limits upgrades
-                             * to 4.y+1 from this release's x86_64 image.
-                             */
-                            def spacedVersions = upgradeChannelVersions.join(' ')
-                            // Use sort -V to handle semver sorting of versions and choose the last
-                            def lastNextVer = sh(returnStdout: true, script: "echo ${spacedVersions} | tr ' ' '\\n' | grep ${major}[.]${minorNext}[.] | sort -V | tail -n 1").trim()
-                            if ( lastNextVer ) {
-
-                                /**
-                                 * @param name - The name of the release to look for
-                                 * @param arch - The architecture you want to know if the release is defined for
-                                 * @return Returns true if the release specified has support for the specified architecture
-                                 */
-                                def existsForArch = { name, arch ->
-                                    def suffix = getArchSuffix(arch)
-                                    // If there is an imagestream in the arch's api.ci namespace, it was built for that arch by ART.
-                                    // Check for both is/release and is/release-<ach> (the latter being an older style of release naming)
-                                    if ( sh(returnStdout: true, script: "oc get --kubeconfig ${buildlib.ciKubeconfig} --ignore-not-found -n ocp${suffix} -o=name is/${name} is/${name}${suffix}").trim() ) {
-                                        return true
-                                    } else {
-                                        return false
-                                    }
-                                }
-
-                                /**
-                                 * For each of the arches in the current release, see if a counterpart exists for the
-                                 * latest 4.y+1 release. If it is found, record that we are going to add an arch specific
-                                 * entry for the various channels (e.g. ["4.y.z+amd64", "4.y.z+s390x"] if both builds have
-                                 * x86_64 & s390x, but only 4.y.z has ppc64le)
-                                 */
-                                currentReleaseArches = buildlib.branch_arches("openshift-${major}.${minor}", true)
-                                for ( String arch : currentReleaseArches ) {
-                                    if ( existsForArch(lastNextVer, arch) ) {
-                                        def goArchName = (arch == 'x86_64'?'amd64':arch)
-                                        releasesForUpgradeChannel << "${releaseName}+${goArchName}"
-                                    }
-                                }
-
-                                if (currentReleaseArches.size() == releasesForUpgradeChannel.size()) {
-                                    // If all arches are supported, just put in the release name
-                                    releasesForUpgradeChannel = [ releaseName ]
-                                }
-
-                                if ( releasesForUpgradeChannel ) {
-                                    addToUpgradeChannel = true
-                                }
-                            }
+                            releasesForUpgradeChannel = [ releaseName ]
+                            addToUpgradeChannel = true
                         }
                     }
 

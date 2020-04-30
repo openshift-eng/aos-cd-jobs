@@ -139,6 +139,12 @@ for arch in ${ARCHES}; do
         fi
         echo "Found releases in channel ${USE_CHANNEL}: ${CHANNEL_RELEASES}"
         RELEASE=$(echo "${CHANNEL_RELEASES}" | sort -V | tail -n 1)
+
+        if [[ ${RELEASE} != ${major}.${minor}* ]]; then
+            echo "${RELEASE} is latest in ${USE_CHANNEL}, but appears to be from previous release; ignoring"
+            continue
+        fi
+
     fi
 
     target_path="${arch}/clients/${CLIENT_TYPE}"

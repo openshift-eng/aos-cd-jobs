@@ -14,13 +14,19 @@ def rpmdiffs_ran(advisory):
     print("Checking to see if RPM diffs have finished running")
     print("Current RPM Diff status data:")
     not_finished_diffs = []
+    nvrs_with_diffs = set()
     for diff in rpmdiffs:
         print_diff(diff)
+        nvrs_with_diffs.add(diff['relationships']['brew_build']['nvr'])
         if diff['attributes']['status'] in ['QUEUED_FOR_TEST', 'RUNNING', 'PENDING']:
             not_finished_diffs.append(diff)
 
-    if not_finished_diffs:
-        print("There are {} rpmdiffs which have not ran or completed yet".format(
+    if any(build not in nvrs_with_diffs for builds in advisory.errata_builds.values() for build in builds):
+        # usually rpmdiffs are created instantly, but sometimes there is a delay. ensure all builds have them.
+        print("Some builds do not have rpmdiffs yet.")
+        return False
+    elif not_finished_diffs:
+        print("There are {} rpmdiffs which have not run or completed yet".format(
             len(not_finished_diffs)))
         return False
     else:

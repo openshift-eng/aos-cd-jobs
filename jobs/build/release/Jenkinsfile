@@ -225,7 +225,7 @@ node {
                         commonlib.shell(script: "elliott advisory-images -a ${advisory} > ${filename}")
                     }
                     archiveArtifacts(artifacts: filename, fingerprint: true)
-                    if (!env.DRY_RUN) {
+                    if (!params.DRY_RUN) {
                         commonlib.email(
                             to: "openshift-ccs@redhat.com",
                             cc: "aos-team-art@redhat.com",

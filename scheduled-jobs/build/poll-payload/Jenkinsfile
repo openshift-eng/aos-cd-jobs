@@ -11,9 +11,6 @@ import groovy.json.JsonOutput
 
 // A map of release stream names to be polled and and actions to be taken
 @Field final ACTIONS = [
-    "4.3.0-0.nightly-s390x": this.&startPreReleaseJob,
-    "4.3.0-0.nightly-ppc64le": this.&startPreReleaseJob,
-    "4.4.0-0.nightly": this.&startPreReleaseJob,
     "4.4.0-0.nightly-s390x": this.&startPreReleaseJob,
     "4.4.0-0.nightly-ppc64le": this.&startPreReleaseJob,
     "4.5.0-0.nightly": this.&startPreReleaseJob,

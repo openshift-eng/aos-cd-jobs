@@ -67,7 +67,7 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
     task_failures = False
     for task_id in tasks:
         print('Waiting for task {} to finish'.format(task_id))
-        while not koji_proxy.taskFinished(task_id):
+        while not koji_proxy.taskFinished(task_id) or not koji_proxy.getTaskResult(task_id, raise_fault=False):
             print('.', end='')
             time.sleep(30)
         print()

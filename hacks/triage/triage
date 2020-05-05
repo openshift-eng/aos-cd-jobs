@@ -72,7 +72,8 @@ main() {
   urls=(
     $(buildvm)
     $(rhcos_urls)
-    $(bugzilla)
+    $(bz_non_cves)
+    $(bz_cves)
     $(backlog)
     $(repo_links)
     $(triage_docs)
@@ -106,7 +107,7 @@ main() {
 
   if [[ -n "${I3SOCK:-}" ]]; then
     # We are running in i3. Use i3-msg exec
-    cmd="i3-msg exec -- $cmd"
+    cmd="i3-msg exec -- \"$cmd\""
   fi
   echo "$cmd" >/dev/stderr
   eval "$cmd"
@@ -129,6 +130,14 @@ bugzilla() {
   local base_url='https://bugzilla.redhat.com/buglist.cgi?1=1'
 
   echo "${base_url}${query}${release_query}"
+}
+
+bz_non_cves() {
+  echo "$(bugzilla)&keywords=SecurityTracking%2C%20&keywords_type=nowords"
+}
+
+bz_cves() {
+  echo "$(bugzilla)&keywords=SecurityTracking%2C%20&keywords_type=allwords"
 }
 
 rhcos_urls() {

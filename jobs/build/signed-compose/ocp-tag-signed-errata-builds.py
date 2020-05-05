@@ -72,7 +72,7 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
             time.sleep(30)
         print()
         tag_res = koji_proxy.getTaskResult(task_id, raise_fault=False)
-        if 'faultCode' in tag_res:
+        if tag_res and 'faultCode' in tag_res:
             print('Failed tagging task! {}\n{}'.format(task_id, tag_res))
             task_failures = True
 

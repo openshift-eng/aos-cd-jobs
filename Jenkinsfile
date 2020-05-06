@@ -81,7 +81,7 @@ node {
             }
 
             stage("rsync") {
-                cmd = "rsync -avz --chmod=go+rX ${outdir} ${rcm_guest}"
+                cmd = "rsync -avz --no-perms --no-owner --no-group ${outdir} ${rcm_guest}"
                 res = commonlib.shell(
                     script: cmd,
                     returnAll: true

@@ -177,11 +177,16 @@ ${tagResult.combined}
 """)
         }
     } else {
-        echo("Updating RHEL${elMajor} brew tag")
-        def tagResult = commonlib.shell(
-            script: tagCmd,
-            returnAll: true,
-        )
+        def tagResult = ''
+        // It appears that two simultaneous tag requests for the same package, even on
+        // different releases, causes both API calls to hang.  Use lock to prevent this.
+        lock('update-brew-tags') {
+            echo("Updating RHEL${elMajor} brew tag")
+            tagResult = commonlib.shell(
+                script: tagCmd,
+                returnAll: true,
+            )
+        }
 
         echo("Sleeping 2 minutes to give brew some time to catch up")
         sleep 120

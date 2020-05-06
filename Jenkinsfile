@@ -34,7 +34,7 @@ node {
                         name: 'RCM_GUEST',
                         description: 'Details of RCM GUEST',
                         $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "ocp-build@rcm-guest.app.eng.bos.redhat.com:/mnt/redhat/staging-cds/"
+                        defaultValue: "ocp-build@rcm-guest.app.eng.bos.redhat.com:/mnt/rcm-guest/ocp-client-handoff/"
                     ],
                     [
                         name: 'MAIL_LIST_FAILURE',

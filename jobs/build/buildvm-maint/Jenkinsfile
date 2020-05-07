@@ -42,9 +42,7 @@ node('openshift-build-1') {
         sshagent(["openshift-bot"]) {
 
             // Capture exceptions and don't let one problem stop other cleanup from executing
-            e1 = null
-            e2 = null
-            e3 = null
+            errors = []
 
             try {
                 stage("push images") {
@@ -59,7 +57,7 @@ node('openshift-build-1') {
                 }
             } catch ( ex1 ) {
                 echo "ERROR: ex1 occurred: " + ex1
-                e1 = ex1
+                errors[1] = ex1
             }
 
             try {
@@ -70,7 +68,7 @@ node('openshift-build-1') {
                 }
             } catch ( ex2 ) {
                 echo "ERROR: ex2 occurred: " + ex2
-                e2 = ex2
+                errors[2] = ex2
             }
 
             try {
@@ -82,7 +80,7 @@ node('openshift-build-1') {
                         try {
                             sh("/bin/rclone -v copyto /home/jenkins/new_snapshot.txt s3SigningLogs:art-build-artifacts/buildvm-snapshots/`date '+%Y%m%d'`.txt")
                         } catch ( snapErr ) {
-                            e4 = snapErr
+                            errors[4] = snapErr
                             def snapshot = readFile("/home/jenkins/new_snapshot.txt")
                             mail(to: "aos-art-automation+new-buildvm-snapshot@redhat.com",
                                  from: "aos-art-automation@redhat.com",
@@ -94,25 +92,14 @@ node('openshift-build-1') {
                 }
             } catch ( ex3 ) {
                 echo "ERROR: ex3 occurred: " + ex3
-                e3 = ex3
+                errors[3] = ex3
             }
 
-            if ( e1 != null ) {
-                throw e1
+            errors.each {
+                if (it != null) {
+                    throw it
+                }
             }
-
-            if ( e2 != null ) {
-                throw e2
-            }
-
-            if ( e3 != null ) {
-                throw e3
-            }
-
-            if ( e4 != null ) {
-                throw e4
-            }
-
         }
 
     } catch ( err ) {

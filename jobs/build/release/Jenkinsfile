@@ -123,7 +123,7 @@ node {
             archSuffix = release.getArchSuffix(arch)
             RELEASE_STREAM_NAME = "4-stable${archSuffix}"
             dest_release_tag = release.destReleaseTag(release_name, arch)
-            def (major,minor) = commonlib.extractMajorMinorVersion(NAME)
+            def (major, minor) = commonlib.extractMajorMinorVersion(release_name)
 
 
             description = params.DESCRIPTION

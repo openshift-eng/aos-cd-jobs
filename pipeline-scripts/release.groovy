@@ -618,6 +618,7 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
                                 # We want to insert the previous minors right after versions: so they stay above other entries.
                                 # Why not set it in right before the next minor begins? Because we don't confuse a comment line that might exist above the next minor.
                                 # First, create a file with the content we want to insert
+                                echo -n > ul.txt  # Clear from previous channels
                                 for urn in ${releasesForUpgradeChannel.join(' ')} ; do
                                     echo "- \$urn" >> ul.txt  # add the entry to lines to insert
                                 done

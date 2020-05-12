@@ -341,6 +341,9 @@ def main():
     logging.debug("Getting all builds from tag: %s",
         opts.brew_pending_tag)
 
+    koji_proxy = koji.ClientSession(opts.brew_url, opts={'krbservice': 'brewhub'})
+    koji_proxy.krb_login()  
+    
     # these are currently in pending
     tagged_builds = get_brew_builds(koji_proxy, opts.brew_pending_tag,
                                     latest=False, inherit=False)

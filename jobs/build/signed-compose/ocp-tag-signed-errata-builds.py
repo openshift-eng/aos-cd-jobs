@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 PURPOSE
@@ -11,11 +11,12 @@ from __future__ import print_function
 import optparse
 import urllib3
 import koji
-import xmlrpclib
+import xmlrpc.client as xmlrpclib
 import logging
 import sys
 import time
 from kobo.rpmlib import compare_nvr
+
 
 def get_logger_name():
     try:
@@ -26,6 +27,7 @@ def get_logger_name():
 #: This is our log object, clients of this library can use this
 #: object to define their own logging needs
 
+
 BREW_URL = "https://brewhub.engineering.redhat.com/brewhub"
 ERRATA_URL = "http://errata-xmlrpc.devel.redhat.com/errata/errata_service"
 ERRATA_API_URL = "https://errata.engineering.redhat.com/api/v1/"
@@ -34,6 +36,7 @@ DROPPED_STATES = ["DROPPED"]
 SHIPPED_STATES = ["SHIPPED_LIVE"]
 
 BREW_EMBARGOED_TAG = "embargoed"
+
 
 def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
     """
@@ -82,6 +85,7 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
     if failed:
         raise failed
 
+
 def untag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
     """
     untag builds from tagged_builds if the buildroot push flag is removed
@@ -106,6 +110,7 @@ def untag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
             else:
                 logging.info("untag_builds: Would untag %s from %s", nvr, tag)
 
+
 def _diff_me(a_builds, b_builds):
     """
     Returns set of nvrs which are in a but not in b
@@ -118,17 +123,20 @@ def _diff_me(a_builds, b_builds):
 
     return set(b_builds).difference(set(a_builds))
 
+
 def get_missing_builds(errata, tagged):
     """
     Returns dict nvr: build_info  for builds which are in errata but not in pending
     """
     return _diff_me(tagged, errata)
 
+
 def get_extra_builds(errata, tagged):
     """
     Returns dict nvr: build_info  for builds which are in pending but not in errata
     """
     return _diff_me(errata, tagged)
+
 
 def get_errata_builds(errata_proxy, errata_group,
                       errata_product, module_builds=False, errata_product_version=None):
@@ -143,7 +151,6 @@ def get_errata_builds(errata_proxy, errata_group,
     """
 
     errata_builds = {}
-
 
     for advisory in errata_proxy.get_advisory_list(dict(group=errata_group,
         product=errata_product)):
@@ -192,7 +199,7 @@ def get_brew_builds(koji_proxy, brew_tags, latest=False, inherit=False):
 
     if not brew_tags:
         brew_tags = []
-    if isinstance(brew_tags, basestring):
+    if isinstance(brew_tags, str):
         brew_tags = [brew_tags]
 
     for brew_tag in brew_tags:
@@ -207,9 +214,11 @@ def get_brew_builds(koji_proxy, brew_tags, latest=False, inherit=False):
                 brew_builds.add(build["nvr"])
     return brew_builds
 
+
 def main():
     parser = optparse.OptionParser("%prog --errata-group=NAME" \
-            "--errata-product=NAME --brew-pending-tag=NAME")
+                                   "--errata-product=NAME --brew-pending-tag=NAME")
+
     parser.add_option(
         "--brew-pending-tag",
         metavar="NAME",
@@ -302,9 +311,6 @@ def main():
 
     logging.basicConfig(level=log_level)
 
-
-
-
     # Disabling all urllib3 warnings to hide all noise caused by old python version
     # on RHEL 6.9 (lack of SNI support and an outdated ssl module).
     # It is not possible to hide specific warnings due to import issues on the server.
@@ -313,7 +319,7 @@ def main():
 
     # Checking for valid brew_tag
     koji_proxy = koji.ClientSession(opts.brew_url, opts={'krbservice': 'brewhub'})
-    koji_proxy.krb_login()
+    koji_proxy.gssapi_login()
     multicall = xmlrpclib.MultiCall(koji_proxy)
     errata_proxy = xmlrpclib.ServerProxy(opts.errata_xmlrpc_url)
 
@@ -341,9 +347,6 @@ def main():
     logging.debug("Getting all builds from tag: %s",
         opts.brew_pending_tag)
 
-    koji_proxy = koji.ClientSession(opts.brew_url, opts={'krbservice': 'brewhub'})
-    koji_proxy.krb_login()  
-    
     # these are currently in pending
     tagged_builds = get_brew_builds(koji_proxy, opts.brew_pending_tag,
                                     latest=False, inherit=False)
@@ -382,11 +385,10 @@ def main():
     extra = get_extra_builds(et_builds, tagged_builds)
     logging.debug("Found %d builds which are tagged and shouldn't be. %s" % (len(extra), extra))
 
-
-
     # to be removed from -pending
     tag_builds(koji_proxy, opts.brew_pending_tag, missing, tagged_builds, test=opts.test)
     untag_builds(koji_proxy, opts.brew_pending_tag, extra, tagged_builds, test=opts.test)
+
 
 if __name__ == "__main__":
     main()

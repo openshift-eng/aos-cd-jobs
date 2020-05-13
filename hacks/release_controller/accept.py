@@ -12,8 +12,8 @@ ENDC = '\033[0m'
 @click.command()
 @click.option('-a', '--arch', default='amd64', help='Release architecture (amd64, s390x, ppc64le)')
 @click.option('-r', '--release', required=True, help='Release name (e.g. 4.3.13)')
-@click.option('-u', '--upgrade-url', required=True, help='URL to successful upgrade job')
-@click.option('-m', '--upgrade-minor-url', required=True, help='URL to successful upgrade-minor job')
+@click.option('-u', '--upgrade-url', default=None, required=False, help='URL to successful upgrade job')
+@click.option('-m', '--upgrade-minor-url', default=None, required=False, help='URL to successful upgrade-minor job')
 @click.option("--confirm", type=bool, is_flag=True, default=False,
               help="Must be specified to apply changes to server")
 def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
@@ -33,6 +33,10 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
                   -m 'https://prow.svc.ci.openshift.org/view/...origin-installer-e2e-gcp-upgrade/461'
                   --confirm
     """
+
+    if not upgrade_minor_url and not upgrade_url:
+        click.echo('One or both upgrade urls must be specified in order to accept the release')
+        exit(1)
 
     arch_suffix = ''
     if arch != 'amd64' and arch != 'x86_64':
@@ -63,9 +67,11 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
                 verify_str = annotations['release.openshift.io/verify']
                 verify = oc.Model(json.loads(verify_str))
                 verify.upgrade.state = 'Succeeded'
-                verify.upgrade.url = upgrade_url
+                if upgrade_url:
+                    verify.upgrade.url = upgrade_url
                 verify['upgrade-minor'].state = 'Succeeded'
-                verify['upgrade-minor'].url = upgrade_minor_url
+                if upgrade_minor_url:
+                    verify['upgrade-minor'].url = upgrade_minor_url
                 annotations['release.openshift.io/verify'] = json.dumps(verify._primitive(), indent=None)
 
             print(json.dumps(obj.model._primitive(), indent=4))

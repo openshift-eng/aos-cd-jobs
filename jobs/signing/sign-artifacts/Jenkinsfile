@@ -255,12 +255,26 @@ node {
                                 i=\$(( \$i + 1 ))
                                 if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
                             done
+                            until ${gsutil} cp -n -v -L cp.log -r \$file gs://openshift-release/${googleStoragePath}/signatures/openshift-release-dev/ocp-release; do
+                                sleep 1
+                                i=\$(( \$i + 1 ))
+                                if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
+                            done
+                            until ${gsutil} cp -n -v -L cp.log -r \$file gs://openshift-release/${googleStoragePath}/signatures/openshift-release-dev/ocp-release-nightly; do
+                                sleep 1
+                                i=\$(( \$i + 1 ))
+                                if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
+                            done
                         done
                         """)
                         sshagent(["openshift-bot"]) {
-                            def mirrorReleasePath = "openshift-v4/signatures/openshift/${(params.ENV == 'stage') ? 'test' : 'release'}"
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/"
-                            mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
+                            def mirrorReleasePath = (params.ENV == 'stage') ? 'test' : 'release'
+                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
+                            if (mirrorReleasePath == 'release') {
+                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
+                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
+                            }
+                            mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'openshift-v4/signatures')
                             if (mirror_result.contains("[FAILURE]")) {
                                 echo mirror_result
                                 error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")

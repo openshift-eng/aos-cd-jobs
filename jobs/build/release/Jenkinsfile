@@ -142,11 +142,20 @@ node {
             PREVIOUS_LIST_STR = params.PREVIOUS
             if ( params.PREVIOUS.trim() == 'auto' ) {
                 taskThread.task('Gather PREVIOUS for release') {
-                    def suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${major}.${minor}", [capture: true])
+                    def acquire_failure = ''
+                    def suggest_previous = ''
+                    try {
+                        suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${major}.${minor}", [capture: true])
+                        echo "Doozer suggested: ${suggest_previous}"
+                    } catch ( cincy_down ) {
+                        acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
+                        echo acquire_failure
+                    }
+
                     prevMinor = minor - 1
                     commonlib.inputRequired(taskThread) {
                         def resp = input(
-                            message: "What PREVIOUS releases should be included in the new release",
+                            message: "${acquire_failure}What PREVIOUS releases should be included in the new release?",
                             parameters: [
                                 string(
                                         defaultValue: "4.${prevMinor}.?",
@@ -155,7 +164,7 @@ node {
                                 ),
                                 string(
                                         defaultValue: "${suggest_previous}.?",
-                                        description: "Doozer thinks these are the other releases to include. Edit as necessary (comma delimited).",
+                                        description: (acquire_failure?acquire_failure:"Doozer thinks these are the other releases to include.") + " Edit as necessary (comma delimited).",
                                         name: 'SUGGESTED',
                                 ),
                             ]
@@ -163,7 +172,7 @@ node {
 
                         def splitlist = resp.SUGGESTED.replaceAll("\\s","").split(',').toList()
                         splitlist << resp.IN_FLIGHT_PREV.trim()
-                        PREVIOUS_LIST_STR = splitlist.join(',')
+                        PREVIOUS_LIST_STR = splitlist.unique().join(',')
                     }
                 }
             }

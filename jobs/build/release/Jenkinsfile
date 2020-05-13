@@ -155,7 +155,7 @@ node {
                     prevMinor = minor - 1
                     commonlib.inputRequired(taskThread) {
                         def resp = input(
-                            message: "${acquire_failure}What PREVIOUS releases should be included in the new release?",
+                            message: "${acquire_failure}What PREVIOUS releases should be included in ${release_name} (arch: ${arch})?",
                             parameters: [
                                 string(
                                         defaultValue: "4.${prevMinor}.?",
@@ -163,7 +163,7 @@ node {
                                         name: 'IN_FLIGHT_PREV',
                                 ),
                                 string(
-                                        defaultValue: "${suggest_previous}.?",
+                                        defaultValue: "${suggest_previous}",
                                         description: (acquire_failure?acquire_failure:"Doozer thinks these are the other releases to include.") + " Edit as necessary (comma delimited).",
                                         name: 'SUGGESTED',
                                 ),
@@ -171,7 +171,10 @@ node {
                         )
 
                         def splitlist = resp.SUGGESTED.replaceAll("\\s","").split(',').toList()
-                        splitlist << resp.IN_FLIGHT_PREV.trim()
+                        def inflight = resp.IN_FLIGHT_PREV.trim()
+                        if ( inflight ) {
+                            splitlist << inflight
+                        }
                         PREVIOUS_LIST_STR = splitlist.unique().join(',')
                     }
                 }

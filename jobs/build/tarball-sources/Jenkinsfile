@@ -122,20 +122,8 @@ node {
                     usernameVariable: 'JIRA_USERNAME',
                     passwordVariable: 'JIRA_PASSWORD',
                 )]) {
-                    writeFile file:"jira_login.sh", text:'''#!/usr/bin/expect
-                                set timeout 60
-                                set username [lindex $argv 0];
-                                set password [lindex $argv 1];
-                                spawn jira login -u $username 
-                                expect {
-                                    "Found session" { send_user "already login\n" }
-                                    "Jira Password " { send "$password\r"}
-                                }
-                            '''
-                    commonlib.shell('chmod +x jira_login.sh')
-                    commonlib.shell("./jira_login.sh ${JIRA_USERNAME} ${JIRA_PASSWORD}")
                     withEnv(["ds=${description}"]){
-                        cmd = 'jira create --noedit -p "EXD SP Cloud Distribution" -i Task -o summary="OCP Tarball sources" -o description="${ds}"'
+                        cmd = "jirago -password=${JIRA_PASSWORD} -summary=\"OCP Tarball sources\" -description=\"${ds}\""
                         jira = commonlib.shell(
                             script: cmd,
                             returnStdout: true

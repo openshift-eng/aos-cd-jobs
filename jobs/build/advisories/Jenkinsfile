@@ -30,6 +30,11 @@ node {
                             description: "Unfreeze automation to enable building and sweeping into the new advisories",
                             defaultValue: true
                         ),
+                        booleanParam(
+                            name: "ENABLE_ARCH_OVERRIDE",
+                            description: "Uncomment arch_override section if it exists",
+                            defaultValue: true
+                        ),
                         string(
                             name: "ASSIGNED_TO",
                             description: "Advisories are assigned to QE",
@@ -190,7 +195,9 @@ node {
                         rm -rf ocp-build-data ;
                         git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git ;
                         cd ocp-build-data ;
-                        sed -E -e 's/^  image: [0-9]+\$/  image: ${image_advisory_id}/' -e 's/^  rpm: [0-9]+\$/  rpm: ${rpm_advisory_id}/' -i group.yml ;
+                        sed -E -e 's/^  image: [0-9]+\$/  image: ${image_advisory_id}/' \
+                               -e 's/^  rpm: [0-9]+\$/  rpm: ${rpm_advisory_id}/' \
+                        -i group.yml ;
                     """
                     if (params.VERSION.startsWith("4")) {
                         cmd += """
@@ -201,6 +208,9 @@ node {
                     }
                     if (params.ENABLE_AUTOMATION) {
                         cmd += "sed -e 's/freeze_automation:.*/freeze_automation: no/' -i group.yml ; "
+                    }
+                    if (params.ENABLE_ARCH_OVERRIDE) {
+                        cmd += "gawk --include inplace '/^#? *arches_override:$/{flag=1;print \$NF;next}; NF<=1{flag=0}; flag {print $(NF-1), \$NF;next}; 1'"
                     }
                     cmd += """
                         git diff ;

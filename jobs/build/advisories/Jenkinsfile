@@ -35,6 +35,11 @@ node {
                             description: "Uncomment arch_override section if it exists",
                             defaultValue: true
                         ),
+                        booleanParam(
+                            name: "TRIGGER_FULL_BUILD",
+                            description: "Trigger full build",
+                            defaultValue: true
+                        ),
                         string(
                             name: "ASSIGNED_TO",
                             description: "Advisories are assigned to QE",
@@ -229,6 +234,23 @@ node {
                         )
                     }
                     echo "out: ${out}"
+                }
+            }
+            stage("trigger full build") {
+                try {
+                    if (params.TRIGGER_FULL_BUILD) {
+                        build(
+                            job: "../aos-cd-builds/build%2F${params.VERSION}",
+                            propagate: false,
+                            wait: false,
+                            parameters: [
+                                string(name: 'NEW_VERSION', value: '')
+                                booleanParam(name: 'FORCE_BUILD', value: true),
+                            ],
+                        )
+                    }
+                } catch (err) {
+                    echo "Could not trigger full build. Ignoring. Error: ${err}"
                 }
             }
             stage("add placeholder bugs to advisories") {

@@ -249,18 +249,21 @@ node {
                             mv \$file ${params.SIGNATURE_NAME}
                             mkdir \$file
                             mv ${params.SIGNATURE_NAME} \$file
+                            cp -r \$file release@\$file
+                            cp -r \$file ocp-release@\$file
+                            cp -r \$file ocp-release-nightly@\$file
                             i=1
-                            until ${gsutil} cp -n -v -L cp.log -r \$file gs://openshift-release/${googleStoragePath}/signatures/openshift/release; do
+                            until ${gsutil} cp -n -v -L cp.log -r release@\$file gs://openshift-release/${googleStoragePath}/signatures/openshift; do
                                 sleep 1
                                 i=\$(( \$i + 1 ))
                                 if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
                             done
-                            until ${gsutil} cp -n -v -L cp.log -r \$file gs://openshift-release/${googleStoragePath}/signatures/openshift-release-dev/ocp-release; do
+                            until ${gsutil} cp -n -v -L cp.log -r ocp-release@\$file gs://openshift-release/${googleStoragePath}/signatures/openshift-release-dev; do
                                 sleep 1
                                 i=\$(( \$i + 1 ))
                                 if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
                             done
-                            until ${gsutil} cp -n -v -L cp.log -r \$file gs://openshift-release/${googleStoragePath}/signatures/openshift-release-dev/ocp-release-nightly; do
+                            until ${gsutil} cp -n -v -L cp.log -r ocp-release-nightly@\$file gs://openshift-release/${googleStoragePath}/signatures/openshift-release-dev; do
                                 sleep 1
                                 i=\$(( \$i + 1 ))
                                 if [ \$i -eq 10 ]; then echo "Failed to mirror to google after 10 attempts. Giving up."; exit 1; fi
@@ -269,10 +272,10 @@ node {
                         """)
                         sshagent(["openshift-bot"]) {
                             def mirrorReleasePath = (params.ENV == 'stage') ? 'test' : 'release'
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
+                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" release@sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
                             if (mirrorReleasePath == 'release') {
-                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
-                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
+                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" ocp-release@sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/"
+                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" ocp-release-nightly@sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/"
                             }
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'openshift-v4/signatures')
                             if (mirror_result.contains("[FAILURE]")) {

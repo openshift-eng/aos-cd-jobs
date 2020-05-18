@@ -155,7 +155,7 @@ def signedComposeNewCompose(elMajor="8") {
     def signedTag = "rhaos-${params.BUILD_VERSION}-rhel-${elMajor}-image-build"
     // one of the things that changed with RHEL 8 is the product version convention
     def productVersion = elMajor == "7" ? "RHEL-7-OSE-${params.BUILD_VERSION}" : "OSE-${params.BUILD_VERSION}-RHEL-8"
-    def tagCmd = "./ocp-tag-signed-errata-builds.py --errata-group RHOSE-${params.BUILD_VERSION} --errata-group 'RHOSE ASYNC' --errata-product RHOSE --errata-product-version ${productVersion} --brew-pending-tag ${signedTag} --verbose"
+    def tagCmd = "./ocp-tag-signed-errata-builds.py --errata-group RHOSE-${params.BUILD_VERSION} --errata-group 'RHOSE ASYNC' --errata-product RHOSE --errata-product-version ${productVersion} --brew-pending-tag ${signedTag} --debug"
 
     if ( params.DRY_RUN ) {
         currentBuild.description += "\nDry-run: EL${elMajor} Compose not actually built"

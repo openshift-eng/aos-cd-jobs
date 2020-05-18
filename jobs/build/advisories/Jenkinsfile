@@ -215,7 +215,7 @@ node {
                         cmd += "sed -e 's/freeze_automation:.*/freeze_automation: no/' -i group.yml ; "
                     }
                     if (params.ENABLE_ARCH_OVERRIDE) {
-                        cmd += "gawk --include inplace '/^#? *arches_override:$/{flag=1;print \$NF;next}; NF<=1{flag=0}; flag {print $(NF-1), \$NF;next}; 1'"
+                        cmd += '''gawk --include inplace '/^#? *arches_override:$/{flag=1;print $NF;next}; NF<=1{flag=0}; flag {print $(NF-1), $NF;next}; 1' '''
                     }
                     cmd += """
                         git diff ;

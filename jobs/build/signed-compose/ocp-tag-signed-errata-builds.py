@@ -14,8 +14,32 @@ import koji
 import xmlrpc.client as xmlrpclib
 import logging
 import sys
+import signal
 import time
 from kobo.rpmlib import compare_nvr
+
+import threading
+import traceback
+
+
+def dumpstacks(signal, frame):
+    print(f'Received signal: {signal}')
+    id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
+    code = []
+    for threadId, stack in sys._current_frames().items():
+        code.append("\n# Thread: %s(%d)" % (id2name.get(threadId,""), threadId))
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
+            if line:
+                code.append("  %s" % (line.strip()))
+    print("\n".join(code))
+    print(f'Exiting due to signal {signal}')
+    exit(1)
+
+
+signal.signal(signal.SIGQUIT, dumpstacks)
+signal.signal(signal.SIGINT, dumpstacks)
+signal.signal(signal.SIGTERM, dumpstacks)
 
 
 def get_logger_name():

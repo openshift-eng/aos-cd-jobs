@@ -111,6 +111,7 @@ def buildSyncMirrorImages() {
 
 def buildSyncApplyImageStreams() {
     echo("Updating ImageStream's")
+    def failures = []
     for ( String arch: arches ) {
         // Why be consistent when we could have more edge cases instead?
         def a = (arch == "x86_64")? "": "-${arch}"
@@ -137,8 +138,12 @@ def buildSyncApplyImageStreams() {
         def newResourceVersion = newIS.metadata.resourceVersion
         if ( newResourceVersion == currentResourceVersion ) {
             echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
-            throw new Exception("Image Stream ${theStream} did not update")
+            currentBuild.description += "\nImageStream update failed for ${arch}"
+            failures << arch
         }
+    }
+    if (failures) {
+        throw new Exception("Image Stream did not update for ${failures}")
     }
 }
 

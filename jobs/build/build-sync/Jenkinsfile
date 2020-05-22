@@ -82,6 +82,7 @@ node {
             stage("oc apply") { build.buildSyncApplyImageStreams() }
         }
     } catch (err) {
+        currentBuild.displayName += " [FAILURE]"
         commonlib.email(
                 to: "aos-art-automation+failed-build-sync@redhat.com",
                 from: "aos-art-automation@redhat.com",

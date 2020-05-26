@@ -11,6 +11,7 @@ from __future__ import print_function
 import optparse
 import urllib3
 import koji
+from koji_cli.lib import watch_tasks
 import xmlrpc.client as xmlrpclib
 import logging
 import sys
@@ -73,14 +74,14 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
         test=False
     """
     tasks = []  # lists of tasks associated with the tagging requests
-    failed = False
     for nvr in sorted(nvrs):
         if not nvr in tagged_builds:
             logging.debug("tag_builds: %s is not tagged.", nvr)
             if not test:
                 logging.info("tag_builds: Tagging build: %s", nvr)
                 try:
-                    task = koji_proxy.tagBuild(tag, nvr) # non-blocking
+                    task = koji_proxy.tagBuild(tag, nvr)  # non-blocking
+                    logging.info("tag_builds: created task: {} for {}".format(task, nvr))
                     # Returned task is a type int
                     tasks.append(task)
                 except Exception as e:
@@ -91,23 +92,8 @@ def tag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):
         else:
             logging.debug("tag_builds: Build %s is already tagged.", nvr)
 
-    task_failures = False
-    for task_id in tasks:
-        print('Waiting for task {} to finish'.format(task_id))
-        while not koji_proxy.taskFinished(task_id) or not koji_proxy.getTaskResult(task_id, raise_fault=False):
-            print('.', end='')
-            time.sleep(30)
-        print()
-        tag_res = koji_proxy.getTaskResult(task_id, raise_fault=False)
-        if tag_res and 'faultCode' in tag_res:
-            print('Failed tagging task! {}\n{}'.format(task_id, tag_res))
-            task_failures = True
-
-    if task_failures:
+    if watch_tasks(koji_proxy, tasks):
         raise IOError('At least one tagging task failed')
-
-    if failed:
-        raise failed
 
 
 def untag_builds(koji_proxy, tag, nvrs, tagged_builds, test=False):

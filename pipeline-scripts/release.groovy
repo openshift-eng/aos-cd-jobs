@@ -41,7 +41,7 @@ def destReleaseTag(String releaseName, String arch) {
  *      Valid advisories must be in QE state and have a live ID so we can
  *      include in release metadata the URL where it will be published.
  */
-Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false) {
+Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false, String nightly, String arch) {
     def retval = [:]
     def version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
@@ -114,6 +114,22 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
     } else {
         // Fail if live ID hasn't been assigned
         error("🚫 Advisory ${advisoryInfo.id} doesn't seem to be associated with a live ID.")
+    }
+
+    if (arch == 'amd64' || arch == 'x86_64') {
+        echo "Verifying payload"
+        res = commonlib.shell(
+            returnAll: true,
+            script: "elliott --group=openshift-${version} verify-payload registry.svc.ci.openshift.org/ocp/release:${nightly} ${advisory}"
+        )
+        if (res.returnStatus != 0) {
+            def cd = currentBuild.description
+            currentBuild.description = "${currentBuild.description} - INPUT REQUIRED"
+            slackChannel = slacklib.to(version)
+            slackChannel.failure("Verify-payload failed. User input required to proceed")
+            input 'Advisory contents does not match payload. Proceed anyway?'
+            currentBuild.description = cd
+        }
     }
 
     return retval
@@ -641,7 +657,7 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
 
                 def prs = readFile(prs_file).trim()
                 if ( prs ) {  // did we open any?
-                    def slack_msg = "Hi @ota-monitor . ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
+                    def slack_msg = "Hi @ota-monitor. ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
                     if ( ghorg == 'openshift' ) {
                         slacklib.to('#forum-release').say(slack_msg)
                     } else {

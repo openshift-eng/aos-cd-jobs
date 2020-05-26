@@ -1,3 +1,0 @@
-# this file should be put in /home/jenkins/.jira.d/
-endpoint: https://projects.engineering.redhat.com
-user: openshift-art-automation

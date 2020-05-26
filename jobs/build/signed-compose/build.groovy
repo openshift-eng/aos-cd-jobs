@@ -155,66 +155,26 @@ def signedComposeNewCompose(elMajor="8") {
     def signedTag = "rhaos-${params.BUILD_VERSION}-rhel-${elMajor}-image-build"
     // one of the things that changed with RHEL 8 is the product version convention
     def productVersion = elMajor == "7" ? "RHEL-7-OSE-${params.BUILD_VERSION}" : "OSE-${params.BUILD_VERSION}-RHEL-8"
-    def tagCmd = "./ocp-tag-signed-errata-builds.py --errata-group RHOSE-${params.BUILD_VERSION} --errata-group 'RHOSE ASYNC' --errata-product RHOSE --errata-product-version ${productVersion} --brew-pending-tag ${signedTag} --debug"
-
+    def elliott_args = " --debug tag-builds --tag ${signedTag} --product-version ${productVersion}"
+    for (advisory in errataList.split(",")) {
+        elliott_args += " --advisory ${advisory}"
+    }
     if ( params.DRY_RUN ) {
         currentBuild.description += "\nDry-run: EL${elMajor} Compose not actually built"
         echo("Packages which would have been added to ${signedTag} tag:")
-        def testTagCmd = tagCmd + " --test"
-        def tagResult = commonlib.shell(
-            script: testTagCmd,
-            returnAll: true,
-        )
-
-        if ( tagResult.returnStatus == 0 ) {
-            echo(tagResult.stdout)
-        } else {
-            echo()
-            error("""Error running test tag assembly:
-----------------------------------------
-${tagResult.combined}
-----------------------------------------
-""")
-        }
+        buildlib.elliott("${elliottOpts} ${elliott_args} --dry-run")
     } else {
-        def tagResult = ''
         // It appears that two simultaneous tag requests for the same package, even on
         // different releases, causes both API calls to hang.  Use lock to prevent this.
         lock('update-brew-tags') {
             echo("Updating RHEL${elMajor} brew tag")
-            tagResult = commonlib.shell(
-                script: tagCmd,
-                returnAll: true,
-            )
+            timeout(time: 15, unit: 'MINUTES') {
+                buildlib.elliott("${elliottOpts} ${elliott_args}")
+            }
         }
 
         echo("Sleeping 2 minutes to give brew some time to catch up")
         sleep 120
-
-        if ( tagResult.returnStatus == 0 ) {
-            def newPkgs = []
-            def untaggedPkgs = []
-            for ( line in tagResult.stdout.split('\n') ) {
-                if ( line.contains('tag_builds') ) {
-                    newPkgs.add(line.split(' ')[3])
-                } else if ( line.contains('untag_builds') ) {
-                    untaggedPkgs.add(line.split(' ')[3])
-                }
-            }
-
-            if ( newPkgs.size() > 0 ) {
-                currentBuild.description += "\n${newPkgs.size()} packages added to RHEL${elMajor} tag"
-                currentBuild.description += "\n${untaggedPkgs.size()} packages removed from RHEL${elMajor} tag"
-                currentBuild.displayName += " [+${newPkgs.size()}/-${untaggedPkgs.size()} EL${elMajor}]"
-            }
-        } else {
-            mailForFailure(tagResult.combined)
-            error("""Error running tag assembly:
-----------------------------------------
-${tagResult.combined}
-----------------------------------------
-""")
-        }
 
         echo("Building RHEL${elMajor} puddle")
         def puddleCmd = "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${buildlib.args_to_string(params.BUILD_VERSION)} el${elMajor} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle_signed_tag.sh"

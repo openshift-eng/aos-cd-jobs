@@ -211,7 +211,15 @@ def safeArchiveArtifacts(List patterns) {
     }
 }
 
-shellIndex = 0
+
+import java.util.concurrent.atomic.AtomicInteger
+shellCounter = new AtomicInteger()
+
+@NonCPS
+def getNextShellCounter() {
+    return shellCounter.incrementAndGet()
+}
+
 /**
  * Wraps the Jenkins Pipeline sh step in order to get actually useful exceptions.
  * Because https://issues.jenkins-ci.org/browse/JENKINS-44930 is ridiculous.
@@ -222,8 +230,9 @@ shellIndex = 0
  * (0 for success, 1 for failure).
  * If your code really cares about the rc being right then do not use.
  *
+ * @param alwaysArchive true will always archive shell artifacts; default is to do so only on failure
  * @param returnAll true causes to return map with stderr, stdout, combined, and returnStatus
- * @param otherwise same as sh() command
+ * otherwise params are same as sh() step
  * @return same as sh() command, unless returnAll set
  * @throws error (unless returnAll or returnStatus set) with useful message (and archives)
  */
@@ -232,54 +241,70 @@ def shell(arg) {
         arg = [script: arg]
     }
     arg = [:] + arg  // make a copy
+    def alwaysArchive = arg.remove("alwaysArchive")
     def returnAll = arg.remove("returnAll")
     def script = arg.script  // keep a copy of original script
     def truncScript = (script.size() <= 75) ? script : script[0..35] + "..." + script[-36..-1]
 
-    // ensure a clean space to save output files
-    if (!shellIndex++) { sh("rm -rf shell") }
 
-    def filename = "shell/sh.${shellIndex}." + truncScript.replaceAll( /[^\w-.]+/ , "_").take(80)
-    sh("mkdir -p ${filename}")
-    filename += "/sh.${shellIndex}"
+    def threadShellIndex = getNextShellCounter()
+    // put shell result files in a dir specific to this shell call, will symlink to generic "shell" for consistency.
+    // in case we are running with changed dir, use absolute file paths.
+    def shellDir = "${env.WORKSPACE}/shell.${currentBuild.number}"
+    // use a subdir for each shell invocation
+    def shellSubdir = "${env.WORKSPACE}/shell/sh.${threadShellIndex}." + truncScript.replaceAll( /[^\w-.]+/ , "_").take(80)
+
+    // concurrency-safe creation of output dir and removal of any previous output dirs
+    sh """#!/bin/bash +x
+        mkdir -p ${shellDir}
+        ln -sfn ${shellDir} ${env.WORKSPACE}/shell
+        mkdir -p ${shellSubdir}
+        find ${env.WORKSPACE} -maxdepth 1 -name 'shell.*' ! -name shell.${currentBuild.number} -exec rm -rf '{}' +
+    """
 
     echo "Running shell script via commonlib.shell:\n${script}"
+    def filebase = "${shellSubdir}/sh.${threadShellIndex}"
     arg.script =
-    """
-        set +x
+    """#!/bin/bash +x
         set -euo pipefail
         # many thanks to https://stackoverflow.com/a/9113604
         {
             {
                 {
                     ${script}
-                }  2>&3 |  tee ${filename}.out.txt   # redirect stderr to fd 3, capture stdout
-            } 3>&1 1>&2 |  tee ${filename}.err.txt   # turn captured stderr (3) into stdout and stdout>stderr
-        }               |& tee ${filename}.combo.txt # and then capture both (though maybe out of order)
+                }  2>&3 |  tee ${filebase}.out.txt   # redirect stderr to fd 3, capture stdout
+            } 3>&1 1>&2 |  tee ${filebase}.err.txt   # turn captured stderr (3) into stdout and stdout>stderr
+        }               |& tee ${filebase}.combo.txt # and then capture both (though maybe out of order)
     """
 
     // run it, capture rc, and don't error
     def rc = sh(arg + [returnStatus: true])
+    if (rc || alwaysArchive) {
+        writeFile file: "${filebase}.cmd.txt", text: script  // save cmd as context for archives
+        // note that archival requires the location relative to workspace
+        def relFilebase = filebase.minus("${env.WORKSPACE}/")
+        safeArchiveArtifacts(["${relFilebase}.*"])
+    }
 
-    if (returnAll) {
-        return [
-            stdout: readFile("${filename}.out.txt"),
-            stderr: readFile("${filename}.err.txt"),
-            combined: readFile("${filename}.combo.txt"),
+    try {
+        results = [
+            stdout: readFile("${filebase}.out.txt"),
+            stderr: readFile("${filebase}.err.txt"),
+            combined: readFile("${filebase}.combo.txt"),
             returnStatus: rc,
         ]
+    } catch(ex) {
+        error("The following shell script is malformed and broke output capture:\n${script}")
     }
-    if (arg.returnStatus) { return rc } // same as sh() so why bother?
-    if (arg.returnStdout && rc == 0) { return readFile("${filename}.out.txt")}
-    if (rc) {
-        // error like sh() would but with useful content. and archive it.
-        writeFile file: "${filename}.cmd.txt", text: script  // context for archive
-        safeArchiveArtifacts(["${filename}.*"])
-        def output = readFile("${filename}.combo.txt").split("\n")
 
-        // want the error message to be user-directed, so trim it a bit
+    if (arg.returnStatus) { return rc }  // like sh(returnStatus: true)
+    if (returnAll) { return results }  // want results even if "failed"
+
+    if (rc) {
+        // raise error like sh() would but with context; trim message if long
+        def output = results.combined.split("\n")
         if (output.size() > 5) {
-            output = [ "[...see full archive #${shellIndex}...]" ] + array_to_list(output)[-5..-1]
+            output = [ "[...see full archive #${threadShellIndex}...]" ] + array_to_list(output)[-5..-1]
         }
         error(  // TODO: use a custom exception class with attrs
 """\
@@ -289,7 +314,9 @@ ${output.join("\n")}
 """)
     }
 
-    return  // nothing, like normal sh()
+    // successful, return like sh() would
+    if (arg.returnStdout) { return results.stdout }
+    return  // nothing
 }
 
 /**

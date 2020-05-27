@@ -169,6 +169,17 @@ def initialize_openshift_ansible() {
     echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
 }
 
+/**
+ * Brew/koji has an event history. Many of the API calls you invoke against brew
+ * accept an 'event' parameter. This effectively asks brew to answer your API
+ * call with information that happened before that specified event occurred.
+ * e.g. it allows you to look at the state of tag at some specific point in the past - before the event.
+ * @return object like: {   "id": 31617279,  "ts": 1590074666.63513  }
+ */
+def get_current_brew_event() {
+    def eventJson = commonlib.shell(script: "brew call --json-output  getLastEvent", returnStdout: true).trim()
+    return readJSON(text: eventJson)
+}
 
 /**
  * Returns up to 100 lines of passed in spec content

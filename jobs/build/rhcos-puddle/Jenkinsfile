@@ -36,7 +36,7 @@ node {
     commonlib.checkMock()
 
     def buildExceptions = []
-    def puddleVersions = ["4.1", "4.2", "4.3", "4.4", "4.5", "4.6"]
+    def puddleVersions = ["4.2", "4.3", "4.4", "4.5", "4.6"]
     puddleVersions.each { version ->
         try {
             buildlib.kinit()
@@ -44,16 +44,11 @@ node {
                 def builds = [
                     "openshift": {
                         commonlib.shell("./rebuild_rpm.sh openshift ${version}")
-                    }
-                ]
-                if (version != "4.1") {
-                    // in 4.2+ openshift-clients is split out to its own package
-                    builds["clients"] = {
-                        sleep 2 // because commonlib.shell init isn't safe for concurrency.
-                        // TODO: find the card I know I wrote explaining that.
+                    },
+                    "clients": {
                         commonlib.shell("./rebuild_rpm.sh openshift-clients ${version}")
                     }
-                }
+                ]
                 parallel builds
             }
         } catch(e) {

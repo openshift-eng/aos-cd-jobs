@@ -13,7 +13,6 @@ ocp4Versions = [
     "4.4",
     "4.3",
     "4.2",
-    "4.1",
 ]
 
 // Send UMB messages for these new nightlies, yields a list like:
@@ -27,7 +26,6 @@ ocpMergeVersions = [
     "4.4",
     "4.3",
     "4.2",
-    "4.1",
     "3.11",
 ]
 

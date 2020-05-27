@@ -103,9 +103,13 @@ def cleanWhitespace(cmd) {
 }
 
 def doozer(cmd, opts=[:]){
-    return commonlib.shell(
-        returnStdout: opts.capture ?: false,
-        script: "doozer --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
+    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws_simpledb_doozer_creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+        withEnv(['AWS_DEFAULT_REGION=us-east-1']) {
+            return commonlib.shell(
+                    returnStdout: opts.capture ?: false,
+                    script: "doozer --datastore prod --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
+        }
+    }
 }
 
 def elliott(cmd, opts=[:]){

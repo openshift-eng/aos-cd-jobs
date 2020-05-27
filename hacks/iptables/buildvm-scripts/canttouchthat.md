@@ -1,5 +1,7 @@
-Allows root to allow network output to a set of CIDRs. The CIDRs
-should be included in one or more line delimited files.
+Allows root to allow network output to a set of CIDRs in addition to
+all non EC2 AWS services. 
+- The CIDRs should be included in one or more line delimited files.
+- The AWS service CIDRs will be pulled dynamically from AWS.
 
 
 ```

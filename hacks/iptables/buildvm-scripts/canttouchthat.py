@@ -5,75 +5,71 @@ from __future__ import print_function
 
 import click
 import subprocess
+import requests
+import traceback
+import xml.etree.cElementTree as ET
+from io import BytesIO
 
 LOG_PREFIX_ALL_CONNECTION = "New Connection: "
 LOG_PREFIX_DISALLOWED_CONNECTION = "Disallowed Connection: "
+DIRECT_XML_PATH = '/etc/firewalld/direct.xml'
 
 
 def reload_permanent_rules():
     subprocess.check_output(['firewall-cmd', '--reload'])
 
 
+def get_direct_rules(space):
+    """
+    :param space: ipv4 or ipv6
+    :return: A line delimited string showing all currently active direct rules
+    """
+    return subprocess.check_output(['firewall-cmd', '--direct', '--get-rules', space, 'filter', 'OUTPUT'])
+
+
+def write_direct_rules(direct):
+    """
+    :param direct: The ET.Element to write to the direct configuration file
+    :return: n/a
+    """
+    tree = ET.ElementTree(direct)
+    tree.write(DIRECT_XML_PATH, encoding='utf-8', xml_declaration=True)
+
+
+def print_direct_rules(direct):
+    """
+    :param direct: The ET.Element to print to stdout
+    :return: n/a
+    """
+    f = BytesIO()
+    tree = ET.ElementTree(direct)
+    tree.write(f, encoding='utf-8', xml_declaration=True)
+    print(f.getvalue())
+
+
 def remove_permanent_rules():
-    subprocess.check_output(['firewall-cmd',
-                             '--permanent',
-                             '--direct',
-                             '--remove-rules',
-                             'ipv4',
-                             'filter',
-                             'OUTPUT',
-                             ])
-    subprocess.check_output(['firewall-cmd',
-                             '--permanent',
-                             '--direct',
-                             '--remove-rules',
-                             'ipv6',
-                             'filter',
-                             'OUTPUT',
-                             ])
+    direct = ET.Element('direct')
+    write_direct_rules(direct)
 
 
-def install_logging_rule(priority, space, prefix, dry_run):
-    cmd = [
-        'firewall-cmd',
-        '--permanent',
-        '--direct',
-        '--add-rule',
-        space,
-        'filter',
-        'OUTPUT', '{}'.format(priority),
-        '!', '-o', 'lo',  # Avoid logging loopback communication
-        '-m', 'state',
-        '--state', 'NEW',
-        '-j', 'LOG',
-        '--log-prefix', '"{}"'.format(prefix),
-    ]
+def add_logging_rule(direct_root, priority, space, prefix):
+    # e.g.
+    # <rule priority="0" table="filter" ipv="ipv4" chain="OUTPUT">'!' -o lo -m state --state NEW -j LOG --log-prefix '"New Connection: "'</rule>
 
-    if dry_run:
-        print('Would have run: {}'.format(cmd))
-    else:
-        print('Adding logging rule in {} with prefix \'{}\''.format(space, prefix))
-        subprocess.check_output(cmd)
+    ET.SubElement(direct_root, 'rule',
+                  priority=str(priority),
+                  table='filter',
+                  ipv=space,
+                  chain='OUTPUT').text = "'!' -o lo  -m state --state NEW -j LOG --log-prefix '\"{}: \"'".format(prefix)
 
 
-def install_drop_rule(priority, space, dry_run):
-    cmd = [
-        'firewall-cmd',
-        '--permanent',
-        '--direct',
-        '--add-rule',
-        space,
-        'filter',
-        'OUTPUT', '{}'.format(priority),
-        '!', '-o', 'lo',  # Avoid logging loopback communication
-        '-j', 'REJECT', '--reject-with', 'icmp-host-prohibited'
-    ]
-
-    if dry_run:
-        print('Would have run: {}'.format(cmd))
-    else:
-        print('Adding default REJECT rule for {}'.format(space))
-        subprocess.check_output(cmd)
+def add_drop_rule(direct_root, priority, space):
+    # e.g.   <rule priority="100" table="filter" ipv="ipv4" chain="OUTPUT">'!' -o lo -j REJECT --reject-with icmp-host-prohibited</rule>
+    ET.SubElement(direct_root, 'rule',
+                  priority=str(priority),
+                  table='filter',
+                  ipv=space,
+                  chain='OUTPUT').text = "'!' -o lo -j REJECT --reject-with icmp-host-prohibited"
 
 
 @click.command(short_help="Manage OUTPUT rules using firewalld")
@@ -91,10 +87,12 @@ def install_drop_rule(priority, space, dry_run):
 def main(output_networks, enforce, dry_run, clean):
     """Manage persistent outgoing connection network rules for the system.
 
-One or more input files provided by '-n' are read and compared with
-the current system state. The system is updated to match the given
-rule sets. Existing rules are removed from the system if not present
+One or more input files provided by '-n' used to update the current
+direct firewall rules. Existing rules are removed from the system if not present
 in the input files, missing rules are added.
+
+In addition to '-n' files, all non-EC2 AWS services are added to the
+permitted ranges. This allows us to use things like SimpleDB.
 
 Example input format:
 
@@ -134,6 +132,29 @@ Running with `--clean` will remove all installed rules.
         remove_permanent_rules()
 
     cidr_set = set()
+
+    try:
+        # Generally we want to be able to access AWS services, but not all of EC2.
+        # Recommended code here: https://docs.aws.amazon.com/general/latest/gr/aws-ip-ranges.html#aws-ip-download
+        ip_ranges = requests.get('https://ip-ranges.amazonaws.com/ip-ranges.json').json()
+        for list_name, field_name in [('prefixes', 'ip_prefix'), ("ipv6_prefixes", 'ipv6_prefix')]:
+            ranges = ip_ranges[list_name]
+            amazon_ips = [item[field_name] for item in ranges if item["service"] == "AMAZON"]
+            ec2_ips = [item[field_name] for item in ranges if item["service"] == "EC2"]
+            amazon_ips_less_ec2 = []
+
+            for ip in amazon_ips:
+                if ip not in ec2_ips:
+                    amazon_ips_less_ec2.append(ip)
+
+            print('Adding {} out of {} AWS service IP ranges from {}'.format(len(amazon_ips_less_ec2), len(ranges), list_name))
+            for ip in amazon_ips_less_ec2:
+                cidr_set.add(str(ip))
+    except:
+        traceback.print_exc()
+        print('Error fetching AWS IP addresses. You may need to run --clean mode and then try this command again.')
+        exit(1)
+
     # For each input file specified, add cidrs to the set
     for file in output_networks:
         with open(file, 'r') as f:
@@ -150,38 +171,50 @@ Running with `--clean` will remove all installed rules.
 
                 cidr_set.add(cidr)
 
-    for cidr in cidr_set:
+    # firewall-cmd direct rules are stored in xml format in DIRECT_XML_PATH
+    direct = ET.Element('direct')
+    """
+    e.g.
+    <?xml version="1.0" encoding="utf-8"?>
+    <direct>
+      <rule priority="5" table="filter" ipv="ipv4" chain="OUTPUT">-d 54.182.0.0/16 -j ACCEPT</rule>
+      <rule priority="5" table="filter" ipv="ipv4" chain="OUTPUT">-d 52.119.206.0/23 -j ACCEPT</rule>
+      <rule priority="5" table="filter" ipv="ipv4" chain="OUTPUT">-d 13.52.118.0/23 -j ACCEPT</rule>
+      <rule priority="5" table="filter" ipv="ipv4" chain="OUTPUT">-d 52.95.100.0/22 -j ACCEPT</rule>
+      ...
+    </direct>
+    """
 
+    for cidr in cidr_set:
         space = 'ipv4'
         if ':' in cidr:  # e.g. XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX/32
             space = 'ipv6'
 
-        cmd = [
-            'firewall-cmd',
-            '--permanent',
-            '--direct',
-            '--add-rule',
-            space,
-            'filter',
-            'OUTPUT', '5',
-            '-d', cidr,
-            '-j', 'ACCEPT'
-        ]
-
-        if dry_run:
-            print('Would have run: "{}"'.format(' '.join(cmd)))
-        else:
-            print('Adding rule for {}'.format(cidr))
-            subprocess.check_output(cmd)
+        ET.SubElement(direct, 'rule',
+                      priority='5',
+                      table='filter',
+                      ipv=space,
+                      chain='OUTPUT').text = '-d {} -j ACCEPT'.format(cidr)
 
     for space in ['ipv4', 'ipv6']:
-        install_logging_rule(0, space, LOG_PREFIX_ALL_CONNECTION, dry_run)
-        install_logging_rule(10, space, LOG_PREFIX_DISALLOWED_CONNECTION, dry_run)
+        add_logging_rule(direct, 0, space, LOG_PREFIX_ALL_CONNECTION)
+        add_logging_rule(direct, 10, space, LOG_PREFIX_DISALLOWED_CONNECTION)
         if enforce:
-            install_drop_rule(100, space, dry_run)
+            # Install drop rules
+            # '!', '-o', 'lo',  # Avoid logging loopback communication
+            #         '-j', 'REJECT', '--reject-with', 'icmp-host-prohibited'
+
+            add_drop_rule(direct, 100, space)
 
     if not dry_run:
+        print('Updating direct rules {}'.format(DIRECT_XML_PATH))
+        write_direct_rules(direct)
         reload_permanent_rules()
+        print('Currently installed ipv4 rules:\n{}'.format(get_direct_rules('ipv4')))
+        print('Currently installed ipv6 rules:\n{}'.format(get_direct_rules('ipv6')))
+    else:
+        print('Would have written the following direct rules to {}'.format(DIRECT_XML_PATH))
+        print_direct_rules(direct)
 
 
 if __name__ == '__main__':

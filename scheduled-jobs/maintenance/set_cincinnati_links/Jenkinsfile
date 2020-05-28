@@ -35,14 +35,9 @@ node() {
 
     for ( String version : sortedVersions() ) {
         runFor(version, 'stable', 'stable')
-        if ( version == '4.1' ) {
-            // 4.1 is old and had a different channel scheme; ignore the prerelease-4.1 channel.
-            runFor(version, 'stable', 'latest')
-        } else {
-            runFor(version, 'fast', 'latest') // the latest links should track fast
-            runFor(version, 'fast', 'fast')
-            runFor(version, 'candidate', 'candidate')
-        }
+        runFor(version, 'fast', 'latest') // the latest links should track fast
+        runFor(version, 'fast', 'fast')
+        runFor(version, 'candidate', 'candidate')
     }
 
 }

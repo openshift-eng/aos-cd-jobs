@@ -196,9 +196,6 @@ node {
                 try {  // don't let a slack outage break the job
                     def previousList = PREVIOUS_LIST_STR.trim().tokenize('\t ,')
                     def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
-                    if ( major == 4 && minor == 1) {
-                        modeOptions = ['aws'] // gcp and azure were not supported in 4.1
-                    }
                     def testIndex = 0
                     def testLines = []
                     for ( String from_release : previousList) {

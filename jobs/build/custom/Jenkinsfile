@@ -21,7 +21,7 @@ node {
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     [
                         name: 'VERSION',
-                        description: '(Optional) version for build (e.g. 4.1.0) instead of most recent\nor "+" to bump most recent version',
+                        description: '(Optional) version for build (e.g. 4.3.42) instead of most recent\nor "+" to bump most recent version',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],

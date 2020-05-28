@@ -49,23 +49,26 @@ ocpVersions = ocp4Versions + ocp3Versions
  *
  * We need them to continue to be unsigned!
  *
- * The reason being that we are prohibited by product security agreements
- * from releasing publicly any signed RPM which will not be passing through
+ * Any code we sign using the auto-signing facility should be passed through
  * the errata process / rpmdiff.
  *
  * Hence we need a very explicit source of truth on where our images are
  * destined. If it will ship via errata (state=release), we want to build signed. For
  * early access without an errata (state=pre-release).
  *
- * For extra complexity, different architectures in a release can be in release
- * or pre-release. For example, s390x might still be pre-release even after
- * x86_64 is shipping for a given 4.x. Sooooo... we need the ability to build
- * arch specific release payloads, during the exact same ocp4 Jenkins job / doozer run,
- * where different architectures might be signed / unsigned.
+ * For extra complexity, different architectures in a release can be in
+ * different release states. For example, s390x might still be pre-release
+ * even after x86_64 is shipping for a given 4.x. While we could theoretically build the
+ * x86_64 image with signed RPMs, and s390x images with unsigned RPMS, OSBS
+ * prohibits this since it considers it an error.
+ * TODO: ask osbs to make this a configurable option?
  *
- * Why is the following information not in doozer. It could be.
+ * Sooooo... when all arches are pre-release, we need to build unsigned. When any
+ * arch is in release mode, we need to build all images with signed RPMs.
+ *
+ * Why is release map information not in doozer metadata. It could be.
  * 1) I think it would need some refactoring that won't be practical until
- * the auto-signing work is validated.
+ *    the auto-signing work is validated.
  * 2) We normally initialize a new doozer group by copying an old one. This
  *    release state could easily be copied unintentionally.
  * 3) pre-release data is presently stored in poll-payload. This just tries

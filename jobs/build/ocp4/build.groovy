@@ -299,8 +299,12 @@ def stageBuildCompose(auto_signing_advisory=54765) {
      * plashet will examine RPM packages currently tagged in the rhel-7 candidate
      * and build the yum repos. plashet allows each arch to have different signing
      * characteristics (i.e. x86_64 can be signed and s390x can be unsigned).
-     * commonlib.ocp4ReleaseState declares which arches should be signed/unsigned.
-     * Read the comment on that map to understand why.
+     * However, during an image build OSBS will fail if it finds we have used
+     * unsigned RPMs for one CPU arch and signed images for arch. Thus,
+     * if one of our arches is in 'release' mode, we must build all
+     * arches with signed.
+     * commonlib.ocp4ReleaseState declares which arches are in release / pre-release mode.
+     * Read the comment on that map for more information
      */
     def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
     plashet_arch_args = ""
@@ -309,8 +313,11 @@ def stageBuildCompose(auto_signing_advisory=54765) {
         plashet_arch_args += " --arch ${release_arch} signed"
     }
 
+    // If any arch is GA, use signed for everything.
+    def pre_release_signing_mode = archReleaseStates['release']?'signed':'unsigned'
+
     for (String pre_release_arch : archReleaseStates['pre-release']) {
-        plashet_arch_args += " --arch ${pre_release_arch} unsigned"
+        plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
     }
 
     // In the current implementation, the same signing advisory is used for every signing task.
@@ -408,18 +415,17 @@ def stageBuildImages() {
         return
     }
     try {
-        /**
-         * TODO: make gpgcheck=1 for signed arches and =0 for unsigned arches.  Right now, if we
-         * run doozer with --repo-type=signed, it will set gpgcheck=1 and unsigned arch builds will
-         * explode. The workaround is to tell let doozer run in unsigned mode, where it doesn't care
-         * about signatures. In practice, the concept of --repo-type should diminish in importance,
-         * so maybe gpgcheck will no longer be necessary with the more predictable pipeline.
-         */
+
+        def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
+        // If any arch is GA, use signed for everything. See stageBuildCompose for details.
+        def signing_mode = archReleaseStates['release']?'signed':'unsigned'
+
         def cmd =
             """
             ${doozerOpts}
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
             images:build
+            --repo-type ${signing_mode}
             --push-to-defaults
             """
         if(buildPlan.dryRun) {

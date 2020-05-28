@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# List packages from rhaos that are also in rhel
+
+set -euo pipefail
+
+halp() {
+  cat <<-EOHALP
+	$(basename "$0"): Script to find packages that are also released in rhel
+	Usage:
+	  $(basename $0) <ocp-version> <rhel-version>
+	Example:
+	  $(basename $0) 4.5 8
+	This will:
+	- Query the latest builds from brew tag rhaos-4.5-rhel-8-candidate
+	- Look up the package names of these builds
+	- Find the latest build in rhel-8-build-base
+	- Output a CSV with the information if the package can be found in rhel
+	The resulting list can form a basis to look for build pruning from the rhaos tag
+	EOHALP
+}
+
+if [[ -z "${1:-}" || -z "${2:-}" ]]; then
+  halp >/dev/stderr
+  exit 1
+fi
+
+case $1 in
+  help|-h|--help)
+    halp
+    exit 0
+    ;;
+esac
+
+export rhaos="${1:-}" # e.g. 4.5
+export rhel="${2:-}"  # e.g. 7
+
+builds_tagged() {
+  local tag="$1"
+  brew --quiet list-tagged --latest "$tag" | awk '$1 !~ /-(container|apb)/{print $1}'
+}
+
+package_from_build() {
+  local build="$1"
+  brew call --json-output getBuild "$build" | jq -re .name || echo problem with $build >/dev/stderr
+}
+export -f package_from_build
+
+rhel_build() {
+  build="$1"
+  pkg="$(package_from_build "$build")"
+  rhel_build="$(brew -q latest-build "rhel-$rhel-build-base" "$pkg" 2>/dev/null | awk '{print $1}' || true)"
+  [[ -n "$rhel_build" ]] && echo "$pkg,$build,$rhel_build,"
+}
+export -f rhel_build
+
+echo "Package,rhaos-$rhaos-rhel-$rhel-candidate,rhel-$rhel-build-base,Comment"
+builds_tagged "rhaos-$rhaos-rhel-$rhel-candidate" |
+  xargs -I'{}' --max-args=1 --max-procs=20 bash -c 'rhel_build {}'

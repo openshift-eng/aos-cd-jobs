@@ -331,7 +331,7 @@ def stageBuildCompose(auto_signing_advisory=54765) {
                     "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
                     plashet_arch_args,
                     "from-tags", // plashet mode of operation => build from brew tags
-                    "--brew-tag rhaos-${version.stream}-rhel-7-candidate  OSE-${version.stream}-RHEL-7",  // --brew-tag <tag> <associated-advisory-product-version>
+                    "--brew-tag rhaos-${version.stream}-rhel-7-candidate RHEL-7-OSE-${version.stream}",  // --brew-tag <tag> <associated-advisory-product-version>
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.

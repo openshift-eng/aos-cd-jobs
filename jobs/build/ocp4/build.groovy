@@ -22,15 +22,15 @@ buildPlan = [
     buildRpms: false,
     rpmsIncluded: "", // comma-separated list
     rpmsExcluded: "", // comma-separated list
-    puddleConf: "",  // URL to download the puddle conf
     buildImages: false,
     imagesIncluded: "", // comma-separated list
     imagesExcluded: "", // comma-separated list
 ]
-// initialized but composeDir only filled in when puddle creates a compose
-rpmMirror = [       // where to mirror RPM compose
-    composeDir: "", // e.g. "YYYY-MM-DD.1"
-    url: "",
+// These values are filled in later by stageBuildCompose
+rpmMirror = [       // how to mirror RPM compose
+    composeName: "", // The name of the yum repo directory created.
+    localComposePath: "",  // will be populated with full path to yum repo created on buildvm
+    url: "", // url to directory where new repo can be found after mirroring
 ]
 
 // some state to record and preserve between stages
@@ -76,11 +76,6 @@ def initialize() {
 
     echo "Initial build plan: ${buildPlan}"
 
-    // figure out the puddle configuration
-    aosCdJobsCommitSha = commonlib.shell(script: "git rev-parse HEAD", returnStdout: true).trim()
-    def puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/" +
-                         "${aosCdJobsCommitSha}/build-scripts/puddle-conf"
-    buildPlan.puddleConf = "${puddleConfBase}/atomic_openshift-${version.stream}.conf"
     // and where to mirror the compose when it's done
     rpmMirror.url = "https://mirror.openshift.com/enterprise/enterprise-${version.stream}"
 
@@ -268,10 +263,13 @@ def stageBuildRpms() {
 }
 
 /**
- * If necessary, puddle a new compose from our candidate tag.
- * Set the new puddle directory (e.g. "YYYY-MM-DD.1")
+ * Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs based on -candidate tags.
+ * Based on commonlib.ocp4ReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
+ * @param auto_signing_advisory - The advisory method can use for auto-signing. This should be
+ *          unique to this release (to avoid simultaneous modifications. i.e. different
+ *          advisories for 4.1, 4.2, ...
  */
-def stageBuildCompose() {
+def stageBuildCompose(auto_signing_advisory=54765) {
 
     // we may or may not have (successfully) built the openshift RPM in this run.
     // in order to script the correct version to publish later, determine what's there now.
@@ -283,21 +281,106 @@ def stageBuildCompose() {
         echo "No RPMs built, not a force build; no need to create a compose"
         return
     }
+
+    baseDir = "${env.WORKSPACE}/plashets"
+    plashetDirName = "${version.full}-${version.release}"
+    rpmMirror.localPlashetPath = "${baseDir}/${plashetDirName}"  // where to find source for mirroring
+    rpmMirror.plashetDirName = "${plashetDirName}"  // what to name the mirrored repo directory
+
     if(buildPlan.dryRun) {
-        echo "Build puddle with conf ${buildPlan.puddleConf}"
-        rpmMirror.composeDir = "YYYY-MM-DD.1"
+        echo "Running in dry-run mode -- will not run plashet."
         return
     }
 
-    rpmMirror.composeDir = buildlib.build_puddle(
-        buildPlan.puddleConf,    // The puddle configuration file to use
-        null,   // signing key
-        "-b",   // do not fail if we are missing dependencies
-        "-d",   // print debug information
-        "-n",   // do not send an email for this puddle
-        "-s",   // do not create a "latest" link since this puddle is for building images
-        "--label=building"   // create a symlink named "building" for the puddle
-    )
+    /**
+     * plashet will build one or more yum repos for us -- one for each
+     * architecture enabled for the a release. For each arch, a yum repo
+     * {baseDir}/{plashetName}/{arch}/os will be created.
+     * plashet will examine RPM packages currently tagged in the rhel-7 candidate
+     * and build the yum repos. plashet allows each arch to have different signing
+     * characteristics (i.e. x86_64 can be signed and s390x can be unsigned).
+     * However, during an image build OSBS will fail if it finds we have used
+     * unsigned RPMs for one CPU arch and signed images for arch. Thus,
+     * if one of our arches is in 'release' mode, we must build all
+     * arches with signed.
+     * commonlib.ocp4ReleaseState declares which arches are in release / pre-release mode.
+     * Read the comment on that map for more information
+     */
+    def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
+    plashet_arch_args = ""
+
+    for (String release_arch : archReleaseStates['release']) {
+        plashet_arch_args += " --arch ${release_arch} signed"
+    }
+
+    // If any arch is GA, use signed for everything.
+    def pre_release_signing_mode = archReleaseStates['release']?'signed':'unsigned'
+
+    for (String pre_release_arch : archReleaseStates['pre-release']) {
+        plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
+    }
+
+    // In the current implementation, the same signing advisory is used for every signing task.
+    // To prevent add/remove races between versions, a lock is used.
+    lock('signing-advisory') {
+        retry(2) {
+            commonlib.shell([
+                    "${env.WORKSPACE}/build-scripts/plashet.py",
+                    "--base-dir ${baseDir}",  // Directory in which to create the yum repo
+                    "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
+                    "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
+                    plashet_arch_args,
+                    "from-tags", // plashet mode of operation => build from brew tags
+                    "--brew-tag rhaos-${version.stream}-rhel-7-candidate  OSE-${version.stream}-RHEL-7",  // --brew-tag <tag> <associated-advisory-product-version>
+                    auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
+                    "--signing-advisory-mode clean",
+                    "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
+            ].join(' '))
+        }
+    }
+
+    /**
+     * The yum repos that plashet creates are very lightweight because
+     * it only symlinks out to the desired RPMs on buildvm's /mnt/redhat
+     * share. We now want to copy the new repo out to rcm-guest. The
+     * good news is that we can keep it lightweight! rcm-guest has the
+     * exact same share path. The symlinks plashet created can be copied
+     * as symlinks. Note that if you copy the puddle to a system without
+     * these links, you should use rsync --copy-links which will transfer
+     * the linked file's content to the destination filename.
+     *
+     * Now.. let's copy to rcm-guest! Why? Because when we build images in
+     * brew, OSBS will only let the Dockerfile's yum invocations
+     * access certain remote locations. One of those whitelisted locations
+     * is rcm-guest, so copy our lightweight repo there.
+     *
+     * ocp-build is a user established for us on the rcm-guest host by
+     * Red Hat PnT devops. See /home/jenkins/.ssh.config.
+     */
+
+    // During an image build, doozer will provide repo files pointing back to a directory named
+    // 'building' in this rcm-guest directory. Before creating 'building', let's get the
+    // repo over there.
+    destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${version.stream}"
+    // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
+    commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
+    commonlib.shell([
+            "rsync",
+            "-av",  // archive mode, verbose
+            "--links",  // include links, but keep them as symlinks
+            "--progress",
+            "-h", // human readable numbers
+            "--no-g",  // use default group on rcm-guest for the user
+            "--omit-dir-times",
+            "--chmod=Dug=rwX,ugo+r",
+            "--perms",
+            "${rpmMirror.localPlashetPath}",  // plashet we just created
+            "ocp-build@rcm-guest:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
+    ].join(" "))
+
+    // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
+    // doozer repo files (which have static urls back to rcm-guest) will resolve.
+    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} building\" ")
 }
 
 def stageUpdateDistgit() {
@@ -311,6 +394,7 @@ def stageUpdateDistgit() {
         ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
         images:rebase --version v${version.full} --release ${version.release}
         --message 'Updating Dockerfile version and release v${version.full}-${version.release}' --push
+        --message '${env.BUILD_URL}'
         """
     if(buildPlan.dryRun) {
         echo "doozer ${cmd}"
@@ -331,11 +415,17 @@ def stageBuildImages() {
         return
     }
     try {
+
+        def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
+        // If any arch is GA, use signed for everything. See stageBuildCompose for details.
+        def signing_mode = archReleaseStates['release']?'signed':'unsigned'
+
         def cmd =
             """
             ${doozerOpts}
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
             images:build
+            --repo-type ${signing_mode}
             --push-to-defaults
             """
         if(buildPlan.dryRun) {
@@ -362,32 +452,66 @@ def stageBuildImages() {
     }
 }
 
+/**
+ * Copy the plashet created earlier out to the openshift mirrors. This allows QE to
+ * easily find the RPMs we used in the creation of the images. These RPMs may be
+ * required for bare metal installs.
+ */
 def stageMirrorRpms() {
     if (!buildPlan.buildRpms && !buildPlan.forceBuild) {
         echo "No updated RPMs to mirror."
         return
     }
 
-    def versionRelease = "${version.full}-${version.release}"
+    def openshift_mirror_bastion = "use-mirror-upload.ops.rhcloud.com"
+    def openshift_mirror_user = "jenkins_aos_cd_bot"
+    def destBaseDir = "/srv/enterprise/enterprise-${version.stream}"
+    def stagingDir = "${destBaseDir}/staging"
 
-    // Push the building puddle out to the mirrors
-    def symlinkName = "latest"
-
-    if(buildPlan.dryRun) {
-        // this is silly, but we can't use *args to DRY -- see https://issues.jenkins-ci.org/browse/JENKINS-46163
-        echo("invoke_on_rcm_guest push-to-mirrors.sh ${symlinkName} ${versionRelease} pre-release")
-    } else {
-        buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", symlinkName, versionRelease, "pre-release")
+    if (buildPlan.dryRun) {
+        echo "Would have copied plashet to ${openshift_mirror_user}@${openshift_mirror_bastion}:${destBaseDir}"
+        return
     }
 
-    def binaryPkgName = "openshift"
-    if(buildPlan.dryRun) {
-        echo("invoke_on_rcm_guest publish-oc-v4-binary.sh ${version.stream} ${finalRpmVersionRelease} ${binaryPkgName}")
-    } else {
-        buildlib.invoke_on_rcm_guest("publish-oc-v4-binary.sh", version.stream, finalRpmVersionRelease, binaryPkgName)
-    }
+    /**
+     * Just in case this is the first time we have built this release, create the release's staging directory.
+     * What is staging? Glad you asked. rsync isn't dumb. If it finds a remote file already present,
+     * it will avoid transferring the source file. That means you can dramatically speed up rsync if your
+     * source and destination on differ by a little.
+     * Each time we build 4.x, probably only a few RPMs actually change. So, we have a 4.x staging directory
+     * we rsync to.
+     */
+    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- mkdir -p ${stagingDir}")
+    commonlib.shell([
+            "rsync",
+            "-av",  // archive mode, verbose
+            "--copy-links",  // The local repo is composed of symlinks to brewroot; use-mirror does not have brewroot mounted, so we need to copy content, not the symlinks
+            "--progress",
+            "-h", // human readable numbers
+            "--no-g",  // use default group on mirror for the user we are logging in with
+            "--omit-dir-times",
+            "--delete-after", // anything that was in staging, but is no longer there, delete it after a successful transfer
+            "--chmod=Dug=rwX,ugo+r",
+            "--perms",
+            "${rpmMirror.localPlashetPath}/",  // local directory we just built with plashet. NOTICE THE TRAILILNG slash. This means copy the files within, but not the directory name.
+            "${openshift_mirror_user}@${openshift_mirror_bastion}:${stagingDir}"  // we want the arch repos to land in staging.
+    ].join(" "))
 
-    echo "Finished building OCP ${versionRelease}"
+    // We now have a staging plashet out on the mirror bastion with yum repo content. Now we need to
+    // make copy of it with the real plashet name. We could use hardlinks, but that seems to cause issues
+    // with the mirror infrastructure's replication to subordinates.
+    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- cp -a ${stagingDir} ${destBaseDir}/${rpmMirror.plashetDirName}")
+    //  Now we have a plashet named after the original on the mirror. QE wants a 'latest' link there.
+    commonlib.shell("ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} \"cd ${destBaseDir}; ln -sfn ${rpmMirror.plashetDirName} latest\"")
+    //  For historical reasons, all puddles were linked to from 'all' directory as well.
+    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- ln -sfn ${destBaseDir}/${rpmMirror.plashetDirName} /srv/enterprise/all/${version.stream}/${rpmMirror.plashetDirName}")
+    // Also establish latest link
+    commonlib.shell("ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} \"cd /srv/enterprise/all/${version.stream}; ln -sfn ${rpmMirror.plashetDirName} latest\"")
+    // Instruct the mirror infrastructure to push content to the subordinate hosts.
+    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- push.enterprise.sh -v  enterprise-${version.stream}")
+    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- push.enterprise.sh -v  all")
+
+    echo "Finished mirroring OCP ${version.full} to openshift mirrors"
 }
 
 def stageSyncImages() {
@@ -415,7 +539,6 @@ def stageReportSuccess() {
 
     def stateYaml = builtNothing ? [:] : readYaml(file: "${doozerWorking}/state.yaml")
     messageSuccess(rpmMirror.url)
-    emailSuccess(rpmMirror.url, timingReport, getImageBuildReport(recordLog), stateYaml)
 }
 
 def messageSuccess(mirrorURL) {
@@ -429,7 +552,7 @@ def messageSuccess(mirrorURL) {
                 messageContent: "New build for OpenShift: ${version.full}",
                 messageProperties:
                     """build_mode=pre-release
-                    puddle_url=${rpmMirror.url}/${rpmMirror.composeDir}
+                    puddle_url=${rpmMirror.url}/${rpmMirror.plashetDirName}
                     image_registry_root=registry.reg-aws.openshift.com:443
                     product=OpenShift Container Platform
                     """,
@@ -441,83 +564,6 @@ def messageSuccess(mirrorURL) {
     } catch (mex) {
         echo "Error while sending CI message: ${mex.getMessage()}"
     }
-}
-
-def emailSuccess(mirrorURL, timingReport, imageList, stateYaml) {
-    def mailList = params.MAIL_LIST_SUCCESS.trim()
-    // note: the default for the parameter is empty.
-    // normally this would probably only be set for full builds, if then.
-    // but it's there in case you want to notify someone, perhaps yourself.
-    if (!mailList) { return }
-
-    def subjectTags = ""
-    if (buildPlan.dryRun) { subjectTags += " [DRY RUN]" }
-
-    if (buildPlan.buildImages) {
-        if (buildPlan.imagesIncluded || buildPlan.imagesExcluded) {
-            subjectTags += " [partial]"
-        }
-        def result = stateYaml.get("images:rebase", [:])
-        if (result['success'] != result['total']) {
-            currentBuild.displayName += " [rebase failure]"
-            subjectTags += " [rebase failure]"
-        }
-        result = stateYaml.get("images:build", [:])
-        if (result['success'] != result['total']) {
-            currentBuild.displayName += " [image failure]"
-            subjectTags += " [image failure]"
-        }
-    } else if (buildPlan.buildRpms) {
-        subjectTags += " [RPM only]"
-    } else {
-        // no builds attempted; could only happen if incremental build found no changes
-        subjectTags += " [no changes]"
-    }
-
-    def injectNotes = (params.SPECIAL_NOTES.trim() == "") ? "" :
-"""
-Special notes associated with this build:
-*****************************************
-${params.SPECIAL_NOTES.trim()}
-*****************************************
-"""
-
-    def composeDetails = (!buildPlan.buildRpms && !buildPlan.forceBuild) ? "" :
-"""\
-RPMs:
-    RPM Compose (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version.stream}/${rpmMirror.composeDir}
-    External Mirror: ${mirrorURL}/${rpmMirror.composeDir}
-"""
-
-    def imageDetails = (!buildPlan.buildImages) ? "" :
-"""\
-${timingReport}
-Images:
-  - Images have been pushed to registry.reg-aws.openshift.com:443     (Get pull access [1])
-    [1] https://github.com/openshift/ops-sop/blob/master/services/opsregistry.asciidoc#using-the-registry-manually-using-rh-sso-user
-${imageList}
-"""
-
-    commonlib.email(
-        to: mailList,
-        from: "aos-art-automation@redhat.com",
-        replyTo: "aos-team-art@redhat.com",
-        subject: "[ART] New build for OCP: ${version.full}${subjectTags}",
-        body:
-"""\
-Pipeline build "${currentBuild.displayName}" finished successfully.
-${injectNotes}
-The build description it finished with is:
-******************************************
-${currentBuild.description}\
-******************************************
-
-${composeDetails}\
-${imageDetails}\
-View the build artifacts and console output on Jenkins:
-    - Jenkins job: ${commonlib.buildURL()}
-    - Console output: ${commonlib.buildURL('console')}
-""");
 }
 
 // extract timing information from the recordLog and write a report string

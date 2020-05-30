@@ -1091,7 +1091,7 @@ The following logs are just the container build portion of the OSBS build:
                 echo "No container build log for failed ${failure.distgit} build\n" +
                      "(task url ${failure.task_url})\n" +
                      "at path ${container_log}"
-                container_log = ""
+                container_log = "Unfortunately there were no container build logs; something else about the build failed."
             }
             commonlib.email(
                 replyTo: returnAddress,
@@ -1115,9 +1115,6 @@ The brew build task ${failure.task_url}
 failed with error message:
 ${failure.message}
 
-ART's Jenkins build that resulted in this failure may be found at:
-  * ${env.BUILD_URL}
-The console log and artifacts there may assist in resolving this failure.
 ${container_log}
                 """,
             )

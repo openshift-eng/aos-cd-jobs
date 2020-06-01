@@ -1363,4 +1363,116 @@ def getChanges(yamlData) {
     return changed
 }
 
+/**
+ * Creates a plashet in the current Jenkins workspace and then sync's it to rcm-guest.
+ * @param version  The ocp version (e.g. 4.5.25)
+ * @param release  The 4.x release field (usually a timestamp)
+ * @param auto_signing_advisory The signing advisory to use
+ * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
+ *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>'
+ *
+ * }
+ */
+def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
+    def baseDir = "${env.WORKSPACE}/plashets"
+
+    def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+    def major_minor = "${major}.${minor}"
+    def r = [:]
+    r['localPlashetPath'] = "${baseDir}/${plashetDirName}"  // where to find source for mirroring
+    r['plashetDirName'] = "${plashetDirName}"  // what to name the mirrored repo directory
+
+    /**
+     * plashet will build one or more yum repos for us -- one for each
+     * architecture enabled for the a release. For each arch, a yum repo
+     * {baseDir}/{plashetName}/{arch}/os will be created.
+     * plashet will examine RPM packages currently tagged in the rhel-7 candidate
+     * and build the yum repos. plashet allows each arch to have different signing
+     * characteristics (i.e. x86_64 can be signed and s390x can be unsigned).
+     * However, during an image build OSBS will fail if it finds we have used
+     * unsigned RPMs for one CPU arch and signed images for arch. Thus,
+     * if one of our arches is in 'release' mode, we must build all
+     * arches with signed.
+     * commonlib.ocp4ReleaseState declares which arches are in release / pre-release mode.
+     * Read the comment on that map for more information
+     */
+    def archReleaseStates = commonlib.ocp4ReleaseState[major_minor]
+    def plashet_arch_args = ""
+
+    for (String release_arch : archReleaseStates['release']) {
+        plashet_arch_args += " --arch ${release_arch} signed"
+    }
+
+    // If any arch is GA, use signed for everything.
+    def pre_release_signing_mode = archReleaseStates['release']?'signed':'unsigned'
+
+    for (String pre_release_arch : archReleaseStates['pre-release']) {
+        plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
+    }
+
+    // In the current implementation, the same signing advisory is used for every signing task.
+    // To prevent add/remove races between versions, a lock is used.
+    lock('signing-advisory') {
+        retry(2) {
+            commonlib.shell([
+                    "${env.WORKSPACE}/build-scripts/plashet.py",
+                    "--base-dir ${baseDir}",  // Directory in which to create the yum repo
+                    "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
+                    "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
+                    plashet_arch_args,
+                    "from-tags", // plashet mode of operation => build from brew tags
+                    "--brew-tag rhaos-${major_minor}-rhel-7-candidate RHEL-7-OSE-${major_minor}",  // --brew-tag <tag> <associated-advisory-product-version>
+                    auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
+                    "--signing-advisory-mode clean",
+                    "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
+            ].join(' '))
+        }
+    }
+
+    /**
+     * The yum repos that plashet creates are very lightweight because
+     * it only symlinks out to the desired RPMs on buildvm's /mnt/redhat
+     * share. We now want to copy the new repo out to rcm-guest. The
+     * good news is that we can keep it lightweight! rcm-guest has the
+     * exact same share path. The symlinks plashet created can be copied
+     * as symlinks. Note that if you copy the puddle to a system without
+     * these links, you should use rsync --copy-links which will transfer
+     * the linked file's content to the destination filename.
+     *
+     * Now.. let's copy to rcm-guest! Why? Because when we build images in
+     * brew, OSBS will only let the Dockerfile's yum invocations
+     * access certain remote locations. One of those whitelisted locations
+     * is rcm-guest, so copy our lightweight repo there.
+     *
+     * ocp-build is a user established for us on the rcm-guest host by
+     * Red Hat PnT devops. See /home/jenkins/.ssh.config.
+     */
+
+    // During an image build, doozer will provide repo files pointing back to a directory named
+    // 'building' in this rcm-guest directory. Before creating 'building', let's get the
+    // repo over there.
+    def destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${major_minor}"
+    // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
+    commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
+    commonlib.shell([
+            "rsync",
+            "-av",  // archive mode, verbose
+            "--links",  // include links, but keep them as symlinks
+            "--progress",
+            "-h", // human readable numbers
+            "--no-g",  // use default group on rcm-guest for the user
+            "--omit-dir-times",
+            "--chmod=Dug=rwX,ugo+r",
+            "--perms",
+            "${r.localPlashetPath}",  // plashet we just created
+            "ocp-build@rcm-guest:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
+    ].join(" "))
+
+    // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
+    // doozer repo files (which have static urls back to rcm-guest) will resolve.
+    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} building\" ")
+    return r
+}
+
 return this

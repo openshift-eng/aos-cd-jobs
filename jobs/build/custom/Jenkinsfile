@@ -160,21 +160,27 @@ node {
             stage("puddle: ose 'building'") {
                 if (rpms.toUpperCase() != "NONE") {
                     lock("compose-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
-                        aosCdJobsCommitSha = commonlib.shell(
-                            returnStdout: true,
-                            script: "git rev-parse HEAD",
-                        ).trim()
-                        puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${aosCdJobsCommitSha}/build-scripts/puddle-conf"
-                        puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
-                        buildlib.build_puddle(
-                            puddleConf,    // The puddle configuration file to use
-                            null, // openshifthosted key
-                            "-b",   // do not fail if we are missing dependencies
-                            "-d",   // print debug information
-                            "-n",   // do not send an email for this puddle
-                            "-s",   // do not create a "latest" link since this puddle is for building images
-                            "--label=building"   // create a symlink named "building" for the puddle
-                        )
+                        if ("${majorVersion}" == "3") {
+                            aosCdJobsCommitSha = commonlib.shell(
+                                    returnStdout: true,
+                                    script: "git rev-parse HEAD",
+                            ).trim()
+                            puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${aosCdJobsCommitSha}/build-scripts/puddle-conf"
+                            puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
+                            buildlib.build_puddle(
+                                    puddleConf,    // The puddle configuration file to use
+                                    null, // openshifthosted key
+                                    "-b",   // do not fail if we are missing dependencies
+                                    "-d",   // print debug information
+                                    "-n",   // do not send an email for this puddle
+                                    "-s",   // do not create a "latest" link since this puddle is for building images
+                                    "--label=building"   // create a symlink named "building" for the puddle
+                            )
+                        } else {
+                            echo 'Building 4.x plashet'
+                            // For 4.x, use plashets
+                            buildlib.buildBuildingPlashet(version, release)
+                        }
                     }
                 }
             }

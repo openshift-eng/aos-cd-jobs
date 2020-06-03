@@ -22,6 +22,12 @@ node {
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     [
+                        name: 'RPM_ADVISORY_ID',
+                        description: 'RPM advisory number, leave it empty to use the advisory number from ocp-build-data',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: "",
+                    ],
+                    [
                         name: 'ATTACH_BUILDS',
                         description: 'Attach new package builds to rpm advisory',
                         $class: 'BooleanParameterDefinition',
@@ -59,7 +65,8 @@ node {
     )
 
     commonlib.checkMock()
-    def advisory = buildlib.elliott("--group=openshift-${params.BUILD_VERSION} get --use-default-advisory rpm --id-only", [capture: true]).trim()
+
+    def advisory = params.RPM_ADVISORY_ID.trim() ?: buildlib.elliott("--group=openshift-${params.BUILD_VERSION} get --use-default-advisory rpm --id-only", [capture: true]).trim()
 
     stage("Initialize") {
         buildlib.elliott "--version"
@@ -76,13 +83,13 @@ node {
                 stage("Attach builds") { build.signedComposeAttachBuilds() }
                 stage("RPM diffs ran") { build.signedComposeRpmdiffsRan(advisory) }
                 stage("RPM diffs resolved") { build.signedComposeRpmdiffsResolved(advisory) }
-                stage("Advisory is QE") { build.signedComposeStateQE() }
-                stage("Signing completing") { build.signedComposeRpmsSigned() }
+                stage("Advisory is QE") { build.signedComposeStateQE(advisory) }
+                stage("Signing completing") { build.signedComposeRpmsSigned(advisory) }
                 // Ensure the tag script can read the required cert
                 withEnv(['REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt']) {
-                    stage("New el7 compose") { build.signedComposeNewCompose("7") }
+                    stage("New el7 compose") { build.signedComposeNewCompose(advisory, "7") }
                     if (build.requiresRhel8()) {
-                        stage("New el8 compose") { build.signedComposeNewCompose("8") }
+                        stage("New el8 compose") { build.signedComposeNewCompose(advisory, "8") }
                     }
                 }
             }

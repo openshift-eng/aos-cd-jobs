@@ -3,8 +3,6 @@ commonlib = buildlib.commonlib
 
 // We'll update this later
 elliottOpts = ""
-advisoryOpt = "--use-default-advisory rpm"
-errataList = ""
 puddleURL = "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift-signed/${params.BUILD_VERSION}"
 workdir = "puddleWorking"
 // Substitute the advisory ID in later
@@ -15,9 +13,8 @@ def initialize(advisory) {
     elliottOpts += "--group=openshift-${params.BUILD_VERSION}"
     echo("${currentBuild.displayName}: https://errata.devel.redhat.com/advisory/${advisory}")
     rpmDiffsUrl = rpmDiffsUrl.replace("ID", advisory)
-    errataList += buildlib.elliott("${elliottOpts} puddle-advisories", [capture: true]).trim().replace(' ', '')
     currentBuild.description = "Signed puddle for advisory https://errata.devel.redhat.com/advisory/${advisory}"
-    currentBuild.description += "\nErrata whitelist: ${errataList}"
+    currentBuild.description += "\nErrata whitelist: ${advisory}"
 }
 
 // Search brew for, and then attach, any viable builds. Do this for
@@ -88,7 +85,8 @@ def signedComposeRpmdiffsResolved(advisory) {
 // build-signing mechanism. You might call this more than once if
 // you're having trouble getting a build to get signed in a reasonable
 // amount of time (10 minutes).
-def signedComposeStateQE() {
+def signedComposeStateQE(advisory) {
+    def advisoryOpt = "--advisory ${advisory}"
     if (params.DRY_RUN) {
         echo("Skipping advisory state change for dry run.")
         echo("would have run: ${elliottOpts} change-state --state QE ${advisoryOpt}")
@@ -112,7 +110,8 @@ def signedComposeStateQE() {
 // signed in a reasonable amount of time (10 minutes). To account for
 // that possible condition we frob the state between NEW_FILES and
 // QE. Re-entering the QE state triggers the signing mechanism again.
-def signedComposeRpmsSigned() {
+def signedComposeRpmsSigned(advisory) {
+    def advisoryOpt = "--advisory ${advisory}"
     if (params.DRY_RUN) {
         currentBuild.description += "\nDry-run: not actually signing any new builds"
         echo("Skipping signing packages for dry run.")
@@ -151,25 +150,22 @@ def signedComposeRpmsSigned() {
 // build account (kerberos principal:
 // ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM) has been
 // given permission to add packages into the new tags.
-def signedComposeNewCompose(elMajor="8") {
+def signedComposeNewCompose(advisory, elMajor="8") {
     def signedTag = "rhaos-${params.BUILD_VERSION}-rhel-${elMajor}-image-build"
     // one of the things that changed with RHEL 8 is the product version convention
     def productVersion = elMajor == "7" ? "RHEL-7-OSE-${params.BUILD_VERSION}" : "OSE-${params.BUILD_VERSION}-RHEL-8"
-    def elliott_args = " --debug tag-builds --tag ${signedTag} --product-version ${productVersion}"
-    for (advisory in errataList.split(",")) {
-        elliott_args += " --advisory ${advisory}"
-    }
+    def advisoryOpt = " --debug tag-builds --tag ${signedTag} --product-version ${productVersion} --advisory ${advisory}"
     if ( params.DRY_RUN ) {
         currentBuild.description += "\nDry-run: EL${elMajor} Compose not actually built"
         echo("Packages which would have been added to ${signedTag} tag:")
-        buildlib.elliott("${elliottOpts} ${elliott_args} --dry-run")
+        buildlib.elliott("${elliottOpts} ${advisoryOpt} --dry-run")
     } else {
         // It appears that two simultaneous tag requests for the same package, even on
         // different releases, causes both API calls to hang.  Use lock to prevent this.
         lock('update-brew-tags') {
             echo("Updating RHEL${elMajor} brew tag")
             timeout(time: 15, unit: 'MINUTES') {
-                buildlib.elliott("${elliottOpts} ${elliott_args}")
+                buildlib.elliott("${elliottOpts} ${advisoryOpt}")
             }
         }
 
@@ -200,7 +196,6 @@ def mailForSuccess() {
 
     def successMessage = """New signed composes created for OpenShift ${params.BUILD_VERSION}
 
-  Errata Whitelist included advisories: ${errataList}
   EL7 Puddle URL: ${puddleMetaEl7.newPuddle}
   EL8 Puddle URL: ${puddleMetaEl8.newPuddle}
   Jenkins Console Log: ${commonlib.buildURL('console')}

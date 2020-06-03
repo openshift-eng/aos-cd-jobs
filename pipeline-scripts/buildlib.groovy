@@ -1442,7 +1442,7 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
      *
      * Now.. let's copy to rcm-guest! Why? Because when we build images in
      * brew, OSBS will only let the Dockerfile's yum invocations
-     * access certain remote locations. One of those whitelisted locations
+     * access certain remote locations. One of those allowlisted locations
      * is rcm-guest, so copy our lightweight repo there.
      *
      * ocp-build is a user established for us on the rcm-guest host by

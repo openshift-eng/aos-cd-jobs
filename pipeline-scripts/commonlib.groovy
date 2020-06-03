@@ -389,7 +389,7 @@ ${output.join("\n")}
 }
 
 /**
- * Jenkins doesn't seems to whitelist .asList(),
+ * Jenkins doesn't seems to allowlist .asList(),
  * so this is an awful workaround.
  * @param array An array
  * @return Returns a list containing the elements of the array

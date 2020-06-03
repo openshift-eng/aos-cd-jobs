@@ -64,7 +64,7 @@ extensions:
            wget "https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/${plugin}.py"
            sudo mv "${plugin}.py" /usr/share/ansible/plugins/callback
         done
-        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_whitelist.*/callback_whitelist = generate_junit/' /etc/ansible/ansible.cfg
+        sudo sed -r -i -e 's/^#?stdout_callback.*/stdout_callback = default_with_output_lists/' -e 's/^#?callback_allowlist.*/callback_allowlist = generate_junit/' /etc/ansible/ansible.cfg
     - type: "script"
       title: "determine the release commit for origin images and version for rpms"
       repository: "origin"

@@ -17,7 +17,7 @@ def initialize(advisory) {
     rpmDiffsUrl = rpmDiffsUrl.replace("ID", advisory)
     errataList += buildlib.elliott("${elliottOpts} puddle-advisories", [capture: true]).trim().replace(' ', '')
     currentBuild.description = "Signed puddle for advisory https://errata.devel.redhat.com/advisory/${advisory}"
-    currentBuild.description += "\nErrata whitelist: ${errataList}"
+    currentBuild.description += "\nErrata allowlist: ${errataList}"
 }
 
 // Search brew for, and then attach, any viable builds. Do this for

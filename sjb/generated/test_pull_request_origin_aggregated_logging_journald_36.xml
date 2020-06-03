@@ -463,7 +463,7 @@ for plugin in &#39;default_with_output_lists&#39; &#39;generate_junit&#39;; do
    wget &#34;https://raw.githubusercontent.com/openshift/origin-ci-tool/master/oct/ansible/oct/callback_plugins/\${plugin}.py&#34;
    sudo mv &#34;\${plugin}.py&#34; /usr/share/ansible/plugins/callback
 done
-sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_whitelist.*/callback_whitelist = generate_junit/&#39; /etc/ansible/ansible.cfg
+sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_allowlist.*/callback_allowlist = generate_junit/&#39; /etc/ansible/ansible.cfg
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;
@@ -639,7 +639,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${GOPATH}/src/github.com/openshift/origin-aggregated-logging&#34;
 hack/build-images.sh
-sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_whitelist.*/callback_whitelist = generate_junit/&#39; /etc/ansible/ansible.cfg
+sudo sed -r -i -e &#39;s/^#?stdout_callback.*/stdout_callback = default_with_output_lists/&#39; -e &#39;s/^#?callback_allowlist.*/callback_allowlist = generate_junit/&#39; /etc/ansible/ansible.cfg
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

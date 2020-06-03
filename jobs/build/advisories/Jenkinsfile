@@ -26,6 +26,11 @@ node {
                     parameterDefinitions: [
                         commonlib.ocpVersionParam("VERSION"),
                         booleanParam(
+                            name: "REQUEST_LIVE_IDs",
+                            description: "(No effect once SUPPRESS_EMAIL is checked) Sending emails request live ids to docs team once advisories are created",
+                            defaultValue: true
+                        ),
+                        booleanParam(
                             name: "ENABLE_AUTOMATION",
                             description: "Unfreeze automation to enable building and sweeping into the new advisories",
                             defaultValue: true
@@ -72,6 +77,14 @@ node {
                             defaultValue: [
                                 "aos-art-automation+failed-ocp4-build@redhat.com"
                             ].join(",")
+                        ),
+                        string(
+                            name: 'LIVE_ID_MAIL_LIST',
+                            description: 'Current default is OpenShift CCS Mailing List && OpenShift ART',
+                            defaultValue: [
+                                "openshift-ccs@redhat.com",
+                                "aos-team-art@redhat.com"
+                            ].join(",")            
                         ),
                         text(
                             name: "SPECIAL_NOTES",
@@ -182,6 +195,25 @@ node {
                         Extras: https://errata.devel.redhat.com/advisory/${extras_advisory_id}\n
                         OLM Operators metadata: https://errata.devel.redhat.com/advisory/${metadata_advisory_id}\n
                     """
+                }
+            }
+            stage("sending email to request Live IDs") {
+                if (params.REQUEST_LIVE_IDs) {
+                    def live_id_content = """
+                        Hello docs team, ART would like to request Live IDs for our ${params.VERSION}.z advisories:\n
+                        Image: https://errata.devel.redhat.com/advisory/${image_advisory_id}\n
+                    """
+                    if (params.DRY_RUN) {
+                        out = "DRY RUN mode, email did not send to ${params.LIVE_ID_MAIL_LIST}\n\n subject: Live IDs for ${params.VERSION}\n\n body: ${live_id_content}"
+                        echo "out: ${out}"
+                    } else {
+                        commonlib.email(
+                            to: "${params.LIVE_ID_MAIL_LIST}",
+                            from: "aos-art-automation@redhat.com",
+                            subject: "Live IDs for ${params.VERSION}",
+                            body: "${live_id_content}"
+                        );                    
+                    }
                 }
             }
             sshagent(["openshift-bot"]) {

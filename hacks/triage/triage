@@ -89,7 +89,11 @@ main() {
       fmt=' -url "%s"'
       ;;
     chrome)
-      cmd="google-chrome --new-window '${urls[0]}'"
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+	cmd="/Applications/Google\\ \\Chrome.app/Contents/MacOS/Google\\ \\Chrome --new-window '${urls[0]}'"
+      else
+      	cmd="google-chrome --new-window '${urls[0]}'"
+      fi
       fmt=' -url "%s"'
       ;;
     chromium)

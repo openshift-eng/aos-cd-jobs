@@ -22,6 +22,7 @@ ocp4SendUMBVersions = ocp4Versions.collect(["4-stable"]) { it + ".0-0.nightly" }
 
 // Which versions should undergo merges from origin->ose
 ocpMergeVersions = [
+    "4.6",
     "4.5",
     "4.4",
     "4.3",

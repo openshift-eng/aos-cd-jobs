@@ -52,33 +52,10 @@ node {
                 parallel builds
             }
         } catch(e) {
-            // still run puddle when the rpm build fails
+            // still run other versions when an rpm build fails
             echo "Package build failed:\n${e}"
             buildExceptions << e
             currentBuild.result = "FAILURE"
-        }
-
-        stage("run puddle for ${version}") {
-            try {
-                echo "Initializing puddle build #${currentBuild.number} for Openshift version ${version}"
-
-                def puddleConf = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/build-scripts/puddle-conf/atomic_openshift-${version}.el8.conf"
-
-                puddle = buildlib.build_puddle(
-                    puddleConf,
-                    null,
-                    "-b",   // do not fail if we are missing dependencies
-                    "-d",   // print debug information
-                    "-n"    // do not send an email for this puddle
-                )
-
-                echo "View the package list here: http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${version}-el8/latest/x86_64/os/Packages/"
-            } catch(e) {
-                // still run next version if puddle fails
-                echo "Puddle failed:\n${e}"
-                buildExceptions << e
-                currentBuild.result = "FAILURE"
-            }
         }
     }
 

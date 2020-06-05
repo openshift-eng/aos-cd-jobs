@@ -927,6 +927,12 @@ images:build
                 buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_VERSION)
             }
 
+            stage("sweep") {
+                if (!params.DRY_RUN) {
+                    buildlib.sweep(params.BUILD_VERSION, true)
+                }
+            }
+
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)

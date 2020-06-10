@@ -90,7 +90,6 @@ node {
                         defaultValue: [
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
-                            'aos-team-art@redhat.com',
                             'aos-art-automation+new-release@redhat.com',
                         ].join(',')
                     ],
@@ -237,7 +236,7 @@ node {
                     if (!params.DRY_RUN) {
                         commonlib.email(
                             to: "openshift-ccs@redhat.com",
-                            cc: "aos-team-art@redhat.com",
+                            cc: "aos-art-automation+image-list@redhat.com",
                             replyTo: "aos-team-art@redhat.com",
                             subject: "OCP ${release_name} (${arch}) Image List",
                             body: readFile(filename)
@@ -250,7 +249,7 @@ node {
             }
 
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
-            stage("mirror tools") { 
+            stage("mirror tools") {
               retry(3) {
                 release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
               }

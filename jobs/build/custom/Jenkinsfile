@@ -308,5 +308,6 @@ Job console: ${commonlib.buildURL('console')}
                 "doozer_working/*.yaml",
                 "doozer_working/brew-logs/**",
             ])
+        buildlib.cleanWorkdir(doozer_working)
     }
 }

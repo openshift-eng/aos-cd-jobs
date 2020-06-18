@@ -123,7 +123,7 @@ node {
                     passwordVariable: 'JIRA_PASSWORD',
                 )]) {
                     withEnv(["ds=${description}"]){
-                        cmd = "jirago -password=${JIRA_PASSWORD} -summary=\"OCP Tarball sources\" -description=\"${ds}\""
+                        cmd = "jirago -password=${JIRA_PASSWORD} -type \"Ticket\" -summary=\"OCP Tarball sources\" -description=\"${ds}\""
                         jira = commonlib.shell(
                             script: cmd,
                             returnStdout: true

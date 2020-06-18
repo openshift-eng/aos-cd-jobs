@@ -969,5 +969,6 @@ Jenkins job: ${env.BUILD_URL}
             "doozer_working/*.yaml",
             "doozer_working/*.yml",
         ])
+        buildlib.cleanWorkdir(build.doozerWorking)
     }
 }

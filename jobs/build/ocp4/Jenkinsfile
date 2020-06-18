@@ -164,5 +164,6 @@ View the build artifacts and console output on Jenkins:
             "doozer_working/*.yaml",
             "doozer_working/*.yml",
         ])
+        buildlib.cleanWorkdir(build.doozerWorking)
     }
 }

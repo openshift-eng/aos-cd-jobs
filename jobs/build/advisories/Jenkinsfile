@@ -186,15 +186,12 @@ node {
             }
             stage("update job description with advisory links") {
                 currentBuild.displayName = "${params.VERSION}.z advisories${params.DRY_RUN ? " [DRY_RUN]" : ""}"
-                currentBuild.description = """
-                    RPM: https://errata.devel.redhat.com/advisory/${rpm_advisory_id}\n
-                    Image: https://errata.devel.redhat.com/advisory/${image_advisory_id}\n
-                """
+                currentBuild.description = "RPM: https://errata.devel.redhat.com/advisory/${rpm_advisory_id}\n"
+                currentBuild.description += "Image: https://errata.devel.redhat.com/advisory/${image_advisory_id}\n"
+                
                 if (params.VERSION.startsWith("4")) {
-                    currentBuild.description += """
-                        Extras: https://errata.devel.redhat.com/advisory/${extras_advisory_id}\n
-                        OLM Operators metadata: https://errata.devel.redhat.com/advisory/${metadata_advisory_id}\n
-                    """
+                    currentBuild.description += "Extras: https://errata.devel.redhat.com/advisory/${extras_advisory_id}\n"
+                    currentBuild.description += "OLM Operators metadata: https://errata.devel.redhat.com/advisory/${metadata_advisory_id}\n"
                 }
             }
             stage("sending email to request Live IDs") {

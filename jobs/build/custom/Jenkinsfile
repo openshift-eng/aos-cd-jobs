@@ -27,7 +27,7 @@ node {
                     ],
                     [
                         name: 'RELEASE',
-                        description: '(Optional) Release string for build instead of default (1 for 3.x, timestamp for 4.x)',
+                        description: '(Optional) Release string for build instead of default (1 for 3.x, timestamp.p? for 4.x)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -148,7 +148,7 @@ node {
                     currentBuild.description = "building RPM(s): ${rpms}\n"
                     command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
-                    command += "rpms:build --version ${version} --release ${release} "
+                    command += "rpms:build --version ${version} --release '${release}' "
                     if (params.IGNORE_LOCKS) {
                          buildlib.doozer command
                     } else {
@@ -205,7 +205,7 @@ node {
                 currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
                 command = doozerOpts
                 command += "--latest-parent-version ${include_exclude} "
-                command += "images:${params.IMAGE_MODE} --version v${version} --release ${release} "
+                command += "images:${params.IMAGE_MODE} --version v${version} --release '${release}' "
                 command += "--repo-type ${repo_type} "
                 command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
                 if (params.IGNORE_LOCKS) {

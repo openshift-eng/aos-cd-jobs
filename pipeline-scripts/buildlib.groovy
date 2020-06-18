@@ -107,6 +107,7 @@ def doozer(cmd, opts=[:]){
         withEnv(['AWS_DEFAULT_REGION=us-east-1']) {
             return commonlib.shell(
                     returnStdout: opts.capture ?: false,
+                    alwaysArchive: opts.capture ?: false,
                     script: "doozer --datastore prod --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
         }
     }
@@ -115,6 +116,7 @@ def doozer(cmd, opts=[:]){
 def elliott(cmd, opts=[:]){
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
+        alwaysArchive: opts.capture ?: false,
         script: "elliott ${cleanWhitespace(cmd)}")
 }
 

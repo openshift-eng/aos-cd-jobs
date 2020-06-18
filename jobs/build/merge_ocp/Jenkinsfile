@@ -4,7 +4,6 @@ node {
     def commonlib = buildlib.commonlib
 
     def doozer_working = "${WORKSPACE}/doozer_working"
-    buildlib.cleanWorkdir(doozer_working)
 
     // Expose properties for a parameterized build
     properties(
@@ -156,7 +155,9 @@ node {
                                 def isOCP4 = version.startsWith('4.')
 
                                 if (isOCP4) {
-                                // Scan upstream for relevant changes
+                                    // Scan upstream for relevant changes
+                                    buildlib.cleanWorkdir(doozer_working)
+
                                     def yamlData = readYaml text: buildlib.doozer(
                                         """
                                         --working-dir ${doozer_working}

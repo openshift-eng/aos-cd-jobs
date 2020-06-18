@@ -1206,7 +1206,7 @@ def latestOpenshiftRpmBuild(stream, branch) {
 }
 
 def defaultReleaseFor(stream) {
-    return stream.startsWith("3") ? "1" : new Date().format("yyyyMMddHHmm")
+    return stream.startsWith("3") ? "1" : (new Date().format("yyyyMMddHHmm") + ".p?")
 }
 
 // From a brew NVR of openshift, return just the V part.

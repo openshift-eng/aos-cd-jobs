@@ -256,7 +256,7 @@ def stageBuildRpms() {
         ${doozerOpts}
         ${includeExclude "rpms", buildPlan.rpmsIncluded, buildPlan.rpmsExcluded}
         rpms:build --version v${version.full}
-        --release ${version.release}
+        --release '${version.release}'
         """
 
     buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
@@ -434,7 +434,7 @@ def stageUpdateDistgit() {
         """
         ${doozerOpts}
         ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
-        images:rebase --version v${version.full} --release ${version.release}
+        images:rebase --version v${version.full} --release '${version.release}'
         --message 'Updating Dockerfile version and release v${version.full}-${version.release}' --push
         --message '${env.BUILD_URL}'
         """

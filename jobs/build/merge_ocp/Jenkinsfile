@@ -3,6 +3,9 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
+    def doozer_working = "${WORKSPACE}/doozer_working"
+    buildlib.cleanWorkdir(doozer_working)
+
     // Expose properties for a parameterized build
     properties(
         [
@@ -156,6 +159,7 @@ node {
                                 // Scan upstream for relevant changes
                                     def yamlData = readYaml text: buildlib.doozer(
                                         """
+                                        --working-dir ${doozer_working}
                                         --group 'openshift-${version}'
                                         config:scan-sources --yaml
                                         """, [capture: true]

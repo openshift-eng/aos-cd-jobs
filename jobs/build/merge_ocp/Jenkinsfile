@@ -158,18 +158,25 @@ node {
                                     // Scan upstream for relevant changes
                                     buildlib.cleanWorkdir(doozer_working)
 
-                                    /*def yamlData = readYaml text: buildlib.doozer(
+                                    def yamlData = readYaml text: buildlib.doozer(
                                         """
                                         --working-dir ${doozer_working}
                                         --group 'openshift-${version}'
                                         config:scan-sources --yaml
                                         """, [capture: true]
                                     )
+                                    sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${version}.log"
+                                    
+                                    try {
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
+                                    } catch (aae) {}                                    
+                                    
+                                    echo "scan-sources output for openshift-${version}:\n${yamlData}\n\n"
                                     def changed = buildlib.getChanges(yamlData)
                                     if ( changed.rpms || changed.images ) {
                                         echo "Detected source changes: ${changed}"
                                         scheduleBuild = true
-                                    }*/
+                                    }
                                     scheduleBuild = true
 
                                 }

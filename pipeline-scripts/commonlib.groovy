@@ -329,7 +329,7 @@ def shell(arg) {
         mkdir -p ${shellDir}
         ln -sfn ${shellDir} ${env.WORKSPACE}/shell
         mkdir -p ${shellSubdir}
-        find ${env.WORKSPACE} -maxdepth 1 -name 'shell.*' ! -name shell.${currentBuild.number} -exec rm -rf '{}' +
+        find ${env.WORKSPACE} -maxdepth 2 -name 'shell.*' ! -name shell.${currentBuild.number} -exec rm -rf '{}' +
     """
 
     echo "Running shell script via commonlib.shell:\n${script}"

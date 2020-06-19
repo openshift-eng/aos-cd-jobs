@@ -63,7 +63,8 @@ node {
 
 
     try {
-
+        currentBuild.displayName = "#${currentBuild.number} - ${CHANNEL_OR_RELEASE} (arches: ${ARCHES})"
+        
         if ( params.CLIENT_TYPE == "ocp" &&  params.CHANNEL_OR_RELEASE.charAt(0).isDigit() ) {
             // For released ocp clients, only support channel names.
             error("Released ocp client links are managed automatically by polling Cincinnati. See set_cincinnati_links in scheduled-jobs")

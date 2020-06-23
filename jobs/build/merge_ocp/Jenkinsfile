@@ -176,8 +176,6 @@ node {
                                         echo "Detected source changes: ${changed}"
                                         scheduleBuild = true
                                     }
-                                    scheduleBuild = true
-
                                 }
 
                                 upstream = "release-${version}"

@@ -33,7 +33,7 @@ node {
                     ],
                     [
                         name: 'RPMS',
-                        description: 'CSV list of RPMs to build. Empty for all. Enter "NONE" to not build any.',
+                        description: 'CSV list of RPMs to build. Empty for all. Enter "NONE" to not build any. Enter "REPO" to create repository without building any rpm',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "NONE"
                     ],
@@ -143,24 +143,25 @@ node {
             currentBuild.description = ""
 
             stage("rpm builds") {
-                if (rpms.toUpperCase() != "NONE") {
+                if (!(rpms.toUpperCase() in ["NONE", "REPO"])) {
                     currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
                     currentBuild.description = "building RPM(s): ${rpms}\n"
                     command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
                     command += "rpms:build --version ${version} --release '${release}' "
                     if (params.IGNORE_LOCKS) {
-                         buildlib.doozer command
+                        buildlib.doozer command
                     } else {
                         lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
                     }
                 }
             }
 
-            stage("puddle: ose 'building'") {
+            stage("repo: ose 'building'") {
                 if (rpms.toUpperCase() != "NONE") {
                     lock("compose-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
                         if ("${majorVersion}" == "3") {
+                            echo 'Building 3.x puddle'
                             aosCdJobsCommitSha = commonlib.shell(
                                     returnStdout: true,
                                     script: "git rev-parse HEAD",

@@ -260,6 +260,21 @@ def stageBuildRpms() {
         """
 
     buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
+    if (buildPlan.dryRun) {
+        echo("doozer ${cmd}")
+        echo("run job: build%2Fel8-rebuilds")
+        return
+    }
+
+    buildlib.doozer(cmd)
+    build(
+        job: "build%2Fel8-rebuilds",
+        propagate: true,
+        parameters: [
+            string(name: "BUILD_VERSION", value: version.stream),
+            booleanParam(name: "MOCK", value: false),
+        ],
+    )
 }
 
 /**

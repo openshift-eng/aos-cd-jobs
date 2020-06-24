@@ -2,7 +2,6 @@ node {
     checkout scm
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
-    buildlib.initialize(false)
     def commonlib = buildlib.commonlib
 
     // Expose properties for a parameterized build
@@ -112,6 +111,7 @@ node {
             ],
         ]
     )
+    buildlib.initialize(false)
 
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
@@ -149,11 +149,23 @@ node {
                     command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
                     command += "rpms:build --version ${version} --release '${release}' "
-                    if (params.IGNORE_LOCKS) {
+
+                    def buildRpms = { ->
                         buildlib.doozer command
-                    } else {
-                        lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
+                        def rpmList = rpms.split(",")
+                        // given this may run without locks, don't blindly rebuild for el8 unless building for el7
+                        if (rpmList.contains("openshift") || rpmList.contains("openshift-clients") || !rpmList) {
+                            build(
+                                job: "build%2Fel8-rebuilds",
+                                propagate: true,
+                                parameters: [
+                                    string(name: "BUILD_VERSION", value: params.BUILD_VERSION),
+                                    booleanParam(name: "MOCK", value: false),
+                                ],
+                            )
+                        }
                     }
+                    params.IGNORE_LOCKS ?  buildRpms() : lock("github-activity-lock-${params.BUILD_VERSION}") { buildRpms() }
                 }
             }
 

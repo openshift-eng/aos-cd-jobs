@@ -33,10 +33,7 @@ pipeline {
                          'Format: Comma and/or space separated list of brew ' +
                          'packages (e.g.: cluster-nfd-operator-container)\n'  +
                          'Leave empty to build all (or ONLY, if defined)',
-            defaultValue: 'cluster-nfd-operator-container'
-            /* Temporarily excluding cluster-nfd-operator-container, until
-               https://github.com/openshift/cluster-nfd-operator/issues/82
-               gets solved */
+            defaultValue: ''
         )
         string(
             name: 'EXTRAS_ADVISORY',
@@ -59,8 +56,8 @@ pipeline {
                     currentBuild.displayName += " (${params.BUILD_VERSION})"
                     currentBuild.description  = "${params.EXTRAS_ADVISORY ?: '-'} "
 
-                    def only = olm_bundles.commonlib.cleanCommaList(params.ONLY).split(',')
-                    def exclude = olm_bundles.commonlib.cleanCommaList(params.EXCLUDE).split(',')
+                    def only = olm_bundles.commonlib.parseList(params.ONLY)
+                    def exclude = olm_bundles.commonlib.parseList(params.EXCLUDE)
                     operator_packages = (only ?: olm_bundles.get_olm_operators()) - exclude
                 }
             }
@@ -71,7 +68,7 @@ pipeline {
             }
             steps {
                 script {
-                    operator_nvrs = olm_bundles.get_builds_from_advisory().findAll {
+                    operator_nvrs = olm_bundles.get_builds_from_advisory(params.EXTRAS_ADVISORY).findAll {
                         nvr -> operator_packages.any { nvr.startsWith(it) }
                     }
                 }
@@ -109,14 +106,22 @@ pipeline {
         }
         stage('Attach bundles to advisory') {
             when {
-                expression { ! params.EXTRAS_ADVISORY.isEmpty() }
+                expression { bundle_nvrs && ! params.EXTRAS_ADVISORY.isEmpty() }
             }
             steps {
                 script {
                     lock("olm_bundle-${params.BUILD_VERSION}") {
-                        olm_bundles.attach_to_bundles_advisory(bundle_nvrs)
+                        olm_bundles.attach_bundles_to_extras_advisory(bundle_nvrs, params.EXTRAS_ADVISORY)
                     }
                 }
+            }
+        }
+
+    }
+    post {
+        always {
+            script {
+                olm_bundles.archiveDoozerArtifacts()
             }
         }
     }

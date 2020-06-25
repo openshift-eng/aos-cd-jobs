@@ -179,10 +179,15 @@ def standardVersion(String version, Boolean withV=true) {
     return withV ? "v${version}" : version
 }
 
-def cleanCommaList(str) {
-    // turn a list separated by commas or spaces into a comma-separated list
+def parseList(str) {
+    // turn the string of a list separated by commas or spaces into a list
     str = (str == null) ? "" : str
-    return str.replaceAll(',', ' ').split().join(',')
+    return str.replaceAll(',', ' ').split()
+}
+
+def cleanCommaList(str) {
+    // turn the string list separated by commas or spaces into a comma-separated string
+    return parseList(str).join(',')
 }
 
 // A reusable way to generate a working build URL. Translates it into

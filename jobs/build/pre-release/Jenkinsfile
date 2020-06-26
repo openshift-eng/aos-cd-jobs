@@ -105,7 +105,7 @@ node {
                 def queryEndpoint = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${releaseStream}/latest"
                 from_release_tag = commonlib.shell(
                     returnStdout: true,
-                    script: "curl --fail -s -X GET -G ${queryEndpoint} | jq '.name' -r"
+                    script: "curl -L --fail -s -X GET -G ${queryEndpoint} | jq '.name' -r"
                 ).trim()
                 echo "Detected latest release in ${params.BUILD_VERSION}: ${from_release_tag}"
             }

@@ -31,7 +31,7 @@ node {
                     RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(release)
                     latestRelease = sh(
                         returnStdout: true,
-                        script: "curl -sf ${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${release}/latest",
+                        script: "curl -L -sf ${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${release}/latest",
                     ).trim()
                     latestReleaseVersion = readJSON(text: latestRelease).name
                     echo "${release}: latestRelease=${latestRelease}"

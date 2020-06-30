@@ -153,8 +153,8 @@ node {
                                 def scheduleBuild = false
                                 def isOCP4 = version.startsWith('4.')
 
-                                if (isOCP4) {
-                                    // Scan upstream for relevant changes
+                                if (isOCP4 && params.SCHEDULE_INCREMENTAL) {
+                                    // Scan upstream for relevant changes, unless we won't run builds anyway.
                                     buildlib.cleanWorkdir(doozer_working)
 
                                     def yamlData = readYaml text: buildlib.doozer(

@@ -116,6 +116,8 @@ ocpBaseImages = [
         "rhscl.nodejs.6.rhel7",
         "rhscl.nodejs.10.rhel7",
         "rhscl.nodejs.12.rhel7",
+        "rhscl.python.36.rhel7",
+        "rhscl.ruby.25.rhel7",
         "rhel7",
         "ubi7",
         "ubi8",

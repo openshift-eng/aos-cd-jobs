@@ -83,6 +83,12 @@ case "$img" in
     rhscl.nodejs.12.rhel7)
         build_common $img rhscl/nodejs-12-rhel7:1-6.1582646197 1001 $@
         ;;
+    rhscl.ruby.25.rhel7)
+        build_common $img rhscl/ruby-25-rhel7:latest 1001 $@
+        ;;
+    rhscl.python.36.rhel7)
+        build_common $img rhscl/python-36-rhel7:latest 1001 $@
+        ;;
     rhel7)
         build_common $img rhel7:7-released 0 $@
         ;;

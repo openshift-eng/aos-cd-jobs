@@ -784,16 +784,31 @@ def sync_images(major, minor, mail_list, build_number) {
     }
     def fullVersion = "${major}.${minor}"
     def results = []
-    def metadataJob = fullVersion == '4.6' ? 'build%2Folm_bundle' : 'build%2Fappregistry'
 
-    parallel "build-sync": {
-        results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
-            [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
-        )
-    }, metadata: {
-        results.add build(job: metadataJob, propagate: false, parameters:
-            [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
-        )
+    if (fullVersion == '4.6') {
+        parallel "build-sync": {
+            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
+                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
+            )
+        }, "olm-bundle": {
+            results.add build(job: 'build%2Folm_bundle', propagate: false, parameters:
+                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
+            )
+        }
+    } else {
+        parallel "build-sync": {
+            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
+                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
+            )
+        }, appregistry: {
+            results.add build(job: 'build%2Fappregistry', propagate: false, parameters:
+                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
+            )
+        }, "olm-bundle": {
+            results.add build(job: 'build%2Folm_bundle', propagate: false, parameters:
+                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
+            )
+        }
     }
     if ( results.any { it.result != 'SUCCESS' } ) {
         commonlib.email(

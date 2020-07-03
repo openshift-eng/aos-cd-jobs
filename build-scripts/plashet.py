@@ -4,12 +4,13 @@ import click
 import xmlrpc.client as xmlrpclib
 import os
 import pathlib
-from kobo.rpmlib import parse_nvr
+from kobo.rpmlib import parse_nvr, compare_nvr
 import koji
 import logging
 import requests
 import ssl
 import time
+import wrapt
 from requests_kerberos import HTTPKerberosAuth
 from types import SimpleNamespace
 
@@ -327,6 +328,26 @@ def cli(ctx, base_dir, brew_root, name, signing_key_id, **kwargs):
                               **kwargs)
 
 
+class KojiWrapper(wrapt.ObjectProxy):
+    """
+    We've see the koji client occasionally get
+    Connection Reset by Peer errors.. "requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))"
+    Under the theory that these operations just need to be retried,
+    this wrapper will automatically retry all invocations of koji APIs.
+    """
+
+    def __call__(self, *args, **kwargs):
+        retries = 4
+        while retries > 0:
+            try:
+                return self.__wrapped__(*args, **kwargs)
+            except requests.exceptions.ConnectionError as ce:
+                time.sleep(5)
+                retries -= 1
+                if retries == 0:
+                    raise ce
+
+
 @cli.command('from-tags', short_help='Collects a set of RPMs from specified brew tags -- signing if necessary.')
 @click.pass_obj
 @click.option('-t', '--brew-tag', multiple=True, required=True, nargs=2, help='One or more brew tags whose RPMs should be included in the repo; format is: <tag> <product_version>')
@@ -346,23 +367,48 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
     --brew-tag <tag> <product_version> example: --brew-tag rhaos-4.5-rhel-8-candidate OSE-4.5-RHEL-8 --brew-tag .. ..
     """
 
-    koji_proxy = koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub'})
+    koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub'}))
     koji_proxy.gssapi_login()
     errata_proxy = xmlrpclib.ServerProxy(config.errata_xmlrpc_url)
 
     desired_nvrs = set()
     nvr_product_version = {}
     for tag, product_version in brew_tag:
-        for build in koji_proxy.listTagged(tag, latest=True, inherit=False, event=event):
 
-            if build['package_name'] in config.exclude_package:
+        released_package_nvrs = {}  # maps released package names to the most recently released package (parsed) nvr
+        if tag.endswith('-candidate'):
+            """
+            So here's the thing. If you ship a version of a package 1.16.6 via errata tool, 
+            it will prevent you from shipping an older version of that package (e.g. 1.16.2) or even
+            attaching it to an errata. This prevents us from auto-signing the older package. Since it
+            is just invalid, we need to find the latest version of packages which have shipped
+            and make sure plashet filters out anything that is older before signing/building.
+            
+            Without this filtering, the error from errata tool looks like:
+            b'{"error":"Unable to add build \'cri-o-1.16.6-2.rhaos4.3.git4936f44.el7\' which is older than cri-o-1.16.6-16.dev.rhaos4.3.git4936f44.el7"}'
+            """
+            released_tag = tag[:tag.index('-candidate')]
+            for build in koji_proxy.listTagged(released_tag, latest=True, inherit=False, event=event):
+                package_name = build['package_name']
+                released_package_nvrs[package_name] = parse_nvr(build['nvr'])
+
+        for build in koji_proxy.listTagged(tag, latest=True, inherit=False, event=event):
+            package_name = build['package_name']
+            nvr = build['nvr']
+
+            if package_name in config.exclude_package:
                 logger.info(f'Skipping tagged but excluded package: {nvr}')
                 continue
+
+            if package_name in released_package_nvrs:
+                released_nvr = released_package_nvrs[package_name]
+                if compare_nvr(parse_nvr(nvr), released_nvr) < 0:
+                    logger.warning(f'Skipping tagged {nvr} because it is older than a released version: {released_nvr}')
+                    continue
 
             # Make sure this is an RPM
             # e.g. node-maintenance-operator-bundle is a docker tar
             if not build['package_name'].endswith(('-container', '-apb', '-bundle')):
-                nvr = build['nvr']
                 logger.info(f'{tag} contains rpm: {nvr}')
                 desired_nvrs.add(nvr)
                 nvr_product_version[nvr] = product_version

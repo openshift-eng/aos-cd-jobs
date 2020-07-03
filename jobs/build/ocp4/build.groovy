@@ -280,14 +280,11 @@ def stageBuildRpms() {
 /**
  * Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs based on -candidate tags.
  * Based on commonlib.ocp4ReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
- * @param el7_auto_signing_advisory - The advisory method can be used for auto-signing. This should be
+ * @param auto_signing_advisory - The advisory method can use for auto-signing. This should be
  *          unique to this release (to avoid simultaneous modifications. i.e. different
  *          advisories for 4.1, 4.2, ...
- * @param el8_auto_signing_advisory - The advisory method can be used for auto-signing el8 rpms. Why is it different
- *          from el7? We've seen where errata tool will reject two different versions of the same package even
- *          if they target different products within the same advisory.
  */
-def stageBuildCompose(el7_auto_signing_advisory=54765, el8_auto_signing_advisory=56674) {
+def stageBuildCompose(auto_signing_advisory=54765) {
 
     // we may or may not have (successfully) built the openshift RPM in this run.
     // in order to script the correct version to publish later, determine what's there now.
@@ -352,7 +349,7 @@ def stageBuildCompose(el7_auto_signing_advisory=54765, el8_auto_signing_advisory
                     plashet_arch_args,
                     "from-tags", // plashet mode of operation => build from brew tags
                     "--brew-tag rhaos-${version.stream}-rhel-7-candidate RHEL-7-OSE-${version.stream}",  // --brew-tag <tag> <associated-advisory-product-version>
-                    el7_auto_signing_advisory?"--signing-advisory-id ${el7_auto_signing_advisory}":"",    // The advisory to use for signing
+                    auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
             ].join(' '))
@@ -368,7 +365,7 @@ def stageBuildCompose(el7_auto_signing_advisory=54765, el8_auto_signing_advisory
                     "from-tags", // plashet mode of operation => build from brew tags
                     // --brew-tag <tag> <associated-advisory-product-version>. Yes, the product version format is different for rhel8,
                     "--brew-tag rhaos-${version.stream}-rhel-8-candidate OSE-${version.stream}-RHEL-8",
-                    el8_auto_signing_advisory?"--signing-advisory-id ${el8_auto_signing_advisory}":"",    // The advisory to use for signing
+                    auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
             ].join(' '))

@@ -112,6 +112,7 @@ def getImagesData(limitImages) {
     doozer """
         ${limitImages}
         images:print
+        --show-non-release
         --label 'com.redhat.delivery.appregistry'
         --short '{label},{name},{component},{build}'
     """

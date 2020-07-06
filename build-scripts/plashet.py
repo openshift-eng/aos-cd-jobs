@@ -4,6 +4,7 @@ import click
 import xmlrpc.client as xmlrpclib
 import os
 import pathlib
+import glob
 from kobo.rpmlib import parse_nvr, compare_nvr
 import koji
 import logging
@@ -211,7 +212,25 @@ def is_signed(config, nvr):
     :return: Returns whether the specified nvr is signed with the signing key id. An exception
     will be raise if the nvr can't be found at all in the brew root (i.e. unsigned can't be found).
     """
-    return os.path.isdir(get_brewroot_arch_base_path(config, nvr, True))
+    signed_base = get_brewroot_arch_base_path(config, nvr, True)
+    unsigned_base = get_brewroot_arch_base_path(config, nvr, False)
+
+    if os.path.isdir(signed_base):
+        # The signed directory exists, but we also want to make sure that the RPM counts match
+        # the unsigned directories. This eliminates a potential race condition between a nvr
+        # being signed and the time it takes to populate the brewroot directories.
+
+        signed_rpm_count = len(glob.glob(f'{signed_base}/**/*.rpm', True))
+        # Note the structure brewroot has signed under the unsigned directory, so the next
+        # glob will find both signed and unsigned.
+        all_rpm_count = len(glob.glob(f'{unsigned_base}/**/*.rpm', True))
+
+        if all_rpm_count != (signed_rpm_count * 2):
+            logger.info(f'Found incomplete signed rpm directory for {nvr}; brewroot may still be being built.')
+            return False
+        return True
+    else:
+        return False
 
 
 def signed_desired(config):
@@ -409,7 +428,7 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
             # Make sure this is an RPM
             # e.g. node-maintenance-operator-bundle is a docker tar
             if not build['package_name'].endswith(('-container', '-apb', '-bundle')):
-                logger.info(f'{tag} contains rpm: {nvr}')
+                logger.info(f'{tag} contains package: {nvr}')
                 desired_nvrs.add(nvr)
                 nvr_product_version[nvr] = product_version
 

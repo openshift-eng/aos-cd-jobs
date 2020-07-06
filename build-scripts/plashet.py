@@ -226,7 +226,7 @@ def is_signed(config, nvr):
         all_rpm_count = len(glob.glob(f'{unsigned_base}/**/*.rpm', True))
 
         if all_rpm_count != (signed_rpm_count * 2):
-            logger.info('fFound incomplete signed rpm directory for {nvr}; brewroot may still be being built.')
+            logger.info(f'Found incomplete signed rpm directory for {nvr}; brewroot may still be being built.')
             return False
         return True
     else:

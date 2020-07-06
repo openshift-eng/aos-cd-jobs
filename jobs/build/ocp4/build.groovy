@@ -286,12 +286,6 @@ def stageBuildRpms() {
  *          advisories for 4.1, 4.2, ...
  */
 def stageBuildCompose(auto_signing_advisory=54765) {
-    if (!buildPlan.buildRpms && !buildPlan.forceBuild) {
-        // a force build of just images is likely to want to pick up new dependencies,
-        // so in that case still create the compose.
-        echo "No RPMs built, not a force build; no need to create a compose"
-        return
-    }
     if(buildPlan.dryRun) {
         echo "Running in dry-run mode -- will not run plashet."
         return

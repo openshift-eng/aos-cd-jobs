@@ -290,13 +290,6 @@ def stageBuildCompose(auto_signing_advisory=54765) {
     // in order to script the correct version to publish later, determine what's there now.
     finalRpmVersionRelease = buildlib.latestOpenshiftRpmBuild(version.stream, version.branch).replace("openshift-", "")
 
-    if (!buildPlan.buildRpms && !buildPlan.forceBuild) {
-        // a force build of just images is likely to want to pick up new dependencies,
-        // so in that case still create the compose.
-        echo "No RPMs built, not a force build; no need to create a compose"
-        return
-    }
-
     baseDir = "${env.WORKSPACE}/plashets/el7"
     el8baseDir = "${env.WORKSPACE}/plashets/el8"
     plashetDirName = "${version.full}-${version.release}"

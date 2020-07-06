@@ -220,10 +220,10 @@ def is_signed(config, nvr):
         # the unsigned directories. This eliminates a potential race condition between a nvr
         # being signed and the time it takes to populate the brewroot directories.
 
-        signed_rpm_count = len(glob.glob(f'{signed_base}/**/*.rpm', True))
+        signed_rpm_count = len(glob.glob(f'{signed_base}/**/*.rpm', recursive=True))
         # Note the structure brewroot has signed under the unsigned directory, so the next
         # glob will find both signed and unsigned.
-        all_rpm_count = len(glob.glob(f'{unsigned_base}/**/*.rpm', True))
+        all_rpm_count = len(glob.glob(f'{unsigned_base}/**/*.rpm', recursive=True))
 
         if all_rpm_count != (signed_rpm_count * 2):
             logger.info(f'Found incomplete signed rpm directory for {nvr}; brewroot may still be being built.')

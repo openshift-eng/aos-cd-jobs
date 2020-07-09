@@ -33,8 +33,9 @@ build_common() {
     echo "$img" > additional-tags
     case "$img" in
         # these base images only used in 3.11 and not available for s390x
-        ansible.runner|jboss.openjdk18.rhel7) z="#" ;;
-        *) z=" " ;;
+        ansible.runner|jboss.openjdk18.rhel7) z="#"; a="#" ;;
+        elasticsearch|rhel7|rhscl.*.rhel7|ubi7) z=" "; a="#" ;;
+        *) z=" "; a=" " ;;
     esac
     echo """---
 platforms:
@@ -42,6 +43,7 @@ platforms:
   - x86_64
   - ppc64le
 $z - s390x
+$a - aarch64
 """ > container.yaml
     echo """
     FROM $from

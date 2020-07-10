@@ -30,7 +30,7 @@ node {
                     ),
                     booleanParam(
                         name: 'SCHEDULE_INCREMENTAL',
-                        defaultValue: true,
+                        defaultValue: false,
                         description: 'If changes are detected, schedule an incremental build (4.x only)'
                     ),
                     commonlib.suppressEmailParam(),

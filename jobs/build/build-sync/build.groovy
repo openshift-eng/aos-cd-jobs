@@ -1,66 +1,28 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
-commonlib = buildlib.commonlib
 
 // doozer_working must be in WORKSPACE in order to have artifacts archived
 mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
 logLevel = ""
-images = ""
 dryRun = "--dry-run=false"
 artifacts = []
-// ######################################################################
-// Single arch options
-
-// Locally stored image stream stub
-baseImageStream = "/home/jenkins/base-art-latest-imagestream-${params.BUILD_VERSION}.yaml"
-
-// See 'oc image mirror --help' for more information.
-// This is the template for the SRC=DEST strings mentioned above
-// in the case of mirroring just a single arch.
-ocFmtStr = "registry.reg-aws.openshift.com:443/{repository}=quay.io/${params.ORGANIZATION}/${params.REPOSITORY}:{version}-{release}-{image_name_short}"
-// End single arch options
-// ######################################################################
-
-// Multiarch
-// Exactly how many arches does this branch support?
-arches = []
-multiarch = false
+mirroringKeys = []  // 'x86_64', 'x86_64-priv', 's390x', etc
 
 def initialize() {
     buildlib.cleanWorkdir(mirrorWorking)
-    arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
-
-    /**
-     * We need to process x86_64 for some of our work. This is because building
-     * non-x86 releases requires the x86_64 imagestream to have been populated
-     * with a 'cli' tag, which the release controller will then use for non-x86
-     * release payloads.
-     */
-    arches.remove('x86_64')
-    arches.add(0, 'x86_64')
-
-    multiarch = arches.size() > 1
+    def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
     if ( params.NOOP) {
-	dryRun = "--dry-run=true"
-	currentBuild.displayName += " [NOOP]"
+        dryRun = "--dry-run=true"
+        currentBuild.displayName += " [NOOP]"
     }
-    if ( multiarch ) {
-	currentBuild.displayName += " OCP ${params.BUILD_VERSION} - ${arches.join(', ')}"
-	currentBuild.description = "Arches: ${arches.join(', ')}"
-    } else {
-	currentBuild.displayName += " OCP: ${params.BUILD_VERSION}"
-	currentBuild.description = "Arches: default (x86_64)"
-	artifacts.addAll(["MIRROR_working/oc_mirror_input", "MIRROR_working/release-is.yaml"])
-    }
-
+    currentBuild.displayName += " OCP ${params.BUILD_VERSION} - ${arches.join(', ')}"
+    currentBuild.description = "Arches: ${arches.join(', ')}"
     if ( params.DEBUG ) {
-	logLevel = " --loglevel=5 "
+        logLevel = " --loglevel=5 "
     }
-
     if ( params.IMAGES != '' ) {
-	echo("Only syncing specified images: ${params.IMAGES}")
-	currentBuild.description += "\nImages: ${params.IMAGES}"
-	currentBuild.displayName += " [${params.IMAGES.split(',').size()} Image(s)]"
-	images = "--images ${params.IMAGES}"
+        echo("Only syncing specified images: ${params.IMAGES}")
+        currentBuild.description += "\nImages: ${params.IMAGES}"
+        currentBuild.displayName += " [${params.IMAGES.split(',').size()} Image(s)]"
     }
 }
 
@@ -70,26 +32,31 @@ def initialize() {
 // file(s). Will take a few minutes because we must query brew and the
 // registry for each image.
 def buildSyncGenInputs() {
-	echo("Generating SRC=DEST and ImageStreams for arches")
-	buildlib.doozer """
+    echo("Generating SRC=DEST and ImageStreams for arches")
+    def images = params.IMAGES? "--images '${params.IMAGES}'" : ''
+    def brewEventID = params.BREW_EVENT_ID? "--event-id '${params.BREW_EVENT_ID}'" : ''
+    buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
 release:gen-payload
 --is-name ${params.BUILD_VERSION}-art-latest
 --organization ${params.ORGANIZATION}
 --repository ${params.REPOSITORY}
+${brewEventID}
 """
-	echo("Generated files:")
-	echo("######################################################################")
-	for ( String a: arches ) {
-	    echo("######################################################################")
-	    echo("src_dest.${a}")
-	    sh("cat src_dest.${a}")
-	}
-	echo("Moving generated files into working directory for archival purposes")
-	sh("mv src_dest* ${mirrorWorking}/")
-	sh("mv image_stream*.yaml ${mirrorWorking}/")
-	artifacts.addAll(["MIRROR_working/src_dest*", "MIRROR_working/image_stream*"])
+    echo("Generated files:")
+    echo("######################################################################")
+    def mirroringFiles = findFiles(glob: 'src_dest.*').collect{ it.path }
+    for (f in mirroringFiles) {
+        echo("######################################################################")
+        echo(f)
+        echo(readFile(file: f))
+    }
+    mirroringKeys = mirroringFiles.collect{(it.split("\\.") as List).last()} // src_dest.x86_64 -> x86_64
+    echo("Moving generated files into working directory for archival purposes")
+    sh("mv src_dest* ${mirrorWorking}/")
+    sh("mv image_stream*.yaml ${mirrorWorking}/")
+    artifacts.addAll(["MIRROR_working/src_dest*", "MIRROR_working/image_stream*"])
 }
 
 // ######################################################################
@@ -97,13 +64,13 @@ release:gen-payload
 // loop because it is known to fail occassionally depending on the
 // health of the source/destination endpoints.
 def buildSyncMirrorImages() {
-    for ( String arch: arches ) {
+    for ( String key: mirroringKeys ) {
         retry ( 3 ) {
-            echo("Attempting to mirror arch: ${arch}")
+            echo("Attempting to mirror: ${key}")
             // Always login again. It may expire between loops
             // depending on amount of time elapsed
             buildlib.registry_quay_dev_login()
-            buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${arch}"
+            buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${key}"
         }
     }
 }
@@ -112,15 +79,16 @@ def buildSyncMirrorImages() {
 def buildSyncApplyImageStreams() {
     echo("Updating ImageStream's")
     def failures = []
-    for ( String arch: arches ) {
-        // Why be consistent when we could have more edge cases instead?
-        def a = (arch == "x86_64")? "": "-${arch}"
-        def theStream = "${params.BUILD_VERSION}-art-latest${a}"
+    for ( String key: mirroringKeys ) {
+        def isFile = "${mirrorWorking}/image_stream.${key}.yaml"
+        def imageStream = readYaml file: isFile
+        def theStream = imageStream.metadata.name
+        def namespace = imageStream.metadata.namespace
 
         // Get the current IS and save it to disk. We may need this for debugging.
-        def currentIS = getImageStream(theStream, arch)
-        writeJSON(file: "pre-apply-${theStream}.json", json: currentIS)
-        artifacts.addAll(["pre-apply-${theStream}.json"])
+        def currentIS = getImageStream(theStream, namespace)
+        writeJSON(file: "pre-apply-${namespace}-${theStream}.json", json: currentIS)
+        artifacts.addAll(["pre-apply-${namespace}-${theStream}.json"])
 
         // We check for updates by comparing the object's 'resourceVersion'
         def currentResourceVersion = currentIS.metadata.resourceVersion
@@ -128,18 +96,18 @@ def buildSyncApplyImageStreams() {
 
         // Ok, try the update. Jack that debug output up high, just in case
         echo("Going to apply this ImageStream:")
-        sh("cat ${mirrorWorking}/image_stream.${arch}.yaml")
-        buildlib.oc(" --loglevel=8 apply ${dryRun} --filename=${mirrorWorking}/image_stream.${arch}.yaml --kubeconfig ${buildlib.ciKubeconfig}")
+        echo(readFile(file: isFile))
+        buildlib.oc("${logLevel} apply ${dryRun} --filename=${isFile} --kubeconfig ${buildlib.ciKubeconfig}")
 
         // Now we verify that the change went through and save the bits as we go
-        def newIS = getImageStream(theStream, arch)
-        writeJSON(file: "post-apply-${theStream}.json", json: newIS)
-        artifacts.addAll(["post-apply-${theStream}.json"])
+        def newIS = getImageStream(theStream, namespace)
+        writeJSON(file: "post-apply-${namespace}-${theStream}.json", json: newIS)
+        artifacts.addAll(["post-apply-${namespace}-${theStream}.json"])
         def newResourceVersion = newIS.metadata.resourceVersion
         if ( newResourceVersion == currentResourceVersion ) {
             echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
-            currentBuild.description += "\nImageStream update failed for ${arch}"
-            failures << arch
+            currentBuild.description += "\nImageStream update failed for ${key}"
+            failures << key
         }
     }
     if (failures) {
@@ -150,9 +118,8 @@ def buildSyncApplyImageStreams() {
 // Get a JSON object of the named image stream in the ocp
 // namespace. The image stream is also saved locally for debugging
 // purposes.
-def getImageStream(is, arch) {
-    def a = (arch == "x86_64")? "ocp": "ocp-${arch}"
-    def isJson = readJSON(text: buildlib.oc(" get is ${is} -n ${a} -o json --kubeconfig ${buildlib.ciKubeconfig}", [capture: true]))
+def getImageStream(is, ns) {
+    def isJson = readJSON(text: buildlib.oc(" get is ${is} -n ${ns} -o json --kubeconfig ${buildlib.ciKubeconfig}", [capture: true]))
     return isJson
 }
 

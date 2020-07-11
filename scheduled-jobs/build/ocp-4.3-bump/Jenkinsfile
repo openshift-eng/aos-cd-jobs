@@ -4,13 +4,17 @@ properties([
     disableConcurrentBuilds(),
 ])
 
-currentBuild.displayName += " 4.4 full build"
+currentBuild.displayName += " 4.3 version bump"
 def b = build(
-    job: '../aos-cd-builds/build%2Fose4.4',
+    job: '../aos-cd-builds/build%2Focp4',
     propagate: false,
     parameters: [
-        // we might consider: string(name: 'NEW_VERSION', value: '+'),
+        string(name: 'BUILD_VERSION', value: '4.3'),
+        string(name: 'NEW_VERSION', value: '+'),
         booleanParam(name: 'FORCE_BUILD', value: true),
+        string(name: 'BUILD_RPMS', value: 'only'),
+        string(name: 'RPM_LIST', value: 'openshift openshift-clients'),
+        string(name: 'BUILD_IMAGES', value: 'none'),
     ],
 )
 

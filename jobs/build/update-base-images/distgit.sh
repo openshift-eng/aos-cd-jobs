@@ -13,8 +13,6 @@ export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 # `rhel7` is root 0`
 # `nodejs{6,10,12}` is 1001`
 
-USER_USERNAME="--user=ocp-build"
-
 build_common() {
     img=$1; from=$2; user=$3
     shift; shift; shift
@@ -27,7 +25,7 @@ build_common() {
         *) BRANCH="rhaos-4.0-rhel-7" ;;
     esac
     URL="http://pkgs.devel.redhat.com/cgit/containers/openshift-enterprise-base/plain/.oit/signed.repo?h=${BRANCH}"
-    rhpkg ${USER_USERNAME} clone --branch ${BRANCH} containers/openshift-enterprise-base ${TARGET_DIR}
+    rhpkg --user=ocp-build clone --branch ${BRANCH} containers/openshift-enterprise-base ${TARGET_DIR}
 
     cd ${TARGET_DIR}
     echo "$img" > additional-tags
@@ -58,11 +56,13 @@ $a - aarch64
             com.redhat.component=\"openshift-enterprise-base-container\" \\
             name=\"openshift/ose-base\" \\
             version=\"v4.0\" \\
-            release=\"$(date +%Y%m%d%H%M)\"
+            release=\"$(date +%Y%m%d%H%M.$$)\"
     """ > Dockerfile
     git commit -am "updated $img container"
     git push
-    rhpkg  ${USER_USERNAME} container-build --repo-url ${URL}
+    # return the URL of the repo at this commit
+    echo
+    echo "${URL}&id=$(git rev-parse HEAD)"
 }
 
 img=$1; shift

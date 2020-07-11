@@ -51,18 +51,37 @@ node {
     currentBuild.displayName = "#${currentBuild.number} Update base images"
     currentBuild.description = ""
     try {
-		for(int i = 0; i < imageName.size(); ++i) {
-             currentBuild.description += "Built ${imageName[i]}\n"
-             def rc = commonlib.shell(
-                script: "./build.sh ${imageName[i]} ${packages}",
-                returnStatus: true,
-             )
-             if (rc != 0) {
-                //if we build failed, use this to mark the step as yellow
-                // but still process the next steps
-                currentBuild.result = 'UNSTABLE'
-             }
-        }
+        imageTasks = imageName.collectEntries { name -> [name,
+            { ->
+                 lock("base-image-distgit") {  // cannot all update same distgit at same time
+                     result = commonlib.shell(
+                        script: "./distgit.sh ${name} ${packages}",
+                        returnAll: true,
+                     )
+                 }
+                 // but after update, all can build at the same time.
+
+                 if (result.returnStatus != 0) {
+                    // if rebase failed, mark as partially failed (others still run)
+                    currentBuild.result = 'UNSTABLE'
+                    currentBuild.description += "FAILED distgit: ${name}\n"
+                    return
+                 }
+
+                 currentBuild.description += "Build ${name}\n"
+                 def url = result.stdout.readLines()[-1]
+                 def rc = commonlib.shell(
+                    script: "cd build-${name} && rhpkg --user=ocp-build container-build --repo-url '${url}'",
+                    returnStatus: true,
+                 )
+
+                 if (rc != 0) {
+                    currentBuild.result = 'UNSTABLE'
+                    currentBuild.description += "FAILED build: ${name}\n"
+                 }
+            }
+        ]}
+        parallel imageTasks
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
@@ -70,7 +89,7 @@ node {
             subject: "Unexpected error during CVEs update streams.yml!",
             body: "Encountered an unexpected error while running update base images: ${err}"
         )
-        currentBuild.description = "Built ${imageName[i]} error: ${err}\n"
+        currentBuild.description += "ERROR: ${err}\n"
 
         throw err
     }

@@ -42,6 +42,12 @@ node {
                                             defaultValue: "",
                                     ],
                                     [
+                                            name        : 'BREW_EVENT_ID',
+                                            description : '(Optional) Look for the last images as of the given Brew event instead of latest',
+                                            $class      : 'hudson.model.StringParameterDefinition',
+                                            defaultValue: "",
+                                    ],
+                                    [
                                             name        : 'ORGANIZATION',
                                             description : '(Optional) Quay.io organization to mirror to',
                                             $class      : 'hudson.model.StringParameterDefinition',

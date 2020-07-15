@@ -10,9 +10,9 @@ SCRIPTS_DIR="$(pwd)"
 
 usage() {
     echo >&2
-    echo "Usage `basename $0` <jenkins-war-version> <ocp_major_minor>" >&2
+    echo "Usage `basename $0` <jenkins-war-version> <rhaos-branch>" >&2
     echo >&2
-    echo " Example: ./bump-jenkins.sh 2.73.1 3.7" >&2
+    echo " Example: ./bump-jenkins.sh 2.73.1 rhaos-3.7-rhel-7" >&2
     exit 1
 }
 
@@ -80,8 +80,7 @@ TSTAMP="$(date +%s)"
 
 VERSION="$1"
 UVERSION="$VERSION.$TSTAMP"
-OCP_VERSION="$2"
-BRANCH="rhaos-$2-rhel-7"
+BRANCH="$2"
 
 setup_dist_git
 prep_jenkins_war

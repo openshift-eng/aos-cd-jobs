@@ -9,11 +9,11 @@ properties(
                     $class: 'hudson.model.StringParameterDefinition',
                 ],
                 [
-                    name: 'OCP_RELEASE',
-                    description: 'OCP target release',
+                    name: 'OCP_BRANCH',
+                    description: 'OCP target branch',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: ['4.6', '4.5', '4.4', '4.3', '4.2', '4.1', '4.0', '3.15', '3.14', '3.13', '3.12', '3.11', '3.10', '3.9', '3.8', '3.7', '3.6'].join('\n'),
-                    defaultValue: '4.1'
+                    choices: ['rhaos-4.6-rhel-8', 'rhaos-4.6-rhel-7', 'rhaos-4.5-rhel-7', 'rhaos-4.4-rhel-7', 'rhaos-4.3-rhel-7', 'rhaos-4.2-rhel-7', 'rhaos-4.1-rhel-7', 'rhaos-4.0-rhel-7', 'rhaos-3.11-rhel-7', 'rhaos-3.10-rhel-7', 'rhaos-3.9-rhel-7','rhaos-3.8-rhel-7','rhaos-3.7-rhel-7', 'rhaos-3.6-rhel-7'].join('\n'),
+                    defaultValue: 'rhaos-4.1-rhel-7'
                 ],
                 [
                     name: 'MAIL_LIST_SUCCESS',
@@ -46,8 +46,6 @@ properties(
     ]
 )
 
-OCP_BRANCH="rhaos-${OCP_RELEASE}-rhel-7"
-
 def mail_success() {
     distgit_link = "http://pkgs.devel.redhat.com/cgit/rpms/jenkins/?h=${OCP_BRANCH}"
 
@@ -55,8 +53,8 @@ def mail_success() {
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-art-automation@redhat.com",
         replyTo: 'aos-team-art@redhat.com',
-        subject: "jenkins RPM for OCP v${OCP_RELEASE} updated in dist-git",
-        body: """The Jenkins RPM for ${OCP_RELEASE} has been updated in dist-git:
+        subject: "jenkins RPM for ${OCP_BRANCH} updated in dist-git",
+        body: """The Jenkins RPM for ${OCP_BRANCH} has been updated in dist-git:
 ${distgit_link}
 
 Jenkins version: ${JENKINS_VERSION}
@@ -70,7 +68,7 @@ def mail_failure(err) {
         to: "${MAIL_LIST_FAILURE}",
         from: "aos-art-automation@redhat.com",
         replyTo: 'aos-team-art@redhat.com',
-        subject: "Error during jenkins OCP v${OCP_RELEASE} RPM update on dist-git",
+        subject: "Error during jenkins ${OCP_BRANCH} RPM update on dist-git",
         body: """The job to update the jenkins RPM in dist-git encountered an error:
 ${err}
 
@@ -88,7 +86,7 @@ node(TARGET_NODE) {
     try {
 
         stage ("bump jenkins version") {
-            sh "./bump-jenkins.sh ${JENKINS_VERSION} ${OCP_RELEASE}"
+            sh "./bump-jenkins.sh ${JENKINS_VERSION} ${OCP_BRANCH}"
         }
 
         mail_success()

@@ -10,11 +10,11 @@ properties(
                     defaultValue: '2.42'
                 ],
                 [
-                    name: 'OCP_RELEASE',
-                    description: 'OCP target release',
+                    name: 'OCP_BRANCH',
+                    description: 'OCP target branch',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: ['4.6', '4.5', '4.4', '4.3', '4.2', '4.1', '4.0', '3.11', '3.10', '3.9','3.8','3.7', '3.6', '3.5', '3.4', '3.3'].join('\n'),
-                    defaultValue: '4.0'
+                    choices: ['rhaos-4.6-rhel-8', 'rhaos-4.6-rhel-7', 'rhaos-4.5-rhel-7', 'rhaos-4.4-rhel-7', 'rhaos-4.3-rhel-7', 'rhaos-4.2-rhel-7', 'rhaos-4.1-rhel-7', 'rhaos-4.0-rhel-7', 'rhaos-3.11-rhel-7', 'rhaos-3.10-rhel-7', 'rhaos-3.9-rhel-7','rhaos-3.8-rhel-7','rhaos-3.7-rhel-7', 'rhaos-3.6-rhel-7', 'rhaos-3.5-rhel-7', 'rhaos-3.4-rhel-7', 'rhaos-3.3-rhel-7'].join('\n'),
+                    defaultValue: 'rhaos-4.0-rhel-7'
                 ],
                 [
                     name: 'PLUGIN_LIST',
@@ -56,14 +56,14 @@ def mail_success() {
 
     jenkins_major = JENKINS_VERSION.tokenize('.')[0].toString()
 
-    distgit_link = "http://pkgs.devel.redhat.com/cgit/rpms/jenkins-${jenkins_major}-plugins/?h=rhaos-${OCP_RELEASE}-rhel-7"
+    distgit_link = "http://pkgs.devel.redhat.com/cgit/rpms/jenkins-${jenkins_major}-plugins/?h=${OCP_BRANCH}"
 
     mail(
         to: "${MAIL_LIST_SUCCESS}",
         from: "aos-art-automation@redhat.com",
         replyTo: 'aos-team-art@redhat.com',
-        subject: "jenkins plugins RPM for OCP ${OCP_RELEASE} updated in dist-git",
-        body: """The Jenkins plugins RPM for OCP ${OCP_RELEASE} has been updated in dist-git:
+        subject: "jenkins plugins RPM for ${OCP_BRANCH} updated in dist-git",
+        body: """The Jenkins plugins RPM for ${OCP_BRANCH} has been updated in dist-git:
 ${distgit_link}
 
 Minimum Jenkins version: ${JENKINS_VERSION}
@@ -117,7 +117,7 @@ node(TARGET_NODE) {
 
         stage ("update dist-git") {
             withEnv(["PATH+SCRIPTS=${scripts_dir}"]) {
-                sh "update-dist-git.sh ${JENKINS_VERSION} ${OCP_RELEASE} ${plugin_dir}"
+                sh "update-dist-git.sh ${JENKINS_VERSION} ${OCP_BRANCH} ${plugin_dir}"
             }
         }
 

@@ -5,9 +5,9 @@ set -euo pipefail
 
 usage() {
   echo >&2
-  echo "Usage `basename $0` <jenkins-version> <aos-release> <path-to-hpis-dir> " >&2
+  echo "Usage `basename $0` <jenkins-version> <rhaos-branch> <path-to-hpis-dir> " >&2
   echo >&2
-  echo "Example: `basename $0` 2.42  3.7 ./working/hpis" >&2
+  echo "Example: `basename $0` 2.42  rhaos-3.7-rhel-7 ./working/hpis" >&2
   echo >&2
   echo "This example would populate all the HPIs in the specified directory in the dist-git repo jenkins-2-plugins" >&2
   echo "and the branch rhaos-3.7-rhel-7 ." >&2
@@ -27,7 +27,7 @@ fi
 target_jenkins_version="$1"
 jenkins_major=$(echo "${target_jenkins_version}." | cut -d . -f 1)
 repo="jenkins-${jenkins_major}-plugins"
-rhaos_release="$2"
+rhaos_branch="$2"
 hpis_dir=$(realpath "$3")
 
 
@@ -38,7 +38,7 @@ cd ${workingdir}
 echo "Cloning dist-git repository ...."
 REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_INFO} clone ${repo}
 pushd ${repo}
-REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg switch-branch rhaos-${rhaos_release}-rhel-7
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg switch-branch ${rhaos_branch}
 popd
 
 mkdir -p ${workingdir}/build/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
@@ -87,7 +87,7 @@ for hpi in "${hpis_dir}"/*.hpi ; do
 done
 
 # Make up a version based on date package was built
-VERSION="${rhaos_release}.$(date +%s)"
+VERSION="$(echo ${rhaos_branch} | cut -d- -f2).$(date +%s)"
 
 cat <<EOF > ${topdir}/SPECS/${repo}.spec
 Summary:    OpenShift Jenkins ${jenkins_major} Plugins

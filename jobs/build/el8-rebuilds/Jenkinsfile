@@ -52,7 +52,7 @@ node {
         ]
         parallel builds
     } catch(err) {
-        echo "Package build failed:\n${e}"
+        echo "Package build failed:\n${err}"
         currentBuild.result = "FAILURE"
         currentBuild.description = "\nerror: ${err.getMessage()}"
         commonlib.email(

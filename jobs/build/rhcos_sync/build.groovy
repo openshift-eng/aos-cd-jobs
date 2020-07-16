@@ -1,6 +1,6 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
-rhcosWorking = "${env.WORKSPACE}/rhcos_working"
+rhcosWorking = "rhcos_working"
 logLevel = ""
 dryRun = ""
 artifacts = []
@@ -53,7 +53,7 @@ def initialize() {
     dir ( rhcosWorking ) {
         if ( params.SYNC_LIST == "" ) {
             sh("wget ${metaUrl}")
-            artifacts.add("meta.json")
+            artifacts.add("${rhcosWorking}/meta.json")
         }
     }
 }
@@ -107,7 +107,7 @@ def rhcosSyncGenDocs() {
         // TODO
         // sh("sh ../gen-docs.sh < meta.json > rhcos-${params.RHCOS_BUILD}.adoc")
     }
-    artifacts.add("rhcos_working/rhcos-${params.RHCOS_BUILD}.adoc")
+    artifacts.add("${rhcosWorking}/rhcos-${params.RHCOS_BUILD}.adoc")
 }
 
 

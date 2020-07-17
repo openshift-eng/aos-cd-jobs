@@ -329,18 +329,19 @@ def shell(arg) {
 
 
     def threadShellIndex = getNextShellCounter()
-    // put shell result files in a dir specific to this shell call, will symlink to generic "shell" for consistency.
-    // in case we are running with changed dir, use absolute file paths.
-    def shellDir = "${env.WORKSPACE}/shell.${currentBuild.number}"
+    def shellBase = "${env.WORKSPACE}"
+    // put shell result files in a dir specific to this shell call.
+    // In case we are running with changed dir, use absolute file paths.
+    def shellDir = "${shellBase}/shell.${currentBuild.number}"
     // use a subdir for each shell invocation
-    def shellSubdir = "${env.WORKSPACE}/shell/sh.${threadShellIndex}." + truncScript.replaceAll( /[^\w-.]+/ , "_").take(80)
+    def shellSubdir = "${shellDir}/sh.${threadShellIndex}." + truncScript.replaceAll( /[^\w-.]+/ , "_").take(80)
 
     // concurrency-safe creation of output dir and removal of any previous output dirs
     sh """#!/bin/bash +x
-        mkdir -p ${shellDir}
-        ln -sfn ${shellDir} ${env.WORKSPACE}/shell
-        mkdir -p ${shellSubdir}
-        find ${env.WORKSPACE} -maxdepth 2 -name 'shell.*' ! -name shell.${currentBuild.number} -exec rm -rf '{}' +
+        # Make the directory we are going to stream output to
+        mkdir -p ${shellSubdir} 
+        # Remove any old shell content from prior jobs
+        rm -rf `ls -d ${shellBase}/shell.* | grep -v shell.${currentBuild.number}`  
     """
 
     echo "Running shell script via commonlib.shell:\n${script}"

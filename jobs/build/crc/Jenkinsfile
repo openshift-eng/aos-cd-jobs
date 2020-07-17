@@ -83,7 +83,6 @@ ${err}
     } finally {
         commonlib.safeArchiveArtifacts([
                 'email/*',
-                'shell/*',
             ]
         )
     }

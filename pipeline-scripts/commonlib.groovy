@@ -293,6 +293,16 @@ def safeArchiveArtifacts(List patterns) {
 }
 
 
+/**
+ * Try to find 'brew-logs' directories and then automatically compress
+ * them so we can save space and inodes on our storage devices.
+
+ * Won't explode if called and doozer never got to save any brew-logs.
+**/
+def compressBrewLogs() {
+    this.shell(script: "${env.WORKSPACE}/build-scripts/find-and-compress-brew-logs.sh")
+}
+
 import java.util.concurrent.atomic.AtomicInteger
 shellCounter = new AtomicInteger()
 

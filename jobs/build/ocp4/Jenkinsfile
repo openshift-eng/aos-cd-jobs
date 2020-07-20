@@ -158,9 +158,10 @@ View the build artifacts and console output on Jenkins:
         }
         throw err  // gets us a stack trace FWIW
     } finally {
+        commonlib.compressBrewLogs()
         commonlib.safeArchiveArtifacts([
             "doozer_working/*.log",
-            "doozer_working/brew-logs/**",
+            "doozer_working/brew-logs.tar.bz2",
             "doozer_working/*.yaml",
             "doozer_working/*.yml",
         ])

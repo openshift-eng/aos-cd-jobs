@@ -10,8 +10,8 @@ node {
         [
             buildDiscarder(
                 logRotator(
-                    artifactDaysToKeepStr: '60',
-                    daysToKeepStr: '60'
+                    artifactDaysToKeepStr: '7',
+                    daysToKeepStr: '7'
                 )
             ),
             [

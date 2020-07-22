@@ -10,10 +10,8 @@ node {
             disableResume(),
             buildDiscarder(
                 logRotator(
-                    artifactDaysToKeepStr: '',
-                    artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '')),
+                    artifactDaysToKeepStr: '5',
+                    daysToKeepStr: '5')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

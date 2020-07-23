@@ -364,7 +364,7 @@ def cli(ctx, base_dir, brew_root, name, signing_key_id, **kwargs):
         --base-dir /some/base/dir --name my_plashet
         --repo-subdir os
         --arch x86_64 signed  --arch s390x unsigned
-        from-tags -t rhaos-4.4-rhel-7-candidate RHEL-7-OSE-4.4 --signing-advisory-id 54765
+        from-tags --include-embargoed -t rhaos-4.4-rhel-7-candidate RHEL-7-OSE-4.4 --signing-advisory-id 54765
 
         \b
         This preceding command will make:
@@ -434,7 +434,9 @@ class KojiWrapper(wrapt.ObjectProxy):
               help='clean=remove all builds on start and successful exit; leave=leave builds attached which the invocation attempted to sign')
 @click.option('--poll-for', default=15, type=click.INT, help='Allow up to this number of minutes for auto-signing')
 @click.option('--event', required=False, default=None, help='The brew event for the desired tag states')
-def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll_for, event):
+@click.option('--include-embargoed', default=False, is_flag=True,
+              help='If specified, embargoed/unshipped RPMs will be included in the plashet')
+def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll_for, event, include_embargoed):
     """
     The repositories are filled with RPMs derived from the list of
     brew tags. If the RPMs are not signed and a repo should contain signed content,
@@ -482,14 +484,42 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
         for build in koji_proxy.listTagged(tag, latest=True, inherit=False, event=event):
             package_name = build['package_name']
             nvr = build['nvr']
+            parsed_nvr = parse_nvr(nvr)
+
+            released_nvr = None  # if the package has shipped before, the parsed nvr of the most recently shipped
+            if package_name in released_package_nvrs:
+                released_nvr = released_package_nvrs[package_name]
 
             if package_name in config.exclude_package:
                 logger.info(f'Skipping tagged but excluded package: {nvr}')
                 continue
 
-            if package_name in released_package_nvrs:
-                released_nvr = released_package_nvrs[package_name]
-                if compare_nvr(parse_nvr(nvr), released_nvr) < 0:
+            if '.p1' in nvr and not include_embargoed:
+                # We are being asked to build an plashet without embargoed RPMs. p1 indicates this rpm is
+                # OR *was* embargoed. We can ignore it if it has already shipped.
+                if released_nvr is None or compare_nvr(parsed_nvr, released_nvr) > 0:  # Is our nvr > last shipped?
+                    # Our embargoed build has not been shipped. We need to find a stand-in.
+                    # Search through the package history to find the last build that was NOT embargoed.
+                    # See example output: https://gist.github.com/jupierce/37a122fd7a6ed65e78104a077a12365e
+                    package_history = koji_proxy.tagHistory(package=package_name, queryOpts={'limit': 500})
+                    unembargoed_nvr = None
+                    for history_entry in package_history:
+                        if history_entry['tag_name'] != tag:
+                            # This package was tagged, but not against our desired tag; ignore this event
+                            continue
+                        if '.p1' in history_entry['release']:  # If this build was embargoed, skip it.
+                            continue
+                        unembargoed_nvr = history_entry['version'] + '-' + history_entry['release']
+                        break
+
+                    if unembargoed_nvr is None:
+                        raise IOError(f'Unable to build unembargoed plashet. Lastest build of {package_name} is embargoed but lacks a previously released build')
+                    plashet_concerns.append(f'Swapping embargoed nvr {nvr} for unembargoed nvr {unembargoed_nvr}.')
+                    logger.info(plashet_concerns[-1])
+                    nvr = unembargoed_nvr
+
+            if released_nvr:
+                if compare_nvr(parsed_nvr, released_nvr) < 0:  # if the current nvr is less than the released NVR
                     msg = f'Skipping tagged {nvr} because it is older than a released version: {released_nvr}'
                     plashet_concerns.add(msg)
                     logger.error(msg)

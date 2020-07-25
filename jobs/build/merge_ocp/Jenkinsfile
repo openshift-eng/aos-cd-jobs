@@ -155,22 +155,26 @@ node {
 
                                 if (isOCP4 && params.SCHEDULE_INCREMENTAL) {
                                     // Scan upstream for relevant changes, unless we won't run builds anyway.
-                                    buildlib.cleanWorkdir(doozer_working)
+                                    buildlib.cleanWorkdir(doozer_working, true)
 
-                                    def yamlData = readYaml text: buildlib.doozer(
+                                    def yamlStr = buildlib.doozer(
                                         """
                                         --working-dir ${doozer_working}
                                         --group 'openshift-${version}'
                                         config:scan-sources --yaml
                                         """, [capture: true]
                                     )
+
+                                    echo "scan-sources output for openshift-${version}:\n${yamlStr}\n\n"
+
+                                    def yamlData = readYaml text: yamlStr
+
                                     sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${version}.log"
-                                    
+
                                     try {
                                         archiveArtifacts allowEmptyArchive: true, artifacts: "doozer_working/*.log"
-                                    } catch (aae) {}                                    
-                                    
-                                    echo "scan-sources output for openshift-${version}:\n${yamlData}\n\n"
+                                    } catch (aae) {}
+
                                     def changed = buildlib.getChanges(yamlData)
                                     if ( changed.rpms || changed.images ) {
                                         echo "Detected source changes: ${changed}"

@@ -151,7 +151,7 @@ def planBuilds() {
 
     def changed = [:]
     try {
-        def yamlData = readYaml text: buildlib.doozer(
+        def yamlStr = buildlib.doozer(
             """
             ${doozerOpts}
             ${includeExclude "rpms", buildPlan.rpmsIncluded, buildPlan.rpmsExcluded}
@@ -159,6 +159,10 @@ def planBuilds() {
             config:scan-sources --yaml
             """, [capture: true]
         )
+		echo "scan-sources output:\n${yamlStr}\n\n"
+
+		def yamlData = readYaml text: yamlStr
+
         changed = buildlib.getChanges(yamlData)
 
         def report = { msg ->
@@ -594,7 +598,10 @@ def stageReportSuccess() {
     def timingReport = getBuildTimingReport(recordLog)
     currentBuild.description += "\n-----------------\nBuild results:\n\n${timingReport}"
 
-    def stateYaml = builtNothing ? [:] : readYaml(file: "${doozerWorking}/state.yaml")
+	def stateYaml = [:]
+	if fileExists("doozer_working/state.yaml") {
+		stateYaml = readYaml(file: "doozer_working/state.yaml")
+	}
     messageSuccess(rpmMirror.url)
 }
 

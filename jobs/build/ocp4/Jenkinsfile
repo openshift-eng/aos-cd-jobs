@@ -117,7 +117,9 @@ node {
                 stage("update dist-git") { build.stageUpdateDistgit() }
                 stage("build images") { build.stageBuildImages() }
             }
-            stage("mirror RPMs") { build.stageMirrorRpms() }
+            lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
+                stage("mirror RPMs") { build.stageMirrorRpms() }
+            }
             stage("sync images") { build.stageSyncImages() }
             stage("sweep") {
                 if (!params.DRY_RUN) {

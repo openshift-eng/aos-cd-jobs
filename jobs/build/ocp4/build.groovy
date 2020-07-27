@@ -599,7 +599,7 @@ def stageReportSuccess() {
     currentBuild.description += "\n-----------------\nBuild results:\n\n${timingReport}"
 
 	def stateYaml = [:]
-	if fileExists("doozer_working/state.yaml") {
+	if (fileExists("doozer_working/state.yaml")) {
 		stateYaml = readYaml(file: "doozer_working/state.yaml")
 	}
     messageSuccess(rpmMirror.url)

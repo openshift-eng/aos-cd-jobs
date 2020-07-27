@@ -36,6 +36,7 @@ node {
     commonlib.checkMock()
 
     def version = params.BUILD_VERSION
+    currentBuild.displayName += " - ${version}"
     try {
         buildlib.kinit()
         def builds = [

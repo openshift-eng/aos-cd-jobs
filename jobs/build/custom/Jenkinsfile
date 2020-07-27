@@ -192,7 +192,8 @@ node {
                         } else {
                             echo 'Building 4.x plashet'
                             // For 4.x, use plashets
-                            buildlib.buildBuildingPlashet(version, release)
+                            buildlib.buildBuildingPlashet(version, release, 7)  // build el7 plashet
+                            buildlib.buildBuildingPlashet(version, release, 8)  // build el8 plashet
                         }
                     }
                 }

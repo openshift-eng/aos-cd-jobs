@@ -33,9 +33,6 @@ rpmMirror = [       // how to mirror RPM compose
     url: "", // url to directory where new repo can be found after mirroring
 ]
 
-// some state to record and preserve between stages
-finalRpmVersionRelease = ""  // set before building a compose
-
 /**
  * Initialize properties from Jenkins parameters.
  * @return map which is the buildPlan property of this build.
@@ -289,159 +286,21 @@ def stageBuildRpms() {
  *          advisories for 4.1, 4.2, ...
  */
 def stageBuildCompose(auto_signing_advisory=54765) {
-
-    // we may or may not have (successfully) built the openshift RPM in this run.
-    // in order to script the correct version to publish later, determine what's there now.
-    finalRpmVersionRelease = buildlib.latestOpenshiftRpmBuild(version.stream, version.branch).replace("openshift-", "")
-
     if (!buildPlan.buildRpms && !buildPlan.forceBuild) {
         // a force build of just images is likely to want to pick up new dependencies,
         // so in that case still create the compose.
         echo "No RPMs built, not a force build; no need to create a compose"
         return
     }
-
-    baseDir = "${env.WORKSPACE}/plashets/el7"
-    el8baseDir = "${env.WORKSPACE}/plashets/el8"
-    plashetDirName = "${version.full}-${version.release}"
-    rpmMirror.plashetDirName = "${plashetDirName}"  // what to name the mirrored repo directory
-    rpmMirror.localPlashetPath = "${baseDir}/${plashetDirName}"  // where to find source for mirroring
-    rpmMirror.el8localPlashetPath = "${el8baseDir}/${plashetDirName}"  // where to find source for mirroring
-
     if(buildPlan.dryRun) {
         echo "Running in dry-run mode -- will not run plashet."
         return
     }
 
-    /**
-     * plashet will build one or more yum repos for us -- one for each
-     * architecture enabled for the a release. For each arch, a yum repo
-     * {baseDir}/{plashetName}/{arch}/os will be created.
-     * plashet will examine RPM packages currently tagged in the rhel-7 candidate
-     * and build the yum repos. plashet allows each arch to have different signing
-     * characteristics (i.e. x86_64 can be signed and s390x can be unsigned).
-     * However, during an image build OSBS will fail if it finds we have used
-     * unsigned RPMs for one CPU arch and signed images for arch. Thus,
-     * if one of our arches is in 'release' mode, we must build all
-     * arches with signed.
-     * commonlib.ocp4ReleaseState declares which arches are in release / pre-release mode.
-     * Read the comment on that map for more information
-     */
-    def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
-    plashet_arch_args = ""
-
-    for (String release_arch : archReleaseStates['release']) {
-        plashet_arch_args += " --arch ${release_arch} signed"
-    }
-
-    // If any arch is GA, use signed for everything.
-    def pre_release_signing_mode = archReleaseStates['release']?'signed':'unsigned'
-
-    for (String pre_release_arch : archReleaseStates['pre-release']) {
-        plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
-    }
-
-    // In the current implementation, the same signing advisory is used for every signing task.
-    // To prevent add/remove races between versions, a lock is used.
-    lock('signing-advisory') {
-        retry(2) {
-            commonlib.shell([
-                    "${env.WORKSPACE}/build-scripts/plashet.py",
-                    "--base-dir ${baseDir}/",  // Directory in which to create the yum repo
-                    "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
-                    "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
-                    plashet_arch_args,
-                    "from-tags", // plashet mode of operation => build from brew tags
-                    "--brew-tag rhaos-${version.stream}-rhel-7-candidate RHEL-7-OSE-${version.stream}",  // --brew-tag <tag> <associated-advisory-product-version>
-                    auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
-                    "--signing-advisory-mode clean",
-                    "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
-            ].join(' '))
-        }
-        // Now for el8 RPMs
-        retry(2) {
-            commonlib.shell([
-                    "${env.WORKSPACE}/build-scripts/plashet.py",
-                    "--base-dir ${el8baseDir}",  // Directory in which to create the yum repo
-                    "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
-                    "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
-                    plashet_arch_args,
-                    "from-tags", // plashet mode of operation => build from brew tags
-                    // --brew-tag <tag> <associated-advisory-product-version>. Yes, the product version format is different for rhel8,
-                    "--brew-tag rhaos-${version.stream}-rhel-8-candidate OSE-${version.stream}-RHEL-8",
-                    auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
-                    "--signing-advisory-mode clean",
-                    "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
-            ].join(' '))
-        }
-    }
-
-    /**
-     * The yum repos that plashet creates are very lightweight because
-     * it only symlinks out to the desired RPMs on buildvm's /mnt/redhat
-     * share. We now want to copy the new repo out to rcm-guest. The
-     * good news is that we can keep it lightweight! rcm-guest has the
-     * exact same share path. The symlinks plashet created can be copied
-     * as symlinks. Note that if you copy the puddle to a system without
-     * these links, you should use rsync --copy-links which will transfer
-     * the linked file's content to the destination filename.
-     *
-     * Now.. let's copy to rcm-guest! Why? Because when we build images in
-     * brew, OSBS will only let the Dockerfile's yum invocations
-     * access certain remote locations. One of those whitelisted locations
-     * is rcm-guest, so copy our lightweight repo there.
-     *
-     * ocp-build is a user established for us on the rcm-guest host by
-     * Red Hat PnT devops. See /home/jenkins/.ssh.config.
-     */
-
-    // During an image build, doozer will provide repo files pointing back to a directory named
-    // 'building' in this rcm-guest directory. Before creating 'building', let's get the
-    // repo over there.
-    destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${version.stream}"
-    // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
-    commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
-    commonlib.shell([
-            "rsync",
-            "-av",  // archive mode, verbose
-            "--links",  // include links, but keep them as symlinks
-            "--progress",
-            "-h", // human readable numbers
-            "--no-g",  // use default group on rcm-guest for the user
-            "--omit-dir-times",
-            "--chmod=Dug=rwX,ugo+r",
-            "--perms",
-            "${rpmMirror.localPlashetPath}",  // plashet we just created
-            "ocp-build@rcm-guest:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
-    ].join(" "))
-
-    // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
-    // doozer repo files (which have static urls back to rcm-guest) will resolve.
-    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} building\" ")
-
-
-    // Now rinse and repeat for el8
-    destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${version.stream}-el8"
-    // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
-    commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
-    commonlib.shell([
-            "rsync",
-            "-av",  // archive mode, verbose
-            "--links",  // include links, but keep them as symlinks
-            "--progress",
-            "-h", // human readable numbers
-            "--no-g",  // use default group on rcm-guest for the user
-            "--omit-dir-times",
-            "--chmod=Dug=rwX,ugo+r",
-            "--perms",
-            "${rpmMirror.el8localPlashetPath}",  // plashet we just created
-            "ocp-build@rcm-guest:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
-    ].join(" "))
-
-    // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
-    // doozer repo files (which have static urls back to rcm-guest) will resolve.
-    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} building\" ")
-
+    def plashet = buildlib.buildBuildingPlashet(version.full, version.release, 7, auto_signing_advisory)  // build el7 plashet
+    rpmMirror.plashetDirName = plashet.plashetDirName
+    rpmMirror.localPlashetPath = plashet.localPlashetPath
+    buildlib.buildBuildingPlashet(version.full, version.release, 8, auto_signing_advisory)  // build el8 plashet
 }
 
 def stageUpdateDistgit() {

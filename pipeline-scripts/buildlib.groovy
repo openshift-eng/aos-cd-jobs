@@ -1402,14 +1402,15 @@ def getChanges(yamlData) {
  * Creates a plashet in the current Jenkins workspace and then sync's it to rcm-guest.
  * @param version  The ocp version (e.g. 4.5.25)
  * @param release  The 4.x release field (usually a timestamp)
+ * @param el_major The RHEL major version (7 or 8)
  * @param auto_signing_advisory The signing advisory to use
  * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
  *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>'
  *
  * }
  */
-def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
-    def baseDir = "${env.WORKSPACE}/plashets"
+def buildBuildingPlashet(version, release, el_major, auto_signing_advisory=54765) {
+    def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
@@ -1446,6 +1447,8 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
         plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
     }
 
+    def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"
+
     // In the current implementation, the same signing advisory is used for every signing task.
     // To prevent add/remove races between versions, a lock is used.
     lock('signing-advisory') {
@@ -1457,7 +1460,7 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
                     "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
                     plashet_arch_args,
                     "from-tags", // plashet mode of operation => build from brew tags
-                    "--brew-tag rhaos-${major_minor}-rhel-7-candidate RHEL-7-OSE-${major_minor}",  // --brew-tag <tag> <associated-advisory-product-version>
+                    "--brew-tag rhaos-${major_minor}-rhel-${el_major}-candidate ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
@@ -1488,6 +1491,9 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
     // 'building' in this rcm-guest directory. Before creating 'building', let's get the
     // repo over there.
     def destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${major_minor}"
+    if (el_major >= 8) {
+        destBaseDir += "-el${el_major}"
+    }
     // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
     commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
     commonlib.shell([

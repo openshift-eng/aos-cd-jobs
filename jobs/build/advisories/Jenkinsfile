@@ -180,7 +180,7 @@ node {
                 lib.ADVISORIES.each {
                     if (it.key == "rpm" && params.VERSION.startsWith("3.")) { return }
                     if (it.key == "image" && params.VERSION.startsWith("4.")) { return }
-                    if (it.key.contains('rhsa') { return }
+                    if (it.key.contains('rhsa')) { return }
                     lib.create_placeholder(it.key)
                 }
             }

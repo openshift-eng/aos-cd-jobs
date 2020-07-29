@@ -297,10 +297,12 @@ def stageBuildCompose(auto_signing_advisory=54765) {
         return
     }
 
-    def plashet = buildlib.buildBuildingPlashet(version.full, version.release, 7, auto_signing_advisory)  // build el7 plashet
+    buildlib.buildBuildingPlashet(version.full, version.release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
+    buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
+    buildlib.buildBuildingPlashet(version.full, version.release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
+    def plashet = buildlib.buildBuildingPlashet(version.full, version.release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
     rpmMirror.plashetDirName = plashet.plashetDirName
     rpmMirror.localPlashetPath = plashet.localPlashetPath
-    buildlib.buildBuildingPlashet(version.full, version.release, 8, auto_signing_advisory)  // build el8 plashet
 }
 
 def stageUpdateDistgit() {

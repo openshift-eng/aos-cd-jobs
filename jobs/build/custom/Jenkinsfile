@@ -192,8 +192,10 @@ node {
                         } else {
                             echo 'Building 4.x plashet'
                             // For 4.x, use plashets
-                            buildlib.buildBuildingPlashet(version, release, 7)  // build el7 plashet
-                            buildlib.buildBuildingPlashet(version, release, 8)  // build el8 plashet
+                            buildlib.buildBuildingPlashet(version, release, 8, true)  // build el8 embargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 7, true)  // build el7 embargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 8, false)  // build el8 unembargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 7, false)  // build el7 unembargoed plashet
                         }
                     }
                 }

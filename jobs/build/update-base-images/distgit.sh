@@ -83,6 +83,8 @@ case "$img" in
         build_common $img rhscl/nodejs-10-rhel7:1-27.1584463517 1001 $@
         ;;
     rhscl.nodejs.12.rhel7)
+        # lock in nodejs 12.16.1, cannot be updated without corresponding
+        # update of headers tarball in ose-console
         build_common $img rhscl/nodejs-12-rhel7:1-6.1582646197 1001 $@
         ;;
     rhscl.ruby.25.rhel7)
@@ -104,7 +106,9 @@ case "$img" in
         build_common $img ubi8/nodejs-10:1-released 1001 $@
         ;;
     ubi8.nodejs.12)
-        build_common $img ubi8/nodejs-12:1-released 1001 $@
+        # lock in nodejs 12.16.1, cannot be updated without corresponding
+        # update of headers tarball in ose-console
+        build_common $img ubi8/nodejs-12:1-45 1001 $@
         ;;
     ubi8.python.36)
         build_common $img ubi8/python-36:1-released 1001 $@

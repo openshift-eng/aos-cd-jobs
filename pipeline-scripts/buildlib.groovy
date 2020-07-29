@@ -1403,16 +1403,20 @@ def getChanges(yamlData) {
  * @param version  The ocp version (e.g. 4.5.25)
  * @param release  The 4.x release field (usually a timestamp)
  * @param el_major The RHEL major version (7 or 8)
+ * @param include_embargoed If true, the plashet will include the very latest rpms (embargoed & unembargoed). Otherwise Plashet will only include unembargoed historical builds of rpms
  * @param auto_signing_advisory The signing advisory to use
  * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
- *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>'
+ *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>' or 4.5.0-<release timestamp>-embargoed'
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, auto_signing_advisory=54765) {
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=54765) {
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
+    if (include_embargoed) {
+        plashetDirName += "-embargoed"
+    }
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
     def major_minor = "${major}.${minor}"
     def r = [:]
@@ -1460,6 +1464,7 @@ def buildBuildingPlashet(version, release, el_major, auto_signing_advisory=54765
                     "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
                     plashet_arch_args,
                     "from-tags", // plashet mode of operation => build from brew tags
+                    include_embargoed? "--include-embargoed" : "",
                     "--brew-tag rhaos-${major_minor}-rhel-${el_major}-candidate ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
@@ -1512,7 +1517,8 @@ def buildBuildingPlashet(version, release, el_major, auto_signing_advisory=54765
 
     // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
     // doozer repo files (which have static urls back to rcm-guest) will resolve.
-    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} building\" ")
+    def symlink = include_embargoed? "building-embargoed" : "building"
+    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
     return r
 }
 

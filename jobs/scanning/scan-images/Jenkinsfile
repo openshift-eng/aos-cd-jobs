@@ -122,6 +122,7 @@ enabled_metadata=1
             }
         }
 
+        prodsec_report = []
         stage('waive') {
             archiveArtifacts(artifacts: "doozer_working/*.log")
             def covscan_records = buildlib.parse_record_log(doozer_working)['covscan']
@@ -130,6 +131,8 @@ enabled_metadata=1
                 def distgit = record['distgit']
                 def distgit_key = record['distgit_key']
                 def commit_hash = record['commit_hash']
+                def diff_results_js_path = record['diff_results_js_path']
+                def image_name = record['image']
                 def waive_flag_path = record['waive_path']
                 def commit_results_path = record['commit_results_path']  // local location to store results permanently
                 echo "Checking scan results for ${distgit}"
@@ -146,103 +149,60 @@ enabled_metadata=1
                 commonlib.shell("ssh ocp-build@rcm-guest.app.eng.bos.redhat.com mkdir -p ${RCM_GUEST_DEST}")
                 commonlib.shell("rsync -r ${record['commit_results_path']}/ ocp-build@rcm-guest.app.eng.bos.redhat.com:${RCM_GUEST_DEST}")
 
-                if ( covscan_records['diff_count'] != '0' ) {
-                    slackChannel.task("Coverity result review: ${distgit_key} for group: ${group}") { taskThread ->
+                def all_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.html"
+                def all_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.js"
+                def diff_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html"
+                def diff_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.js"
 
-                        taskThread.say("""[NEW COVSCAN WAIVERS REQUIRED] Please review results for ${distgit_key} commit=${commit_hash}
-Differences from any previously waived commit: http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html
-""", [], true)
-                        commonlib.inputRequired() {
-                            happy = false
-                            while(!happy) {
+                if ( record['diff_count'] != '0' ) {
+                    // Gather the types of issues recorded in the scan
+                    issues = sh(returnStdout: true, script:"cat ${diff_results_js_path} | jq .issues[].checkerName -r | sort | uniq")
+                    prodsec_report << [
+                            'Image' : image_name,
+                            'Distgit': "${distgit} (hash ${commit_hash})",
+                            'Unwaived Issue Count': record['diff_count'],
+                            'Unwaived Issue Types': issues.split().join(', '),
+                            'Unwaived Report': diff_results_url,
+                            'Unwaived Raw Data': diff_results_js_url,
+                            'Full Report': all_results_url,
+                            'Full Raw Data': all_results_js_url
+                    ]
 
-                                def all_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.html"
-                                def diff_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html"
-                                echo "Waiver details are required.."
-
-                                WAIVE_OPTION = 'WAIVE'
-                                REVISIT_OPTION = 'REVISIT_LATER'
-                                prompt = """Coverity has detected new issues during static analysis for ${distgit_key} commit=${commit_hash} .
-You must review the findings with an engineering / prodsec resource before waiving these results. If the
-findings must be fixed in the code (i.e. not waived), then choose ${REVISIT_OPTION} to proceed to the next distgit repo (the
-current disgit's issues will be reported again on the next run of this pipeline).
-
-Differences from any previously waived commit: ${diff_results_url}
-All issues: ${all_results_url}
-"""
-                                echo prompt
-
-                                def resp = input message: prompt,
-                                        submitterParameter: 'approver',
-                                        parameters: [
-                                                [
-                                                        $class     : 'hudson.model.ChoiceParameterDefinition',
-                                                        choices    : [WAIVE_OPTION, REVISIT_OPTION].join('\n'),
-                                                        description : "${WAIVE_OPTION} only if an engineering resource has confirmed the findings are NOT a security risk.",
-                                                        name       : 'action'
-                                                ],
-                                                string( defaultValue: '',
-                                                        description: "If ${WAIVE_OPTION}, provide link to slack thread / Jira ticket / etc where the conversation about security concerns was discussed.",
-                                                        name: 'conversation_url',
-                                                        trim: true
-                                                ),
-                                                text(   defaultValue: '',
-                                                        description: "If ${WAIVE_OPTION}, provide a brief overview of why these issues were waived.",
-                                                        name: 'waiver_overview'
-                                                ),
-                                        ]
-
-                                def action = (resp instanceof String)?resp:resp.action
-                                if (action == REVISIT_OPTION) {
-                                    echo "User chose to revisit these issues later. Moving to next results."
-                                    break
-                                }
-
-                                // For WAIVE_OPTION, just continue on...
-                                def waiver_details = """
-Job: ${env.BUILD_URL}
-
-Approver: ${resp.approver}
-
-Discussion: ${resp.conversation_url}
-
-Overview:\n${resp.waiver_overview}
-"""
-
-                                echo "The following waiver details will be recorded >>>>>>>>>>\n${waiver_details}\n<<<<<<<<<<<<"
-                                echo "Confirm these details.."
-
-                                def confirm = input message: "Are you completely sure you want to waive using the provided information?",
-                                        parameters: [
-                                                [
-                                                        $class     : 'hudson.model.ChoiceParameterDefinition',
-                                                        choices    : ['YES', 'RE-ENTER'].join('\n'),
-                                                        description : 'If you want to alter your reasons, select RE-ENTER.',
-                                                        name       : 'action'
-                                                ],
-                                        ]
-
-                                def confim_action = (confirm instanceof String)?confirm:confirm.action
-
-                                if ( confim_action == 'YES' ) {
-                                    currentBuild.keepLog = true  // Don't ever prune this build
-                                    happy = true // terminate the waiver input loop
-                                    def waiver_info_fn = "waiver.txt"
-                                    writeFile( file: waiver_info_fn, text: waiver_details)
-                                    echo "Creating ${waive_flag_path} to waive these issues in the future."
-                                    sh "touch ${waive_flag_path}"  // create flag for future doozer runs
-                                    echo "Copying waiver details to ${commit_results_path}/waiver.txt"
-                                    sh "cp ${waiver_info_fn} ${commit_results_path}"  // copy human details out to results archive
-                                    archiveArtifacts(artifacts: "waiver.txt")
-                                }
-
-                            }
-
-                        }
-                    }
-
+                    echo "Creating ${waive_flag_path} to waive these issues in the future."
+                    sh "touch ${waive_flag_path}"  // create flag for future doozer runs
                 }
             }
+
+            prodsec_text = """
+Details of the last OpenShift Coverity Scan:
+
+Images scanned: ${covscan_records.size()}
+Images with unwaived issues: ${prodsec_report.size()}
+
+Unwaived Issue Reports:
+"""
+            for ( entry in prodsec_report ) {
+                prodsec_text += '\n'
+                entry.each {
+                    prodsec_text += "${it.key}: ${it.value}\n"
+                }
+            }
+
+            echo "Please send the following report to product security."
+            echo "Open a SNOW ticket"
+            echo "  Category: Security\n" +
+                 "  Topic: Risk Management\n" +
+                 "  Assignment Group:  Product Security\n" +
+                 "  Impact: 4\n" +
+                 "  Urgency: 4\n"
+
+            echo "See archived file prodsec.report.txt"
+            writeFile(file: 'prodsec.report.txt', text: prodsec_text)
+            archiveArtifacts(artifacts: "prodsec.report.txt")
+            echo "prodsec.report.txt content..."
+            echo ">>>>>>"
+            sh "cat prodsec.report.txt"
+            echo "<<<<<<"
 
         }
 

@@ -30,7 +30,7 @@ node {
                     ],
                     [
                         name: 'NAME',
-                        description: 'Release name (e.g. 4.1.0)',
+                        description: 'Release name (e.g. 4.1.0); Leave blank for direct nightly.',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -42,7 +42,7 @@ node {
                     ],
                     [
                         name: 'ADVISORY',
-                        description: 'Optional: Image release advisory number. If not given, the number will be retrived from ocp-build-data.',
+                        description: 'Optional: Image release advisory number. N/A for direct nightly release. If not given, the number will be retrieved from ocp-build-data.',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -57,6 +57,18 @@ node {
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false
+                    ],
+                    [
+                        name: 'DIRECT_RELEASE_NIGHTLY',
+                        description: 'DO NOT USE without team lead approval. REQUIRES PST & Support exceptions. Make a signed nightly available for a customer.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                            name: 'SKIP_CINCINNATI_PR_CREATION',
+                            description: 'DO NOT USE without team lead approval. This is an unusual option.',
+                            $class: 'BooleanParameterDefinition',
+                            defaultValue: false
                     ],
                     [
                         name: 'PERMIT_ALL_ADVISORY_STATES',
@@ -116,7 +128,15 @@ node {
         taskThread ->
         sshagent(['aos-cd-test']) {
             release_info = ""
-            release_name = params.NAME.trim()
+            if ( params.DIRECT_RELEASE_NIGHTLY ) {
+                if ( params.NAME.trim() != '' ) {
+                    error('Leave name field blank for direct nightly release')
+                }
+                release_name = params.FROM_RELEASE_TAG.trim()
+            } else {
+                release_name = params.NAME.trim()
+            }
+
             from_release_tag = params.FROM_RELEASE_TAG.trim()
             arch = release.getReleaseTagArch(from_release_tag)
             archSuffix = release.getArchSuffix(arch)
@@ -141,6 +161,14 @@ node {
             PREVIOUS_LIST_STR = params.PREVIOUS
             if ( params.PREVIOUS.trim() == 'auto' ) {
                 taskThread.task('Gather PREVIOUS for release') {
+
+                    if (params.DIRECT_RELEASE_NIGHTLY) {
+                        // Direct nightlies don't get a PREVIOUS by default since we don't
+                        // want customers upgrading to it unintentionally.
+                        PREVIOUS_LIST_STR = ''
+                        return
+                    }
+
                     def acquire_failure = ''
                     def suggest_previous = ''
                     try {
@@ -183,15 +211,33 @@ node {
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("validation") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    // No advisory dance
+                    advisory = -1
+                    errata_url = ''
+                    return
+                }
                 def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES)
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }
             stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, PREVIOUS_LIST_STR, errata_url) }
 
-            stage("tag stable") { release.stageTagRelease(quay_url, release_name, dest_release_tag, arch) }
+            stage("tag stable") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    // If we are releasing a nightly directly, we don't tag it into release and
+                    // if never goes into 4-stable.
+                    return
+                }
+                release.stageTagRelease(quay_url, release_name, dest_release_tag, arch)
+            }
 
             stage("request upgrade tests") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    // If we are releasing a nightly directly, we don't tag it into release and
+                    // if never goes into 4-stable.
+                    return
+                }
                 try {  // don't let a slack outage break the job
                     def previousList = PREVIOUS_LIST_STR.trim().tokenize('\t ,')
                     def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
@@ -211,6 +257,11 @@ node {
             }
 
             stage("wait for stable") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    // If we are releasing a nightly directly, we don't tag it into release and
+                    // if never goes into 4-stable.
+                    return
+                }
                 commonlib.retryAbort("Waiting for stable ${release_name}", taskThread,
                                         "Release ${release_name} is not currently Accepted by release controller. Issue cluster-bot requests for each upgrade test. "
                                          + "RETRY when the release is finally Accepted.")  {
@@ -223,6 +274,10 @@ node {
             }
 
             stage("advisory image list") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    // No advisory work if we are promoting a nightly directly
+                    return
+                }
                 if (params.SKIP_IMAGE_LIST) {
                     currentBuild.description += "[No image list]"
                     return
@@ -249,14 +304,34 @@ node {
             }
 
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
+
             stage("mirror tools") {
-              retry(3) {
-                release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
-              }
+                retry(3) {
+                    release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
+                }
             }
-            stage("advisory update") { release.stageAdvisoryUpdate() }
-            stage("cross ref check") { release.stageCrossRef() }
-            stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch) }
+
+            stage("advisory update") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    return
+                }
+                release.stageAdvisoryUpdate()
+            }
+
+            stage("cross ref check") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    return
+                }
+                release.stageCrossRef()
+            }
+
+            stage("send release message") {
+                if (params.DIRECT_RELEASE_NIGHTLY) {
+                    return
+                }
+                release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch)
+            }
+
             stage("sign artifacts") {
                 commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {
                     release.signArtifacts(
@@ -275,6 +350,10 @@ node {
             stage("channel prs") {
                 if ( params.DRY_RUN ) {
                     echo "Skipping PR creation for DRY_RUN"
+                    return
+                }
+                if ( params.SKIP_CINCINNATI_PR_CREATION ) {
+                    echo "SKIP_CINCINNATI_PR_CREATION set; skipping PR creation"
                     return
                 }
                 if (arch == 'x86_64' || params.OPEN_NON_X86_PR ) {

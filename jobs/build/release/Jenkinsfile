@@ -132,7 +132,7 @@ node {
                 if ( params.NAME.trim() != '' ) {
                     error('Leave name field blank for direct nightly release')
                 }
-                release_name = params.FROM_RELEASE_TAG.trim() - '.nightly'  // Remove nightly substring since umb_producer makes decisions based on this
+                release_name = params.FROM_RELEASE_TAG.trim()
             } else {
                 release_name = params.NAME.trim()
             }

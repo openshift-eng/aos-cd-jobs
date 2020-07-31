@@ -362,7 +362,7 @@ node {
                         build(
                                 job: 'build%2Fcincinnati-prs',  propagate: true,
                                 parameters: [
-                                        buildlib.param('String', 'RELEASE_NAME', NAME),
+                                        buildlib.param('String', 'RELEASE_NAME', release_name),
                                         buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
                                         buildlib.param('String', 'GITHUB_ORG', 'openshift'),
                                 ]

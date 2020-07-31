@@ -34,7 +34,6 @@ node {
     commonlib.checkMock()
 
     def version = params.BUILD_VERSION
-    def major = version[0]
     doozerOpts = "--group openshift-${version}"
     stage("Init") {
         echo "Initializing bug sweep for ${version}. Sync: #${currentBuild.number}"
@@ -55,17 +54,20 @@ node {
     }
 
     currentBuild.description = "Repairing state and sweeping new bugs.\n"
-    def kind = (major == '4') ? 'image' : 'rpm'
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+    def kinds = major >= 4 ? ["image", "extras"] : ["rpm"]
 
     stage("Repair bug state") {
         currentBuild.description += "* Moving attached bugs in MODIFIED state to ON_QA...\n"
-        retry (3) {
-            try {
-                buildlib.elliott "--group=openshift-${version} repair-bugs --use-default-advisory ${kind} --auto"
-            } catch (elliottErr) {
-                echo("Error repairing (will retry a few times):\n${elliottErr}")
-                sleep(time: 1, unit: 'MINUTES')
-                throw elliottErr
+        for (kind in kinds) {
+            retry (3) {
+                try {
+                    buildlib.elliott "--group=openshift-${version} repair-bugs --use-default-advisory ${kind} --auto"
+                } catch (elliottErr) {
+                    echo("Error repairing (will retry a few times):\n${elliottErr}")
+                    sleep(time: 1, unit: 'MINUTES')
+                    throw elliottErr
+                }
             }
         }
     }
@@ -74,7 +76,7 @@ node {
         currentBuild.description += "* Searching for and attaching new bugs in MODIFIED state...\n"
         retry (3) {
             try {
-                buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --use-default-advisory ${kind}"
+                buildlib.elliott "--group=openshift-${version} find-bugs --mode sweep --into-default-advisories"
             } catch (elliottErr) {
                 echo("Error sweeping bugs (will retry a few times):\n${elliottErr}")
                 sleep(time: 1, unit: 'MINUTES')

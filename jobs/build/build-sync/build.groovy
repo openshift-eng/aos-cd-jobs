@@ -1,4 +1,5 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
+commonlib = buildlib.commonlib
 
 // doozer_working must be in WORKSPACE in order to have artifacts archived
 mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
@@ -73,6 +74,16 @@ def buildSyncMirrorImages() {
             buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${key}"
         }
     }
+}
+
+def backupAllImageStreams() {
+    def allNameSpaces = ["ocp", "ocp-priv", "ocp-s390x", "ocp-s390x-priv", "ocp-ppc64le", "ocp-ppc64le-priv"]
+    for (ns in allNameSpaces) {
+        def yaml = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} get is -n ${ns} -o yaml", [capture: true])
+        writeFile file:"${ns}.backup.yaml", text: yaml
+    }
+    commonlib.shell("tar zcvf api.ci-backup.tgz *.backup.yaml && rm *.backup.yaml")
+    commonlib.safeArchiveArtifacts(["api.ci-backup.tgz"])
 }
 
 

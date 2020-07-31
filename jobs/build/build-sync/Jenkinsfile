@@ -82,6 +82,10 @@ node {
         lock("mirroring-lock-OCP-${params.BUILD_VERSION}") {
             stage("oc image mirror") { build.buildSyncMirrorImages() }
         }
+        // // An incident where a bug in oc destroyed the content of a critical imagestream ocp:is/release uncovered the fact that this vital data was not being backed up by any process.
+        // DPTP will be asked to backup etcd on this cluster, but ART should also begin backing up these imagestreams during normal operations as a first line of defense.
+        // In the build-sync job, prior to updating the 4.x-art-latest imagestreams, a copy of all imagestreams in the various release controller namespaces should be performed.
+        stage("backup imagestreams") { build.backupAllImageStreams() }
         lock("oc-applying-lock-OCP-${params.BUILD_VERSION}") {
             stage("oc apply") { build.buildSyncApplyImageStreams() }
         }

@@ -136,6 +136,7 @@ node {
             } else {
                 release_name = params.NAME.trim()
             }
+            name = release_name
 
             from_release_tag = params.FROM_RELEASE_TAG.trim()
             arch = release.getReleaseTagArch(from_release_tag)

@@ -30,10 +30,22 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'CANDIDATE_CHANNEL_ONLY',
+                        description: 'Only open a PR for the candidate channel',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'GITHUB_ORG',
                         description: 'The github org containing cincinnati-graph-data fork to open PRs against (use for testing)',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "openshift"
+                    ],
+                    [
+                        name: 'SKIP_OTA_SLACK_NOTIFICATION',
+                        description: 'Do not notify OTA team',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
                     ],
                     commonlib.mockParam(),
                 ]
@@ -44,6 +56,6 @@ node {
     )
 
     commonlib.checkMock()
-    release.openCincinnatiPRs(params.RELEASE_NAME.trim(), params.ADVISORY_NUM.trim(), params.GITHUB_ORG.trim())
+    release.openCincinnatiPRs(params.RELEASE_NAME.trim(), params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, params.GITHUB_ORG.trim(), params.SKIP_OTA_SLACK_NOTIFICATION)
     buildlib.cleanWorkdir("${env.WORKSPACE}")
 }

@@ -465,20 +465,22 @@ def signArtifacts(Map signingParams) {
  *    Specifically, a PR for each channel prefix (e.g. candidate, fast, stable) associated with the specified release
  *    and the next minor channels (major.minor+1) IFF those channels currently exist.
  * @param releaseName The name of the release (e.g. "4.3.6")
- * @param advisory The internal advisory number in errata tool.
+ * @param advisory The internal advisory number in errata tool. Specify -1 if there is no advisory (e.g. hotfix or rc).
+ * @param candidate_only Only open PR for candidate; there is no advisory
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
  *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
+ * @param noSlackOutput If true, ota-monitor will not be notified
  */
-def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
+def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'openshift', noSlackOutput=false) {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
     }
     def internal_errata_url = "https://errata.devel.redhat.com/advisory/${advisory}"
     def minorNext = minor + 1
-    boolean isReleaseCandidate = releaseName.toLowerCase().indexOf('rc') > -1
+    boolean isReleaseCandidate = candidate_only
 
-    if ( isReleaseCandidate || advisory.toInteger() <= 0 ) {
+    if ( candidate_only || advisory.toInteger() <= 0 ) {
         // There is not advisory for this release
         internal_errata_url = ''
     }
@@ -596,7 +598,7 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
                             pr_messages << "This is a release candidate. There is no advisory associated."
                             pr_messages << 'Please merge immediately.'
                         } else {
-                            pr_messages << "Promoting a tactical release (e.g. for a single customer). There is no advisory associated."
+                            pr_messages << "Promoting a hotfix release (e.g. for a single customer). There is no advisory associated."
                             pr_messages << 'Please merge immediately.'
                         }
                     }
@@ -660,7 +662,7 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
                 def prs = readFile(prs_file).trim()
                 if ( prs ) {  // did we open any?
                     def slack_msg = "Hi @ota-monitor . ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
-                    if ( ghorg == 'openshift' ) {
+                    if ( ghorg == 'openshift' && !noSlackOutput) {
                         slacklib.to('#forum-release').say(slack_msg)
                     } else {
                         echo "Would have sent the following slack notification to #forum-release"

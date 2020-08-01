@@ -35,7 +35,7 @@ node {
                         choices: [
                                 '1. Standard Release (Named, Signed, Previous, All PRs)',
                                 '2. Release Candidate (Named, Signed, Previous, Candidate PR)',
-                                '3. Feature Candidate (No name, Signed, Previous, Candidate PR)',
+                                '3. Feature Candidate (No name, Signed - rpms may not be, Previous, Candidate PR)',
                                 '4. Hotfix (No name, Signed, No Previous, All PRs)'
                         ].join('\n'),
                         defaultValue: '1. Standard Release'

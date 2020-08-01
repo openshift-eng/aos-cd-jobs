@@ -33,10 +33,10 @@ node {
                         description: 'Select [1. Standard Release] unless discussed with team lead ',
                         $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
-                                '1. Standard Release (Named, Signed, Previous, All PRs)',
-                                '2. Release Candidate (Named, Signed, Previous, Candidate PR)',
-                                '3. Feature Candidate (No name, Signed - rpms may not be, Previous, Candidate PR)',
-                                '4. Hotfix (No name, Signed, No Previous, All PRs)'
+                                '1. Standard Release (Named, Signed, Previous, All Channels)',
+                                '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
+                                '3. Feature Candidate (No name, Signed - rpms may not be, Previous, Candidate Channel)',
+                                '4. Hotfix (No name, Signed, No Previous, All Channels)'
                         ].join('\n'),
                         defaultValue: '1. Standard Release'
                     ],

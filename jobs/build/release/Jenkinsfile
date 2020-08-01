@@ -29,8 +29,20 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'RELEASE_TYPE',
+                        description: 'Select [1. Standard Release] unless discussed with team lead ',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                                '1. Standard Release (Named, Signed, Previous, All PRs)',
+                                '2. Release Candidate (Named, Signed, Previous, Candidate PR)',
+                                '3. Feature Candidate (No name, Signed, Previous, Candidate PR)',
+                                '4. Hotfix (No name, Signed, No Previous, All PRs)'
+                        ].join('\n'),
+                        defaultValue: '1. Standard Release'
+                    ],
+                    [
                         name: 'NAME',
-                        description: 'Release name (e.g. 4.1.0); Leave blank for direct nightly.',
+                        description: 'Release Type [1] (e.g. 4.1.0) or [2] (e.g. 4.1.0-rc.0); Do not specify for [3] or [4].',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -59,16 +71,16 @@ node {
                         defaultValue: false
                     ],
                     [
-                        name: 'DIRECT_RELEASE_NIGHTLY',
-                        description: 'DO NOT USE without team lead approval. REQUIRES PST & Support exceptions. Make a signed nightly available for a customer.',
+                        name: 'SKIP_CINCINNATI_PR_CREATION',
+                        description: 'DO NOT USE without team lead approval. This is an unusual option.',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false
                     ],
                     [
-                            name: 'SKIP_CINCINNATI_PR_CREATION',
-                            description: 'DO NOT USE without team lead approval. This is an unusual option.',
-                            $class: 'BooleanParameterDefinition',
-                            defaultValue: false
+                        name: 'SKIP_OTA_SLACK_NOTIFICATION',
+                        description: 'Do not notify OTA team in slack for new PRs',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
                     ],
                     [
                         name: 'PERMIT_ALL_ADVISORY_STATES',
@@ -123,12 +135,29 @@ node {
 
     buildlib.cleanWorkdir("${env.WORKSPACE}")
 
+    direct_release_nightly = false
+    detect_previous = true
+    candidate_pr_only = false
+    if (params.RELEASE_TYPE.startsWith('1.')) {
+        // Nothing special, just release it
+    } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
+        candidate_pr_only = true
+    } else if (params.RELEASE_TYPE.startsWith('3.')) { // Early release candidate (around feature complete)
+        direct_release_nightly = true
+        candidate_pr_only = true
+    } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Just a hotfix for a specific customer
+        direct_release_nightly = true
+        detect_previous = false
+    } else {
+        error('Unknown release type: ' + params.RELEASE_TYPE)
+    }
+
     slackChannel = slacklib.to(FROM_RELEASE_TAG)
     slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}") {
         taskThread ->
         sshagent(['aos-cd-test']) {
             release_info = ""
-            if ( params.DIRECT_RELEASE_NIGHTLY ) {
+            if ( direct_release_nightly ) {
                 if ( params.NAME.trim() != '' ) {
                     error('Leave name field blank for direct nightly release')
                 }
@@ -152,7 +181,6 @@ node {
             Map release_obj
             def CLIENT_TYPE = 'ocp'
 
-
             currentBuild.displayName += "- ${name}"
             if (params.DRY_RUN) {
                 currentBuild.displayName += " (dry-run)"
@@ -163,8 +191,8 @@ node {
             if ( params.PREVIOUS.trim() == 'auto' ) {
                 taskThread.task('Gather PREVIOUS for release') {
 
-                    if (params.DIRECT_RELEASE_NIGHTLY) {
-                        // Direct nightlies don't get a PREVIOUS by default since we don't
+                    if (!detect_previous) {
+                        // Hotfixes don't get a PREVIOUS by default since we don't
                         // want customers upgrading to it unintentionally.
                         PREVIOUS_LIST_STR = ''
                         return
@@ -173,7 +201,7 @@ node {
                     def acquire_failure = ''
                     def suggest_previous = ''
                     try {
-                        suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${major}.${minor}", [capture: true])
+                        suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${release_name}", [capture: true])
                         echo "Doozer suggested: ${suggest_previous}"
                     } catch ( cincy_down ) {
                         acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
@@ -212,7 +240,7 @@ node {
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("validation") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     // No advisory dance
                     advisory = -1
                     errata_url = ''
@@ -225,7 +253,7 @@ node {
             stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, PREVIOUS_LIST_STR, errata_url) }
 
             stage("tag stable") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     // If we are releasing a nightly directly, we don't tag it into release and
                     // if never goes into 4-stable.
                     return
@@ -234,7 +262,7 @@ node {
             }
 
             stage("request upgrade tests") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     // If we are releasing a nightly directly, we don't tag it into release and
                     // if never goes into 4-stable.
                     return
@@ -258,7 +286,7 @@ node {
             }
 
             stage("wait for stable") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     // If we are releasing a nightly directly, we don't tag it into release and
                     // if never goes into 4-stable.
                     return
@@ -275,7 +303,7 @@ node {
             }
 
             stage("advisory image list") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     // No advisory work if we are promoting a nightly directly
                     return
                 }
@@ -313,21 +341,21 @@ node {
             }
 
             stage("advisory update") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     return
                 }
                 release.stageAdvisoryUpdate()
             }
 
             stage("cross ref check") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     return
                 }
                 release.stageCrossRef()
             }
 
             stage("send release message") {
-                if (params.DIRECT_RELEASE_NIGHTLY) {
+                if (direct_release_nightly) {
                     return
                 }
                 release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch)
@@ -364,7 +392,9 @@ node {
                                 parameters: [
                                         buildlib.param('String', 'RELEASE_NAME', release_name),
                                         buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
+                                        booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: candidate_pr_only),
                                         buildlib.param('String', 'GITHUB_ORG', 'openshift'),
+                                        booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
                                 ]
                         )
                     }

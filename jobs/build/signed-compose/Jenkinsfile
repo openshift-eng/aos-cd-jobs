@@ -20,13 +20,7 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('BUILD_VERSION'),
-                    [
-                        name: 'OVERRIDE_DEPRECATION',
-                        description: 'USE THIS JOB EVEN THOUGH IT SHOULD NOT BE NEEDED',
-                        $class: 'BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
+                    commonlib.ocpVersionParam('BUILD_VERSION', '3'),
                     [
                         name: 'ATTACH_BUILDS',
                         description: 'Attach new package builds to rpm advisory',
@@ -63,16 +57,6 @@ node {
             ],
         ]
     )
-
-    commonlib.checkMock()
-    if (!params.OVERRIDE_DEPRECATION) {
-        currentBuild.displayName = "DEPRECATED"
-        currentBuild.description = """
-            Signed composes should be replaced with plashets everywhere.
-            There should be no further use for this job.
-        """
-        error("Deprecated")
-    }
 
     def advisory = buildlib.elliott("--group=openshift-${params.BUILD_VERSION} get --use-default-advisory rpm --id-only", [capture: true]).trim()
 

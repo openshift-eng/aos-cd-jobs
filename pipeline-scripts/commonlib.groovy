@@ -2,8 +2,6 @@ slacklib = load("pipeline-scripts/slacklib.groovy")
 
 ocp3Versions = [
     "3.11",
-    "3.10",
-    "3.9",
 ]
 
 // All buildable versions of ocp4

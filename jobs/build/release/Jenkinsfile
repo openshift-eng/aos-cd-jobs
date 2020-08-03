@@ -29,8 +29,20 @@ node {
                         defaultValue: ""
                     ],
                     [
+                        name: 'RELEASE_TYPE',
+                        description: 'Select [1. Standard Release] unless discussed with team lead ',
+                        $class: 'hudson.model.ChoiceParameterDefinition',
+                        choices: [
+                                '1. Standard Release (Named, Signed, Previous, All Channels)',
+                                '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
+                                '3. Feature Candidate (No name, Signed - rpms may not be, Previous, Candidate Channel)',
+                                '4. Hotfix (No name, Signed, No Previous, All Channels)'
+                        ].join('\n'),
+                        defaultValue: '1. Standard Release'
+                    ],
+                    [
                         name: 'NAME',
-                        description: 'Release name (e.g. 4.1.0)',
+                        description: 'Release Type [1] (e.g. 4.1.0) or [2] (e.g. 4.1.0-rc.0); Do not specify for [3] or [4].',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -42,7 +54,7 @@ node {
                     ],
                     [
                         name: 'ADVISORY',
-                        description: 'Optional: Image release advisory number. If not given, the number will be retrived from ocp-build-data.',
+                        description: 'Optional: Image release advisory number. N/A for direct nightly release. If not given, the number will be retrieved from ocp-build-data.',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -55,6 +67,18 @@ node {
                     [
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                        name: 'SKIP_CINCINNATI_PR_CREATION',
+                        description: 'DO NOT USE without team lead approval. This is an unusual option.',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
+                        name: 'SKIP_OTA_SLACK_NOTIFICATION',
+                        description: 'Do not notify OTA team in slack for new PRs',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false
                     ],
@@ -111,12 +135,38 @@ node {
 
     buildlib.cleanWorkdir("${env.WORKSPACE}")
 
+    direct_release_nightly = false
+    detect_previous = true
+    candidate_pr_only = false
+    if (params.RELEASE_TYPE.startsWith('1.')) {
+        // Nothing special, just release it
+    } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
+        candidate_pr_only = true
+    } else if (params.RELEASE_TYPE.startsWith('3.')) { // Early release candidate (around feature complete)
+        direct_release_nightly = true
+        candidate_pr_only = true
+    } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Just a hotfix for a specific customer
+        direct_release_nightly = true
+        detect_previous = false
+    } else {
+        error('Unknown release type: ' + params.RELEASE_TYPE)
+    }
+
     slackChannel = slacklib.to(FROM_RELEASE_TAG)
     slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}") {
         taskThread ->
         sshagent(['aos-cd-test']) {
             release_info = ""
-            release_name = params.NAME.trim()
+            if ( direct_release_nightly ) {
+                if ( params.NAME.trim() != '' ) {
+                    error('Leave name field blank for direct nightly release')
+                }
+                release_name = params.FROM_RELEASE_TAG.trim()
+            } else {
+                release_name = params.NAME.trim()
+            }
+            name = release_name
+
             from_release_tag = params.FROM_RELEASE_TAG.trim()
             (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
             RELEASE_STREAM_NAME = "4-stable${release.getArchPrivSuffix(arch, false)}"
@@ -130,8 +180,7 @@ node {
             Map release_obj
             def CLIENT_TYPE = 'ocp'
 
-
-            currentBuild.displayName = "${name}"
+            currentBuild.displayName = "${name} (${arch})"
             currentBuild.description = "${from_release_tag} -> ${release_name}"
             if (params.DRY_RUN) {
                 currentBuild.displayName += " (dry-run)"
@@ -164,10 +213,18 @@ node {
             PREVIOUS_LIST_STR = params.PREVIOUS
             if ( params.PREVIOUS.trim() == 'auto' ) {
                 taskThread.task('Gather PREVIOUS for release') {
+
+                    if (!detect_previous) {
+                        // Hotfixes don't get a PREVIOUS by default since we don't
+                        // want customers upgrading to it unintentionally.
+                        PREVIOUS_LIST_STR = ''
+                        return
+                    }
+
                     def acquire_failure = ''
                     def suggest_previous = ''
                     try {
-                        suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${major}.${minor}", [capture: true])
+                        suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${release_name}", [capture: true])
                         echo "Doozer suggested: ${suggest_previous}"
                     } catch ( cincy_down ) {
                         acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
@@ -206,15 +263,33 @@ node {
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("validation") {
+                if (direct_release_nightly) {
+                    // No advisory dance
+                    advisory = -1
+                    errata_url = ''
+                    return
+                }
                 def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES)
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }
             stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, PREVIOUS_LIST_STR, errata_url) }
 
-            stage("tag stable") { release.stageTagRelease(quay_url, release_name, dest_release_tag, arch) }
+            stage("tag stable") {
+                if (direct_release_nightly) {
+                    // If we are releasing a nightly directly, we don't tag it into release and
+                    // if never goes into 4-stable.
+                    return
+                }
+                release.stageTagRelease(quay_url, release_name, dest_release_tag, arch)
+            }
 
             stage("request upgrade tests") {
+                if (direct_release_nightly) {
+                    // If we are releasing a nightly directly, we don't tag it into release and
+                    // if never goes into 4-stable.
+                    return
+                }
                 try {  // don't let a slack outage break the job
                     def previousList = PREVIOUS_LIST_STR.trim().tokenize('\t ,')
                     def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
@@ -225,15 +300,20 @@ node {
                         testLines << "test upgrade ${from_release} ${NAME} ${mode}"
                         testIndex++
                     }
+                    currentBuild.description += "\n@cluster-bot requests:\n${testLines.join('\n')}\n"
                     slackChannel.say("Hi @release-artists . A new release is ready and needs some upgrade tests to be triggered. "
                         + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
-                    currentBuild.description += "\n@cluster-bot requests:\n${testLines.join('\n')}\n"
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
                 }
             }
 
             stage("wait for stable") {
+                if (direct_release_nightly) {
+                    // If we are releasing a nightly directly, we don't tag it into release and
+                    // if never goes into 4-stable.
+                    return
+                }
                 commonlib.retryAbort("Waiting for stable ${release_name}", taskThread,
                                         "Release ${release_name} is not currently Accepted by release controller. Issue cluster-bot requests for each upgrade test. "
                                          + "RETRY when the release is finally Accepted.")  {
@@ -246,6 +326,10 @@ node {
             }
 
             stage("advisory image list") {
+                if (direct_release_nightly) {
+                    // No advisory work if we are promoting a nightly directly
+                    return
+                }
                 if (params.SKIP_IMAGE_LIST) {
                     currentBuild.description += "[No image list]"
                     return
@@ -272,14 +356,34 @@ node {
             }
 
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
+
             stage("mirror tools") {
-              retry(3) {
-                release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
-              }
+                retry(3) {
+                    release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
+                }
             }
-            stage("advisory update") { release.stageAdvisoryUpdate() }
-            stage("cross ref check") { release.stageCrossRef() }
-            stage("send release message") { release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch) }
+
+            stage("advisory update") {
+                if (direct_release_nightly) {
+                    return
+                }
+                release.stageAdvisoryUpdate()
+            }
+
+            stage("cross ref check") {
+                if (direct_release_nightly) {
+                    return
+                }
+                release.stageCrossRef()
+            }
+
+            stage("send release message") {
+                if (direct_release_nightly) {
+                    return
+                }
+                release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch)
+            }
+
             stage("sign artifacts") {
                 commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {
                     release.signArtifacts(
@@ -300,14 +404,20 @@ node {
                     echo "Skipping PR creation for DRY_RUN"
                     return
                 }
+                if ( params.SKIP_CINCINNATI_PR_CREATION ) {
+                    echo "SKIP_CINCINNATI_PR_CREATION set; skipping PR creation"
+                    return
+                }
                 if (arch == 'x86_64' || params.OPEN_NON_X86_PR ) {
                     commonlib.retrySkipAbort('Open Cincinnati PRs', taskThread) {
                         build(
                                 job: 'build%2Fcincinnati-prs',  propagate: true,
                                 parameters: [
-                                        buildlib.param('String', 'RELEASE_NAME', NAME),
+                                        buildlib.param('String', 'RELEASE_NAME', release_name),
                                         buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
+                                        booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: candidate_pr_only),
                                         buildlib.param('String', 'GITHUB_ORG', 'openshift'),
+                                        booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
                                 ]
                         )
                     }

@@ -474,18 +474,26 @@ def signArtifacts(Map signingParams) {
  *    Specifically, a PR for each channel prefix (e.g. candidate, fast, stable) associated with the specified release
  *    and the next minor channels (major.minor+1) IFF those channels currently exist.
  * @param releaseName The name of the release (e.g. "4.3.6")
- * @param advisory The internal advisory number in errata tool.
+ * @param advisory The internal advisory number in errata tool. Specify -1 if there is no advisory (e.g. hotfix or rc).
+ * @param candidate_only Only open PR for candidate; there is no advisory
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
  *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
+ * @param noSlackOutput If true, ota-monitor will not be notified
  */
-def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
+def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'openshift', noSlackOutput=false) {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
     }
     def internal_errata_url = "https://errata.devel.redhat.com/advisory/${advisory}"
     def minorNext = minor + 1
-    boolean isReleaseCandidate = releaseName.toLowerCase().indexOf('rc') > -1
+    boolean isReleaseCandidate = candidate_only
+
+    if ( candidate_only || advisory.toInteger() <= 0 ) {
+        // There is not advisory for this release
+        internal_errata_url = ''
+    }
+
     dir(env.WORKSPACE) {
         sshagent(["openshift-bot"]) {
 
@@ -539,15 +547,20 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
                     upgradeChannelYaml = [ name: upgradeChannel, versions: [] ]
                     addToUpgradeChannel = false
                     releasesForUpgradeChannel = []
-                    if (fileExists(upgradeChannelFile)) {
-                        upgradeChannelYaml = readYaml(file: upgradeChannelFile)
-                        upgradeChannelVersions = upgradeChannelYaml.get('versions', [])
+                    if ( internal_errata_url || isReleaseCandidate ) {
+                        if (fileExists(upgradeChannelFile)) {
+                            upgradeChannelYaml = readYaml(file: upgradeChannelFile)
+                            upgradeChannelVersions = upgradeChannelYaml.get('versions', [])
 
-                        // at least one version must be present & make sure that releaseName is not already there
-                        if ( upgradeChannelVersions && !isInChannel(releaseName, upgradeChannelVersions) ) {
-                            releasesForUpgradeChannel = [ releaseName ]
-                            addToUpgradeChannel = true
+                            // at least one version must be present & make sure that releaseName is not already there
+                            if ( upgradeChannelVersions && !isInChannel(releaseName, upgradeChannelVersions) ) {
+                                releasesForUpgradeChannel = [ releaseName ]
+                                addToUpgradeChannel = true
+                            }
                         }
+                    } else {
+                        // This is just a tactical release for a given customer (e.g. promoting a nightly).
+                        // There should no upgrade path encouraged for it.
                     }
 
                     echo "Creating PR for ${prefix} channel(s)"
@@ -557,39 +570,46 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
                     labelArgs = ''
 
                     pr_messages = [ pr_title ]
-                    switch(prefix) {
-                        case 'prerelease':
-                        case 'candidate':
-                            if ( isReleaseCandidate ) {
-                                // Errata is irrelevant for release candidate.
-                                pr_messages << "Please merge immediately."
-                            } else {
+
+                    if ( internal_errata_url ) {
+                        switch(prefix) {
+                            case 'prerelease':
+                            case 'candidate':
                                 pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
-                            }
-                            break
-                        case 'fast':
-                            pr_messages << "Please merge as soon as ${internal_errata_url} is shipped live OR if a Cincinnati-first release is approved."
-                            if (prURLs.containsKey('candidate')) {
-                                pr_messages << "This should provide adequate soak time for candidate channel PR ${prURLs.candidate}"
-                            }
-                            // For non-candidate, put a hold on the PR to prevent accidental merging
-                            labelArgs = "-l 'do-not-merge/hold'"
-                            break
-                        case 'stable':
-                            // For non-candidate, put a hold on the PR to prevent accidental merging
-                            labelArgs = "-l 'do-not-merge/hold'"
-                            pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
+                                break
+                            case 'fast':
+                                pr_messages << "Please merge as soon as ${internal_errata_url} is shipped live OR if a Cincinnati-first release is approved."
+                                if (prURLs.containsKey('candidate')) {
+                                    pr_messages << "This should provide adequate soak time for candidate channel PR ${prURLs.candidate}"
+                                }
+                                // For non-candidate, put a hold on the PR to prevent accidental merging
+                                labelArgs = "-l 'do-not-merge/hold'"
+                                break
+                            case 'stable':
+                                // For non-candidate, put a hold on the PR to prevent accidental merging
+                                labelArgs = "-l 'do-not-merge/hold'"
+                                pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
 
-                            if (prURLs.containsKey('prerelease')) {
-                                pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
-                            }
-                            if (prURLs.containsKey('fast')) {
-                                pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
-                            }
+                                if (prURLs.containsKey('prerelease')) {
+                                    pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
+                                }
+                                if (prURLs.containsKey('fast')) {
+                                    pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
+                                }
 
-                            break
-                        default:
-                            error("Unknown prefix: ${prefix}")
+                                break
+                            default:
+                                error("Unknown prefix: ${prefix}")
+                        }
+                    } else {
+                        if ( isReleaseCandidate ) {
+                            // Errata is irrelevant for release candidate.
+                            pr_messages << "This is a release candidate. There is no advisory associated."
+                            pr_messages << 'Please merge immediately.'
+                        } else {
+                            pr_messages << "Promoting a hotfix release (e.g. for a single customer). There is no advisory associated."
+                            pr_messages << 'Please merge immediately.'
+                        }
                     }
 
                     if ( addToUpgradeChannel ) {
@@ -651,7 +671,7 @@ def openCincinnatiPRs(releaseName, advisory, ghorg = 'openshift') {
                 def prs = readFile(prs_file).trim()
                 if ( prs ) {  // did we open any?
                     def slack_msg = "Hi @ota-monitor . ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
-                    if ( ghorg == 'openshift' ) {
+                    if ( ghorg == 'openshift' && !noSlackOutput) {
                         slacklib.to('#forum-release').say(slack_msg)
                     } else {
                         echo "Would have sent the following slack notification to #forum-release"

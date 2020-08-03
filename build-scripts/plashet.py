@@ -12,15 +12,22 @@ import requests
 import ssl
 import time
 import wrapt
+import sys
+import yaml
 from requests_kerberos import HTTPKerberosAuth
 from types import SimpleNamespace
+from typing import Dict, List
 
 BREW_URL = "https://brewhub.engineering.redhat.com/brewhub"
 ERRATA_URL = "http://errata-xmlrpc.devel.redhat.com/errata/errata_service"
 ERRATA_API_URL = "https://errata.engineering.redhat.com/api/v1/"
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger()
+logger: logging.Logger = None
+
+# As a plashet is assembled, concerns about its viability can be
+# added to this list. It will be captured in plashet.yml for easy
+# reference.
+plashet_concerns = []
 
 
 def mkdirs(path, mode=0o755):
@@ -98,8 +105,9 @@ def update_advisory_builds(config, errata_proxy, advisory_id, nvrs, nvr_product_
             raise IOError(f'Unable to add nvrs to advisory {advisory_id}: {to_add}')
 
 
-def assemble_repo(config, nvrs):
+def _assemble_repo(config, nvrs: List[str]):
     """
+    This method is intended to be wrapped by assemble_repo.
     Assembles one or more architecture specific repos in the
     dest_dir with the specified nvrs. It is expected by the time this method
     is called that all RPMs are signed if any of those arches requires signing.
@@ -171,6 +179,39 @@ def assemble_repo(config, nvrs):
             raise IOError('Error creating repo at: {repo_dir}'.format(repo_dir=dest_arch_path))
 
         print('Successfully created repo at: {repo_dir}'.format(repo_dir=dest_arch_path))
+
+
+def assemble_repo(config, nvrs, event_info=None, extra_data: Dict[str, str] = None):
+    """
+    Assembles one or more architecture specific repos in the
+    dest_dir with the specified nvrs. It is expected by the time this method
+    is called that all RPMs are signed if any of those arches requires signing.
+    :param config: cli config
+    :param nvrs: a list of nvrs to include.
+    :param event_info: The brew event information to encode into the plashet.yml
+    :param extra_data: a dictionary of data that will be added to the plashet.yml file
+        if the repo is successfully assembled.
+    :return: n/a
+    An exception will be thrown if no RPMs can be found matching an nvr.
+    """
+    koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub'}))
+    koji_proxy.gssapi_login()
+
+    with open(os.path.join(config.dest_dir, 'plashet.yml'), mode='w+', encoding='utf-8') as y:
+        success = False
+        try:
+            _assemble_repo(config, nvrs)
+            success = True
+        finally:
+            plashet_info = {
+                'assemble': {
+                    'success': success,
+                    'concerns': plashet_concerns,
+                    'brew_event': event_info or koji_proxy.getLastEvent()
+                },
+                'extra': extra_data or {},
+            }
+            yaml.dump(plashet_info, y, default_flow_style=False)
 
 
 def get_brewroot_arch_base_path(config, nvr, signed):
@@ -272,6 +313,22 @@ def assert_signed(config, nvr, poll_for=15):
     return time_used
 
 
+def setup_logging(dest_dir: str):
+    """
+    Initializes the root logger to write a log into the plashet directory as well as
+    stream output to stderr.
+    :param dest_dir: The directory in which to create the log.
+    """
+    global logger
+    mkdirs(dest_dir)
+    logging.basicConfig(level=logging.DEBUG, filename=os.path.join(dest_dir, 'plashet.log'), filemode='w+')
+    logger = logging.getLogger()
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG)
+    logging.getLogger('').addHandler(console)
+    logger.info('Invocation: ' + ' '.join(sys.argv))
+
+
 @click.group()
 @click.pass_context
 @click.option('--base-dir', default=os.getcwd(),
@@ -288,6 +345,8 @@ def assert_signed(config, nvr, poll_for=15):
 @click.option('--brew-url', metavar='URL', default=BREW_URL, help='Override default brew API url')
 @click.option('-x', '--exclude-package', metavar='NAME',
               multiple=True, default=[], help='Exclude one or more package names')
+@click.option('-i', '--include-package', metavar='NAME',
+              multiple=True, default=[], help='Only include specified packages')
 def cli(ctx, base_dir, brew_root, name, signing_key_id, **kwargs):
     """
     Creates a directory contining one or more arch specific yum repositories by using local
@@ -307,7 +366,7 @@ def cli(ctx, base_dir, brew_root, name, signing_key_id, **kwargs):
         --base-dir /some/base/dir --name my_plashet
         --repo-subdir os
         --arch x86_64 signed  --arch s390x unsigned
-        from-tags -t rhaos-4.4-rhel-7-candidate RHEL-7-OSE-4.4 --signing-advisory-id 54765
+        from-tags --include-embargoed -t rhaos-4.4-rhel-7-candidate RHEL-7-OSE-4.4 --signing-advisory-id 54765
 
         \b
         This preceding command will make:
@@ -335,6 +394,8 @@ def cli(ctx, base_dir, brew_root, name, signing_key_id, **kwargs):
     if os.path.exists(dest_dir):
         print('Destination {} already exists; name must be unique'.format(dest_dir))
         exit(1)
+
+    setup_logging(dest_dir)
 
     ctx.obj = SimpleNamespace(base_dir=base_dir,
                               brew_root=brew_root,
@@ -374,8 +435,10 @@ class KojiWrapper(wrapt.ObjectProxy):
 @click.option('--signing-advisory-mode', required=False, default="clean", type=click.Choice(['leave', 'clean'], case_sensitive=False),
               help='clean=remove all builds on start and successful exit; leave=leave builds attached which the invocation attempted to sign')
 @click.option('--poll-for', default=15, type=click.INT, help='Allow up to this number of minutes for auto-signing')
-@click.option('--event', required=False, help='The brew event for the desired tag states')
-def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll_for, event):
+@click.option('--event', required=False, default=None, help='The brew event for the desired tag states')
+@click.option('--include-embargoed', default=False, is_flag=True,
+              help='If specified, embargoed/unshipped RPMs will be included in the plashet')
+def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll_for, event, include_embargoed):
     """
     The repositories are filled with RPMs derived from the list of
     brew tags. If the RPMs are not signed and a repo should contain signed content,
@@ -389,6 +452,15 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
     koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub'}))
     koji_proxy.gssapi_login()
     errata_proxy = xmlrpclib.ServerProxy(config.errata_xmlrpc_url)
+
+    if event:
+        event = int(event)
+        event_info = koji_proxy.getEvent(event)
+    else:
+        # If none was specified, lock in an event so that there are no race conditions with
+        # packages changing while we run.
+        event_info = koji_proxy.getLastEvent()
+        event = event_info['id']
 
     desired_nvrs = set()
     nvr_product_version = {}
@@ -407,22 +479,51 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
             b'{"error":"Unable to add build \'cri-o-1.16.6-2.rhaos4.3.git4936f44.el7\' which is older than cri-o-1.16.6-16.dev.rhaos4.3.git4936f44.el7"}'
             """
             released_tag = tag[:tag.index('-candidate')]
-            for build in koji_proxy.listTagged(released_tag, latest=True, inherit=False, event=event):
+            for build in koji_proxy.listTagged(released_tag, latest=True, inherit=True, event=event):
                 package_name = build['package_name']
                 released_package_nvrs[package_name] = parse_nvr(build['nvr'])
 
         for build in koji_proxy.listTagged(tag, latest=True, inherit=False, event=event):
             package_name = build['package_name']
             nvr = build['nvr']
+            parsed_nvr = parse_nvr(nvr)
 
-            if package_name in config.exclude_package:
-                logger.info(f'Skipping tagged but excluded package: {nvr}')
-                continue
-
+            released_nvr = None  # if the package has shipped before, the parsed nvr of the most recently shipped
             if package_name in released_package_nvrs:
                 released_nvr = released_package_nvrs[package_name]
-                if compare_nvr(parse_nvr(nvr), released_nvr) < 0:
-                    logger.warning(f'Skipping tagged {nvr} because it is older than a released version: {released_nvr}')
+
+            if package_name in config.exclude_package:
+                logger.info(f'Skipping tagged but command line excluded package: {nvr}')
+                continue
+
+            if config.include_package and package_name not in config.include_package:
+                logger.info(f'Skipping tagged but not command line included package: {nvr}')
+                continue
+
+            if '.p1' in nvr and not include_embargoed:
+                # We are being asked to build a plashet without embargoed RPMs. p1 indicates this rpm is
+                # OR *was* embargoed. We can ignore it if it has already shipped.
+                if released_nvr is None or compare_nvr(parsed_nvr, released_nvr) > 0:  # Is our nvr > last shipped?
+                    # Our embargoed build has not been shipped. We need to find a stand-in.
+                    # Search through the tag's package history to find the last build that was NOT embargoed.
+                    unembargoed_nvr = None
+                    for build in koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event):
+                        if '.p1' in build['release']:  # If this build was embargoed, skip it.
+                            continue
+                        unembargoed_nvr = build['nvr']
+                        break
+
+                    if unembargoed_nvr is None:
+                        raise IOError(f'Unable to build unembargoed plashet. Lastest build of {package_name} ({nvr}) is embargoed but unable to find unembargoed version in history')
+                    plashet_concerns.append(f'Swapping embargoed nvr {nvr} for unembargoed nvr {unembargoed_nvr}.')
+                    logger.info(plashet_concerns[-1])
+                    nvr = unembargoed_nvr
+
+            if released_nvr:
+                if compare_nvr(parsed_nvr, released_nvr) < 0:  # if the current nvr is less than the released NVR
+                    msg = f'Skipping tagged {nvr} because it is older than a released version: {released_nvr}'
+                    plashet_concerns.add(msg)
+                    logger.error(msg)
                     continue
 
             # Make sure this is an RPM
@@ -431,6 +532,9 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
                 logger.info(f'{tag} contains package: {nvr}')
                 desired_nvrs.add(nvr)
                 nvr_product_version[nvr] = product_version
+
+    if config.include_package and len(config.include_package) != len(desired_nvrs):
+        raise IOError(f'Did not find all command line included packages {config.include_package}; only found {desired_nvrs}')
 
     if signing_advisory_id and signing_advisory_mode == 'clean':
         # Remove all builds attached to advisory before attempting signing
@@ -466,7 +570,7 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
         # Seems that everything is signed; remove builds from the advisory.
         update_advisory_builds(config, errata_proxy, signing_advisory_id, [], nvr_product_version)
 
-    assemble_repo(config, desired_nvrs)
+    assemble_repo(config, desired_nvrs, event_info)
 
 
 @cli.command('from-advisories', short_help='Collects a set of RPMs attached to specified advisories.')

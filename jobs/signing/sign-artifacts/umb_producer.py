@@ -94,6 +94,9 @@ release_name_opt = click.option("--release-name", required=True, metavar="SEMVER
 arch_opt = click.option("--arch", required=True, metavar="ARCHITECTURE",
                    type=click.Choice(['x86_64', 'ppc64le', 's390x']),
                    help="Which architecture this release was built for")
+client_type = click.option("--client-type", required=True, metavar="VAL",
+                   type=click.Choice(['ocp', 'ocp-dev-preview']),
+                   help="What type of client needs to be signed")
 client_cert = click.option("--client-cert", required=True, metavar="CERT-PATH",
                            type=click.Path(exists=True),
                            help="Path to the client certificate for UMB authentication")
@@ -252,13 +255,14 @@ def get_producer_consumer(env, certificate, private_key, trusted_certificates):
 @release_name_opt
 @client_cert
 @client_key
+@client_type
 @env
 @noop
 @ca_certs
 @arch_opt
 @click.pass_context
 def message_digest(ctx, requestor, product, request_id, sig_keyname,
-                   release_name, client_cert, client_key, env, noop,
+                   release_name, client_cert, client_key, client_type, env, noop,
                    ca_certs, arch):
     """Sign a 'message digest'. These are sha256sum.txt files produced by
 the 'sha256sum` command (hence the strange command name). In the ART
@@ -269,7 +273,7 @@ tools, as well as RHCOS bare-betal message digests.
         artifact_url = MESSAGE_DIGESTS[product].format(
             arch=arch,
             release_name=release_name,
-            release_stage="ocp-dev-preview" if "nightly" in release_name else "ocp")
+            release_stage=client_type)
     elif product == 'rhcos':
         release_parts = release_name.split('.')
         artifact_url = MESSAGE_DIGESTS[product].format(
@@ -323,6 +327,7 @@ tools, as well as RHCOS bare-betal message digests.
 @release_name_opt
 @client_cert
 @client_key
+@client_type
 @env
 @noop
 @ca_certs
@@ -330,7 +335,7 @@ tools, as well as RHCOS bare-betal message digests.
 @arch_opt
 @click.pass_context
 def json_digest(ctx, requestor, product, request_id, sig_keyname,
-                release_name, client_cert, client_key, env, noop,
+                release_name, client_cert, client_key, client_type, env, noop,
                 ca_certs, digest, arch):
     """Sign a 'json digest'. These are JSON blobs that associate a
 pullspec with a sha256 digest. In the ART world, this is for "signing
@@ -356,7 +361,7 @@ thus allowing the signature to be looked up programmatically.
         },
     }
 
-    release_stage = "ocp-release-nightly" if "nightly" in release_name else "ocp-release"
+    release_stage = "ocp-release-nightly" if client_type == 'ocp-dev-preview' else "ocp-release"
     release_tag = get_release_tag(release_name, arch)
     pullspec = "quay.io/openshift-release-dev/{}:{}".format(release_stage, release_tag)
     json_claim['critical']['identity']['docker-reference'] = pullspec

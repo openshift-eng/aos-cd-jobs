@@ -137,7 +137,7 @@ node {
                     if ( params.PRODUCT == 'openshift' ) {
                         // ######################################################################
                         def openshiftJsonSignParams = buildlib.cleanWhitespace("""
-                             ${baseUmbParams} --product openshift --arch ${params.ARCH}
+                             ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
                              --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digest} ${noop}
                          """)
 
@@ -153,7 +153,7 @@ node {
                         // ######################################################################
 
                         def openshiftSha256SignParams = buildlib.cleanWhitespace("""
-                            ${baseUmbParams} --product openshift --arch ${params.ARCH}
+                            ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
                             --request-id 'openshift-message-digest-${env.BUILD_ID}${requestIdSuffix}' ${noop}
                         """)
 

@@ -1200,7 +1200,9 @@ def getGroupBranch(doozerOpts) {
 }
 
 WORKDIR_COUNTER=0 // ensure workdir cleanup can be invoked multiple times per job
-def cleanWorkdir(workdir) {
+def cleanWorkdir(workdir, synchronous=false) {
+    // TODO: We need to replace this with rsync --delete for
+    // improved speed: https://unix.stackexchange.com/questions/37329/efficiently-delete-large-directory-containing-thousands-of-files
     // get a fresh workdir; removing the old one is left in the background.
     // NOTE: if wrapped in commonlib.shell, this would wait for the background process;
     // this is designed to run instantly and never fail, so just run it in a normal shell.
@@ -1208,9 +1210,21 @@ def cleanWorkdir(workdir) {
         mkdir -p ${workdir}
         mv ${workdir} ${workdir}.rm.${currentBuild.number}.${WORKDIR_COUNTER}
         mkdir -p ${workdir}
-        # see discussion at https://stackoverflow.com/a/37161006 re:
-        JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'rm -rf ${workdir}.rm.*' &
     """
+
+    if (synchronous) {
+        // Some jobs can make large doozer_workings faster than rm -rf can remove them.
+        // Those jobs should call with synchronous.
+        sh """
+        rm -rf ${workdir}.rm.*
+        """
+    } else {
+        sh """
+            # see discussion at https://stackoverflow.com/a/37161006 re:
+            JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'rm -rf ${workdir}.rm.*' &
+        """
+    }
+
     WORKDIR_COUNTER++
 }
 
@@ -1388,16 +1402,21 @@ def getChanges(yamlData) {
  * Creates a plashet in the current Jenkins workspace and then sync's it to rcm-guest.
  * @param version  The ocp version (e.g. 4.5.25)
  * @param release  The 4.x release field (usually a timestamp)
+ * @param el_major The RHEL major version (7 or 8)
+ * @param include_embargoed If true, the plashet will include the very latest rpms (embargoed & unembargoed). Otherwise Plashet will only include unembargoed historical builds of rpms
  * @param auto_signing_advisory The signing advisory to use
  * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
- *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>'
+ *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>' or 4.5.0-<release timestamp>-embargoed'
  *
  * }
  */
-def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
-    def baseDir = "${env.WORKSPACE}/plashets"
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=54765) {
+    def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
+    if (include_embargoed) {
+        plashetDirName += "-embargoed"
+    }
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
     def major_minor = "${major}.${minor}"
     def r = [:]
@@ -1432,6 +1451,8 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
         plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
     }
 
+    def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"
+
     // In the current implementation, the same signing advisory is used for every signing task.
     // To prevent add/remove races between versions, a lock is used.
     lock('signing-advisory') {
@@ -1443,7 +1464,8 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
                     "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
                     plashet_arch_args,
                     "from-tags", // plashet mode of operation => build from brew tags
-                    "--brew-tag rhaos-${major_minor}-rhel-7-candidate RHEL-7-OSE-${major_minor}",  // --brew-tag <tag> <associated-advisory-product-version>
+                    include_embargoed? "--include-embargoed" : "",
+                    "--brew-tag rhaos-${major_minor}-rhel-${el_major}-candidate ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
@@ -1474,6 +1496,9 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
     // 'building' in this rcm-guest directory. Before creating 'building', let's get the
     // repo over there.
     def destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${major_minor}"
+    if (el_major >= 8) {
+        destBaseDir += "-el${el_major}"
+    }
     // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
     commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
     commonlib.shell([
@@ -1492,7 +1517,8 @@ def buildBuildingPlashet(version, release,auto_signing_advisory=54765) {
 
     // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
     // doozer repo files (which have static urls back to rcm-guest) will resolve.
-    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} building\" ")
+    def symlink = include_embargoed? "building-embargoed" : "building"
+    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
     return r
 }
 

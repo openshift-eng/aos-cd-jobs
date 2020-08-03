@@ -168,9 +168,8 @@ node {
             name = release_name
 
             from_release_tag = params.FROM_RELEASE_TAG.trim()
-            arch = release.getReleaseTagArch(from_release_tag)
-            archSuffix = release.getArchSuffix(arch)
-            RELEASE_STREAM_NAME = "4-stable${archSuffix}"
+            (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
+            RELEASE_STREAM_NAME = "4-stable${release.getArchPrivSuffix(arch, false)}"
             dest_release_tag = release.destReleaseTag(release_name, arch)
             def (major, minor) = commonlib.extractMajorMinorVersionNumbers(release_name)
 
@@ -181,10 +180,34 @@ node {
             Map release_obj
             def CLIENT_TYPE = 'ocp'
 
-            currentBuild.displayName += "- ${name} (${arch})"
+            currentBuild.displayName = "${name} (${arch})"
+            currentBuild.description = "${from_release_tag} -> ${release_name}"
             if (params.DRY_RUN) {
                 currentBuild.displayName += " (dry-run)"
                 currentBuild.description += "[DRY RUN]"
+            }
+
+            if (priv) {
+                currentBuild.displayName += " (EMBARGO)"
+                currentBuild.description += " [EMBARGO]"
+                taskThread.task('Prompt the artist to confirm that embargo dates have lifted') {
+                    commonlib.inputRequired(taskThread) {
+                        def resp = input(
+                            message: "The release that you are about to promote has embargoes. You should only promote the release if the embargoes have lifted.",
+                            parameters: [
+                                booleanParam(
+                                    defaultValue: false,
+                                    description: "Check this checkbox only if the embargoes have lifted. Ask Product Security (prodsec-openshift@redhat.com) if you are not sure.",
+                                    name: 'EMBARGO_LIFTED',
+                                ),
+                            ]
+                        )
+                        if (!resp) {  // Gotcha: If just one parameter is listed, its value will become the value of the input step instead of a map.
+                            currentBuild.result = 'ABORTED'
+                            error('Aborting because the embargo has not been lifted.')
+                        }
+                    }
+                }
             }
 
             PREVIOUS_LIST_STR = params.PREVIOUS

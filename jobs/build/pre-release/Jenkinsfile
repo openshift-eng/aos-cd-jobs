@@ -118,7 +118,10 @@ node {
                 error("The source release tag ${from_release_tag} does not start with the ${params.BUILD_VERSION}")
             }
 
-            arch = release.getReleaseTagArch(from_release_tag)
+            def (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
+            if (priv) {
+                error("The source release tag ${from_release_tag} is an embargoed nightly. It shouldn't be pre-released.")
+            }
 
             def dest_release_tag = from_release_tag
             if ( params.NEW_NAME_OVERRIDE.trim() != "" ) {

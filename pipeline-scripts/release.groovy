@@ -119,8 +119,11 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
     return retval
 }
 
-def getArchSuffix(arch) {
-    return arch == "x86_64" ? "" : "-${arch}"
+def getArchPrivSuffix(arch, priv) {
+    def suffix = arch == "x86_64" ? "" : "-${arch}"
+    if (priv)
+        suffix <<= '-priv'
+    return suffix
 }
 
 def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag, description, previous, errata_url) {
@@ -135,17 +138,19 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
         metadata += "}"
     }
 
-    def arch = getReleaseTagArch(from_release_tag)
+    def (arch, priv) = getReleaseTagArchPriv(from_release_tag)
 
     echo "Generating release payload"
     echo "CI release name: ${from_release_tag}"
     echo "Calculated arch: ${arch}"
+    echo "Private: ${priv}"
 
-    def archSuffix = getArchSuffix(arch)
+    def suffix = getArchPrivSuffix(arch, priv)
+    def publicSuffix = getArchPrivSuffix(arch, false)
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
-    cmd += "-n ocp${archSuffix} --from-release=registry.svc.ci.openshift.org/ocp${archSuffix}/release${archSuffix}:${from_release_tag} "
+    cmd += "-n ocp${publicSuffix} --from-release=registry.svc.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag} "
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }
@@ -206,8 +211,8 @@ def stageSetClientLatest(from_release_tag, arch, client_type) {
 }
 
 def stageTagRelease(quay_url, release_name, release_tag, arch) {
-    def archSuffix = getArchSuffix(arch)
-    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp${archSuffix}/release${archSuffix}:${release_name}"
+    def publicSuffix = getArchPrivSuffix(arch, false)
+    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp${publicSuffix}/release${publicSuffix}:${release_name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
@@ -370,21 +375,25 @@ done
 }
 
 /**
- * Derive an architecture name from a CI release tag.
- * e.g. 4.1-art-latest-s390x-2019-11-08-213727  will return s390x
+ * Derive an architecture name and private release flag from a CI release tag.
+ * e.g.
+ *   4.1.0-0.nightly-2019-11-08-213727 will return [x86_64, false]
+ *   4.1.0-0.nightly-priv-2019-11-08-213727 will return [x86_64, true]
+ *   4.1.0-0.nightly-s390x-2019-11-08-213727 will return [s390x, false]
+ *   4.1.0-0.nightly-s390x-priv-2019-11-08-213727 will return [s390x, true]
  */
-def getReleaseTagArch(from_release_tag) {
+def getReleaseTagArchPriv(from_release_tag) {
     // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
     def nameComponents = from_release_tag.split('-')
-    def arch = nameComponents[2]
-    try {
-        arch.toInteger() // this is either year or an arch; arches will throw an exception in attempt
-        arch = 'x86_64'  // If there was no arch, this is x86
-    } catch ( e ) {
-        // The arch is not a year, so it is what we are looking for
+    def arch = "x86_64"
+    def priv = false
+    if (nameComponents[2] == "priv") {
+        priv = true
+    } else if (!nameComponents[2].isNumber()) {
+        arch = nameComponents[2]
+        priv = nameComponents[3] == "priv"
     }
-    echo "Derived architecture based on release tag name: ${arch}"
-    return arch
+    return [arch, priv]
 }
 
 def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advisoryLiveUrl, String arch = 'x86_64', String releaseStreamName='4-stable', String providerName = 'Red Hat UMB') {
@@ -645,7 +654,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                                 echo >> ul.txt
                                 rm -f slice*  # Remove any files from previous csplit runs
                                 csplit ${upgradeChannelFile} '/versions:/+1' --prefix slice   # create slice00 (up to and including versions:) and slice01 (everything after)
-                                cat slice00 ul.txt slice01 > ${upgradeChannelFile} 
+                                cat slice00 ul.txt slice01 > ${upgradeChannelFile}
                                 git add ${upgradeChannelFile}
                             fi
                             git commit -m "${pr_title}"

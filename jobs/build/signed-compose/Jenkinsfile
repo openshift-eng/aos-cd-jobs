@@ -58,6 +58,8 @@ node {
         ]
     )
 
+    commonlib.checkMock()
+
     def advisory = buildlib.elliott("--group=openshift-${params.BUILD_VERSION} get --use-default-advisory rpm --id-only", [capture: true]).trim()
 
     stage("Initialize") {

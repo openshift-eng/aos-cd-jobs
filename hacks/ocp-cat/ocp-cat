@@ -16,6 +16,23 @@ usage() {
 	EOUSAGE
 }
 
+ocp_versions() {
+  local executable commonlib
+  executable="$(readlink -f "$0")"
+  commonlib="${executable%/*/*/*}/pipeline-scripts/commonlib.groovy"
+
+  [[ -f "$commonlib" ]] || {
+    echo "Script assumes ocp-cat is symlinked to aos-cd-jobs to determine versions. Fail">/dev/stderr
+    exit 1
+  }
+
+  awk -F'"' '
+    /ocpMergeVersions/ { f=1 }
+    f && /^]/ { exit }
+    f && NF>2 { print $2 }
+  ' "$commonlib" | sort --version-sort
+}
+
 show_file() {
   local branch file
   branch="origin/openshift-$1"
@@ -71,13 +88,8 @@ main() {
     usage >/dev/stderr
     exit 1
   }
-  for release in \
-    3.11 \
-    4.1 \
-    4.2 \
-    4.3 \
-    4.4 \
-    4.5; do
+
+  for release in $(ocp_versions); do
     if [[ -z "$objects" ]]; then
       print_file "$release" "$file"
     else

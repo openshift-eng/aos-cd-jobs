@@ -102,8 +102,8 @@ node {
                         defaultValue: false
                     ],
                     [
-                        name: 'OPEN_NEXT_RELEASE',
-                        description: 'Create advisories for the next z-stream of given OCP version',
+                        name: 'KEEP_RELEASE_CLOSED',
+                        description: 'Prevent creation of advisories for the next z-stream of given OCP version',
                         $class: 'BooleanParameterDefinition',
                         defaultValue: false
                     ],
@@ -315,8 +315,8 @@ node {
             }
 
             stage("open next release") {
-                if (!params.OPEN_NEXT_RELEASE) {
-                    echo "OPEN_NEXT_RELEASE not set; skipping advisories creation"
+                if (params.KEEP_RELEASE_CLOSED) {
+                    echo "KEEP_RELEASE_CLOSED set; skipping advisories creation"
                     return
                 }
                 def ocpVersion = params.NAME.split("\\.")[0..1].join(".")

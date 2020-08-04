@@ -1,6 +1,10 @@
 import groovy.json.*
 import java.net.URLEncoder
 import groovy.transform.Field
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
@@ -450,6 +454,45 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
         echo "Message ID: ${sendResult.getMessageId()}"
         echo "Message content: ${sendResult.getMessageContent()}"
     }
+}
+
+def createAdvisoriesFor(ocpVersion) {
+    build(
+        job: "/build/advisories",
+        propagate: false,
+        parameters: [
+            string(name: "VERSION":       value: ocpVersion),
+            string(name: "DATE",          value: determineNextReleaseDate(ocpVersion)),
+            string(name: "ASSIGNED_TO",   value: "openshift-qe-errata@redhat.com"),
+            string(name: "MANAGER",       value: "vlaad@redhat.com"),
+            string(name: "PACKAGE_OWNER", value: "lmeyer@redhat.com"),
+            string(name: "IMPETUS",       value: "standard"),
+            booleanParam(name: "ENABLE_AUTOMATION", value: true),
+            booleanParam(name: "REQUEST_LIVE_IDs",  value: true),
+            booleanParam(name: "DRY_RUN",           value: false),
+        ]
+    )
+}
+
+def determineNextReleaseDate(ocpVersion) {
+    def dayOfWeek
+    switch(ocpVersion) {
+        case "4.5":
+            dayOfWeek = DayOfWeek.MONDAY
+            break
+        case "4.4":
+            dayOfWeek = DayOfWeek.TUESDAY
+            break
+        default:
+            dayOfWeek = DayOfWeek.WEDNESDAY
+            break
+    }
+    return (
+        LocalDate.now()
+        .with(TemporalAdjusters.next(dayOfWeek))
+        .with(TemporalAdjusters.next(dayOfWeek))            // 2 weeks from now
+        .format(DateTimeFormatter.ofPattern("yyyy-MMM-dd")) // format required by elliott
+    )
 }
 
 def signArtifacts(Map signingParams) {

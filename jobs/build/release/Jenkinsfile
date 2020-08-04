@@ -102,6 +102,12 @@ node {
                         defaultValue: false
                     ],
                     [
+                        name: 'OPEN_NEXT_RELEASE',
+                        description: 'Create advisories for the next z-stream of given OCP version',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -306,6 +312,15 @@ node {
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
                 }
+            }
+
+            stage("open next release") {
+                if (!params.OPEN_NEXT_RELEASE) {
+                    echo "OPEN_NEXT_RELEASE not set; skipping advisories creation"
+                    return
+                }
+                def ocpVersion = params.NAME.split("\\.")[0..1].join(".")
+                release.createAdvisoriesFor(ocpVersion)
             }
 
             stage("wait for stable") {

@@ -461,15 +461,9 @@ def createAdvisoriesFor(ocpVersion) {
         job: "/build/advisories",
         propagate: false,
         parameters: [
-            string(name: "VERSION":       value: ocpVersion),
-            string(name: "DATE",          value: determineNextReleaseDate(ocpVersion)),
-            string(name: "ASSIGNED_TO",   value: "openshift-qe-errata@redhat.com"),
-            string(name: "MANAGER",       value: "vlaad@redhat.com"),
-            string(name: "PACKAGE_OWNER", value: "lmeyer@redhat.com"),
-            string(name: "IMPETUS",       value: "standard"),
-            booleanParam(name: "ENABLE_AUTOMATION", value: true),
-            booleanParam(name: "REQUEST_LIVE_IDs",  value: true),
-            booleanParam(name: "DRY_RUN",           value: false),
+            string(name: "VERSION", value: ocpVersion),
+            string(name: "DATE",    value: determineNextReleaseDate(ocpVersion)),
+            string(name: "IMPETUS", value: "standard"),
         ]
     )
 }

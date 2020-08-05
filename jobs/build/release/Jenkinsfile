@@ -234,7 +234,7 @@ node {
                             parameters: [
                                 string(
                                         defaultValue: "4.${prevMinor}.?",
-                                        description: "This is release ${NAME}. What release is in flight for the previous minor release 4.${prevMinor}?",
+                                        description: "This is release ${release_name}. What release is in flight for the previous minor release 4.${prevMinor}?",
                                         name: 'IN_FLIGHT_PREV',
                                 ),
                                 string(
@@ -293,7 +293,7 @@ node {
                     def testLines = []
                     for ( String from_release : previousList) {
                         mode = modeOptions[testIndex % modeOptions.size()]
-                        testLines << "test upgrade ${from_release} ${NAME} ${mode}"
+                        testLines << "test upgrade ${from_release} ${release_name} ${mode}"
                         testIndex++
                     }
                     currentBuild.description += "\n@cluster-bot requests:\n${testLines.join('\n')}\n"

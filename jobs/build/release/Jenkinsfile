@@ -41,8 +41,8 @@ node {
                         defaultValue: '1. Standard Release'
                     ],
                     [
-                        name: 'NAME',
-                        description: 'Release Type [1] (e.g. 4.1.0) or [2] (e.g. 4.1.0-rc.0); Do not specify for [3] or [4].',
+                        name: 'RELEASE_OFFSET',
+                        description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
                         $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
                     ],
@@ -138,16 +138,22 @@ node {
     direct_release_nightly = false
     detect_previous = true
     candidate_pr_only = false
+    release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
+
     if (params.RELEASE_TYPE.startsWith('1.')) {
-        // Nothing special, just release it
+        release_name = "${major}.${minor}.${release_offset}"
     } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
         candidate_pr_only = true
-    } else if (params.RELEASE_TYPE.startsWith('3.')) { // Early release candidate (around feature complete)
+        release_name = "${major}.${minor}.0-rc.${release_offset}"
+    } else if (params.RELEASE_TYPE.startsWith('3.')) { // Feature candidate (around feature complete)
         direct_release_nightly = true
+        release_name = "${major}.${minor}.0-fc.${release_offset}"
         candidate_pr_only = true
     } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Just a hotfix for a specific customer
         direct_release_nightly = true
         detect_previous = false
+        release_name = params.FROM_RELEASE_TAG.trim()   // ignore offset. Release is named same as nightly.
     } else {
         error('Unknown release type: ' + params.RELEASE_TYPE)
     }
@@ -157,22 +163,12 @@ node {
         taskThread ->
         sshagent(['aos-cd-test']) {
             release_info = ""
-            if ( direct_release_nightly ) {
-                if ( params.NAME.trim() != '' ) {
-                    error('Leave name field blank for direct nightly release')
-                }
-                release_name = params.FROM_RELEASE_TAG.trim()
-            } else {
-                release_name = params.NAME.trim()
-            }
             name = release_name
 
             from_release_tag = params.FROM_RELEASE_TAG.trim()
             (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
             RELEASE_STREAM_NAME = "4-stable${release.getArchPrivSuffix(arch, false)}"
             dest_release_tag = release.destReleaseTag(release_name, arch)
-            def (major, minor) = commonlib.extractMajorMinorVersionNumbers(release_name)
-
 
             description = params.DESCRIPTION
             advisory = params.ADVISORY ? Integer.parseInt(params.ADVISORY.toString()) : 0

@@ -40,7 +40,7 @@ pipeline {
             steps {
                 sh "rpm2cpio odo.rpm | cpio --extract --make-directories"
                 sh "rm --recursive --force ${params.VERSION} && mkdir ${params.VERSION}"
-                sh "mv --verbose ./usr/share/openshift-odo-redistributable/* ${params.VERSION}/"
+                sh "mv --verbose ./usr/share/*odo-redistributable/* ${params.VERSION}/"
                 sh "tree ${params.VERSION}"
             }
         }

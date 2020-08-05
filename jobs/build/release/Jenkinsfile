@@ -438,7 +438,7 @@ node {
             subject: "${dry_subject}Success building release payload: ${release_name} (${arch})",
             body: """
 Jenkins Job: ${env.BUILD_URL}
-Release Page: https://openshift-release${archSuffix}.svc.ci.openshift.org/releasestream/4-stable${archSuffix}/release/${release_name}
+Release Page: https://openshift-release${release.getArchPrivSuffix(arch, false)}.svc.ci.openshift.org/releasestream/4-stable${release.getArchPrivSuffix(arch, false)}/release/${release_name}
 Quay PullSpec: quay.io/openshift-release-dev/ocp-release:${dest_release_tag}
 
 ${release_info}

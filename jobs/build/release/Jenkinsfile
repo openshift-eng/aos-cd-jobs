@@ -102,6 +102,12 @@ node {
                         defaultValue: false
                     ],
                     [
+                        name: 'KEEP_RELEASE_CLOSED',
+                        description: 'Prevent creation of advisories for the next z-stream of given OCP version',
+                        $class: 'BooleanParameterDefinition',
+                        defaultValue: false
+                    ],
+                    [
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
                         $class: 'BooleanParameterDefinition',
@@ -302,6 +308,19 @@ node {
                         + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
+                }
+            }
+
+            stage("open next release") {
+                if (arch != 'x86_64') {
+                    echo "Skipping advisories creation for non-x86_64 architecture."
+                } else if (params.KEEP_RELEASE_CLOSED) {
+                    echo "KEEP_RELEASE_CLOSED set; skipping advisories creation"
+                } else if (params.DRY_RUN) {
+                    echo "Would have created new advisories, skipping for DRY_RUN"
+                } else {
+                    def ocpVersion = params.FROM_RELEASE_TAG.split("\\.")[0..1].join(".")
+                    release.createAdvisoriesFor(ocpVersion)
                 }
             }
 

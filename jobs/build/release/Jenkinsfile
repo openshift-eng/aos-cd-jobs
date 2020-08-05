@@ -135,6 +135,7 @@ node {
 
     buildlib.cleanWorkdir("${env.WORKSPACE}")
 
+    def CLIENT_TYPE = 'ocp'
     direct_release_nightly = false
     detect_previous = true
     candidate_pr_only = false
@@ -150,6 +151,7 @@ node {
         direct_release_nightly = true
         release_name = "${major}.${minor}.0-fc.${release_offset}"
         candidate_pr_only = true
+        CLIENT_TYPE = 'ocp-dev-preview'
     } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Just a hotfix for a specific customer
         direct_release_nightly = true
         detect_previous = false
@@ -174,7 +176,6 @@ node {
             advisory = params.ADVISORY ? Integer.parseInt(params.ADVISORY.toString()) : 0
             String errata_url
             Map release_obj
-            def CLIENT_TYPE = 'ocp'
 
             currentBuild.displayName = "${name} (${arch})"
             currentBuild.description = "${from_release_tag} -> ${release_name}"

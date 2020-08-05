@@ -66,11 +66,14 @@ def registry_login() {
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
         sh 'docker login -u $USERNAME -p $PASSWORD quay.io'
     }
+}
+
+def registry_quay_qe_login() {
     // 2020-07-30 (https://issues.redhat.com/browse/ART-1193)
     // Login to quay.io for push to quay.io/openshift-qe-optional-operator
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_qe_registry.quay.io',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u $USERNAME -p $PASSWORD quay.io'
+        sh 'docker --config ./qe_quay_config login -u $USERNAME -p $PASSWORD quay.io'
     }
 }
 

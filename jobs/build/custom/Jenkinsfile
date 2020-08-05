@@ -242,8 +242,9 @@ node {
 
             stage("build images") {
                 if (!any_images_to_build) { return }
+                buildlib.registry_quay_qe_login()
                 command = doozerOpts
-                command += "${include_exclude} --profile ${repo_type} images:build --push-to ${qe_quay_registry}"
+                command += "${include_exclude} --profile ${repo_type} images:build --push-to ${qe_quay_registry} --registry-config=./qe_quay_config"
                 try {
                     buildlib.doozer command
                 } catch (err) {

@@ -50,19 +50,12 @@ pipeline {
             }
         }
         stage("Organize directory") {
-            parallel {
-                stage("Combine SHA256SUM files") {
-                    steps {
-                        sh "cat ${params.VERSION}/SHA256SUM.* >> ${params.VERSION}/SHA256SUM"
-                        sh "rm ${params.VERSION}/SHA256SUM.*"
-                    }
-                }
-                stage("Copy odo.exe") {
-                    steps {
-                        sh "cp ${params.VERSION}/odo-windows-amd64.exe ${params.VERSION}/odo.exe"
-                        sh "cd ${params.VERSION} ; sha256sum odo.exe >> SHA256SUM ; cd .."
-                    }
-                }
+            steps {
+                sh "cat ${params.VERSION}/SHA256SUM.* >> ${params.VERSION}/SHA256SUM"
+                sh "rm ${params.VERSION}/SHA256SUM.*"
+                sh "cp ${params.VERSION}/odo-windows-amd64.exe ${params.VERSION}/odo.exe"
+                sh "cd ${params.VERSION} ; sha256sum odo.exe >> SHA256SUM ; cd .."
+                sh "mv ${params.VERSION}/SHA256SUM ${params.VERSION}/sha256sum.txt"
             }
         }
 

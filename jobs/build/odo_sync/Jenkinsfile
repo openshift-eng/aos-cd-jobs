@@ -49,12 +49,10 @@ pipeline {
                 stage("windows") { steps { script { downloadRecursive(params.WINDOWS_BINARIES_LOCATION, params.VERSION) }}}
             }
         }
-        stage("Organize directory") {
+        stage("Combine SHA256SUMs") {
             steps {
                 sh "cat ${params.VERSION}/SHA256SUM.* >> ${params.VERSION}/SHA256SUM"
                 sh "rm ${params.VERSION}/SHA256SUM.*"
-                sh "cp ${params.VERSION}/odo-windows-amd64.exe ${params.VERSION}/odo.exe"
-                sh "cd ${params.VERSION} ; sha256sum odo.exe >> SHA256SUM ; cd .."
                 sh "mv ${params.VERSION}/SHA256SUM ${params.VERSION}/sha256sum.txt"
             }
         }
@@ -62,7 +60,7 @@ pipeline {
         stage("Sync to mirror") {
             steps {
                 sh "tree ${params.VERSION}"
-                sh "cat ${params.VERSION}/SHA256SUM"
+                sh "cat ${params.VERSION}/sha256sum.txt"
 
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"

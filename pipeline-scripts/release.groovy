@@ -308,16 +308,6 @@ def stageGetReleaseInfo(quay_url, release_tag){
     return res.stdout.trim()
 }
 
-def stageAdvisoryUpdate() {
-    // Waiting on new elliott features from Sam for this.
-    echo "Empty Stage"
-}
-
-def stageCrossRef() {
-    // cross ref tool not ready yet
-    echo "Empty Stage"
-}
-
 def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"

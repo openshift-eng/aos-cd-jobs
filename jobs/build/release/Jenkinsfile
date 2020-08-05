@@ -321,9 +321,10 @@ node {
                     echo "KEEP_RELEASE_CLOSED set; skipping advisories creation"
                 } else if (params.DRY_RUN) {
                     echo "Would have created new advisories, skipping for DRY_RUN"
-                } else { ...
-                def ocpVersion = params.NAME.split("\\.")[0..1].join(".")
-                release.createAdvisoriesFor(ocpVersion)
+                } else {
+                    def ocpVersion = params.FROM_RELEASE_TAG.split("\\.")[0..1].join(".")
+                    release.createAdvisoriesFor(ocpVersion)
+                }
             }
 
             stage("wait for stable") {

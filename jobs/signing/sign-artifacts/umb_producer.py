@@ -343,12 +343,6 @@ payload images". After the json digest is signed we publish the
 signature in a location which follows a specific directory pattern,
 thus allowing the signature to be looked up programmatically.
     """
-    # NOTE: The example claim JSON I've seen includes an 'optional' section
-    # like this (same level as 'critical'):
-    #
-    # "optional": {
-    #     "creator": "Red Hat RCM Pub 0.21.0-final "
-    # }
     json_claim = {
         "critical": {
             "image": {
@@ -358,6 +352,9 @@ thus allowing the signature to be looked up programmatically.
             "identity": {
                 "docker-reference": None,
             }
+        },
+        "optional": {
+            "creator": "Red Hat OpenShift Signing Authority 0.0.1",
         },
     }
 

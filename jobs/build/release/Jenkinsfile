@@ -388,10 +388,10 @@ node {
                         signature_name: "signature-1",
                         dry_run: params.DRY_RUN,
                         env: "prod",
-                        key_name: "redhatrelease2",
+                        key_name: CLIENT_TYPE=='ocp'?"redhatrelease2":"beta2",
                         arch: arch,
                         digest: payloadDigest,
-                        client_type: "ocp",
+                        client_type: CLIENT_TYPE,
                     )
                 }
             }

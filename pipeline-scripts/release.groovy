@@ -483,6 +483,7 @@ def determineNextReleaseDate(ocpVersion) {
     }
     return (
         LocalDate.now()
+        .with(TemporalAdjusters.next(DayOfWeek.SUNDAY))     // assuming we don't work on weekends ;D
         .with(TemporalAdjusters.next(dayOfWeek))
         .with(TemporalAdjusters.next(dayOfWeek))            // 2 weeks from now
         .format(DateTimeFormatter.ofPattern("yyyy-MMM-dd")) // format required by elliott

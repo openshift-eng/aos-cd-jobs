@@ -832,20 +832,24 @@ def with_virtualenv(path, f) {
     return withEnv(env, f)
 }
 
-// Parse record.log from Doozer into a map
-// Records will be formatted in a map like below:
-// rpms/jenkins-slave-maven-rhel7-docker:
-//   source_alias: jenkins
-//   image: openshift3/jenkins-slave-maven-rhel7
-//   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
-//   owners: ahaile@redhat.com,smunilla@redhat.com
-//   distgit: rpms/jenkins-slave-maven-rhel7-docker]
-// pms/aos-f5-router-docker:
-//   source_alias: ose
-//   image: openshift3/ose-f5-router
-//   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/aos-f5-router-docker/Dockerfile
-//   owners:
-//   distgit: rpms/aos-f5-router-docker
+/**
+ * Parse record.log from Doozer into a map. The map will be keyed by the type
+ * of operation performed. The values will be a list of maps. Each of these
+ * maps will contain the attributes for a single recorded operation of the top
+ * level key's type. The
+ * For example:
+ * record_map['covscan'] = [
+ *     [ 'distgit' : 'containers/ose-cli-artifacts',
+ *       'owners'  : 'ccoleman@redhat.com,aos-master@redhat.com',
+ *       ...
+ *     ],
+ *     [ 'distgit' : 'containers/openshift-enterprise-tests',
+ *       'owners'  : 'aos-master@redhat.com',
+ *       ...
+ *     ],
+ *     ...
+ * ]
+ */
 def parse_record_log( working_dir ) {
     def record = readFile( "${working_dir}/record.log" )
     lines = record.split("\\r?\\n");

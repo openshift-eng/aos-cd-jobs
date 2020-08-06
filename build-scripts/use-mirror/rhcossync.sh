@@ -67,10 +67,18 @@ function downloadImages() {
     for img in $(<${SYNCLIST}); do
 	curl -L --fail --retry 5 -O $img
     done
-    # rename files to indicate the release they match (including arch suffix)
+    # rename files to indicate the release they match (including arch suffix by tradition).
+    # also create an unversioned symlink to enable consistent incoming links.
     release="$VERSION"
     [[ $release == *${ARCH}* ]] || release="$release-$ARCH"
-    rename "$BUILDID" "$release" *
+    for name in *; do
+        # name like "rhcos-buildid-qemu..."
+        file="${name/$BUILDID/$release}"  # rhcos-release-qemu...
+        link="${name/-$BUILDID/}"         # rhcos-qemu...
+        [[ $name == $file ]] && continue  # skip files that aren't named that way
+        mv "$name" "$file"
+        ln -s "$file" "$link"
+    done
 }
 
 function genSha256() {

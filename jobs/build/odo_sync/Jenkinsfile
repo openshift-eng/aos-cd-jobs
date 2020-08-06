@@ -6,13 +6,23 @@ pipeline {
 
     parameters {
         string(
-            name: "RPM_URL",
-            description: "Redistributable RPM URL. Example: http://brew-task-repos.usersys.redhat.com/repos/official/openshift-odo/1.0.3/1.el7/x86_64/openshift-odo-redistributable-1.0.3-1.el7.x86_64.rpm",
+            name: "VERSION",
+            description: "Desired version name. Example: v1.0.3",
             defaultValue: ""
         )
         string(
-            name: "VERSION",
-            description: "Desired version name. Example: v1.0.3",
+            name: "LINUX_BINARIES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/odo/1.2.5-1/signed/linux/",
+            defaultValue: ""
+        )
+        string(
+            name: "MACOS_BINARIES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/odo/1.2.5-1/signed/macos/",
+            defaultValue: ""
+        )
+        string(
+            name: "WINDOWS_BINARIES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/odo/1.2.5-1/signed/windows/",
             defaultValue: ""
         )
     }
@@ -21,31 +31,37 @@ pipeline {
         stage("Validate params") {
             steps {
                 script {
-                    if (!params.RPM_URL) {
-                        error "RPM_URL must be specified"
-                    }
                     if (!params.VERSION) {
                         error "VERSION must be specified"
                     }
                 }
             }
         }
-        stage("Download RPM") {
+        stage("Clean working dir") {
             steps {
-                sh "rm --force odo.rpm"
-                sh "wget --no-verbose ${params.RPM_URL} --output-document=odo.rpm"
+                sh "rm -rf ${params.VERSION}"
             }
         }
-        stage("Extract RPM contents") {
-            steps {
-                sh "rpm2cpio odo.rpm | cpio --extract --make-directories"
-                sh "rm --recursive --force ${params.VERSION} && mkdir ${params.VERSION}"
-                sh "mv --verbose ./usr/share/*odo-redistributable/* ${params.VERSION}/"
-                sh "tree ${params.VERSION}"
+        stage("Download binaries") {
+            parallel {
+                stage("linux")   { steps { script { downloadRecursive(params.LINUX_BINARIES_LOCATION,   params.VERSION) }}}
+                stage("macos")   { steps { script { downloadRecursive(params.MACOS_BINARIES_LOCATION,   params.VERSION) }}}
+                stage("windows") { steps { script { downloadRecursive(params.WINDOWS_BINARIES_LOCATION, params.VERSION) }}}
             }
         }
+        stage("Combine SHA256SUMs") {
+            steps {
+                sh "cat ${params.VERSION}/SHA256SUM.* >> ${params.VERSION}/SHA256SUM"
+                sh "rm ${params.VERSION}/SHA256SUM.*"
+                sh "mv ${params.VERSION}/SHA256SUM ${params.VERSION}/sha256sum.txt"
+            }
+        }
+
         stage("Sync to mirror") {
             steps {
+                sh "tree ${params.VERSION}"
+                sh "cat ${params.VERSION}/sha256sum.txt"
+
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/odo/"
                     sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/odo/latest"
@@ -54,4 +70,8 @@ pipeline {
             }
         }
     }
+}
+
+def downloadRecursive(path, destination) {
+    sh "wget --recursive --no-parent --reject 'index.html*' --no-directories --directory-prefix ${destination} ${path}"
 }

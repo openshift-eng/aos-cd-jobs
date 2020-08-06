@@ -56,7 +56,10 @@ node {
     )
 
     commonlib.checkMock()
-    buildlib.cleanWorkdir("${env.WORKSPACE}")
-    release.openCincinnatiPRs(params.RELEASE_NAME.trim(), params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, params.GITHUB_ORG.trim(), params.SKIP_OTA_SLACK_NOTIFICATION)
-    buildlib.cleanWorkdir("${env.WORKSPACE}")
+    workdir = "${env.WORKSPACE}/workdir"
+    buildlib.cleanWorkdir(workdir, true)
+    dir(workdir) {
+        release.openCincinnatiPRs(params.RELEASE_NAME.trim(), params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, params.GITHUB_ORG.trim(), params.SKIP_OTA_SLACK_NOTIFICATION)
+    }
+    buildlib.cleanWorkdir(workdir)
 }

@@ -522,192 +522,190 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
         internal_errata_url = ''
     }
 
-    dir(env.WORKSPACE) {
-        sshagent(["openshift-bot"]) {
+    sshagent(["openshift-bot"]) {
 
-            // PRs that we open will be tracked in this file.
-            prs_file = "${env.WORKSPACE}/prs.txt"
-            sh "rm -f ${prs_file} && touch ${prs_file}"  // make sure we start with a clean slate
+        // PRs that we open will be tracked in this file.
+        prs_file = "prs.txt"
+        sh "rm -f ${prs_file} && touch ${prs_file}"  // make sure we start with a clean slate
 
-            sh "git clone git@github.com:${ghorg}/cincinnati-graph-data.git"
-            dir('cincinnati-graph-data/channels') {
-                def prefixes = [ "candidate", "fast", "stable"]
-                if ( major == 4 && minor == 1 ) {
-                    prefixes = [ "prerelease", "stable"]
-                }
-
-                if (isReleaseCandidate) {
-                    // Release Candidates never go past candidate
-                    prefixes = prefixes.subList(0, 1)
-                }
-
-                prURLs = [:]  // Will map channel to opened PR
-                for ( String prefix : prefixes ) {
-                    channel = "${prefix}-${major}.${minor}"
-                    channelFile = "${channel}.yaml"
-                    upgradeChannel = "${prefix}-${major}.${minorNext}"
-                    upgradeChannelFile = "${upgradeChannel}.yaml"
-
-                    channelYaml = [ name: channel, versions: [] ]
-                    if (fileExists(channelFile)) {
-                        channelYaml = readYaml(file: channelFile)
-                    } else {
-                        // create the channel if it does not already exist
-                        writeFile(file: channelFile, text: "name: ${channel}\nversions:\n" )
-                    }
-
-                    /**
-                     * @param name - The release name
-                     * @param version - a list of versions in a channel
-                     * @return Returns true if name or name+<arch> exists in list
-                     */
-                    isInChannel = { name, versions  ->
-                        for ( String version : versions ) {
-                            if ( version.startsWith( name + "+") || version.equals(name) ) {
-                                return true
-                            }
-                        }
-                        return false
-                    }
-
-                    addToChannel = !isInChannel(releaseName, channelYaml.get('versions', []))
-
-                    upgradeChannelYaml = [ name: upgradeChannel, versions: [] ]
-                    addToUpgradeChannel = false
-                    releasesForUpgradeChannel = []
-                    if ( internal_errata_url || isReleaseCandidate ) {
-                        if (fileExists(upgradeChannelFile)) {
-                            upgradeChannelYaml = readYaml(file: upgradeChannelFile)
-                            upgradeChannelVersions = upgradeChannelYaml.get('versions', [])
-
-                            // at least one version must be present & make sure that releaseName is not already there
-                            if ( upgradeChannelVersions && !isInChannel(releaseName, upgradeChannelVersions) ) {
-                                releasesForUpgradeChannel = [ releaseName ]
-                                addToUpgradeChannel = true
-                            }
-                        }
-                    } else {
-                        // This is just a tactical release for a given customer (e.g. promoting a nightly).
-                        // There should no upgrade path encouraged for it.
-                    }
-
-                    echo "Creating PR for ${prefix} channel(s)"
-                    branchName = "pr-${prefix}-${releaseName}"
-                    pr_title = "Enable ${releaseName} in ${prefix} channel(s)"
-
-                    labelArgs = ''
-
-                    pr_messages = [ pr_title ]
-
-                    if ( internal_errata_url ) {
-                        switch(prefix) {
-                            case 'prerelease':
-                            case 'candidate':
-                                pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
-                                break
-                            case 'fast':
-                                pr_messages << "Please merge as soon as ${internal_errata_url} is shipped live OR if a Cincinnati-first release is approved."
-                                if (prURLs.containsKey('candidate')) {
-                                    pr_messages << "This should provide adequate soak time for candidate channel PR ${prURLs.candidate}"
-                                }
-                                // For non-candidate, put a hold on the PR to prevent accidental merging
-                                labelArgs = "-l 'do-not-merge/hold'"
-                                break
-                            case 'stable':
-                                // For non-candidate, put a hold on the PR to prevent accidental merging
-                                labelArgs = "-l 'do-not-merge/hold'"
-                                pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
-
-                                if (prURLs.containsKey('prerelease')) {
-                                    pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
-                                }
-                                if (prURLs.containsKey('fast')) {
-                                    pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
-                                }
-
-                                break
-                            default:
-                                error("Unknown prefix: ${prefix}")
-                        }
-                    } else {
-                        if ( isReleaseCandidate ) {
-                            // Errata is irrelevant for release candidate.
-                            pr_messages << "This is a release candidate. There is no advisory associated."
-                            pr_messages << 'Please merge immediately.'
-                        } else {
-                            pr_messages << "Promoting a hotfix release (e.g. for a single customer). There is no advisory associated."
-                            pr_messages << 'Please merge immediately.'
-                        }
-                    }
-
-                    if ( addToUpgradeChannel ) {
-                        pr_messages << "This PR will also enable upgrades from ${releaseName} to releases in ${upgradeChannel}"
-                    }
-
-                    if ( !addToChannel && !addToUpgradeChannel ) {
-                        def pr_info = "No Cincinnati PRs opened for ${prefix}. Might have been done by previous architecture's release build.\n"
-                        echo pr_info
-                        currentBuild.description += pr_info
-                        continue
-                    }
-
-                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'access_token')]) {
-                        def messageArgs = ''
-                        for ( String msg : pr_messages ) {
-                            messageArgs += "--message '${msg}' "
-                        }
-
-                        sh """
-                            set -euo pipefail
-                            set -o xtrace
-                            if git checkout origin/${branchName} ; then
-                                echo "The branch ${branchName} already exists in cincinnati-graph-data. No additional PRs will be created."
-                                exit 0
-                            fi
-                            git branch -f ${branchName} origin/master
-                            git checkout ${branchName}
-                            if [[ "${addToChannel}" == "true" ]]; then
-                                echo >> ${channelFile}    # add newline to avoid if human has added something without newline
-                                echo '- ${releaseName}' >> ${channelFile}   # add the entry
-                                git add ${channelFile}
-                            fi
-                            if [[ "${addToUpgradeChannel}" == "true" ]]; then
-                                # We want to insert the previous minors right after versions: so they stay above other entries.
-                                # Why not set it in right before the next minor begins? Because we don't confuse a comment line that might exist above the next minor.
-                                # First, create a file with the content we want to insert
-                                echo -n > ul.txt  # Clear from previous channels
-                                for urn in ${releasesForUpgradeChannel.join(' ')} ; do
-                                    echo "- \$urn" >> ul.txt  # add the entry to lines to insert
-                                done
-                                echo >> ul.txt
-                                rm -f slice*  # Remove any files from previous csplit runs
-                                csplit ${upgradeChannelFile} '/versions:/+1' --prefix slice   # create slice00 (up to and including versions:) and slice01 (everything after)
-                                cat slice00 ul.txt slice01 > ${upgradeChannelFile}
-                                git add ${upgradeChannelFile}
-                            fi
-                            git commit -m "${pr_title}"
-                            git push -u origin ${branchName}
-                            export GITHUB_TOKEN=${access_token}
-                            hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
-                            cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
-                            """
-
-                        prURLs[prefix] = readFile("${prefix}.pr").trim()
-                    }
-                }
-
-                def prs = readFile(prs_file).trim()
-                if ( prs ) {  // did we open any?
-                    def slack_msg = "Hi @ota-monitor . ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
-                    if ( ghorg == 'openshift' && !noSlackOutput) {
-                        slacklib.to('#forum-release').say(slack_msg)
-                    } else {
-                        echo "Would have sent the following slack notification to #forum-release"
-                        echo slack_msg
-                    }
-                }
-
+        sh "git clone git@github.com:${ghorg}/cincinnati-graph-data.git"
+        dir('cincinnati-graph-data/channels') {
+            def prefixes = [ "candidate", "fast", "stable"]
+            if ( major == 4 && minor == 1 ) {
+                prefixes = [ "prerelease", "stable"]
             }
+
+            if (isReleaseCandidate) {
+                // Release Candidates never go past candidate
+                prefixes = prefixes.subList(0, 1)
+            }
+
+            prURLs = [:]  // Will map channel to opened PR
+            for ( String prefix : prefixes ) {
+                channel = "${prefix}-${major}.${minor}"
+                channelFile = "${channel}.yaml"
+                upgradeChannel = "${prefix}-${major}.${minorNext}"
+                upgradeChannelFile = "${upgradeChannel}.yaml"
+
+                channelYaml = [ name: channel, versions: [] ]
+                if (fileExists(channelFile)) {
+                    channelYaml = readYaml(file: channelFile)
+                } else {
+                    // create the channel if it does not already exist
+                    writeFile(file: channelFile, text: "name: ${channel}\nversions:\n" )
+                }
+
+                /**
+                 * @param name - The release name
+                 * @param version - a list of versions in a channel
+                 * @return Returns true if name or name+<arch> exists in list
+                 */
+                isInChannel = { name, versions  ->
+                    for ( String version : versions ) {
+                        if ( version.startsWith( name + "+") || version.equals(name) ) {
+                            return true
+                        }
+                    }
+                    return false
+                }
+
+                addToChannel = !isInChannel(releaseName, channelYaml.get('versions', []))
+
+                upgradeChannelYaml = [ name: upgradeChannel, versions: [] ]
+                addToUpgradeChannel = false
+                releasesForUpgradeChannel = []
+                if ( internal_errata_url || isReleaseCandidate ) {
+                    if (fileExists(upgradeChannelFile)) {
+                        upgradeChannelYaml = readYaml(file: upgradeChannelFile)
+                        upgradeChannelVersions = upgradeChannelYaml.get('versions', [])
+
+                        // at least one version must be present & make sure that releaseName is not already there
+                        if ( upgradeChannelVersions && !isInChannel(releaseName, upgradeChannelVersions) ) {
+                            releasesForUpgradeChannel = [ releaseName ]
+                            addToUpgradeChannel = true
+                        }
+                    }
+                } else {
+                    // This is just a tactical release for a given customer (e.g. promoting a nightly).
+                    // There should no upgrade path encouraged for it.
+                }
+
+                echo "Creating PR for ${prefix} channel(s)"
+                branchName = "pr-${prefix}-${releaseName}"
+                pr_title = "Enable ${releaseName} in ${prefix} channel(s)"
+
+                labelArgs = ''
+
+                pr_messages = [ pr_title ]
+
+                if ( internal_errata_url ) {
+                    switch(prefix) {
+                        case 'prerelease':
+                        case 'candidate':
+                            pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
+                            break
+                        case 'fast':
+                            pr_messages << "Please merge as soon as ${internal_errata_url} is shipped live OR if a Cincinnati-first release is approved."
+                            if (prURLs.containsKey('candidate')) {
+                                pr_messages << "This should provide adequate soak time for candidate channel PR ${prURLs.candidate}"
+                            }
+                            // For non-candidate, put a hold on the PR to prevent accidental merging
+                            labelArgs = "-l 'do-not-merge/hold'"
+                            break
+                        case 'stable':
+                            // For non-candidate, put a hold on the PR to prevent accidental merging
+                            labelArgs = "-l 'do-not-merge/hold'"
+                            pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
+
+                            if (prURLs.containsKey('prerelease')) {
+                                pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
+                            }
+                            if (prURLs.containsKey('fast')) {
+                                pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
+                            }
+
+                            break
+                        default:
+                            error("Unknown prefix: ${prefix}")
+                    }
+                } else {
+                    if ( isReleaseCandidate ) {
+                        // Errata is irrelevant for release candidate.
+                        pr_messages << "This is a release candidate. There is no advisory associated."
+                        pr_messages << 'Please merge immediately.'
+                    } else {
+                        pr_messages << "Promoting a hotfix release (e.g. for a single customer). There is no advisory associated."
+                        pr_messages << 'Please merge immediately.'
+                    }
+                }
+
+                if ( addToUpgradeChannel ) {
+                    pr_messages << "This PR will also enable upgrades from ${releaseName} to releases in ${upgradeChannel}"
+                }
+
+                if ( !addToChannel && !addToUpgradeChannel ) {
+                    def pr_info = "No Cincinnati PRs opened for ${prefix}. Might have been done by previous architecture's release build.\n"
+                    echo pr_info
+                    currentBuild.description += pr_info
+                    continue
+                }
+
+                withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'access_token')]) {
+                    def messageArgs = ''
+                    for ( String msg : pr_messages ) {
+                        messageArgs += "--message '${msg}' "
+                    }
+
+                    sh """
+                        set -euo pipefail
+                        set -o xtrace
+                        if git checkout origin/${branchName} ; then
+                            echo "The branch ${branchName} already exists in cincinnati-graph-data. No additional PRs will be created."
+                            exit 0
+                        fi
+                        git branch -f ${branchName} origin/master
+                        git checkout ${branchName}
+                        if [[ "${addToChannel}" == "true" ]]; then
+                            echo >> ${channelFile}    # add newline to avoid if human has added something without newline
+                            echo '- ${releaseName}' >> ${channelFile}   # add the entry
+                            git add ${channelFile}
+                        fi
+                        if [[ "${addToUpgradeChannel}" == "true" ]]; then
+                            # We want to insert the previous minors right after versions: so they stay above other entries.
+                            # Why not set it in right before the next minor begins? Because we don't confuse a comment line that might exist above the next minor.
+                            # First, create a file with the content we want to insert
+                            echo -n > ul.txt  # Clear from previous channels
+                            for urn in ${releasesForUpgradeChannel.join(' ')} ; do
+                                echo "- \$urn" >> ul.txt  # add the entry to lines to insert
+                            done
+                            echo >> ul.txt
+                            rm -f slice*  # Remove any files from previous csplit runs
+                            csplit ${upgradeChannelFile} '/versions:/+1' --prefix slice   # create slice00 (up to and including versions:) and slice01 (everything after)
+                            cat slice00 ul.txt slice01 > ${upgradeChannelFile}
+                            git add ${upgradeChannelFile}
+                        fi
+                        git commit -m "${pr_title}"
+                        git push -u origin ${branchName}
+                        export GITHUB_TOKEN=${access_token}
+                        hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
+                        cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
+                        """
+
+                    prURLs[prefix] = readFile("${prefix}.pr").trim()
+                }
+            }
+
+            def prs = readFile(prs_file).trim()
+            if ( prs ) {  // did we open any?
+                def slack_msg = "Hi @ota-monitor . ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
+                if ( ghorg == 'openshift' && !noSlackOutput) {
+                    slacklib.to('#forum-release').say(slack_msg)
+                } else {
+                    echo "Would have sent the following slack notification to #forum-release"
+                    echo slack_msg
+                }
+            }
+
         }
     }
 }

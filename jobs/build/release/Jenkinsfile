@@ -163,6 +163,7 @@ node {
         direct_release_nightly = true
         detect_previous = false
         release_name = params.FROM_RELEASE_TAG.trim()   // ignore offset. Release is named same as nightly.
+        CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
     } else {
         error('Unknown release type: ' + params.RELEASE_TYPE)
     }

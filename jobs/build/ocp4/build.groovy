@@ -336,7 +336,6 @@ def stageBuildImages() {
         // If any arch is GA, use signed for everything. See stageBuildCompose for details.
         def signing_mode = archReleaseStates['release']?'signed':'unsigned'
         // TODO: make this qe additional registry parameterized?
-        def qe_quay_registry = "quay.io/openshift-qe-optional-operator"
         buildlib.registry_quay_qe_login()
         def cmd =
             """
@@ -344,7 +343,7 @@ def stageBuildImages() {
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
             images:build
             --repo-type ${signing_mode}
-            --push-to ${qe_quay_registry}
+            --push-to-defaults
             --registry-config=./qe_quay_config
             """
         if(buildPlan.dryRun) {

@@ -13,11 +13,6 @@ ocp4Versions = [
     "4.2",
 ]
 
-// Send UMB messages for these new nightlies, yields a list like:
-//
-//     [4-stable, 4.1.0-0.nightly, 4.2.0-0.nightly, 4.3.0-0.nightly, ...]
-ocp4SendUMBVersions = ocp4Versions.collect(["4-stable"]) { it + ".0-0.nightly" }
-
 // Which versions should undergo merges from origin->ose
 ocpMergeVersions = [
     "4.6",
@@ -364,9 +359,9 @@ def shell(arg) {
     // concurrency-safe creation of output dir and removal of any previous output dirs
     sh """#!/bin/bash +x
         # Make the directory we are going to stream output to
-        mkdir -p ${shellSubdir} 
+        mkdir -p ${shellSubdir}
         # Remove any old shell content from prior jobs
-        rm -rf `ls -d ${shellBase}/shell.* | grep -v shell.${currentBuild.number}`  
+        rm -rf `ls -d ${shellBase}/shell.* | grep -v shell.${currentBuild.number}`
     """
 
     echo "Running shell script via commonlib.shell:\n${script}"

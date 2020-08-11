@@ -446,6 +446,26 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
     }
 }
 
+def sendPreReleaseMessage(Map release, String releaseStreamName, String providerName = 'Red Hat UMB') {
+    timeout(3) {
+        def sendResult = sendCIMessage(
+            messageProperties:
+                """release=${release.name}
+                release_stream: ${releaseStreamName}
+                product=OpenShift Container Platform
+                """,
+            messageContent: JsonOutput.toJson(release),
+            messageType: 'Custom',
+            failOnError: true,
+            overrides: [topic: 'VirtualTopic.qe.ci.jenkins'],
+            providerName: providerName,
+        )
+        echo 'Message sent.'
+        echo "Message ID: ${sendResult.getMessageId()}"
+        echo "Message content: ${sendResult.getMessageContent()}"
+    }
+}
+
 def createAdvisoriesFor(ocpVersion, dry_run=false) {
     build(
         job: "build%2Fadvisories",

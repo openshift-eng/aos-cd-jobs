@@ -64,13 +64,15 @@ node {
 
     try {
         currentBuild.displayName = "#${currentBuild.number} - ${CHANNEL_OR_RELEASE} (arches: ${ARCHES})"
-        
+
         if ( params.CLIENT_TYPE == "ocp" &&  params.CHANNEL_OR_RELEASE.charAt(0).isDigit() ) {
             // For released ocp clients, only support channel names.
             error("Released ocp client links are managed automatically by polling Cincinnati. See set_cincinnati_links in scheduled-jobs")
         }
 
-        result = buildlib.invoke_on_use_mirror("set-v4-client-latest.sh", params.CHANNEL_OR_RELEASE, params.CLIENT_TYPE, params.LINK_NAME, params.ARCHES)
+        timeout(15) {
+            result = buildlib.invoke_on_use_mirror("set-v4-client-latest.sh", params.CHANNEL_OR_RELEASE, params.CLIENT_TYPE, params.LINK_NAME, params.ARCHES)
+        }
         echo "${result}"
     } catch (err) {
         commonlib.email(

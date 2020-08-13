@@ -12,7 +12,18 @@ node {
         def dateFormat = new SimpleDateFormat("yyyy-MMM-dd")
         def date = new Date()
 
-        // Expose properties for a parameterized build
+        commonlib.describeJob("advisories", """
+            ------------------------------------------------
+            Create the standard advisories for a new release
+            ------------------------------------------------
+            Timing: The "release" job runs this as soon as the previous release
+            for this version is defined in the release-controller.
+
+            For more details see the README:
+            https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/advisories/README.md
+        """)
+
+        // Please update README.md if modifying parameter names or semantics
         properties(
             [
                 disableResume(),
@@ -63,7 +74,7 @@ node {
                         ),
                         string(
                             name: "DATE",
-                            description: "Intended release date. Format: YYYY-Mon-dd (i.e.: 2050-Jan-01)",
+                            description: "Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
                             defaultValue: "${dateFormat.format(date)}"
                         ),
                         booleanParam(
@@ -81,22 +92,17 @@ node {
                         ),
                         string(
                             name: 'LIVE_ID_MAIL_LIST',
-                            description: 'Current default is OpenShift CCS Mailing List && OpenShift ART',
+                            description: 'Current default is OpenShift CCS Mailing List and OpenShift ART',
                             defaultValue: [
                                 "openshift-ccs@redhat.com",
                                 "aos-team-art@redhat.com"
                             ].join(",")            
                         ),
-                        text(
-                            name: "SPECIAL_NOTES",
-                            description: "(Optional) special notes to include in the email",
-                            defaultValue: ""
-                        ),
                         commonlib.mockParam(),
                     ]
                 ],
             ]
-        )
+        )   // Please update README.md if modifying parameter names or semantics
 
         commonlib.checkMock()
 

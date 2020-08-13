@@ -132,6 +132,16 @@ def initialize() {
     // https://issues.jenkins-ci.org/browse/JENKINS-33511 no longer appears relevant
 }
 
+def describeJob(name, description) {
+    job = Jenkins.getInstance().getItemByFullName(env.JOB_NAME)
+    if (name) {
+        job.setDisplayName(name)
+    }
+    if (description) {
+        job.setDescription(description)
+    }
+}
+
 def checkMock() {
     // User can have the job end if this is just a run to pick up parameter changes
     // (which Jenkins discovers by running the job).

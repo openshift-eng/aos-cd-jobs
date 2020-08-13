@@ -1,12 +1,5 @@
 #!/usr/bin/env groovy
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-    if(env.WORKSPACE == null) {
-        env.WORKSPACE = pwd()
-    }
-}
-
 // Expose properties for a parameterized build
 properties(
     [
@@ -73,7 +66,7 @@ properties(
     ]
 )
 
-if ( MOCK.toBoolean() ) {
+if ( params.MOCK || env.MOCK == null) {
     error( "Ran in mock mode to pick up any new parameters" )
 }
 
@@ -86,9 +79,22 @@ if ( OPENSHIFT_ANSIBLE_CHECKOUT == "" ) {
 def FORM_PAYLOAD = "OPENSHIFT_VERSION=${OPENSHIFT_VERSION}&OPENSHIFT_RELEASE=${OPENSHIFT_RELEASE}&YUM_BASE_URL=${YUM_BASE_URL}&OPENSHIFT_ANSIBLE_CHECKOUT=${OPENSHIFT_ANSIBLE_CHECKOUT}&USE_CRIO=${USE_CRIO}&CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE=${CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE}"
 
 node('openshift-build-1') {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib.describeJob("aws-ami", """
+        ------------------------------------------------
+        Publish 3.11 AMI to AWS
+        ------------------------------------------------
+        This job publishes an AMI created for an OCP 3.11 build on AWS.
+        At some point it must have been used in testing 3.y builds in AWS.
+        It is not clear that anyone uses it for anything now.
+
+       Timing:
+       The ocp3 job runs this job when it's complete.
+       There's no known reason for a human to run it.
+    """)
+
     try {
-        set_workspace()
-        def buildlib = null
         def build_date = new Date().format('yyyyMMddHHmm')
         stage('invoke') {
             currentBuild.displayName = "#${currentBuild.number} - ${OPENSHIFT_VERSION}-${OPENSHIFT_RELEASE}"

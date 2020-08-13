@@ -35,7 +35,7 @@ node('openshift-build-1') {
           }
           sshagent([key]) {
             sh """\
-virtualenv ../env/
+virtualenv ../env/ -p python3
 . ../env/bin/activate
 pip install gitpython
 export GIT_PYTHON_TRACE=full

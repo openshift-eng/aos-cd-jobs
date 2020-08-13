@@ -21,11 +21,9 @@ for a version.
 
 ## Parameters
 
-### VERSION
+### Standard parameters DRY\_RUN, MOCK, SUPPRESS\_EMAIL, VERSION
 
-Standard release version parameter: OCP version like 3.11 or 4.5.
-There must be a branch `openshift-VERSION` in the [ocp-build-data repository](https://github.com/openshift/ocp-build-data/branches)
-because this will read it and edit it.
+See [Standard Parameters](/jobs/README.md#standard-parameters).
 
 ### REQUEST\_LIVE\_IDs
 
@@ -70,20 +68,6 @@ advisory metadata, although we're pretty much the only ones that ever read it.
 ### DATE
 
 Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)
-
-### DRY\_RUN
-
-A standard parameter, used when testing.
-When set, the job should make no changes, just echo what the job would have done.
-Preferably this should exercise as much job logic as possible without changing production data.
-
-### SUPPRESS\_EMAIL
-
-Standard parameter to prevent email being sent during testing, but still create
-email texts and archive them in the job run.  It defaults to sending email when
-deployed under
-https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/
-and defaults to suppressing it anywhere else.
 
 ### MAIL\_LIST\_FAILURE
 

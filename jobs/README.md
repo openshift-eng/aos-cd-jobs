@@ -6,9 +6,6 @@ is internal and locked down so only ART team members can access it.
 Jobs under the `jobs/build/` directory are indexed in a multibranch pipeline in the
 [`aos-cd-builds`](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/) folder.
 
-Jobs should each have a README to explain what they are for and how to use them.
-They should also (WIP) have a description and link to their docs.
-
 https://mojo.redhat.com/docs/DOC-1206910 explains how to access, develop, and use these.
 
 ## Deployment
@@ -67,6 +64,13 @@ It is a very good idea to get familiar with [commonlib.groovy](https://github.co
 
 ### Standard parameters
 
+#### DRY\_RUN
+
+A common parameter, used when testing (but not standardized anywhere).
+
+When set, the job should make no changes, just echo what the job would have done.
+Preferably this should exercise as much job logic as possible without changing production data.
+
 #### MOCK
 
 When set, the job runs just far enough to define job properties, and then exits
@@ -91,14 +95,6 @@ after defining job properties but before beginning their logic. When invoked,
 this throws an error if there is no MOCK parameter defined (on the first run)
 or if it is true (to pick up changes).
 
-#### VERSION or MINOR\_VERSION
-
-This refers to the OCP minor version like 3.11 or 4.5; available choices are given in a pulldown.
-There must be a matching branch `openshift-VERSION` in the [ocp-build-data repository](https://github.com/openshift/ocp-build-data/branches).
-Jobs with this parameter cannot be run against arbitrary branches in ocp-build-data.
-
-Standardized in [`commonlib.ocpVersionParam()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L164)
-
 #### SUPPRESS\_EMAIL
 
 Standard parameter to prevent email being sent during testing, but still create
@@ -111,13 +107,13 @@ Standardized in [`commonlib.suppressEmailParam()`](https://github.com/openshift/
 [`commonlib.email()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L245)
 automatically respects this parameter so jobs do not need to branch their logic.
 
+#### VERSION or MINOR\_VERSION
 
-#### DRY\_RUN
+This refers to the OCP minor version like 3.11 or 4.5; available choices are given in a pulldown.
+There must be a matching branch `openshift-VERSION` in the [ocp-build-data repository](https://github.com/openshift/ocp-build-data/branches).
+Jobs with this parameter cannot be run against arbitrary branches in ocp-build-data.
 
-A common parameter, used when testing (but not standardized anywhere).
-
-When set, the job should make no changes, just echo what the job would have done.
-Preferably this should exercise as much job logic as possible without changing production data.
+Standardized in [`commonlib.ocpVersionParam()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L164)
 
 ### List parameters
 
@@ -160,7 +156,42 @@ hack job for the same thing) from running.
 Use the [`lock` step](https://www.jenkins.io/doc/pipeline/steps/lockable-resources/#lock-lock-shared-resource)
 to scope locking only to the conflict that needs to be avoided.  For example in
 the [ocp4 job](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/ocp4/Jenkinsfile#L110)
-there are locks to prevent conflicting github/dist-git commits or RPM composes for the same version.
+there are locks to prevent conflicting github/dist-git commits or RPM composes
+for the same version (other versions can run concurrently just fine).
 
 If a job needs to check if a lock is free without actually locking, see
 [`commonlib.canLock()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L476).
+
+## Job documentation template
+
+Jobs should (WIP) each have a README to explain what they are for and how to use them.
+They should also have a [description](https://github.com/openshift/aos-cd-jobs/blob/908864ae4b444c7fb382836564b4fb9fb21d3dce/pipeline-scripts/commonlib.groovy#L135)
+and link to their docs.
+
+The following is a template to start out a new README.md. Copy and remove two hash marks from each title.
+
+### (Brief description of job goes here)
+
+#### Purpose
+
+What is it for? Why do we need it?
+
+#### Timing
+
+When would this run or under what conditions should a human run it?
+
+#### Parameters
+
+##### Standard parameters DRY\_RUN, MINOR\_VERSION, MOCK, SUPPRESS\_EMAIL (if relevant)
+
+See [Standard Parameters](/jobs/README.md#standard-parameters).
+
+##### Parameter ...
+
+List each parameter, examples of what should/not go in it, effects it has, gotchas to avoid, etc.
+
+#### Known issues
+
+### Issue ...
+
+What is known not to work? If it sometimes breaks, what should the ARTist do about it?

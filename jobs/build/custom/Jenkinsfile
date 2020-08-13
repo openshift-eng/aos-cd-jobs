@@ -140,8 +140,6 @@ node {
     def images = commonlib.cleanCommaList(params.IMAGES)
     def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
     def rpms = commonlib.cleanCommaList(params.RPMS)
-    // TODO: make this qe additional registry parameterized?
-    def qe_quay_registry = "quay.io/openshift-qe-optional-operator"
 
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
@@ -244,7 +242,7 @@ node {
                 if (!any_images_to_build) { return }
                 buildlib.registry_quay_qe_login()
                 command = doozerOpts
-                command += "${include_exclude} --profile ${repo_type} images:build --push-to-defaults --registry-config=./qe_quay_config"
+                command += "${include_exclude} --profile ${repo_type} images:build --push-to-defaults --registry-config-dir=./qe_quay_config"
                 try {
                     buildlib.doozer command
                 } catch (err) {

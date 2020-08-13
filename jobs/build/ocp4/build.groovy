@@ -335,7 +335,6 @@ def stageBuildImages() {
         def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
         // If any arch is GA, use signed for everything. See stageBuildCompose for details.
         def signing_mode = archReleaseStates['release']?'signed':'unsigned'
-        // TODO: make this qe additional registry parameterized?
         buildlib.registry_quay_qe_login()
         def cmd =
             """
@@ -344,7 +343,8 @@ def stageBuildImages() {
             images:build
             --repo-type ${signing_mode}
             --push-to-defaults
-            --registry-config=./qe_quay_config
+            --filter-by-os='.*'
+            --registry-config-dir=./qe_quay_config
             """
         if(buildPlan.dryRun) {
             echo "doozer ${cmd}"

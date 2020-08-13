@@ -215,14 +215,14 @@ node {
                 }
             }
 
-            PREVIOUS_LIST_STR = params.PREVIOUS
+            previousList = commonlib.parseList(params.PREVIOUS)
             if ( params.PREVIOUS.trim() == 'auto' ) {
                 taskThread.task('Gather PREVIOUS for release') {
 
                     if (!detect_previous) {
                         // Hotfixes don't get a PREVIOUS by default since we don't
                         // want customers upgrading to it unintentionally.
-                        PREVIOUS_LIST_STR = ''
+                        previousList = []
                         return
                     }
 
@@ -254,15 +254,12 @@ node {
                             ]
                         )
 
-                        def splitlist = resp.SUGGESTED.replaceAll("\\s","").split(',').toList()
-                        def inflight = resp.IN_FLIGHT_PREV.trim()
-                        if ( inflight ) {
-                            splitlist << inflight
-                        }
-                        PREVIOUS_LIST_STR = splitlist.unique().join(',')
+                        previousList = commonlib.parseList(resp.SUGGESTED) + commonlib.parseList(resp.IN_FLIGHT_PREV)
                     }
                 }
             }
+            previousList = previousList.toList().unique()
+            echo "previousList is ${previousList}"
 
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
@@ -278,7 +275,7 @@ node {
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }
-            stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, PREVIOUS_LIST_STR, errata_url) }
+            stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previousList.join(','), errata_url) }
 
             stage("tag stable") {
                 if (direct_release_nightly) {
@@ -296,7 +293,6 @@ node {
                     return
                 }
                 try {  // don't let a slack outage break the job at this point
-                    def previousList = PREVIOUS_LIST_STR.trim().tokenize('\t ,')
                     def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
                     def testIndex = 0
                     def testLines = []

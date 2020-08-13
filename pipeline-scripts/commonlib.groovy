@@ -193,10 +193,17 @@ def standardVersion(String version, Boolean withV=true) {
     return withV ? "v${version}" : version
 }
 
+def sanitizeInvisible(str) {
+    // Jenkins has a tendency to put invisible breaks that people copy and paste into job parameters.
+    // This causes very confusing failures.
+    // First turn newlines into space to preserve separation in lists; then remove other non-printables
+    return str.replaceAll(/\s/, " ").replaceAll(/[^\p{Print}]/, '')
+}
+
 def parseList(str) {
     // turn the string of a list separated by commas or spaces into a list
     str = (str == null) ? "" : str
-    return str.replaceAll(',', ' ').split()
+    return sanitizeInvisible(str).replaceAll(',', ' ').split()
 }
 
 def cleanCommaList(str) {

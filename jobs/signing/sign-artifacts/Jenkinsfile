@@ -98,7 +98,6 @@ node {
 
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
-        def digest = params.DIGEST ? "--digest ${params.DIGEST}" : ""
 
         currentBuild.displayName += "- ${params.NAME}"
         if (params.DRY_RUN) {
@@ -112,9 +111,11 @@ node {
             requestIdSuffix = ""
         }
 
-        if ( !(env.DIGEST ==~ /sha256:[0-9a-f]{64}/) ) {
+        def digest = commonlib.sanitizeInvisible(params.DIGEST).trim()
+        def digestParam = digest ? "--digest ${digest}" : ""
+        if ( !(digest ==~ /sha256:[0-9a-f]{64}/) ) {
             currentBuild.description = "bad digest"
-            error("The digest does not look like 'sha256:hex64'. If you copied it from jenkins job output, it might include invisible unicode.")
+            error("The digest does not look like 'sha256:hex64'")
         }
 
         wrap([$class: 'BuildUser']) {
@@ -138,7 +139,7 @@ node {
                         // ######################################################################
                         def openshiftJsonSignParams = buildlib.cleanWhitespace("""
                              ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
-                             --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digest} ${noop}
+                             --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digestParam} ${noop}
                          """)
 
                         echo "Submitting OpenShift Payload JSON claim signature request"

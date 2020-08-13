@@ -107,6 +107,7 @@ node {
         commonlib.checkMock()
 
         currentBuild.displayName = "${params.VERSION}.z advisories${params.DRY_RUN ? " [DRY_RUN]" : ""}"
+        currentBuild.description = ""
 
         try {
             stage("kinit") {

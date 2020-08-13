@@ -58,6 +58,17 @@ ${brewEventID}
     sh("mv src_dest* ${mirrorWorking}/")
     sh("mv image_stream*.yaml ${mirrorWorking}/")
     artifacts.addAll(["MIRROR_working/src_dest*", "MIRROR_working/image_stream*"])
+    try {
+        artifacts.addAll(["MIRROR_working/state.yaml"])
+        state = readYaml(file: "MIRROR_working/state.yaml")
+        if (state.required_fail > 0 || state.optional_fail > 0) {
+            echo "Not all images are updated. See Doozer logs and state.yaml"
+            currentBuild.result = "UNSTABLE"
+        }
+    } catch (ex) {
+        echo "Unable to read MIRROR_working/state.yaml"
+        currentBuild.result = "UNSTABLE"
+    }
 }
 
 // ######################################################################

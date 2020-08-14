@@ -107,7 +107,7 @@ Standardized in [`commonlib.suppressEmailParam()`](https://github.com/openshift/
 [`commonlib.email()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L245)
 automatically respects this parameter so jobs do not need to branch their logic.
 
-#### VERSION or MINOR\_VERSION
+#### VERSION or BUILD\_VERSION or MINOR\_VERSION
 
 This refers to the OCP minor version like 3.11 or 4.5; available choices are given in a pulldown.
 There must be a matching branch `openshift-VERSION` in the [ocp-build-data repository](https://github.com/openshift/ocp-build-data/branches).
@@ -139,11 +139,11 @@ indicate that input is needed.
 A common pattern is that something exceptional happens and the job needs a human to tell it how/whether to proceed.
 This has been abstracted out in [commonlib](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L508-L578).
 
-Since we humans would rather not have to pay attention to our jobs all day,
+Since we humans would rather not have to pay attention to our job runs all day,
 this integrates slack to notify humans when a job is waiting on input.
 Typically a job should send these to one of our version-specific channels. The
 `release` job uses this heavily, for example to [let release-artists know
-release tests failed](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/release/Jenkinsfile#L341-L345)
+release tests failed](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/release/Jenkinsfile#L341-L345).
 
 ### Concurrency and locks
 
@@ -156,10 +156,10 @@ hack job for the same thing) from running.
 Use the [`lock` step](https://www.jenkins.io/doc/pipeline/steps/lockable-resources/#lock-lock-shared-resource)
 to scope locking only to the conflict that needs to be avoided.  For example in
 the [ocp4 job](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/ocp4/Jenkinsfile#L110)
-there are locks to prevent conflicting github/dist-git commits or RPM composes
-for the same version (other versions can run concurrently just fine).
+there are locks to prevent conflicting dist-git commits or RPM composes for the
+same version (but different versions can run concurrently just fine).
 
-If a job needs to check if a lock is free without actually locking, see
+If a job needs to check whether a lock is free without actually locking, see
 [`commonlib.canLock()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L476).
 
 ## Job documentation template
@@ -192,6 +192,6 @@ List each parameter, examples of what should/not go in it, effects it has, gotch
 
 #### Known issues
 
-### Issue ...
+##### Issue ...
 
 What is known not to work? If it sometimes breaks, what should the ARTist do about it?

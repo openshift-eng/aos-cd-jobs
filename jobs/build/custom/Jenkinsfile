@@ -3,8 +3,24 @@ node {
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("custom", """
+        ---------------------------------------------
+        Run component builds in ways other jobs can't
+        ---------------------------------------------
+        Timing: This is only ever run by humans, as needed. No job should be calling it.
 
-    // Expose properties for a parameterized build
+        This job is mainly used when you need something specific not handled
+        well by the ocp3 or ocp4 jobs and don't want to set up and use doozer.
+
+        It is also still necessary for building OCP 3.11 releases using signed
+        RPMs in containers.
+
+        For more details see the README:
+        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/custom/README.md
+    """)
+
+
+    // Please update README.md if modifying parameter names or semantics
     properties(
         [
             disableResume(),
@@ -18,106 +34,84 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION'),
-                    [
-                        name: 'VERSION',
-                        description: '(Optional) version for build (e.g. 4.3.42) instead of most recent\nor "+" to bump most recent version',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'RELEASE',
-                        description: '(Optional) Release string for build instead of default (1 for 3.x, timestamp.p? for 4.x)',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'COMPOSE',
-                        description: 'Build plashets/compose (always true if building RPMs)',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
-                    [
-                        name: 'RPMS',
-                        description: 'CSV list of RPMs to build. Empty for all. Enter "NONE" to not build any.',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "NONE"
-                    ],
-                    [
-                        name: 'IMAGES',
-                        description: 'CSV list of images to build. Empty for all. Enter "NONE" to not build any.',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'EXCLUDE_IMAGES',
-                        description: 'CSV list of images to skip building (IMAGES value is ignored)',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: ""
-                    ],
-                    [
-                        name: 'IMAGE_MODE',
-                        description: 'How to update image dist-gits: with a source rebase, just dockerfile updates, or not at all (no version/release update)',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
-                        choices: ['rebase', 'update-dockerfile', 'nothing'].join('\n'),
-                        defaultValue: 'images:rebase',
-                    ],
-                    [
-                        name: 'DOOZER_DATA_PATH',
-                        description: '(Optional) you may override with your fork',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "https://github.com/openshift/ocp-build-data"
-                    ],
-                    [
-                        name: 'SIGNED',
-                        description: 'Build images against signed RPMs?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: true
-                    ],
-                    [
-                        name: 'SWEEP_BUGS',
-                        description: 'Sweep and attach bugs to advisories',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
-                    [
+                    booleanParam(
                         name: 'IGNORE_LOCKS',
                         description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
-                        $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
-                    ],
+                    ),
+                    string(
+                        name: 'VERSION',
+                        description: '(Optional) version for build (e.g. 4.3.42) instead of most recent\nor "+" to bump most recent version',
+                    ),
+                    string(
+                        name: 'RELEASE',
+                        description: '(Optional) Release string for build instead of default (1 for 3.x, timestamp.p? for 4.x)',
+                    ),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift/ocp-build-data"
+                    ),
+                    string(
+                        name: 'RPMS',
+                        description: 'List of RPM distgits to build. Empty for all. Enter "NONE" to not build any.',
+                        defaultValue: "NONE"
+                    ),
+                    booleanParam(
+                        name: 'COMPOSE',
+                        description: 'Build plashets/compose (always true if building RPMs)',
+                        defaultValue: false
+                    ),
+                    string(
+                        name: 'IMAGES',
+                        description: 'List of image distgits to build. Empty for all. Enter "NONE" to not build any.',
+                    ),
+                    string(
+                        name: 'EXCLUDE_IMAGES',
+                        description: 'List of image distgits NOT to build (builds all not listed - IMAGES value is ignored)',
+                    ),
+                    choice(
+                        name: 'IMAGE_MODE',
+                        description: 'How to update image dist-gits: with a source rebase, just dockerfile updates, or not at all (no version/release update)',
+                        choices: ['rebase', 'update-dockerfile', 'nothing'].join('\n'),
+                    ),
+                    booleanParam(
+                        name: 'SIGNED',
+                        description: '(3.11) Build images against signed RPMs?',
+                        defaultValue: true
+                    ),
+                    booleanParam(
+                        name: 'SWEEP_BUGS',
+                        description: 'Sweep and attach bugs to advisories',
+                        defaultValue: false
+                    ),
+                    string(
+                        name: 'IMAGE_ADVISORY_ID',
+                        description: 'Advisory id for attaching new images if desired. Enter "default" to use current advisory from ocp-build-data',
+                    ),
+                    string(
+                        name: 'RPM_ADVISORY_ID',
+                        description: 'Advisory id for attaching new rpms if desired. Enter "default" to use current advisory from ocp-build-data',
+                    ),
                     commonlib.suppressEmailParam(),
-                    [
+                    string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: '(Optional) Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "",
-                    ],
-                    [
-                        name: 'IMAGE_ADVISORY_ID',
-                        description: 'Advisory Number to attach new images to. \'default\' use number from ocp-build-data, leave it empty if you do not want add',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "",
-                    ],
-                    [
-                        name: 'RPM_ADVISORY_ID',
-                        description: 'Advisory Number to attach new rpms to. \'default\' use number from ocp-build-data, leave it empty if you do not want add',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "",
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-custom-build@redhat.com',
                         ].join(',')
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
         ]
-    )
-    buildlib.initialize(false)
+    )   // Please update README.md if modifying parameter names or semantics
+    buildlib.initialize()
 
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 

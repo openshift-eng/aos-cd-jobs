@@ -21,7 +21,7 @@ node {
         https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/appregistry/README.md
     """)
 
-    // Expose properties for a parameterized build
+    // Please update README.md if modifying parameter names or semantics
     properties(
         [
             disableResume(),
@@ -36,16 +36,14 @@ node {
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(
                         name: 'IMAGES',
-                        description: '(Optional) List of images to limit selection (default all)',
+                        description: 'List of image distgits to limit selection (default all)',
                         defaultValue: ""
                     ),
-                    [
+                    choice(
                         name: 'STREAM',
                         description: 'OMPS appregistry',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: ['dev', 'stage', 'prod'],
-                        defaultValue: 'dev',
-                    ],
+                    ),
                     string(
                         name: 'OLM_OPERATOR_ADVISORIES',
                         description: 'One or more advisories where OLM operators are attached\n* Required for "stage" and "prod" STREAMs',
@@ -59,7 +57,7 @@ node {
                     booleanParam(
                         name: 'FORCE_METADATA_BUILD',
                         defaultValue: false,
-                        description: "Always attempt to build the operator metadata repo, even if there is nothing new to be built"
+                        description: "Always attempt to build the operator metadata repo, even if the content is unchanged"
                     ),
                     booleanParam(
                         name: 'SKIP_PUSH',
@@ -78,7 +76,7 @@ node {
                 ]
             ],
         ]
-    )
+    )   // Please update README.md if modifying parameter names or semantics
 
     def workDir = "${env.WORKSPACE}/workDir"
     appregistry.initialize(workDir)

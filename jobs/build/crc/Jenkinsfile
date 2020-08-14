@@ -6,6 +6,19 @@ node {
     def buildlib = build.buildlib
     def commonlib = build.commonlib
 
+    commonlib.describeJob("crc_sync", """
+        ----------------------------------------------
+        Publish CodeReady Containers client to mirrors
+        ----------------------------------------------
+        https://developers.redhat.com/products/codeready-containers/overview
+
+        Timing: Whenever the team asks us to do a release, typically with a new
+        minor version GA.
+
+        The CRC team will give us the URL for downloading the latest release,
+        and the other parameters should be self-explanatory.
+    """)
+
     properties(
         [
             buildDiscarder(
@@ -20,28 +33,20 @@ node {
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.suppressEmailParam(),
-                    [
+                    string(
                         name: 'RELEASE_URL',
                         description: '(REQUIRED) Directory listing to latest release',
-                        $class: 'hudson.model.StringParameterDefinition',
-                    ],                    [
-                        name: 'MAIL_LIST_SUCCESS',
-                        description: '(Optional) Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
-                        defaultValue: "aos-art-automation+new-crc-release@redhat.com",
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: 'aos-art-automation+failed-crc-release@redhat.com',
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'DRY_RUN',
                         description: 'Do not rsync the bits. Just download them and show what would have been copied',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -73,10 +78,7 @@ node {
                 from: "aos-art-automation+failed-crc-release@redhat.com",
                 replyTo: "aos-team-art@redhat.com",
                 subject: "Error releasing Code Ready Containers",
-                body:
-                    """
-${err}
-"""
+                body: err,
             )
         }
         throw err  // gets us a stack trace FWIW

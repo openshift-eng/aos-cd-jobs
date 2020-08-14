@@ -33,6 +33,19 @@ node('openshift-build-1') {
     def buildlib = load( "pipeline-scripts/buildlib.groovy" )
     buildlib.initialize()
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("buildvm-maint", """
+        -------------------------------------------
+        Ancient "maintenance" job for odds and ends
+        -------------------------------------------
+        Timing: The scheduled job of the same name runs this daily.
+
+        Several assorted functions, including:
+        * Mirroring various custom sets of content (ocp-build-data#sync-FOO branches) for SD ops.
+        * Cleaning out old docker images and tito files.
+
+        It's not clear anyone remembers what all this actually does or whether we could just disable it.
+        If you figure it out, update this or get rid of the job as appropriate.
+    """)
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     def doozer_working = "${WORKSPACE}/doozer_working"

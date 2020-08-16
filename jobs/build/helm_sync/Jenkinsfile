@@ -1,4 +1,14 @@
 #!/usr/bin/env groovy
+node {
+    load('pipeline-scripts/commonlib.groovy').describeJob("helm_sync", """
+        ---------------------------------------
+        Sync contents of the helm RPM to mirror
+        ---------------------------------------
+        http://mirror.openshift.com/pub/openshift-v4/clients/helm/
+
+        Timing: This is only ever run by humans, upon request.
+    """)
+}
 
 pipeline {
     agent any

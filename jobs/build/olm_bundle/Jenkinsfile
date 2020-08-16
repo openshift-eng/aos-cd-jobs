@@ -1,6 +1,21 @@
 node {
     checkout scm
     olm_bundles = load('olm_bundles.groovy')
+    olm_bundles.commonlib.describeJob("olm_bundles", """
+        --------------------------------------
+        Create bundle images for OLM operators
+        --------------------------------------
+        Timing: Run by the ocp4 or custom jobs after new builds.
+        Should only need humans to run if something breaks.
+
+        This job creates operator bundle images. These are much like operator
+        metadata images in that it contains an operator manifest with a CSV.
+        However it only represents a single version of that operator, and only
+        ever needs to be built once; there is no need to rebuild for release.
+
+        If an extras advisory is provided, bundle images are attached to that advisory.
+        Eventually all of this will simply run as part of the release cycle.
+    """)
 }
 
 pipeline {

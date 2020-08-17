@@ -324,11 +324,9 @@ node {
                     echo "Skipping advisories creation for non-x86_64 architecture."
                 } else if (params.KEEP_RELEASE_CLOSED) {
                     echo "KEEP_RELEASE_CLOSED set; skipping advisories creation"
-                } else if (params.DRY_RUN) {
-                    echo "Would have created new advisories, skipping for DRY_RUN"
                 } else {
                     def ocpVersion = params.FROM_RELEASE_TAG.split("\\.")[0..1].join(".")
-                    release.createAdvisoriesFor(ocpVersion)
+                    release.createAdvisoriesFor(ocpVersion, params.DRY_RUN)
                 }
             }
 

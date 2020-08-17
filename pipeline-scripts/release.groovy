@@ -446,7 +446,7 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
     }
 }
 
-def createAdvisoriesFor(ocpVersion) {
+def createAdvisoriesFor(ocpVersion, dry_run=false) {
     build(
         job: "build%2Fadvisories",
         propagate: false,
@@ -454,6 +454,7 @@ def createAdvisoriesFor(ocpVersion) {
             string(name: "VERSION", value: ocpVersion),
             string(name: "DATE",    value: determineNextReleaseDate(ocpVersion)),
             string(name: "IMPETUS", value: "standard"),
+            booleanParam(name: "DRY_RUN", value: dry_run),
         ]
     )
 }

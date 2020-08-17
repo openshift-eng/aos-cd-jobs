@@ -5,6 +5,19 @@ node {
     def build = load("build.groovy")
     def buildlib = build.buildlib
     def commonlib = build.commonlib
+    commonlib.describeJob("signed-compose", """
+        -----------------------------------------------------
+        Create a signed compose of RPMs for OCP 3.11 releases
+        -----------------------------------------------------
+        Timing: Run before building images intended to release for 3.11. See:
+        https://github.com/openshift/art-docs/blob/master/3.11.z.md#build-signed-containers
+
+        Because we do not build plashets for 3.11 yet, this job is used for
+        creating the signed compose that we build releasable images against. It
+        seems likely we could build plashets for 3.11, in which case this job
+        should be retired.
+    """)
+
 
     properties(
         [
@@ -21,37 +34,32 @@ node {
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION', '3'),
-                    [
+                    booleanParam(
                         name: 'ATTACH_BUILDS',
                         description: 'Attach new package builds to rpm advisory',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: true
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'KEEP_ADVISORY_STATE',
                         description: 'Run a compose without changing the state of advisory',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'DRY_RUN',
                         description: 'Do not attach builds or update the puddle. Just show what would have happened',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
+                    ),
                     commonlib.suppressEmailParam(),
-                    [
+                    string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: '(Optional) Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "aos-art-automation+new-signed-composes@redhat.com",
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: 'aos-art-automation+failed-signed-puddle@redhat.com',
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],

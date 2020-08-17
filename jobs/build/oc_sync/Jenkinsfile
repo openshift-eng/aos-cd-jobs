@@ -5,6 +5,16 @@ node {
     def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("oc_sync", """
+        -------------------------------------------
+        Sync the oc and installer clients to mirror
+        -------------------------------------------
+        http://mirror.openshift.com/pub/openshift-v4/clients/ocp (or ocp-dev-preview)
+        Extracts the clients from the payload cli-artifacts image and publishes them.
+
+        Timing: This is only ever run by humans, typically when the release job
+        fails somehow. Normally the release job syncs these clients itself.
+    """)
 
     // Expose properties for a parameterized build
     properties(
@@ -18,35 +28,31 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    string(
                         name: 'RELEASE_NAME',
                         description: 'e.g. 4.2.6 or 4.3.0-0.nightly-2019-11-13-233341',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    choice(
                         name: 'ARCH',
                         description: 'architecture being synced',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: ['x86_64', 's390x', 'ppc64le'].join('\n'),
-                    ],
-                    [
+                    ),
+                    choice(
                         name: 'CLIENT_TYPE',
                         description: 'artifacts path under https://mirror.openshift.com',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "ocp",
                             "ocp-dev-preview",
                         ].join("\n"),
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-oc-sync@redhat.com'
                         ].join(',')
-                    ],
+                    ),
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
                 ]

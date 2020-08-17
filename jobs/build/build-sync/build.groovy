@@ -4,26 +4,26 @@ commonlib = buildlib.commonlib
 // doozer_working must be in WORKSPACE in order to have artifacts archived
 mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
 logLevel = ""
-dryRun = "--dry-run=false"
 artifacts = []
 mirroringKeys = []  // 'x86_64', 'x86_64-priv', 's390x', etc
+imageList = ""
 
 def initialize() {
     buildlib.cleanWorkdir(mirrorWorking)
     def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
-    if ( params.NOOP) {
-        dryRun = "--dry-run=true"
-        currentBuild.displayName += " [NOOP]"
+    if ( params.DRY_RUN) {
+        currentBuild.displayName += " [DRY_RUN]"
     }
     currentBuild.displayName += " OCP ${params.BUILD_VERSION} - ${arches.join(', ')}"
     currentBuild.description = "Arches: ${arches.join(', ')}"
     if ( params.DEBUG ) {
         logLevel = " --loglevel=5 "
     }
-    if ( params.IMAGES != '' ) {
-        echo("Only syncing specified images: ${params.IMAGES}")
-        currentBuild.description += "\nImages: ${params.IMAGES}"
-        currentBuild.displayName += " [${params.IMAGES.split(',').size()} Image(s)]"
+    imageList = commonlib.cleanCommaList(params.IMAGES)
+    if ( imageList ) {
+        echo("Only syncing specified images: ${imageList}")
+        currentBuild.description += "\nImages: ${imageList}"
+        currentBuild.displayName += " [${imageList.split(',').size()} Image(s)]"
     }
 }
 
@@ -34,7 +34,7 @@ def initialize() {
 // registry for each image.
 def buildSyncGenInputs() {
     echo("Generating SRC=DEST and ImageStreams for arches")
-    def images = params.IMAGES? "--images '${params.IMAGES}'" : ''
+    def images = imageList ? "--images '${imageList}'" : ''
     def brewEventID = params.BREW_EVENT_ID? "--event-id '${params.BREW_EVENT_ID}'" : ''
     buildlib.doozer """
 ${images}
@@ -71,6 +71,7 @@ def buildSyncMirrorImages() {
             // Always login again. It may expire between loops
             // depending on amount of time elapsed
             buildlib.registry_quay_dev_login()
+            def dryRun = "--dry-run=${params.DRY_RUN ? 'true' : 'false'}"
             buildlib.oc "${logLevel} image mirror ${dryRun} --filename=${mirrorWorking}/src_dest.${key}"
         }
     }
@@ -108,6 +109,7 @@ def buildSyncApplyImageStreams() {
         // Ok, try the update. Jack that debug output up high, just in case
         echo("Going to apply this ImageStream:")
         echo(readFile(file: isFile))
+        def dryRun = "--dry-run=${params.DRY_RUN ? 'client' : 'none'}"
         buildlib.oc("${logLevel} apply ${dryRun} --filename=${isFile} --kubeconfig ${buildlib.ciKubeconfig}")
 
         // Now we verify that the change went through and save the bits as we go
@@ -116,6 +118,10 @@ def buildSyncApplyImageStreams() {
         artifacts.addAll(["post-apply-${namespace}-${theStream}.json"])
         def newResourceVersion = newIS.metadata.resourceVersion
         if ( newResourceVersion == currentResourceVersion ) {
+            if ( params.DRY_RUN ) {
+                echo("IS `.metadata.resourceVersion` has not updated, which is expected in a dry run.")
+                continue
+            }
             echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
             currentBuild.description += "\nImageStream update failed for ${key}"
             failures << key

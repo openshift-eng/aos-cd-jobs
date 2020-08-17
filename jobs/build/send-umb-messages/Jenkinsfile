@@ -4,6 +4,17 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("send-umb-messages", """
+        ----------------------------------------------------------
+        Send UMB messages when new releases/nightlies are accepted
+        ----------------------------------------------------------
+        Timing: Scheduled to run about every 5 minutes.
+
+        This job checks the x86_64 release-controller for newly-accepted
+        release images and publishes a UMB message that others can use to
+        trigger their automation (e.g. QE can trigger testing).
+    """)
+
 
     properties([
             buildDiscarder(

@@ -5,6 +5,19 @@ node {
     def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
+    commonlib.describeJob("tarball-sources", """
+        ------------------------------------------------------
+        Prepare container-first tarball sources for publishing
+        ------------------------------------------------------
+        Timing: After the release job has run. See:
+        https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#provide-non-golang-container-first-sources-to-rcm
+
+        We have a legal requirement to publish the sources of all our builds.
+        Containers which are built from source are mostly golang and handled by
+        automation. Those which are not need to be published manually by EXD.
+        This job prepares those sources so that EXD can publish them.
+    """)
+
 
     // Expose properties for a parameterized build
     properties(
@@ -18,32 +31,28 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    string(
                         name: 'COMPONENTS',
                         description: '(REQUIRED) Brew component name',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "logging-fluentd-container"
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'ADVISORY',
                         description: '(REQUIRED) Image release advisory number.',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'RCM_GUEST',
                         description: 'Details of RCM GUEST',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "ocp-build@rcm-guest.app.eng.bos.redhat.com:/mnt/rcm-guest/ocp-client-handoff/"
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-release@redhat.com'
                         ].join(',')
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],

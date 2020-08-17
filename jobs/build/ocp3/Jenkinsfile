@@ -232,6 +232,19 @@ node {
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("ocp3", """
+        --------------------------------
+        Create a full OCP 3.11 dev build
+        --------------------------------
+        Timing: Run nightly by scheduled job (when not disabled).
+        Humans might run if that didn't work properly or recently enough.
+
+        This is a monolithic 3.11 build. All RPMs and images are built with the
+        next 3.11.z version, which is required for the installer to deploy as a
+        coherent release. An RPM compose is created and synced for testing and SD.
+        The whole thing must complete to be considered a success.
+    """)
+
 
     // Expose properties for a parameterized build
     properties(
@@ -245,38 +258,32 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    choice(
                         name: 'SSH_KEY_ID',
                         description: 'SSH credential id to use',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "openshift-bot",
-                            "aos-cd-test",
-                            "adammhaile-aos-cd-bot",
                         ].join("\n"),
-                        defaultValue: 'aos-cd-test'
-                    ],
+                    ),
                     commonlib.ocpVersionParam('BUILD_VERSION', '3'),
                     commonlib.suppressEmailParam(),
-                    [
+                    string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
                             'aos-art-automation+new-ocp3-build@redhat.com',
                         ].join(',')
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-ocp3-build@redhat.com'
                         ].join(',')
-                    ],
-                    [
+                    ),
+                    choice(
                         name: 'BUILD_MODE',
                         description: '''
     auto                      BUILD_VERSION and ocp repo contents determine the mode<br>
@@ -284,58 +291,49 @@ node {
     pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
     online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
     ''',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "auto",
                             "release",
                             "pre-release",
                             "online:int"
                         ].join("\n"),
-                        defaultValue: "auto"
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'ODCS',
                         description: 'Run in ODCS Mode?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'SIGN',
-                        description: 'Sign RPMs with openshifthosted?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
+                        description: 'Sign RPMs with openshifthosted key? (for SD - generally not useful',
                         defaultValue: false
-                    ],
+                    ),
                     commonlib.mockParam(),
-                    [
-                        name: 'TEST',
-                        description: 'Run as much code as possible without pushing / building?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
+                    booleanParam(
+                        name: 'DRY_RUN',
+                        description: 'Run as much code as possible without pushing / building',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'SPECIAL_NOTES',
-                        description: 'Include special notes in the build email?',
-                        $class: 'hudson.model.TextParameterDefinition',
+                        description: 'Include special notes in the build email',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'BUILD_EXCLUSIONS',
                         description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'BUILD_CONTAINER_IMAGES',
                         description: 'Build container images?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: true
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'BUILD_AMI',
                         description: 'Build golden image after building images?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: true
-                    ],
+                    ),
                 ]
             ],
             disableResume(),
@@ -343,7 +341,7 @@ node {
         ]
     )
 
-    IS_TEST_MODE = params.TEST
+    IS_TEST_MODE = params.DRY_RUN ?: false
     buildlib.initialize(IS_TEST_MODE)
 
     BUILD_VERSION_MAJOR = params.BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y

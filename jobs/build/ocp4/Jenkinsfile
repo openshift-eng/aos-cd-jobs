@@ -4,6 +4,21 @@ node {
     checkout scm
     def build = load("build.groovy")
     def commonlib = build.commonlib
+    commonlib.describeJob("ocp4", """
+        ------------------------------------------------
+        Build OCP 4.y components incrementally
+        ------------------------------------------------
+        Timing: Usually run automatically from merge_ocp.
+        Humans may run as needed. Locks prevent conflicts.
+
+        In typical usage, scans for changes that could affect package or image
+        builds and rebuilds the affected components.  Creates new plashets on
+        each run, and runs other jobs to sync builds to nightlies, create
+        operator metadata, and sweep bugs and builds into advisories.
+
+        May also build unconditionally or with limited components.
+    """)
+
 
     // Expose properties for a parameterized build
     properties(
@@ -16,83 +31,71 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    booleanParam(
                         name: 'DRY_RUN',
                         description: 'Take no action, just echo what the build would have done.',
-                        $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
-                    ],
+                    ),
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                    [
+                    string(
                         name: 'NEW_VERSION',
                         description: '(Optional) version for build instead of most recent\nor "+" to bump most recent version',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'FORCE_BUILD',
                         description: 'Build regardless of whether source has changed',
-                        $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    choice(
                         name: 'BUILD_RPMS',
                         description: 'Which RPMs are candidates for building? "only/except" refer to list below',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "all",
                             "only",
                             "except",
                             "none",
                         ].join("\n"),
-                        defaultValue: true
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'RPM_LIST',
                         description: '(Optional) Comma/space-separated list to include/exclude per BUILD_RPMS (e.g. openshift,openshift-kuryr)',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    choice(
                         name: 'BUILD_IMAGES',
                         description: 'Which images are candidates for building? "only/except" refer to list below',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "all",
                             "only",
                             "except",
                             "none",
                         ].join("\n"),
-                        defaultValue: true
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'IMAGE_LIST',
                         description: '(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES (e.g. logging-kibana5,openshift-jenkins-2)',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
+                    ),
                     commonlib.suppressEmailParam(),
-                    [
+                    string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: '(Optional) Success Mailing List\naos-cicd@redhat.com,aos-qe@redhat.com',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "",
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-ocp4-build@redhat.com'
                         ].join(',')
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'SPECIAL_NOTES',
                         description: '(Optional) special notes to include in the build email',
-                        $class: 'hudson.model.TextParameterDefinition',
                         defaultValue: ""
-                    ],
+                    ),
                 ]
             ],
         ]

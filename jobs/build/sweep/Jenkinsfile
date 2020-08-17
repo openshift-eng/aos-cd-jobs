@@ -4,6 +4,30 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("sweep", """
+        ---------------------------------------
+        Sweep bugs into the standard advisories
+        ---------------------------------------
+        Timing: This runs after component builds (ocp3/ocp4/custom jobs).
+        Can be run manually but this should be rarely needed.
+
+        Bugs are attached into the appropriate advisories for the release,
+        according to those recorded in ocp-build-data group.yml.
+        For 3.11, all bugs are swept into the rpm advisory.
+        For 4.y, bugs are swept into the image or extras advisory.
+        CVEs are not currently swept by this job at all.
+
+        Any bugs in the MODIFIED state are attached, without regard for whether
+        their PRs have actually merged or been built. This causes them to
+        transition to the ON_QA state.
+        Bugs which are already attached and in the MODIFIED state are also
+        transitioned to ON_QA so QE will look at them.
+
+        Optionally, builds from our brew candidate tags may also be swept. This
+        will only work with advisories in the NEW_FILES state (bugs can be
+        attached to advisories in the QE state as well, but not builds).
+    """)
+
 
     properties(
         [

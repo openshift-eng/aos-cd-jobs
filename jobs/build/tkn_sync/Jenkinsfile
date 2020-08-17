@@ -1,5 +1,15 @@
 #!/usr/bin/env groovy
 
+node {
+    load('pipeline-scripts/commonlib.groovy').describeJob("tkn_sync", """
+        -----------------------------------------------
+        Sync the Tekton pipeline client (tkn) to mirror
+        -----------------------------------------------
+        http://mirror.openshift.com/pub/openshift-v4/clients/pipeline/
+        Timing: Run manually by request.
+    """)
+}
+
 pipeline {
     agent any
     options { disableResume() }

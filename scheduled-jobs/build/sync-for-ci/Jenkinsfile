@@ -1,0 +1,42 @@
+properties( [
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+            ]
+)
+
+description = ""
+failed = false
+
+def runFor(group, dir, arch="x86_64") {
+    echo "Triggering reposync for ${group}-${arch}"
+    b = build       job: '/aos-cd-builds/build%2Fsync-for-ci', propagate: false,
+                    parameters: [ string(name: 'GROUP', value: group ),
+                                  string(name: 'REPOSYNC_DIR', value: dir),
+                                  string(name: 'ARCH', value: arch),
+                                ]
+
+    description += "${group}-${arch} - ${b.result}\n"
+    failed |= (b.result != "SUCCESS")
+}
+
+@NonCPS
+def sortedVersions() {
+  return commonlib.ocp4Versions.sort(false)
+}
+
+node() {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+    for ( String version : sortedVersions() ) {
+        group = "openshift-${version}"
+        def arches = buildlib.branch_arches(group)
+        for ( String arch : arches ) {
+            runFor(group, version, arch)
+        }
+    }
+    runFor('ci-deps', 'ci-deps', 'x86_64')
+}
+
+currentBuild.description = description.trim()
+currentBuild.result = failed ? "FAILURE" : "SUCCESS"

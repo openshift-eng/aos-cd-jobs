@@ -2,6 +2,19 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("update-base-images", """
+        --------------------------------------------------
+        Rebuild base images to keep up with published CVEs
+        --------------------------------------------------
+        Timing: Rebuilds all base container images weekly on Saturday.
+        May be run manually for specific updates.
+
+        When RHEL CVEs are released, we do not wait for other teams to update
+        base images used somewhere in OCP. For each this job simply runs a
+        build that updates the image and gives the update a floating tag which
+        is used by product builds.
+    """)
+
     // Expose properties for a parameterized build
     properties(
         [
@@ -15,25 +28,22 @@ node {
                 [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    string(
                         name: 'BASE_IMAGE_TAGS',
                         description: 'list of openshift cve base images.',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: commonlib.ocpBaseImages.join(' ')
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'PACKAGE_LIST',
                         description: 'list of packages to update (all if empty).',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: '',
-                    ],
+                    ),
                     commonlib.suppressEmailParam(),
-                    [
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: 'aos-team-art@redhat.com'
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],

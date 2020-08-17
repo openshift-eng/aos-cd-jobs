@@ -4,6 +4,15 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("kn_sync", """
+        ----------------------------------------------
+        Sync the knative (serverkess) client to mirror
+        ----------------------------------------------
+        http://mirror.openshift.com/pub/openshift-v4/clients/serverless/
+
+        Timing: This is only ever run by humans, upon request.
+    """)
+
 
     // Expose properties for a parameterized build
     properties(
@@ -17,27 +26,24 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    string(
                         name: 'KN_VERSION',
                         description: 'the version of OpenShift Serverless CLI binaries',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "0.2.3"
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'KN_URL',
                         description: 'the RPM download url of OpenShift Serverless CLI binaries',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'nshaikh@redhat.com',
                             'aos-art-automation+failed-kn-client-sync@redhat.com',
                         ].join(',')
-                    ],
+                    ),
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
                 ]

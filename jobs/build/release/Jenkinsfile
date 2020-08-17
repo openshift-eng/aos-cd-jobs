@@ -8,6 +8,26 @@ node {
     def commonlib = release.commonlib
     def slacklib = commonlib.slacklib
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
+    commonlib.describeJob("release", """
+        ----------------------------------------
+        Publish official OCP 4 release artifacts
+        ----------------------------------------
+        Timing: https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image
+        Be aware that by default the job stops for user input very early on. It
+        sends slack alerts in our release channels when this occurs.
+
+        For the default use case, this job publishes a nightly as an officially
+        named release image, waits up to three hours for it to be accepted,
+        copies the clients to the mirror, signs the clients and release image,
+        and handles odds and ends for a release.
+
+        There are minor differences when this job runs for FCs, RCs, or hotfixes.
+
+        Most of what it does can be replicated manually by running other jobs,
+        which is useful when it breaks for some reason. See:
+        https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#release-job-failures
+    """)
+
 
     // Expose properties for a parameterized build
     properties(
@@ -22,114 +42,98 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    string(
                         name: 'FROM_RELEASE_TAG',
                         description: 'Build tag to pull from (e.g. 4.1.0-0.nightly-2019-04-22-005054)',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    choice(
                         name: 'RELEASE_TYPE',
                         description: 'Select [1. Standard Release] unless discussed with team lead ',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                                 '1. Standard Release (Named, Signed, Previous, All Channels)',
                                 '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
-                                '3. Feature Candidate (No name, Signed - rpms may not be, Previous, Candidate Channel)',
+                                '3. Feature Candidate (Named, Signed - rpms may not be, Previous, Candidate Channel)',
                                 '4. Hotfix (No name, Signed, No Previous, All Channels)'
                         ].join('\n'),
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'RELEASE_OFFSET',
                         description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'DESCRIPTION',
                         description: 'Should be empty unless you know otherwise',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'ADVISORY',
                         description: 'Optional: Image release advisory number. N/A for direct nightly release. If not given, the number will be retrieved from ocp-build-data.',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'PREVIOUS',
                         description: 'Use auto to be prompted later in the job with suggested previous. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "auto"
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',
                         description: 'DO NOT USE without team lead approval. This is an unusual option.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'SKIP_OTA_SLACK_NOTIFICATION',
                         description: 'Do not notify OTA team in slack for new PRs',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'PERMIT_ALL_ADVISORY_STATES',
                         description: 'DO NOT USE without team lead approval. Allows release job to run when advisory is not in QE state.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         // https://coreos.slack.com/archives/CJARLA942/p1587651980096400?thread_ts=1587623714.067700&cid=CJARLA942
                         name: 'OPEN_NON_X86_PR',
                         description: 'Usually PRs will only be opened when x86_64 releases are created. If set, this will force their creation for any CPU arch.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'SKIP_IMAGE_LIST',
                         description: 'Do not gather an advisory image list for docs. Use this for RCs and other test situations.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'KEEP_RELEASE_CLOSED',
                         description: 'Prevent creation of advisories for the next z-stream of given OCP version',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'DRY_RUN',
                         description: 'Take no actions. Note: still notifies and runs signing job (which fails).',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
                             'aos-art-automation+new-release@redhat.com',
                         ].join(',')
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-release@redhat.com'
                         ].join(',')
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],

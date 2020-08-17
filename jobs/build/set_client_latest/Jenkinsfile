@@ -4,6 +4,20 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("set_client_latest", """
+        --------------------------------------------------
+        Update "latest" symlinks for published ocp clients
+        --------------------------------------------------
+        Timing: Run by scheduled-builds/set_cincinnati_links which runs every 10 minutes.
+
+        This job looks at what has been published in the various cincinnati
+        channels and updates the symlinks accordingly under 
+        http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp
+
+        try.openshift.com directs customers to "latest" links, so they need to
+        be kept in sync with what has been made available in cincinnati.
+    """)
+
 
     // Expose properties for a parameterized build
     properties(
@@ -17,39 +31,33 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    string(
                         name: 'CHANNEL_OR_RELEASE',
                         description: 'Pull latest from named channel (e.g. stable-4.3) or set to specific dir (e.g. 4.1.0)',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'CLIENT_TYPE',
                         description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "ocp"
-                    ],
-                    [
+                    ),
+                    choice(
                         name: 'LINK_NAME',
                         description: 'The name of the links to establish. Specifying "latest" will establish a "latest-4.X" link for the release and potentially an overall "latest". "stable" will make a corresponding set of "stable-4.x" and "stable" links.',
-                        description: 'Link name to set',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: ['latest', 'stable', 'fast', 'candidate'].join('\n'),
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'ARCHES',
                         description: 'all, any, or a space delimited list of arches: "x86_64 s390x ..."',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: "all"
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-setting-client-latest@redhat.com'
                         ].join(',')
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],

@@ -6,6 +6,20 @@ node {
     def buildlib = release.buildlib
     def commonlib = release.commonlib
     def quay_url = "quay.io/openshift-release-dev/ocp-release-nightly"
+    commonlib.describeJob("pre-release", """
+        -------------------------------------------------
+        Publish accepted nightlies as public pre-releases
+        -------------------------------------------------
+        Timing: Usually run by the poll-payload scheduled job whenever there is
+        a new accepted pre-GA build that needs to be published.
+        Nightlies are not published once Release Candidates are building.
+
+        This job clones the release image to the public release quay repo
+            quay.io/openshift-release-dev/ocp-release-nightly
+        and publishes clients for it to 
+            http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp-dev-preview/
+    """)
+
 
     // Expose properties for a parameterized build
     properties(
@@ -20,60 +34,52 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION'),
-                    [
+                    choice(
                         name: 'ARCH',
                         description: 'The architecture for this release',
-                        $class: 'hudson.model.ChoiceParameterDefinition',
                         choices: [
                             "x86_64",
                             "s390x",
                             "ppc64le",
                         ].join("\n"),
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'FROM_RELEASE_TAG',
                         description: 'Optional. If not specified, an attempt will be made to detect the latest nightly. e.g. 4.1.0-0.nightly-2019-04-22-005054',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'NEW_NAME_OVERRIDE',
                         description: 'Release name (if not specified, uses detected name or FROM_RELEASE_TAG)',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'Allows the pipeline to overwrite an existing payload in quay. Use only to recover from a pre-release that failed at client sync.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: false
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'MIRROR',
                         description: 'Sync clients to mirror.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: true
-                    ],
-                    [
+                    ),
+                    booleanParam(
                         name: 'SET_CLIENT_LATEST',
                         description: 'Set latest links for client.',
-                        $class: 'BooleanParameterDefinition',
                         defaultValue: true
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-release@redhat.com'
                         ].join(',')
-                    ],
+                    ),
                     commonlib.mockParam(),
                     commonlib.suppressEmailParam(),
                 ]

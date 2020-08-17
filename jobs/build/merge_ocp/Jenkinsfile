@@ -2,6 +2,23 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("merge_ocp", """
+        ---------------------------------------------------
+        Merge origin => ose and kick off incremental builds
+        ---------------------------------------------------
+        This job syncs content from github openshift/origin to openshift/ose.
+        For OCP4 versions it also scans for any changes in sources, buildroots,
+        etc. and schedules an incremental build if there are any.
+
+        Timing: Run by the scheduled job of the same name, as often as possible
+        (which is no more than hourly or so - depending on what has changed).
+
+        Humans may run this, but be aware that a human running with
+        SCHEDULE_INCREMENTAL set will cause builds to run without respecting
+        freeze_automation.
+
+    """)
+
 
     def doozer_working = "${WORKSPACE}/doozer_working"
 
@@ -17,12 +34,11 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
+                    string(
                         name: 'VERSIONS',
                         description: 'CSV list of versions to run merge on.',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: commonlib.ocpMergeVersions.join(',')
-                    ],
+                    ),
                     booleanParam(
                         name: 'CLEAN_CLONE',
                         defaultValue: false,
@@ -34,20 +50,18 @@ node {
                         description: 'If changes are detected, schedule an incremental build (4.x only)'
                     ),
                     commonlib.suppressEmailParam(),
-                    [
+                    string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: ""
-                    ],
-                    [
+                    ),
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: [
                             'aos-art-automation+failed-ocp-merge@redhat.com',
                         ].join(',')
-                    ],
+                    ),
                     commonlib.mockParam(),
                 ]
             ],

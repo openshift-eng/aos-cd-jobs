@@ -4,7 +4,24 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    commonlib.describeJob("el8-rebuilds", """
+        ---------------------------------------
+        Rebuild 4.x packages on RHEL8 for RHCOS
+        ---------------------------------------
+        This job rebuilds the openshift and openshift-clients packages against
+        a RHEL 8 buildroot with exactly the same version and release as they
+        were built against RHEL 7. RHCOS is the only consumer for the rebuilds.
 
+        Timing: The ocp4 job runs this immediately after building any RPMs.
+        The custom job runs this only after building one of the packages in question.
+        It should be very rare that a human runs this directly.
+
+        For more details see the README:
+        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/el8-rebuilds/README.md
+    """)
+
+
+    // Please update README.md if modifying parameter names or semantics
     properties(
         [
             buildDiscarder(
@@ -20,18 +37,17 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                    [
+                    string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        $class: 'hudson.model.StringParameterDefinition',
                         defaultValue: 'aos-art-automation+failed-el8-rebuilds@redhat.com',
-                    ],
+                    ),
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
                 ]
             ],
         ]
-    )
+    )   // Please update README.md if modifying parameter names or semantics
 
     commonlib.checkMock()
 

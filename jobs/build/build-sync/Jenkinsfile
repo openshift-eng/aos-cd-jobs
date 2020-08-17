@@ -1,11 +1,26 @@
 #!/usr/bin/env groovy
 
 node {
+
     checkout scm
     def build = load("build.groovy")
     def buildlib = build.buildlib
     def commonlib = build.commonlib
+    commonlib.describeJob("build-sync", """
+        -------------------------------------
+        Mirror latest 4.y images to nightlies
+        -------------------------------------
+        Timing: usually automated. Human might use to revert or hand-advance nightly membership.
 
+        This job gets the latest images from our candidate tags, syncs them to quay.io,
+        and updates the imagestreams on api.ci which feed into nightlies on our
+        release-controllers.
+
+        For more details see the README:
+        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/build-sync/README.md
+    """)
+
+    // Please update README.md if modifying parameter names or semantics
     properties(
             [
                     disableResume(),
@@ -21,46 +36,40 @@ node {
                                     commonlib.suppressEmailParam(),
                                     commonlib.mockParam(),
                                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                                    [
+                                    booleanParam(
                                             name        : 'DEBUG',
                                             description : 'Run "oc" commands with greater logging',
-                                            $class      : 'BooleanParameterDefinition',
                                             defaultValue: false,
-                                    ],
-                                    [
-                                            name        : 'NOOP',
+                                    ),
+                                    booleanParam(
+                                            name        : 'DRY_RUN',
                                             description : 'Run "oc" commands with the dry-run option set to true',
-                                            $class      : 'BooleanParameterDefinition',
                                             defaultValue: false,
-                                    ],
-                                    [
+                                    ),
+                                    string(
                                             name        : 'IMAGES',
-                                            description : '(Optional) Comma separated list of images to sync, for testing purposes',
-                                            $class      : 'hudson.model.StringParameterDefinition',
+                                            description : '(Optional) Limited list of images to sync, for testing purposes',
                                             defaultValue: "",
-                                    ],
-                                    [
+                                    ),
+                                    string(
                                             name        : 'BREW_EVENT_ID',
-                                            description : '(Optional) Look for the last images as of the given Brew event instead of latest',
-                                            $class      : 'hudson.model.StringParameterDefinition',
+                                            description : '(Optional) Look for the latest images as of the given Brew event instead of current',
                                             defaultValue: "",
-                                    ],
-                                    [
+                                    ),
+                                    string(
                                             name        : 'ORGANIZATION',
-                                            description : '(Optional) Quay.io organization to mirror to',
-                                            $class      : 'hudson.model.StringParameterDefinition',
+                                            description : 'Quay.io organization to mirror to (do not change)',
                                             defaultValue: "openshift-release-dev",
-                                    ],
-                                    [
+                                    ),
+                                    string(
                                             name        : 'REPOSITORY',
-                                            description : '(Optional) Quay.io repository to mirror to',
-                                            $class      : 'hudson.model.StringParameterDefinition',
+                                            description : 'Quay.io repository to mirror to (do not change)',
                                             defaultValue: "ocp-v4.0-art-dev",
-                                    ],
+                                    ),
                             ],
                     ]
             ]
-    )
+    )  // Please update README.md if modifying parameter names or semantics
 
     commonlib.checkMock()
     echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")

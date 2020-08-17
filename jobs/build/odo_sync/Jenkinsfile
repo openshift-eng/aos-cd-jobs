@@ -1,4 +1,15 @@
 #!/usr/bin/env groovy
+node {
+    checkout scm
+    load("pipeline-scripts/commonlib.groovy").describeJob("odo_sync", """
+        ----------------------------------
+        Sync OpenShift Do client to mirror
+        ----------------------------------
+        http://mirror.openshift.com/pub/openshift-v4/clients/odo/
+
+        Timing: This is only ever run by humans, upon request.
+    """)
+}
 
 pipeline {
     agent any

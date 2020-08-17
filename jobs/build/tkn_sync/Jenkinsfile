@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 node {
+    checkout scm
     load('pipeline-scripts/commonlib.groovy').describeJob("tkn_sync", """
         -----------------------------------------------
         Sync the Tekton pipeline client (tkn) to mirror

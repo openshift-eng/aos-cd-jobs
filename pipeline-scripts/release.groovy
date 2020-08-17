@@ -448,7 +448,7 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
 
 def createAdvisoriesFor(ocpVersion) {
     build(
-        job: "/build/advisories",
+        job: "build%2Fadvisories",
         propagate: false,
         parameters: [
             string(name: "VERSION", value: ocpVersion),

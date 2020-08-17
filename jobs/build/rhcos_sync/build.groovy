@@ -45,9 +45,9 @@ def initialize() {
     currentBuild.displayName = "${params.NAME} - ${params.RHCOS_BUILD}:${params.ARCH} - ${params.RHCOS_MIRROR_PREFIX}"
     currentBuild.description = "Meta JSON: ${metaUrl}"
 
-    if ( params.NOOP ) {
+    if ( params.DRY_RUN ) {
         dryRun = "--dry-run=true"
-        currentBuild.displayName += " [NOOP]"
+        currentBuild.displayName += " [DRY_RUN]"
     }
 
     dir ( rhcosWorking ) {
@@ -89,7 +89,7 @@ def rhcosSyncMirrorArtifacts() {
     if ( params.FORCE ) {
             invokeOpts += " --force"
     }
-    if ( params.NOOP ) {
+    if ( params.DRY_RUN ) {
             invokeOpts += " --test"
     }
     if ( params.NO_LATEST ) {

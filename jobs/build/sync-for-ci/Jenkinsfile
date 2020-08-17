@@ -2,14 +2,10 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
-    commonlib.describeJob("reposync (deprecated)", """
+    commonlib.describeJob("sync-for-ci", """
         -----------------------------------------------------------
         Sync internal repositories and images where CI can use them
         -----------------------------------------------------------
-        NOTE: This job is being renamed since it now syncs more than repos;
-        "reposync" remains only to preserve build logs for a while.
-        "sync-for-ci" should be used instead.
-
         Timing: Usually run by scheduled job several times daily per 4.y version/arch.
 
         This job enables CI testing to run using the same RPM repositories and

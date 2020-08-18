@@ -65,6 +65,8 @@ node {
     commonlib.checkMock()
     workdir = "${env.WORKSPACE}/workdir"
     buildlib.cleanWorkdir(workdir, true)
+    currentBuild.displayName = params.RELEASE_NAME
+    currentBuild.description = ""
     dir(workdir) {
         release.openCincinnatiPRs(params.RELEASE_NAME.trim(), params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, params.GITHUB_ORG.trim(), params.SKIP_OTA_SLACK_NOTIFICATION)
     }

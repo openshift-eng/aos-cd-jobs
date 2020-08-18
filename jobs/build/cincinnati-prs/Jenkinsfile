@@ -5,16 +5,19 @@ node {
     def release = load("pipeline-scripts/release.groovy")
     def commonlib = release.commonlib
     commonlib.describeJob("cincinnati-prs", """
-        --------------------------------------------------
-        Create the PRs for Cincinnati to publish a release
-        --------------------------------------------------
-        Timing: The "release" job runs this once the release is accepted.
-        
-        This creates PRs to enter the new release in all the relevant Cincinnati channels.
-        (updates https://github.com/openshift/cincinnati-graph-data/tree/master/channels)
+        <hr />
+        <h1>Create the PRs for Cincinnati to publish a release</h1>
+        <hr />
+        <p>Timing: The "release" job runs this once the release is accepted.</p>
 
-        For more details see the README:
-        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/cincinnati-prs/README.md
+        <p>
+        This creates PRs to enter the new release in all the relevant
+        <a href="https://github.com/openshift/cincinnati-graph-data/tree/master/channels">Cincinnati channels</a>.
+        </p>
+
+        <p>
+        <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/cincinnati-prs/README.md">For more details see the README.</a>
+        </p>
     """)
 
     // Please update README.md if modifying parameter names or semantics

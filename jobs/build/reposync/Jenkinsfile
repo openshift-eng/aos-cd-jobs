@@ -3,9 +3,7 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("reposync (deprecated)", """
-        -----------------------------------------------------------
-        Sync internal repositories and images where CI can use them
-        -----------------------------------------------------------
+        <h2>Sync internal repositories and images where CI can use them</h2>
         NOTE: This job is being renamed since it now syncs more than repos;
         "reposync" remains only to preserve build logs for a while.
         "sync-for-ci" should be used instead.

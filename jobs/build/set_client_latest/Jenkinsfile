@@ -5,10 +5,8 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("set_client_latest", """
-        --------------------------------------------------
-        Update "latest" symlinks for published ocp clients
-        --------------------------------------------------
-        Timing: Run by scheduled-builds/set_cincinnati_links which runs every 10 minutes.
+        <h2>Update "latest" symlinks for published ocp clients</h2>
+        <b>Timing</b>: Run by scheduled-builds/set_cincinnati_links which runs every 10 minutes.
 
         This job looks at what has been published in the various cincinnati
         channels and updates the symlinks accordingly under 

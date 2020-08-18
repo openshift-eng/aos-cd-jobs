@@ -5,10 +5,8 @@ node {
     def build = load("build.groovy")
     def commonlib = build.commonlib
     commonlib.describeJob("ocp4", """
-        ------------------------------------------------
-        Build OCP 4.y components incrementally
-        ------------------------------------------------
-        Timing: Usually run automatically from merge_ocp.
+        <h2>Build OCP 4.y components incrementally</h2>
+        <b>Timing</b>: Usually run automatically from merge_ocp.
         Humans may run as needed. Locks prevent conflicts.
 
         In typical usage, scans for changes that could affect package or image

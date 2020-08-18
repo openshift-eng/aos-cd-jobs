@@ -3,14 +3,12 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("merge_ocp", """
-        ---------------------------------------------------
-        Merge origin => ose and kick off incremental builds
-        ---------------------------------------------------
+        <h2>Merge origin => ose and kick off incremental builds</h2>
         This job syncs content from github openshift/origin to openshift/ose.
         For OCP4 versions it also scans for any changes in sources, buildroots,
         etc. and schedules an incremental build if there are any.
 
-        Timing: Run by the scheduled job of the same name, as often as possible
+        <b>Timing</b>: Run by the scheduled job of the same name, as often as possible
         (which is no more than hourly or so - depending on what has changed).
 
         Humans may run this, but be aware that a human running with

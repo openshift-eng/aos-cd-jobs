@@ -17,7 +17,7 @@ node {
         For a given branch of ocp-build-data, repos from group.yml with
         reposync enabled are synchronized out to a private portion of the
         mirror that is only accessible with the right client certificate:
-            http://mirror.openshift.com/enterprise/reposync/
+            <a href="http://mirror.openshift.com/enterprise/reposync/" target="_blank">http://mirror.openshift.com/enterprise/reposync/</a>
 
         Also container images defined in streams.yml are synced out to the
         api.ci.openshift.org registry. CI tests use these repos and images for

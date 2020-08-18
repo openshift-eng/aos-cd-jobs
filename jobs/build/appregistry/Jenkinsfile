@@ -17,8 +17,7 @@ node {
         Stage and prod builds for different versions MUST be pushed in the same order they are built.
         *** The first PROD build should not be performed until AT LEAST Friday before a release. ***
 
-        For more details see the README:
-        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/appregistry/README.md
+        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/appregistry/README.md" target="_blank">README</a>
     """)
 
     // Please update README.md if modifying parameter names or semantics

@@ -17,7 +17,7 @@ node {
         This job clones the release image to the public release quay repo
             quay.io/openshift-release-dev/ocp-release-nightly
         and publishes clients for it to 
-            http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp-dev-preview/
+            <a href="http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp-dev-preview/" target="_blank">ocp-dev-preview on mirror</a>
     """)
 
 

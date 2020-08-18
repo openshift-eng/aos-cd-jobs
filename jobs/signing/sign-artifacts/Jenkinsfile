@@ -18,7 +18,7 @@ node {
             http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp/
         The release image shasum is signed and the signature published both on
         Google Cloud Storage and mirror:
-            http://mirror.openshift.com/pub/openshift-v4/signatures/openshift/
+            <a href="http://mirror.openshift.com/pub/openshift-v4/signatures/openshift/" target="_blank">http://mirror.openshift.com/pub/openshift-v4/signatures/openshift/</a>
     """)
 
 

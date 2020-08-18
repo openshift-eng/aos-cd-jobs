@@ -8,7 +8,7 @@ node {
         ----------------------------------------------
         Sync the knative (serverkess) client to mirror
         ----------------------------------------------
-        http://mirror.openshift.com/pub/openshift-v4/clients/serverless/
+        <a href="http://mirror.openshift.com/pub/openshift-v4/clients/serverless/" target="blank">Product Overview</a>
 
         Timing: This is only ever run by humans, upon request.
     """)

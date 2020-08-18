@@ -164,7 +164,7 @@ def _assemble_repo(config, nvrs: List[str]):
 
                     rpms = os.listdir(package_link_path)
                     if not rpms:
-                        raise IOError('Did not find any rpms in {}'.format(brewroot_arch_path))
+                        raise IOError(f'Did not find any rpms in {brewroot_arch_path}')
 
                     for r in rpms:
                         rpm_path = os.path.join('Packages', link_name, r)
@@ -181,7 +181,7 @@ def _assemble_repo(config, nvrs: List[str]):
         print('Successfully created repo at: {repo_dir}'.format(repo_dir=dest_arch_path))
 
 
-def assemble_repo(config, nvrs, event_info=None, extra_data: Dict[str, str] = None):
+def assemble_repo(config, nvrs, event_info=None, extra_data: Dict = None):
     """
     Assembles one or more architecture specific repos in the
     dest_dir with the specified nvrs. It is expected by the time this method
@@ -431,6 +431,8 @@ class KojiWrapper(wrapt.ObjectProxy):
 @cli.command('from-tags', short_help='Collects a set of RPMs from specified brew tags -- signing if necessary.')
 @click.pass_obj
 @click.option('-t', '--brew-tag', multiple=True, required=True, nargs=2, help='One or more brew tags whose RPMs should be included in the repo; format is: <tag> <product_version>')
+@click.option('-e', '--embargoed-brew-tag', multiple=True, required=False, help='If specified, any nvr found in these tags will be considered embargoed (unless they have already shipped)')
+@click.option('--embargoed-nvr', multiple=True, required=False, help='Treat this nvr as embargoed (unless it has already shipped)')
 @click.option('--signing-advisory-id', required=False, help='Use this auto-signing advisory to sign RPMs if necessary.')
 @click.option('--signing-advisory-mode', required=False, default="clean", type=click.Choice(['leave', 'clean'], case_sensitive=False),
               help='clean=remove all builds on start and successful exit; leave=leave builds attached which the invocation attempted to sign')
@@ -438,12 +440,17 @@ class KojiWrapper(wrapt.ObjectProxy):
 @click.option('--event', required=False, default=None, help='The brew event for the desired tag states')
 @click.option('--include-embargoed', default=False, is_flag=True,
               help='If specified, embargoed/unshipped RPMs will be included in the plashet')
-def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll_for, event, include_embargoed):
+def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advisory_id, signing_advisory_mode, poll_for, event, include_embargoed):
     """
     The repositories are filled with RPMs derived from the list of
     brew tags. If the RPMs are not signed and a repo should contain signed content,
     the specified advisory will be used for signing the RPMs (requires
     automatic sign on attach).
+
+    If you specify --embargoed-brew-tag, plashet will treat any nvr found in this tag as if it is
+    embargoed (unless has already shipped). This is useful since the .p1 convention cannot be used
+    on RPMs not built by ART.
+
 
     \b
     --brew-tag <tag> <product_version> example: --brew-tag rhaos-4.5-rhel-8-candidate OSE-4.5-RHEL-8 --brew-tag .. ..
@@ -462,6 +469,15 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
         event_info = koji_proxy.getLastEvent()
         event = event_info['id']
 
+    # Gather up all nvrs tagged in the embargoed brew tags into a set.
+    embargoed_tag_nvrs = set()
+    embargoed_tag_nvrs.update(embargoed_nvr)
+    for ebt in embargoed_brew_tag:
+        for build in koji_proxy.listTagged(ebt, latest=False, inherit=False, event=event):
+            embargoed_tag_nvrs.add(build['nvr'])
+    logger.info('Will treat the following nvrs as potentially embargoed: {}'.format(embargoed_tag_nvrs))
+
+    actual_embargoed_nvrs = list()  # A list of nvrs detected as embargoed
     desired_nvrs = set()
     nvr_product_version = {}
     for tag, product_version in brew_tag:
@@ -500,24 +516,33 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
                 logger.info(f'Skipping tagged but not command line included package: {nvr}')
                 continue
 
-            if '.p1' in nvr and not include_embargoed:
-                # We are being asked to build a plashet without embargoed RPMs. p1 indicates this rpm is
-                # OR *was* embargoed. We can ignore it if it has already shipped.
+            if '.p1' in nvr or nvr in embargoed_tag_nvrs:
+                # p1 or inclusion in the embargoed_tag_nvrs indicates this rpm is embargoed OR *was* embargoed.
+                # We can ignore it if it has already shipped.
                 if released_nvr is None or compare_nvr(parsed_nvr, released_nvr) > 0:  # Is our nvr > last shipped?
-                    # Our embargoed build has not been shipped. We need to find a stand-in.
-                    # Search through the tag's package history to find the last build that was NOT embargoed.
-                    unembargoed_nvr = None
-                    for build in koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event):
-                        if '.p1' in build['release']:  # If this build was embargoed, skip it.
-                            continue
-                        unembargoed_nvr = build['nvr']
-                        break
+                    # Our embargoed build has not been shipped.
+                    actual_embargoed_nvrs.append(nvr)  # Record that at the time of build, this was considered embargoed
 
-                    if unembargoed_nvr is None:
-                        raise IOError(f'Unable to build unembargoed plashet. Lastest build of {package_name} ({nvr}) is embargoed but unable to find unembargoed version in history')
-                    plashet_concerns.append(f'Swapping embargoed nvr {nvr} for unembargoed nvr {unembargoed_nvr}.')
-                    logger.info(plashet_concerns[-1])
-                    nvr = unembargoed_nvr
+                    if not include_embargoed:
+                        # We are being asked to build a plashet without embargoed RPMs. We need to find a stand-in.
+                        # Search through the tag's package history to find the last build that was NOT embargoed.
+                        unembargoed_nvr = None
+                        for build in koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event):
+                            test_nvr = build['nvr']
+                            parsed_test_nvr = parse_nvr(test_nvr)
+                            if released_nvr is None or compare_nvr(parsed_test_nvr, released_nvr) > 0:  # If this nvr hasn't shipped
+                                if '.p1' in test_nvr or test_nvr in embargoed_tag_nvrs:  # Looks like this one is embargoed too
+                                    continue
+                            unembargoed_nvr = test_nvr
+                            break
+
+                        if unembargoed_nvr is None:
+                            raise IOError(f'Unable to build unembargoed plashet. Lastest build of {package_name} ({nvr}) is embargoed but unable to find unembargoed version in history')
+                        plashet_concerns.append(f'Swapping embargoed nvr {nvr} for unembargoed nvr {unembargoed_nvr}.')
+                        logger.info(plashet_concerns[-1])
+                        nvr = unembargoed_nvr
+                else:
+                    logger.info(f'NVR {nvr} was potentially embargoed, but has already shipped')
 
             if released_nvr:
                 if compare_nvr(parsed_nvr, released_nvr) < 0:  # if the current nvr is less than the released NVR
@@ -570,7 +595,16 @@ def from_tags(config, brew_tag, signing_advisory_id, signing_advisory_mode, poll
         # Seems that everything is signed; remove builds from the advisory.
         update_advisory_builds(config, errata_proxy, signing_advisory_id, [], nvr_product_version)
 
-    assemble_repo(config, desired_nvrs, event_info)
+    extra_embargo_info = {  # Data related to embargos that will be written into the plashet.yml
+        'embargoed_permitted': include_embargoed,  # Whether we included or excluded these nvrs in the plashet
+        'detected_as_embargoed': actual_embargoed_nvrs,
+    }
+
+    extra_data = {  # Data that will be included in the plashet.yml after assembly.
+        'embargo_info': extra_embargo_info
+    }
+
+    assemble_repo(config, desired_nvrs, event_info, extra_data=extra_data)
 
 
 @cli.command('from-advisories', short_help='Collects a set of RPMs attached to specified advisories.')

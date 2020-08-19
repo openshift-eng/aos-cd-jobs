@@ -168,7 +168,8 @@ node {
     } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Just a hotfix for a specific customer
         direct_release_nightly = true
         detect_previous = false
-        release_name = params.FROM_RELEASE_TAG.trim()   // ignore offset. Release is named same as nightly.
+        // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
+        release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
         CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
     } else {
         error('Unknown release type: ' + params.RELEASE_TYPE)

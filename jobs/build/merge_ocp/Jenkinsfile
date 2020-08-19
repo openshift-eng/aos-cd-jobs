@@ -35,30 +35,33 @@ node {
                     string(
                         name: 'VERSIONS',
                         description: 'CSV list of versions to run merge on.',
-                        defaultValue: commonlib.ocpMergeVersions.join(',')
+                        defaultValue: commonlib.ocpMergeVersions.join(','),
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'CLEAN_CLONE',
                         defaultValue: false,
-                        description: 'Force all git repos to be re-pulled'
+                        description: 'Force all git repos to be re-pulled',
                     ),
                     booleanParam(
                         name: 'SCHEDULE_INCREMENTAL',
                         defaultValue: false,
-                        description: 'If changes are detected, schedule an incremental build (4.x only)'
+                        description: 'If changes are detected, schedule an incremental build (4.x only)',
                     ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-ocp-merge@redhat.com',
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

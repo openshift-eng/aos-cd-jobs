@@ -63,7 +63,8 @@ node {
                     string(
                         name: 'DESCRIPTION',
                         description: 'Should be empty unless you know otherwise',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'ADVISORY',
@@ -73,48 +74,49 @@ node {
                     string(
                         name: 'PREVIOUS',
                         description: 'Use auto to be prompted later in the job with suggested previous. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
-                        defaultValue: "auto"
+                        defaultValue: "auto",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',
                         description: 'DO NOT USE without team lead approval. This is an unusual option.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'SKIP_OTA_SLACK_NOTIFICATION',
                         description: 'Do not notify OTA team in slack for new PRs',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'PERMIT_ALL_ADVISORY_STATES',
                         description: 'DO NOT USE without team lead approval. Allows release job to run when advisory is not in QE state.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         // https://coreos.slack.com/archives/CJARLA942/p1587651980096400?thread_ts=1587623714.067700&cid=CJARLA942
                         name: 'OPEN_NON_X86_PR',
                         description: 'Usually PRs will only be opened when x86_64 releases are created. If set, this will force their creation for any CPU arch.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'SKIP_IMAGE_LIST',
                         description: 'Do not gather an advisory image list for docs. Use this for RCs and other test situations.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'KEEP_RELEASE_CLOSED',
                         description: 'Prevent creation of advisories for the next z-stream of given OCP version',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'DRY_RUN',
                         description: 'Take no actions. Note: still notifies and runs signing job (which fails).',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
@@ -123,14 +125,16 @@ node {
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
                             'aos-art-automation+new-release@redhat.com',
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-release@redhat.com'
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

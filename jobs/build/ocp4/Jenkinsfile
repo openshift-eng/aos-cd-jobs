@@ -32,19 +32,20 @@ node {
                     booleanParam(
                         name: 'DRY_RUN',
                         description: 'Take no action, just echo what the build would have done.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(
                         name: 'NEW_VERSION',
                         description: '(Optional) version for build instead of most recent\nor "+" to bump most recent version',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'FORCE_BUILD',
                         description: 'Build regardless of whether source has changed',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     choice(
                         name: 'BUILD_RPMS',
@@ -59,7 +60,8 @@ node {
                     string(
                         name: 'RPM_LIST',
                         description: '(Optional) Comma/space-separated list to include/exclude per BUILD_RPMS (e.g. openshift,openshift-kuryr)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     choice(
                         name: 'BUILD_IMAGES',
@@ -74,25 +76,29 @@ node {
                     string(
                         name: 'IMAGE_LIST',
                         description: '(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES (e.g. logging-kibana5,openshift-jenkins-2)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: '(Optional) Success Mailing List\naos-cicd@redhat.com,aos-qe@redhat.com',
                         defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-ocp4-build@redhat.com'
-                        ].join(',')
+                        ].join(','),
+                        trim: true
                     ),
                     string(
                         name: 'SPECIAL_NOTES',
                         description: '(Optional) special notes to include in the build email',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                 ]
             ],

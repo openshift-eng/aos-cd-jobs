@@ -272,14 +272,16 @@ node {
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
                             'aos-art-automation+new-ocp3-build@redhat.com',
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-ocp3-build@redhat.com'
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     choice(
                         name: 'BUILD_MODE',
@@ -299,38 +301,40 @@ node {
                     booleanParam(
                         name: 'ODCS',
                         description: 'Run in ODCS Mode?',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'SIGN',
                         description: 'Sign RPMs with openshifthosted key? (for SD - generally not useful',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     commonlib.mockParam(),
                     booleanParam(
                         name: 'DRY_RUN',
                         description: 'Run as much code as possible without pushing / building',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     string(
                         name: 'SPECIAL_NOTES',
                         description: 'Include special notes in the build email',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'BUILD_EXCLUSIONS',
                         description: 'Exclude these images from builds. Comma or space separated list. (i.e cri-o-docker,aos3-installation-docker)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'BUILD_CONTAINER_IMAGES',
                         description: 'Build container images?',
-                        defaultValue: true
+                        defaultValue: true,
                     ),
                     booleanParam(
                         name: 'BUILD_AMI',
                         description: 'Build golden image after building images?',
-                        defaultValue: true
+                        defaultValue: true,
                     ),
                 ]
             ],

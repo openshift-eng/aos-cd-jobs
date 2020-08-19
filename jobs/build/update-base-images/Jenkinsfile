@@ -29,18 +29,21 @@ node {
                     string(
                         name: 'BASE_IMAGE_TAGS',
                         description: 'list of openshift cve base images.',
-                        defaultValue: commonlib.ocpBaseImages.join(' ')
+                        defaultValue: commonlib.ocpBaseImages.join(' '),
+                        trim: true,
                     ),
                     string(
                         name: 'PACKAGE_LIST',
                         description: 'list of packages to update (all if empty).',
                         defaultValue: '',
+                        trim: true,
                     ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
-                        defaultValue: 'aos-team-art@redhat.com'
+                        defaultValue: 'aos-team-art@redhat.com',
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

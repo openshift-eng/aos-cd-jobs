@@ -34,7 +34,8 @@ node {
                     string(
                         name: 'IMAGES',
                         description: 'List of image distgits to limit selection (default all)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     choice(
                         name: 'STREAM',
@@ -45,21 +46,23 @@ node {
                         name: 'OLM_OPERATOR_ADVISORIES',
                         description: 'One or more advisories where OLM operators are attached\n* Required for "stage" and "prod" STREAMs',
                         defaultValue: '',
+                        trim: true,
                     ),
                     string(
                         name: 'METADATA_ADVISORY',
                         description: 'Advisory to attach corresponding metadata builds\n* Required for "stage" and "prod" STREAMs',
                         defaultValue: '',
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'FORCE_METADATA_BUILD',
                         defaultValue: false,
-                        description: "Always attempt to build the operator metadata repo, even if the content is unchanged"
+                        description: "Always attempt to build the operator metadata repo, even if the content is unchanged",
                     ),
                     booleanParam(
                         name: 'SKIP_PUSH',
                         defaultValue: false,
-                        description: "Do not push operator metadata"
+                        description: "Do not push operator metadata",
                     ),
                     commonlib.suppressEmailParam(),
                     string(
@@ -67,7 +70,8 @@ node {
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-appregistry@redhat.com',
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

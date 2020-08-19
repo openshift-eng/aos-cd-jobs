@@ -44,39 +44,42 @@ node {
                     string(
                         name: 'FROM_RELEASE_TAG',
                         description: 'Optional. If not specified, an attempt will be made to detect the latest nightly. e.g. 4.1.0-0.nightly-2019-04-22-005054',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'NEW_NAME_OVERRIDE',
                         description: 'Release name (if not specified, uses detected name or FROM_RELEASE_TAG)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'Allows the pipeline to overwrite an existing payload in quay. Use only to recover from a pre-release that failed at client sync.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit.',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'MIRROR',
                         description: 'Sync clients to mirror.',
-                        defaultValue: true
+                        defaultValue: true,
                     ),
                     booleanParam(
                         name: 'SET_CLIENT_LATEST',
                         description: 'Set latest links for client.',
-                        defaultValue: true
+                        defaultValue: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-release@redhat.com'
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                     commonlib.suppressEmailParam(),

@@ -6,11 +6,9 @@ node {
     def buildlib = build.buildlib
     def commonlib = build.commonlib
     commonlib.describeJob("signed-compose", """
-        -----------------------------------------------------
-        Create a signed compose of RPMs for OCP 3.11 releases
-        -----------------------------------------------------
-        Timing: Run before building images intended to release for 3.11. See:
-        https://github.com/openshift/art-docs/blob/master/3.11.z.md#build-signed-containers
+        <h2>Create a signed compose of RPMs for OCP 3.11 releases</h2>
+        <b>Timing</b>: Run before building images intended to release for 3.11. See:
+        <a href="https://github.com/openshift/art-docs/blob/master/3.11.z.md#build-signed-containers" target="_blank">3.11 z-stream doc</a>
 
         Because we do not build plashets for 3.11 yet, this job is used for
         creating the signed compose that we build releasable images against. It

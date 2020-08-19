@@ -5,19 +5,16 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("el8-rebuilds", """
-        ---------------------------------------
-        Rebuild 4.x packages on RHEL8 for RHCOS
-        ---------------------------------------
+        <h2>Rebuild 4.x packages on RHEL8 for RHCOS</h2>
         This job rebuilds the openshift and openshift-clients packages against
         a RHEL 8 buildroot with exactly the same version and release as they
         were built against RHEL 7. RHCOS is the only consumer for the rebuilds.
 
-        Timing: The ocp4 job runs this immediately after building any RPMs.
+        <b>Timing</b>: The ocp4 job runs this immediately after building any RPMs.
         The custom job runs this only after building one of the packages in question.
         It should be very rare that a human runs this directly.
 
-        For more details see the README:
-        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/el8-rebuilds/README.md
+        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/el8-rebuilds/README.md" target="_blank">README</a>
     """)
 
 

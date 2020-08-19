@@ -6,19 +6,16 @@ node {
     def commonlib = appregistry.commonlib
 
     commonlib.describeJob("appregistry", """
-        ---------------------------------------------------
-        Manage OLM operator manifests in appregistry format
-        ---------------------------------------------------
-        Timing: 
+        <h2>Manage OLM operator manifests in appregistry format</h2>
+        <b>Timing</b>: 
         * dev: ocp4 and custom jobs run this automatically
         * stage: release-artists run to hand off new images for QE to verify in a release
         * prod: release-artists run for a verified release when we are CERTAIN it will ship next
 
         Stage and prod builds for different versions MUST be pushed in the same order they are built.
-        *** The first PROD build should not be performed until AT LEAST Friday before a release. ***
+        <b>The first PROD build should not be performed until AT LEAST Friday before a release.</b>
 
-        For more details see the README:
-        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/appregistry/README.md
+        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/appregistry/README.md" target="_blank">README</a>
     """)
 
     // Please update README.md if modifying parameter names or semantics

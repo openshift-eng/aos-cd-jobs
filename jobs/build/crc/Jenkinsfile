@@ -7,10 +7,8 @@ node {
     def commonlib = build.commonlib
 
     commonlib.describeJob("crc_sync", """
-        ----------------------------------------------
-        Publish CodeReady Containers client to mirrors
-        ----------------------------------------------
-        https://developers.redhat.com/products/codeready-containers/overview
+        <h2>Publish CodeReady Containers client to mirrors</h2>
+        <a href="https://developers.redhat.com/products/codeready-containers/overview" target="_blank">Product Overview</a>
 
         Timing: Whenever the team asks us to do a release, typically with a new
         minor version GA.

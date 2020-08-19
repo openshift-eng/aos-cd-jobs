@@ -4,10 +4,8 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("custom", """
-        ---------------------------------------------
-        Run component builds in ways other jobs can't
-        ---------------------------------------------
-        Timing: This is only ever run by humans, as needed. No job should be calling it.
+        <h2>Run component builds in ways other jobs can't</h2>
+        <b>Timing</b>: This is only ever run by humans, as needed. No job should be calling it.
 
         This job is mainly used when you need something specific not handled
         well by the ocp3 or ocp4 jobs and don't want to set up and use doozer.
@@ -15,8 +13,7 @@ node {
         It is also still necessary for building OCP 3.11 releases using signed
         RPMs in containers.
 
-        For more details see the README:
-        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/custom/README.md
+        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/custom/README.md" target="_blank">README</a>
     """)
 
 

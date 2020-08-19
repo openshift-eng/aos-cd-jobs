@@ -3,10 +3,8 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("update-base-images", """
-        --------------------------------------------------
-        Rebuild base images to keep up with published CVEs
-        --------------------------------------------------
-        Timing: Rebuilds all base container images weekly on Saturday.
+        <h2>Rebuild base images to keep up with published CVEs</h2>
+        <b>Timing</b>: Rebuilds all base container images weekly on Saturday.
         May be run manually for specific updates.
 
         When RHEL CVEs are released, we do not wait for other teams to update

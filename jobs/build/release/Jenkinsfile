@@ -9,10 +9,8 @@ node {
     def slacklib = commonlib.slacklib
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
     commonlib.describeJob("release", """
-        ----------------------------------------
-        Publish official OCP 4 release artifacts
-        ----------------------------------------
-        Timing: https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image
+        <h2>Publish official OCP 4 release artifacts</h2>
+        <b>Timing</b>: <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image" target="_blank">4.y z-stream doc</a>
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
@@ -25,7 +23,7 @@ node {
 
         Most of what it does can be replicated manually by running other jobs,
         which is useful when it breaks for some reason. See:
-        https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#release-job-failures
+        <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#release-job-failures" target="_blank">Release job failures</a>
     """)
 
 

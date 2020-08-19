@@ -82,14 +82,12 @@ node('openshift-build-1') {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
     commonlib.describeJob("aws-ami", """
-        ------------------------------------------------
-        Publish 3.11 AMI to AWS
-        ------------------------------------------------
+        <h2>Publish 3.11 AMI to AWS<h2>
         This job publishes an AMI created for an OCP 3.11 build on AWS.
         At some point it must have been used in testing 3.y builds in AWS.
         It is not clear that anyone uses it for anything now.
 
-       Timing:
+       <b>Timing</b>
        The ocp3 job runs this job when it's complete.
        There's no known reason for a human to run it.
     """)

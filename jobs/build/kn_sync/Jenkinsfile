@@ -5,12 +5,10 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("kn_sync", """
-        ----------------------------------------------
-        Sync the knative (serverkess) client to mirror
-        ----------------------------------------------
-        http://mirror.openshift.com/pub/openshift-v4/clients/serverless/
+        <h2>Sync the knative (serverless) client to mirror</h2>
+        <a href="http://mirror.openshift.com/pub/openshift-v4/clients/serverless/" target="blank">Product Overview</a>
 
-        Timing: This is only ever run by humans, upon request.
+        <b>Timing<b>: This is only ever run by humans, upon request.
     """)
 
 

@@ -6,11 +6,9 @@ node {
     def buildlib = release.buildlib
     def commonlib = release.commonlib
     commonlib.describeJob("tarball-sources", """
-        ------------------------------------------------------
-        Prepare container-first tarball sources for publishing
-        ------------------------------------------------------
-        Timing: After the release job has run. See:
-        https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#provide-non-golang-container-first-sources-to-rcm
+        <h2>Prepare container-first tarball sources for publishing</h2>
+        <b>Timing</b>: After the release job has run. See:
+        <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#provide-non-golang-container-first-sources-to-rcm" target="_blank">the docs</a>
 
         We have a legal requirement to publish the sources of all our builds.
         Containers which are built from source are mostly golang and handled by

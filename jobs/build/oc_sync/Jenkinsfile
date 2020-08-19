@@ -6,13 +6,12 @@ node {
     def buildlib = release.buildlib
     def commonlib = buildlib.commonlib
     commonlib.describeJob("oc_sync", """
-        -------------------------------------------
-        Sync the oc and installer clients to mirror
-        -------------------------------------------
-        http://mirror.openshift.com/pub/openshift-v4/clients/ocp (or ocp-dev-preview)
-        Extracts the clients from the payload cli-artifacts image and publishes them.
+        <h2>Sync the oc and installer clients to mirror</h2>
+        Extracts the clients from the payload cli-artifacts image and publishes them to
+        <a href="http://mirror.openshift.com/pub/openshift-v4/clients/ocp" target="_blank">the mirror</a>
+        or <a href="http://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview" target="_blank">ocp-dev-preview</a>
 
-        Timing: This is only ever run by humans, typically when the release job
+        <b>Timing</b>: This is only ever run by humans, typically when the release job
         fails somehow. Normally the release job syncs these clients itself.
     """)
 

@@ -35,28 +35,30 @@ node {
                     booleanParam(
                         name: 'ATTACH_BUILDS',
                         description: 'Attach new package builds to rpm advisory',
-                        defaultValue: true
+                        defaultValue: true,
                     ),
                     booleanParam(
                         name: 'KEEP_ADVISORY_STATE',
                         description: 'Run a compose without changing the state of advisory',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'DRY_RUN',
                         description: 'Do not attach builds or update the puddle. Just show what would have happened',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: '(Optional) Success Mailing List',
                         defaultValue: "aos-art-automation+new-signed-composes@redhat.com",
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: 'aos-art-automation+failed-signed-puddle@redhat.com',
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

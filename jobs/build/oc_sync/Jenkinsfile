@@ -30,7 +30,8 @@ node {
                     string(
                         name: 'RELEASE_NAME',
                         description: 'e.g. 4.2.6 or 4.3.0-0.nightly-2019-11-13-233341',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     choice(
                         name: 'ARCH',
@@ -50,7 +51,8 @@ node {
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-oc-sync@redhat.com'
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),

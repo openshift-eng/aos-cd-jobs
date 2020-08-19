@@ -38,6 +38,7 @@ node {
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: 'aos-art-automation+failed-el8-rebuilds@redhat.com',
+                        trim: true,
                     ),
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),

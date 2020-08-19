@@ -19,12 +19,14 @@ pipeline {
         string(
             name: "RPM_URL",
             description: "Redistributable RPM URL. Example: http://download.eng.bos.redhat.com/brewroot/vol/rhel-7/packages/helm/3.0.1/4.el7/x86_64/helm-redistributable-3.0.1-4.el7.x86_64.rpm",
-            defaultValue: ""
+            defaultValue: "",
+            trim: true,
         )
         string(
             name: "VERSION",
             description: "Desired version name. Example: v3.0.1",
-            defaultValue: ""
+            defaultValue: "",
+            trim: true,
         )
     }
 

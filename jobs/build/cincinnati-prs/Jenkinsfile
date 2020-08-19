@@ -28,12 +28,14 @@ node {
                     string(
                         name: 'RELEASE_NAME',
                         description: 'The name of the release to add to Cincinnati via PRs',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'ADVISORY_NUM',
                         description: 'Internal advisory number for release (i.e. https://errata.devel.redhat.com/advisory/??????)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'CANDIDATE_CHANNEL_ONLY',
@@ -43,7 +45,8 @@ node {
                     string(
                         name: 'GITHUB_ORG',
                         description: 'The github org containing cincinnati-graph-data fork to open PRs against (use for testing)',
-                        defaultValue: "openshift"
+                        defaultValue: "openshift",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'SKIP_OTA_SLACK_NOTIFICATION',

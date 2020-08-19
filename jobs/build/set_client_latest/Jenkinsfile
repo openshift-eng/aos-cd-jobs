@@ -32,12 +32,14 @@ node {
                     string(
                         name: 'CHANNEL_OR_RELEASE',
                         description: 'Pull latest from named channel (e.g. stable-4.3) or set to specific dir (e.g. 4.1.0)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'CLIENT_TYPE',
                         description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
-                        defaultValue: "ocp"
+                        defaultValue: "ocp",
+                        trim: true,
                     ),
                     choice(
                         name: 'LINK_NAME',
@@ -47,14 +49,16 @@ node {
                     string(
                         name: 'ARCHES',
                         description: 'all, any, or a space delimited list of arches: "x86_64 s390x ..."',
-                        defaultValue: "all"
+                        defaultValue: "all",
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-setting-client-latest@redhat.com'
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

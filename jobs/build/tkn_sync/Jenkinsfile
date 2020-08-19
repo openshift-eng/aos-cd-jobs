@@ -19,12 +19,14 @@ pipeline {
         string(
             name: 'TKN_VERSION',
             description: 'Example: 0.9.0',
-            defaultValue: ''
+            defaultValue: '',
+            trim: true,
         )
         string(
             name: 'TKN_URL',
             description: 'Example: http://download.eng.bos.redhat.com/staging-cds/developer/openshift-pipelines-client/0.9.0-2',
-            defaultValue: ''
+            defaultValue: '',
+            trim: true,
         )
     }
 

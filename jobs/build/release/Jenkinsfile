@@ -43,7 +43,7 @@ node {
                     string(
                         name: 'FROM_RELEASE_TAG',
                         description: 'Build tag to pull from (e.g. 4.1.0-0.nightly-2019-04-22-005054)',
-                        defaultValue: ""
+                        trim: true,
                     ),
                     choice(
                         name: 'RELEASE_TYPE',
@@ -58,7 +58,7 @@ node {
                     string(
                         name: 'RELEASE_OFFSET',
                         description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
-                        defaultValue: ""
+                        trim: true,
                     ),
                     string(
                         name: 'DESCRIPTION',
@@ -68,7 +68,7 @@ node {
                     string(
                         name: 'ADVISORY',
                         description: 'Optional: Image release advisory number. N/A for direct nightly release. If not given, the number will be retrieved from ocp-build-data.',
-                        defaultValue: ""
+                        trim: true,
                     ),
                     string(
                         name: 'PREVIOUS',

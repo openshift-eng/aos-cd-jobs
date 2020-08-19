@@ -47,21 +47,25 @@ node {
                                             name        : 'IMAGES',
                                             description : '(Optional) Limited list of images to sync, for testing purposes',
                                             defaultValue: "",
+                                            trim: true,
                                     ),
                                     string(
                                             name        : 'BREW_EVENT_ID',
                                             description : '(Optional) Look for the latest images as of the given Brew event instead of current',
                                             defaultValue: "",
+                                            trim: true,
                                     ),
                                     string(
                                             name        : 'ORGANIZATION',
                                             description : 'Quay.io organization to mirror to (do not change)',
                                             defaultValue: "openshift-release-dev",
+                                            trim: true,
                                     ),
                                     string(
                                             name        : 'REPOSITORY',
                                             description : 'Quay.io repository to mirror to (do not change)',
                                             defaultValue: "ocp-v4.0-art-dev",
+                                            trim: true,
                                     ),
                             ],
                     ]

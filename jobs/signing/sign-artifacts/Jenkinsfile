@@ -38,12 +38,14 @@ node {
                     string(
                         name: 'NAME',
                         description: 'Release name (e.g. 4.2.0)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'SIGNATURE_NAME',
                         description: 'Signature name\nStart with signature-1 and only increment if adding an additional signature to a release!',
-                        defaultValue: "signature-1"
+                        defaultValue: "signature-1",
+                        trim: true,
                     ),
                     choice(
                         name: 'CLIENT_TYPE',
@@ -81,12 +83,13 @@ node {
                     string(
                         name: 'DIGEST',
                         description: 'The digest of the release. Example value: "sha256:f28cbabd1227352fe704a00df796a4511880174042dece96233036a10ac61639"\nCan be taken from the Release job.',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'DRY_RUN',
                         description: 'Only do dry run test and exit\nDoes not send anything over the bus',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     commonlib.mockParam(),
                 ]

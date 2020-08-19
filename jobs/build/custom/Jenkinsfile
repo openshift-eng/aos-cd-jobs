@@ -39,33 +39,39 @@ node {
                     string(
                         name: 'VERSION',
                         description: '(Optional) version for build (e.g. 4.3.42) instead of most recent\nor "+" to bump most recent version',
+                        trim: true,
                     ),
                     string(
                         name: 'RELEASE',
                         description: '(Optional) Release string for build instead of default (1 for 3.x, timestamp.p? for 4.x)',
+                        trim: true,
                     ),
                     string(
                         name: 'DOOZER_DATA_PATH',
                         description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
                         defaultValue: "https://github.com/openshift/ocp-build-data"
+                        trim: true,
                     ),
                     string(
                         name: 'RPMS',
                         description: 'List of RPM distgits to build. Empty for all. Enter "NONE" to not build any.',
-                        defaultValue: "NONE"
+                        defaultValue: "NONE",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'COMPOSE',
                         description: 'Build plashets/compose (always true if building RPMs)',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     string(
                         name: 'IMAGES',
                         description: 'List of image distgits to build. Empty for all. Enter "NONE" to not build any.',
+                        trim: true,
                     ),
                     string(
                         name: 'EXCLUDE_IMAGES',
                         description: 'List of image distgits NOT to build (builds all not listed - IMAGES value is ignored)',
+                        trim: true
                     ),
                     choice(
                         name: 'IMAGE_MODE',
@@ -75,33 +81,37 @@ node {
                     booleanParam(
                         name: 'SIGNED',
                         description: '(3.11) Build images against signed RPMs?',
-                        defaultValue: true
+                        defaultValue: true,
                     ),
                     booleanParam(
                         name: 'SWEEP_BUGS',
                         description: 'Sweep and attach bugs to advisories',
-                        defaultValue: false
+                        defaultValue: false,
                     ),
                     string(
                         name: 'IMAGE_ADVISORY_ID',
                         description: 'Advisory id for attaching new images if desired. Enter "default" to use current advisory from ocp-build-data',
+                        trim: true
                     ),
                     string(
                         name: 'RPM_ADVISORY_ID',
                         description: 'Advisory id for attaching new rpms if desired. Enter "default" to use current advisory from ocp-build-data',
+                        trim: true,
                     ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: '(Optional) Success Mailing List',
                         defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-custom-build@redhat.com',
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

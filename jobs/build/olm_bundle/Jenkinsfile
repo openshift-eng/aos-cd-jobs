@@ -28,7 +28,7 @@ pipeline {
         choice(
             name: 'BUILD_VERSION',
             choices: olm_bundles.commonlib.ocpVersions,
-            description: 'OCP Version'
+            description: 'OCP Version',
         )
         string(
             name: 'ONLY',
@@ -37,7 +37,8 @@ pipeline {
                          'Format: Comma and/or space separated list of brew '+
                          'packages (e.g.: cluster-nfd-operator-container)\n' +
                          'Leave empty to build all (except EXCLUDE, if defined)',
-            defaultValue: ''
+            defaultValue: '',
+            trim: true,
         )
         string(
             name: 'EXCLUDE',
@@ -46,19 +47,21 @@ pipeline {
                          'Format: Comma and/or space separated list of brew ' +
                          'packages (e.g.: cluster-nfd-operator-container)\n'  +
                          'Leave empty to build all (or ONLY, if defined)',
-            defaultValue: ''
+            defaultValue: '',
+            trim: true,
         )
         string(
             name: 'EXTRAS_ADVISORY',
             description: '(Optional) Fetch OLM Operators NVRs from advisory.\n'  +
                          'Leave empty to fetch NVRs from "brew latest-build".\n' +
                          'Bundles won\'t be attached to any advisory if empty.',
-            defaultValue: ''
+            defaultValue: '',
+            trim: true,
         )
         booleanParam(
             name: 'DRY_RUN',
             description: 'Just show what would happen, without actually executing the steps',
-            defaultValue: false
+            defaultValue: false,
         )
     }
 

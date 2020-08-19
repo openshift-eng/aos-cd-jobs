@@ -32,24 +32,28 @@ node {
                     string(
                         name: 'COMPONENTS',
                         description: '(REQUIRED) Brew component name',
-                        defaultValue: "logging-fluentd-container"
+                        defaultValue: "logging-fluentd-container",
+                        trim: true,
                     ),
                     string(
                         name: 'ADVISORY',
                         description: '(REQUIRED) Image release advisory number.',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'RCM_GUEST',
                         description: 'Details of RCM GUEST',
-                        defaultValue: "ocp-build@rcm-guest.app.eng.bos.redhat.com:/mnt/rcm-guest/ocp-client-handoff/"
+                        defaultValue: "ocp-build@rcm-guest.app.eng.bos.redhat.com:/mnt/rcm-guest/ocp-client-handoff/",
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-release@redhat.com'
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

@@ -34,11 +34,13 @@ node {
                     string(
                         name: 'RELEASE_URL',
                         description: '(REQUIRED) Directory listing to latest release',
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
                         defaultValue: 'aos-art-automation+failed-crc-release@redhat.com',
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'DRY_RUN',

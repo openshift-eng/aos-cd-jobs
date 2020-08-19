@@ -37,12 +37,14 @@ node {
                     string(
                         name: 'GROUP',
                         description: 'The ocp-build-data group to synchronize (e.g. openshift-4.3)',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'REPOSYNC_DIR',
                         description: 'The directory under reposync to write to',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     choice(
                         name: 'ARCH',
@@ -60,7 +62,8 @@ node {
                         description: 'Failure Mailing List',
                         defaultValue: [
                             'aos-art-automation+failed-reposync@redhat.com',
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.mockParam(),
                 ]

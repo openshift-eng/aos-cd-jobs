@@ -19,22 +19,26 @@ pipeline {
         string(
             name: "VERSION",
             description: "Desired version name. Example: v1.0.3",
-            defaultValue: ""
+            defaultValue: "",
+            trim: true,
         )
         string(
             name: "LINUX_BINARIES_LOCATION",
             description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/odo/1.2.5-1/signed/linux/",
-            defaultValue: ""
+            defaultValue: "",
+            trim: true,
         )
         string(
             name: "MACOS_BINARIES_LOCATION",
             description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/odo/1.2.5-1/signed/macos/",
-            defaultValue: ""
+            defaultValue: "",
+            trim: true,
         )
         string(
             name: "WINDOWS_BINARIES_LOCATION",
             description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/odo/1.2.5-1/signed/windows/",
-            defaultValue: ""
+            defaultValue: "",
+            trim: true,
         )
     }
 

@@ -27,12 +27,14 @@ node {
                     string(
                         name: 'KN_VERSION',
                         description: 'the version of OpenShift Serverless CLI binaries',
-                        defaultValue: "0.2.3"
+                        defaultValue: "0.2.3",
+                        trim: true,
                     ),
                     string(
                         name: 'KN_URL',
                         description: 'the RPM download url of OpenShift Serverless CLI binaries',
-                        defaultValue: ""
+                        defaultValue: "",
+                        trim: true,
                     ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
@@ -40,7 +42,8 @@ node {
                         defaultValue: [
                             'nshaikh@redhat.com',
                             'aos-art-automation+failed-kn-client-sync@redhat.com',
-                        ].join(',')
+                        ].join(','),
+                        trim: true,
                     ),
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),

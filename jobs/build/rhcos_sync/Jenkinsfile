@@ -39,6 +39,7 @@ node {
                         name: 'NAME',
                         description: 'The release name, like 4.2.0, or 4.2.0-0.nightly-2019-08-28-152644',
                         defaultValue: "",
+                        trim: true,
                     ),
                     choice(
                         name: 'ARCH',
@@ -54,6 +55,7 @@ node {
                         name: 'RHCOS_BUILD',
                         description: 'ID of the RHCOS build to sync. e.g.: 42.80.20190828.2',
                         defaultValue: "",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'DRY_RUN',
@@ -64,6 +66,7 @@ node {
                         name: 'SYNC_LIST',
                         description: 'Instead of figuring out items to sync from meta.json, use this input file.\nMust be a URL reachable from buildvm, contents must be reachable from use-mirror-upload',
                         defaultValue: "",
+                        trim: true,
                     ),
                     booleanParam(
                         name: 'FORCE',

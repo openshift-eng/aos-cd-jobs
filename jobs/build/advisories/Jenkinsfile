@@ -47,17 +47,20 @@ node {
                         string(
                             name: "ASSIGNED_TO",
                             description: "Advisories are assigned to QE",
-                            defaultValue: "openshift-qe-errata@redhat.com"
+                            defaultValue: "openshift-qe-errata@redhat.com",
+                            trim: true
                         ),
                         string(
                             name: "MANAGER",
                             description: "ART team manager (not release manager)",
-                            defaultValue: "vlaad@redhat.com"
+                            defaultValue: "vlaad@redhat.com",
+                            trim: true
                         ),
                         string(
                             name: "PACKAGE_OWNER",
                             description: "Must be an individual email address; may be anyone who wants random advisory spam",
-                            defaultValue: "lmeyer@redhat.com"
+                            defaultValue: "lmeyer@redhat.com",
+                            trim: true
                         ),
                         choice(
                             name: "IMPETUS",
@@ -72,7 +75,8 @@ node {
                         string(
                             name: "DATE",
                             description: "Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
-                            defaultValue: "${dateFormat.format(date)}"
+                            defaultValue: "${dateFormat.format(date)}",
+                            trim: true
                         ),
                         booleanParam(
                             name: "DRY_RUN",
@@ -85,7 +89,8 @@ node {
                             description: "Failure Mailing List",
                             defaultValue: [
                                 "aos-art-automation+failed-ocp4-build@redhat.com"
-                            ].join(",")
+                            ].join(","),
+                            trim: true
                         ),
                         string(
                             name: 'LIVE_ID_MAIL_LIST',
@@ -93,7 +98,8 @@ node {
                             defaultValue: [
                                 "openshift-ccs@redhat.com",
                                 "aos-team-art@redhat.com"
-                            ].join(",")            
+                            ].join(","),
+                            trim: true
                         ),
                         commonlib.mockParam(),
                     ]

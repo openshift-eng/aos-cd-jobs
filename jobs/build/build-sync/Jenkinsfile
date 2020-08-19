@@ -7,17 +7,14 @@ node {
     def buildlib = build.buildlib
     def commonlib = build.commonlib
     commonlib.describeJob("build-sync", """
-        -------------------------------------
-        Mirror latest 4.y images to nightlies
-        -------------------------------------
-        Timing: usually automated. Human might use to revert or hand-advance nightly membership.
+        <h2>Mirror latest 4.y images to nightlies</h2>
+        <b>Timing</b>: usually automated. Human might use to revert or hand-advance nightly membership.
 
         This job gets the latest images from our candidate tags, syncs them to quay.io,
         and updates the imagestreams on api.ci which feed into nightlies on our
         release-controllers.
 
-        For more details see the README:
-        https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/build-sync/README.md
+        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/build-sync/README.md" target="_blank">README</a>
     """)
 
     // Please update README.md if modifying parameter names or semantics

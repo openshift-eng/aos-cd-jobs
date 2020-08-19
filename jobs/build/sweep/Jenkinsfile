@@ -5,10 +5,8 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("sweep", """
-        ---------------------------------------
-        Sweep bugs into the standard advisories
-        ---------------------------------------
-        Timing: This runs after component builds (ocp3/ocp4/custom jobs).
+        <h2>Sweep bugs into the standard advisories</h2>
+        <b>Timing</b>: This runs after component builds (ocp3/ocp4/custom jobs).
         Can be run manually but this should be rarely needed.
 
         Bugs are attached into the appropriate advisories for the release,

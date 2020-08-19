@@ -2,10 +2,8 @@ node {
     checkout scm
     olm_bundles = load('olm_bundles.groovy')
     olm_bundles.commonlib.describeJob("olm_bundles", """
-        --------------------------------------
-        Create bundle images for OLM operators
-        --------------------------------------
-        Timing: Run by the ocp4 or custom jobs after new builds.
+        <h2>Create bundle images for OLM operators</h2>
+        <b>Timing</b>: Run by the ocp4 or custom jobs after new builds.
         Should only need humans to run if something breaks.
 
         This job creates operator bundle images. These are much like operator

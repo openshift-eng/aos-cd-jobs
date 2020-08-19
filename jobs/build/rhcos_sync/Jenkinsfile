@@ -6,9 +6,7 @@ node {
     def buildlib = build.buildlib
     def commonlib = build.commonlib
     commonlib.describeJob("rhcos_sync", """
-        ------------------------------------
-        Sync the RHCOS boot images to mirror
-        ------------------------------------
+        <h2>Sync the RHCOS boot images to mirror</h2>
         http://mirror.openshift.com/pub/openshift-v4/<arch>/dependencies/rhcos/
         Publishes RHCOS boot images for a particular release so that customers
         can base their OCP 4 installs on them.
@@ -18,7 +16,7 @@ node {
         boot-time bug requiring updated boot images in a version already
         released.
 
-        See https://mojo.redhat.com/docs/DOC-1216700#jive_content_id_Publish_RHCOS_bootimages
+        See <a href="https://mojo.redhat.com/docs/DOC-1216700#jive_content_id_Publish_RHCOS_bootimages" target="_blank">the docs</a>
     """)
 
 

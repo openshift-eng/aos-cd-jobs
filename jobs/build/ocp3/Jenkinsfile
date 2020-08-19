@@ -233,10 +233,8 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("ocp3", """
-        --------------------------------
-        Create a full OCP 3.11 dev build
-        --------------------------------
-        Timing: Run nightly by scheduled job (when not disabled).
+        <h2>Create a full OCP 3.11 dev build</h2>
+        <b>Timing</b>: Run nightly by scheduled job (when not disabled).
         Humans might run if that didn't work properly or recently enough.
 
         This is a monolithic 3.11 build. All RPMs and images are built with the

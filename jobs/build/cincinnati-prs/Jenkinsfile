@@ -6,18 +6,11 @@ node {
     def commonlib = release.commonlib
     commonlib.describeJob("cincinnati-prs", """
         <hr />
-        <h1>Create the PRs for Cincinnati to publish a release</h1>
+        <h2>Create the PRs for Cincinnati to publish a release</h2>
         <hr />
-        <p>Timing: The "release" job runs this once the release is accepted.</p>
-
-        <p>
-        This creates PRs to enter the new release in all the relevant
-        <a href="https://github.com/openshift/cincinnati-graph-data/tree/master/channels">Cincinnati channels</a>.
-        </p>
-
-        <p>
+        <p><b>Timing</b>: The "release" job runs this once the release is accepted.</p>
+        This creates PRs to enter the new release in all the relevant Cincinnati channels <a href="https://github.com/openshift/cincinnati-graph-data/tree/master/channels" target="_blank">here</a>
         <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/cincinnati-prs/README.md">For more details see the README.</a>
-        </p>
     """)
 
     // Please update README.md if modifying parameter names or semantics

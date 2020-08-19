@@ -138,7 +138,7 @@ def describeJob(name, description) {
         job.setDisplayName(name)
     }
     if (description) {
-        job.setDescription(description)
+        job.setDescription(description.readLines().join('<br>\n'))
     }
 }
 

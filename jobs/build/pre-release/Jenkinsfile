@@ -7,17 +7,15 @@ node {
     def commonlib = release.commonlib
     def quay_url = "quay.io/openshift-release-dev/ocp-release-nightly"
     commonlib.describeJob("pre-release", """
-        -------------------------------------------------
-        Publish accepted nightlies as public pre-releases
-        -------------------------------------------------
-        Timing: Usually run by the poll-payload scheduled job whenever there is
+        <h2>Publish accepted nightlies as public pre-releases</h2>
+        <b>Timing</b>: Usually run by the poll-payload scheduled job whenever there is
         a new accepted pre-GA build that needs to be published.
         Nightlies are not published once Release Candidates are building.
 
         This job clones the release image to the public release quay repo
             quay.io/openshift-release-dev/ocp-release-nightly
         and publishes clients for it to 
-            http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp-dev-preview/
+            <a href="http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp-dev-preview/" target="_blank">ocp-dev-preview on mirror</a>
     """)
 
 

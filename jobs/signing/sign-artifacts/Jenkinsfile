@@ -5,10 +5,8 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("sign-artifacts", """
-        --------------------------------------------------------
-        Sign OCP4 release image / clients and publish signatures
-        --------------------------------------------------------
-        Timing: The "release" job runs this after a release is accepted.
+        <h2>Sign OCP4 release image / clients and publish signatures</h2>
+        <b>Timing</b>: The "release" job runs this after a release is accepted.
         Can be run manually if that fails.
 
         See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#sign-the-release
@@ -18,7 +16,7 @@ node {
             http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp/
         The release image shasum is signed and the signature published both on
         Google Cloud Storage and mirror:
-            http://mirror.openshift.com/pub/openshift-v4/signatures/openshift/
+            <a href="http://mirror.openshift.com/pub/openshift-v4/signatures/openshift/" target="_blank">http://mirror.openshift.com/pub/openshift-v4/signatures/openshift/</a>
     """)
 
 

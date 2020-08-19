@@ -3,10 +3,8 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("sync-for-ci", """
-        -----------------------------------------------------------
-        Sync internal repositories and images where CI can use them
-        -----------------------------------------------------------
-        Timing: Usually run by scheduled job several times daily per 4.y version/arch.
+        <h2>Sync internal repositories and images where CI can use them</h2>
+        </b>Timing</b>: Usually run by scheduled job several times daily per 4.y version/arch.
 
         This job enables CI testing to run using the same RPM repositories and
         base/builder images as production builds, to keep CI and production
@@ -17,7 +15,7 @@ node {
         For a given branch of ocp-build-data, repos from group.yml with
         reposync enabled are synchronized out to a private portion of the
         mirror that is only accessible with the right client certificate:
-            http://mirror.openshift.com/enterprise/reposync/
+            <a href="http://mirror.openshift.com/enterprise/reposync/" target="_blank">http://mirror.openshift.com/enterprise/reposync/</a>
 
         Also container images defined in streams.yml are synced out to the
         api.ci.openshift.org registry. CI tests use these repos and images for

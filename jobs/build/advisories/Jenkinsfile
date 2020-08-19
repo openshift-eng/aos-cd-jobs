@@ -13,14 +13,11 @@ node {
         def date = new Date()
 
         commonlib.describeJob("advisories", """
-            ------------------------------------------------
-            Create the standard advisories for a new release
-            ------------------------------------------------
-            Timing: The "release" job runs this as soon as the previous release
+            <h2>Create the standard advisories for a new release</h2>
+            <b>Timing</b>: The "release" job runs this as soon as the previous release
             for this version is defined in the release-controller.
 
-            For more details see the README:
-            https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/advisories/README.md
+            For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/advisories/README.md" target="_blank">README</a>
         """)
 
         // Please update README.md if modifying parameter names or semantics

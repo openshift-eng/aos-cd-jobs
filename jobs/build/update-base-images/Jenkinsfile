@@ -61,6 +61,7 @@ node {
 
     currentBuild.displayName = "#${currentBuild.number} Update base images"
     currentBuild.description = ""
+    red_p = '<p style="color:#f00">'
     try {
         imageTasks = imageName.collectEntries { name -> [name,
             { ->
@@ -75,11 +76,11 @@ node {
                  if (result.returnStatus != 0) {
                     // if rebase failed, mark as partially failed (others still run)
                     currentBuild.result = 'UNSTABLE'
-                    currentBuild.description += "FAILED distgit: ${name}\n"
+                    currentBuild.description += "${red_p}FAILED distgit: ${name}</p>"
                     return
                  }
 
-                 currentBuild.description += "Build ${name}\n"
+                 currentBuild.description += "<br/>Build ${name}"
                  def url = result.stdout.readLines()[-1]
                  def rc = commonlib.shell(
                     script: "cd build-${name} && rhpkg --user=ocp-build container-build --repo-url '${url}'",
@@ -88,7 +89,7 @@ node {
 
                  if (rc != 0) {
                     currentBuild.result = 'UNSTABLE'
-                    currentBuild.description += "FAILED build: ${name}\n"
+                    currentBuild.description += "${red_p}FAILED build: ${name}</p>"
                  }
             }
         ]}
@@ -100,7 +101,7 @@ node {
             subject: "Unexpected error during CVEs update streams.yml!",
             body: "Encountered an unexpected error while running update base images: ${err}"
         )
-        currentBuild.description += "ERROR: ${err}\n"
+        currentBuild.description += "${red_p}ERROR: ${err}</p>"
 
         throw err
     }

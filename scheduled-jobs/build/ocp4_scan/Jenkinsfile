@@ -1,0 +1,10 @@
+
+properties( [
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+] )
+
+b = build job: '../aos-cd-builds/build%2Focp4_scan', propagate: false
+
+currentBuild.description = "${b.displayName} - ${b.result}\n"
+currentBuild.result = b.result

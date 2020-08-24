@@ -1,0 +1,89 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: jira-set-link-to-pr
+spec:
+  params:
+  - name: REPO_FULL_NAME
+  - name: PR_NUMBER
+  - name: GITHUB_API_URL
+    default: https://api.github.com
+  - name: JIRA_HOST_URL
+    default: https://issues.redhat.com
+  - name: JIRA_SECRET
+    default: jira
+  - name: JIRA_ISSUE_KEY_REGEX
+    default: "(ART-\\d+)"
+  steps:
+  - name: jira-set-link-to-pr
+    image: quay.io/openshift-art/art-ci-toolkit:latest
+    env:
+    - name: JIRA_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: $(params.JIRA_SECRET)
+          key: username
+    - name: JIRA_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: $(params.JIRA_SECRET)
+          key: password
+    # if you need a proxy
+    # - name: http_proxy
+    #   value: http://192.168.64.1:11087
+    # - name: https_proxy
+    #   value: http://192.168.64.1:11087
+    script: |
+      #!/usr/bin/env python3
+      import os
+      import re
+      import requests
+      from requests.auth import HTTPBasicAuth
+      from urllib.parse import urlparse, quote
+
+      r = requests.get("$(params.GITHUB_API_URL)/repos/$(params.REPO_FULL_NAME)/pulls/$(params.PR_NUMBER)")
+      r.raise_for_status()
+      pr_res = r.json()
+
+      # parse pull request metadata
+      pr_title = pr_res["title"]
+      jira_issue_keys = re.findall(r"$(params.JIRA_ISSUE_KEY_REGEX)", pr_title)
+      if not jira_issue_keys:
+        raise ValueError(f"Pull request title '{pr_title}' doesn't include any valid JIRA issue keys.")
+      state = pr_res["state"]
+      label = state.upper()
+      if state == "open":
+        icon = "https://fonts.gstatic.com/s/i/materialicons/comment/v6/24px.svg"  # "comment" icon
+        if pr_title.startswith("WIP"):
+          label = "WIP"
+          icon = "https://fonts.gstatic.com/s/i/materialicons/hourglass_empty/v5/24px.svg"  # "hourglass" icon
+      elif state == "closed":
+        icon = "https://fonts.gstatic.com/s/i/materialicons/block/v6/24px.svg"  # "block" icon
+        if pr_res.get("merged"):
+          label = "MERGED"
+          icon = "https://fonts.gstatic.com/s/i/materialicons/done_outline/v6/24px.svg"  # "done" icon
+
+      pr_url = pr_res["html_url"]
+      data = {
+          "globalId": f"PR={pr_url}",
+          "application": {},
+          "object": {
+              "url": pr_url,
+              "title": "[{}] {} PR#{}".format(label, "$(params.REPO_FULL_NAME)", "$(params.PR_NUMBER)"),
+              "icon":{"url16x16":"https://github.com/favicon.ico"},
+              "status": {
+                  "resolved": state == "closed",
+                  "icon":{"url16x16":icon}
+              }
+          }
+      }
+      auth=HTTPBasicAuth(os.environ["JIRA_USERNAME"], os.environ["JIRA_PASSWORD"])
+      session = requests.session()
+      for jira_issue_key in jira_issue_keys:
+        print(f"Adding PR link to {jira_issue_key}...")
+        url = "{}/rest/api/2/issue/{}/remotelink".format("$(params.JIRA_HOST_URL)", quote(jira_issue_key))
+        r = session.post(url, json=data, auth=auth)
+        r.raise_for_status()
+        res = r.json()
+        print(jira_issue_key + ": PR link updated: " + res['self'])

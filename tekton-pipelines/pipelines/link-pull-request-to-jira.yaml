@@ -1,0 +1,19 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: link-pull-request-to-jira
+spec:
+  params:
+    - name: REPO_FULL_NAME
+    - name: PR_NUMBER
+  tasks:
+    - name: set-link-to-pull-request
+      retries: 3
+      Timeout: "3m"
+      taskRef:
+        name: jira-set-link-to-pr
+      params:
+        - name: REPO_FULL_NAME
+          value: $(params.REPO_FULL_NAME)
+        - name: PR_NUMBER
+          value: $(params.PR_NUMBER)

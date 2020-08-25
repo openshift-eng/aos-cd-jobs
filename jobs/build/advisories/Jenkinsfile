@@ -195,7 +195,7 @@ node {
                 }
             }
         } catch (err) {
-            currentBuild.description += "\n-----------------\n\n${err}"
+            currentBuild.description += "<hr>${err}"
             currentBuild.result = "FAILURE"
 
             if (params.MAIL_LIST_FAILURE.trim()) {
@@ -206,7 +206,7 @@ node {
                     body:
                     """\
     Pipeline build "${currentBuild.displayName}" encountered an error:
-    ${currentBuild.description}
+    ${err}
 
 
     View the build artifacts and console output on Jenkins:

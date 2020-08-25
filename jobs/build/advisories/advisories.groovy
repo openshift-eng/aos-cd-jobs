@@ -48,7 +48,7 @@ def create_advisory(name) {
 
     advisory_id = buildlib.extractAdvisoryId(out)
     ADVISORIES << ["${name}": "${advisory_id}"]
-    currentBuild.description += "${name}:  https://errata.devel.redhat.com/advisory/${advisory_id}\n"
+    currentBuild.description += "${name}:  https://errata.devel.redhat.com/advisory/${advisory_id}<br />"
 }
 
 def create_placeholder(kind) {

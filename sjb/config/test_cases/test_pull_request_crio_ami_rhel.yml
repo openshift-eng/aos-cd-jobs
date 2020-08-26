@@ -6,6 +6,8 @@ overrides:
     stage: "bare"
     provider: "aws"
 extensions:
+  sync:
+    - cri-o,cri-o=master
   actions:
     - type: "host_script"
       title: "install CI user account"
@@ -26,20 +28,6 @@ extensions:
         - PULL_NUMBER
         - PULL_BASE_SHA
         - PULL_PULL_SHA
-    - type: "script"
-      title: "set up cri-o repository"
-      script: |-
-        sudo mkdir /go
-        sudo chmod a+rwx /go
-        sudo echo "GOPATH=/go" >> /etc/environment
-        mkdir -p /go/src/github.com/cri-o
-        cd /go/src/github.com/cri-o
-        git clone https://github.com/cri-o/cri-o.git
-        cd cri-o
-        git branch target "${PULL_BASE_SHA}"
-        git checkout target
-        git fetch origin "pull/${PULL_NUMBER}/head:pr"
-        git merge "${PULL_PULL_SHA}"
     - type: "script"
       title: "set up cri-o dependencies"
       script: |-

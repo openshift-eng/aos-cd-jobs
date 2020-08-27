@@ -1332,7 +1332,7 @@ def isBuildPermitted(doozerOpts) {
     echo "Group's freeze_automation flag: ${freeze_automation}"
     echo "Builder email: ${builderEmail}"
 
-    if (freeze_automation == "yes") {
+    if (freeze_automation in ["yes", "True"]) {  // yaml parses unquoted "yes" as a boolean... accept either
         echo "All automation is currently disabled by freeze_automation in group.yml."
         return false
     }

@@ -118,23 +118,23 @@ def displayTagFor(commaList, kind, isExcluded=false){
  */
 def planBuilds() {
     if (buildPlan.forceBuild) {
-        currentBuild.description = "Force building (whether source changed or not).\n"
+        currentBuild.description = "Force building (whether source changed or not).<br/>"
         currentBuild.description +=
-            (!buildPlan.buildRpms) ? "RPMs: not building.\n" :
-            (buildPlan.rpmsIncluded) ? "RPMs: building ${buildPlan.rpmsIncluded}.\n" :
-            (buildPlan.rpmsExcluded) ? "RPMs: building all except ${buildPlan.rpmsExcluded}.\n" :
-            "RPMs: building all.\n"
+            (!buildPlan.buildRpms) ? "RPMs: not building.<br/>" :
+            (buildPlan.rpmsIncluded) ? "RPMs: building ${buildPlan.rpmsIncluded}.<br/>" :
+            (buildPlan.rpmsExcluded) ? "RPMs: building all except ${buildPlan.rpmsExcluded}.<br/>" :
+            "RPMs: building all.<br/>"
         currentBuild.displayName +=
             (buildPlan.rpmsIncluded) ? displayTagFor(buildPlan.rpmsIncluded, "RPM") :
             (buildPlan.rpmsExcluded) ? displayTagFor(buildPlan.rpmsExcluded, "RPM", true) :
             (buildPlan.buildRpms) ? " [all RPMs]" : ""
 
-        currentBuild.description += "Will create RPM compose.\n"
+        currentBuild.description += "Will create RPM compose.<br/>"
         currentBuild.description +=
-            (!buildPlan.buildImages) ? "Images: not building.\n" :
-            (buildPlan.imagesIncluded) ? "Images: building ${buildPlan.imagesIncluded}.\n" :
-            (buildPlan.imagesExcluded) ? "Images: building all except ${buildPlan.imagesExcluded}.\n" :
-            "Images: building all.\n"
+            (!buildPlan.buildImages) ? "Images: not building.<br/>" :
+            (buildPlan.imagesIncluded) ? "Images: building ${buildPlan.imagesIncluded}.<br/>" :
+            (buildPlan.imagesExcluded) ? "Images: building all except ${buildPlan.imagesExcluded}.<br/>" :
+            "Images: building all.<br/>"
         currentBuild.displayName +=
             (buildPlan.imagesIncluded) ? displayTagFor(buildPlan.imagesIncluded, "image") :
             (buildPlan.imagesExcluded) ? displayTagFor(buildPlan.imagesExcluded, "image", true) :
@@ -144,7 +144,7 @@ def planBuilds() {
 
     // otherwise we need to scan sources.
     echo "Building only where source has changed."
-    currentBuild.description = "Building sources that have changed.\n"
+    currentBuild.description = "Building sources that have changed.<br/>"
 
     def changed = [:]
     try {
@@ -164,11 +164,11 @@ def planBuilds() {
 
         def report = { msg ->
             echo msg
-            currentBuild.description += "${msg}\n"
+            currentBuild.description += "${msg}<br/>"
         }
         if (!buildPlan.buildRpms) {
             report "RPMs: not building."
-            report "Will not create RPM compose."
+            report "Will still create RPM compose."
         } else if (changed.rpms) {
             report "RPMs: building " + changed.rpms.join(", ")
             report "Will create RPM compose."
@@ -178,7 +178,7 @@ def planBuilds() {
         } else {
             buildPlan.buildRpms = false
             report "RPMs: none changed."
-            report "Will not create RPM compose."
+            report "Will still create RPM compose."
             currentBuild.displayName += " [no changed RPMs]"
         }
 
@@ -233,7 +233,7 @@ def planBuilds() {
         // separately for rebase and update-dockerfile would mess up parent-child relationships,
         // and it isn't worth the trouble to make that work.
     } catch (err) {
-        currentBuild.description += "error during plan builds step:\n${err.getMessage()}\n"
+        currentBuild.description += "error during plan builds step:<br/>${err.getMessage()}<br/>"
         throw err
     }
     return buildPlan
@@ -357,7 +357,7 @@ def stageBuildImages() {
 
         failed_images = failed_map.keySet()
         currentBuild.result = "UNSTABLE"
-        currentBuild.description += "Failed images: ${failed_images.join(', ')}\n"
+        currentBuild.description += "Failed images: ${failed_images.join(', ')}<br/>"
 
         def r = buildlib.determine_build_failure_ratio(recordLog)
         if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
@@ -451,7 +451,7 @@ def stageReportSuccess() {
     def builtNothing = buildPlan.dryRun || !(buildPlan.buildRpms || buildPlan.buildImages)
     def recordLog = builtNothing ? [:] : buildlib.parse_record_log(doozerWorking)
     def timingReport = getBuildTimingReport(recordLog)
-    currentBuild.description += "\n-----------------\nBuild results:\n\n${timingReport}"
+    currentBuild.description += "<hr />Build results:<br/><br/>${timingReport}"
 
 	def stateYaml = [:]
 	if (fileExists("doozer_working/state.yaml")) {

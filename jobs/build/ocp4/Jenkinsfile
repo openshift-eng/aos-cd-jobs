@@ -142,9 +142,6 @@ node {
             return
         }
 
-        currentBuild.description += "\n-----------------\n\n${err}"
-        currentBuild.result = "FAILURE"
-
         if (params.MAIL_LIST_FAILURE.trim()) {
             commonlib.email(
                 to: params.MAIL_LIST_FAILURE,
@@ -161,8 +158,11 @@ View the build artifacts and console output on Jenkins:
     - Console output: ${commonlib.buildURL('console')}
 
 """
+
             )
         }
+        currentBuild.description += "<hr />${err}"
+        currentBuild.result = "FAILURE"
         throw err  // gets us a stack trace FWIW
     } finally {
         commonlib.compressBrewLogs()

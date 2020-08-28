@@ -361,7 +361,13 @@ done
 
     if ( ! params.DRY_RUN ) {
         commonlib.shell(script: rsync_cmd)
-        commonlib.shell(script: "ssh -o StrictHostKeyChecking='no' ${MIRROR_HOST} timeout 15m /usr/local/bin/push.pub.sh openshift-v4")
+        timeout(time: 60, unit: 'MINUTES') {
+			mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", "openshift-v4", '-v')
+			if (mirror_result.contains("[FAILURE]")) {
+				echo(mirror_result)
+				error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
+			}
+        }
     } else {
         echo "Not mirroring; would have run: ${rsync_cmd}"
     }

@@ -151,10 +151,12 @@ node {
     direct_release_nightly = false
     detect_previous = true
     candidate_pr_only = false
+    is_4stable_release = true
+
     release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
 
-    if (params.RELEASE_TYPE.startsWith('1.')) {
+    if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
         release_name = "${major}.${minor}.${release_offset}"
         ga_release = true
     } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
@@ -168,6 +170,7 @@ node {
     } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Just a hotfix for a specific customer
         direct_release_nightly = true
         detect_previous = false
+        is_4stable_release = false
         // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
         release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
         CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
@@ -285,18 +288,18 @@ node {
             stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previousList.join(','), errata_url) }
 
             stage("tag stable") {
-                if (direct_release_nightly) {
-                    // If we are releasing a nightly directly, we don't tag it into release and
-                    // if never goes into 4-stable.
+                if (!is_4stable_release) {
+                    // Something like a hotfix should not go into 4-stable in the release controller
                     return
                 }
                 release.stageTagRelease(quay_url, release_name, dest_release_tag, arch)
             }
 
             stage("request upgrade tests") {
-                if (direct_release_nightly) {
-                    // If we are releasing a nightly directly, we don't tag it into release and
-                    // if never goes into 4-stable.
+                if (direct_release_nightly || !is_4stable_release) {
+                    // For a hotfix, there is speed is our goal. Assume testing has already been done.
+                    // For an FC, we are so early in the release cycle that non-default upgrade tests are
+                    // only noise.
                     return
                 }
                 try {  // don't let a slack outage break the job at this point
@@ -334,9 +337,8 @@ node {
             }
 
             stage("wait for stable") {
-                if (direct_release_nightly) {
-                    // If we are releasing a nightly directly, we don't tag it into release and
-                    // if never goes into 4-stable.
+                if (!is_4stable_release) {
+                    // If it is not in 4-stable, there is nothing to wait for.
                     return
                 }
                 commonlib.retryAbort("Waiting for stable ${release_name}", taskThread,
@@ -389,7 +391,7 @@ node {
             }
 
             stage("send release message") {
-                if (direct_release_nightly) {
+                if (!is_4stable_release) {
                     return
                 }
                 release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch)

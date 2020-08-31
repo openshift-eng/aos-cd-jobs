@@ -92,8 +92,6 @@ node {
 
     commonlib.checkMock()
 
-    buildlib.cleanWorkdir("${env.WORKSPACE}")
-
     try {
         sshagent(['aos-cd-test']) {
 

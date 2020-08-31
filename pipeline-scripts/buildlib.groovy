@@ -1205,9 +1205,14 @@ def getGroupBranch(doozerOpts) {
 
 WORKDIR_COUNTER=0 // ensure workdir cleanup can be invoked multiple times per job
 def cleanWorkdir(workdir, synchronous=false) {
-    // TODO: We need to replace this with rsync --delete for
+    // get a fresh workdir; removing the old one can be synchronous or background.
+
+    // **WARNING** workdir should generally NOT be env.WORKSPACE; this is where the job code is checked out,
+    // including supporting scripts and such. Usually you don't want to wipe that out, so use a subdirectory.
+
+    // TODO: We need to replace rm -rf with rsync --delete for
     // improved speed: https://unix.stackexchange.com/questions/37329/efficiently-delete-large-directory-containing-thousands-of-files
-    // get a fresh workdir; removing the old one is left in the background.
+
     // NOTE: if wrapped in commonlib.shell, this would wait for the background process;
     // this is designed to run instantly and never fail, so just run it in a normal shell.
     sh """

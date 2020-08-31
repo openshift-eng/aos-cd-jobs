@@ -144,8 +144,6 @@ node {
 
     commonlib.checkMock()
 
-    buildlib.cleanWorkdir("${env.WORKSPACE}")
-
     def CLIENT_TYPE = 'ocp'
     ga_release = false
     direct_release_nightly = false

@@ -63,7 +63,6 @@ node {
 
     commonlib.checkMock()
     buildlib.initialize()
-    buildlib.cleanWorkdir(env.WORKSPACE)
 
     try {
         sshagent(['openshift-bot']) {

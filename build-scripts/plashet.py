@@ -547,7 +547,7 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
             if released_nvr:
                 if compare_nvr(parsed_nvr, released_nvr) < 0:  # if the current nvr is less than the released NVR
                     msg = f'Skipping tagged {nvr} because it is older than a released version: {released_nvr}'
-                    plashet_concerns.add(msg)
+                    plashet_concerns.append(msg)
                     logger.error(msg)
                     continue
 

@@ -94,5 +94,5 @@ node {
         currentBuild.result = "FAILURE"
         throw err
     }
-    buildlib.cleanWorkdir("${env.WORKSPACE}")
+    buildlib.cleanWorkdir(env.WORKSPACE)  // at end of job, ok to wipe out code
 }

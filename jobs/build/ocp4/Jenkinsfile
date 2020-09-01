@@ -47,6 +47,11 @@ node {
                         description: 'Build regardless of whether source has changed',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'FORCE_MIRROR_STREAMS',
+                        description: 'Ensure images:mirror-streams runs after this build, even if it is a small batch',
+                        defaultValue: false,
+                    ),
                     choice(
                         name: 'BUILD_RPMS',
                         description: 'Which RPMs are candidates for building? "only/except" refer to list below',

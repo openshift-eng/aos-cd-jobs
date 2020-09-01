@@ -103,11 +103,6 @@ node {
                     }
 
                     base_args = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
-
-                    // we need to be able to push images to api.ci, so make sure our token is fresh
-                    sh "oc --kubeconfig=/home/jenkins/kubeconfigs/art-publish.kubeconfig registry login"
-                    buildlib.doozer "${base_args} images:mirror-streams"
-
                     command = "${base_args} beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
                     buildlib.doozer command
 

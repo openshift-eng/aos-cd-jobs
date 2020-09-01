@@ -1,0 +1,65 @@
+# Definition of base images
+# If `pullspec` is given, this will be used.
+# Otherwise, the combination of `package` and `brew_tag` are used to find the latest image.
+# User can be found by running `podman run -it --entrypoint /usr/bin/id <pullspec>
+
+ansible.runner:
+  pullspec: ansible-runner:1.2.0
+  user: "0"
+elasticsearch:
+  # freshmaker rebuilds do not make it into `latest`
+  # pullspec: elasticsearch:latest
+  package: elasticsearch-container
+  brew_tag: rhaos-4.0-rhel-7-candidate
+  user: "1000"
+jboss.openjdk18.rhel7:
+  pullspec: jboss/openjdk18-rhel7:latest
+  user: "185"
+rhel7:
+  pullspec: rhel7:7-released
+  user: "0"
+ubi7:
+  pullspec: ubi7:7-released
+  user: "0"
+ubi8:
+  pullspec: ubi8:8-released
+  user: "0"
+rhscl.nodejs.6.rhel7:
+  user: "1001"
+  # This has not seen any recent release. Hardcoding pullspec, rather than relying on tags
+  pullspec: rhscl/nodejs-6-rhel7:6-53.1589821762
+  # package: rh-nodejs6-container
+  # brew_tag: rhscl-3.2-rhel-7-container-released
+rhscl.nodejs.10.rhel7:
+  user: "1001"
+  package: rh-nodejs10-container
+  brew_tag: rhscl-3.5-rhel-7-container-released
+rhscl.nodejs.12.rhel7:
+  user: "1001"
+  # lock in nodejs 12.16.1, cannot be updated without corresponding
+  # update of headers tarball in ose-console
+  pullspec: rhscl/nodejs-12-rhel7:1-6.1582646197
+  # package: rh-nodejs12-container
+  # brew_tag: rhscl-3.5-rhel-7-container-released
+rhscl.ruby.25.rhel7:
+  user: "1001"
+  package: rh-ruby25-container
+  brew_tag: rhscl-3.5-rhel-7-container-released
+rhscl.python.36.rhel7:
+  user: "1001"
+  package: rh-python36-container
+  brew_tag: rhscl-3.5-rhel-7-container-released
+ubi8.nodejs.10:
+  user: "1001"
+  pullspec: ubi8/nodejs-10:1-released
+ubi8.nodejs.12:
+  # lock in nodejs 12.16.1, cannot be updated without corresponding
+  # update of headers tarball in ose-console
+  user: "1001"
+  pullspec: ubi8/nodejs-12:1-45
+ubi8.python.36:
+  user: "1001"
+  pullspec: ubi8/python-36:1-released
+ubi8.ruby.25:
+  user: "1001"
+  pullspec: ubi8/ruby-25:1-released

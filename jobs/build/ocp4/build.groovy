@@ -363,6 +363,22 @@ def stageBuildImages() {
         if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
             echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
         } else {
+
+			if ( r.total > 10 || params.FORCE_MIRROR_STREAMS ) {
+				// This was a relatively successful build. We want to mirror images in streams.yml
+				// to CI when they change AND they are successful in the ART build.
+				// This ensures that CI is building with the same images (base & builder) that
+				// ART is, but also makes sure that IF streams.yml gets borked in some way (e.g.
+				// golang was bumped to something awful), we don't want mirror it automatically.
+
+				// Make sure our token for api.ci is fresh
+				sh "oc --kubeconfig=/home/jenkins/kubeconfigs/art-publish.kubeconfig registry login"
+
+				// Push!
+				buildlib.doozer "${doozerOpts} images:mirror-streams"
+			}
+
+
             buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
         }
     }

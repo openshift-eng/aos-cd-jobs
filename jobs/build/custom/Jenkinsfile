@@ -245,7 +245,7 @@ node {
                 if (majorVersion == "4") {
                     config_dir = "./qe_quay_config"
                     buildlib.registry_quay_qe_login(config_dir)
-                    command += " --registry-config-dir=${config_dir}"
+                    command += " --registry-config-dir=${config_dir} --filter-by-os='.*' "
                 }
                 try {
                     buildlib.doozer command

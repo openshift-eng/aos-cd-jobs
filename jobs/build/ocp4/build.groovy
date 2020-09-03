@@ -341,11 +341,11 @@ def stageBuildImages() {
             """
             ${doozerOpts}
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
+            --registry-config-dir=${config_dir}
             images:build
             --repo-type ${signing_mode}
             --push-to-defaults
             --filter-by-os='.*'
-            --registry-config-dir=${config_dir}
             """
         if(buildPlan.dryRun) {
             echo "doozer ${cmd}"

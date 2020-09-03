@@ -70,7 +70,7 @@ main() {
   : ${browser:=${BROWSER-firefox}}
 
   urls=(
-    $(buildvm)
+    $(jenkins)
     $(rhcos_urls)
     $(bz_non_cves)
     $(bz_cves)
@@ -158,9 +158,10 @@ repo_links() {
   done
 }
 
-buildvm() {
+jenkins() {
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/scheduled-builds/'
+  echo 'https://jenkins-art-jenkins.cloud.paas.psi.redhat.com/job/art-jenkins/'
 }
 
 backlog() {

@@ -240,8 +240,15 @@ node {
 
             stage("build images") {
                 if (!any_images_to_build) { return }
-                command = doozerOpts
-                command += "${include_exclude} --profile ${repo_type} images:build --push-to-defaults"
+                base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
+                command = "images:build --push-to-defaults"
+                if (majorVersion == "4") {
+                    config_dir = "./qe_quay_config"
+                    buildlib.registry_quay_qe_login(config_dir)
+                    base_command += " --registry-config-dir=${config_dir}"
+                    command += " --filter-by-os='.*'"
+                }
+                command = "${base_command} ${command}"
                 try {
                     buildlib.doozer command
                 } catch (err) {

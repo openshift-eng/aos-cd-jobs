@@ -18,16 +18,12 @@ node {
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false,
                     ],
-                ],
-                parameterDefinitions: [
                     [
                         name: 'DRY_RUN',
                         description: "Don't change anything, just detect the current enforcement state",
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false,
                     ],
-                ],
-                parameterDefinitions: [
                     [
                         name: 'NO_SLACK',
                         description: "Don't send a notification over slack if the rules had to be reapplied",
@@ -35,7 +31,6 @@ node {
                         defaultValue: false,
                     ],
                 ]
-
             ],
             disableResume(),
             disableConcurrentBuilds()
@@ -48,14 +43,12 @@ node {
     commonlib.describeJob("enforce-firewall", """
         <h2>Automatically re-enables the firewall</h2>
         <b>Timing</b>: The scheduled job of the same name runs this twice daily.
-
         Checks if the firewall rules are enforcing. If they are not
         then they will be reapplied. If the rules are reapplied by
         this job then a notification will be sent over slack to the
         <code>#team-art</code> channel.
 
         Job supports a few parameters:
-
         <ul>
           <li><b>DRY_RUN</b> - Only <b>check</b> if the rules are presently enforcing</li>
           <li><b>NO_SLACK</b> - Don't send enforcement notifications out over slack</li>
@@ -63,27 +56,55 @@ node {
     """)
     needApplied = false
     reapplied = false
-    notifyChannel = '#art-bot-test'
+    notifyChannel = '#team-art'
 
     // ######################################################################
     // Check if the firewall rules are presently enforcing. If they
     // are enforcing then we should not be able to query random hosts
     // not on the allowed list.
-    def extAccess = httpRequest(responseHandle: 'NONE',
-				url: 'https://www.yahoo.com',
-				timeout: 15)
-    if ( extAccess.response == '200' ) {
-	needApplied = true
-	echo "need to turn on the firewall"
-	reapplied = true
+    stage ("Check state") {
+	try {
+	    def extAccess = httpRequest(responseHandle: 'NONE',
+					url: 'https://www.yahoo.com',
+					timeout: 15)
+	    needApplied = true
+	    if ( params.DRY_RUN ) {
+		currentBuild.displayName = "[NOOP] - Needs enforcing"
+	    } else {
+		currentBuild.displayName = "Needs enforcing"
+	    }
+	} catch (ex) {
+	    echo "Firewall is already enforcing"
+	    if ( params.DRY_RUN ) {
+		currentBuild.displayName = "[NOOP] - Already enforcing"
+	    } else {
+		currentBuild.displayName = "Already enforcing"
+	    }
+	}
     }
 
+    stage ("Maybe apply") {
+	if ( needApplied && !params.DRY_RUN ) {
+	    echo "Firewall is presently disabled, fix that now"
+	    commonlib.shell(
+		script: "sudo hacks/iptables/buildvm-scripts/canttouchthat.py -n hacks/iptables/buildvm-scripts/known-networks.txt --enforce"
+	    )
+	    reapplied = true
+	} else {
+	    echo "Firewall is already enabled (or this is a dry run), nothing to do"
+	}
+    }
 
     // ######################################################################
     // Notify art team if the rules had to be reapplied AND NO_SLACK is false
-    if ( !params.NO_SLACK && reapplied ) {
-        slackChannel = slacklib.to(notifyChannel)
-        slackChannel.say('Hi @tbielawa')
+    stage ("Notify team of enforcement") {
+	if ( !params.NO_SLACK && reapplied && !params.DRY_RUN ) {
+	    currentBuild.displayName = "Enforced the rules"
+            slackChannel = slacklib.to(notifyChannel)
+            slackChannel.say('The firewall rules have been reapplied to buildvm')
+	} else {
+	    echo "Skipping slack notification because..."
+	    echo "The rules were already applied, this was a dry run, or you didn't want anyone being notified"
+	}
     }
-
 }

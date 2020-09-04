@@ -3,7 +3,7 @@
 pullspec() {
   local tag package nvr
 
-  if yq -re --arg target "$target" '.[$target].pullspec' pullspecs.yaml 2>/dev/null; then
+  if yq -re --arg target "$target" '.[$target].pullspec' pullspecs.yaml >/dev/null 2>&1; then
     return
   fi
 

@@ -39,6 +39,7 @@ rpmMirror = [       // how to mirror RPM compose
 */
 def initialize() {
     buildlib.cleanWorkdir(doozerWorking)
+    buildlib.initialize()
     GITHUB_BASE = "git@github.com:openshift"  // buildlib uses this :eyeroll:
 
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}.??"

@@ -194,7 +194,7 @@ def assemble_repo(config, nvrs, event_info=None, extra_data: Dict = None):
     :return: n/a
     An exception will be thrown if no RPMs can be found matching an nvr.
     """
-    koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub'}))
+    koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub', 'serverca': '/etc/pki/brew/legacy.crt'}))
     koji_proxy.gssapi_login()
 
     with open(os.path.join(config.dest_dir, 'plashet.yml'), mode='w+', encoding='utf-8') as y:
@@ -456,7 +456,7 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
     --brew-tag <tag> <product_version> example: --brew-tag rhaos-4.5-rhel-8-candidate OSE-4.5-RHEL-8 --brew-tag .. ..
     """
 
-    koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub'}))
+    koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub', 'serverca': '/etc/pki/brew/legacy.crt'}))
     koji_proxy.gssapi_login()
     errata_proxy = xmlrpclib.ServerProxy(config.errata_xmlrpc_url)
 

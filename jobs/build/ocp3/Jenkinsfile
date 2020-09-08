@@ -861,8 +861,8 @@ images:rebase --version v${NEW_VERSION}
 --working-dir ${DOOZER_WORKING} --group openshift-${params.BUILD_VERSION}
 ${ODCS_FLAG}
 ${exclude}
---filter-by-os amd64
 images:build
+--filter-by-os amd64
 --push-to-defaults ${ODCS_OPT}
 """
                     }

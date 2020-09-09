@@ -156,6 +156,15 @@ def mockParam() {
     ]
 }
 
+def dryrunParam(description = 'Run job without side effects') {
+    return [
+        name: 'DRY_RUN',
+        description: description,
+        $class: 'BooleanParameterDefinition',
+        defaultValue: false,
+    ]
+}
+
 def ocpVersionParam(name='MINOR_VERSION', majorVersion='all') {
     return [
         name: name,

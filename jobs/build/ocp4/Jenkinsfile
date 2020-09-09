@@ -29,11 +29,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Take no action, just echo what the build would have done.',
-                        defaultValue: false,
-                    ),
+                    commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(

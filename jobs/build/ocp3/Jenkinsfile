@@ -308,12 +308,6 @@ node {
                         description: 'Sign RPMs with openshifthosted key? (for SD - generally not useful',
                         defaultValue: false,
                     ),
-                    commonlib.mockParam(),
-                    booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Run as much code as possible without pushing / building',
-                        defaultValue: false,
-                    ),
                     string(
                         name: 'SPECIAL_NOTES',
                         description: 'Include special notes in the build email',
@@ -336,6 +330,8 @@ node {
                         description: 'Build golden image after building images?',
                         defaultValue: true,
                     ),
+                    commonlib.mockParam(),
+                    commonlib.dryrunParam(),
                 ]
             ],
             disableResume(),

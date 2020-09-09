@@ -113,11 +113,6 @@ node {
                         description: 'Prevent creation of advisories for the next z-stream of given OCP version',
                         defaultValue: false,
                     ),
-                    booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Take no actions. Note: still notifies and runs signing job (which fails).',
-                        defaultValue: false,
-                    ),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -136,6 +131,7 @@ node {
                         ].join(','),
                         trim: true,
                     ),
+                    commonlib.dryrunParam('Take no actions. Note: still notifies and runs signing job (which fails)'),
                     commonlib.mockParam(),
                 ]
             ],

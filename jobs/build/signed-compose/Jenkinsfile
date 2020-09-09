@@ -42,11 +42,6 @@ node {
                         description: 'Run a compose without changing the state of advisory',
                         defaultValue: false,
                     ),
-                    booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Do not attach builds or update the puddle. Just show what would have happened',
-                        defaultValue: false,
-                    ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
@@ -60,6 +55,7 @@ node {
                         defaultValue: 'aos-art-automation+failed-signed-puddle@redhat.com',
                         trim: true,
                     ),
+                    commonlib.dryrunParam(),
                     commonlib.mockParam(),
                 ]
             ],

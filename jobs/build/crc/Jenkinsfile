@@ -42,7 +42,7 @@ node {
                         defaultValue: 'aos-art-automation+failed-crc-release@redhat.com',
                         trim: true,
                     ),
-                    commonlib.dryrunParam('Do not rsync the bits. Just download them and show what would have been copied XXX'),
+                    commonlib.dryrunParam('Do not rsync the bits. Just download them and show what would have been copied'),
                     commonlib.mockParam(),
                 ]
             ],

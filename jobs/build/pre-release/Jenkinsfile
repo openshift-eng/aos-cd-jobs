@@ -59,11 +59,6 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Only do dry run test and exit.',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
                         name: 'MIRROR',
                         description: 'Sync clients to mirror.',
                         defaultValue: true,
@@ -81,6 +76,7 @@ node {
                         ].join(','),
                         trim: true,
                     ),
+                    commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.suppressEmailParam(),
                 ]

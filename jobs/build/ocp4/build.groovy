@@ -368,7 +368,8 @@ def stageBuildImages() {
             echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
         } else {
 
-			if ( r.total > 10 || params.FORCE_MIRROR_STREAMS ) {
+			// Disable automatic mirror-streams until we are beyond ubi8/1.15 migration
+			if ( /*r.total > 10 ||*/ params.FORCE_MIRROR_STREAMS ) {
 				// This was a relatively successful build. We want to mirror images in streams.yml
 				// to CI when they change AND they are successful in the ART build.
 				// This ensures that CI is building with the same images (base & builder) that

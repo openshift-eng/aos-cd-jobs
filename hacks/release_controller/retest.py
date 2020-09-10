@@ -35,11 +35,12 @@ def run(arch, release, confirm):
     if arch != 'amd64' and arch != 'x86_64':
         arch_suffix = f'-{arch}'
 
-    with oc.api_server(api_url='https://api.ci.openshift.org'), oc.options({'as': 'system:admin'}):
+    t1 = input('Enter a token for https://api.ci.l2s4.p1.openshiftapps.com: ')
 
+    with oc.api_server(api_url='https://api.ci.l2s4.p1.openshiftapps.com:6443'), oc.options({'as': 'system:admin'}), oc.token(t1):
         with oc.project('ci'):
             print(f'Searching for prowjobs associated with {release}')
-            prowjobs = oc.selector('prowjobs').narrow(lambda obj: obj.model.metadata.annotations['release.openshift.io/tag'] == release)
+            prowjobs = oc.selector('prowjobs').narrow(lambda obj: obj.model.metadata.annotations['release.openshift.io/tag'] == release and 'chat-bot' not in obj.model.metadata.name )
             print(f'Found prowjobs: {prowjobs.qnames()}')
             if confirm:
                 print('Deleting associated prowjobs')
@@ -47,6 +48,7 @@ def run(arch, release, confirm):
             else:
                 print(WARNING + 'Run with --confirm to delete these resources' + ENDC)
 
+    with oc.api_server(api_url='https://api.ci.openshift.org'), oc.options({'as': 'system:admin'}):
         with oc.project(f'ocp{arch_suffix}'):
 
             istag_qname = f'istag/release{arch_suffix}:{release}'

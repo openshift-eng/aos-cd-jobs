@@ -63,9 +63,10 @@ node {
 
     commonlib.checkMock()
 
-    def version = params.BUILD_VERSION
-    doozerOpts = "--group openshift-${version}"
     stage("Init") {
+        version = params.BUILD_VERSION
+        doozerOpts = "--group openshift-${version}"
+
         echo "Initializing bug sweep for ${version}. Sync: #${currentBuild.number}"
         currentBuild.displayName = "${version} bug sweep"
 
@@ -83,13 +84,11 @@ node {
         return
     }
 
-    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+    stage("Sweep bugs") {
+        currentBuild.description = "Sweeping new bugs<br/>"
 
-    currentBuild.description = "Repairing state and sweeping new bugs.\n"
-
-    if (params.ATTACH_BUGS) {
-        stage("Attach bugs to advisories") {
-            currentBuild.description += "* Attaching ON_QA and VERIFIED bugs to default advisories\n"
+        if (params.ATTACH_BUGS) {
+            currentBuild.description += "* Attaching ON_QA and VERIFIED bugs to default advisories<br/>"
             cmd = [
                 "--group=openshift-${version}",
                 "find-bugs",
@@ -98,38 +97,26 @@ node {
                 "--status VERIFIED",
                 "--into-default-advisories",
             ]
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
-            }
-            retry (3) {
-                try {
-                    buildlib.elliott(cmd.join(' '))
-                } catch (Exception elliottErr) {
-                    echo("Error attaching bugs to advisories (will retry a few times):\n${elliottErr}")
-                    sleep(time: 1, unit: 'MINUTES')
-                    throw elliottErr
-                }
-            }
-        }
-    } else {
-        stage("Set MODIFIED bugs to ON_QA") {
-            currentBuild.description += "* Changing MODIFIED bugs to ON_QA\n"
+        } else {
+            currentBuild.description += "* Changing MODIFIED bugs to ON_QA<br/>"
             cmd = [
                 "--group=openshift-${version}",
                 "find-bugs",
                 "--mode qe",
             ]
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
-            }
-            retry(3) {
-                try {
-                    buildlib.elliott(cmd.join(" "))
-                } catch (Exception elliottErr) {
-                    echo("Error moving bugs to ON_QA (will retry):\n${elliottErr}")
-                    sleep(time: 1, unit: 'MINUTES')
-                    throw elliottErr
-                }
+        }
+
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+
+        retry (3) {
+            try {
+                buildlib.elliott(cmd.join(' '))
+            } catch (Exception elliottErr) {
+                echo("Error attaching bugs to advisories (will retry a few times):\n${elliottErr}")
+                sleep(time: 1, unit: 'MINUTES')
+                throw elliottErr
             }
         }
     }

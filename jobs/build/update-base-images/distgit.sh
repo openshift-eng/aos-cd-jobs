@@ -1,5 +1,22 @@
 #!/usr/bin/env bash
 
+halp() {
+  local program
+  program="$(basename "$0")"
+  cat <<-EOHALP
+	$program: Build base images by creating commits in openshift-enterprise-base, and rhpkg build them
+	Takes configuration from pullspecs.yaml. <image-key> Needs to be a key in pullspec.yml.
+	
+  Synopsis:
+	  $program [-h|--help] | [-d|--dry-run] <image-key> [<rpm>...]
+
+  Examples:
+    distgit.sh -d elasticsearch
+
+    for i in \$(yq -r 'keys[]' pullspecs.yaml); do ./distgit.sh -d \$i; done
+EOHALP
+}
+
 pullspec() {
   local tag package nvr
 
@@ -32,6 +49,12 @@ main() {
   local DRYRUN=0
   local user
   local pullspec
+
+  if [[ $# == 0 ]]; then
+    halp > /dev/stderr
+    echo 'Need argument' >/dev/stderr
+    exit 1
+  fi
 
   export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
   USER_USERNAME="--user=ocp-build"

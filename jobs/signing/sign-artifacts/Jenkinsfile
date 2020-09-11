@@ -86,11 +86,7 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    booleanParam(
-                        name: 'DRY_RUN',
-                        description: 'Only do dry run test and exit\nDoes not send anything over the bus',
-                        defaultValue: false,
-                    ),
+                    commonlib.dryrunParam('Only do dry run test and exit\nDoes not send anything over the bus'),
                     commonlib.mockParam(),
                 ]
             ],

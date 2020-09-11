@@ -759,14 +759,16 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
  *
  * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
  * @param Boolean sweepBuilds: Enable/disable build sweeping
+ * @param Boolean attachBugs: Enable/disable bug sweeping
  */
-def sweep(String buildVersion, Boolean sweepBuilds) {
+def sweep(String buildVersion, Boolean sweepBuilds, Boolean attachBugs = false) {
     def sweepJob = build(
         job: 'build%2Fsweep',
         propagate: false,
         parameters: [
             string(name: 'BUILD_VERSION', value: buildVersion),
             booleanParam(name: 'SWEEP_BUILDS', value: sweepBuilds),
+            booleanParam(name: 'ATTACH_BUGS', value: attachBugs),
         ]
     )
     if (sweepJob.result != 'SUCCESS') {

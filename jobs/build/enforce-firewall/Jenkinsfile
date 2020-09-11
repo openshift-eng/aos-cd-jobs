@@ -54,6 +54,7 @@ node {
           <li><b>NO_SLACK</b> - Don't send enforcement notifications out over slack</li>
         </ul>
     """)
+    commonlib.checkMock()
     needApplied = false
     reapplied = false
     notifyChannel = '#team-art'
@@ -101,7 +102,7 @@ node {
 	if ( !params.NO_SLACK && reapplied && !params.DRY_RUN ) {
 	    currentBuild.displayName = "Enforced the rules"
             slackChannel = slacklib.to(notifyChannel)
-            slackChannel.say('The firewall rules have been reapplied to buildvm')
+            slackChannel.say(':itsfine-fire: The firewall rules have been reapplied to the buildvm :itsfine-fire:')
 	} else {
 	    echo "Skipping slack notification because..."
 	    echo "The rules were already applied, this was a dry run, or you didn't want anyone being notified"

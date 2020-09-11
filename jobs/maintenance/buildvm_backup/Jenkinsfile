@@ -18,12 +18,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    [
-                        name: 'DRY_RUN',
-                        description: 'Take no action, just echo what the build would have done.',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false
-                    ],
+                    commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.suppressEmailParam(),
                     [

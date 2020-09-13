@@ -12,7 +12,7 @@ properties(
                     name: 'OCP_BRANCH',
                     description: 'OCP target branch',
                     $class: 'hudson.model.ChoiceParameterDefinition',
-                    choices: ['rhaos-4.6-rhel-8', 'rhaos-4.6-rhel-7', 'rhaos-4.5-rhel-7', 'rhaos-4.4-rhel-7', 'rhaos-4.3-rhel-7', 'rhaos-4.2-rhel-7', 'rhaos-4.1-rhel-7', 'rhaos-4.0-rhel-7', 'rhaos-3.11-rhel-7', 'rhaos-3.10-rhel-7', 'rhaos-3.9-rhel-7','rhaos-3.8-rhel-7','rhaos-3.7-rhel-7', 'rhaos-3.6-rhel-7'].join('\n'),
+                    choices: ['rhaos-4.6-rhel-8', 'rhaos-4.5-rhel-7', 'rhaos-4.4-rhel-7', 'rhaos-4.3-rhel-7', 'rhaos-4.2-rhel-7', 'rhaos-4.1-rhel-7', 'rhaos-4.0-rhel-7', 'rhaos-3.11-rhel-7', 'rhaos-3.10-rhel-7', 'rhaos-3.9-rhel-7','rhaos-3.8-rhel-7','rhaos-3.7-rhel-7', 'rhaos-3.6-rhel-7'].join('\n'),
                     defaultValue: 'rhaos-4.1-rhel-7'
                 ],
                 [

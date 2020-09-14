@@ -336,7 +336,7 @@ def stageBuildImages() {
         def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
         // If any arch is GA, use signed for everything. See stageBuildCompose for details.
         def signing_mode = archReleaseStates['release']?'signed':'unsigned'
-        config_dir = "./qe_quay_config"
+        config_dir = "${env.WORKSPACE}/qe_quay_config"
         buildlib.registry_quay_qe_login(config_dir)
         def cmd =
             """

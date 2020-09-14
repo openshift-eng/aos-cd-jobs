@@ -123,7 +123,7 @@ node {
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
-    def doozer_working = "${WORKSPACE}/doozer_working"
+    def doozer_working = "${env.WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
 
     def doozer_data_path = params.DOOZER_DATA_PATH
@@ -243,7 +243,7 @@ node {
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
                 command = "images:build --push-to-defaults"
                 if (majorVersion == "4") {
-                    config_dir = "./qe_quay_config"
+                    config_dir = "${env.WORKSPACE}/qe_quay_config"
                     buildlib.registry_quay_qe_login(config_dir)
                     base_command += " --registry-config-dir=${config_dir}"
                     command += " --filter-by-os='.*'"

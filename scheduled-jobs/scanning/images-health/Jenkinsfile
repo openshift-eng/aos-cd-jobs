@@ -1,0 +1,39 @@
+properties( [
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+        disableConcurrentBuilds(),
+            ]
+)
+
+
+description = ""
+failed = false
+
+def runFor(version) {
+    b = build(
+            job: '../scanning/scanning%2Fimages-health',
+            parameters: [
+                string(name: 'BUILD_VERSION', value: version),
+            ],
+            propagate: false,
+        )
+    description += "${version} - ${b.result}\n"
+    failed |= (b.result != "SUCCESS")
+}
+
+@NonCPS
+def sortedVersions() {
+  return commonlib.ocp4Versions.sort(false)
+}
+
+node() {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+
+    for ( String version : sortedVersions() ) {
+        runFor(version)
+    }
+}
+
+currentBuild.description = description.trim()
+currentBuild.result = failed ? "FAILURE" : "SUCCESS"

@@ -815,10 +815,6 @@ def sync_images(major, minor, mail_list, build_number) {
             results.add build(job: 'build%2Fappregistry', propagate: false, parameters:
                 [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
             )
-        }, "olm-bundle": {
-            results.add build(job: 'build%2Folm_bundle', propagate: false, parameters:
-                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
-            )
         }
     }
     if ( results.any { it.result != 'SUCCESS' } ) {

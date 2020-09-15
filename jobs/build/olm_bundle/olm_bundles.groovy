@@ -32,7 +32,7 @@ def get_builds_from_advisory(advisory) {
  */
 def get_latest_builds(packages) {
     if (!packages) { return [] }
-    def tag = "rhaos-${params.BUILD_VERSION}-rhel-7-candidate"
+    def tag = "rhaos-${params.BUILD_VERSION}-rhel-8-candidate"
     commonlib.shell(
         script: "brew --quiet latest-build ${tag} ${packages.join(' ')}",
         returnAll: true

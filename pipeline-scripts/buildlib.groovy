@@ -1387,7 +1387,15 @@ def attachBuildsToAdvisory(kinds, buildVersion) {
         }
         if ("image" in kinds) {
             elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory image")
-            elliott("${groupOpt} find-builds -k image --use-default-advisory image")
+            if (commonlib.extractMajorMinorVersionNumbers(buildVersion)[0] < 4) {
+                // for 3.11 everything goes in the same advisory
+                elliott("${groupOpt} find-builds -k image --use-default-advisory image")
+            } else {
+                // for 4.y, payload goes in "images", non-payload goes in "extras"
+                elliott("${groupOpt} find-builds -k image --payload --use-default-advisory image")
+                elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory extras")
+                elliott("${groupOpt} find-builds -k image --non-payload --use-default-advisory extras")
+            }
         }
     } catch (err) {
         currentBuild.description += "ERROR: ${err}"

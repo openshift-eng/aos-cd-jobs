@@ -2,7 +2,7 @@
 
 echo "INSTALLED PYTHON PACKAGES"
 echo "========================="
-pip freeze
+pip3 freeze
 
 echo ""
 echo "INSTALLED YUM PACKAGES"

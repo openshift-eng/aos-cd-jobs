@@ -1,0 +1,48 @@
+// Monitor all branches of ocp-build-data
+properties([disableConcurrentBuilds()])
+
+@NonCPS
+def sortedVersions() {
+    return commonlib.ocp4Versions.sort(false)
+}
+
+node {
+
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+
+    for ( String version : sortedVersions() ) {
+        group = "openshift-${version}"
+        echo "Checking group: ${group}"
+
+        sh "rm -rf ${group}"
+        sh "git clone https://github.com/openshift/ocp-build-data --branch ${group} --single-branch --depth 1 ${group}"
+        dir(group) {
+            now_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+        }
+
+        prev_dir_name = "${group}-prev"
+        dir(prev_dir_name) {  // if there was a previous, it should be here
+            prev_hash = sh(returnStdout: true, script: "git rev-parse HEAD || echo 0").trim()
+        }
+
+        echo "Current hash: ${now_hash} "
+        echo "Previous hash: ${prev_hash}"
+
+        if (now_hash != prev_hash) {
+            echo "Changes detected in ocp-build-data group: ${group}"
+
+            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig doozer --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
+            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig oc registry login"
+            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig doozer --group ${group} images:streams mirror --only-if-missing"
+            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig doozer --group ${group} images:streams start-builds"
+
+            sh "rm -rf ${prev_dir_name}"
+            sh "mv ${group} ${prev_dir_name}"
+        } else {
+            echo "NO changes detected in ocp-build-data group: ${group}"
+        }
+    }
+
+}

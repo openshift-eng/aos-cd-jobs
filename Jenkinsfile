@@ -48,7 +48,7 @@ python -m aos_cd_jobs.updater
     }
   } catch(err) {
     mail(
-      to: 'tbielawa@redhat.com, jupierce@redhat.com',
+      to: 'jupierce@redhat.com',
       from: "aos-cicd@redhat.com",
       subject: 'aos-cd-jobs-branches job: error',
       body: """\

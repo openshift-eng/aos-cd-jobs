@@ -62,7 +62,8 @@ filter() {
   local sep=""
   local jq_prog="{\"$release\": {"
   for object in ${objects[@]}; do
-    jq_prog="$(printf '%s%s"%s": .%s' "$jq_prog" "$sep" "$object" "$object")"
+    [[ "$object" == keys ]] && dot="" || dot="."
+    jq_prog="$(printf '%s%s"%s": %s%s' "$jq_prog" "$sep" "$object" "$dot" "$object")"
     sep=", "
   done
   jq_prog="$jq_prog }}"

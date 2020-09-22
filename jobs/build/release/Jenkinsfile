@@ -108,11 +108,6 @@ node {
                         description: 'Do not gather an advisory image list for docs. Use this for RCs and other test situations.',
                         defaultValue: false,
                     ),
-                    booleanParam(
-                        name: 'KEEP_RELEASE_CLOSED',
-                        description: 'Prevent creation of advisories for the next z-stream of given OCP version',
-                        defaultValue: false,
-                    ),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -314,19 +309,6 @@ node {
                         + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
-                }
-            }
-
-            stage("open next release") {
-                if (!ga_release) {
-                    echo "Skipping advisories creation for non-GA release."
-                } else if (arch != 'x86_64') {
-                    echo "Skipping advisories creation for non-x86_64 architecture."
-                } else if (params.KEEP_RELEASE_CLOSED) {
-                    echo "KEEP_RELEASE_CLOSED set; skipping advisories creation"
-                } else {
-                    def ocpVersion = params.FROM_RELEASE_TAG.split("\\.")[0..1].join(".")
-                    release.createAdvisoriesFor(ocpVersion, params.DRY_RUN)
                 }
             }
 

@@ -473,7 +473,7 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
     embargoed_tag_nvrs = set()
     embargoed_tag_nvrs.update(embargoed_nvr)
     for ebt in embargoed_brew_tag:
-        for build in koji_proxy.listTagged(ebt, latest=False, inherit=False, event=event):
+        for build in koji_proxy.listTagged(ebt, latest=False, inherit=False, event=event, type='rpm'):
             embargoed_tag_nvrs.add(build['nvr'])
     logger.info('Will treat the following nvrs as potentially embargoed: {}'.format(embargoed_tag_nvrs))
 
@@ -495,11 +495,11 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
             b'{"error":"Unable to add build \'cri-o-1.16.6-2.rhaos4.3.git4936f44.el7\' which is older than cri-o-1.16.6-16.dev.rhaos4.3.git4936f44.el7"}'
             """
             released_tag = tag[:tag.index('-candidate')]
-            for build in koji_proxy.listTagged(released_tag, latest=True, inherit=True, event=event):
+            for build in koji_proxy.listTagged(released_tag, latest=True, inherit=True, event=event, type='rpm'):
                 package_name = build['package_name']
                 released_package_nvrs[package_name] = parse_nvr(build['nvr'])
 
-        for build in koji_proxy.listTagged(tag, latest=True, inherit=False, event=event):
+        for build in koji_proxy.listTagged(tag, latest=True, inherit=False, event=event, type='rpm'):
             package_name = build['package_name']
             nvr = build['nvr']
             parsed_nvr = parse_nvr(nvr)
@@ -527,7 +527,7 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
                         # We are being asked to build a plashet without embargoed RPMs. We need to find a stand-in.
                         # Search through the tag's package history to find the last build that was NOT embargoed.
                         unembargoed_nvr = None
-                        for build in koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event):
+                        for build in koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event, type='rpm'):
                             test_nvr = build['nvr']
                             parsed_test_nvr = parse_nvr(test_nvr)
                             if released_nvr is None or compare_nvr(parsed_test_nvr, released_nvr) > 0:  # If this nvr hasn't shipped
@@ -551,12 +551,9 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
                     logger.error(msg)
                     continue
 
-            # Make sure this is an RPM
-            # e.g. node-maintenance-operator-bundle is a docker tar
-            if not build['package_name'].endswith(('-container', '-apb', '-bundle')):
-                logger.info(f'{tag} contains package: {nvr}')
-                desired_nvrs.add(nvr)
-                nvr_product_version[nvr] = product_version
+            logger.info(f'{tag} contains package: {nvr}')
+            desired_nvrs.add(nvr)
+            nvr_product_version[nvr] = product_version
 
     if config.include_package and len(config.include_package) != len(desired_nvrs):
         raise IOError(f'Did not find all command line included packages {config.include_package}; only found {desired_nvrs}')

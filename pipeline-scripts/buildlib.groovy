@@ -1481,6 +1481,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     // To prevent add/remove races between versions, a lock is used.
     lock('signing-advisory') {
         retry(2) {
+            commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case we are retrying..
             commonlib.shell([
                     "${env.WORKSPACE}/build-scripts/plashet.py",
                     "--base-dir ${baseDir}",  // Directory in which to create the yum repo

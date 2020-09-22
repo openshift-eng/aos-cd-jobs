@@ -43,7 +43,7 @@ node {
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     booleanParam(
                         name: 'SWEEP_BUILDS',
-                        defaultValue: true,
+                        defaultValue: false,
                         description: 'Attach builds to default advisories',
                     ),
                     booleanParam(

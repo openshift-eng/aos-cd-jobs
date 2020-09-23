@@ -71,8 +71,8 @@ ocpVersions = ocp4Versions + ocp3Versions
  */
 ocp4ReleaseState = [
         "4.6": [
-            'release': [ 'x86_64', 's390x', 'ppc64le' ],
-            "pre-release": [ 'aarch64' ],
+            'release': [],
+            "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],
         ],
         "4.5": [
             'release': [ 'x86_64', 's390x', 'ppc64le' ],

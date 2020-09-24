@@ -96,13 +96,12 @@ node {
                         description: [
                                 'Unfreeze automation to enable building and sweeping into the new advisories',
                                 '<b>Default</b>: Enable for Standard and RC releases, if arch is x86_64',
-                            ].join('\n'),
+                            ].join('<br/>'),
                         choices: [
                             'Default',
                             'Yes',
                             'No',
                         ].join('\n'),
-                        defaultValue: true
                     ),
                     booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',

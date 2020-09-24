@@ -39,11 +39,6 @@ node {
                             description: "(No effect once SUPPRESS_EMAIL is checked) Sending emails request live ids to docs team once advisories are created",
                             defaultValue: true
                         ),
-                        booleanParam(
-                            name: "ENABLE_AUTOMATION",
-                            description: "Unfreeze automation to enable building and sweeping into the new advisories",
-                            defaultValue: true
-                        ),
                         string(
                             name: "ASSIGNED_TO",
                             description: "Advisories are assigned to QE",
@@ -160,9 +155,6 @@ node {
                     ]
                     for (advisory in lib.ADVISORIES) {
                         edit << "sed -Ei 's/^  ${advisory.key}: [0-9]+\$/  ${advisory.key}: ${advisory.value}/' group.yml"
-                    }
-                    if (params.ENABLE_AUTOMATION) {
-                        edit << "sed -e 's/freeze_automation:.*/freeze_automation: no/' -i group.yml"
                     }
                     commit = [
                         "git diff",

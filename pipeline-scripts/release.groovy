@@ -35,7 +35,8 @@ def destReleaseTag(String releaseName, String arch) {
 
 /**
  * Validate that we have not released the same thing already, and that
- * we have a valid advisory if needed.
+ * we have a valid advisory and RHCOS if needed.
+ * from_release_tag: tag for the nightly
  * quay_url: quay repo location for nightly images
  * name: tag for the specific image that will be released
  * advisory: if applicable, the advisory number intended for this release
@@ -45,8 +46,20 @@ def destReleaseTag(String releaseName, String arch) {
  *      Valid advisories must be in QE state and have a live ID so we can
  *      include in release metadata the URL where it will be published.
  */
-Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false) {
+Map stageValidation(String from_release_tag, String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false) {
     def retval = [:]
+    if (!params.BYPASS_RHCOS_VALIDATION) {
+        def (arch, priv) = getReleaseTagArchPriv(from_release_tag)
+        def suffix = getArchPrivSuffix(arch, priv)
+        def from_pullspec = "registry.svc.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag}"
+        def result = buildlib.doozer("--working-dir ${env.WORKSPACE}/doozer_working release:validate-rhcos ${from_pullspec}", [returnAll: true])
+        if (result.returnStatus == 2) {
+            error("🚫 RHCOS in ${from_pullspec} is not in the AWS bucket. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#managing-exceptions-to-the-process for more information.")
+        }
+        else if (result.returnStatus != 0) {
+            error("Error running Doozer: ${result.combined}")
+        }
+    }
     def version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
     res = commonlib.shell(

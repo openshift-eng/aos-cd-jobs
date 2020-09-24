@@ -68,6 +68,11 @@ node {
                         description: 'Set latest links for client.',
                         defaultValue: true,
                     ),
+                    booleanParam(
+                        name: 'BYPASS_RHCOS_VALIDATION',
+                        description: 'DO NOT USE without team lead approval. Use this to bypass RHCOS validations.',
+                        defaultValue: false,
+                    ),
                     string(
                         name: 'MAIL_LIST_FAILURE',
                         description: 'Failure Mailing List',
@@ -136,7 +141,7 @@ node {
             def CLIENT_TYPE = "ocp-dev-preview"
 
             stage("validation") {
-                release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE)
+                release.stageValidation(from_release_tag, quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE)
             }
 
             stage("build payload") {

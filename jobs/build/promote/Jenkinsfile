@@ -129,6 +129,11 @@ node {
                         description: 'Do not gather an advisory image list for docs. Use this for RCs and other test situations.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'BYPASS_RHCOS_VALIDATION',
+                        description: 'DO NOT USE without team lead approval. Use this to bypass RHCOS validations.',
+                        defaultValue: false,
+                    ),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -293,7 +298,7 @@ node {
                     errata_url = ''
                     return
                 }
-                def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES)
+                def retval = release.stageValidation(from_release_tag, quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES)
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }

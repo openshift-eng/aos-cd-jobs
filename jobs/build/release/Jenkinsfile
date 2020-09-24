@@ -14,10 +14,14 @@ node {
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
-        For the default use case, this job publishes a nightly as an officially
-        named release image, waits up to three hours for it to be accepted,
-        copies the clients to the mirror, signs the clients and release image,
-        and handles odds and ends for a release.
+        For the default use case, this job:
+        <ul><li>publishes a nightly as an officially named release image
+          <li>waits up to three hours for it to be accepted
+          <li>enables automation, so builds will run again
+          <li>opens pull requests to cinci-graph-data
+          <li>copies the clients to the mirror
+          <li>signs the clients and release image
+          <li>...and handles odds and ends for a release</ul>
 
         There are minor differences when this job runs for FCs, RCs, or hotfixes.
 
@@ -49,11 +53,11 @@ node {
                         name: 'RELEASE_TYPE',
                         description: 'Select [1. Standard Release] unless discussed with team lead',
                         choices: [
-                            '1. Standard Release (Named, Signed, Previous, All Channels)',
-                            '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
-                            '3. Feature Candidate (Named, Signed - rpms may not be, Previous, Candidate Channel)',
-                            '4. Hotfix (No name, Signed, No Previous, All Channels)'
-                        ].join('\n'),
+                                '1. Standard Release (Named, Signed, Previous, All Channels)',
+                                '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
+                                '3. Feature Candidate (Named, Signed - rpms may not be, Previous, Candidate Channel)',
+                                '4. Hotfix (No name, Signed, No Previous, All Channels)',
+                            ].join('\n'),
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
@@ -68,7 +72,12 @@ node {
                     ),
                     string(
                         name: 'ADVISORY',
-                        description: 'Optional: Image release advisory number. N/A for direct nightly release. If not given, the number will be retrieved from ocp-build-data.',
+                        description: [
+                              'Optional: Image release advisory number.',
+                              'N/A for direct nightly release.',
+                              'If not given, the number will be retrieved from ocp-build-data.',
+                              'If "-1", this is skipped (for testing purposes).',
+                            ].join(' '),
                         trim: true,
                     ),
                     string(
@@ -278,8 +287,10 @@ node {
             stage("versions") { release.stageVersions() }
             stage("validation") {
                 if (direct_release_nightly) {
-                    // No advisory dance
                     advisory = -1
+                }
+                if (advisory == -1) {
+                    // No advisory dance
                     errata_url = ''
                     return
                 }
@@ -402,6 +413,10 @@ node {
                     echo "No need to send docs an image list for non-GA releases."
                     return
                 }
+                if (advisory == -1) {
+                    echo "Skipping image list for dummy advisory."
+                    return
+                }
                 if (params.SKIP_IMAGE_LIST) {
                     currentBuild.description += "[No image list]"
                     return
@@ -437,6 +452,11 @@ node {
 
             stage("send release message") {
                 if (!is_4stable_release) {
+                    echo "Not a stable release, not sending message over bus"
+                    return
+                }
+                if (params.DRY_DRUN) {
+                    echo "DRY_RUN: Not sending release message"
                     return
                 }
                 release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch)

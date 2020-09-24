@@ -71,7 +71,34 @@ pipeline {
                 sh "mv ${params.VERSION}/SHA256SUM ${params.VERSION}/sha256sum.txt"
             }
         }
-
+        stage("Sign sha256sum.txt") {
+            steps {
+                withCredentials([file(credentialsId: 'msg-openshift-art-signatory-prod.crt', variable: 'busCertificate'),
+                                 file(credentialsId: 'msg-openshift-art-signatory-prod.key', variable: 'busKey')]) {
+                    script {
+                        def buildUserId = env.BUILD_USER_ID ?: "automated-process"
+                        def cmd = ("""
+                                ../umb_producer.py message-digest
+                                --requestor "${buildUserId}"
+                                --sig-keyname redhatrelease2
+                                --client-cert ${busCertificate}
+                                --client-key ${busKey}
+                                --env "prod"
+                                --product openshift
+                                --arch x86_64
+                                --client-type odo
+                                --release-name "${params.VERSION}"
+                                --request-id 'openshift-odo-message-digest-${env.BUILD_ID}'
+                            """
+                            .replaceAll(' *\\\n *', ' ')
+                            .replaceAll(' *\n *', ' ')
+                            .trim()
+                        )
+                        sh "${cmd}"
+                    }
+                }
+            }
+        }
         stage("Sync to mirror") {
             steps {
                 sh "tree ${params.VERSION}"

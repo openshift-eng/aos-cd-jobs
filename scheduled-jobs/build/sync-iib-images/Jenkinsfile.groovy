@@ -12,11 +12,12 @@ node {
             echo "${messageContent}"
             msgObj = readJSON text: messageContent
             // Example: https://datagrepper.engineering.redhat.com/id?id=ID:jenkins-1-qnt2m-32829-1599730867657-210799:1:1:1:1&is_raw=true&size=extra-large
-            name = msgObj['msg']['artifact']['name']
-            idx_image = msgObj['msg']['index']['index_image']
+            name = msgObj['artifact']['name']
+            idx_image = msgObj['index']['index_image']
+            ocp_ver = msgObj['index']['ocp_version']
             echo "name: ${name}"
             echo "idx_image: ${idx_image}"
-            ocp_ver = msgObj['msg']['index']['ocp_version']
+            echo "ocp_ver: ${ocp_ver}"
             if (name.startsWith('ocp-release-nightly-metadata-container') || name.startsWith('cluster-nfd-operator-bundle-container')) {
                 dest_name = "quay.io/openshift-release-dev/ocp-release-nightly:iib-stage-cluster-nfd-operator-${ocp_ver}"
                 sh "oc image mirror ${idx_image} ${dest_name}"

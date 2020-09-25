@@ -18,7 +18,7 @@ node {
             echo "idx_image: ${idx_image}"
             ocp_ver = msgObj['msg']['index']['ocp_version']
             if (name.startsWith('ocp-release-nightly-metadata-container') || name.startsWith('cluster-nfd-operator-bundle-container')) {
-                dest_name = "quay.io/openshift-release-dev/ocp-release-nightly:ocp-release-nightly-${ocp_ver}"
+                dest_name = "quay.io/openshift-release-dev/ocp-release-nightly:iib-stage-cluster-nfd-operator-${ocp_ver}"
                 sh "oc image mirror ${idx_image} ${dest_name}"
             }
             break

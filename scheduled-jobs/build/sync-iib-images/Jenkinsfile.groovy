@@ -12,7 +12,7 @@ node {
             echo "${messageContent}"
             msgObj = readJSON text: messageContent
             // Example: https://datagrepper.engineering.redhat.com/id?id=ID:jenkins-1-qnt2m-32829-1599730867657-210799:1:1:1:1&is_raw=true&size=extra-large
-            name = msgObj['artifact']['name']
+            name = msgObj['artifact']['nvr']
             idx_image = msgObj['index']['index_image']
             ocp_ver = msgObj['index']['ocp_version']
             echo "name: ${name}"

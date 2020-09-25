@@ -49,7 +49,7 @@ node {
                 parameterDefinitions: [
                     string(
                         name: 'FROM_RELEASE_TAG',
-                        description: """<h1 style="color:red;">Deprecated!!!</h1><p style="color:red;">This now goes under the name of <a href="${env.JOB_URL.replace('%252release/', '%252promote/')}">promote</a></p>""",
+                        description: """<h1 style="color:red;">Deprecated!!!</h1><p style="color:red;">This now goes under the name of <a href="${env.JOB_URL.replace('%252Frelease/', '%252Fpromote/')}">promote</a></p>""",
                         trim: true,
                     ),
                     choice(

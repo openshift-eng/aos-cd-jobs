@@ -18,8 +18,8 @@ node {
             echo "name: ${name}"
             echo "idx_image: ${idx_image}"
             echo "ocp_ver: ${ocp_ver}"
-            if (name.startsWith('ocp-release-nightly-metadata-container') || name.startsWith('cluster-nfd-operator-bundle-container')) {
-                dest_name = "quay.io/openshift-release-dev/ocp-release-nightly:iib-stage-cluster-nfd-operator-${ocp_ver}"
+            if (name.startsWith('ose-ptp-operator-metadata') || name.startsWith('ose-ptp-operator-bundle')) {
+                dest_name = "quay.io/openshift-release-dev/ocp-release-nightly:iib-int-index-cluster-ose-ptp-operator-${ocp_ver}"
                 sh "oc image mirror ${idx_image} ${dest_name}"
             }
             break

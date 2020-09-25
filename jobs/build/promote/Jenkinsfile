@@ -8,16 +8,20 @@ node {
     def commonlib = release.commonlib
     def slacklib = commonlib.slacklib
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
-    commonlib.describeJob("release", """
+    commonlib.describeJob("promote", """
         <h2>Publish official OCP 4 release artifacts</h2>
         <b>Timing</b>: <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image" target="_blank">4.y z-stream doc</a>
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
-        For the default use case, this job publishes a nightly as an officially
-        named release image, waits up to three hours for it to be accepted,
-        copies the clients to the mirror, signs the clients and release image,
-        and handles odds and ends for a release.
+        For the default use case, this job:
+        <ul><li>publishes a nightly as an officially named release image
+          <li>waits up to three hours for it to be accepted
+          <li>enables automation, so builds will run again
+          <li>opens pull requests to cinci-graph-data
+          <li>copies the clients to the mirror
+          <li>signs the clients and release image
+          <li>...and handles odds and ends for a release</ul>
 
         There are minor differences when this job runs for FCs, RCs, or hotfixes.
 
@@ -47,13 +51,13 @@ node {
                     ),
                     choice(
                         name: 'RELEASE_TYPE',
-                        description: 'Select [1. Standard Release] unless discussed with team lead ',
+                        description: 'Select [1. Standard Release] unless discussed with team lead',
                         choices: [
                                 '1. Standard Release (Named, Signed, Previous, All Channels)',
                                 '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
                                 '3. Feature Candidate (Named, Signed - rpms may not be, Previous, Candidate Channel)',
-                                '4. Hotfix (No name, Signed, No Previous, All Channels)'
-                        ].join('\n'),
+                                '4. Hotfix (No name, Signed, No Previous, All Channels)',
+                            ].join('\n'),
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
@@ -68,7 +72,12 @@ node {
                     ),
                     string(
                         name: 'ADVISORY',
-                        description: 'Optional: Image release advisory number. N/A for direct nightly release. If not given, the number will be retrieved from ocp-build-data.',
+                        description: [
+                              'Optional: Image release advisory number.',
+                              'N/A for direct nightly release.',
+                              'If not given, the number will be retrieved from ocp-build-data.',
+                              'If "-1", this is skipped (for testing purposes).',
+                            ].join(' '),
                         trim: true,
                     ),
                     string(
@@ -81,6 +90,18 @@ node {
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
                         defaultValue: false,
+                    ),
+                    choice(
+                        name: 'ENABLE_AUTOMATION',
+                        description: [
+                                'Unfreeze automation to enable building and sweeping into the new advisories',
+                                '<b>Default</b>: Enable for Standard and RC releases, if arch is x86_64',
+                            ].join('<br/>'),
+                        choices: [
+                            'Default',
+                            'Yes',
+                            'No',
+                        ].join('\n'),
                     ),
                     booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',
@@ -156,7 +177,7 @@ node {
         release_name = "${major}.${minor}.0-fc.${release_offset}"
         candidate_pr_only = true
         CLIENT_TYPE = 'ocp-dev-preview'
-    } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Just a hotfix for a specific customer
+    } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
         direct_release_nightly = true
         detect_previous = false
         is_4stable_release = false
@@ -241,14 +262,14 @@ node {
                             message: "${acquire_failure}What PREVIOUS releases should be included in ${release_name} (arch: ${arch})?",
                             parameters: [
                                 string(
-                                        defaultValue: "4.${prevMinor}.?",
-                                        description: "This is release ${release_name}. What release is in flight for the previous minor release 4.${prevMinor}?",
-                                        name: 'IN_FLIGHT_PREV',
+                                    defaultValue: "4.${prevMinor}.?",
+                                    description: "This is release ${release_name}. What release is in flight for the previous minor release 4.${prevMinor}?",
+                                    name: 'IN_FLIGHT_PREV',
                                 ),
                                 string(
-                                        defaultValue: "${suggest_previous}",
-                                        description: (acquire_failure?acquire_failure:"Doozer thinks these are the other releases to include.") + " Edit as necessary (comma delimited).",
-                                        name: 'SUGGESTED',
+                                    defaultValue: "${suggest_previous}",
+                                    description: (acquire_failure?acquire_failure:"Doozer thinks these are the other releases to include.") + " Edit as necessary (comma delimited).",
+                                    name: 'SUGGESTED',
                                 ),
                             ]
                         )
@@ -265,8 +286,10 @@ node {
             stage("versions") { release.stageVersions() }
             stage("validation") {
                 if (direct_release_nightly) {
-                    // No advisory dance
                     advisory = -1
+                }
+                if (advisory == -1) {
+                    // No advisory dance
                     errata_url = ''
                     return
                 }
@@ -312,6 +335,62 @@ node {
                 }
             }
 
+            stage("enable automation") {
+                try {
+                    if (params.ENABLE_AUTOMATION == 'No') {
+                        echo 'Not enabling automation because ENABLE_AUTOMATION is set to No'
+                        return
+                    }
+                    if (params.ENABLE_AUTOMATION == 'Default' && arch != 'x86_64') {
+                        echo "Not enabling automation because that is not Default behavior for arch ${arch}"
+                        return
+                    }
+                    if (params.ENABLE_AUTOMATION == 'Default' && params.RELEASE_TYPE.startsWith('3.')) {
+                        echo "Not enabling automation because that is not Default behavior for Feature Candidates"
+                        return
+                    }
+                    if (params.ENABLE_AUTOMATION == 'Default' && params.RELEASE_TYPE.startsWith('4.')) {
+                        echo "Not enabling automation because that is not Default behavior for Hotfixes"
+                        return
+                    }
+
+                    def branch = "openshift-${major}.${minor}"
+                    def edit = [
+                        "rm -rf ocp-build-data",
+                        "git clone --single-branch --branch ${branch} git@github.com:openshift/ocp-build-data.git",
+                        "cd ocp-build-data",
+                        "sed -e 's/freeze_automation:.*/freeze_automation: no/' -i group.yml",
+                        "git diff",
+                    ]
+
+                    if (params.DRY_RUN) {
+                        edit << "echo DRY_RUN: neither committing, nor pushing"
+                    } else {
+                        edit << [
+                            "if ! git diff --exit-code --quiet; then",
+                            "  git add .",
+                            "  git commit -m 'Enable automation'",
+                            "  git push origin ${branch}",
+                            "fi",
+                        ]
+                    }
+
+                    def cmd = edit.flatten().join('\n')
+                    echo "shell cmd:\n${cmd}"
+
+                    sshagent(["openshift-bot"]) {
+                        commonlib.shell(
+                            returnStdout: true,
+                            script: cmd
+                        )
+                    }
+                } catch(err) {
+                    currentBuild.result = "UNSTABLE"
+                    currentBuild.description += "Enable automation failed\n"
+                    echo "${err}"
+                }
+            }
+
             stage("wait for stable") {
                 if (!is_4stable_release) {
                     // If it is not in 4-stable, there is nothing to wait for.
@@ -331,6 +410,10 @@ node {
             stage("advisory image list") {
                 if (!ga_release) {
                     echo "No need to send docs an image list for non-GA releases."
+                    return
+                }
+                if (advisory == -1) {
+                    echo "Skipping image list for dummy advisory."
                     return
                 }
                 if (params.SKIP_IMAGE_LIST) {
@@ -368,6 +451,11 @@ node {
 
             stage("send release message") {
                 if (!is_4stable_release) {
+                    echo "Not a stable release, not sending message over bus"
+                    return
+                }
+                if (params.DRY_DRUN) {
+                    echo "DRY_RUN: Not sending release message"
                     return
                 }
                 release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch)
@@ -402,11 +490,11 @@ node {
                         build(
                                 job: 'build%2Fcincinnati-prs',  propagate: true,
                                 parameters: [
-                                        buildlib.param('String', 'RELEASE_NAME', release_name),
-                                        buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
-                                        booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: candidate_pr_only),
-                                        buildlib.param('String', 'GITHUB_ORG', 'openshift'),
-                                        booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
+                                    buildlib.param('String', 'RELEASE_NAME', release_name),
+                                    buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
+                                    booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: candidate_pr_only),
+                                    buildlib.param('String', 'GITHUB_ORG', 'openshift'),
+                                    booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
                                 ]
                         )
                     }
@@ -414,7 +502,6 @@ node {
                     echo "Skipping PR creation for non-x86 CPU arch"
                 }
             }
-
         }
 
         dry_subject = ""

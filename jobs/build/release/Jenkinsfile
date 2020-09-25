@@ -10,7 +10,7 @@ node {
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
     commonlib.describeJob("⛔❌⛔ release (deprecated) ⛔❌⛔ ", """
         <h1 style="color:red;">Deprecated!!!</h1>
-        <p style="color:red;">This now goes under the name of <a href="${env.JOB_URL.replace('%252release/', '%252promote/')}">promote</a></p>
+        <p style="color:red;">This now goes under the name of <a href="${env.JOB_URL.replace('%252Frelease/', '%252Fpromote/')}">promote</a></p>
 
         <h2>Publish official OCP 4 release artifacts</h2>
         <b>Timing</b>: <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image" target="_blank">4.y z-stream doc</a>

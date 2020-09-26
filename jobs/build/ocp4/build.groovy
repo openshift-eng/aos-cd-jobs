@@ -321,6 +321,8 @@ def stageUpdateDistgit() {
     // TODO: if rebase fails for required images, notify image owners, and still notify on other reconciliations
     buildlib.notify_dockerfile_reconciliations(doozerWorking, version.stream)
     // TODO: if a non-required rebase fails, notify ART and the image owners
+
+    buildlib.notify_bz_info_missing(doozerWorking, version.stream)
 }
 
 /**

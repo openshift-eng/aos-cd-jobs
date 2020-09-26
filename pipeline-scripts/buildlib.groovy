@@ -1000,6 +1000,55 @@ def dockerfile_url_for(url, branch, sub_path) {
     return  "${url}/blob/${branch}/${sub_path ?: ''}"
 }
 
+def notify_bz_info_missing(doozerWorking, buildVersion) {
+    record_log = parse_record_log(doozerWorking)
+    bz_notify_entries = record_log.get('bz_maintainer_notify', [])
+    for (bz_notify in bz_notify_entries) {
+        public_upstream_url = bz_notify['public_upstream_url']
+        distgit = bz_notify['distgit']
+
+        owners = bz_notify.get('owners', null)
+
+        email_subject = "[ACTION REQUIRED] Bugzilla component information missing for image ${distgit} in OCP v${buildVersion}"
+
+        explanation_body = """
+Why am I receiving this?
+------------------------
+You are receiving this message because you are listed as an owner for an
+OpenShift related image - or you recently made a modification to the definition
+of such an image in github. 
+
+To comply with prodsec requirements, all images in the OpenShift product 
+should identify their Bugzilla component. To accomplish this, ART
+expects to find Bugzilla component information in the default branch of
+the image's upstream repository or requires it in ART image metadata.
+
+What should I do?
+------------------------
+There are two options to supply Bugzilla component information.
+1) The OWNERS file in the default branch (e.g. main / master) of ${public_upstream_url}
+   can be updated to include the bugzilla component information. 
+
+2) The component information can be specified directly in the 
+   ART metadata for the image ${distgit}.  
+
+Details for either approach can be found here: 
+https://docs.google.com/document/d/1V_DGuVqbo6CUro0RC86THQWZPrQMwvtDr0YQ0A75QbQ/edit?usp=sharing
+
+Thanks for your help!
+"""
+
+        if (owners) {
+            commonlib.email(
+                    to: owners,
+                    from: "aos-team-art@redhat.com",
+                    subject: email_subject,
+                    body: explanation_body)
+        }
+    }
+
+}
+
 def notify_dockerfile_reconciliations(doozerWorking, buildVersion) {
     // loop through all new commits that affect dockerfiles and notify their owners
 
@@ -1080,7 +1129,7 @@ Please direct any questions to the Automated Release Tooling team (#aos-art on s
             to: val.owners,
             from: "aos-team-art@redhat.com",
             subject: email_subject,
-            body: explanation_body);
+            body: explanation_body)
     }
 }
 

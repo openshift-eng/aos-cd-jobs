@@ -25,6 +25,7 @@ node {
             echo "ocp_ver: ${ocp_ver}"
             if (name.startsWith('ose-ptp-operator-metadata') || name.startsWith('ose-ptp-operator-bundle')) {
                 dest_name = "quay.io/openshift-release-dev/ocp-release-nightly:iib-int-index-cluster-ose-ptp-operator-${ocp_ver}"
+                sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig oc registry login"
                 sh "oc image mirror ${idx_image} ${dest_name}"
             }
         } catch (e) {

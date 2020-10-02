@@ -115,7 +115,7 @@ node {
                     ),
                     booleanParam(
                         name: 'PERMIT_ALL_ADVISORY_STATES',
-                        description: 'DO NOT USE without team lead approval. Allows release job to run when advisory is not in QE state.',
+                        description: 'DO NOT USE without team lead approval. Allows "Standard" promotion when advisory is not in QE state.',
                         defaultValue: false,
                     ),
                     booleanParam(
@@ -126,7 +126,7 @@ node {
                     ),
                     booleanParam(
                         name: 'SKIP_IMAGE_LIST',
-                        description: 'Do not gather an advisory image list for docs. Use this for RCs and other test situations.',
+                        description: '(Standard Release) Do not gather an advisory image list for docs.',
                         defaultValue: false,
                     ),
                     string(

@@ -108,6 +108,7 @@ node {
                                 --working-dir ${doozer_working}
                                 --group 'openshift-${version}'
                                 config:scan-sources --yaml
+                                --ci-kubeconfig ${buildlib.ciKubeconfig}
                                 """, [capture: true]
                             )
 
@@ -117,6 +118,15 @@ node {
 
                             sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${version}.log"
                             commonlib.safeArchiveArtifacts(["doozer_working/*.log"])
+
+                            def rhcosChanged = false
+                            for (stream in yamlData.get('rhcos', [])) {
+                                if (stream['changed']) {
+                                    echo "Detected at least one updated RHCOS."
+                                    rhcosChanged = true
+                                    break
+                                }
+                            }
 
                             def changed = buildlib.getChanges(yamlData)
                             if ( changed.rpms || changed.images ) {
@@ -131,6 +141,16 @@ node {
                                     ]
                                 )
                                 currentBuild.description += "<br>triggered build: ${version}"
+                            } else if (rhcosChanged) {
+                                build(
+                                    job: 'build%2Fbuild-sync',
+                                    propagate: false,
+                                    wait: false,
+                                    parameters: [
+                                        string(name: 'BUILD_VERSION', value: version),
+                                    ]
+                                )
+                                currentBuild.description += "<br>triggered build-sync: ${version}"
                             }
                         }
                     } catch (err) {

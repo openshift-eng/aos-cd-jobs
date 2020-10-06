@@ -117,7 +117,8 @@ node {
                             def yamlData = readYaml text: yamlStr
 
                             sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${version}.log"
-                            commonlib.safeArchiveArtifacts(["doozer_working/*.log"])
+                            sh "bzip2 ${doozer_working}/debug-${version}.log"
+                            commonlib.safeArchiveArtifacts(["doozer_working/*.bz2"])
 
                             def rhcosChanged = false
                             for (stream in yamlData.get('rhcos', [])) {

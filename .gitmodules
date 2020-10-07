@@ -1,0 +1,3 @@
+[submodule "art-tools/doozer"]
+	path = art-tools/doozer
+	url = https://github.com/openshift/doozer

@@ -6,6 +6,7 @@ ocp3Versions = [
 
 // All buildable versions of ocp4
 ocp4Versions = [
+    "4.7",
     "4.6",
     "4.5",
     "4.4",
@@ -15,6 +16,7 @@ ocp4Versions = [
 
 // Which versions should undergo merges from origin->ose
 ocpMergeVersions = [
+    "4.7",
     "4.6",
     "4.5",
     "4.4",
@@ -70,6 +72,10 @@ ocpVersions = ocp4Versions + ocp3Versions
  * 'archOverrides' goes away in doozer config.
  */
 ocp4ReleaseState = [
+        "4.7": [
+            'release': [ 'x86_64', 's390x', 'ppc64le' ],
+            "pre-release": [ 'aarch64' ],
+        ],
         "4.6": [
             'release': [ 'x86_64', 's390x', 'ppc64le' ],
             "pre-release": [ 'aarch64' ],

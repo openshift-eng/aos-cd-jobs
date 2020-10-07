@@ -27,7 +27,7 @@ ocp_versions() {
   }
 
   awk -F'"' '
-    /ocpMergeVersions/ { f=1 }
+    /ocp4Versions/ { f=1 }
     f && /^]/ { exit }
     f && NF>2 { print $2 }
   ' "$commonlib" | sort --version-sort

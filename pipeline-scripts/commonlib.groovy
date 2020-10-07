@@ -14,17 +14,6 @@ ocp4Versions = [
     "4.2",
 ]
 
-// Which versions should undergo merges from origin->ose
-ocpMergeVersions = [
-    "4.7",
-    "4.6",
-    "4.5",
-    "4.4",
-    "4.3",
-    "4.2",
-    "3.11",
-]
-
 ocpVersions = ocp4Versions + ocp3Versions
 
 /**

@@ -325,7 +325,8 @@ def safeArchiveArtifacts(List patterns) {
  * Won't explode if called and doozer never got to save any brew-logs.
 **/
 def compressBrewLogs() {
-    this.shell(script: "${env.WORKSPACE}/build-scripts/find-and-compress-brew-logs.sh")
+    echo "Compressing brew logs.."
+    this.shell(script: "${env.WORKSPACE}/build-scripts/find-and-compress-brew-logs.sh > /dev/null")
 }
 
 import java.util.concurrent.atomic.AtomicInteger

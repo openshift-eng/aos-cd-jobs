@@ -25,7 +25,7 @@ node {
                 logRotator(
                     artifactDaysToKeepStr: '',
                     artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
+                    daysToKeepStr: '365',
                     numToKeepStr: '')),
             [
                 $class: 'ParametersDefinitionProperty',
@@ -333,6 +333,7 @@ Job console: ${commonlib.buildURL('console')}
         currentBuild.result = "FAILURE"
         throw err
     } finally {
+        commonlib.compressBrewLogs()
         commonlib.safeArchiveArtifacts([
                 "doozer_working/*.log",
                 "doozer_working/*.yaml",

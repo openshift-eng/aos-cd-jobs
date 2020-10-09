@@ -111,6 +111,13 @@ def cleanWhitespace(cmd) {
     )
 }
 
+// Preparing venv for ART tools (doozer and elliott)
+// The following commands will run automatically every time one of our jobs
+// loads buildlib (ideally, once per pipeline)
+VENV = "${env.WORKSPACE}/art-venv"
+commonlib.shell(script: "python3 -m venv --symlinks ${VENV}")
+commonlib.shell(script: "${VENV}/bin/pip3 install --upgrade pip")
+
 def doozer(cmd, opts=[:]){
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws_simpledb_doozer_creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         withEnv(['AWS_DEFAULT_REGION=us-east-1']) {

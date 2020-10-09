@@ -117,6 +117,7 @@ def cleanWhitespace(cmd) {
 VENV = "${env.WORKSPACE}/art-venv"
 commonlib.shell(script: "python3 -m venv --symlinks ${VENV}")
 commonlib.shell(script: "${VENV}/bin/pip3 install --upgrade pip")
+commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/doozer/requirements.txt")
 
 def doozer(cmd, opts=[:]){
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws_simpledb_doozer_creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {

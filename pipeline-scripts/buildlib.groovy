@@ -135,7 +135,7 @@ def elliott(cmd, opts=[:]){
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
         alwaysArchive: opts.capture ?: false,
-        script: "elliott ${cleanWhitespace(cmd)}")
+        script: "${VENV}/bin/python3 art-tools/elliott/elliott ${cleanWhitespace(cmd)}")
 }
 
 def oc(cmd, opts=[:]){

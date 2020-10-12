@@ -115,6 +115,9 @@ def cleanWhitespace(cmd) {
 // The following commands will run automatically every time one of our jobs
 // loads buildlib (ideally, once per pipeline)
 VENV = "${env.WORKSPACE}/art-venv"
+DOOZER_BIN = "${VENV}/bin/python3 art-tools/doozer/doozer"
+ELLIOTT_BIN = "${VENV}/bin/python3 art-tools/elliott/elliott"
+
 commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VENV}")
 commonlib.shell(script: "${VENV}/bin/pip3 install --upgrade pip")
 commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/doozer/requirements.txt")
@@ -126,7 +129,7 @@ def doozer(cmd, opts=[:]){
             return commonlib.shell(
                     returnStdout: opts.capture ?: false,
                     alwaysArchive: opts.capture ?: false,
-                    script: "${VENV}/bin/python3 art-tools/doozer/doozer --datastore prod --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
+                    script: "${DOOZER_BIN} --datastore prod --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
         }
     }
 }
@@ -135,7 +138,7 @@ def elliott(cmd, opts=[:]){
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
         alwaysArchive: opts.capture ?: false,
-        script: "${VENV}/bin/python3 art-tools/elliott/elliott ${cleanWhitespace(cmd)}")
+        script: "${ELLIOTT_BIN} ${cleanWhitespace(cmd)}")
 }
 
 def oc(cmd, opts=[:]){

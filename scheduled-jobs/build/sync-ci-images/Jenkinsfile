@@ -33,10 +33,10 @@ node {
         if (now_hash != prev_hash) {
             echo "Changes detected in ocp-build-data group: ${group}"
 
-            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig doozer --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
+            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig ${buildlib.DOOZER_BIN} --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
             sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig oc registry login"
-            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig doozer --group ${group} images:streams mirror --only-if-missing"
-            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig doozer --group ${group} images:streams start-builds"
+            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig ${buildlib.DOOZER_BIN} --group ${group} images:streams mirror --only-if-missing"
+            sh "KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig ${buildlib.DOOZER_BIN} --group ${group} images:streams start-builds"
 
             sh "rm -rf ${prev_dir_name}"
             sh "mv ${group} ${prev_dir_name}"

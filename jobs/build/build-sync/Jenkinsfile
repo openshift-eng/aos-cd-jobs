@@ -78,7 +78,7 @@ node {
 
     stage("Version dumps") {
         buildlib.doozer "--version"
-        sh "which doozer"
+        echo "${buildlib.DOOZER_BIN}"
         sh "oc version -o yaml"
     }
 

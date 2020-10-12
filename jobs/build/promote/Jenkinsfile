@@ -423,7 +423,7 @@ node {
                 try {
                     filename = "${dest_release_tag}-image-list.txt"
                     retry (3) {
-                        commonlib.shell(script: "elliott advisory-images -a ${advisory} > ${filename}")
+                        commonlib.shell(script: "${buildlib.ELLIOTT_BIN} advisory-images -a ${advisory} > ${filename}")
                     }
                     archiveArtifacts(artifacts: filename, fingerprint: true)
                     if (!params.DRY_RUN) {

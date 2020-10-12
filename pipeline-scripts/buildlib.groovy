@@ -119,9 +119,13 @@ DOOZER_BIN = "${VENV}/bin/python3 art-tools/doozer/doozer"
 ELLIOTT_BIN = "${VENV}/bin/python3 art-tools/elliott/elliott"
 
 commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VENV}")
-commonlib.shell(script: "${VENV}/bin/pip3 install --upgrade pip")
-commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/doozer/requirements.txt")
-commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/elliott/requirements.txt")
+try {
+    commonlib.shell(script: "${VENV}/bin/pip3 install --upgrade pip")
+    commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/doozer/requirements.txt")
+    commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/elliott/requirements.txt")
+} catch (Exception ex) {
+    print(ex)
+}
 
 def doozer(cmd, opts=[:]){
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws_simpledb_doozer_creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {

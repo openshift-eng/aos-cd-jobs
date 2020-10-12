@@ -115,7 +115,7 @@ def cleanWhitespace(cmd) {
 // The following commands will run automatically every time one of our jobs
 // loads buildlib (ideally, once per pipeline)
 VENV = "${env.WORKSPACE}/art-venv"
-commonlib.shell(script: "python3 -m venv --symlinks ${VENV}")
+commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VENV}")
 commonlib.shell(script: "${VENV}/bin/pip3 install --upgrade pip")
 commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/doozer/requirements.txt")
 commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/elliott/requirements.txt")

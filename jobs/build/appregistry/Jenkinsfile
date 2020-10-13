@@ -83,7 +83,11 @@ node {
     appregistry.initialize(workDir)
 
     currentBuild.description = "Collecting appregistry images for ${appregistry.buildVersion} (${params.STREAM} stream)"
-    currentBuild.displayName += " - ${appregistry.buildVersion} (${params.STREAM})"
+    currentBuild.displayName += " - ${appregistry.buildVersion}-${params.STREAM}"
+    if (params.STREAM in ['prod', 'stage']) {
+        currentBuild.displayName += " (extras: ${params.OLM_OPERATOR_ADVISORIES}, metadata: ${params.METADATA_ADVISORY})"
+    }
+        
 
     def skipPush = params.SKIP_PUSH
 

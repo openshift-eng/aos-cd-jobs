@@ -1,0 +1,105 @@
+﻿apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  creationTimestamp: '2020-10-15T08:58:13Z'
+  generation: 17
+  managedFields:
+    - apiVersion: tekton.dev/v1beta1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          .: {}
+          'f:params': {}
+          'f:results': {}
+          'f:steps': {}
+          'f:volumes': {}
+      manager: Mozilla
+      operation: Update
+      time: '2020-10-20T09:19:22Z'
+  name: bump-jenkins
+  namespace: art-jenkins
+  resourceVersion: '66517529'
+  selfLink: /apis/tekton.dev/v1beta1/namespaces/art-jenkins/tasks/bump-jenkins
+  uid: 1ba0aa05-35ff-4ea3-8835-612dd692aa33
+spec:
+  params:
+    - name: jenkins-version
+      type: string
+    - name: ocp-branch
+      type: string
+  results:
+    - description: the result of this task
+      name: jobresult
+  steps:
+    - image: docker.io/library/centos
+      name: ''
+      resources: {}
+      script: >
+        #!/usr/bin/env bash
+
+        set -xeuo pipefail
+
+        echo failed > /tekton/results/jobresult
+
+        yum install -q -y wget
+
+        wget -q -P /etc/yum.repos.d/
+        http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-8-baseos.repo
+
+        echo "sslverify=false" >> /etc/yum.conf
+
+        yum install -q -y rhpkg krb5-server krb5-libs krb5-workstation
+
+        wget -q -P /etc/
+        https://raw.githubusercontent.com/openshift/doozer/master/.devcontainer/krb5-redhat.conf
+
+        #cat /etc/krb5-redhat.conf 
+
+        mv /etc/krb5-redhat.conf /etc/krb5.conf 
+
+        cp /etc/secret/jenkins-buildvm-keytab
+        /etc/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab 
+
+        kinit -f -k -t
+        /etc/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab
+        ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM
+
+        #klist
+
+        echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+
+        rhpkg --user=ocp-build clone jenkins
+
+        cd jenkins
+
+        rhpkg switch-branch "$(inputs.params.ocp-branch)"
+
+        wget -q
+        https://updates.jenkins-ci.org/download/war/$(inputs.params.jenkins-version)/jenkins.war
+
+        UVERSION="$(inputs.params.jenkins-version).$(date +%s)"
+
+        mv jenkins.war jenkins.${UVERSION}.war
+
+        wget -q
+        https://raw.githubusercontent.com/openshift/aos-cd-jobs/devex/jenkins-bump-version/rpm-bump-version.sh
+
+        rhpkg new-sources jenkins.${UVERSION}.war
+
+        /bin/bash rpm-bump-version.sh "${UVERSION}"
+
+        rhpkg commit -p -m "Update Jenkins war to ${VERSION}"
+
+        rhpkg build --skip-nvr-check
+
+        echo success > /tekton/results/jobresult
+      securityContext:
+        runAsNonRoot: false
+        runAsUser: 0
+      volumeMounts:
+        - mountPath: /etc/secret
+          name: jenkins-secret
+  volumes:
+    - name: jenkins-secret
+      secret:
+        secretName: jenkins-buildvm-keytab

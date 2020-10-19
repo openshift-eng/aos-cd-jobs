@@ -78,6 +78,9 @@ node() {
     commonlib = load("pipeline-scripts/commonlib.groovy")
     description = ""
     def actionArguments = [:]
+    if (ACTIONS.isEmpty()) {
+        return
+    }
     for (releaseStream in ACTIONS.keySet()) {
         def releaseCacheFile = "${releaseStream}.json"
         def changed, latestRelease, previousRelease

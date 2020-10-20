@@ -109,7 +109,7 @@ pipeline {
                     lock("olm_bundle-${params.BUILD_VERSION}") {
                         if (params.DRY_RUN) {
                             bundle_packages = operator_packages.collect {
-                                it.replace('-operator', '-operator-bundle')
+                                it.replace('-operator', '-operator-metadata')
                             }
                             bundle_nvrs = olm_bundles.get_latest_builds(bundle_packages)
                             print(bundle_nvrs.join('\n'))

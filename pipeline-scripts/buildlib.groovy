@@ -796,7 +796,7 @@ def sync_images(major, minor, mail_list, build_number) {
     def fullVersion = "${major}.${minor}"
     def results = []
 
-    if (fullVersion == '4.6') {
+    if (minor > 5 || major > 4) {
         parallel "build-sync": {
             results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
                 [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041

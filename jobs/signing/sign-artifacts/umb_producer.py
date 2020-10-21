@@ -288,7 +288,7 @@ tools, as well as RHCOS bare-betal message digests.
         "artifact_meta": {
             "product": product,
             "release_name": release_name,
-            "name": "sha256sum.txt.sig",
+            "name": "sha256sum.txt.gpg",
             "type": "message-digest",
         },
         "request_id": request_id,

@@ -233,7 +233,7 @@ node {
 
                         // the umb producer script should have generated two
                         // files. One is a 'sha26=.......' and one is
-                        // 'sha256sum.txt.sig'
+                        // 'sha256sum.txt.gpg'
 
                         // sha256=...........
                         //
@@ -252,7 +252,7 @@ node {
                         // using this directory structure:
                         //
                         // ocp/
-                        //  -> <RELEASE-NAME>/sha256sum.txt.sig
+                        //  -> <RELEASE-NAME>/sha256sum.txt.gpg
                         //
                         // where <RELEASE-NAME> is something like '4.1.0-rc.5'
 
@@ -305,7 +305,7 @@ node {
 
                         // ######################################################################
 
-                        // sha256sum.txt.sig
+                        // sha256sum.txt.gpg
                         //
                         // For message digests (mirroring type 2) we'll see instead
                         // that .artifact_meta.type says 'message-digest'. Take this
@@ -316,24 +316,24 @@ node {
                         //         "product": "openshift",
                         //         "release_name": "4.1.0-rc.5",
                         //         "type": "message-digest",
-                        //         "name": "sha256sum.txt.sig"
+                        //         "name": "sha256sum.txt.gpg"
                         //     }
                         //
                         // Note that the 'product' key WILL become important when we
                         // are sending RHCOS bare metal message-digests in the
                         // future. From the .artifact_meta above we know that we have
-                        // just received the sha256sum.txt.sig file for openshift
+                        // just received the sha256sum.txt.gpg file for openshift
                         // release 4.1.0-rc.5. We will mirror this file to:
                         //
                         // https://mirror.openshift.com/pub/openshift-v4/clients/
                         //  --> ocp/
                         //  ----> `.artifacts.name`/
-                        //  ------> sha256sum.txt.sig
-                        //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.sig
+                        //  ------> sha256sum.txt.gpg
+                        //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.gpg
 
                         sshagent(["openshift-bot"]) {
                             def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.NAME}"
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.sig"
+                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                             if (mirror_result.contains("[FAILURE]")) {
                                 echo mirror_result
@@ -345,7 +345,7 @@ node {
                             def name_parts = params.NAME.split('\\.')
                             def nameXY = "${name_parts[0]}.${name_parts[1]}"
                             def mirrorReleasePath = "openshift-v4/${params.ARCH}/dependencies/rhcos/${nameXY}/${params.NAME}"
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.sig ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.sig"
+                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                             if (mirror_result.contains("[FAILURE]")) {
                                 echo mirror_result
@@ -357,7 +357,7 @@ node {
                     echo "Archiving artifacts in jenkins:"
                     commonlib.safeArchiveArtifacts([
                         "working/cp.log",
-                        "working/*.sig",
+                        "working/*.gpg",
                         "working/sha256=*",
                         ]
                     )

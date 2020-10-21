@@ -255,9 +255,6 @@ node {
 
             previousList = commonlib.parseList(params.PREVIOUS)
             if ( params.PREVIOUS.trim() == 'auto' ) {
-                if (!from_release_tag.contains('nightly')) {
-                    error('Auto PREVIOUS is only support for nightlies; Please specify in job parameters.')
-                }
                 taskThread.task('Gather PREVIOUS for release') {
 
                     if (!detect_previous) {

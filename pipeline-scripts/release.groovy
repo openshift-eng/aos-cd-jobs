@@ -385,6 +385,13 @@ done
 def getReleaseTagArchPriv(from_release_tag) {
     // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
     def nameComponents = from_release_tag.split('-')
+
+    if (nameComponents.length < 3) {
+		// Caller provided something like '4.6.0-rc.4' or 4.6.5.
+		// Arch cannot be ascertained.
+    	return [null, False]
+    }
+
     def arch = "x86_64"
     def priv = false
     if (nameComponents[2] == "priv") {

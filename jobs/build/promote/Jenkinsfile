@@ -59,6 +59,16 @@ node {
                                 '4. Hotfix (No name, Signed, No Previous, All Channels)',
                             ].join('\n'),
                     ),
+                    choice(
+                        name: 'ARCH',
+                        description: 'The architecture for the release. Use "auto" for promoting nightlies. ARCH must be specified when re-promoting an RC."',
+                        choices: [
+                                'auto',
+                                'x86_64',
+                                's390x',
+                                'ppc64le',
+                            ].join('\n'),
+                    ),
                     string(
                         name: 'RELEASE_OFFSET',
                         description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
@@ -197,6 +207,14 @@ node {
 
             from_release_tag = params.FROM_RELEASE_TAG.trim()
             (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
+
+            if (arch == null) {
+                if (params.ARCH == 'auto') {
+                    error("Unable to determine architecture from source release tag: ${from_release_tag}; specify it in arguments")
+                }
+                arch = params.ARCH
+            }
+
             RELEASE_STREAM_NAME = "4-stable${release.getArchPrivSuffix(arch, false)}"
             dest_release_tag = release.destReleaseTag(release_name, arch)
 
@@ -237,6 +255,9 @@ node {
 
             previousList = commonlib.parseList(params.PREVIOUS)
             if ( params.PREVIOUS.trim() == 'auto' ) {
+                if (!from_release_tag.contains('nightly')) {
+                    error('Auto PREVIOUS is only support for nightlies; Please specify in job parameters.')
+                }
                 taskThread.task('Gather PREVIOUS for release') {
 
                     if (!detect_previous) {

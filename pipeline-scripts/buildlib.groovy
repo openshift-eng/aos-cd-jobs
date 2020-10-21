@@ -1615,4 +1615,23 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     return r
 }
 
+/**
+ * Get image/rpm owners from ocp-build-data
+ * @param doozerOpts Doozer options
+ * @param images list of images
+ * @param rpms  list of rpms
+ * @return owners
+ */
+def get_owners(doozerOpts, images, rpms=[]) {
+    yamlData = readYaml text: doozer(
+            """
+            ${doozerOpts}
+            ${images ? '--images=' + images.join(",") : ''}
+            ${rpms ? '--rpms=' + rpms.join(",") : ''}
+            config:print --key owners --yaml
+            """, [capture: true]
+        )
+    return yamlData
+}
+
 return this

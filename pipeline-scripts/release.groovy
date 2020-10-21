@@ -389,7 +389,7 @@ def getReleaseTagArchPriv(from_release_tag) {
     if (nameComponents.length < 3) {
 		// Caller provided something like '4.6.0-rc.4' or 4.6.5.
 		// Arch cannot be ascertained.
-    	return [null, False]
+    	return [null, false]
     }
 
     def arch = "x86_64"

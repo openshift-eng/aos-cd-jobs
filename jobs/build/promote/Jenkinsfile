@@ -206,14 +206,8 @@ node {
             name = release_name
 
             from_release_tag = params.FROM_RELEASE_TAG.trim()
+            // arch will fallback to params.ARCH if it is not part of the release name
             (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
-
-            if (arch == null) {
-                if (params.ARCH == 'auto') {
-                    error("Unable to determine architecture from source release tag: ${from_release_tag}; specify it in arguments")
-                }
-                arch = params.ARCH
-            }
 
             RELEASE_STREAM_NAME = "4-stable${release.getArchPrivSuffix(arch, false)}"
             dest_release_tag = release.destReleaseTag(release_name, arch)

@@ -1,0 +1,6 @@
+[submodule "art-tools/doozer"]
+	path = art-tools/doozer
+	url = https://github.com/openshift/doozer
+[submodule "art-tools/elliott"]
+	path = art-tools/elliott
+	url = https://github.com/openshift/elliott

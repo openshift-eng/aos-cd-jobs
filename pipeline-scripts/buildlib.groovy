@@ -929,13 +929,8 @@ def branch_arches(String branch, boolean gaOnly=false) {
     return arches_list
 }
 
-// Search the build log for failed builds
-def get_failed_builds(String log_dir, Boolean fullRecord=false) {
-    record_log = parse_record_log(log_dir)
-    this.get_failed_builds(record_log, fullRecord)
-}
-
 def get_failed_builds(Map record_log, Boolean fullRecord=false) {
+    // Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build failed
     builds = record_log.get('build', [])
     failed_map = [:]
     for (i = 0; i < builds.size(); i++) {
@@ -952,6 +947,21 @@ def get_failed_builds(Map record_log, Boolean fullRecord=false) {
     }
 
     return failed_map
+}
+
+def get_successful_builds(Map record_log, Boolean fullRecord=false) {
+    // Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build succeeded
+    builds = record_log.get('build', [])
+    success_map = [:]
+    for (i = 0; i < builds.size(); i++) {
+        bld = builds[i]
+        distgit = bld['distgit']
+        if (bld['status'] == '0') {
+            success_map[distgit] = fullRecord ? bld : bld['task_url']
+        }
+    }
+
+    return success_map
 }
 
 // gets map of emails to notify from output of parse_record_log
@@ -1032,9 +1042,9 @@ Why am I receiving this?
 ------------------------
 You are receiving this message because you are listed as an owner for an
 OpenShift related image - or you recently made a modification to the definition
-of such an image in github. 
+of such an image in github.
 
-To comply with prodsec requirements, all images in the OpenShift product 
+To comply with prodsec requirements, all images in the OpenShift product
 should identify their Bugzilla component. To accomplish this, ART
 expects to find Bugzilla component information in the default branch of
 the image's upstream repository or requires it in ART image metadata.
@@ -1043,12 +1053,12 @@ What should I do?
 ------------------------
 There are two options to supply Bugzilla component information.
 1) The OWNERS file in the default branch (e.g. main / master) of ${public_upstream_url}
-   can be updated to include the bugzilla component information. 
+   can be updated to include the bugzilla component information.
 
-2) The component information can be specified directly in the 
-   ART metadata for the image ${distgit}.  
+2) The component information can be specified directly in the
+   ART metadata for the image ${distgit}.
 
-Details for either approach can be found here: 
+Details for either approach can be found here:
 https://docs.google.com/document/d/1V_DGuVqbo6CUro0RC86THQWZPrQMwvtDr0YQ0A75QbQ/edit?usp=sharing
 
 Thanks for your help!

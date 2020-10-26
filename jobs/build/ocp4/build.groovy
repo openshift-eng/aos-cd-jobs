@@ -289,7 +289,7 @@ def stageBuildCompose() {
         return
     }
 
-    def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group signing_advisory", [capture: true]).trim())
+    def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
 
     buildlib.buildBuildingPlashet(version.full, version.release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
     buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet

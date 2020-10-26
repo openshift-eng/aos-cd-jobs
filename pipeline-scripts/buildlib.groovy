@@ -1477,13 +1477,16 @@ def getChanges(yamlData) {
  * @param release  The 4.x release field (usually a timestamp)
  * @param el_major The RHEL major version (7 or 8)
  * @param include_embargoed If true, the plashet will include the very latest rpms (embargoed & unembargoed). Otherwise Plashet will only include unembargoed historical builds of rpms
- * @param auto_signing_advisory The signing advisory to use
+ * @param auto_signing_advisory The signing advisory to use. Set to 0 to use the default advisory.
  * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
  *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>' or 4.5.0-<release timestamp>-embargoed'
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory) {
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=0) {
+    if (!auto_signing_advisory) {
+        auto_signing_advisory = 54765
+    }
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>

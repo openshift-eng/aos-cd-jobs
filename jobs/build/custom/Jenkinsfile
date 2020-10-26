@@ -199,10 +199,11 @@ node {
                         } else {
                             echo 'Building 4.x plashet'
                             // For 4.x, use plashets
-                            buildlib.buildBuildingPlashet(version, release, 8, true)  // build el8 embargoed plashet
-                            buildlib.buildBuildingPlashet(version, release, 7, true)  // build el7 embargoed plashet
-                            buildlib.buildBuildingPlashet(version, release, 8, false)  // build el8 unembargoed plashet
-                            buildlib.buildBuildingPlashet(version, release, 7, false)  // build el7 unembargoed plashet
+                            def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
+                            buildlib.buildBuildingPlashet(version, release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
                         }
                     }
                 }

@@ -1032,9 +1032,9 @@ Why am I receiving this?
 ------------------------
 You are receiving this message because you are listed as an owner for an
 OpenShift related image - or you recently made a modification to the definition
-of such an image in github. 
+of such an image in github.
 
-To comply with prodsec requirements, all images in the OpenShift product 
+To comply with prodsec requirements, all images in the OpenShift product
 should identify their Bugzilla component. To accomplish this, ART
 expects to find Bugzilla component information in the default branch of
 the image's upstream repository or requires it in ART image metadata.
@@ -1043,12 +1043,12 @@ What should I do?
 ------------------------
 There are two options to supply Bugzilla component information.
 1) The OWNERS file in the default branch (e.g. main / master) of ${public_upstream_url}
-   can be updated to include the bugzilla component information. 
+   can be updated to include the bugzilla component information.
 
-2) The component information can be specified directly in the 
-   ART metadata for the image ${distgit}.  
+2) The component information can be specified directly in the
+   ART metadata for the image ${distgit}.
 
-Details for either approach can be found here: 
+Details for either approach can be found here:
 https://docs.google.com/document/d/1V_DGuVqbo6CUro0RC86THQWZPrQMwvtDr0YQ0A75QbQ/edit?usp=sharing
 
 Thanks for your help!
@@ -1493,13 +1493,16 @@ def getChanges(yamlData) {
  * @param release  The 4.x release field (usually a timestamp)
  * @param el_major The RHEL major version (7 or 8)
  * @param include_embargoed If true, the plashet will include the very latest rpms (embargoed & unembargoed). Otherwise Plashet will only include unembargoed historical builds of rpms
- * @param auto_signing_advisory The signing advisory to use
+ * @param auto_signing_advisory The signing advisory to use. Set to 0 to use the default advisory.
  * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
  *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>' or 4.5.0-<release timestamp>-embargoed'
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=54765) {
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=0) {
+    if (!auto_signing_advisory) {
+        auto_signing_advisory = 54765
+    }
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>

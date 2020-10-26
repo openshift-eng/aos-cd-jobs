@@ -106,6 +106,7 @@ node {
 
         currentBuild.displayName = "${params.VERSION}.z advisories${params.DRY_RUN ? " [DRY_RUN]" : ""}"
         currentBuild.description = ""
+        def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
 
         try {
             stage("kinit") {
@@ -114,15 +115,17 @@ node {
             stage("create advisories") {
                 lib.create_advisory("image")
                 lib.create_advisory("rpm")
-                if (params.VERSION.startsWith("4")) {
+                if (major > 3) {
                     lib.create_advisory("extras")
+                }
+                if (major == 4 && minor < 6) {
                     lib.create_advisory("metadata")
                 }
             }
 
             stage("sending email to request Live IDs") {
                 if (params.REQUEST_LIVE_IDs) {
-                    def main_advisory = (params.VERSION.startsWith('3.')) ? "rpm" : "image"
+                    def main_advisory = (major == 3) ? "rpm" : "image"
                     def draft = [
                         "Hello docs team, ART would like to request Live IDs for our ${params.VERSION}.z advisories:",
                         "${main_advisory}: https://errata.devel.redhat.com/advisory/${lib.ADVISORIES[main_advisory]}",
@@ -180,8 +183,8 @@ node {
 
             stage("add placeholder bugs to advisories") {
                 lib.ADVISORIES.each {
-                    if (it.key == "rpm" && params.VERSION.startsWith("3.")) { return }
-                    if (it.key == "image" && params.VERSION.startsWith("4.")) { return }
+                    if (it.key == "rpm" && major == 3) { return }
+                    if (it.key == "image" && major > 3) { return }
                     if (it.key.contains('rhsa')) { return }
                     lib.create_placeholder(it.key)
                 }

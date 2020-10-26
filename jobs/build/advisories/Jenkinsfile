@@ -116,7 +116,9 @@ node {
                 lib.create_advisory("rpm")
                 if (params.VERSION.startsWith("4")) {
                     lib.create_advisory("extras")
-                    lib.create_advisory("metadata")
+                    if (params.VERSION != "4.6") {
+                        lib.create_advisory("metadata")
+                    }
                 }
             }
 

@@ -44,7 +44,7 @@ def get_latest_builds(packages) {
  * Return a list of built <bundle_nvrs>
  */
 def build_bundles(operator_nvrs) {
-    doozer("olm-bundle:rebase-and-build ${operator_nvrs.join(' ')}").split("\n")
+    doozer("olm-bundle:rebase-and-build ${operator_nvrs.join(' ')} ${params.FORCE_BUILD ? '--force' : ''}").split("\n")
 }
 
 /*

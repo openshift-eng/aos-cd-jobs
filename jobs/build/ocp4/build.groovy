@@ -282,15 +282,14 @@ def stageBuildRpms() {
 /**
  * Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs based on -candidate tags.
  * Based on commonlib.ocp4ReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
- * @param auto_signing_advisory - The advisory method can use for auto-signing. This should be
- *          unique to this release (to avoid simultaneous modifications. i.e. different
- *          advisories for 4.1, 4.2, ...
  */
-def stageBuildCompose(auto_signing_advisory=54765) {
+def stageBuildCompose() {
     if(buildPlan.dryRun) {
         echo "Running in dry-run mode -- will not run plashet."
         return
     }
+
+    def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
 
     buildlib.buildBuildingPlashet(version.full, version.release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
     buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet

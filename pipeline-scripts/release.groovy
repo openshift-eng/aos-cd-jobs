@@ -122,17 +122,17 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
 
     if (arch == 'amd64' || arch == 'x86_64') {
         echo "Verifying payload"
-￼       res = commonlib.shell(
-￼           returnAll: true,
-￼           script: "elliott --group=openshift-${version} verify-payload registry.svc.ci.openshift.org/ocp/release:${nightly} ${advisory}"
-        )
+        res = commonlib.shell(
+                returnAll: true,
+                script: "elliott --group=openshift-${version} verify-payload registry.svc.ci.openshift.org/ocp/release:${nightly} ${advisory}"
+                )
 ￼       if (res.returnStatus != 0) {
-￼           def cd = currentBuild.description
-￼           currentBuild.description = "${currentBuild.description} - INPUT REQUIRED"
-￼           slackChannel = slacklib.to(version)
-￼           slackChannel.failure("Verify-payload failed. User input required to proceed")
-￼           input 'Advisory contents does not match payload. Proceed anyway?'
-        currentBuild.description = cd
+            def cd = currentBuild.description
+            currentBuild.description = "${currentBuild.description} - INPUT REQUIRED"
+            slackChannel = slacklib.to(version)
+            slackChannel.failure("Verify-payload failed. User input required to proceed")
+            input 'Advisory contents does not match payload. Proceed anyway?'
+            currentBuild.description = cd
 ￼       }
 ￼   }
     return retval

@@ -39,17 +39,21 @@ node() {
     timestamps {
 
         slackChannel = slacklib.to(BUILD_VERSION)
-        report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
-        if (report) {
-            echo "The report:\n${report}"
-            if (params.SEND_TO_SLACK) {
-                slackChannel.say(":alert: Howdy, guys! There are some issues to look into for ${group}\n${report}")
-            }
-        } else {
-            echo "There are no issues to report."
-        }
 
+        try {
+            report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
+            if (report) {
+                echo "The report:\n${report}"
+                if (params.SEND_TO_SLACK) {
+                    slackChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                }
+            } else {
+                echo "There are no issues to report."
+            }
+        } catch (exception) {
+            slackChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
+            currentBuild.result = "FAILURE"
+            throw exception  // gets us a stack trace FWIW
+        }
     }
 }
-
-

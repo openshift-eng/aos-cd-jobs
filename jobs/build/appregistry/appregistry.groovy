@@ -286,7 +286,8 @@ def stagePushDevMetadata(operatorBuilds) {
     def owners = buildlib.get_owners("--working-dir ${workDir} -g openshift-${buildVersion}", distgits)
 
     def nvrDistgits = [metadata_nvrs, distgits].transpose()  // list of [metadata_nvr, distgit_repo] pairs
-    def stepsForParallel = nvrDistgits.collectEntries { nvr, distgit ->
+    def stepsForParallel = nvrDistgits.collectEntries { entry ->
+        def (nvr, distgit) = entry
         def operator_name = nvr.replaceAll("-operator-metadata-container.*", "")
         def step = {
             try {

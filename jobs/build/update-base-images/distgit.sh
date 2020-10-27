@@ -92,6 +92,7 @@ build_common() {
     rm -rf ${TARGET_DIR}
     # for RHEL/UBI 8 and RHEL/UBI 7 we use different tags
     case "$img" in
+        rhel8.2.els*) BRANCH="rhaos-4.2-rhel-8" ;;
         # for RHEL7 rhaos-4.0-rhel-7 is not in use, for RHEL8 rhaos-4.1-rhel-8 is not in use.
         ubi8*) BRANCH="rhaos-4.1-rhel-8" ;;
         *) BRANCH="rhaos-4.0-rhel-7" ;;

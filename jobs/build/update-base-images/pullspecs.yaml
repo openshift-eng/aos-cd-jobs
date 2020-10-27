@@ -58,3 +58,18 @@ ubi8.python.36:
 ubi8.ruby.25:
   user: "1001"
   pullspec: registry.redhat.io/ubi8/ruby-25
+rhel8.2.els.rhel:
+#  pullspec: registry.redhat.io/rhel8-2-els/rhel:latest
+  pullspec: registry.redhat.io/ubi8:8.2
+  user: "0"
+# For AppStream images, start with the last released 8.2 image,
+# and pull in updates from EUS repos.
+rhel8.2.els.nodejs.10:
+  user: "1001"
+  pullspec: registry.redhat.io/ubi8/nodejs-10:1-108
+rhel8.2.els.python.36:
+  user: "1001"
+  pullspec: registry.redhat.io/ubi8/python-36:1-114.1599745041
+rhel8.2.els.ruby.25:
+  user: "1001"
+  pullspec: registry.redhat.io/ubi8/ruby-25:1-122

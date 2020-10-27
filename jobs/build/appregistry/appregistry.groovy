@@ -282,16 +282,56 @@ def stagePushDevMetadata(operatorBuilds) {
     def token = retrieveBotToken()
     def metadata_nvrs = getMetadataNVRs(operatorBuilds.collect { it.nvr }, "dev")
     def errors = new ConcurrentHashMap()
-    parallel metadata_nvrs.collectEntries { nvr -> [
-        (nvr.replaceAll("-operator-metadata-container.*", "")): { ->
+    def distgits = operatorBuilds.collect { it.distgit }
+    def owners = buildlib.get_owners("--working-dir ${workDir} -g openshift-${buildVersion}", distgits)
+
+    def nvrDistgits = [metadata_nvrs, distgits].transpose()  // list of [metadata_nvr, distgit_repo] pairs
+    def stepsForParallel = nvrDistgits.collectEntries { entry ->
+        def (nvr, distgit) = entry
+        def operator_name = nvr.replaceAll("-operator-metadata-container.*", "")
+        def step = {
             try {
                 pushToOMPSWithRetries(token, nvr)
                 currentBuild.description += "\n  ${nvr}"
             } catch(err) {
                 errors[nvr] = err
+                image_owners = owners["images"][distgit]
+                if (image_owners) {
+                    body = """
+What do I need to do?
+---------------------
+An error occurred during importing your operator's metadata to OMPS. Until this issue is addressed,
+your upstream changes may not be reflected in the product build.
+
+Please review the error message reported below to see if the issue is due to upstream
+content. If it is not, the Automated Release Tooling (ART) team will engage to address
+the issue. Please direct any questions to the ART team (#aos-art on slack).
+
+Error Reported
+--------------
+Brew NVR: ${nvr}
+Error message: ${err}
+CVP test result: http://external-ci-coldstorage.datahub.redhat.com/cvp/cvp-redhat-operator-metadata-validation-test/${nvr}/
+
+Why am I receiving this?
+------------------------
+You are receiving this message because you are listed as an owner for an
+OpenShift related image.
+"""
+                    commonlib.email(
+                        to: image_owners.join(","),
+                        from: "aos-art-automation@redhat.com",
+                        replyTo: "aos-team-art@redhat.com",
+                        subject: "[ACTION REQUIRED] Failed to import operator metadata ${nvr} to OMPS",
+                        body: body + "\n------\nConsole output: ${commonlib.buildURL('console')}\n${currentBuild.description}",
+                    )
+                }
             }
         }
-    ]}
+        [operator_name, step]
+    }
+
+    parallel stepsForParallel
 
     if (errors) {
         error "${errors}"

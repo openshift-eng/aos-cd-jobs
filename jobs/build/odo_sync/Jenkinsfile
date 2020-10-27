@@ -64,10 +64,10 @@ pipeline {
                 stage("windows") { steps { script { downloadRecursive(params.WINDOWS_BINARIES_LOCATION, params.VERSION) }}}
             }
         }
-        stage("Combine SHA256SUMs") {
+        stage("Combine sha256sums") {
             steps {
-                sh "cat ${params.VERSION}/SHA256SUM.* >> ${params.VERSION}/SHA256SUM"
-                sh "rm ${params.VERSION}/SHA256SUM.*"
+                sh "cat ${params.VERSION}/sha256sum.* >> ${params.VERSION}/SHA256SUM"
+                sh "rm ${params.VERSION}/sha256sum.*"
                 sh "mv ${params.VERSION}/SHA256SUM ${params.VERSION}/sha256sum.txt"
             }
         }

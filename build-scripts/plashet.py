@@ -321,11 +321,25 @@ def setup_logging(dest_dir: str):
     """
     global logger
     mkdirs(dest_dir)
-    logging.basicConfig(level=logging.DEBUG, filename=os.path.join(dest_dir, 'plashet.log'), filemode='w+')
-    logger = logging.getLogger()
-    console = logging.StreamHandler()
-    console.setLevel(logging.DEBUG)
-    logging.getLogger('').addHandler(console)
+    logging.basicConfig(level=logging.INFO)
+
+    logger = logging.getLogger('plashet')
+    logger.propagate = False
+    logger.setLevel(logging.DEBUG)
+    # create file handler which logs even debug messages
+    fh = logging.FileHandler(os.path.join(dest_dir, 'plashet.log'), mode='w+')
+    fh.setLevel(logging.DEBUG)
+    # create console handler
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    # create formatter and add it to the handlers
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    # add the handlers to the logger
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+
     logger.info('Invocation: ' + ' '.join(sys.argv))
 
 

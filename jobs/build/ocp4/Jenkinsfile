@@ -130,9 +130,7 @@ node {
             }
             stage("sync images") { build.stageSyncImages() }
             stage("sweep") {
-                if (!params.DRY_RUN) {
-                    buildlib.sweep(params.BUILD_VERSION, false)
-                }
+                buildlib.sweep(params.BUILD_VERSION)
             }
         }
         stage("report success") { build.stageReportSuccess() }

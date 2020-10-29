@@ -304,7 +304,7 @@ node {
 
             stage('sweep') {
                 if (params.SWEEP_BUGS) {
-                    buildlib.sweep(params.BUILD_VERSION, false)
+                    buildlib.sweep(params.BUILD_VERSION)
                 }
             }
 

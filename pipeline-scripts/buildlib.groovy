@@ -111,20 +111,25 @@ def cleanWhitespace(cmd) {
     )
 }
 
-// Preparing venv for ART tools (doozer and elliott)
-// The following commands will run automatically every time one of our jobs
-// loads buildlib (ideally, once per pipeline)
-VENV = "${env.WORKSPACE}/art-venv"
-DOOZER_BIN = "${VENV}/bin/python3 art-tools/doozer/doozer"
-ELLIOTT_BIN = "${VENV}/bin/python3 art-tools/elliott/elliott"
+def setup_venv() {
+    // Preparing venv for ART tools (doozer and elliott)
+    // The following commands will run automatically every time one of our jobs
+    // loads buildlib (ideally, once per pipeline)
+    VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
 
-commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VENV}")
-try {
-    commonlib.shell(script: "${VENV}/bin/pip3 install --upgrade pip")
-    commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/doozer/requirements.txt")
-    commonlib.shell(script: "${VENV}/bin/pip3 install -r art-tools/elliott/requirements.txt")
-} catch (Exception ex) {
-    print(ex)
+    commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
+
+    env.VIRTUAL_ENV = "${VIRTUAL_ENV}"
+    env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/elliott:${env.WORKSPACE}/art-tools/doozer:${env.PATH}"
+
+    try {
+        commonlib.shell(script: "pip install --upgrade pip")
+        commonlib.shell(script: "pip install -r art-tools/doozer/requirements.txt")
+        commonlib.shell(script: "pip install -r art-tools/elliott/requirements.txt")
+    } catch (Exception ex) {
+        print(ex)
+    }
+
 }
 
 def doozer(cmd, opts=[:]){
@@ -133,7 +138,7 @@ def doozer(cmd, opts=[:]){
             return commonlib.shell(
                     returnStdout: opts.capture ?: false,
                     alwaysArchive: opts.capture ?: false,
-                    script: "${DOOZER_BIN} --datastore prod --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
+                    script: "doozer ${cleanWhitespace(cmd)}")
         }
     }
 }
@@ -142,7 +147,7 @@ def elliott(cmd, opts=[:]){
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
         alwaysArchive: opts.capture ?: false,
-        script: "${ELLIOTT_BIN} ${cleanWhitespace(cmd)}")
+        script: "elliott ${cleanWhitespace(cmd)}")
 }
 
 def oc(cmd, opts=[:]){
@@ -843,16 +848,6 @@ def sync_images(major, minor, mail_list, build_number) {
         )
         currentBuild.result = 'UNSTABLE'
     }
-}
-
-
-def with_virtualenv(path, f) {
-    final env = [
-        "VIRTUAL_ENV=${path}",
-        "PATH=${path}/bin:${env.PATH}",
-        "PYTHON_HOME=",
-    ]
-    return withEnv(env, f)
 }
 
 /**
@@ -1633,5 +1628,7 @@ def get_owners(doozerOpts, images, rpms=[]) {
         )
     return yamlData
 }
+
+this.setup_venv()
 
 return this

@@ -59,6 +59,11 @@ pipeline {
             trim: true,
         )
         booleanParam(
+            name: 'FORCE_BUILD',
+            description: 'Rebuild bundle containers, even if they already exist for given operator NVRs',
+            defaultValue: false,
+        )
+        booleanParam(
             name: 'DRY_RUN',
             description: 'Just show what would happen, without actually executing the steps',
             defaultValue: false,

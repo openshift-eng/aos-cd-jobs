@@ -1,0 +1,22 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: github-event-listener
+spec:
+  serviceAccountName: tekton-triggers-github-sa
+  triggers:
+    - name: link-pull-request-to-jira
+      interceptors:
+        - github:
+            secretRef:
+              secretName: github-webhook
+              secretKey: secretToken
+            eventTypes:
+              - pull_request
+        - cel:
+            filter: "body.action in ['opened', 'edited', 'reopened', 'closed']"
+      bindings:
+        - ref: link-pull-request-to-jira
+      template:
+        name: link-pull-request-to-jira

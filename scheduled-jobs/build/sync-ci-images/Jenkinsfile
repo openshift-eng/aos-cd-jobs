@@ -35,18 +35,18 @@ node {
             echo "Changes detected in ocp-build-data group: ${group}"
 
 			withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig']) {
-				sh "doozer --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
+				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
 				sh "oc registry login"
-				sh "doozer --group ${group} images:streams mirror --only-if-missing"
-				sh "doozer --group ${group} images:streams start-builds"
+				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams mirror --only-if-missing"
+				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams start-builds"
 				// Allow the builds to run for about 20 minutes
 				sleep time: 20, unit: 'MINUTES'
 				// Print out status of builds for posterity
-				sh "doozer --group ${group} images:streams check-upstream"
+				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams check-upstream"
 				withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
 					if ( (major == 4 && minor >= 7) || major > 4 ) {
 						// Only open PRs on >= 4.7 to leave well enough alone.
-						sh "doozer --group ${group} images:streams prs open --github-access-token ${GITHUB_TOKEN}"
+						sh "${buildlib.DOOZER_BIN} --group ${group} images:streams prs open --github-access-token ${GITHUB_TOKEN}"
 					}
 				}
 			}

@@ -782,7 +782,11 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
  * @param Boolean sweepBuilds: Enable/disable build sweeping
  * @param Boolean attachBugs: Enable/disable bug sweeping
  */
-def sweep(String buildVersion, Boolean sweepBuilds, Boolean attachBugs = false) {
+def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs = false) {
+    def dry_run = true
+    if (params.DRY_RUN != null) {
+        dry_run = params.DRY_RUN
+    }
     def sweepJob = build(
         job: 'build%2Fsweep',
         propagate: false,
@@ -790,9 +794,14 @@ def sweep(String buildVersion, Boolean sweepBuilds, Boolean attachBugs = false) 
             string(name: 'BUILD_VERSION', value: buildVersion),
             booleanParam(name: 'SWEEP_BUILDS', value: sweepBuilds),
             booleanParam(name: 'ATTACH_BUGS', value: attachBugs),
+            booleanParam(name: 'DRY_RUN', value: dry_run),
         ]
     )
     if (sweepJob.result != 'SUCCESS') {
+        currentBuild.result = 'UNSTABLE'
+        if (dry_run) {
+            return
+        }
         commonlib.email(
             replyTo: 'aos-art-team@redhat.com',
             to: 'aos-art-automation+failed-sweep@redhat.com',
@@ -800,7 +809,6 @@ def sweep(String buildVersion, Boolean sweepBuilds, Boolean attachBugs = false) 
             subject: "Problem sweeping after ${currentBuild.displayName}",
             body: "Jenkins console: ${commonlib.buildURL('console')}",
         )
-        currentBuild.result = 'UNSTABLE'
     }
 }
 

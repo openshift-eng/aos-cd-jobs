@@ -932,13 +932,8 @@ def branch_arches(String branch, boolean gaOnly=false) {
     return arches_list
 }
 
-// Search the build log for failed builds
-def get_failed_builds(String log_dir, Boolean fullRecord=false) {
-    record_log = parse_record_log(log_dir)
-    this.get_failed_builds(record_log, fullRecord)
-}
-
 def get_failed_builds(Map record_log, Boolean fullRecord=false) {
+    // Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build failed
     builds = record_log.get('build', [])
     failed_map = [:]
     for (i = 0; i < builds.size(); i++) {
@@ -955,6 +950,21 @@ def get_failed_builds(Map record_log, Boolean fullRecord=false) {
     }
 
     return failed_map
+}
+
+def get_successful_builds(Map record_log, Boolean fullRecord=false) {
+    // Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build succeeded
+    builds = record_log.get('build', [])
+    success_map = [:]
+    for (i = 0; i < builds.size(); i++) {
+        bld = builds[i]
+        distgit = bld['distgit']
+        if (bld['status'] == '0') {
+            success_map[distgit] = fullRecord ? bld : bld['task_url']
+        }
+    }
+
+    return success_map
 }
 
 // gets map of emails to notify from output of parse_record_log

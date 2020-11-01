@@ -101,6 +101,11 @@ node {
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'SKIP_VERIFY_BUGS',
+                        description: 'For standard release, skip verifying bugs in advisories.<br/>Use to save time on large releases if bugs have already been verified.',
+                        defaultValue: false,
+                    ),
                     choice(
                         name: 'ENABLE_AUTOMATION',
                         description: [
@@ -305,9 +310,12 @@ node {
                     errata_url = ''
                     return
                 }
-                def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch)
-                advisory = advisory?:retval.advisoryInfo.id
-                errata_url = retval.errataUrl
+                skipVerifyBugs = !ga_release || params.SKIP_VERIFY_BUGS
+                commonlib.retrySkipAbort("Validating release", taskThread, "Error running release validation") {
+                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs)
+                    advisory = advisory ?: retval.advisoryInfo.id
+                    errata_url = retval.errataUrl
+                }
             }
             stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previousList.join(','), errata_url) }
 

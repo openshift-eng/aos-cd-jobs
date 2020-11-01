@@ -45,7 +45,7 @@ def destReleaseTag(String releaseName, String arch) {
  *      Valid advisories must be in QE state and have a live ID so we can
  *      include in release metadata the URL where it will be published.
  */
-Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false, String nightly, String arch) {
+Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false, String nightly, String arch, boolean skipVerifyBugs = false) {
     def retval = [:]
     def version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
@@ -135,6 +135,22 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
             currentBuild.description = cd
         }
     }
+
+    if (!skipVerifyBugs) {
+        echo "Verify advisory bugs..."
+        // NOTE: this only verifies bugs on the image advisory specified.  once
+        // promotion transitions to be based on releases.yml, allow
+        // verify-attached-bugs to look up all advisories there
+        res = commonlib.shell(
+            returnAll: true,
+            script: "${buildlib.ELLIOTT_BIN} --group=openshift-${version} verify-attached-bugs ${advisoryInfo.id}",
+        )
+        if(res.returnStatus != 0) {
+            def htmlLines = res.stdout.replaceAll('\n', '<br/>\n')
+            error("🚫 Bug verification failed with the following output:<br>\n${htmlLines}")
+        }
+    }
+
     return retval
 }
 

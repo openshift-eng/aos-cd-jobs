@@ -113,7 +113,10 @@ ocpBaseImages = [
         "ubi8.nodejs.12",
         "ubi8.python.36",
         "ubi8.ruby.25",
-        "rhel8.2.els",
+        "rhel8.2.els.rhel",
+        "rhel8.2.els.nodejs.10",
+        "rhel8.2.els.python.36",
+        "rhel8.2.els.ruby.25",
 ]
 
 /**

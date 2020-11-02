@@ -49,6 +49,9 @@ node() {
                 }
             } else {
                 echo "There are no issues to report."
+                if (params.SEND_TO_SLACK) {
+                    slackChannel.say(":heavy_check_mark: All images are healthy for ${group}")
+                }
             }
         } catch (exception) {
             slackChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")

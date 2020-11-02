@@ -11,23 +11,11 @@ node {
     commonlib.describeJob("promote", """
         <h2>Publish official OCP 4 release artifacts</h2>
         <b>Timing</b>: <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image" target="_blank">4.y z-stream doc</a>
+
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
-        For the default use case, this job:
-        <ul><li>publishes a nightly as an officially named release image
-          <li>waits up to three hours for it to be accepted
-          <li>enables automation, so builds will run again
-          <li>opens pull requests to cinci-graph-data
-          <li>copies the clients to the mirror
-          <li>signs the clients and release image
-          <li>...and handles odds and ends for a release</ul>
-
-        There are minor differences when this job runs for FCs, RCs, or hotfixes.
-
-        Most of what it does can be replicated manually by running other jobs,
-        which is useful when it breaks for some reason. See:
-        <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#release-job-failures" target="_blank">Release job failures</a>
+        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
     """)
 
 

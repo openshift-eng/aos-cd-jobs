@@ -111,13 +111,37 @@ def cleanWhitespace(cmd) {
     )
 }
 
+def setup_venv() {
+    // Preparing venv for ART tools (doozer and elliott)
+    // The following commands will run automatically every time one of our jobs
+    // loads buildlib (ideally, once per pipeline)
+    VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
+    // Used by tools that don't use buildlib.doozer() / .elliott()
+    DOOZER_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/doozer/doozer"
+    ELLIOTT_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/elliott/elliott"
+
+    commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
+
+    env.VIRTUAL_ENV = "${VIRTUAL_ENV}"
+    env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/elliott:${env.WORKSPACE}/art-tools/doozer:${env.PATH}"
+
+    try {
+        commonlib.shell(script: "pip install --upgrade pip")
+        commonlib.shell(script: "pip install -r art-tools/doozer/requirements.txt")
+        commonlib.shell(script: "pip install -r art-tools/elliott/requirements.txt")
+    } catch (Exception ex) {
+        print(ex)
+    }
+
+}
+
 def doozer(cmd, opts=[:]){
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws_simpledb_doozer_creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         withEnv(['AWS_DEFAULT_REGION=us-east-1']) {
             return commonlib.shell(
                     returnStdout: opts.capture ?: false,
                     alwaysArchive: opts.capture ?: false,
-                    script: "doozer --datastore prod --cache-dir /mnt/workspace/jenkins/doozer_cache ${cleanWhitespace(cmd)}")
+                    script: "doozer ${cleanWhitespace(cmd)}")
         }
     }
 }
@@ -761,7 +785,11 @@ def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail
  * @param Boolean sweepBuilds: Enable/disable build sweeping
  * @param Boolean attachBugs: Enable/disable bug sweeping
  */
-def sweep(String buildVersion, Boolean sweepBuilds, Boolean attachBugs = false) {
+def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs = false) {
+    def dry_run = true
+    if (params.DRY_RUN != null) {
+        dry_run = params.DRY_RUN
+    }
     def sweepJob = build(
         job: 'build%2Fsweep',
         propagate: false,
@@ -769,9 +797,14 @@ def sweep(String buildVersion, Boolean sweepBuilds, Boolean attachBugs = false) 
             string(name: 'BUILD_VERSION', value: buildVersion),
             booleanParam(name: 'SWEEP_BUILDS', value: sweepBuilds),
             booleanParam(name: 'ATTACH_BUGS', value: attachBugs),
+            booleanParam(name: 'DRY_RUN', value: dry_run),
         ]
     )
     if (sweepJob.result != 'SUCCESS') {
+        currentBuild.result = 'UNSTABLE'
+        if (dry_run) {
+            return
+        }
         commonlib.email(
             replyTo: 'aos-art-team@redhat.com',
             to: 'aos-art-automation+failed-sweep@redhat.com',
@@ -779,7 +812,6 @@ def sweep(String buildVersion, Boolean sweepBuilds, Boolean attachBugs = false) 
             subject: "Problem sweeping after ${currentBuild.displayName}",
             body: "Jenkins console: ${commonlib.buildURL('console')}",
         )
-        currentBuild.result = 'UNSTABLE'
     }
 }
 
@@ -796,7 +828,7 @@ def sync_images(major, minor, mail_list, build_number) {
     def fullVersion = "${major}.${minor}"
     def results = []
 
-    if (fullVersion == '4.6') {
+    if (minor > 5 || major > 4) {
         parallel "build-sync": {
             results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
                 [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
@@ -827,16 +859,6 @@ def sync_images(major, minor, mail_list, build_number) {
         )
         currentBuild.result = 'UNSTABLE'
     }
-}
-
-
-def with_virtualenv(path, f) {
-    final env = [
-        "VIRTUAL_ENV=${path}",
-        "PATH=${path}/bin:${env.PATH}",
-        "PYTHON_HOME=",
-    ]
-    return withEnv(env, f)
 }
 
 /**
@@ -913,13 +935,8 @@ def branch_arches(String branch, boolean gaOnly=false) {
     return arches_list
 }
 
-// Search the build log for failed builds
-def get_failed_builds(String log_dir, Boolean fullRecord=false) {
-    record_log = parse_record_log(log_dir)
-    this.get_failed_builds(record_log, fullRecord)
-}
-
 def get_failed_builds(Map record_log, Boolean fullRecord=false) {
+    // Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build failed
     builds = record_log.get('build', [])
     failed_map = [:]
     for (i = 0; i < builds.size(); i++) {
@@ -936,6 +953,21 @@ def get_failed_builds(Map record_log, Boolean fullRecord=false) {
     }
 
     return failed_map
+}
+
+def get_successful_builds(Map record_log, Boolean fullRecord=false) {
+    // Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build succeeded
+    builds = record_log.get('build', [])
+    success_map = [:]
+    for (i = 0; i < builds.size(); i++) {
+        bld = builds[i]
+        distgit = bld['distgit']
+        if (bld['status'] == '0') {
+            success_map[distgit] = fullRecord ? bld : bld['task_url']
+        }
+    }
+
+    return success_map
 }
 
 // gets map of emails to notify from output of parse_record_log
@@ -1016,9 +1048,9 @@ Why am I receiving this?
 ------------------------
 You are receiving this message because you are listed as an owner for an
 OpenShift related image - or you recently made a modification to the definition
-of such an image in github. 
+of such an image in github.
 
-To comply with prodsec requirements, all images in the OpenShift product 
+To comply with prodsec requirements, all images in the OpenShift product
 should identify their Bugzilla component. To accomplish this, ART
 expects to find Bugzilla component information in the default branch of
 the image's upstream repository or requires it in ART image metadata.
@@ -1027,12 +1059,12 @@ What should I do?
 ------------------------
 There are two options to supply Bugzilla component information.
 1) The OWNERS file in the default branch (e.g. main / master) of ${public_upstream_url}
-   can be updated to include the bugzilla component information. 
+   can be updated to include the bugzilla component information.
 
-2) The component information can be specified directly in the 
-   ART metadata for the image ${distgit}.  
+2) The component information can be specified directly in the
+   ART metadata for the image ${distgit}.
 
-Details for either approach can be found here: 
+Details for either approach can be found here:
 https://docs.google.com/document/d/1V_DGuVqbo6CUro0RC86THQWZPrQMwvtDr0YQ0A75QbQ/edit?usp=sharing
 
 Thanks for your help!
@@ -1477,13 +1509,16 @@ def getChanges(yamlData) {
  * @param release  The 4.x release field (usually a timestamp)
  * @param el_major The RHEL major version (7 or 8)
  * @param include_embargoed If true, the plashet will include the very latest rpms (embargoed & unembargoed). Otherwise Plashet will only include unembargoed historical builds of rpms
- * @param auto_signing_advisory The signing advisory to use
+ * @param auto_signing_advisory The signing advisory to use. Set to 0 to use the default advisory.
  * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
  *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>' or 4.5.0-<release timestamp>-embargoed'
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=54765) {
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=0) {
+    if (!auto_signing_advisory) {
+        auto_signing_advisory = 54765
+    }
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
@@ -1595,5 +1630,26 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
     return r
 }
+
+/**
+ * Get image/rpm owners from ocp-build-data
+ * @param doozerOpts Doozer options
+ * @param images list of images
+ * @param rpms  list of rpms
+ * @return owners
+ */
+def get_owners(doozerOpts, images, rpms=[]) {
+    yamlData = readYaml text: doozer(
+            """
+            ${doozerOpts}
+            ${images ? '--images=' + images.join(",") : ''}
+            ${rpms ? '--rpms=' + rpms.join(",") : ''}
+            config:print --key owners --yaml
+            """, [capture: true]
+        )
+    return yamlData
+}
+
+this.setup_venv()
 
 return this

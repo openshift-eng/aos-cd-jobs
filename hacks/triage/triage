@@ -3,16 +3,6 @@
 set -euo pipefail
 
 # Data
-
-releases=(
-  3.11
-  4.2
-  4.3
-  4.4
-  4.5
-  4.6
-)
-
 gh_repos=(
   aos-cd-jobs
   ocp-build-data
@@ -116,6 +106,24 @@ main() {
   echo "$cmd" >/dev/stderr
   eval "$cmd"
 }
+
+releases=(
+  $(
+    executable="$(readlink -f "$0")"
+    commonlib="${executable%/*/*/*}/pipeline-scripts/commonlib.groovy"
+
+    [[ -f "$commonlib" ]] || {
+      echo "Script assumes ocp-cat is symlinked to aos-cd-jobs to determine versions. Fail">/dev/stderr
+      exit 1
+    }
+
+    awk -F'"' '
+      /^ocp[34]Versions/ { f=1 }
+      f && /^]/ { f=0 }
+      f && NF>2 { print $2 }
+    ' "$commonlib" | sort --version-sort
+  )
+)
 
 bugzilla() {
   local bz_components=(

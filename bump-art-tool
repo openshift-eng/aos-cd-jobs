@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+test -z "$1" && {
+	echo "Usage: ./bump-art-tool [doozer|elliott]";
+	exit 1;
+}
+
+test -d "art-tools/$1" || {
+	echo "'$1' is not a valid art-tool submodule. Available submodules:";
+	git submodule;
+	exit 1;
+}
+
+git submodule update --remote --checkout -- art-tools/$1
+cd art-tools/$1
+git checkout master
+git pull
+cd ../..

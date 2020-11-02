@@ -44,7 +44,7 @@ def get_latest_builds(packages) {
  * Return a list of built <bundle_nvrs>
  */
 def build_bundles(operator_nvrs) {
-    doozer("olm-bundle:rebase-and-build ${operator_nvrs.join(' ')}").split("\n")
+    doozer("olm-bundle:rebase-and-build ${operator_nvrs.join(' ')} ${params.FORCE_BUILD ? '--force' : ''}").split("\n")
 }
 
 /*
@@ -53,7 +53,7 @@ def build_bundles(operator_nvrs) {
 def attach_bundles_to_extras_advisory(bundle_nvrs, advisory) {
     elliott("change-state -s NEW_FILES -a ${advisory} ${params.DRY_RUN ? '--noop' : ''}")
     flags = bundle_nvrs.collect { "--build ${it}" }.join(' ')
-    elliott("find-builds -k image ${flags} --attach ${advisory}")
+    elliott("""find-builds -k image ${flags} ${params.DRY_RUN ? '' : "--attach ${advisory}"}""")
     elliott("change-state -s QE -a ${advisory} ${params.DRY_RUN ? '--noop' : ''}")
 
 }

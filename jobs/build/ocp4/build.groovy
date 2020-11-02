@@ -263,7 +263,7 @@ def stageBuildRpms() {
 
     buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
     if (buildPlan.dryRun) {
-        echo("doozer ${cmd}")
+        echo("${buildlib.DOOZER_BIN} ${cmd}")
         echo("run job: build%2Fel8-rebuilds")
         return
     }
@@ -282,15 +282,14 @@ def stageBuildRpms() {
 /**
  * Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs based on -candidate tags.
  * Based on commonlib.ocp4ReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
- * @param auto_signing_advisory - The advisory method can use for auto-signing. This should be
- *          unique to this release (to avoid simultaneous modifications. i.e. different
- *          advisories for 4.1, 4.2, ...
  */
-def stageBuildCompose(auto_signing_advisory=54765) {
+def stageBuildCompose() {
     if(buildPlan.dryRun) {
         echo "Running in dry-run mode -- will not run plashet."
         return
     }
+
+    def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
 
     buildlib.buildBuildingPlashet(version.full, version.release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
     buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
@@ -314,7 +313,7 @@ def stageUpdateDistgit() {
         --message '${env.BUILD_URL}'
         """
     if(buildPlan.dryRun) {
-        echo "doozer ${cmd}"
+        echo "${buildlib.DOOZER_BIN} ${cmd}"
         return
     }
     buildlib.doozer(cmd)
@@ -351,7 +350,7 @@ def stageBuildImages() {
             --filter-by-os='.*'
             """
         if(buildPlan.dryRun) {
-            echo "doozer ${cmd}"
+            echo "${buildlib.DOOZER_BIN} ${cmd}"
             return
         }
         buildlib.doozer(cmd)
@@ -369,25 +368,24 @@ def stageBuildImages() {
         if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
             echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
         } else {
-
-			// Disable automatic mirror-streams until we are beyond ubi8/1.15 migration
-			if ( /*r.total > 10 ||*/ params.FORCE_MIRROR_STREAMS ) {
-				// This was a relatively successful build. We want to mirror images in streams.yml
-				// to CI when they change AND they are successful in the ART build.
-				// This ensures that CI is building with the same images (base & builder) that
-				// ART is, but also makes sure that IF streams.yml gets borked in some way (e.g.
-				// golang was bumped to something awful), we don't want mirror it automatically.
-
-				// Make sure our token for api.ci is fresh
-				sh "oc --kubeconfig=/home/jenkins/kubeconfigs/art-publish.kubeconfig registry login"
-
-				// Push!
-				buildlib.doozer "${doozerOpts} images:mirror-streams"
-			}
-
-
             buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
         }
+    }
+
+	recordLog = buildlib.parse_record_log(doozerWorking)
+	def success_map = buildlib.get_successful_builds(recordLog, true)
+	if (success_map.containsKey('ose-openshift-apiserver')) {
+        // If the API server builds, we mirror out the streams to CI. If ART builds a bad golang builder image
+        // it will break CI builds for most upstream components if we don't catch it before we push. So we use
+        // apiserver as bellweather to make sure that the currently builder image is good enough. We can still
+        // break CI (e.g. pushing a bad ruby-25 image along with this push, but it will not be a catastrophic
+        // event like breaking the apiserver.
+
+        // Make sure our api.ci token is fresh
+        sh "oc --kubeconfig=/home/jenkins/kubeconfigs/art-publish.kubeconfig registry login"
+
+        // TODO:enable this
+        // buildlib.doozer "${doozerOpts} images:streams mirror"
     }
 }
 

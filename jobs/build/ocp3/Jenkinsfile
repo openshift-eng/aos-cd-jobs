@@ -925,9 +925,7 @@ images:build
             }
 
             stage("sweep") {
-                if (!params.DRY_RUN) {
-                    buildlib.sweep(params.BUILD_VERSION, true)
-                }
+                buildlib.sweep(params.BUILD_VERSION)
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"

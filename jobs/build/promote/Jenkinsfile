@@ -59,6 +59,16 @@ node {
                                 '4. Hotfix (No name, Signed, No Previous, All Channels)',
                             ].join('\n'),
                     ),
+                    choice(
+                        name: 'ARCH',
+                        description: 'The architecture for the release. Use "auto" for promoting nightlies. ARCH must be specified when re-promoting an RC."',
+                        choices: [
+                                'auto',
+                                'x86_64',
+                                's390x',
+                                'ppc64le',
+                            ].join('\n'),
+                    ),
                     string(
                         name: 'RELEASE_OFFSET',
                         description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
@@ -196,7 +206,9 @@ node {
             name = release_name
 
             from_release_tag = params.FROM_RELEASE_TAG.trim()
+            // arch will fallback to params.ARCH if it is not part of the release name
             (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
+
             RELEASE_STREAM_NAME = "4-stable${release.getArchPrivSuffix(arch, false)}"
             dest_release_tag = release.destReleaseTag(release_name, arch)
 
@@ -423,7 +435,7 @@ node {
                 try {
                     filename = "${dest_release_tag}-image-list.txt"
                     retry (3) {
-                        commonlib.shell(script: "elliott advisory-images -a ${advisory} > ${filename}")
+                        commonlib.shell(script: "${buildlib.ELLIOTT_BIN} advisory-images -a ${advisory} > ${filename}")
                     }
                     archiveArtifacts(artifacts: filename, fingerprint: true)
                     if (!params.DRY_RUN) {

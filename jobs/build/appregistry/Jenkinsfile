@@ -30,7 +30,11 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    choice(
+                        name: 'BUILD_VERSION', 
+                        description: 'OSE Version',
+                        choices: ['4.5', '4.4', '4.3', '4.2', '4.1'].join('\n'),
+                    ),
                     string(
                         name: 'IMAGES',
                         description: 'List of image distgits to limit selection (default all)',

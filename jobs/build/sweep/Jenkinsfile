@@ -102,6 +102,7 @@ node {
             cmd = [
                 "--group=openshift-${version}",
                 "find-bugs",
+                "--cve-trackers",
                 "--mode qe",
             ]
         }

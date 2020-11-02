@@ -124,7 +124,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
         echo "Verifying payload"
         res = commonlib.shell(
                 returnAll: true,
-                script: "elliott --group=openshift-${version} verify-payload registry.svc.ci.openshift.org/ocp/release:${nightly} ${advisory}"
+                script: "elliott --group=openshift-${version} verify-payload amd64.ocp.releases.ci.openshift.org/ocp/release:${nightly} ${advisory}"
                 )
 ￼       if (res.returnStatus != 0) {
             def cd = currentBuild.description
@@ -169,7 +169,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
-    cmd += "-n ocp${publicSuffix} --from-release=registry.svc.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag} "
+    cmd += "-n ocp${publicSuffix} --from-release=amd64.ocp.releases.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag} "
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }

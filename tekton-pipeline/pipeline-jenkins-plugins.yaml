@@ -1,25 +1,8 @@
 ﻿apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  creationTimestamp: '2020-10-21T07:43:27Z'
-  generation: 5
-  managedFields:
-    - apiVersion: tekton.dev/v1beta1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:spec':
-          .: {}
-          'f:params': {}
-          'f:resources': {}
-          'f:tasks': {}
-      manager: Mozilla
-      operation: Update
-      time: '2020-10-21T13:48:54Z'
   name: jenkins-plugins
   namespace: art-jenkins
-  resourceVersion: '69266116'
-  selfLink: /apis/tekton.dev/v1beta1/namespaces/art-jenkins/pipelines/jenkins-plugins
-  uid: 4242aba0-7556-4231-9610-7ea855e899ee
 spec:
   params:
     - default: >-

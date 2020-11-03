@@ -1,25 +1,8 @@
 ﻿apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  creationTimestamp: '2020-10-21T10:09:22Z'
-  generation: 19
-  managedFields:
-    - apiVersion: tekton.dev/v1beta1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:spec':
-          .: {}
-          'f:params': {}
-          'f:steps': {}
-      manager: Mozilla
-      operation: Update
-      time: '2020-10-21T13:44:03Z'
   name: jenkins-plugin-postmail
   namespace: art-jenkins
-  resourceVersion: '69258864'
-  selfLink: >-
-    /apis/tekton.dev/v1beta1/namespaces/art-jenkins/tasks/jenkins-plugin-postmail
-  uid: e9fb4495-98b6-45a2-8274-d527450a712a
 spec:
   params:
     - name: result

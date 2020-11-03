@@ -1,24 +1,8 @@
 ﻿apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  creationTimestamp: '2020-10-20T06:26:56Z'
-  generation: 15
-  managedFields:
-    - apiVersion: tekton.dev/v1beta1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:spec':
-          .: {}
-          'f:params': {}
-          'f:steps': {}
-      manager: Mozilla
-      operation: Update
-      time: '2020-10-20T09:19:00Z'
   name: send-email
   namespace: art-jenkins
-  resourceVersion: '66516717'
-  selfLink: /apis/tekton.dev/v1beta1/namespaces/art-jenkins/tasks/send-email
-  uid: 8072af6e-308a-412e-9d13-885c8b27043c
 spec:
   params:
     - name: result

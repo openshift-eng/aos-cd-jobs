@@ -1,26 +1,8 @@
 ﻿apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  creationTimestamp: '2020-10-15T08:58:13Z'
-  generation: 17
-  managedFields:
-    - apiVersion: tekton.dev/v1beta1
-      fieldsType: FieldsV1
-      fieldsV1:
-        'f:spec':
-          .: {}
-          'f:params': {}
-          'f:results': {}
-          'f:steps': {}
-          'f:volumes': {}
-      manager: Mozilla
-      operation: Update
-      time: '2020-10-20T09:19:22Z'
   name: bump-jenkins
   namespace: art-jenkins
-  resourceVersion: '66517529'
-  selfLink: /apis/tekton.dev/v1beta1/namespaces/art-jenkins/tasks/bump-jenkins
-  uid: 1ba0aa05-35ff-4ea3-8835-612dd692aa33
 spec:
   params:
     - name: jenkins-version

@@ -482,7 +482,8 @@ def stagePushQEImages() {
     try {
         buildlib.doozer(cmd)
     } catch (err) {
-        echo "image push to qe quay failed, but it's okay we can ignore it"
+        currentBuild.description += "\n<br>image push to qe quay did not completely succeed"
+        currentBuild.result = "UNSTABLE"
     }
 }
 

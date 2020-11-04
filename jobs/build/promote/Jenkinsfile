@@ -305,7 +305,7 @@ node {
                     errata_url = ''
                     return
                 }
-                def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES)
+                def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch)
                 advisory = advisory?:retval.advisoryInfo.id
                 errata_url = retval.errataUrl
             }

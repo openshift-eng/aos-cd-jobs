@@ -136,7 +136,7 @@ node {
             def CLIENT_TYPE = "ocp-dev-preview"
 
             stage("validation") {
-                release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE)
+                release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE, false, params.FROM_RELEASE_TAG, arch)
             }
 
             stage("build payload") {

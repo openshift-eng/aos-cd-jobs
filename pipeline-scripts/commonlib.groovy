@@ -502,14 +502,14 @@ def canLock(lockName, timeout_seconds=10) {
  * @return Returns something like "https://s390x.ocp.releases.ci.openshift.org"
  */
 def getReleaseControllerURL(releaseStreamName) {
-    def archSuffix = 'amd64'
+    def arch = 'amd64'
     def streamNameComponents = releaseStreamName.split('-') // e.g. ['4', 'stable', 's390x']  or [ '4', 'stable' ]
     if ('s390x' in streamNameComponents) {
-        archSuffix = "s390x" // e.g. -s390x
+        arch = "s390x" // e.g. -s390x
     } else if ('ppc64le' in streamNameComponents) {
-        archSuffix = "ppc64le"
+        arch = "ppc64le"
     }
-    return "https://${archSuffix}.ocp.releases.ci.openshift.org"
+    return "https://${arch}.ocp.releases.ci.openshift.org"
 }
 
 def inputRequired(slackOutput=null, cl) {

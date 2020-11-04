@@ -59,8 +59,7 @@ ubi8.ruby.25:
   user: "1001"
   pullspec: registry.redhat.io/ubi8/ruby-25
 rhel8.2.els.rhel:
-#  pullspec: registry.redhat.io/rhel8-2-els/rhel:latest
-  pullspec: registry.redhat.io/ubi8:8.2
+  pullspec: registry.redhat.io/rhel8-2-els/rhel:latest
   user: "0"
 # For AppStream images, start with the last released 8.2 image,
 # and pull in updates from EUS repos.

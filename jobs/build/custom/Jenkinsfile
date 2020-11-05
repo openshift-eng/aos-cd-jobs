@@ -242,14 +242,7 @@ node {
             stage("build images") {
                 if (!any_images_to_build) { return }
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                command = "images:build --push-to-defaults"
-                if (majorVersion == "4") {
-                    config_dir = "${env.WORKSPACE}/qe_quay_config"
-                    buildlib.registry_quay_qe_login(config_dir)
-                    base_command += " --registry-config-dir=${config_dir}"
-                    command += " --filter-by-os='.*'"
-                }
-                command = "${base_command} ${command}"
+                command = "${base_command} images:build"
                 try {
                     buildlib.doozer command
                 } catch (err) {
@@ -267,6 +260,22 @@ node {
                 }
             }
 
+            stage('push images to qe quay') {
+                if (majorVersion == "4") {
+                    config_dir = "${env.WORKSPACE}/qe_quay_config"
+                    buildlib.registry_quay_qe_login(config_dir)
+                    base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type} --registry-config-dir=${config_dir}"
+                    command = "${base_command} images:push --to-defaults"
+                    command += " --filter-by-os='.*'"
+                    try {
+                        buildlib.doozer command
+                    } catch (err) {
+                        currentBuild.description += "\n<br>image push to qe quay did not completely succeed"
+                        currentBuild.result = "UNSTABLE"
+                    }
+                }
+            }
+            
             stage('sync images') {
                 if (majorVersion == "4") {
                     buildlib.sync_images(

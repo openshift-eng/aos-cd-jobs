@@ -178,7 +178,8 @@ backlog() {
 }
 
 triage_docs() {
-  echo 'https://mojo.redhat.com/docs/DOC-1207451#jive_content_id_Find_and_attach_CVEs_of_next_upcoming_ystream_releases'
+  echo 'http://saml.buildvm.openshift.eng.bos.redhat.com:3000/d/aTqExXOMz/system-stats?orgId=1&refresh=30s'
+  echo 'https://source.redhat.com/groups/public/atomicopenshift/atomicopenshift_wiki/art_buildvmjenkins_security_patching_sop'
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

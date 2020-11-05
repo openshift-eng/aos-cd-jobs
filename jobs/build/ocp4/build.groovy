@@ -337,17 +337,12 @@ def stageBuildImages() {
         def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
         // If any arch is GA, use signed for everything. See stageBuildCompose for details.
         def signing_mode = archReleaseStates['release']?'signed':'unsigned'
-        config_dir = "${env.WORKSPACE}/qe_quay_config"
-        buildlib.registry_quay_qe_login(config_dir)
         def cmd =
             """
             ${doozerOpts}
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
-            --registry-config-dir=${config_dir}
             images:build
             --repo-type ${signing_mode}
-            --push-to-defaults
-            --filter-by-os='.*'
             """
         if(buildPlan.dryRun) {
             echo "${buildlib.DOOZER_BIN} ${cmd}"
@@ -466,6 +461,30 @@ def stageSyncImages() {
         "aos-team-art@redhat.com",
         currentBuild.number
     )
+}
+
+def stagePushQEImages() {
+    config_dir = "${env.WORKSPACE}/qe_quay_config"
+    buildlib.registry_quay_qe_login(config_dir)
+    def cmd =
+            """
+            ${doozerOpts}
+            ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
+            --registry-config-dir=${config_dir}
+            images:push
+            --to-defaults
+            --filter-by-os='.*'
+            """
+    if(buildPlan.dryRun) {
+        echo "doozer ${cmd}"
+        return
+    }
+    try {
+        buildlib.doozer(cmd)
+    } catch (err) {
+        currentBuild.description += "\n<br>image push to qe quay did not completely succeed"
+        currentBuild.result = "UNSTABLE"
+    }
 }
 
 def stageReportSuccess() {

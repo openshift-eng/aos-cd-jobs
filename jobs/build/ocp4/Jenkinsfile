@@ -129,6 +129,7 @@ node {
                 stage("mirror RPMs") { build.stageMirrorRpms() }
             }
             stage("sync images") { build.stageSyncImages() }
+            stage("push qe quay images") { build.stagePushQEImages() }
             stage("sweep") {
                 buildlib.sweep(params.BUILD_VERSION)
             }

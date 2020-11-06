@@ -432,6 +432,10 @@ node {
                     echo "No need to send docs an image list for non-GA releases."
                     return
                 }
+                if (arch != 'x86_64') {
+                    echo "No need to send docs an image list for non-x86_64 releases."
+                    return
+                }
                 if (advisory == -1) {
                     echo "Skipping image list for dummy advisory."
                     return

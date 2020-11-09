@@ -4,7 +4,9 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
-    commonlib.describeJob("el8-rebuilds", """
+    commonlib.describeJob("⛔❌⛔ el8-rebuilds (deprecated) ⛔❌⛔ ", """
+        <h1 style="color:red;">Deprecated!!!</h1>
+        <p style="color:red;">Doozer will automatically handle el8 rpm rebuilds if multiple targets are specified in ocp-build-data.</p>
         <h2>Rebuild 4.x packages on RHEL8 for RHCOS</h2>
         This job rebuilds the openshift and openshift-clients packages against
         a RHEL 8 buildroot with exactly the same version and release as they

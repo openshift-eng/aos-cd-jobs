@@ -158,18 +158,6 @@ node {
 
                     def buildRpms = { ->
                         buildlib.doozer command
-                        def rpmList = rpms.split(",")
-                        // given this may run without locks, don't blindly rebuild for el8 unless building for el7
-                        if (rpmList.contains("openshift") || rpmList.contains("openshift-clients") || !rpmList) {
-                            build(
-                                job: "build%2Fel8-rebuilds",
-                                propagate: true,
-                                parameters: [
-                                    string(name: "BUILD_VERSION", value: params.BUILD_VERSION),
-                                    booleanParam(name: "MOCK", value: false),
-                                ],
-                            )
-                        }
                     }
                     params.IGNORE_LOCKS ?  buildRpms() : lock("github-activity-lock-${params.BUILD_VERSION}") { buildRpms() }
                 }

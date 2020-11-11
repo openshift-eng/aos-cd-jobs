@@ -20,7 +20,7 @@ overrides:
     - type: "host_script"
       title: "install golang"
       script: |-
-        oct prepare golang --version '1.9.2' --repourl 'https://cbs.centos.org/repos/paas7-openshift-origin39-candidate/x86_64/os/'
+        oct prepare golang --version '1.9.2' --repourl 'https://cbs.centos.org/kojifiles/repos/paas7-openshift-origin39-el7-build/latest/x86_64/'
     - type: "host_script"
       title: "install docker"
       script: |-

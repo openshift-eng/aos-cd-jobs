@@ -503,17 +503,17 @@ def canLock(lockName, timeout_seconds=10) {
  * on different routes. This method returns a URL based on the name of the
  * release stream you want to query.
  * @param releaseStreamName - e.g. 4-stable or 4-stable-s390x
- * @return Returns something like "https://openshift-release-s390x.svc.ci.openshift.org"
+ * @return Returns something like "https://s390x.ocp.releases.ci.openshift.org"
  */
 def getReleaseControllerURL(releaseStreamName) {
-    def archSuffix = ''
+    def arch = 'amd64'
     def streamNameComponents = releaseStreamName.split('-') // e.g. ['4', 'stable', 's390x']  or [ '4', 'stable' ]
     if ('s390x' in streamNameComponents) {
-        archSuffix = "-s390x" // e.g. -s390x
+        arch = "s390x" // e.g. -s390x
     } else if ('ppc64le' in streamNameComponents) {
-        archSuffix = "-ppc64le"
+        arch = "ppc64le"
     }
-    return "https://openshift-release${archSuffix}.svc.ci.openshift.org"
+    return "https://${arch}.ocp.releases.ci.openshift.org"
 }
 
 def inputRequired(slackOutput=null, cl) {

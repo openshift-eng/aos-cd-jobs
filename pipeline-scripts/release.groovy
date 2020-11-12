@@ -79,7 +79,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
         echo "Verifying advisory ${advisory} exists"
         res = commonlib.shell(
                 returnAll: true,
-                script: "${buildlib.ELLIOTT_BIN} --group=openshift-${version} get --json - -- ${advisory}",
+                script: "elliott --group=openshift-${version} get --json - -- ${advisory}",
             )
 
         if(res.returnStatus != 0){
@@ -90,7 +90,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
         echo "Getting current advisory for OCP $version from build data..."
         res = commonlib.shell(
                 returnAll: true,
-                script: "${buildlib.ELLIOTT_BIN} --group=openshift-${version} get --json - --use-default-advisory image",
+                script: "elliott --group=openshift-${version} get --json - --use-default-advisory image",
             )
         if(res.returnStatus != 0) {
             error("🚫 Advisory number for OCP $version couldn't be found from ocp_build_data.")

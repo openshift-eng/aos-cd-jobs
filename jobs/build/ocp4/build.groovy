@@ -263,7 +263,7 @@ def stageBuildRpms() {
 
     buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
     if (buildPlan.dryRun) {
-        echo("${buildlib.DOOZER_BIN} ${cmd}")
+        echo("doozer ${cmd}")
         echo("run job: build%2Fel8-rebuilds")
         return
     }
@@ -313,7 +313,7 @@ def stageUpdateDistgit() {
         --message '${env.BUILD_URL}'
         """
     if(buildPlan.dryRun) {
-        echo "${buildlib.DOOZER_BIN} ${cmd}"
+        echo "$doozer ${cmd}"
         return
     }
     buildlib.doozer(cmd)
@@ -345,7 +345,7 @@ def stageBuildImages() {
             --repo-type ${signing_mode}
             """
         if(buildPlan.dryRun) {
-            echo "${buildlib.DOOZER_BIN} ${cmd}"
+            echo "doozer ${cmd}"
             return
         }
         buildlib.doozer(cmd)

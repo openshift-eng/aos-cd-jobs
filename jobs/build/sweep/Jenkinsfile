@@ -71,7 +71,7 @@ node {
         currentBuild.displayName = "${version} bug sweep"
 
         buildlib.elliott "--version"
-        echo "${buildlib.ELLIOTT_BIN}"
+        sh "which elliott"
 
         buildlib.kinit()
     }

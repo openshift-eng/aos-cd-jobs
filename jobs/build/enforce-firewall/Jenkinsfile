@@ -26,7 +26,13 @@ node {
                     ],
                     [
                         name: 'DISABLE',
-                        description: "Temporarily lisable the firewall. The firewall is automatically enforced every 8 hours",
+                        description: "Temporarily disable the firewall. The firewall is automatically enforced every 8 hours",
+                        $class: 'hudson.model.BooleanParameterDefinition',
+                        defaultValue: false,
+                    ],
+                    [
+                        name: 'FORCE_APPLY',
+                        description: "Apply firewall rules even if it seems to be running (e.g. if rules have changed)",
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false,
                     ],
@@ -65,6 +71,11 @@ node {
     // are enforcing then we should not be able to query random hosts
     // not on the allowed list.
     stage ("Check state") {
+        if ( params.FORCE_APPLY ) {
+            echo "Force applying"
+            needApplied = true
+            return // exit the step
+        }
         // No reason to check the state if we're just going to turn it off
         if ( !params.DISABLE ) {
             try {
@@ -103,7 +114,7 @@ node {
             }
         } else {
             if ( needApplied && !params.DRY_RUN ) {
-                echo "Firewall is presently disabled, fix that now"
+                echo "Applying firewall rules"
                 commonlib.shell(
                     script: "sudo hacks/iptables/buildvm-scripts/canttouchthat.py -n hacks/iptables/buildvm-scripts/known-networks.txt --enforce"
                 )

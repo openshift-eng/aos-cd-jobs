@@ -71,6 +71,7 @@ def saveToReleaseCache(Map release, String releaseCacheFile) {
 properties([
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '30', numToKeepStr: '')),
     disableConcurrentBuilds(),
+    disableResume(),
 ])
 
 node() {

@@ -1,5 +1,8 @@
 // Monitor all branches of ocp-build-data
-properties([disableConcurrentBuilds()])
+properties([
+    disableConcurrentBuilds(),
+    disableResume(),
+])
 
 @NonCPS
 def sortedVersions() {

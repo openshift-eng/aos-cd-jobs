@@ -70,7 +70,7 @@ pipeline {
                         error("Invalid Golang version ${params.GOLANG_VERSION}")
                     env._GOLANG_MAJOR_MINOR = commonlib.extractMajorMinorVersion(params.GOLANG_VERSION)
                     def group = params.RHEL_VERSION == "7" ? "golang-${env._GOLANG_MAJOR_MINOR}" : "rhel-${params.RHEL_VERSION}-golang-${env._GOLANG_MAJOR_MINOR}"
-                    env._DOOZER_OPTS = "--working-dir ${WORKSPACE}/doozer_working --group $group"
+                    env._DOOZER_OPTS = "--group $group"
                     currentBuild.displayName = "${params.GOLANG_VERSION}"
                 }
             }
@@ -83,7 +83,7 @@ pipeline {
                         def opts = "${env._DOOZER_OPTS} images:rebase --version v${params.GOLANG_VERSION}"
                         release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}.el${params.RHEL_VERSION}"
                         currentBuild.displayName += "-${release}"
-                        opts += " --release ${release}  -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
+                        opts += " --release ${release} -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
                         if (!params.DRY_RUN)
                             opts += " --push"
                         buildlib.doozer(opts)
@@ -102,9 +102,9 @@ pipeline {
             script {
                 commonlib.compressBrewLogs()
                 commonlib.safeArchiveArtifacts([
-                    "doozer_working/*.log",
-                    "doozer_working/*.yaml",
-                    "doozer_working/brew-logs/**",
+                    "${buildlib.doozerWorking}/*.log",
+                    "${buildlib.doozerWorking}/*.yaml",
+                    "${buildlib.doozerWorking}/brew-logs/**",
                 ])
             }
         }

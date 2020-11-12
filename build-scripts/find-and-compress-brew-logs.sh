@@ -1,8 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-BREWLOGS=`find . -name brew-logs -type d`
-
+BREWLOGS="$DOOZER_WORKING_DIR/brew-logs"
 
 if [ -s "${BREWLOGS}" ]; then
     echo "Brew logs (${BREWLOGS}) currently taking space:"

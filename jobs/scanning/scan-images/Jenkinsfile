@@ -64,12 +64,10 @@ node('covscan') {
 
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
-    // doozer_working must be in WORKSPACE in order to have artifacts archived
-    def doozer_working = "${WORKSPACE}/doozer_working"
-    buildlib.cleanWorkdir(doozer_working)
+    buildlib.cleanWorkdir(buildlib.doozerWorking)
 
     def group = "openshift-${params.BUILD_VERSION}"
-    def doozerOpts = "--working-dir ${doozer_working} --group ${group} "
+    def doozerOpts = "--group ${group} "
     def version = params.BUILD_VERSION
     def images = commonlib.cleanCommaList(params.IMAGES)
 
@@ -124,8 +122,8 @@ enabled_metadata=1
 
         prodsec_report = []
         stage('waive') {
-            archiveArtifacts(artifacts: "doozer_working/*.log")
-            def covscan_records = buildlib.parse_record_log(doozer_working)['covscan']
+            archiveArtifacts(artifacts: "${buildlib.doozerWorking}/*.log")
+            def covscan_records = buildlib.parse_record_log()['covscan']
             for ( int i = 0; i < covscan_records.size(); i++ ) {
                 def record = covscan_records[i]
                 def distgit = record['distgit']

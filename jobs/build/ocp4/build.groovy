@@ -12,8 +12,8 @@ version = [
     major: 0,       // X in X.Y, e.g. 4
     minor: 0,       // Y in X.Y, e.g. 0
 ]
-doozerWorking = "${env.WORKSPACE}/doozer_working" // must be in WORKSPACE to archive artifacts
-doozerOpts = "--working-dir ${doozerWorking}"
+
+doozerOpts = ""
 
 // this plan is to be initialized but then adjusted for incremental builds
 buildPlan = [
@@ -38,7 +38,7 @@ rpmMirror = [       // how to mirror RPM compose
  * @return map which is the buildPlan property of this build.
 */
 def initialize() {
-    buildlib.cleanWorkdir(doozerWorking)
+    buildlib.cleanWorkdir(buildlib.doozerWorking)
     buildlib.initialize()
     GITHUB_BASE = "git@github.com:openshift"  // buildlib uses this :eyeroll:
 
@@ -318,10 +318,10 @@ def stageUpdateDistgit() {
     }
     buildlib.doozer(cmd)
     // TODO: if rebase fails for required images, notify image owners, and still notify on other reconciliations
-    buildlib.notify_dockerfile_reconciliations(doozerWorking, version.stream)
+    buildlib.notify_dockerfile_reconciliations(version.stream)
     // TODO: if a non-required rebase fails, notify ART and the image owners
 
-    buildlib.notify_bz_info_missing(doozerWorking, version.stream)
+    buildlib.notify_bz_info_missing(version.stream)
 }
 
 /**
@@ -351,7 +351,7 @@ def stageBuildImages() {
         buildlib.doozer(cmd)
     }
     catch (err) {
-        recordLog = buildlib.parse_record_log(doozerWorking)
+        recordLog = buildlib.parse_record_log()
         def failed_map = buildlib.get_failed_builds(recordLog, true)
         if (!failed_map) { throw err }  // failed so badly we don't know what failed; give up
 
@@ -367,7 +367,7 @@ def stageBuildImages() {
         }
     }
 
-	recordLog = buildlib.parse_record_log(doozerWorking)
+	recordLog = buildlib.parse_record_log()
 	def success_map = buildlib.get_successful_builds(recordLog, true)
 	if (success_map.containsKey('ose-openshift-apiserver')) {
         // If the API server builds, we mirror out the streams to CI. If ART builds a bad golang builder image
@@ -485,13 +485,14 @@ def stagePushQEImages() {
 
 def stageReportSuccess() {
     def builtNothing = buildPlan.dryRun || !(buildPlan.buildRpms || buildPlan.buildImages)
-    def recordLog = builtNothing ? [:] : buildlib.parse_record_log(doozerWorking)
+    def recordLog = builtNothing ? [:] : buildlib.parse_record_log()
     def timingReport = getBuildTimingReport(recordLog)
     currentBuild.description += "<hr />Build results:<br/><br/>${timingReport}"
 
 	def stateYaml = [:]
-	if (fileExists("doozer_working/state.yaml")) {
-		stateYaml = readYaml(file: "doozer_working/state.yaml")
+  def yamlfile = "${buildlib.doozerWorking}/state.yml"
+	if (fileExists(yamlfile)) {
+		stateYaml = readYaml(file: yamlfile)
 	}
     messageSuccess(rpmMirror.url)
 }

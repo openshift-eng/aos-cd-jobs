@@ -1,11 +1,10 @@
 buildlib = load('pipeline-scripts/buildlib.groovy')
 commonlib = buildlib.commonlib
 
-doozer_working = "${WORKSPACE}/doozer_working"
-buildlib.cleanWorkdir(doozer_working)
+buildlib.cleanWorkdir(buildlib.doozerWorking)
 
 def doozer(cmd) {
-    buildlib.doozer("--working-dir ${doozer_working} -g openshift-${params.BUILD_VERSION} ${cmd}", [capture: true])
+    buildlib.doozer("-g openshift-${params.BUILD_VERSION} ${cmd}", [capture: true])
 }
 
 def elliott(cmd) {
@@ -63,9 +62,9 @@ def attach_bundles_to_advisory(bundle_nvrs, advisory) {
  */
 def archiveDoozerArtifacts() {
     commonlib.safeArchiveArtifacts([
-        "doozer_working/*.log",
-        "doozer_working/*.yaml",
-        "doozer_working/brew-logs/**",
+        "${buildlib.doozerWorking}/*.log",
+        "${buildlib.doozerWorking}/*.yaml",
+        "${buildlib.doozerWorking}/brew-logs/**",
     ])
 }
 

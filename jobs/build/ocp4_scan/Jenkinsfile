@@ -17,8 +17,6 @@ node {
     """)
 
 
-    def doozer_working = "${WORKSPACE}/doozer_working"
-
     // Expose properties for a parameterized build
     properties(
         [
@@ -102,11 +100,10 @@ node {
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).
                         lock(activityLockName) {
 
-                            buildlib.cleanWorkdir(doozer_working, true)
+                            buildlib.cleanWorkdir(buildlib.doozerWorking, true)
 
                             def yamlStr = buildlib.doozer(
                                 """
-                                --working-dir ${doozer_working}
                                 --group 'openshift-${version}'
                                 config:scan-sources --yaml
                                 --ci-kubeconfig ${buildlib.ciKubeconfig}
@@ -117,9 +114,9 @@ node {
 
                             def yamlData = readYaml text: yamlStr
 
-                            sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${version}.log"
-                            sh "bzip2 ${doozer_working}/debug-${version}.log"
-                            commonlib.safeArchiveArtifacts(["doozer_working/*.bz2"])
+                            sh "mv ${buildlib.doozerWorking}/debug.log ${buildlib.doozerWorking}/debug-${version}.log"
+                            sh "bzip2 ${buildlib.doozerWorking}/debug-${version}.log"
+                            commonlib.safeArchiveArtifacts(["${buildlib.doozerWorking}/*.bz2"])
 
                             def rhcosChanged = false
                             for (stream in yamlData.get('rhcos', [])) {

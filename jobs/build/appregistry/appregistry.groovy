@@ -93,11 +93,11 @@ def validate(params) {
 }
 
 def doozer(cmd) {
-    buildlib.doozer("--working-dir ${workDir} -g openshift-${buildVersion} ${cmd}", [capture: true])
+    buildlib.doozer("--group openshift-${buildVersion} ${cmd}", [capture: true])
 }
 
 def elliott(cmd) {
-    buildlib.elliott("-g openshift-${buildVersion} ${cmd}", [capture: true])
+    buildlib.elliott("--group openshift-${buildVersion} ${cmd}", [capture: true])
 }
 
 /*

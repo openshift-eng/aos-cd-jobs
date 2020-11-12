@@ -82,9 +82,7 @@ node {
     MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
     MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
 
-    // doozer_working must be in WORKSPACE in order to have artifacts archived
-    DOOZER_WORKING = "${WORKSPACE}/doozer_working"
-    buildlib.cleanWorkdir(DOOZER_WORKING)
+    buildlib.cleanWorkdir(buildlib.doozerWorking)
 
     try {
         lock('buildvm-yum') { // prevent simultaneous job runs from conflicting over yum lock
@@ -102,7 +100,7 @@ node {
                         syncDir = "${LOCAL_SYNC_DIR}_${ARCH}"
                     }
 
-                    base_args = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
+                    base_args = "--group ${GROUP}"
                     command = "${base_args} beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
                     buildlib.doozer command
 
@@ -147,6 +145,6 @@ Jenkins job: ${env.BUILD_URL}
         currentBuild.result = "FAILURE"
         throw err
     } finally {
-        commonlib.safeArchiveArtifacts(["doozer_working/*.log"])
+        commonlib.safeArchiveArtifacts(["${buildlib.doozerWorking}/*.log"])
     }
 }

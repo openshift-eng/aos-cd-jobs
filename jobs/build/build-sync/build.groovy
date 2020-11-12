@@ -1,7 +1,7 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 
-// doozer_working must be in WORKSPACE in order to have artifacts archived
+// MIRROR_working must be in WORKSPACE in order to have artifacts archived
 mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
 logLevel = ""
 artifacts = []

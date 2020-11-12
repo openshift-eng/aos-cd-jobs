@@ -20,14 +20,14 @@ def initialize(test=false, checkMock=true) {
         this.registry_login()
         this.kinit()
     }
-    this.path_setup()
+    this.setup_gopath()
 
     GITHUB_URLS = [:]
     GITHUB_BASE_PATHS = [:]
 }
 
 // Initialize $PATH and $GOPATH
-def path_setup() {
+def setup_gopath() {
     echo "Adding git managed script directories to PATH"
 
     GOPATH = "${env.WORKSPACE}/go"
@@ -124,6 +124,11 @@ def setup_venv() {
         print(ex)
     }
 
+}
+
+setup_doozer() {
+    doozerWorking = "${env.WORKSPACE}/doozer_working"
+    env.DOOZER_WORKING_DIR = doozerWorking
 }
 
 def doozer(cmd, opts=[:]){
@@ -856,8 +861,8 @@ def sync_images(major, minor, mail_list, build_number) {
  *     ...
  * ]
  */
-def parse_record_log( working_dir ) {
-    def record = readFile( "${working_dir}/record.log" )
+def parse_record_log() {
+    def record = readFile( "${this.doozerWorking}/record.log" )
     lines = record.split("\\r?\\n");
 
     def result = [:]
@@ -1009,8 +1014,8 @@ def dockerfile_url_for(url, branch, sub_path) {
     return  "${url}/blob/${branch}/${sub_path ?: ''}"
 }
 
-def notify_bz_info_missing(doozerWorking, buildVersion) {
-    record_log = parse_record_log(doozerWorking)
+def notify_bz_info_missing(buildVersion) {
+    record_log = parse_record_log()
     bz_notify_entries = record_log.get('bz_maintainer_notify', [])
     for (bz_notify in bz_notify_entries) {
         public_upstream_url = bz_notify['public_upstream_url']
@@ -1058,10 +1063,10 @@ Thanks for your help!
 
 }
 
-def notify_dockerfile_reconciliations(doozerWorking, buildVersion) {
+def notify_dockerfile_reconciliations(buildVersion) {
     // loop through all new commits that affect dockerfiles and notify their owners
 
-    record_log = parse_record_log(doozerWorking)
+    record_log = parse_record_log()
     distgit_notify = get_distgit_notify(record_log)
     distgit_notify = mapToList(distgit_notify)
 
@@ -1628,5 +1633,6 @@ def get_owners(doozerOpts, images, rpms=[]) {
 }
 
 this.setup_venv()
+this.setup_doozer()
 
 return this

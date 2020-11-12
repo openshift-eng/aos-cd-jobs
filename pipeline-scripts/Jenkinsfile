@@ -47,7 +47,8 @@ properties(
                 ],
             ]
         ],
-        disableConcurrentBuilds()
+        disableConcurrentBuilds(),
+        disableResume(),
     ]
 )
 

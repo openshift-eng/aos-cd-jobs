@@ -1,13 +1,21 @@
 
-properties( [
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '8')),
+properties([
+    buildDiscarder(logRotator(
+        artifactDaysToKeepStr: '',
+        artifactNumToKeepStr: '',
+        daysToKeepStr: '',
+        numToKeepStr: '8')),
     disableConcurrentBuilds(),
-    ] )
+    disableResume(),
+])
 
 description = ""
 failed = false
 
-b = build       job: '../aos-cd-builds/build%2Fenforce-firewall', propagate: false
+b = build(
+    job: '../aos-cd-builds/build%2Fenforce-firewall',
+    propagate: false,
+)
 
 description += "${b.displayName} - ${b.result}\n"
 failed |= (b.result != "SUCCESS")

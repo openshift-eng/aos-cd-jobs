@@ -31,19 +31,6 @@ def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRele
     )
 }
 
-// collect latest rpms and populate the files on mirror
-def publishLatestRpms(String buildVersion) {
-    // collect rpms and populate on mirror
-    scripts_dir = "${env.WORKSPACE}/rhel-7-deps-mirroring/collect-deps.sh"
-    mirror_dir = "/srv/pub/openshift-v4/dependencies/rpms/$buildVersion-beta"
-    withEnv(["PATH+SCRIPTS=${scripts_dir}"]) {
-        sh "collect-deps.sh $buildVersion"
-        sh "rm -rf /srv/pub/openshift-v4/dependencies/rpms/$buildVersion-beta/*"
-        sh "scp -r $buildVersion-beta/ use-mirror-upload:$mirror_dir"
-        sh "ssh use-mirror-upload 'createrepo --database $mirror_dir;/usr/local/bin/push.pub.sh openshift-v4/dependencies/rpms/$buildVersion-beta -v'"
-    }
-}
-
 /**
  * Determine if the latest release has been changed
  * @param releaseStream release stream name
@@ -103,7 +90,14 @@ node() {
                 description += " [no change]\n"
                 continue
             }
-            publishLatestRpms(commonlib.extractMajorMinorVersion(releaseStream))
+            if (commonlib.extractArchFromReleaseName(latestRelease) == "x86_64") {
+                build(
+                    job: '/aos-cd-builds/build%2Fpublish-rpms',
+                    parameters: [
+                        string(name: 'BUILD_VERSION', value: commonlib.extractMajorMinorVersion(releaseStream)),
+                    ],
+                )
+            }
             actionArguments[releaseStream] = [releaseStream, latestRelease, previousRelease]
             saveToReleaseCache(latestRelease, "${releaseStream}.json")
         } catch (Exception ex) {

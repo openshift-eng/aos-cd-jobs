@@ -2,6 +2,7 @@
 properties( [
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
     disableConcurrentBuilds(),
+    disableResume(),
 ] )
 
 b = build job: '../aos-cd-builds/build%2Focp4_scan', propagate: false

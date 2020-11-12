@@ -1,7 +1,9 @@
 
 properties( [
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '360')),
-    disableConcurrentBuilds()] )
+    disableConcurrentBuilds(),
+    disableResume(),
+])
 
 build job: '../maintenance/maintenance%2Fbuildvm_backup',
     parameters: [

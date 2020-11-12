@@ -46,7 +46,7 @@ node {
 				withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
 					if ( (major == 4 && minor >= 7) || major > 4 ) {
 						// Only open PRs on >= 4.7 to leave well enough alone.
-						sh "${buildlib.DOOZER_BIN} --group ${group} images:streams prs open --github-access-token ${GITHUB_TOKEN}"
+						sh "${buildlib.DOOZER_BIN} --group ${group} images:streams prs open --add-labels --github-access-token ${GITHUB_TOKEN}"
 					}
 				}
 			}

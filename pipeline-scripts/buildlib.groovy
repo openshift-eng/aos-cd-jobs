@@ -354,20 +354,6 @@ def get_releases(repo_url) {
 }
 
 /**
- * Read an OAuth token from a file on the jenkins server.
- * Because groovy/jenkins sandbox won't let you read it without sh()
- * @param token_file - a file containing a single OAuth token string
- * @return - a string containing the OAuth token
- */
-def read_oath_token(token_file) {
-    token_string = sh (
-        returnStdout: true,
-        script: "cat ${token_file}"
-    ).trim()
-    return token_string
-}
-
-/**
  * Retrieve a single file from a Github repository
  * @param owner
  * @param repo_name

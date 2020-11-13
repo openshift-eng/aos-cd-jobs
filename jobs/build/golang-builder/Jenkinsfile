@@ -122,7 +122,7 @@ pipeline {
         }
         failure {
             script {
-                currentBuild.description += "\nerror: ${err.getMessage()}"
+                currentBuild.description += "\nerror occurred, see log:\n${currentBuild.rawBuild.getLog(10)}"
                 commonlib.email(
                     to: "${params.MAIL_LIST_FAILURE}",
                     from: "aos-team-art@redhat.com",

@@ -31,7 +31,7 @@ extensions:
         if [[ "${PULL_BASE_REF}" == "release-3.7" || "${PULL_BASE_REF}" == "release-3.6" || "${PULL_BASE_REF}" == "release-3.5"  ]]; then
           sudo yum downgrade -y ansible-2.3\*
         fi
-        sudo yum install -y "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
+        sudo yum install -y "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7_9"
         rpm -q "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7"
     - type: "script"
       title: "install Ansible plugins"

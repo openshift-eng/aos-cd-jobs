@@ -373,7 +373,7 @@ def get_single_file(owner, repo_name, file_name, repo_token, branch='master') {
 
     query = "curl --silent -H '${auth_header}' -H '${accept_header}' -L ${file_url}"
     content = sh(
-	      returnStdout: true,
+        returnStdout: true,
         script: query
     )
 
@@ -908,8 +908,7 @@ def branch_arches(String branch, boolean gaOnly=false) {
         return arches_override_list
     }
 
-    def arches = doozer("--group=${branch} config:read-group --yaml arches",
-		   [capture: true]).trim()
+    def arches = doozer("--group=${branch} config:read-group --yaml arches", [capture: true]).trim()
     def arches_list = readYaml(text: arches)
     return arches_list
 }
@@ -1249,7 +1248,7 @@ def watch_brew_task_and_retry(name, taskId, brewUrl) {
         echo msg
         try {
             retry(2) {
-		sleep(120)  // brew state takes time to settle, so wait to retry
+                sleep(120)  // brew state takes time to settle, so wait to retry
                 commonlib.shell "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew resubmit ${taskId}"
             }
         } catch (err2) {

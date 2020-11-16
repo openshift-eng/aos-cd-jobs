@@ -157,9 +157,9 @@ def planBuilds() {
             config:scan-sources --yaml
             """, [capture: true]
         )
-		echo "scan-sources output:\n${yamlStr}\n\n"
+        echo "scan-sources output:\n${yamlStr}\n\n"
 
-		def yamlData = readYaml text: yamlStr
+        def yamlData = readYaml text: yamlStr
 
         changed = buildlib.getChanges(yamlData)
 
@@ -367,9 +367,9 @@ def stageBuildImages() {
         }
     }
 
-	recordLog = buildlib.parse_record_log()
-	def success_map = buildlib.get_successful_builds(recordLog, true)
-	if (success_map.containsKey('ose-openshift-apiserver')) {
+    recordLog = buildlib.parse_record_log()
+    def success_map = buildlib.get_successful_builds(recordLog, true)
+    if (success_map.containsKey('ose-openshift-apiserver')) {
         // If the API server builds, we mirror out the streams to CI. If ART builds a bad golang builder image
         // it will break CI builds for most upstream components if we don't catch it before we push. So we use
         // apiserver as bellweather to make sure that the currently builder image is good enough. We can still
@@ -489,11 +489,11 @@ def stageReportSuccess() {
     def timingReport = getBuildTimingReport(recordLog)
     currentBuild.description += "<hr />Build results:<br/><br/>${timingReport}"
 
-	def stateYaml = [:]
-  def yamlfile = "${buildlib.doozerWorking}/state.yml"
-	if (fileExists(yamlfile)) {
-		stateYaml = readYaml(file: yamlfile)
-	}
+    def stateYaml = [:]
+    def yamlfile = "${buildlib.doozerWorking}/state.yml"
+    if (fileExists(yamlfile)) {
+        stateYaml = readYaml(file: yamlfile)
+    }
     messageSuccess(rpmMirror.url)
 }
 

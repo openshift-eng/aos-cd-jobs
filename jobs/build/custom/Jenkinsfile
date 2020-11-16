@@ -261,21 +261,26 @@ node {
             }
 
             stage('push images to qe quay') {
+                base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
                 if (majorVersion == "4") {
                     config_dir = "${env.WORKSPACE}/qe_quay_config"
                     buildlib.registry_quay_qe_login(config_dir)
-                    base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type} --registry-config-dir=${config_dir}"
-                    command = "${base_command} images:push --to-defaults"
-                    command += " --filter-by-os='.*'"
-                    try {
-                        buildlib.doozer command
-                    } catch (err) {
-                        currentBuild.description += "\n<br>image push to qe quay did not completely succeed"
-                        currentBuild.result = "UNSTABLE"
-                    }
+                    base_command += " --registry-config-dir=${config_dir}"
+                }
+                // for v3, buildlib.initialize() took care of reg-aws creds, no further login needed.
+
+                command = "${base_command} images:push --to-defaults"
+                if (majorVersion == "4") {
+                    command += " --filter-by-os='.*'"  // full multi-arch sync
+                }
+                try {
+                    buildlib.doozer command
+                } catch (err) {
+                    currentBuild.description += "\n<br>image push to qe quay did not completely succeed"
+                    currentBuild.result = "UNSTABLE"
                 }
             }
-            
+
             stage('sync images') {
                 if (majorVersion == "4") {
                     buildlib.sync_images(

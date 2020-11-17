@@ -93,6 +93,7 @@ node {
                 "--group=openshift-${version}",
                 "find-bugs",
                 "--mode sweep",
+                "--cve-trackers",
                 "--status ON_QA",
                 "--status VERIFIED",
                 "--into-default-advisories",

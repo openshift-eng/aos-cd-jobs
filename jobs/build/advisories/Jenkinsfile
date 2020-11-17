@@ -117,8 +117,6 @@ node {
                 lib.create_advisory("rpm")
                 if (major > 3) {
                     lib.create_advisory("extras")
-                }
-                if (major == 4 && minor < 6) {
                     lib.create_advisory("metadata")
                 }
             }
@@ -145,7 +143,7 @@ node {
                             from: "aos-art-automation@redhat.com",
                             subject: "Live IDs for ${params.VERSION}",
                             body: "${body}"
-                        );                    
+                        );
                     }
                 }
             }

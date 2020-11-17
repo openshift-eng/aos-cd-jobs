@@ -52,9 +52,15 @@ pipeline {
         )
         string(
             name: 'EXTRAS_ADVISORY',
-            description: '(Optional) Fetch OLM Operators NVRs from advisory.\n'  +
-                         'Leave empty to fetch NVRs from "brew latest-build".\n' +
-                         'Bundles won\'t be attached to any advisory if empty.',
+            description: '(Optional) Fetch OLM Operators NVRs from advisory.\n' +
+                         'Leave empty to fetch NVRs from "brew latest-build".'
+            defaultValue: '',
+            trim: true,
+        )
+        string(
+            name: 'METADATA_ADVISORY',
+            description: '(Optional) Attach built bundles to given advisory.\n' +
+                         'Bundles won\'t be attached to any advisory if empty.'
             defaultValue: '',
             trim: true,
         )
@@ -127,12 +133,12 @@ pipeline {
         }
         stage('Attach bundles to advisory') {
             when {
-                expression { bundle_nvrs && ! params.EXTRAS_ADVISORY.isEmpty() }
+                expression { bundle_nvrs && ! params.METADATA_ADVISORY.isEmpty() }
             }
             steps {
                 script {
                     lock("olm_bundle-${params.BUILD_VERSION}") {
-                        olm_bundles.attach_bundles_to_extras_advisory(bundle_nvrs, params.EXTRAS_ADVISORY)
+                        olm_bundles.attach_bundles_to_advisory(bundle_nvrs, params.METADATA_ADVISORY)
                     }
                 }
             }

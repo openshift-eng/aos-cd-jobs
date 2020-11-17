@@ -48,9 +48,9 @@ def build_bundles(operator_nvrs) {
 }
 
 /*
- * Attach given <bundle_nvrs> to <params.EXTRAS_ADVISORY>
+ * Attach given <bundle_nvrs> to <advisory>
  */
-def attach_bundles_to_extras_advisory(bundle_nvrs, advisory) {
+def attach_bundles_to_advisory(bundle_nvrs, advisory) {
     elliott("change-state -s NEW_FILES -a ${advisory} ${params.DRY_RUN ? '--noop' : ''}")
     flags = bundle_nvrs.collect { "--build ${it}" }.join(' ')
     elliott("""find-builds -k image ${flags} ${params.DRY_RUN ? '' : "--attach ${advisory}"}""")

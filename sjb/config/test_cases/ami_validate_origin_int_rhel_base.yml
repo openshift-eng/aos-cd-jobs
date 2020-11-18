@@ -6,72 +6,74 @@ provision:
   validate: True
 timer: "H H/2 * * *"
 concurrent: False
+sync:
+  - "openshift,origin=release-3.11"
 actions:
-#  - type: "script"
-#    title: "use a ramdisk for etcd"
-#    script: |-
-#      sudo su root <<SUDO
-#      mkdir -p /tmp
-#      mount -t tmpfs -o size=8192m tmpfs /tmp
-#      mkdir -p /tmp/etcd
-#      chmod a+rwx /tmp/etcd
-#      restorecon -R /tmp
-#      echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
-#      SUDO
-#  - type: "script"
-#    title: "build an origin release"
-#    repository: "origin"
-#    script: |-
-#      export OS_BUILD_IMAGE_ARGS=''
-#      hack/build-base-images.sh
-#      make release
-#  - type: "script"
-#    title: "determine the release commit for origin images and version for rpms"
-#    timeout: 600
-#    repository: "origin"
-#    script: |-
-#      jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
-#      git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
-#      ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
-#  - type: "script"
-#    title: "build the image registry container image"
-#    repository: "image-registry"
-#    timeout: 3600
-#    script: |-
-#      make build-images
-#      docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
-#  - type: "script"
-#    title: "build the kubernetes metrics server container image"
-#    repository: "kubernetes-metrics-server"
-#    timeout: 3600
-#    script: |-
-#      make build-images
-#      docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
-#  - type: "script"
-#    title: "verify commit history"
-#    repository: "origin"
-#    script: |-
-#      # run commitchecker outside release container as it needs
-#      # access to git; also explicitly force godeps verification
-#      branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
-#      if [[ "${branch}" == "master" ]]; then
-#        RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
-#      fi
-#  - type: "script"
-#    title: "run check and verify tasks"
-#    repository: "origin"
-#    script: |-
-#      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
-#  - type: "script"
-#    title: "run extended conformance tests"
-#    repository: "origin"
-#    script: |-
-#      JUNIT_REPORT='true' make test-extended SUITE=conformance
-#  - type: "script"
-#    title: "run extended networking tests"
-#    repository: "origin"
-#    script: |-
-#      JUNIT_REPORT='true' make test-extended SUITE=networking-minimal
+  - type: "script"
+    title: "use a ramdisk for etcd"
+    script: |-
+      sudo su root <<SUDO
+      mkdir -p /tmp
+      mount -t tmpfs -o size=8192m tmpfs /tmp
+      mkdir -p /tmp/etcd
+      chmod a+rwx /tmp/etcd
+      restorecon -R /tmp
+      echo "ETCD_DATA_DIR=/tmp/etcd" >> /etc/environment
+      SUDO
+  - type: "script"
+    title: "build an origin release"
+    repository: "origin"
+    script: |-
+      export OS_BUILD_IMAGE_ARGS=''
+      hack/build-base-images.sh
+      make release
+  - type: "script"
+    title: "determine the release commit for origin images and version for rpms"
+    timeout: 600
+    repository: "origin"
+    script: |-
+      jobs_repo="/data/src/github.com/openshift/aos-cd-jobs/"
+      git log -1 --pretty=%h >> "${jobs_repo}/ORIGIN_COMMIT"
+      ( source hack/lib/init.sh; os::build::rpm::get_nvra_vars; echo "-${OS_RPM_VERSION}-${OS_RPM_RELEASE}" ) >> "${jobs_repo}/ORIGIN_PKG_VERSION"
+  - type: "script"
+    title: "build the image registry container image"
+    repository: "image-registry"
+    timeout: 3600
+    script: |-
+      make build-images
+      docker tag openshift/origin-docker-registry:latest "openshift/origin-docker-registry:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+  - type: "script"
+    title: "build the kubernetes metrics server container image"
+    repository: "kubernetes-metrics-server"
+    timeout: 3600
+    script: |-
+      make build-images
+      docker tag openshift/origin-metrics-server:latest "openshift/origin-metrics-server:$( cat /data/src/github.com/openshift/aos-cd-jobs/ORIGIN_COMMIT )"
+  - type: "script"
+    title: "verify commit history"
+    repository: "origin"
+    script: |-
+      # run commitchecker outside release container as it needs
+      # access to git; also explicitly force godeps verification
+      branch="$( git rev-parse --abbrev-ref --symbolic-full-name HEAD )"
+      if [[ "${branch}" == "master" ]]; then
+        RESTORE_AND_VERIFY_GODEPS=1 make verify-commits -j
+      fi
+  - type: "script"
+    title: "run check and verify tasks"
+    repository: "origin"
+    script: |-
+      OS_BUILD_ENV_PULL_IMAGE=true OS_BUILD_ENV_EXCLUDE='_output/local/go' hack/env TEST_KUBE='true' JUNIT_REPORT='true' make check -o build -j -k
+  - type: "script"
+    title: "run extended conformance tests"
+    repository: "origin"
+    script: |-
+      JUNIT_REPORT='true' make test-extended SUITE=conformance
+  - type: "script"
+    title: "run extended networking tests"
+    repository: "origin"
+    script: |-
+      JUNIT_REPORT='true' make test-extended SUITE=networking-minimal
   - type: "host_script"
     title: "release the AMI"
     script: |-

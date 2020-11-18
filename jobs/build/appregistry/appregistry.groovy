@@ -152,6 +152,23 @@ def getMetadataNVRs(operatorNVRs, stream) {
     return doozer("operator-metadata:latest-build --stream ${stream} ${nvrFlags}").split()
 }
 
+def removeDifferentStreamBuilds(advisory) {
+    def attachedBuilds = fetchNVRsFromAdvisories(advisory)
+    def differentStreamBuilds = attachedBuilds.findAll {
+        it -> it.indexOf(".${params.STREAM}") == -1
+    }
+    def elliottCmdBuildFlags = []
+    differentStreamBuilds.each {
+        it -> elliottCmdBuildFlags.add("--build ${it}")
+    }
+    elliott """
+        find-builds --kind image
+        ${elliottCmdBuildFlags.join(" ")}
+        -a ${advisory}
+        --remove
+    """
+}
+
 // attach to given advisory a list of NVRs
 def attachToAdvisory(advisory, metadata_nvrs) {
     def elliott_build_flags = []
@@ -352,6 +369,7 @@ def stageAttachMetadata(operatorBuilds) {
         ${params.DRY_RUN ? "--noop" : ""}
     """
 
+    removeDifferentStreamBuilds(params.METADATA_ADVISORY)
     attachToAdvisory(params.METADATA_ADVISORY, metadata_nvrs)
 
     try {

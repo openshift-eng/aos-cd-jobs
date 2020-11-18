@@ -217,6 +217,16 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
     currentBuild.description += " ${payloadDigest}"
 }
 
+def getPayloadDigest(quay_url, release_tag) {
+    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${release_tag} -o json"
+    def stdout = commonlib.shell(
+        script: cmd,
+        returnStdout: true
+    )
+    def payloadInfo = readJSON(text: stdout)
+    return payloadInfo['digest']
+}
+
 @NonCPS
 def parseOcpRelease(text) {
     text.eachLine {

@@ -94,6 +94,11 @@ node {
                         description: 'For standard release, skip verifying bugs in advisories.<br/>Use to save time on large releases if bugs have already been verified.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'SKIP_PAYLOAD_CREATION',
+                        description: "Don't actually create the payload. This is used to rerun the job to sync tools and sign artifacts without overwriting the payload.",
+                        defaultValue: false,
+                    ),
                     choice(
                         name: 'ENABLE_AUTOMATION',
                         description: [
@@ -216,6 +221,10 @@ node {
                 currentBuild.displayName += " (dry-run)"
                 currentBuild.description += "[DRY RUN]"
             }
+            if (params.SKIP_PAYLOAD_CREATION) {
+                currentBuild.displayName += " (skip payload creation)"
+                currentBuild.description += "[SKIP PAYLOAD CREATION]"
+            }
 
             if (priv) {
                 currentBuild.displayName += " (EMBARGO)"
@@ -241,7 +250,7 @@ node {
             }
 
             previousList = commonlib.parseList(params.PREVIOUS)
-            if ( params.PREVIOUS.trim() == 'auto' ) {
+            if ( params.PREVIOUS.trim() == 'auto' && !params.SKIP_PAYLOAD_CREATION) {
                 taskThread.task('Gather PREVIOUS for release') {
 
                     if (!detect_previous) {
@@ -305,7 +314,13 @@ node {
                     errata_url = retval.errataUrl
                 }
             }
-            stage("build payload") { release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previousList.join(','), errata_url) }
+            stage("build payload") {
+                if (params.SKIP_PAYLOAD_CREATION) {
+                    echo "Don't actually create the payload because SKIP_PAYLOAD_CREATION is checked."
+                    return
+                }
+                release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previousList.join(','), errata_url)
+            }
 
             stage("tag stable") {
                 if (!is_4stable_release) {
@@ -316,6 +331,10 @@ node {
             }
 
             stage("request upgrade tests") {
+                if (params.SKIP_PAYLOAD_CREATION) {
+                    echo "Don't request upgrade tests because SKIP_PAYLOAD_CREATION option is checked."
+                    return
+                }
                 if (direct_release_nightly || !is_4stable_release) {
                     // For a hotfix, there is speed is our goal. Assume testing has already been done.
                     // For an FC, we are so early in the release cycle that non-default upgrade tests are
@@ -474,6 +493,9 @@ node {
             }
 
             stage("sign artifacts") {
+                if (!payloadDigest) {
+                    payloadDigest = release.getPayloadDigest(quay_url, dest_release_tag)
+                }
                 commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {
                     release.signArtifacts(
                         name: name,

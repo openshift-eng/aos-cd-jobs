@@ -33,15 +33,16 @@ node {
             disableConcurrentBuilds()
         ]
     )
+    commonlib.mockParam()
     commonlib.checkMock()
 
     version = params.BUILD_VERSION
-    scripts_dir = "${env.WORKSPACE}/hacks/rhel-7-deps-mirroring/collect-deps.sh"
     mirror_dir = "/srv/pub/openshift-v4/dependencies/rpms/${version}-beta"
-￼   withEnv(["PATH+SCRIPTS=${scripts_dir}"]) {
-￼       sh "collect-deps.sh ${version}"
-￼       sh "rm -rf /srv/pub/openshift-v4/dependencies/rpms/${version}-beta/*"
-        sh "scp -r ${version}-beta/ use-mirror-upload:$mirror_dir"
-        sh "ssh use-mirror-upload 'createrepo --database $mirror_dir;/usr/local/bin/push.pub.sh openshift-v4/dependencies/rpms/${version}-beta -v'"
-    }
+    commonlib.shell(
+        script: """
+            ./collect-deps.sh ${version}
+            scp -r ${version}-beta/ use-mirror-upload:$mirror_dir
+            ssh use-mirror-upload 'createrepo --database $mirror_dir;/usr/local/bin/push.pub.sh openshift-v4/dependencies/rpms/${version}-beta -v'
+        """
+    )
 }

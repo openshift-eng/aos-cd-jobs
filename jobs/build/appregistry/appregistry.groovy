@@ -293,6 +293,9 @@ def stagePushDevMetadata(operatorBuilds) {
             try {
                 pushToOMPSWithRetries(token, nvr)
                 currentBuild.description += "\n  ${nvr}"
+            } catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException err) {
+                // we got a timeout or user abort *during* the request, don't need to disturb image owner, that's not something the image owner needs to hear about.
+                errors[nvr] = err
             } catch(err) {
                 errors[nvr] = err
                 image_owners = owners["images"][distgit]
@@ -312,6 +315,7 @@ Error Reported
 Brew NVR: ${nvr}
 Error message: ${err}
 CVP test result: http://external-ci-coldstorage.datahub.redhat.com/cvp/cvp-redhat-operator-metadata-validation-test/${nvr}/
+(test results will be in a random hash dir under the link)
 
 Why am I receiving this?
 ------------------------

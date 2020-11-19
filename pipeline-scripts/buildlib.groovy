@@ -73,7 +73,7 @@ def registry_quay_qe_login(config_dir="./qe_quay_config") {
     // Login to quay.io for push to quay.io/openshift-qe-optional-operator
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_qe_registry.quay.io',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh "docker --config  ${config_dir} login -u $USERNAME -p $PASSWORD quay.io"
+        sh "docker --config  ${config_dir} login -u '$USERNAME' -p $PASSWORD quay.io"
     }
 }
 

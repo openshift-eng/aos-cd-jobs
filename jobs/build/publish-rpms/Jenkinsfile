@@ -27,12 +27,12 @@ node {
                         description: 'Target release version',
                         trim: true,
                     ),
+                    commonlib.mockParam(),
                 ]
             ],
             disableConcurrentBuilds()
         ]
     )
-    commonlib.mockParam()
     commonlib.checkMock()
 
     version = params.BUILD_VERSION

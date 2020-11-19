@@ -111,6 +111,7 @@ ocpBaseImages = [
         "ubi8",
         "ubi8.nodejs.10",
         "ubi8.nodejs.12",
+        "ubi8.nodejs.14",
         "ubi8.python.36",
         "ubi8.ruby.25",
         "rhel8.2.els.rhel",

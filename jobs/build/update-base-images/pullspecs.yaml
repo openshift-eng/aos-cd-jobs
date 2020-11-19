@@ -36,7 +36,7 @@ rhscl.nodejs.10.rhel7:
 rhscl.nodejs.12.rhel7:
   user: "1001"
   # lock in nodejs 12.16.1, cannot be updated without corresponding
-  # update of headers tarball in ose-console
+  # update of headers tarball in ose-console <=4.5
   pullspec: registry.redhat.io/rhscl/nodejs-12-rhel7:1-6.1584463517
 rhscl.ruby.25.rhel7:
   user: "1001"
@@ -49,9 +49,14 @@ ubi8.nodejs.10:
   pullspec: registry.redhat.io/ubi8/nodejs-10
 ubi8.nodejs.12:
   # lock in nodejs 12.16.1, cannot be updated without corresponding
-  # update of headers tarball in ose-console
+  # update of headers tarball in ose-console 4.6
   user: "1001"
   pullspec: registry.redhat.io/ubi8/nodejs-12:1-45
+ubi8.nodejs.14:
+  # lock in nodejs 14.15.0, cannot be updated without corresponding
+  # update of headers tarball in ose-console >=4.7
+  user: "1001"
+  pullspec: registry.redhat.io/ubi8/nodejs-14:1-15
 ubi8.python.36:
   user: "1001"
   pullspec: registry.redhat.io/ubi8/python-36

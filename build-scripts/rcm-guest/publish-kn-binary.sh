@@ -35,6 +35,7 @@ wget "${KN_URL}/signed/linux/kn-linux-amd64" -O linux/kn
 wget "${KN_URL}/signed/macos/kn-darwin-amd64" -O macos/kn
 wget "${KN_URL}/signed/windows/kn-windows-amd64.exe" -O windows/kn.exe
 wget https://raw.githubusercontent.com/openshift/knative-client/master/LICENSE
+chmod +x {linux,macos}/kn
 
 pkg_tar x86_64
 pkg_tar macos

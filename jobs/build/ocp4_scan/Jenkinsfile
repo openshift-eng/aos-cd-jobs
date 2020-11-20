@@ -10,9 +10,10 @@ node {
         <b>Timing</b>: Run by the scheduled job of the same name, as often as possible
         (which is no more than hourly or so - depending on what has changed).
 
-        Humans may run this, but be aware that this will cause builds to run
-        without respecting freeze_automation.
-
+        <h1>DO NOT RUN THIS MANUALLY *</h1>
+        * Humans MAY run this, but be aware that this will cause builds to run
+        without respecting freeze_automation. If you just need to test something,
+        limit it to a release that's not frozen.
     """)
 
 

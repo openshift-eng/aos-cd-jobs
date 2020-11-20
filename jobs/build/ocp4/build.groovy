@@ -464,13 +464,10 @@ def stageSyncImages() {
 }
 
 def stagePushQEImages() {
-    config_dir = "${env.WORKSPACE}/qe_quay_config"
-    buildlib.registry_quay_qe_login(config_dir)
     def cmd =
             """
             ${doozerOpts}
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
-            --registry-config-dir=${config_dir}
             images:push
             --to-defaults
             --filter-by-os='.*'

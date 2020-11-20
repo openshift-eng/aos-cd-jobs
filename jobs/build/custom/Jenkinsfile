@@ -127,8 +127,7 @@ node {
     buildlib.cleanWorkdir(doozer_working)
 
     def doozer_data_path = params.DOOZER_DATA_PATH
-    def majorVersion = params.BUILD_VERSION.split('\\.')[0]
-    def minorVersion = params.BUILD_VERSION.split('\\.')[1]
+    def (majorVersion, minorVersion) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
     def doozerOpts = "--working-dir ${doozer_working} --data-path ${doozer_data_path} --group 'openshift-${params.BUILD_VERSION}' "
     def version = params.BUILD_VERSION
     def release = "?"
@@ -179,7 +178,7 @@ node {
             stage("repo: ose 'building'") {
                 if (params.COMPOSE || rpms.toUpperCase() != "NONE") {
                     lock("compose-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
-                        if ("${majorVersion}" == "3") {
+                        if (majorVersion == 3) {
                             echo 'Building 3.x puddle'
                             aosCdJobsCommitSha = commonlib.shell(
                                     returnStdout: true,
@@ -262,7 +261,7 @@ node {
 
             stage('push images to qe quay') {
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                if (majorVersion == "4") {
+                if (majorVersion == 4) {
                     config_dir = "${env.WORKSPACE}/qe_quay_config"
                     buildlib.registry_quay_qe_login(config_dir)
                     base_command += " --registry-config-dir=${config_dir}"
@@ -270,7 +269,7 @@ node {
                 // for v3, buildlib.initialize() took care of reg-aws creds, no further login needed.
 
                 command = "${base_command} images:push --to-defaults"
-                if (majorVersion == "4") {
+                if (majorVersion == 4) {
                     command += " --filter-by-os='.*'"  // full multi-arch sync
                 }
                 try {
@@ -282,7 +281,7 @@ node {
             }
 
             stage('sync images') {
-                if (majorVersion == "4") {
+                if (majorVersion == 4) {
                     buildlib.sync_images(
                         majorVersion,
                         minorVersion,

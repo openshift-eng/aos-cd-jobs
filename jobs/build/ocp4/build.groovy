@@ -379,8 +379,7 @@ def stageBuildImages() {
         // Make sure our api.ci token is fresh
         sh "oc --kubeconfig=/home/jenkins/kubeconfigs/art-publish.kubeconfig registry login"
 
-        // TODO:enable this
-        // buildlib.doozer "${doozerOpts} images:streams mirror"
+        buildlib.doozer "${doozerOpts} images:streams mirror"
     }
 }
 

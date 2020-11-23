@@ -53,7 +53,7 @@ pipeline {
         string(
             name: 'EXTRAS_ADVISORY',
             description: '(Optional) Fetch OLM Operators NVRs from advisory.\n' +
-                         'Leave empty to fetch NVRs from "brew latest-build".'
+                         'Leave empty to fetch NVRs from "brew latest-build".',
             defaultValue: '',
             trim: true,
         )

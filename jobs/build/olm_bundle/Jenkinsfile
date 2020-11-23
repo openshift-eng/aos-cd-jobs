@@ -60,7 +60,7 @@ pipeline {
         string(
             name: 'METADATA_ADVISORY',
             description: '(Optional) Attach built bundles to given advisory.\n' +
-                         'Bundles won\'t be attached to any advisory if empty.'
+                         'Bundles won\'t be attached to any advisory if empty.',
             defaultValue: '',
             trim: true,
         )

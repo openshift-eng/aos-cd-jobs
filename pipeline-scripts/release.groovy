@@ -603,7 +603,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
         internal_errata_url = ''
     }
 
-    sshagent(["openshift-bot"]) {
+    sshagent(["shiywang-bot"]) {
 
         // PRs that we open will be tracked in this file.
         prs_file = "prs.txt"
@@ -731,7 +731,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                     continue
                 }
 
-                withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'access_token')]) {
+                withCredentials([string(credentialsId: 'shiywang-github-access-token', variable: 'access_token')]) {
                     def messageArgs = ''
                     for ( String msg : pr_messages ) {
                         messageArgs += "--message '${msg}' "
@@ -765,14 +765,19 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                             cat slice00 ul.txt slice01 > ${upgradeChannelFile}
                             git add ${upgradeChannelFile}
                         fi
-                        git commit -m "${pr_title}"
-                        git push -u origin ${branchName}
                         export GITHUB_TOKEN=${access_token}
-                        hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
-                        cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
+                        git commit -m "${pr_title}"
+                        if [[ "${prefix}" == "candidate" ]]; then
+                            git push origin ${branchName}:master
+                        else
+                            git push -u origin ${branchName}
+                            hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
+                            cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
+                        fi
                         """
-
-                    prURLs[prefix] = readFile("${prefix}.pr").trim()
+                    if(prefix != 'candidate') {
+                        prURLs[prefix] = readFile("${prefix}.pr").trim()  
+                    }
                 }
             }
 

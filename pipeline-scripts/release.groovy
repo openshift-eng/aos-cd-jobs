@@ -603,7 +603,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
         internal_errata_url = ''
     }
 
-    sshagent(["shiywang-bot"]) {
+    sshagent(["openshift-bot"]) {
 
         // PRs that we open will be tracked in this file.
         prs_file = "prs.txt"
@@ -731,7 +731,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                     continue
                 }
 
-                withCredentials([string(credentialsId: 'shiywang-github-access-token', variable: 'access_token')]) {
+                withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'access_token')]) {
                     def messageArgs = ''
                     for ( String msg : pr_messages ) {
                         messageArgs += "--message '${msg}' "

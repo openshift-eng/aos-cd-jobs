@@ -1,0 +1,25 @@
+version: "2.2"
+
+services:
+  aos-cd-jobs:
+    build:
+      context: ..
+      dockerfile: .devcontainer/dev.Dockerfile
+    image: local/aos-cd-jobs-dev:latest
+    command: /bin/bash
+    volumes:
+    - ../:/workspaces/aos-cd-jobs:cached,z
+    - ${HOME:-}${USERPROFILE:-}/.ssh:/home/dev/.ssh:ro,cached,z
+    - ${HOME:-}${USERPROFILE:-}/.docker:/home/dev/.docker:ro,cached,z
+    - ${HOME:-}${USERPROFILE:-}/.kube:/home/dev/.kube:ro,cached,z
+    - ./elliott.settings.yaml:/home/dev/.config/elliott/settings.yaml:ro,cached,z
+    - ./doozer.settings.yaml:/home/dev/.config/doozer/settings.yaml:ro,cached,z
+    - ./krb5-redhat.conf:/etc/krb5.conf.d/krb5-redhat.conf:ro,cached,z
+    - ./brewkoji.conf:/etc/koji.conf.d/brewkoji.conf:ro,cached,z
+    - aos-cd-jobs-dev-working-dir:/workspaces/aos-cd-jobs-working:delegated,z
+    - /var/run/docker.sock:/var/run/docker.sock:z
+    working_dir: /workspaces/aos-cd-jobs
+    tty: true
+    stdin_open: true
+volumes:
+  aos-cd-jobs-dev-working-dir:

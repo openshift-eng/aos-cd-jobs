@@ -56,7 +56,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
 
     if(res.returnStatus == 0){
         if (skipPayloadCreation) {
-            echo "A payload with this name already exists. Will skip payload creation.1"
+            echo "A payload with this name already exists. Will skip payload creation."
         } else if ( permitPayloadOverwrite ) {
             def cd = currentBuild.description
             currentBuild.description = "${currentBuild.description} - INPUT REQUIRED"
@@ -66,7 +66,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
             error("Payload ${dest_release_tag} already exists! Cannot continue.")
         }
     } else {
-        if (!skipPayloadCreation) {
+        if (skipPayloadCreation) {
             error("Payload ${dest_release_tag} doesn't exist! Cannot continue.")
         }
     }

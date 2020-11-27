@@ -8,7 +8,7 @@ A release consists of multiple advisories that should be created consistently.
 * all need a fairly standard set of parameters
 * some need placeholder bugs added
 * all should be recorded in group.yml
-* automation should be enabled to run builds for this version
+* for 4.x Live IDs should be requested ASAP
 
 Note that this will change significantly as part of the [Simplify 4.y releases](https://issues.redhat.com/browse/ART-2055) epic.
 

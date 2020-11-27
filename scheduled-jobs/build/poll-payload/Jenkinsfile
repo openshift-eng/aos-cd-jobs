@@ -63,17 +63,6 @@ def checkLatestRelease(String releaseStream, String releaseCacheFile) {
     return [changed, latestRelease, previousRelease]
 }
 
-def publishRPMs(String latestRelease) {
-    if (commonlib.extractArchFromReleaseName(latestRelease) == "x86_64") {
-        build(
-            job: '/aos-cd-builds/build%2Fpublish-rpms',
-            parameters: [
-                string(name: 'BUILD_VERSION', value: commonlib.extractMajorMinorVersion(releaseStream)),
-            ],
-        )
-    }
-}
-
 def saveToReleaseCache(Map release, String releaseCacheFile) {
     writeFile(file: releaseCacheFile, text: JsonOutput.toJson(release))
 }
@@ -86,8 +75,7 @@ properties([
 
 node() {
     checkout scm
-    buildlib = load("pipeline-scripts/buildlib.groovy")
-    commonlib = buildlib.commonlib
+    commonlib = load("pipeline-scripts/commonlib.groovy")
     description = ""
     def actionArguments = [:]
     if (ACTIONS.isEmpty()) {
@@ -103,7 +91,6 @@ node() {
                 description += " [no change]\n"
                 continue
             }
-            publishRPMs(latestRelease)
             actionArguments[releaseStream] = [releaseStream, latestRelease, previousRelease]
             saveToReleaseCache(latestRelease, "${releaseStream}.json")
         } catch (Exception ex) {

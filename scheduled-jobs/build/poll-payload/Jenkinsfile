@@ -75,7 +75,8 @@ properties([
 
 node() {
     checkout scm
-    commonlib = load("pipeline-scripts/commonlib.groovy")
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
     description = ""
     def actionArguments = [:]
     if (ACTIONS.isEmpty()) {

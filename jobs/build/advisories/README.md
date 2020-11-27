@@ -34,15 +34,6 @@ it can refer to the image advisory by the URL that it will have when shipped liv
 
 Note: Does not send if SUPPRESS\_EMAIL is checked!
 
-### ENABLE\_AUTOMATION
-
-Unfreeze automation to enable building and sweeping into the new advisories.
-This updates the freeze\_automation entry in the ocp-build-data branch for the
-release.
-
-Usually we want to do this - uncheck only if you know of a reason why we want
-to keep the release closed to further changes.
-
 ### ASSIGNED\_TO
 
 QE contact for advisories - unlikely to need anything but the default

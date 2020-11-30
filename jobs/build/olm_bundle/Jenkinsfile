@@ -14,6 +14,7 @@ node {
         If an extras advisory is provided, bundle images are attached to that advisory.
         Eventually all of this will simply run as part of the release cycle.
     """)
+    bundle_nvrs = []
 }
 
 pipeline {

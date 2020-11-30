@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 
+# Requirements
+# sudo yum install python3-devel
+# pip3 install krb5-workstation krb5-devel
+# pip3 install click kobo koji wrapt PyYaml requests_kerberos
+
 import click
 import xmlrpc.client as xmlrpclib
 import os

@@ -1,0 +1,58 @@
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+@NonCPS
+def sortedVersions() {
+  return commonlib.ocp4Versions.sort(false)
+}
+
+node() {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+    baseDir = "${env.WORKSPACE}/ci-ironic"
+
+    MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
+    MIRROR_RELATIVE_REPOSYNC = "reposync/ci-ironic"
+    MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
+    MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
+
+    for ( String version : sortedVersions() ) {
+
+        openshift_group = "openshift-${version}"
+        plashet_arch_args = ""
+        def arches = buildlib.branch_arches(openshift_group)
+        for ( String arch : arches ) {
+            plashet_arch_args += "--arch ${arch} unsigned "
+        }
+
+        /**
+         * Build a plashet in a local directory under the WORKSPACE ${baseDir}/${plashetDirName} .
+         * The plashets are unsigned as this is just for testing by Ironic's CI systems.
+         */
+        prevalidation_tag_name = "rhaos-${version}-rhel-8-ironic-prevalidation"
+        plashetDirName = prevalidation_tag_name
+        commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
+        commonlib.shell([
+                "${env.WORKSPACE}/build-scripts/plashet.py",
+                "--base-dir ${baseDir}",  // Directory in which to create the yum repo
+                "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
+                "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
+                plashet_arch_args,
+                "from-tags", // plashet mode of operation => build from brew tags
+                "--brew-tag ${prevalidation_tag_name} NOT_APPLICABLE",  // product name is not required since we aren't signing
+        ].join(' '))
+
+        echo "Synchronizing plashet for ${prevalidation_tag_name}"
+
+        sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}" // make ci-ironic if it doesn't exist
+        commonlib.shell "rsync -avzh --copy-links --chmod=a+rwx,g-w,o-w --delete -e \"ssh -o StrictHostKeyChecking=no\" ${baseDir}/${plashetDirName}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR}/${plashetDirName} "
+    }
+
+    timeout(time: 2, unit: 'HOURS') {
+        sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- push.enterprise.sh -v ${MIRROR_RELATIVE_REPOSYNC}"
+    }
+}

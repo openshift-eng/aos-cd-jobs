@@ -14,7 +14,7 @@ RUN yum install -y \
         jq \
         krb5-devel \
         libcurl-devel \
-        libgit2 \
+        libgit2-devel \
         openssl-devel \
         rpm-devel \
         python3 python3-devel python3-pip python36-certifi \

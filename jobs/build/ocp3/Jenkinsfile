@@ -376,6 +376,7 @@ node {
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${env.WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(DOOZER_WORKING)
+    doozerOpts = "--working-dir ${DOOZER_WORKING} --group openshift-${params.BUILD_VERSION}"
 
     try {
         sshagent([params.SSH_KEY_ID]) {
@@ -803,11 +804,11 @@ node {
 
             stage("doozer build rpms") {
                 buildlib.doozer """
---working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}'
---source ose ${OSE_DIR}
-rpms:build --version v${NEW_VERSION}
---release ${NEW_RELEASE}
-"""
+                    ${doozerOpts}
+                    --source ose ${OSE_DIR}
+                    rpms:build --version v${NEW_VERSION}
+                    --release ${NEW_RELEASE}
+                """
             }
 
             stage("signing rpms") {
@@ -834,13 +835,13 @@ rpms:build --version v${NEW_VERSION}
 
             stage("update dist-git") {
                 buildlib.doozer """
---working-dir ${DOOZER_WORKING} --group 'openshift-${params.BUILD_VERSION}'
---source ose ${OSE_DIR}
-${ODCS_FLAG}
-images:rebase --version v${NEW_VERSION}
---release ${NEW_DOCKERFILE_RELEASE}
---message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
-"""
+                    ${doozerOpts}
+                    --source ose ${OSE_DIR}
+                    ${ODCS_FLAG}
+                    images:rebase --version v${NEW_VERSION}
+                    --release ${NEW_DOCKERFILE_RELEASE}
+                    --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
+                """
                 buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
             }
 
@@ -852,13 +853,13 @@ images:rebase --version v${NEW_VERSION}
                             exclude = "-x ${BUILD_EXCLUSIONS} --ignore-missing-base"
                         }
                         buildlib.doozer """
---working-dir ${DOOZER_WORKING} --group openshift-${params.BUILD_VERSION}
-${ODCS_FLAG}
-${exclude}
-images:build
---filter-by-os amd64
---push-to-defaults ${ODCS_OPT}
-"""
+                            ${doozerOpts}
+                            ${ODCS_FLAG}
+                            ${exclude}
+                            images:build
+                            --filter-by-os amd64
+                            --push-to-defaults ${ODCS_OPT}
+                        """
                     }
                     catch (err) {
                         record_log = buildlib.parse_record_log(DOOZER_WORKING)

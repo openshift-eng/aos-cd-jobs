@@ -819,7 +819,7 @@ rpms:build --version v${NEW_VERSION}
             }
 
             stage("plashet: ose 'building'") {
-                if(buildPlan.dryRun) {
+                if(params.DRY_RUN) {
                     echo "Running in dry-run mode -- will not run plashet."
                     return
                 }

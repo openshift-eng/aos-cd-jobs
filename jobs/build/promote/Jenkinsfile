@@ -308,7 +308,7 @@ node {
                     return
                 }
                 skipVerifyBugs = !ga_release || params.SKIP_VERIFY_BUGS
-                commonlib.retrySkipAbort("Validating release", taskThread, "Error running release validation") {
+                commonlib.retryAbort("Validating release", taskThread, "Error running release validation") {
                     def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, params.SKIP_PAYLOAD_CREATION)
                     advisory = advisory ?: retval.advisoryInfo.id
                     errata_url = retval.errataUrl

@@ -180,7 +180,7 @@ def _assemble_repo(config, nvrs: List[str]):
                     logger.warning("Unable to find any {arch} rpms for {nvr} in {p} ; this may be ok if the package doesn't support the arch and it is not required for that arch".format(
                                        arch=arch_name, nvr=nvr, p=get_brewroot_arch_base_path(config, nvr, signed)))
 
-        if os.system('cd {repo_dir} && createrepo -i rpm_list .'.format(repo_dir=dest_arch_path)) != 0:
+        if os.system('cd {repo_dir} && createrepo_c -i rpm_list .'.format(repo_dir=dest_arch_path)) != 0:
             raise IOError('Error creating repo at: {repo_dir}'.format(repo_dir=dest_arch_path))
 
         print('Successfully created repo at: {repo_dir}'.format(repo_dir=dest_arch_path))

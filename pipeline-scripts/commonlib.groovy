@@ -581,6 +581,8 @@ def _retryWithOptions(goal, options, slackOutput=null, prompt='', cl) {
     }
 }
 
+// WARNING: make really sure that nothing in the closure is required for
+// functioning after the user chooses SKIP.
 def retrySkipAbort(goal, slackOutput=null, prompt='', cl) {
     _retryWithOptions(goal, ['RETRY', 'SKIP', 'ABORT'], slackOutput, prompt, cl)
 }

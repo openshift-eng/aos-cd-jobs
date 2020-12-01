@@ -126,19 +126,18 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
         error("🚫 Advisory ${advisoryInfo.id} doesn't seem to be associated with a live ID.")
     }
 
+    slackChannel = slacklib.to(version)
     if (arch == 'amd64' || arch == 'x86_64') {
         echo "Verifying payload"
         res = commonlib.shell(
                 returnAll: true,
-                script: "elliott --group=openshift-${version} verify-payload registry.svc.ci.openshift.org/ocp/release:${nightly} ${advisory}"
+                script: "elliott --group=openshift-${version} verify-payload registry.svc.ci.openshift.org/ocp/release:${nightly} ${advisoryInfo.id}"
                 )
         if (res.returnStatus != 0) {
-            def cd = currentBuild.description
-            currentBuild.description = "${currentBuild.description} - INPUT REQUIRED"
-            slackChannel = slacklib.to(version)
-            slackChannel.failure("Verify-payload failed. User input required to proceed")
-            input 'Advisory contents does not match payload. Proceed anyway?'
-            currentBuild.description = cd
+            slackChannel.failure("elliott verify-payload failed. Advisory content does not match payload.")
+            commonlib.inputRequired(slackChannel) {
+                input 'Advisory content does not match payload. Proceed anyway?'
+            }
         }
     }
 
@@ -152,8 +151,10 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
             script: "${buildlib.ELLIOTT_BIN} --group=openshift-${version} verify-attached-bugs ${advisoryInfo.id}",
         )
         if(res.returnStatus != 0) {
-            def htmlLines = res.stdout.replaceAll('\n', '<br/>\n')
-            error("🚫 Bug verification failed with the following output:<br>\n${htmlLines}")
+            slackChannel.failure("elliott verify-attached-bugs failed.")
+            commonlib.inputRequired(slackChannel) {
+                input "Bug verification failed with the following output; proceed anyway?\n${res.stdout}"
+            }
         }
     }
 

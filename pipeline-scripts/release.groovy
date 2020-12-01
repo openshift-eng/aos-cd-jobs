@@ -766,19 +766,14 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                             cat slice00 ul.txt slice01 > ${upgradeChannelFile}
                             git add ${upgradeChannelFile}
                         fi
-                        export GITHUB_TOKEN=${access_token}
                         git commit -m "${pr_title}"
-                        if [[ "${prefix}" == "candidate" ]]; then
-                            git push origin ${branchName}:master
-                        else
-                            git push -u origin ${branchName}
-                            hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
-                            cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
-                        fi
+                        git push -u origin ${branchName}
+                        export GITHUB_TOKEN=${access_token}
+                        hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
+                        cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
                         """
-                    if(prefix != 'candidate') {
-                        prURLs[prefix] = readFile("${prefix}.pr").trim()  
-                    }
+
+                    prURLs[prefix] = readFile("${prefix}.pr").trim()
                 }
             }
 

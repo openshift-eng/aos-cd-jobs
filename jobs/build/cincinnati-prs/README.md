@@ -1,22 +1,22 @@
-# Manage OLM operator manifests in appregistry format
+# Create PRs for Cincinnati graph data
 
 ## Purpose
 
-This performs a standard part of release management, as described in 
+This performs a standard part of release management, as described in
 https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#stage-the-release-candidate
 
 This creates PRs to enter the new release in all the relevant Cincinnati channels.
 (updates https://github.com/openshift/cincinnati-graph-data/tree/master/channels)
 
-* `Candidate` PRs will be accepted immediately (in fact these will probably become direct updates soon).
+* `Candidate` PRs will be accepted immediately (in fact we plan to begin merging directly soon).
 * `Fast` PRs are accepted when the release ships to make it available for customers (intended for test/stage)
 * `Stable` PRs are accepted 48 hours after release when OTA team has had some time to look for upgrade edges
   that they might need to exclude.
 
 ## Timing
 
-The "release" job runs this once the release is accepted.
-A human would only need to run it if that failed somehow.
+The `promote` job runs this after the new release passes tests to be accepted.
+A human would only need to run it if the job failed somehow before running it.
 
 ## Parameters
 

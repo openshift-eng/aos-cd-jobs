@@ -61,11 +61,6 @@ def registry_login() {
         sh 'chmod +x docker_login.sh'
         sh './docker_login.sh'
     }
-    // Login to quay.io
-    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_registry.quay.io',
-                      usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u $USERNAME -p $PASSWORD quay.io'
-    }
 }
 
 def registry_quay_dev_login() {

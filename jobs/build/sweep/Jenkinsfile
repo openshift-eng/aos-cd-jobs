@@ -14,7 +14,7 @@ node {
         In this mode of operation, ATTACH_BUGS is false.
 
         When preparing a set of nightlies and advisories for QE, the sweep job will
-        look for all bugs that are in ON_QA or VERIFIED state, and attach them
+        look for all bugs that are in MODIFIED, ON_QA or VERIFIED state, and attach them
         to the default advisories, according to those recorded in ocp-build-data
         group.yml.
         For 3.11, all bugs are swept into the rpm advisory.
@@ -50,7 +50,7 @@ node {
                         name: 'ATTACH_BUGS',
                         defaultValue: false,
                         description: [
-                          'If <b>on</b>: Attach ON_QA and VERIFIED bugs to their advisories',
+                          'If <b>on</b>: Attach MODIFIED, ON_QA, and VERIFIED bugs to their advisories',
                           'If <b>off</b>: Set MODIFIED bugs to ON_QA. Do not change advisories',
                         ].join('\n')
                     ),
@@ -88,12 +88,13 @@ node {
         currentBuild.description = "Sweeping new bugs<br/>"
 
         if (params.ATTACH_BUGS) {
-            currentBuild.description += "* Attaching ON_QA and VERIFIED bugs to default advisories<br/>"
+            currentBuild.description += "* Attaching MODIFIED, ON_QA, and VERIFIED bugs to default advisories<br/>"
             cmd = [
                 "--group=openshift-${version}",
                 "find-bugs",
                 "--mode sweep",
                 "--cve-trackers",
+                "--status MODIFIED",
                 "--status ON_QA",
                 "--status VERIFIED",
                 "--into-default-advisories",

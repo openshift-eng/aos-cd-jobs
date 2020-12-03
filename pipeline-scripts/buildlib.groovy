@@ -1340,7 +1340,7 @@ def extractBuildVersion(build) {
 /**
  * Given build parameters, determine the version for this build.
  * @param stream: OCP minor version "X.Y"
- * @param stream: distgit branch "rhaos-X.Y-rhel-[78]"
+ * @param branch: distgit branch "rhaos-X.Y-rhel-[78]"
  * @param versionParam: a version "X.Y.Z", empty to reuse latest version, "+" to increment latest .Z
  * @return the version determined "X.Y.Z"
  */

@@ -178,13 +178,31 @@ node {
             stage("repo: ose 'building'") {
                 if (params.COMPOSE || rpms.toUpperCase() != "NONE") {
                     lock("compose-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
-                        def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
-                        echo 'Building plashet'
-                        buildlib.buildBuildingPlashet(version, release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
-                        buildlib.buildBuildingPlashet(version, release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
-                        if ("${majorVersion}" == "4") {
+                        if (majorVersion == 3) {
+                            echo 'Building 3.x puddle'
+                            aosCdJobsCommitSha = commonlib.shell(
+                                    returnStdout: true,
+                                    script: "git rev-parse HEAD",
+                            ).trim()
+                            puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${aosCdJobsCommitSha}/build-scripts/puddle-conf"
+                            puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
+                            buildlib.build_puddle(
+                                    puddleConf,    // The puddle configuration file to use
+                                    null, // openshifthosted key
+                                    "-b",   // do not fail if we are missing dependencies
+                                    "-d",   // print debug information
+                                    "-n",   // do not send an email for this puddle
+                                    "-s",   // do not create a "latest" link since this puddle is for building images
+                                    "--label=building"   // create a symlink named "building" for the puddle
+                            )
+                        } else {
+                            echo 'Building 4.x plashet'
+                            // For 4.x, use plashets
+                            def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
                             buildlib.buildBuildingPlashet(version, release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
                             buildlib.buildBuildingPlashet(version, release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
+                            buildlib.buildBuildingPlashet(version, release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
                         }
                     }
                 }

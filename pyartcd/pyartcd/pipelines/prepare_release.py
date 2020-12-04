@@ -225,7 +225,7 @@ class PrepareReleasePipeline:
 
     def sweep_bugs(
         self,
-        statuses: List[str] = ["ON_QA", "VERIFIED"],
+        statuses: List[str] = ["MODIFIED", "ON_QA", "VERIFIED"],
         include_cve: bool = True,
         advisory: Optional[int] = None,
     ):

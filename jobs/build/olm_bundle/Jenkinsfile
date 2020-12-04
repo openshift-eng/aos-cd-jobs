@@ -1,7 +1,7 @@
 node {
     checkout scm
     olm_bundles = load('olm_bundles.groovy')
-    olm_bundles.commonlib.describeJob("olm_bundles", """
+    olm_bundles.commonlib.describeJob("olm_bundle", """
         <h2>Create bundle images for OLM operators</h2>
         <b>Timing</b>: Run by the ocp4 or custom jobs after new builds.
         Should only need humans to run if something breaks.

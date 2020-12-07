@@ -30,7 +30,7 @@ class JIRAClient:
         }
         assignee = fields.get("assignee", None)
         if assignee:
-            new_fields["assignee"] = {"name": assignee["name"]},
+            new_fields["assignee"] = {"name": assignee["name"]}
         if "parent" in fields:
             new_fields["parent"] = {"id": fields["parent"]["id"]}
         return new_fields
@@ -82,8 +82,15 @@ class JIRAClient:
             if fields_transform:
                 field_list = list(map(fields_transform, field_list))
             # bulk create issues
-            new_subtasks = self._client.create_issues(field_list)
-            new_issues += new_subtasks
+            results = self._client.create_issues(field_list)
+            errors = []
+            for r in results:
+                if r.get("error"):
+                    errors.append(f"Error creating issue {r['input_fields']['summary']}: {r.get('error')}")
+                else:
+                    new_issues.append(r["issue"])
+            if errors:
+                raise IOError(f"Failed to clone subtasks: {errors}")
             _LOGGER.debug("Cloned %d subtasks...",
                           len(source_issue.fields.subtasks))
         return new_issues

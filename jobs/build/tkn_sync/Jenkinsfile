@@ -18,13 +18,13 @@ pipeline {
     parameters {
         string(
             name: 'TKN_VERSION',
-            description: 'Example: 0.9.0',
+            description: 'Example: 1.3.1',
             defaultValue: '',
             trim: true,
         )
         string(
-            name: 'TKN_URL',
-            description: 'Example: http://download.eng.bos.redhat.com/staging-cds/developer/openshift-pipelines-client/0.9.0-2',
+            name: 'BREW_BUILD_ID',
+            description: 'Example: 1392607',
             defaultValue: '',
             trim: true,
         )
@@ -37,48 +37,62 @@ pipeline {
                     if (!params.TKN_VERSION) {
                         error 'TKN_VERSION must be specified'
                     }
-                    if (!params.TKN_URL) {
-                        error 'TKN_URL must be specified'
+                    if (!params.BREW_BUILD_ID) {
+                        error 'BREW_BUILD_ID must be specified'
                     }
                 }
             }
         }
-        stage('Download Artifacts') {
+        stage('Download RPMs') {
             steps {
-                sh "rm -rf ${params.TKN_VERSION}"
-                sh "mkdir -p ${params.TKN_VERSION}/{linux,macos,windows}"
-
-                sh "wget -nv ${params.TKN_URL}/signed/linux/tkn-linux-amd64 -O ${params.TKN_VERSION}/linux/tkn"
-                sh "wget -nv ${params.TKN_URL}/signed/macos/tkn-darwin-amd64 -O ${params.TKN_VERSION}/macos/tkn"
-                sh "wget -nv ${params.TKN_URL}/signed/windows/tkn-windows-amd64.exe -O ${params.TKN_VERSION}/windows/tkn.exe"
-                sh "wget -nv ${params.TKN_URL}/rpm/usr/share/licenses/openshift-pipelines-client-redistributable/LICENSE -O ${params.TKN_VERSION}/LICENSE"
-
-                sh "chmod +x ${params.TKN_VERSION}/{linux,macos}/tkn"
-                sh "tree ${params.TKN_VERSION}"
+                sh "rm -rf tkn-*.rpm ./usr/share/{,licences}/openshift-pipelines-client-redistributable"
+                sh """
+                brew buildinfo ${params.BREW_BUILD_ID} \
+                | grep redistributable \
+                | awk '{print \$1}' \
+                | sed -e 's|/mnt/redhat|http://download.eng.bos.redhat.com|' \
+                | wget -i -
+                """
+            }
+        }
+        stage('Extract binaries from RPMs') {
+            steps {
+                sh "ls *.rpm | xargs -L1 -I'X' sh -c 'rpm2cpio X | cpio -idm'"
+                sh "mv ./usr/share/openshift-pipelines-client-redistributable/* ."
+                sh "mv ./usr/share/licenses/openshift-pipelines-client-redistributable/* ."
             }
         }
         stage('Create Tarballs') {
             steps {
-                sh "tar -czvf ${params.TKN_VERSION}/tkn-linux-amd64-${params.TKN_VERSION}.tar.gz ${params.TKN_VERSION}/{LICENSE,linux/tkn} --transform='s|${params.TKN_VERSION}/||g' --transform='s|linux/||g'"
-                sh "tar -czvf ${params.TKN_VERSION}/tkn-macos-amd64-${params.TKN_VERSION}.tar.gz ${params.TKN_VERSION}/{LICENSE,macos/tkn} --transform='s|${params.TKN_VERSION}/||g' --transform='s|macos/||g'"
-                sh "zip -j ${params.TKN_VERSION}/tkn-windows-amd64-${params.TKN_VERSION}.zip ${params.TKN_VERSION}/{LICENSE,windows/tkn.exe}"
+                sh "rm -rf ${params.TKN_VERSION} && mkdir ${params.TKN_VERSION}"
 
-                sh "tar -tvf ${params.TKN_VERSION}/tkn-linux-amd64-${params.TKN_VERSION}.tar.gz"
-                sh "tar -tvf ${params.TKN_VERSION}/tkn-macos-amd64-${params.TKN_VERSION}.tar.gz"
-                sh "unzip -l ${params.TKN_VERSION}/tkn-windows-amd64-${params.TKN_VERSION}.zip"
+                sh "mv tkn-darwin-amd64 tkn && chmod +x tkn"
+                sh "tar -czvf ${params.TKN_VERSION}/tkn-macos-amd64-${params.TKN_VERSION}.tar.gz ./{LICENSE,tkn}"
 
-                sh "rm -rf ${params.TKN_VERSION}/{linux,macos,windows,LICENSE}"
+                sh "mv tkn-linux-amd64 tkn && chmod +x tkn"
+                sh "tar -czvf ${params.TKN_VERSION}/tkn-linux-amd64-${params.TKN_VERSION}.tar.gz ./{LICENSE,tkn}"
+
+                sh "mv tkn-linux-ppc64le tkn && chmod +x tkn"
+                sh "tar -czvf ${params.TKN_VERSION}/tkn-linux-ppc64le-${params.TKN_VERSION}.tar.gz ./{LICENSE,tkn}"
+
+                sh "mv tkn-linux-s390x tkn && chmod +x tkn"
+                sh "tar -czvf ${params.TKN_VERSION}/tkn-linux-s390x-${params.TKN_VERSION}.tar.gz ./{LICENSE,tkn}"
+
+                sh "mv tkn-windows-amd64.exe tkn.exe"
+                sh "zip -j ${params.TKN_VERSION}/tkn-windows-amd64-${params.TKN_VERSION}.zip ./{LICENSE,tkn.exe}"
             }
         }
         stage('Calculate sha256sum') {
             steps {
-                sh "cd ${params.TKN_VERSION} && sha256sum tkn-* > sha256sum.txt"
-                sh "cat ${params.TKN_VERSION}/sha256sum.txt"
+                sh "cd ${params.TKN_VERSION} && sha256sum * > sha256sum.txt"
             }
         }
         stage('Sync to mirror') {
             steps {
+                sh "tree ${params.TKN_VERSION} ; cat ${params.TKN_VERSION}/sha256sum.txt"
                 sshagent(['aos-cd-test']) {
+                    sh "tree ${params.TKN_VERSION}"
+                    sh "cat ${params.TKN_VERSION}/sha256sum.txt"
                     sh "scp -r ${params.TKN_VERSION} use-mirror-upload:/srv/pub/openshift-v4/clients/pipeline/"
                     sh "ssh use-mirror-upload ln --symbolic --force --no-dereference ${params.TKN_VERSION} /srv/pub/openshift-v4/clients/pipeline/latest"
                     sh 'ssh use-mirror-upload /usr/local/bin/push.pub.sh openshift-v4/clients/pipeline -v'
@@ -86,4 +100,8 @@ pipeline {
             }
         }
     }
+}
+
+def download(url) {
+    sh "wget --directory-prefix ${params.TKN_VERSION} ${url}"
 }

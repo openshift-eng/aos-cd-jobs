@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1beta1
+￼kind: Pipeline
+￼metadata:
+￼  name: jenkins-bump-version
+￼spec:
+￼  params:
+￼    - default: 2.235.5
+￼      description: target jenkins version
+￼      name: jenkins-version
+￼      type: string
+￼    - default: rhaos-3.11-rhel-7
+￼      description: target ocp branch
+￼      name: ocp-branch
+￼      type: string
+￼  tasks:
+￼    - name: bump-jenkins
+￼      params:
+￼        - name: jenkins-version
+￼          value: $(params.jenkins-version)
+￼        - name: ocp-branch
+￼          value: $(params.ocp-branch)
+￼      taskRef:
+￼        kind: Task
+￼        name: bump-jenkins
+￼    - name: send-email
+￼      params:
+￼        - name: result
+￼          value: $(tasks.bump-jenkins.results.jobresult)
+￼        - name: branch
+￼          value: $(params.ocp-branch)
+￼        - name: version
+￼          value: $(params.jenkins-version)
+￼      runAfter:
+￼        - bump-jenkins
+￼      taskRef:
+￼        kind: Task
+￼        name: send-email

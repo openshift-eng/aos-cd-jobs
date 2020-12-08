@@ -1,0 +1,63 @@
+apiVersion: tekton.dev/v1beta1
+￼kind: Task
+￼metadata:
+￼  name: jenkins-plugin-postmail
+￼spec:
+￼  params:
+￼    - name: result
+￼      type: string
+￼    - name: plugin-list
+￼      type: string
+￼    - name: branch
+￼      type: string
+￼    - name: version
+￼      type: string
+￼  steps:
+￼    - image: quay.io/openshift-art/art-ci-toolkit
+￼      name: ''
+￼      resources: {}
+￼      script: >
+￼        #!/usr/bin/env bash
+￼
+￼        set -xeuo pipefail
+￼
+￼        echo 'set from=ART-Tekton-jenkins.redhat.com' >> /etc/mail.rc
+￼
+￼        echo 'set smtp="smtp.corp.redhat.com"' >> /etc/mail.rc
+￼
+￼        echo 'search openshift.eng.bos.redhat.com' > /etc/resolv.conf
+￼
+￼        echo 'nameserver 10.11.5.19' >> /etc/resolv.conf
+￼
+￼        jenkins_version=$(inputs.params.version)
+￼
+￼        jenkins_major=${jenkins_version%%.*}
+￼
+￼        wget $(inputs.params.plugin-list) 
+￼
+￼        plugin_list=`awk '/Installed plugins/{f=1;next};/^$/{f=0};f'
+￼        jenkins.log`
+￼
+￼        distgit_link="http://pkgs.devel.redhat.com/cgit/rpms/jenkins-${jenkins_major}-plugins/?h=$(inputs.params.branch)"
+￼
+￼        Title_success="jenkins plugins RPM for $(inputs.params.branch) updated
+￼        in dist-git"
+￼
+￼        Msg_success="The Jenkins plugins RPM for $(inputs.params.branch) has
+￼        been updated in dist-git: ${distgit_link} Minimum Jenkins version:
+￼        $(inputs.params.version) Pluginlist: ${plugin_list}"
+￼
+￼        Title_error="Error during jenkins plugin RPM update on dist-git"
+￼
+￼        Msg_error="The job to update the jenkins plugins RPM in dist-git
+￼        encountered an
+￼        error:https://console-openshift-console.apps.ocp4.prod.psi.redhat.com/k8s/ns/art-jenkins/tekton.dev~v1beta1~Pipeline/jenkins-plugins/Runs"
+￼
+￼        if [[ "$(inputs.params.result)" == *success* ]]; then
+￼          mail -v -s "$Title_success" aos-team-art@redhat.com <<< "$Msg_success"
+￼        else
+￼          mail -v -s "$Title_error" aos-team-art@redhat.com <<< "$Msg_error"
+￼        fi
+￼      securityContext:
+￼        runAsNonRoot: false
+￼        runAsUser: 0

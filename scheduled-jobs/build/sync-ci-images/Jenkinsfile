@@ -1,21 +1,4 @@
 // Monitor all branches of ocp-build-data
-properties([
-    disableConcurrentBuilds(),
-    disableResume(),
-    [
-        $class: 'ParametersDefinitionProperty',
-        parameterDefinitions: [
-            string(
-                name: "ONLY_RELEASE",
-                description: "Only run for one version; e.g. 4.7",
-                defaultValue: "",
-                trim: true,
-            ),
-            commonlib.dryrunParam(),
-            commonlib.mockParam(),
-        ],
-    ]
-])
 
 @NonCPS
 def sortedVersions() {
@@ -30,6 +13,24 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
+    properties([
+        disableConcurrentBuilds(),
+        disableResume(),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                string(
+                    name: "ONLY_RELEASE",
+                    description: "Only run for one version; e.g. 4.7",
+                    defaultValue: "",
+                    trim: true,
+                ),
+                commonlib.dryrunParam(),
+                commonlib.mockParam(),
+            ],
+        ]
+    ])
+        
     if (params.ONLY_RELEASE) {
         for_versions = [ONLY_RELEASE]
     } else {

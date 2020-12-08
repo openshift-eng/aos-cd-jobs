@@ -25,6 +25,12 @@ node {
                     defaultValue: "",
                     trim: true,
                 ),
+                [
+                    name: 'SKIP_WAITS',
+                    description: 'Skip sleeps',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: false
+                ],
                 commonlib.dryrunParam(),
                 commonlib.mockParam(),
             ],
@@ -67,8 +73,11 @@ node {
                     sh "oc registry login"
                     sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams mirror --only-if-missing"
                     sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams start-builds"
-                    // Allow the builds to run for about 20 minutes
-                    sleep time: 20, unit: 'MINUTES'
+
+                    if (!params.SKIP_WAITS) {
+                        // Allow the builds to run for about 20 minutes
+                        sleep time: 20, unit: 'MINUTES'
+                    }
                     // Print out status of builds for posterity
                     sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams check-upstream"
                     withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {

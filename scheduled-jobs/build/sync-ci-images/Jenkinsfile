@@ -2,6 +2,19 @@
 properties([
     disableConcurrentBuilds(),
     disableResume(),
+    [
+        $class: 'ParametersDefinitionProperty',
+        parameterDefinitions: [
+            string(
+                name: "ONLY_RELEASE",
+                description: "Only run for one version; e.g. 4.7",
+                defaultValue: "",
+                trim: true,
+            ),
+            commonlib.dryrunParam(),
+            commonlib.mockParam(),
+        ],
+    ]
 ])
 
 @NonCPS
@@ -11,11 +24,19 @@ def sortedVersions() {
 
 node {
 
+
+
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
-    for ( String version : sortedVersions() ) {
+    if (params.ONLY_RELEASE) {
+        for_versions = [ONLY_RELEASE]
+    } else {
+        for_versions = sortedVersions()
+    }
+
+    for ( String version : for_versions ) {
         group = "openshift-${version}"
         echo "Checking group: ${group}"
         (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
@@ -37,22 +58,31 @@ node {
         if (now_hash != prev_hash) {
             echo "Changes detected in ocp-build-data group: ${group}"
 
-			withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig']) {
-				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
-				sh "oc registry login"
-				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams mirror --only-if-missing"
-				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams start-builds"
-				// Allow the builds to run for about 20 minutes
-				sleep time: 20, unit: 'MINUTES'
-				// Print out status of builds for posterity
-				sh "${buildlib.DOOZER_BIN} --group ${group} images:streams check-upstream"
-				withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-					if ( (major == 4 && minor >= 7) || major > 4 ) {
-						// Only open PRs on >= 4.7 to leave well enough alone.
-						sh "${buildlib.DOOZER_BIN} --group ${group} images:streams prs open --add-labels --github-access-token ${GITHUB_TOKEN}"
-					}
-				}
-			}
+            doozerWorking = "${env.WORKSPACE}/wd-${version}"
+            try{
+                withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig']) {
+                    sh "rm -rf ${doozerWorking}"
+                    sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --working-dir --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
+                    sh "oc registry login"
+                    sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams mirror --only-if-missing"
+                    sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams start-builds"
+                    // Allow the builds to run for about 20 minutes
+                    sleep time: 20, unit: 'MINUTES'
+                    // Print out status of builds for posterity
+                    sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams check-upstream"
+                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
+                        if ( (major == 4 && minor >= 7) || major > 4 ) {
+                            // Only open PRs on >= 4.7 to leave well enough alone.
+                            sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams prs open --add-labels --github-access-token ${GITHUB_TOKEN}"
+                        }
+                    }
+                }
+            } finally {
+                commonlib.safeArchiveArtifacts([
+                    "${doozerWorking}/*.log",
+                ])
+                sh "rm -rf ${doozerWorking}"
+            }
 
             sh "rm -rf ${prev_dir_name}"
             sh "mv ${group} ${prev_dir_name}"

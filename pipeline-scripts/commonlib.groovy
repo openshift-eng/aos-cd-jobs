@@ -19,6 +19,9 @@ ocpVersions = ocp4Versions + ocp3Versions
 /**
  * Why is ocpReleaseState needed?
  *
+ * To decide whether to build and use signed RPMs, and to decide if a strict
+ * bug validation flow is necessary.
+ *
  * Before auto-signing, images were either built signed or unsigned.
  * Unsigned images were the norm and then, right before GA, we would rebuild
  * puddles and build as signed. In the new model, we always want to build

@@ -170,6 +170,7 @@ node {
     detect_previous = true
     candidate_pr_only = false
     is_4stable_release = true
+    next_is_prerelease = false
 
     release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
@@ -194,6 +195,13 @@ node {
         CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
     } else {
         error('Unknown release type: ' + params.RELEASE_TYPE)
+    }
+    if (major > 3 && ga_release) {
+        def next_minor = "${major}.${minor + 1}"
+        if (!(commonlib.ocp4ReleaseState[next_minor] && commonlib.ocp4ReleaseState[next_minor]["release"])) {
+            // Either next_minor is not yet defined, or its "release" is empty.
+            next_is_prerelease = true
+        }
     }
 
     slackChannel = slacklib.to(FROM_RELEASE_TAG)
@@ -307,7 +315,7 @@ node {
                     errata_url = ''
                     return
                 }
-                skipVerifyBugs = !ga_release || params.SKIP_VERIFY_BUGS
+                skipVerifyBugs = !ga_release || next_is_prerelease || params.SKIP_VERIFY_BUGS
                 commonlib.retryAbort("Validating release", taskThread, "Error running release validation") {
                     def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, params.SKIP_PAYLOAD_CREATION)
                     advisory = advisory ?: retval.advisoryInfo.id

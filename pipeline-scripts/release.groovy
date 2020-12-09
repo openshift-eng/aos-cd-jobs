@@ -771,6 +771,10 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                         export GITHUB_TOKEN=${access_token}
                         hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
                         cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
+                        if [[ "${prefix}" == "candidate" ]]; then
+                            cat candidate.pr |awk -F 'pull/' '{print \$2}' >> ${id}
+                            hub api -XPUT "repos/${ghorg}/cincinnati-graph-data/pulls/${id}/merge" "\$@"
+                        fi
                         """
 
                     prURLs[prefix] = readFile("${prefix}.pr").trim()

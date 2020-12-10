@@ -31,6 +31,12 @@ node {
                     $class: 'BooleanParameterDefinition',
                     defaultValue: false
                 ],
+                [
+                    name: 'FORCE_RUN',
+                    description: 'Run even if ocp-build-data appears unchanged',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: false
+                ],
                 commonlib.dryrunParam(),
                 commonlib.mockParam(),
             ],
@@ -62,13 +68,13 @@ node {
         echo "Current hash: ${now_hash} "
         echo "Previous hash: ${prev_hash}"
 
-        if (now_hash != prev_hash) {
+        if (now_hash != prev_hash || params.FORCE_RUN) {
             echo "Changes detected in ocp-build-data group: ${group}"
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
             try{
                 sshagent(["openshift-bot"]) {
-                    withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.kubeconfig']) {
+                    withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
                         sh "rm -rf ${doozerWorking}"
                         sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply"
                         sh "oc registry login"

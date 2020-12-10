@@ -1,0 +1,81 @@
+apiVersion: tekton.dev/v1beta1
+￼kind: Task
+￼metadata:
+￼  name: jenkins-plugin
+￼spec:
+￼  params:
+￼    - name: build-url
+￼      type: string
+￼    - name: jenkins-version
+￼      type: string
+￼    - name: ocp-branch
+￼      type: string
+￼  results:
+￼    - description: the result of this task
+￼      name: jobresult
+￼    - description: jenkins plugin list content
+￼      name: plugin-list
+￼  steps:
+￼    - image: quay.io/openshift-art/art-ci-toolkit
+￼      name: bump-jenkins
+￼      resources: {}
+￼      script: >
+￼        #!/usr/bin/env bash
+￼
+￼        set -xeuo pipefail
+￼
+￼        echo failed > /tekton/results/jobresult
+￼
+￼        wget -q -P /etc/
+￼        https://raw.githubusercontent.com/openshift/doozer/master/.devcontainer/krb5-redhat.conf
+￼
+￼        mv /etc/krb5-redhat.conf /etc/krb5.conf 
+￼
+￼        cp /etc/secret/jenkins-buildvm-keytab
+￼        /etc/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab 
+￼
+￼        kinit -f -k -t
+￼        /etc/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab
+￼        ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM
+￼
+￼        echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+￼
+￼        mkdir /etc/update-jenkins-plugins
+￼
+￼        cd /etc/update-jenkins-plugins
+￼
+￼        mkdir -p /etc/update-jenkins-plugins/working/hpis
+￼
+￼        wget $(inputs.params.build-url)
+￼
+￼        wget
+￼        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/hacks/update-jenkins-plugins/update-dist-git.sh
+￼
+￼        wget
+￼        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/hacks/update-jenkins-plugins/collect-jenkins-plugins.sh
+￼
+￼        ls /etc/update-jenkins-plugins
+￼
+￼        awk '/Installed plugins/{f=1;next};/^$/{f=0};f' jenkins.log >
+￼        /etc/update-jenkins-plugins/jenkins-plugins.txt
+￼
+￼        cat /etc/update-jenkins-plugins/jenkins-plugins.txt >
+￼        /tekton/results/plugin-list
+￼
+￼        sh ./collect-jenkins-plugins.sh $(inputs.params.jenkins-version)
+￼        /etc/update-jenkins-plugins/jenkins-plugins.txt
+￼
+￼        sh ./update-dist-git.sh $(inputs.params.jenkins-version)
+￼        $(inputs.params.ocp-branch) /etc/update-jenkins-plugins/working/hpis
+￼
+￼        echo success > /tekton/results/jobresult
+￼      securityContext:
+￼        runAsNonRoot: false
+￼        runAsUser: 0
+￼      volumeMounts:
+￼        - mountPath: /etc/secret
+￼          name: jenkins-secret
+￼  volumes:
+￼    - name: jenkins-secret
+￼      secret:
+￼        secretName: jenkins-buildvm-keytab

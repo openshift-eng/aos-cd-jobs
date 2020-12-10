@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1beta1
+￼kind: Task
+￼metadata:
+￼  name: send-email
+￼spec:
+￼  params:
+￼    - name: result
+￼      type: string
+￼    - name: branch
+￼      type: string
+￼    - name: version
+￼      type: string
+￼  steps:
+￼    - image: quay.io/openshift-art/art-ci-toolkit
+￼      name: ''
+￼      resources: {}
+￼      script: >
+￼        #!/usr/bin/env bash
+￼
+￼        set -xeuo pipefail
+￼
+￼        echo 'set from=ART-Tekton-jenkins.redhat.com' >> /etc/mail.rc
+￼
+￼        echo 'set smtp="smtp.corp.redhat.com"' >> /etc/mail.rc
+￼
+￼        echo 'search openshift.eng.bos.redhat.com' > /etc/resolv.conf
+￼
+￼        echo 'nameserver 10.11.5.19' >> /etc/resolv.conf
+￼
+￼        Title_success="jenkins RPM for $(inputs.params.branch) updated in
+￼        dist-git"
+￼
+￼        Msg_success="The Jenkins RPM for $(inputs.params.branch) has been
+￼        updated in dist-git:\n
+￼        http://pkgs.devel.redhat.com/cgit/rpms/jenkins/?h=$(inputs.params.branch)
+￼        Jenkins version:$(inputs.params.version)"
+￼
+￼        Title_error="Error during jenkins $(inputs.params.branch) RPM update on
+￼        dist-git"
+￼
+￼        Msg_error="The job to update the jenkins RPM in dist-git encountered an
+￼        error:\n
+￼        https://console-openshift-console.apps.ocp4.prod.psi.redhat.com/k8s/ns/art-jenkins/tekton.dev~v1beta1~Pipeline/jenkins-bump-version/Runs"
+￼
+￼        if [[ "$(inputs.params.result)" == *success* ]]; then
+￼          mail -v -s "$Title_success" aos-team-art@redhat.com <<< "$Msg_success"
+￼        else
+￼          mail -v -s "$Title_error" aos-team-art@redhat.com <<< "$Msg_error"
+￼        fi
+￼      securityContext:
+￼        runAsNonRoot: false
+￼        runAsUser: 0

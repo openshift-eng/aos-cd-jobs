@@ -1,0 +1,75 @@
+apiVersion: tekton.dev/v1beta1
+￼kind: Task
+￼metadata:
+￼  name: bump-jenkins
+￼spec:
+￼  params:
+￼    - name: jenkins-version
+￼      type: string
+￼    - name: ocp-branch
+￼      type: string
+￼  results:
+￼    - description: the result of this task
+￼      name: jobresult
+￼  steps:
+￼    - image: quay.io/openshift-art/art-ci-toolkit
+￼      name: ''
+￼      resources: {}
+￼      script: >
+￼        #!/usr/bin/env bash
+￼
+￼        set -xeuo pipefail
+￼
+￼        echo failed > /tekton/results/jobresult
+￼
+￼        wget -q -P /etc/
+￼        https://raw.githubusercontent.com/openshift/doozer/master/.devcontainer/krb5-redhat.conf
+￼
+￼        mv /etc/krb5-redhat.conf /etc/krb5.conf 
+￼
+￼        cp /etc/secret/jenkins-buildvm-keytab
+￼        /etc/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab 
+￼
+￼        kinit -f -k -t
+￼        /etc/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab
+￼        ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM
+￼
+￼        #klist
+￼
+￼        echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+￼
+￼        rhpkg --user=ocp-build clone jenkins
+￼
+￼        cd jenkins
+￼
+￼        rhpkg switch-branch "$(inputs.params.ocp-branch)"
+￼
+￼        wget -q
+￼        https://updates.jenkins-ci.org/download/war/$(inputs.params.jenkins-version)/jenkins.war
+￼
+￼        UVERSION="$(inputs.params.jenkins-version).$(date +%s)"
+￼
+￼        mv jenkins.war jenkins.${UVERSION}.war
+￼
+￼        wget -q
+￼        https://raw.githubusercontent.com/openshift/aos-cd-jobs/devex/jenkins-bump-version/rpm-bump-version.sh
+￼
+￼        rhpkg new-sources jenkins.${UVERSION}.war
+￼
+￼        /bin/bash rpm-bump-version.sh "${UVERSION}"
+￼
+￼        rhpkg commit -p -m "Update Jenkins war to ${VERSION}"
+￼
+￼        rhpkg build --skip-nvr-check
+￼
+￼        echo success > /tekton/results/jobresult
+￼      securityContext:
+￼        runAsNonRoot: false
+￼        runAsUser: 0
+￼      volumeMounts:
+￼        - mountPath: /etc/secret
+￼          name: jenkins-secret
+￼  volumes:
+￼    - name: jenkins-secret
+￼      secret:
+￼        secretName: jenkins-buildvm-keytab

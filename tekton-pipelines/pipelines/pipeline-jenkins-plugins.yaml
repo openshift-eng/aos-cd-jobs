@@ -1,0 +1,46 @@
+apiVersion: tekton.dev/v1beta1
+￼kind: Pipeline
+￼metadata:
+￼  name: jenkins-plugins
+￼spec:
+￼  params:
+￼    - default: >-
+￼        https://storage.googleapis.com/origin-ci-test/pr-logs/pull/openshift_jenkins/1153/pull-ci-openshift-jenkins-release-4.4-images/1306572105390755840/artifacts/build-logs/jenkins.log
+￼      description: upstream url of jenkins log
+￼      name: build-url
+￼      type: string
+￼    - default: 2.235.5
+￼      description: target jenkins version
+￼      name: jenkins-version
+￼      type: string
+￼    - default: rhaos-4.4-rhel-7
+￼      description: target ocp branch
+￼      name: ocp-branch
+￼      type: string
+￼  tasks:
+￼    - name: collect-jenkins-plugin
+￼      params:
+￼        - name: build-url
+￼          value: $(params.build-url)
+￼        - name: jenkins-version
+￼          value: $(params.jenkins-version)
+￼        - name: ocp-branch
+￼          value: $(params.ocp-branch)
+￼      taskRef:
+￼        kind: Task
+￼        name: jenkins-plugin
+￼    - name: send-email
+￼      params:
+￼        - name: result
+￼          value: $(tasks.collect-jenkins-plugin.results.jobresult)
+￼        - name: branch
+￼          value: $(params.ocp-branch)
+￼        - name: version
+￼          value: $(params.jenkins-version)
+￼        - name: plugin-list
+￼          value: $(params.build-url)
+￼      runAfter:
+￼        - collect-jenkins-plugin
+￼      taskRef:
+￼        kind: Task
+￼        name: jenkins-plugin-postmail

@@ -2,9 +2,6 @@
 
 
 def get_mirror_url(build_mode, version) {
-    if (build_mode == "online:int") {
-        return "https://mirror.openshift.com/enterprise/online-int"
-    }
     return "https://mirror.openshift.com/enterprise/enterprise-${version}"
 }
 
@@ -66,10 +63,6 @@ def get_changelog(rpm_name, record_log) {
 def mail_success(version, mirrorURL, record_log, oa_changelog, commonlib) {
 
     def target = "(Release Candidate)"
-
-    if (BUILD_MODE == "online:int") {
-        target = "(Integration Testing)"
-    }
 
     def inject_notes = ""
     if (params.SPECIAL_NOTES.trim() != "") {
@@ -283,21 +276,6 @@ node {
                         ].join(','),
                         trim: true,
                     ),
-                    choice(
-                        name: 'BUILD_MODE',
-                        description: '''
-    auto                      BUILD_VERSION and ocp repo contents determine the mode<br>
-    release                   {ose,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-    pre-release               {origin,origin-web-console,openshift-ansible}/release-X.Y ->  https://mirror.openshift.com/enterprise/enterprise-X.Y/<br>
-    online:int                {origin,origin-web-console,openshift-ansible}/master -> online-int yum repo<br>
-    ''',
-                        choices: [
-                            "auto",
-                            "release",
-                            "pre-release",
-                            "online:int"
-                        ].join("\n"),
-                    ),
                     booleanParam(
                         name: 'ODCS',
                         description: 'Run in ODCS Mode?',
@@ -375,7 +353,7 @@ node {
     puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
     puddleSignKeys = SIGN_RPMS ? "b906ba72" : null
 
-    echo "Initializing build: #${currentBuild.number} - ${params.BUILD_VERSION}.?? (${BUILD_MODE})"
+    echo "Initializing build: #${currentBuild.number} - ${params.BUILD_VERSION}.??"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${env.WORKSPACE}/doozer_working"
@@ -403,31 +381,16 @@ node {
             stage("set build mode") {
                 // If the target version resides in ose#master
                 IS_SOURCE_IN_MASTER = false  // master is of no concern for 3.x ever again
-
-                if (BUILD_MODE == "auto") {
-                    echo "AUTO-MODE: determine mode from version and repo: BUILD_VERSION: ${params.BUILD_VERSION}"
-                    // INPUTS:
-                    //   BUILD_MODE
-                    //   BUILD_VERSION
-                    //   GITHUB_URLS["ose"]
-                    releases = buildlib.get_releases(GITHUB_URLS['ose'])
-                    echo "AUTO-MODE: release repo: ${GITHUB_URLS['ose']}"
-                    echo "AUTO-MODE: releases: ${releases}"
-                    BUILD_MODE = buildlib.auto_mode(params.BUILD_VERSION, '4.0', releases)
-                    echo "BUILD_MODE = ${BUILD_MODE}"
-                }
+                BUILD_MODE = "release"  // no other build mode remains relevant
             }
 
             stage("analyze") {
 
                 dir(OSE_DIR) {
                     // inputs:
-                    //  IS_SOURCE_IN_MASTER
-                    //  BUILD_MODE
                     //  BUILD_VERSION
 
                     // defines
-                    //  BUILD_MODE (if auto)
                     //  OSE_SOURCE_BRANCH
                     //  UPSTREAM_SOURCE_BRANCH
                     //  NEW_VERSION
@@ -438,30 +401,11 @@ node {
                     //  sets:
                     //    currentBuild.displayName
 
-                    if (IS_SOURCE_IN_MASTER) {
-                        if (BUILD_MODE == "release") {
-                            error("You cannot build a release while it resides in master; cut an enterprise branch")
-                        }
-                    } else {
-                        if (BUILD_MODE != "release" && BUILD_MODE != "pre-release") {
-                            error("Invalid build mode for a release that does not reside in master: ${BUILD_MODE}")
-                        }
-                    }
 
-                    if (IS_SOURCE_IN_MASTER) {
-                        OSE_SOURCE_BRANCH = "master"
-                        UPSTREAM_SOURCE_BRANCH = "upstream/master"
-                    } else {
-                        OSE_SOURCE_BRANCH = "enterprise-${params.BUILD_VERSION}"
-                        if (BUILD_MODE == "release") {
-                            // When building in release mode, no longer pull from upstream
-                            UPSTREAM_SOURCE_BRANCH = null
-                        } else {
-                            UPSTREAM_SOURCE_BRANCH = "upstream/release-${params.BUILD_VERSION}"
-                        }
-                        // Create the non-master source branch and have it track the origin ose repo
-                        sh "git checkout -B ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
-                    }
+                    OSE_SOURCE_BRANCH = "enterprise-${params.BUILD_VERSION}"
+                    UPSTREAM_SOURCE_BRANCH = "upstream/release-${params.BUILD_VERSION}"
+                    // Create the non-master source branch and have it track the origin ose repo
+                    sh "git checkout -B ${OSE_SOURCE_BRANCH} origin/${OSE_SOURCE_BRANCH}"
 
                     echo "Building from ose branch: ${OSE_SOURCE_BRANCH}"
 
@@ -474,65 +418,25 @@ node {
                     }
 
 
-                    if (BUILD_MODE == "online:int") {
-                        /**
-                         * In non-release candidates, we need the following fields
-                         *      REL.INT.STG
-                         * REL = 0    means pre-release,  1 means release
-                         * INT = fields used to differentiate online:int builds
-                         */
-
-                        while (rel_fields.size() < 3) {
-                            rel_fields << "0"    // Ensure there are enough fields in the array
-                        }
-
-                        if (rel_fields[0].toInteger() != 0) {
-                            // Don't build release candidate images this way since they can't wind up
-                            // in registry.access with a tag OCP can pull.
-                            error("Do not build released products in ${BUILD_MODE}; just build in release or pre-release mode")
-                        }
-
-                        if (rel_fields.size() != 3) {
-                            // Did we start with > 3? That's too weird to continue
-                            error("Unexpected number of fields in release: ${spec.release}")
-                        }
-
-                        if (BUILD_MODE == "online:int") {
-                            rel_fields[1] = rel_fields[1].toInteger() + 1  // Bump the INT version
-                            rel_fields[2] = 0  // If we are bumping the INT field, everything following is reset to zero
-                        }
-
-                        NEW_VERSION = spec.version   // Keep the existing spec's version
-                        NEW_RELEASE = "${rel_fields[0]}.${rel_fields[1]}.${rel_fields[2]}"
-
-                        // Add a bumpable field for Doozer to increment for image refreshes (i.e. REL.INT.STG.BUMP)
-                        NEW_DOCKERFILE_RELEASE = "${NEW_RELEASE}.0"
-
-                    } else if (BUILD_MODE == "release" || BUILD_MODE == "pre-release") {
-
-                        /**
-                         * Once someone sets the origin.spec Release to 1, we are building release candidates.
-                         * If a release candidate is released, its associated images will show up in registry.access
-                         * with the tags X.Y.Z-R  and  X.Y.Z. The "R" cannot be used since the fields is bumped by
-                         * refresh-images when building images with signed RPMs. That is, if OCP tried to load images
-                         * with the X.Y.Z-R' its RPM was built with, the R != R' (since R' < R) and the image
-                         * would not be found.
-                         * For release candidates, therefore, we must only use X.Y.Z to differentiate builds.
-                         */
-                        if (rel_fields[0].toInteger() != 1) {
-                            error("You need to set the spec Release field to 1 in order to build in this mode")
-                        }
-
-                        // Undertake to increment the last field in the version (e.g. 3.7.0 -> 3.7.1)
-                        ver_fields = spec.version.tokenize(".")
-                        ver_fields[ver_fields.size() - 1] = "${ver_fields[ver_fields.size() - 1].toInteger() + 1}"
-                        NEW_VERSION = ver_fields.join(".")
-                        NEW_RELEASE = "1"
-                        NEW_DOCKERFILE_RELEASE = NEW_RELEASE
-
-                    } else {
-                        error("Unknown BUILD_MODE: ${BUILD_MODE}")
+                    /**
+                     * Once someone sets the origin.spec Release to 1, we are building release candidates.
+                     * If a release candidate is released, its associated images will show up in registry.access
+                     * with the tags X.Y.Z-R  and  X.Y.Z. The "R" cannot be used since the fields is bumped by
+                     * refresh-images when building images with signed RPMs. That is, if OCP tried to load images
+                     * with the X.Y.Z-R' its RPM was built with, the R != R' (since R' < R) and the image
+                     * would not be found.
+                     * For release candidates, therefore, we must only use X.Y.Z to differentiate builds.
+                     */
+                    if (rel_fields[0].toInteger() != 1) {
+                        error("You need to set the spec Release field to 1 in order to build in this mode")
                     }
+
+                    // Undertake to increment the last field in the version (e.g. 3.7.0 -> 3.7.1)
+                    ver_fields = spec.version.tokenize(".")
+                    ver_fields[ver_fields.size() - 1] = "${ver_fields[ver_fields.size() - 1].toInteger() + 1}"
+                    NEW_VERSION = ver_fields.join(".")
+                    NEW_RELEASE = "1"
+                    NEW_DOCKERFILE_RELEASE = NEW_RELEASE
 
                     // decide which source to use for the web console
                     USE_WEB_CONSOLE_SERVER = false
@@ -544,7 +448,7 @@ node {
                     if (!params.BUILD_CONTAINER_IMAGES) {
                         rpmOnlyTag = " (RPM ONLY)"
                     }
-                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE} (${BUILD_MODE}${rpmOnlyTag})"
+                    currentBuild.displayName = "#${currentBuild.number} - ${NEW_VERSION}-${NEW_RELEASE}${rpmOnlyTag}"
                 }
             }
 
@@ -567,8 +471,6 @@ node {
 
 
             stage("origin-web-console repo") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
                 sh "go get github.com/jteeuwen/go-bindata"
                 // defines:
                 //   WEB_CONSOLE_DIR
@@ -585,33 +487,9 @@ node {
             }
 
             stage("prep web-console") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
                 dir(WEB_CONSOLE_DIR) {
                     WEB_CONSOLE_BRANCH = "enterprise-${spec.major_minor}"
                     sh "git checkout -B ${WEB_CONSOLE_BRANCH} origin/${WEB_CONSOLE_BRANCH}"
-                    if (IS_SOURCE_IN_MASTER) {
-
-                        // jwforres asked that master *not* merge into the 3.8 branch.
-                        if (params.BUILD_VERSION != "3.8") {
-                            sh """
-                            # Pull content of master into enterprise branch
-                            git merge master --no-commit --no-ff
-                            # Use grunt to rebuild everything in the dist directory
-                            ./hack/install-deps.sh
-                            grunt build
-
-                            git add dist
-                            git commit -m "Merge master into enterprise-${params.BUILD_VERSION}" --allow-empty
-                        """
-
-                            if (!IS_TEST_MODE) {
-                                sh "git push"
-                            }
-                        }
-
-                    }
-
                     // Clean up any unstaged changes (e.g. .gitattributes)
                     sh "git reset --hard HEAD"
                 }
@@ -619,8 +497,6 @@ node {
 
 
             stage("origin-web-console-server repo") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
                 /**
                 * The origin-web-console-server repo/image was introduced in 3.9.
                 */
@@ -637,37 +513,7 @@ node {
                 }
             }
 
-            stage("prep web-console-server") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
-                if (USE_WEB_CONSOLE_SERVER && IS_SOURCE_IN_MASTER) {
-                    dir(WEB_CONSOLE_SERVER_DIR) {
-                        // Enable fake merge driver used in our .gitattributes
-                        sh "git config merge.ours.driver true"
-                        // Use fake merge driver on specific packages
-                        sh "echo 'pkg/assets/bindata.go merge=ours' >> .gitattributes"
-                        sh "echo 'pkg/assets/java/bindata.go merge=ours' >> .gitattributes"
-
-
-                        sh """
-                            # Pull content of master into enterprise branch
-                            git merge master --no-commit --no-ff
-                            git commit -m "Merge master into enterprise-${params.BUILD_VERSION}" --allow-empty
-                        """
-
-                        if (!IS_TEST_MODE) {
-                            sh "git push"
-                        }
-
-                        // Clean up any unstaged changes (e.g. .gitattributes)
-                        sh "git reset --hard HEAD"
-                    }
-                }
-            }
-
             stage("merge web-console") {
-                if (BUILD_VERSION_MAJOR != 3) return
-
                 // In OCP release < 3.9, web-console is vendored into OSE repo
                 TARGET_VENDOR_DIR = OSE_DIR
                 if (USE_WEB_CONSOLE_SERVER) {
@@ -713,17 +559,13 @@ node {
             stage("openshift-ansible prep") {
                 OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "master"
                 dir(OPENSHIFT_ANSIBLE_DIR) {
-                    if (!IS_SOURCE_IN_MASTER) {
-                        // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
-                        if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
-                        } else {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${params.BUILD_VERSION}"
-                        }
-                        sh "git checkout -B ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
+                    // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
+                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
+                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
                     } else {
-                        sh "git checkout master"
+                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${params.BUILD_VERSION}"
                     }
+                    sh "git checkout -B ${OPENSHIFT_ANSIBLE_SOURCE_BRANCH} origin/${OPENSHIFT_ANSIBLE_SOURCE_BRANCH}"
                 }
             }
 
@@ -894,19 +736,17 @@ node {
 
             // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
             OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
-            final mirror_url = get_mirror_url(BUILD_MODE, params.BUILD_VERSION)
+            final mirror_url = get_mirror_url(params.BUILD_VERSION)
 
             stage("ami") {
                 if (params.BUILD_AMI && params.BUILD_CONTAINER_IMAGES) {
                     // define openshift ansible source branch
                     OPENSHIFT_ANSIBLE_SOURCE_BRANCH = 'master'
-                    if (!IS_SOURCE_IN_MASTER) {
-                        // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
-                        if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
-                        } else {
-                            OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${params.BUILD_VERSION}"
-                        }
+                    // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
+                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
+                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
+                    } else {
+                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${params.BUILD_VERSION}"
                     }
                     buildlib.build_ami(
                         BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,

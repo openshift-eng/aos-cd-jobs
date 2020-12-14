@@ -1,5 +1,6 @@
 buildlib = load('pipeline-scripts/buildlib.groovy')
 commonlib = buildlib.commonlib
+slacklib = commonlib.slacklib
 
 doozer_working = "${WORKSPACE}/doozer_working"
 buildlib.cleanWorkdir(doozer_working)

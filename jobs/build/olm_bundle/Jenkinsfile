@@ -144,12 +144,38 @@ pipeline {
                 }
             }
         }
+        stage('Slack notification to release channel') {
+            when {
+                expression { bundle_nvrs && ! params.METADATA_ADVISORY.isEmpty() }
+            }
+            steps {
+                script {
+                    olm_bundles.slacklib.to(params.BUILD_VERSION).say("""
+                    *:heavy_check_mark: olm_bundle*
+                    The following builds were attached to advisory ${params.METADATA_ADVISORY}:
+                    ```
+                    ${bundle_nvrs.join('\n')}
+                    ```
+
+                    buildvm job: ${olm_bundles.commonlib.buildURL('console')}
+                    """)
+                }
+            }
+        }
 
     }
     post {
         always {
             script {
                 olm_bundles.archiveDoozerArtifacts()
+            }
+        }
+        failure {
+            script {
+                olm_bundles.slacklib.to(params.BUILD_VERSION).say("""
+                *:heavy_exclamation_mark: olm_bundle failed*
+                buildvm job: ${olm_bundles.commonlib.buildURL('console')}
+                """)
             }
         }
     }

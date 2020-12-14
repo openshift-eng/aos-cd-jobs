@@ -8,6 +8,7 @@ node {
         def lib = load("advisories.groovy")
         def buildlib = lib.buildlib
         def commonlib = lib.commonlib
+        def slacklib = commonlib.slacklib
 
         def dateFormat = new SimpleDateFormat("yyyy-MMM-dd")
         def date = new Date()
@@ -187,9 +188,24 @@ node {
                     lib.create_placeholder(it.key)
                 }
             }
+
+            stage("slack notification to release channel") {
+                slacklib.to(params.VERSION).say("""
+                *:heavy_check_mark: New advisories created:*
+                ${currentBuild.description}
+
+                buildvm job: ${commonlib.buildURL('console')}
+                """)
+            }
+
         } catch (err) {
             currentBuild.description += "<hr>${err}"
             currentBuild.result = "FAILURE"
+
+            slacklib.to(params.VERSION).say("""
+            *:heavy_exclamation_mark: advisories creation failed*
+            buildvm job: ${commonlib.buildURL('console')}
+            """)
 
             if (params.MAIL_LIST_FAILURE.trim()) {
                 commonlib.email(

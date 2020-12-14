@@ -1304,14 +1304,22 @@ String extractBugId(String bugzillaOut) {
 }
 
 /**
+ * Returns the status of freeze_automation in the group.yml
+ */
+def getAutomationState(doozerOpts){
+    String freeze_automation = doozer("${doozerOpts} config:read-group --default 'no' freeze_automation",
+            [capture: true]).trim()
+    return freeze_automation
+}
+
+/**
  * Checks the status of the freeze_automation key in the group.yml and
  * returns whether the current run is permitted accordingly.
  * @param doozerOpts A string containing, at least, a `--group` parameter.
  */
 def isBuildPermitted(doozerOpts) {
     // check whether the group should be built right now
-    def freeze_automation = doozer("${doozerOpts} config:read-group --default 'no' freeze_automation",
-                                   [capture: true]).trim()
+    def freeze_automation = getAutomationState(doozerOpts)
 
     def builderEmail
     wrap([$class: 'BuildUser']) {

@@ -616,6 +616,9 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
             if ( major == 4 && minor == 1 ) {
                 prefixes = [ "prerelease", "stable"]
             }
+            if ( major == 4 && minor >= 6 ) {
+                prefixes = [ "candidate", "fast", "stable", "eus"]
+            }
 
             if (isReleaseCandidate) {
                 // Release Candidates never go past candidate
@@ -633,8 +636,10 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                 if (fileExists(channelFile)) {
                     channelYaml = readYaml(file: channelFile)
                 } else {
-                    // create the channel if it does not already exist
-                    writeFile(file: channelFile, text: "name: ${channel}\nversions:\n" )
+                    if (prefix != "eus") { // for now we only have eus-4.6
+                      // create the channel if it does not already exist
+                      writeFile(file: channelFile, text: "name: ${channel}\nversions:\n" )
+                    }
                 }
 
                 /**
@@ -696,6 +701,19 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                             break
                         case 'stable':
                             // For non-candidate, put a hold on the PR to prevent accidental merging
+                            labelArgs = "-l 'do-not-merge/hold'"
+                            pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
+
+                            if (prURLs.containsKey('prerelease')) {
+                                pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
+                            }
+                            if (prURLs.containsKey('fast')) {
+                                pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
+                            }
+
+                            break
+                        case 'eus':
+                            // currently put eus change in a seperate PR as same as stable channel
                             labelArgs = "-l 'do-not-merge/hold'"
                             pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
 

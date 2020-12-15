@@ -5,6 +5,7 @@ node {
     def build = load("build.groovy")
     def buildlib = build.buildlib
     def commonlib = build.commonlib
+    def slacklib = commonlib.slacklib
     commonlib.describeJob("rhcos_sync", """
         <h2>Sync the RHCOS boot images to mirror</h2>
         http://mirror.openshift.com/pub/openshift-v4/<arch>/dependencies/rhcos/
@@ -98,7 +99,19 @@ node {
         }
         stage("Mirror artifacts") { build.rhcosSyncMirrorArtifacts() }
         // stage("Gen AMI docs") { build.rhcosSyncGenDocs() }
+        stage("Slack notification to release channel") {
+            slacklib.to(params.BUILD_VERSION).say("""
+            *:heavy_check_mark: rhcos_sync (${params.RHCOS_MIRROR_PREFIX}) successful*
+            https://mirror.openshift.com/pub/openshift-v4/${params.ARCH}/dependencies/rhcos/${params.RHCOS_MIRROR_PREFIX}/${params.NAME}/
+
+            buildvm job: ${commonlib.buildURL('console')}
+            """)
+        }
     } catch ( err ) {
+        slacklib.to(params.BUILD_VERSION).say("""
+        *:heavy_exclamation_mark: rhcos_sync ${params.RHCOS_MIRROR_PREFIX} failed*
+        buildvm job: ${commonlib.buildURL('console')}
+        """)
         commonlib.email(
             to: "aos-art-automation+failed-rhcos-sync@redhat.com",
             from: "aos-art-automation@redhat.com",

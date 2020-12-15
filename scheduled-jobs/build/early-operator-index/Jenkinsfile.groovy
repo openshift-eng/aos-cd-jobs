@@ -25,10 +25,10 @@ node {
     def pullspecs = buildlib.doozer("-x cluster-nfd-operator --group=openshift-4.7 ${workDir} olm-bundle:print " + '{bundle_pullspec}',
             [capture: true]).trim().split()
 
-    request = {
+    request = [
         'bundles': pullspecs,
         'from_index': 'registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v4.7'
-    }
+    ]
 
     writeJSON(file: 'request.json', json: request, pretty: 4)
 

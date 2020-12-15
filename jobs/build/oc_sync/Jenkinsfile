@@ -5,6 +5,7 @@ node {
     def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
     def commonlib = buildlib.commonlib
+    def slacklib = commonlib.slacklib
     commonlib.describeJob("oc_sync", """
         <h2>Sync the oc and installer clients to mirror</h2>
         Extracts the clients from the payload cli-artifacts image and publishes them to
@@ -65,7 +66,7 @@ node {
 
     commonlib.checkMock()
 
-
+    def ocpVersion = commonlib.extractMajorMinorVersion(params.RELEASE_NAME)
 
     try {
         currentBuild.displayName = "#${currentBuild.number} - ${params.RELEASE_NAME} - ${params.CLIENT_TYPE}"
@@ -87,10 +88,20 @@ node {
                 // must be able to access remote registry to extract image contents
                 buildlib.registry_quay_dev_login()
                 commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
+                slacklib.to(ocpVersion).say("""
+                *:heavy_check_mark: oc_sync successful*
+                https://mirror.openshift.com/pub/openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.RELEASE_NAME}/
+
+                buildvm job: ${commonlib.buildURL('console')}
+                """)
             }
         }
     } catch (err) {
         def buildURL = env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888')
+        slacklib.to(ocpVersion).say("""
+        *:heavy_exclamation_mark: oc_sync failed*
+        buildvm job: ${commonlib.buildURL('console')}
+        """)
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-art-automation@redhat.com",

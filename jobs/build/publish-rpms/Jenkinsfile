@@ -39,7 +39,8 @@ node {
     mirror_dir = "/srv/pub/openshift-v4/dependencies/rpms/${version}-beta"
     commonlib.shell(
         script: """
-            ./collect-deps.sh ${version}
+            sudo ./collect-deps.sh ${version}
+            ssh use-mirror-upload 'rm $mirror_dir/*'
             scp -r ${version}-beta/ use-mirror-upload:$mirror_dir
             ssh use-mirror-upload 'createrepo --database $mirror_dir;/usr/local/bin/push.pub.sh openshift-v4/dependencies/rpms/${version}-beta -v'
         """

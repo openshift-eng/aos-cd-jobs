@@ -677,6 +677,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                 pr_title = "Enable ${releaseName} in ${prefix} channel(s)"
 
                 labelArgs = ''
+                extraSlackComment = ''
 
                 pr_messages = [ pr_title ]
 
@@ -685,6 +686,8 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                         case 'prerelease':
                         case 'candidate':
                             pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
+                            labelArgs = "-l 'lgtm,approved'"
+                            extraSlackComment = "automatically approved"
                             break
                         case 'fast':
                             pr_messages << "Please merge as soon as ${internal_errata_url} is shipped live OR if a Cincinnati-first release is approved."
@@ -771,10 +774,8 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                         export GITHUB_TOKEN=${access_token}
                         hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
                         cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
-                        if [[ "${prefix}" == "candidate" ]]; then
-                            id=`cat candidate.pr |awk -F 'pull/' '{print \$2}'`
-                            hub api -XPUT "repos/${ghorg}/cincinnati-graph-data/pulls/\$id/merge" "\$@"
-                            echo "(automatically merged)" >> "${prs_file}"
+                        if test -n "${extraSlackComment}"; then
+                            echo "${extraSlackComment}" >> "${prs_file}"
                         fi
                         """
 

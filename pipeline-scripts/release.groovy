@@ -774,6 +774,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                         if [[ "${prefix}" == "candidate" ]]; then
                             id=`cat candidate.pr |awk -F 'pull/' '{print \$2}'`
                             hub api -XPUT "repos/${ghorg}/cincinnati-graph-data/pulls/\$id/merge" "\$@"
+                            echo "(automatically merged)" >> "${prs_file}"
                         fi
                         """
 
@@ -783,7 +784,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
 
             def prs = readFile(prs_file).trim()
             if ( prs ) {  // did we open any?
-                def slack_msg = "Hi @ota-monitor . ART has opened Cincinnati PRs requiring your attention for ${releaseName}:\n${prs}"
+                def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n${prs}"
                 if ( ghorg == 'openshift' && !noSlackOutput) {
                     slacklib.to('#forum-release').say(slack_msg)
                 } else {

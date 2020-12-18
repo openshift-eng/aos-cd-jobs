@@ -49,10 +49,10 @@ apiVersion: tekton.dev/v1beta1
 ￼        wget $(inputs.params.build-url)
 ￼
 ￼        wget
-￼        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/hacks/update-jenkins-plugins/update-dist-git.sh
+￼        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/tekton-pipelines/scripts/update-dist-git.sh
 ￼
 ￼        wget
-￼        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/hacks/update-jenkins-plugins/collect-jenkins-plugins.sh
+￼        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/tekton-pipelines/scripts/collect-jenkins-plugins.sh
 ￼
 ￼        ls /etc/update-jenkins-plugins
 ￼

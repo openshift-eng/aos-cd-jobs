@@ -281,11 +281,6 @@ node {
                         description: 'Run in ODCS Mode?',
                         defaultValue: false,
                     ),
-                    booleanParam(
-                        name: 'SIGN',
-                        description: 'Sign RPMs with openshifthosted key? (for SD - generally not useful',
-                        defaultValue: false,
-                    ),
                     string(
                         name: 'SPECIAL_NOTES',
                         description: 'Include special notes in the build email',
@@ -322,7 +317,6 @@ node {
 
     BUILD_VERSION_MAJOR = params.BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
     BUILD_VERSION_MINOR = params.BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y
-    SIGN_RPMS = params.SIGN
     ODCS_MODE = params.ODCS
     ODCS_FLAG = ""
     ODCS_OPT = ""
@@ -651,14 +645,6 @@ node {
                     rpms:build --version v${NEW_VERSION}
                     --release ${NEW_RELEASE}
                 """
-            }
-
-            stage("signing rpms") {
-                if (SIGN_RPMS) {
-                    sh "${env.WORKSPACE}/build-scripts/sign_rpms.sh rhaos-${params.BUILD_VERSION}-rhel-7-candidate openshifthosted"
-                } else {
-                    echo "RPM signing has been skipped..."
-                }
             }
 
             stage("plashet: ose 'building'") {

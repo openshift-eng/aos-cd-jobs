@@ -658,7 +658,6 @@ node {
                 buildlib.buildBuildingPlashet(spec.version, spec.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
                 def plashet = buildlib.buildBuildingPlashet(spec.version, spec.release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
                 PLASHET = plashet.plashetDirName
-                rpmMirror.localPlashetPath = plashet.localPlashetPath
             }
 
             stage("update dist-git") {

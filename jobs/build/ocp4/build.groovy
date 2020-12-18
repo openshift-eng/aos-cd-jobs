@@ -272,7 +272,7 @@ def stageBuildRpms() {
 
 /**
  * Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs based on -candidate tags.
- * Based on commonlib.ocp4ReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
+ * Based on commonlib.ocpReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
  */
 def stageBuildCompose() {
     if(buildPlan.dryRun) {
@@ -325,7 +325,7 @@ def stageBuildImages() {
     }
     try {
 
-        def archReleaseStates = commonlib.ocp4ReleaseState[version.stream]
+        def archReleaseStates = commonlib.ocpReleaseState[version.stream]
         // If any arch is GA, use signed for everything. See stageBuildCompose for details.
         def signing_mode = archReleaseStates['release']?'signed':'unsigned'
         def cmd =

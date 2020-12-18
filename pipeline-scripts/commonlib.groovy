@@ -17,7 +17,7 @@ ocp4Versions = [
 ocpVersions = ocp4Versions + ocp3Versions
 
 /**
- * Why is ocp4ReleaseState needed?
+ * Why is ocpReleaseState needed?
  *
  * Before auto-signing, images were either built signed or unsigned.
  * Unsigned images were the norm and then, right before GA, we would rebuild
@@ -60,7 +60,7 @@ ocpVersions = ocp4Versions + ocp3Versions
  * Alternatively, maybe this becomes the source of truth and confusing aspects like
  * 'archOverrides' goes away in doozer config.
  */
-ocp4ReleaseState = [
+ocpReleaseState = [
         "4.7": [
             'release': [],
             "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],
@@ -88,7 +88,11 @@ ocp4ReleaseState = [
         "4.1": [
             "release": [ 'x86_64' ],
             "pre-release": [],
-        ]
+        ],
+        "3.11": [
+            "release": [ 'x86_64', 'ppc64le' ],
+            "pre-release": [],
+        ],
 ]
 
 ocpMajorVersions = [

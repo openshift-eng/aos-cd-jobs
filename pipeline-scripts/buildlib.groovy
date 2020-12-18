@@ -1425,10 +1425,10 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
      * unsigned RPMs for one CPU arch and signed images for arch. Thus,
      * if one of our arches is in 'release' mode, we must build all
      * arches with signed.
-     * commonlib.ocp4ReleaseState declares which arches are in release / pre-release mode.
+     * commonlib.ocpReleaseState declares which arches are in release / pre-release mode.
      * Read the comment on that map for more information
      */
-    def archReleaseStates = commonlib.ocp4ReleaseState[major_minor]
+    def archReleaseStates = commonlib.ocpReleaseState[major_minor]
     def plashet_arch_args = ""
 
     for (String release_arch : archReleaseStates['release']) {

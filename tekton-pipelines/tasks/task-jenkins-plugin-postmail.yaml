@@ -51,7 +51,7 @@ apiVersion: tekton.dev/v1beta1
 ￼
 ￼        Msg_error="The job to update the jenkins plugins RPM in dist-git
 ￼        encountered an
-￼        error:https://console-openshift-console.apps.ocp4.prod.psi.redhat.com/k8s/ns/art-jenkins/tekton.dev~v1beta1~Pipeline/jenkins-plugins/Runs"
+￼        error:https://console-openshift-console.apps.ocp4.prod.psi.redhat.com/k8s/ns/art-cd/tekton.dev~v1beta1~Pipeline/jenkins-plugins/Runs"
 ￼
 ￼        if [[ "$(inputs.params.result)" == *success* ]]; then
 ￼          mail -v -s "$Title_success" aos-team-art@redhat.com <<< "$Msg_success"

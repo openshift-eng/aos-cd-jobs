@@ -112,8 +112,8 @@ ${image_list}
 OpenShift Version: v${version}
 ${inject_notes}
 RPMs:
-    Puddle (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${params.BUILD_VERSION}/${OCP_PUDDLE}
-    Exernal Mirror: ${mirrorURL}/${OCP_PUDDLE}
+    Plashet (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${params.BUILD_VERSION}/${PLASHET}
+    Exernal Mirror: ${mirrorURL}/${PLASHET}
 ${image_details}
 
 Brew:
@@ -143,7 +143,7 @@ ${oa_changelog}
                     messageContent: "New build for OpenShift ${target}: ${version}",
                     messageProperties:
                         """build_mode=${BUILD_MODE}
-                        PUDDLE_URL=${mirrorURL}/${OCP_PUDDLE}
+                        PUDDLE_URL=${mirrorURL}/${PLASHET}
                         IMAGE_REGISTRY_ROOT=registry.reg-aws.openshift.com:443
                         brew_task_url_openshift=${OSE_BREW_URL}
                         brew_task_url_openshift_ANSIBLE=${OA_BREW_URL}
@@ -348,10 +348,6 @@ node {
     } catch (cce) {
         echo "Error cleaning up old images: ${cce}"
     }
-
-    puddleConfBase = "https://raw.githubusercontent.com/openshift/aos-cd-jobs/${aosCdJobsCommitSha}/build-scripts/puddle-conf"
-    puddleConf = "${puddleConfBase}/atomic_openshift-${params.BUILD_VERSION}.conf"
-    puddleSignKeys = SIGN_RPMS ? "b906ba72" : null
 
     echo "Initializing build: #${currentBuild.number} - ${params.BUILD_VERSION}.??"
 
@@ -665,16 +661,18 @@ node {
                 }
             }
 
-            stage("puddle: ose 'building'") {
-                OCP_PUDDLE = buildlib.build_puddle(
-                    puddleConf,    // The puddle configuration file to use
-                    puddleSignKeys, // openshifthosted key
-                    "-b",   // do not fail if we are missing dependencies
-                    "-d",   // print debug information
-                    "-n",   // do not send an email for this puddle
-                    "-s",   // do not create a "latest" link since this puddle is for building images
-                    "--label=building"   // create a symlink named "building" for the puddle
-                )
+            stage("plashet: ose 'building'") {
+                if(params.DRY_RUN) {
+                    echo "Running in dry-run mode -- will not run plashet."
+                    return
+                }
+
+                def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
+
+                buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
+                def plashet = buildlib.buildBuildingPlashet(version.full, version.release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
+                PLASHET = plashet.plashetDirName
+                rpmMirror.localPlashetPath = plashet.localPlashetPath
             }
 
             stage("update dist-git") {
@@ -735,7 +733,7 @@ node {
             buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", SYMLINK_NAME, NEW_FULL_VERSION, BUILD_MODE)
 
             // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
-            OCP_PUDDLE = "v${NEW_FULL_VERSION}_${OCP_PUDDLE}"
+            PLASHET = "v${NEW_FULL_VERSION}_${PLASHET}"
             final mirror_url = get_mirror_url(params.BUILD_VERSION)
 
             stage("ami") {
@@ -751,7 +749,7 @@ node {
                     buildlib.build_ami(
                         BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
                         NEW_VERSION, NEW_RELEASE,
-                        "${mirror_url}/${OCP_PUDDLE}/x86_64/os",
+                        "${mirror_url}/${PLASHET}/x86_64/os",
                         OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
                         params.MAIL_LIST_FAILURE)
                 }

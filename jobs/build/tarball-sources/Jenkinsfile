@@ -157,7 +157,7 @@ node {
 
     } catch (err) {
         slacklib.to(version).say("""
-        *:heavy_exclamation_mark: tarball-sources failed*
+        *:heavy_exclamation_mark: @release-artists tarball-sources failed*
         buildvm job: ${commonlib.buildURL('console')}
         """)
 

@@ -147,7 +147,7 @@ node {
                 }
             }
             stage("slack notification to release channel") {
-                if (params.STREAM != 'stage' || params.STREAM != 'prod') {
+                if (params.STREAM == 'dev') {
                     echo "Skipping Slack notification"
                     return
                 }

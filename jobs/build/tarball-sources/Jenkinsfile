@@ -5,6 +5,7 @@ node {
     def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
+    def slacklib = commonlib.slacklib
     commonlib.describeJob("tarball-sources", """
         <h2>Prepare container-first tarball sources for publishing</h2>
         <b>Timing</b>: After the release job has run. See:
@@ -142,9 +143,24 @@ node {
                 }
                 echo "sucessfully run cmd: ${jira}"
             }
+
+            stage("slack notification to release channel") {
+                jiraCardURL = "https://projects.engineering.redhat.com/browse/${jira.Key}"
+
+                slacklib.to(version).say("""
+                *:heavy_check_mark: tarball-sources sent to CLOUDDST*
+                CLOUDDST JIRA: ${jiraCardURL}
+                buildvm job: ${commonlib.buildURL('console')}
+                """)
+            }
         }
 
     } catch (err) {
+        slacklib.to(version).say("""
+        *:heavy_exclamation_mark: tarball-sources failed*
+        buildvm job: ${commonlib.buildURL('console')}
+        """)
+
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             replyTo: "aos-team-art@redhat.com",

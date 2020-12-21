@@ -4,6 +4,7 @@ node {
     checkout scm
     def appregistry = load("appregistry.groovy")
     def commonlib = appregistry.commonlib
+    def slacklib = commonlib.slacklib
 
     commonlib.describeJob("appregistry", """
         <h2>Manage OLM operator manifests in appregistry format</h2>
@@ -145,10 +146,36 @@ node {
                     appregistry.stageAttachMetadata(operatorBuilds)
                 }
             }
+            stage("slack notification to release channel") {
+                if (params.STREAM == 'dev') {
+                    echo "Skipping Slack notification"
+                    return
+                }
+
+                metadataNVRs = appregistry.getMetadataNVRs(operatorBuilds)
+
+                slacklib.to(params.BUILD_VERSION).say("""
+                *:heavy_check_mark: appregistry ${params.STREAM}:*
+                The following builds were attached to advisory ${params.METADATA_ADVISORY}:
+                ```
+                ${metadataNVRsjoin('\n')}
+                ```
+
+                buildvm job: ${commonlib.buildURL('console')}
+                """)
+            }
         }
     } catch (err) {
         currentBuild.description = "Job failed: ${err}\n-----------------\n${currentBuild.description}"
         if (skipPush) { return }  // don't spam on failures we don't care about
+
+        if (params.STREAM == 'stage' || params.STREAM == 'prod') {
+            slacklib.to(params.BUILD_VERSION).say("""
+            *:heavy_exclamation_mark: appregistry ${params.STREAM} failed*
+            buildvm job: ${commonlib.buildURL('console')}
+            """)
+        }
+
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-art-automation@redhat.com",

@@ -1,10 +1,6 @@
 #!/usr/bin/env groovy
 
 
-def get_mirror_url(build_mode, version) {
-    return "https://mirror.openshift.com/enterprise/enterprise-${version}"
-}
-
 def get_changelog(rpm_name, record_log) {
     //
     // INPUTS:
@@ -719,7 +715,7 @@ node {
 
             // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
             PLASHET = "v${NEW_FULL_VERSION}_${PLASHET}"
-            final mirror_url = get_mirror_url(params.BUILD_VERSION)
+            final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
 
             stage("ami") {
                 if (params.BUILD_AMI && params.BUILD_CONTAINER_IMAGES) {

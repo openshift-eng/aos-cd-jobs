@@ -459,7 +459,9 @@ class KojiWrapper(wrapt.ObjectProxy):
 @click.option('--event', required=False, default=None, help='The brew event for the desired tag states')
 @click.option('--include-embargoed', default=False, is_flag=True,
               help='If specified, embargoed/unshipped RPMs will be included in the plashet')
-def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advisory_id, signing_advisory_mode, poll_for, event, include_embargoed):
+@click.option('--inherit', required=False, default=False, is_flag=True,
+              help='Descend into brew tag inheritance')
+def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advisory_id, signing_advisory_mode, poll_for, event, include_embargoed, inherit):
     """
     The repositories are filled with RPMs derived from the list of
     brew tags. If the RPMs are not signed and a repo should contain signed content,
@@ -518,7 +520,7 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
                 package_name = build['package_name']
                 released_package_nvrs[package_name] = parse_nvr(build['nvr'])
 
-        for build in koji_proxy.listTagged(tag, latest=True, inherit=False, event=event, type='rpm'):
+        for build in koji_proxy.listTagged(tag, latest=True, inherit=inherit, event=event, type='rpm'):
             package_name = build['package_name']
             nvr = build['nvr']
             parsed_nvr = parse_nvr(nvr)

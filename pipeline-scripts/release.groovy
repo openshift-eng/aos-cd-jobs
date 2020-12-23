@@ -10,7 +10,7 @@ buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 slacklib = commonlib.slacklib
 
-oc_cmd = "oc --kubeconfig=/home/jenkins/kubeconfigs/art-publish.kubeconfig"
+oc_cmd = "oc --kubeconfig=${buildlib.ciKubeconfig}"
 
 // dump important tool versions to console
 def stageVersions() {

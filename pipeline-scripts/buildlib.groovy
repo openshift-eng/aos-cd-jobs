@@ -5,7 +5,7 @@ commonlib.initialize()
 slacklib = commonlib.slacklib
 
 // Kubeconfig allowing ART to interact with api.ci.openshift.org
-ciKubeconfig = "/home/jenkins/kubeconfigs/art-publish.kubeconfig"
+ciKubeconfig = "/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig"
 
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]

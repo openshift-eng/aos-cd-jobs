@@ -94,5 +94,5 @@ trying to get a release out at the last second.
 It seems to work if we take the imagestream definitions from the job artifacts
 and hand-apply them like so on as jenkins user on buildvm:
 
-    /usr/bin/oc apply --config /home/jenkins/kubeconfigs/art-publish.kubeconfig --filename=./is.s390x.doctored.yaml
+    /usr/bin/oc apply --config /home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig --filename=./is.s390x.doctored.yaml
 

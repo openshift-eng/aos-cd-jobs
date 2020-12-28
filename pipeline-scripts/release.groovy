@@ -579,6 +579,10 @@ def signArtifacts(Map signingParams) {
     )
 }
 
+def isSupportEUS(ocpVersion) {
+  return ocpVersion in commonlib.eusVersions
+}
+
 /**
  * Opens a series of PRs against the cincinnati-graph-data GitHub repository.
  *    Specifically, a PR for each channel prefix (e.g. candidate, fast, stable) associated with the specified release
@@ -616,7 +620,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
             if ( major == 4 && minor == 1 ) {
                 prefixes = [ "prerelease", "stable"]
             }
-            if ( major == 4 && minor >= 6 ) {
+            if ( isSupportEUS(commonlib.extractMajorMinorVersion) ) {
                 prefixes = [ "candidate", "fast", "stable", "eus"]
             }
 
@@ -717,9 +721,6 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only = false,ghorg = 'ope
                             labelArgs = "-l 'do-not-merge/hold'"
                             pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
 
-                            if (prURLs.containsKey('prerelease')) {
-                                pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
-                            }
                             if (prURLs.containsKey('fast')) {
                                 pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
                             }

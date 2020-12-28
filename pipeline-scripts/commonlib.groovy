@@ -16,6 +16,11 @@ ocp4Versions = [
 
 ocpVersions = ocp4Versions + ocp3Versions
 
+eusVersions = [
+    "4.6",
+    "4.10",
+]
+
 /**
  * Why is ocpReleaseState needed?
  *

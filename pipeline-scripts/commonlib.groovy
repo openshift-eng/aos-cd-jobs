@@ -581,7 +581,7 @@ def _retryWithOptions(goal, options, slackOutput=null, prompt='', cl) {
                         success = true  // fake it
                         break
                     case 'ABORT':
-                        error('User chose to abort retries of: ${goal}')
+                        error("User chose to abort retries of: ${goal}")
                 }
             }
         }

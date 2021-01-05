@@ -36,12 +36,15 @@ node {
     commonlib.checkMock()
 
     version = params.BUILD_VERSION
-    mirror_dir = "/srv/pub/openshift-v4/dependencies/rpms/${version}-beta"
+    path = "openshift-v4/dependencies/rpms/${version}-beta"
+    mirror_dir = "/srv/pub/${path}"
     commonlib.shell(
         script: """
+            set -e
             ./collect-deps.sh ${version}
-            scp -r ${version}-beta/ use-mirror-upload:$mirror_dir
-            ssh use-mirror-upload 'createrepo --database $mirror_dir;/usr/local/bin/push.pub.sh openshift-v4/dependencies/rpms/${version}-beta -v'
+            rsync --recursive --delete ${version}-beta/ use-mirror-upload:${mirror_dir}
+            ssh use-mirror-upload 'createrepo --database ${mirror_dir} && /usr/local/bin/push.pub.sh ${path} -v'
+            rm -r ${version}-beta
         """
     )
 }

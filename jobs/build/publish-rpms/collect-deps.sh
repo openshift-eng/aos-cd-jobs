@@ -5,6 +5,8 @@ if [[ -z "$1" ]]; then
 	exit 1
 fi
 
+set -eu
+
 cat > rhel-7.conf <<EOF
 [main]
 cachedir=${PWD}/cache/
@@ -45,9 +47,8 @@ EOF
 
 # clear anything that might already exist
 TARGET_DIR="${1}-beta"
-rm -rf "cache"
-rm -rf "${TARGET_DIR}"
-sudo yum -c rhel-7.conf install --downloadonly --downloaddir="${TARGET_DIR}"\
+rm -rf cache "${TARGET_DIR}"
+yumdownloader -c rhel-7.conf --resolve --destdir="${TARGET_DIR}"\
  criu\
  runc\
  cri-o\
@@ -58,5 +59,6 @@ sudo yum -c rhel-7.conf install --downloadonly --downloaddir="${TARGET_DIR}"\
  openshift-clients-redistributable\
  slirp4netns
 
+rm -rf cache  # clean cache file when it completes
 echo "${TARGET_DIR} contains the files to mirror"
 echo "Make sure to run createrepo on the mirror and /usr/local/bin/push.pub.sh"

@@ -12,9 +12,7 @@ This creates PRs to enter the new release in all the relevant Cincinnati channel
 * `Fast` PRs are accepted when the release ships to make it available for customers (intended for test/stage)
 * `Stable` PRs are accepted 48 hours after release when OTA team has had some time to look for upgrade edges
   that they might need to exclude.
-* `eus` PRs are accepted 48 hours after release when OTA team has had some time to look for upgrade edges
-  that they might need to exclude.(starting from 4.6, we plan to gradually use eus instead of stable,and after 4.10
-  stable plan to be discard)
+* `EUS` PRs are created only for EUS releases (4.6, 4.10 planned) and like `Stable` are accepted 48 hours after release. While standard support is in place, both `eus` and `stable` channels will be updated in parallel; once standard support is complete and the release enters the EUS support phase, only the `eus` channel will be updated.
 
 ## Timing
 

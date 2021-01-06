@@ -152,7 +152,7 @@ node {
                     return
                 }
 
-                metadataNVRs = appregistry.getMetadataNVRs(operatorBuilds, params.STREAM)
+                metadataNVRs = appregistry.getMetadataNVRs(operatorBuilds.collect { it.nvr }, params.STREAM)
 
                 slacklib.to(params.BUILD_VERSION).say("""
                 *:heavy_check_mark: appregistry ${params.STREAM}:*

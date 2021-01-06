@@ -8,7 +8,7 @@ node {
 
     commonlib.describeJob("appregistry", """
         <h2>Manage OLM operator manifests in appregistry format</h2>
-        <b>Timing</b>: 
+        <b>Timing</b>:
         * dev: ocp4 and custom jobs run this automatically
         * stage: release-artists run to hand off new images for QE to verify in a release
         * prod: release-artists run for a verified release when we are CERTAIN it will ship next
@@ -32,7 +32,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     choice(
-                        name: 'BUILD_VERSION', 
+                        name: 'BUILD_VERSION',
                         description: 'OSE Version',
                         choices: ['4.5', '4.4', '4.3', '4.2', '4.1'].join('\n'),
                     ),
@@ -92,7 +92,7 @@ node {
     if (params.STREAM in ['prod', 'stage']) {
         currentBuild.displayName += " (extras: ${params.OLM_OPERATOR_ADVISORIES}, metadata: ${params.METADATA_ADVISORY})"
     }
-        
+
 
     def skipPush = params.SKIP_PUSH
 
@@ -152,7 +152,7 @@ node {
                     return
                 }
 
-                metadataNVRs = appregistry.getMetadataNVRs(operatorBuilds)
+                metadataNVRs = appregistry.getMetadataNVRs(operatorBuilds, params.STREAM)
 
                 slacklib.to(params.BUILD_VERSION).say("""
                 *:heavy_check_mark: appregistry ${params.STREAM}:*

@@ -158,7 +158,7 @@ node {
                 *:heavy_check_mark: appregistry ${params.STREAM}:*
                 The following builds were attached to advisory ${params.METADATA_ADVISORY}:
                 ```
-                ${metadataNVRsjoin('\n')}
+                ${metadataNVRs.join('\n')}
                 ```
 
                 buildvm job: ${commonlib.buildURL('console')}

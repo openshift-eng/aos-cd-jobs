@@ -56,7 +56,7 @@ class PrepareReleasePipeline:
             if ":" not in nightly:
                 # prepend pullsepc URL to nightly name
                 arch_suffix = "" if arch == "x86_64" else "-" + arch
-                nightly = f"registry.svc.ci.openshift.org/ocp{arch_suffix}/release{arch_suffix}:{nightly}"
+                nightly = f"registry.ci.openshift.org/ocp{arch_suffix}/release{arch_suffix}:{nightly}"
             self.candidate_nightlies[arch] = nightly
         self.elliott_working_dir = self.working_dir / "elliott-working"
         self._jira_client = JIRAClient.from_url(config["jira"]["url"], (jira_username, jira_password))

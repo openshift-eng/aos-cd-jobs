@@ -161,12 +161,14 @@ def removeDifferentStreamBuilds(advisory) {
     differentStreamBuilds.each {
         it -> elliottCmdBuildFlags.add("--build ${it}")
     }
-    elliott """
-        find-builds --kind image
-        ${elliottCmdBuildFlags.join(" ")}
-        -a ${advisory}
-        --remove
-    """
+    if (elliottCmdBuildFlags) {
+        elliott """
+            find-builds --kind image
+            ${elliottCmdBuildFlags.join(" ")}
+            -a ${advisory}
+            --remove
+        """
+    }
 }
 
 // attach to given advisory a list of NVRs

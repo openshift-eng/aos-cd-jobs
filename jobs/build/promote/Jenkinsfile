@@ -198,7 +198,7 @@ node {
     }
     if (major > 3 && ga_release) {
         def next_minor = "${major}.${minor + 1}"
-        if (!(commonlib.ocp4ReleaseState[next_minor] && commonlib.ocp4ReleaseState[next_minor]["release"])) {
+        if (!(commonlib.ocpReleaseState[next_minor] && commonlib.ocpReleaseState[next_minor]["release"])) {
             // Either next_minor is not yet defined, or its "release" is empty.
             next_is_prerelease = true
         }

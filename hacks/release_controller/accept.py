@@ -42,7 +42,7 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
     if arch != 'amd64' and arch != 'x86_64':
         arch_suffix = f'-{arch}'
 
-    with oc.api_server(api_url='https://api.ci.openshift.org'), \
+    with oc.api_server(api_url='https://api.ci.l2s4.p1.openshiftapps.com:6443'), \
          oc.options({'as': 'system:admin'}), \
          oc.project(f'ocp{arch_suffix}'):
 

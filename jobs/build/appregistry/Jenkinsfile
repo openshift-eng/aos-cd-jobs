@@ -162,5 +162,6 @@ node {
         commonlib.safeArchiveArtifacts([
             "workDir/*",
         ])
+        buildlib.cleanWorkspace()
     }
 }

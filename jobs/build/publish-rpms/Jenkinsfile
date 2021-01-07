@@ -44,4 +44,5 @@ node {
             ssh use-mirror-upload 'createrepo --database $mirror_dir;/usr/local/bin/push.pub.sh openshift-v4/dependencies/rpms/${version}-beta -v'
         """
     )
+    buildlib.cleanWorkspace()
 }

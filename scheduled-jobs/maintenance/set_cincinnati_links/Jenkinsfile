@@ -39,7 +39,7 @@ node() {
         runFor(version, 'fast', 'fast')
         runFor(version, 'candidate', 'candidate')
     }
-
+    buildlib.cleanWorkspace()
 }
 
 currentBuild.description = description.trim()

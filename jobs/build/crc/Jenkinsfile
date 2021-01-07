@@ -83,5 +83,6 @@ node {
                 'email/*',
             ]
         )
+        buildlib.cleanWorkspace()
     }
 }

@@ -396,4 +396,6 @@ node {
             sh "/bin/rclone --dry-run ${logCopyOpts}"
         }
     }
+
+    buildlib.cleanWorkspace()
 }

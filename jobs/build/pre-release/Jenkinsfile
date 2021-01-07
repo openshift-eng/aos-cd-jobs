@@ -181,5 +181,7 @@ node {
         currentBuild.description = "Error while running OCP pre release:\n${err}"
         currentBuild.result = "FAILURE"
         throw err
+    } finally {
+        buildlib.cleanWorkspace()
     }
 }

@@ -620,7 +620,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
             if ( major == 4 && minor == 1 ) {
                 prefixes = [ "prerelease", "stable"]
             }
-            if ( isSupportEUS(commonlib.extractMajorMinorVersion) ) {
+            if ( isSupportEUS("${major}.${minor}") ) {
                 prefixes = [ "candidate", "fast", "stable", "eus"]
             }
 

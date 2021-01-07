@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 test -z "$1" && {
 	echo "Usage: ./bump-art-tool [doozer|elliott]";

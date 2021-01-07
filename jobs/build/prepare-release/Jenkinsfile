@@ -109,5 +109,6 @@ node {
                 "pyartcd_working/**/*.log",
             ])
         }
+        buildlib.cleanWorkspace()
     }
 }

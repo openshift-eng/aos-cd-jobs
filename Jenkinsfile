@@ -57,4 +57,5 @@ Jenkins job: ${env.BUILD_URL}
 """)
     throw err
   }
+  buildlib.cleanWorkspace()
 }

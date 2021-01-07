@@ -120,5 +120,7 @@ Jenkins job: ${env.BUILD_URL}
 """);
         // Re-throw the error in order to fail the job
         throw err
+    } finally {
+        buildlib.cleanWorkspace()
     }
 }

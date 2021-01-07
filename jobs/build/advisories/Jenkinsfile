@@ -226,6 +226,8 @@ node {
                 )
             }
             throw err  // gets us a stack trace FWIW
+        } finally {
+            buildlib.cleanWorkspace()
         }
     }
 }

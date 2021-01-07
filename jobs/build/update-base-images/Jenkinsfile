@@ -104,5 +104,7 @@ node {
         currentBuild.description += "${red_p}ERROR: ${err}</p>"
 
         throw err
+    } finally {
+        buildlib.cleanWorkspace()
     }
 }

@@ -32,6 +32,7 @@ node() {
     for ( String version : sortedVersions() ) {
         runFor(version)
     }
+    buildlib.cleanWorkspace()
 }
 
 currentBuild.description = description.trim()

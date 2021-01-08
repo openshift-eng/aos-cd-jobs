@@ -651,8 +651,8 @@ node {
 
                 def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
 
-                buildlib.buildBuildingPlashet(spec.version, spec.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
-                def plashet = buildlib.buildBuildingPlashet(spec.version, spec.release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
+                buildlib.buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
+                def plashet = buildlib.buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
                 PLASHET = plashet.plashetDirName
             }
 

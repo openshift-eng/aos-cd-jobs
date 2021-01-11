@@ -145,7 +145,8 @@ node {
             }
 
             stage("slack notification to release channel") {
-                jiraCardURL = "https://projects.engineering.redhat.com/browse/${jira.Key}"
+                def jiraKey = (jira =~ /CLOUDDST-\d+/)[0]
+                jiraCardURL = "https://projects.engineering.redhat.com/browse/${jiraKey}"
 
                 slacklib.to(version).say("""
                 *:heavy_check_mark: tarball-sources sent to CLOUDDST*

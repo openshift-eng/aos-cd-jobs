@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TAG="{$TAG:-${1:-}}"
+TAG="${TAG:-${1:-}}"
 
 if [[ -z "$TAG" ]]; then
     echo "Specify a tag to download logs for"

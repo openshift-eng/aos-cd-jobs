@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-TAG="{$TAG:-${1:-}}"
+TAG="${TAG:-${1:-}}"
 
 if [[ -z "$TAG" ]]; then
     echo "Run only after running findit.sh and inspecting the unused-components file."

@@ -14,6 +14,7 @@ properties(
                     description: 'OCP target branch',
                     $class: 'hudson.model.ChoiceParameterDefinition',
                     choices: [
+                            'rhaos-4.8-rhel-8',
                             'rhaos-4.7-rhel-8',
                             'rhaos-4.6-rhel-8',
                             'rhaos-4.5-rhel-7',
@@ -22,7 +23,7 @@ properties(
                             'rhaos-4.2-rhel-7',
                             'rhaos-3.11-rhel-7',
                         ].join('\n'),
-                    defaultValue: 'rhaos-4.7-rhel-8'
+                    defaultValue: 'rhaos-4.8-rhel-8'
                 ],
                 [
                     name: 'PLUGIN_LIST',

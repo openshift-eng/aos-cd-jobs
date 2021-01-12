@@ -236,7 +236,7 @@ export -f gbr::get_build_target
 
 gbr::get_build_rpms() {
     brew_buildinfo_output="$1"
-    echo "${brew_buildinfo_output}" | grep -E '\.rpm$'
+    echo "${brew_buildinfo_output}" | grep -oE '\S+\.rpm'
 }
 export -f gbr::get_build_rpms
 

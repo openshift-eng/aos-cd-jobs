@@ -19,19 +19,19 @@ installonly_limit=3
 
 [rhel-server-optional-rpms]
 name = rhel-server-optional-rpms
-baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/optional/os/
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/x86_64/optional/os/
 gpgcheck = 0
 enabled = 1
 
 [rhel-server-extras-rpms]
 name = rhel-server-extras-rpms
-baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/extras/os/
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/x86_64/extras/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-rpms]
 name = rhel-server-rpms
-baseurl = http://pulp.dist.prod.ext.phx2.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os/
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os/
 enabled = 1
 gpgcheck = 0
 

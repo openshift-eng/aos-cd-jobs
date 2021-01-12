@@ -1,8 +1,12 @@
 #!/bin/bash
 set -eux
 
+rpm_path() {
+    printf "${RPM_PATH}" "${arch}"
+}
+
 rpm_name() {
-    printf "${RPM}" "${arch}"
+    echo -n "${RPM}"
     [[ "${arch}" == x86_64 ]] && printf %s -redistributable
     printf %s "-${VERSION}"
 }
@@ -11,7 +15,7 @@ extract() {
     local arch rpm
     mkdir macosx windows
     for arch in x86_64 ${ARCH}; do
-        rpm=$(echo "$(rpm_name "${arch}")"*)
+        rpm=$(echo "$(rpm_path)/${PKG}"*/"$(rpm_name)"*)
         if [[ "${arch}" != x86_64 && ! -e "${rpm}" ]]; then continue; fi
         mkdir "${arch}"
         if [[ "${arch}" != x86_64 ]]; then
@@ -42,9 +46,9 @@ pkg_tar() {
 
 OSE_VERSION=$1
 VERSION=$2
+RPM_PATH=/mnt/rcm-guest/puddles/RHAOS/plashets/${OSE_VERSION}/building/%s/os/Packages
 PKG=${3:-atomic-openshift}
-RPM=/mnt/rcm-guest/puddles/RHAOS/plashets/${OSE_VERSION}/building/%s
-RPM=${RPM}/os/Packages/${PKG}-clients
+RPM=${PKG}-clients
 ARCH='aarch64 ppc64le s390x'
 TMPDIR=$(mktemp -dt ocbinary.XXXXXXXXXX)
 trap "rm -rf '${TMPDIR}'" EXIT INT TERM

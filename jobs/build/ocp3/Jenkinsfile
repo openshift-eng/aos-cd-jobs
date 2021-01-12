@@ -736,13 +736,7 @@ node {
                 }
             }
 
-            if (NEW_RELEASE != "1") {
-                // If this is not a release candidate, push binary in a directory qualified with release field information
-                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
-            } else {
-                // If this is a release candidate, the directory binary directory should not contain release information
-                buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_VERSION)
-            }
+            buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
 
             stage("sweep") {
                 buildlib.sweep(params.BUILD_VERSION)

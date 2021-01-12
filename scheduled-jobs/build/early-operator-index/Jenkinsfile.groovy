@@ -20,13 +20,9 @@ node {
 
     // Note this logic will start to fail when versions of the operators start to be attached to
     // advisories and pushed to staging.
-    def pullspecs = buildlib.doozer("-x cluster-nfd-operator --group=openshift-4.7 --working-dir=${workDir} olm-bundle:print " + '{bundle_pullspec}',
+    def pullspecs = buildlib.doozer("--group=openshift-4.7 --working-dir=${workDir} olm-bundle:print " + '{bundle_pullspec}',
             [capture: true]).trim().split()
 
-    // At the time of this writing cluster-nfd-operator builds cannot be added to the staging index
-    // because all builds of it are 1.0.0 and we cannot replace an existing version.
-    pullspecs = pullspecs.findAll { !it.contains('nfd') }
-    
     request = [
         'bundles': pullspecs,
         'from_index': 'registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v4.7'

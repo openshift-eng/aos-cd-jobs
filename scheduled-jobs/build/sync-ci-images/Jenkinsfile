@@ -49,6 +49,10 @@ node {
         for_versions = sortedVersions()
     }
 
+    if (params.FORCE_RUN) {
+        currentBuild.displayName += " (forced)"
+    }
+
     for ( String version : for_versions ) {
         group = "openshift-${version}"
         echo "Checking group: ${group}"
@@ -70,6 +74,7 @@ node {
 
         if (now_hash != prev_hash || params.FORCE_RUN) {
             echo "Changes detected in ocp-build-data group: ${group}"
+            currentBuild.displayName += " ${version}"
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
             try{

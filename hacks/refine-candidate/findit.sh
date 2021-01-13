@@ -45,7 +45,7 @@ for build in $(cat rpm-builds); do
                 fi
 
                 bases="$base $bases"
-                grep "Installing :.*$N" kojilogs/*/*.log  > /dev/null
+                grep "Installing *:.*$N" kojilogs/*/*.log  > /dev/null
                 if [[ "$?" == "0" ]]; then
                         found=1
                         break

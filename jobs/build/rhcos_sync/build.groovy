@@ -55,6 +55,8 @@ def initialize() {
             sh("wget ${metaUrl}")
             artifacts.add("${rhcosWorking}/meta.json")
         }
+
+        commonlib.shell(script: "pip install awscli")
     }
 }
 
@@ -100,6 +102,10 @@ def rhcosSyncMirrorArtifacts() {
     }
 
     buildlib.invoke_on_use_mirror("rhcossync.sh", invokeOpts)
+}
+
+def rhcosSyncROSA() {
+    commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rhcosWorking}/meta.json ${params.DRY_RUN}")
 }
 
 def rhcosSyncGenDocs() {

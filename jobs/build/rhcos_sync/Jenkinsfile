@@ -107,6 +107,19 @@ node {
             buildvm job: ${commonlib.buildURL('console')}
             """)
         }
+        // only sync AMI to ROSA Marketplace account when no custom sync list is defined
+        if ( params.SYNC_LIST == "" ) {
+            stage("Mirror ROSA AMIs") {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    build.rhcosSyncROSA()
+                }
+            }
+        }
+        stage("Slack notification to release channel") {
+            slacklib.to(params.BUILD_VERSION).say("""
+            *:heavy_check_mark: rosa_sync (${params.NAME}) successful*
+            """)
+        }
     } catch ( err ) {
         slacklib.to(params.BUILD_VERSION).say("""
         *:heavy_exclamation_mark: rhcos_sync ${params.RHCOS_MIRROR_PREFIX} failed*

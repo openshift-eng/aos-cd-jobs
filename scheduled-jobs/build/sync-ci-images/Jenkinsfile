@@ -94,7 +94,7 @@ node {
                         sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams check-upstream"
                         withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                             if ( (major == 4 && minor >= 6) || major > 4 ) {
-                                // Only open PRs on >= 4.7 to leave well enough alone.
+                                // Only open PRs on >= 4.6 to leave well enough alone.
                                 sh "${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams prs open --add-labels --github-access-token ${GITHUB_TOKEN}"
                             }
                         }

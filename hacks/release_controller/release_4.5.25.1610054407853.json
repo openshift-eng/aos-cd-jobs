@@ -1,0 +1,144 @@
+{
+    "apiVersion": "image.openshift.io/v1",
+    "generation": 21050,
+    "image": {
+        "dockerImageLayers": [
+            {
+                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+                "name": "sha256:eae19a56e9c600eb0a59816d9d0ad7065824a34a13be60469084304fc7170334",
+                "size": 76421592
+            },
+            {
+                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+                "name": "sha256:be73321c79565b4e2fdf9f55ba6333e5d50a1bcf583db3b41be45a9be7d82431",
+                "size": 1811
+            },
+            {
+                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+                "name": "sha256:380ed7e809c8904e66b96f06fc1f3fe8a5ac92e7abe9e18cb6133f4c7c3e484c",
+                "size": 3527577
+            },
+            {
+                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+                "name": "sha256:4aa99647f8a9407f321b907c22597cde64d4a95710bfeb2e3c34f454bf9930b9",
+                "size": 9613405
+            },
+            {
+                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+                "name": "sha256:64d10a7de5500cee7a7aa2df6f3c0b34bfaa3f29b8cde2f398fd8f1a05acf0f8",
+                "size": 19809031
+            },
+            {
+                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+                "name": "sha256:1bd490676b3332a1bbe49a5ad5562f7f4f67f00dd59c86d1b205ee45ba090ede",
+                "size": 288582
+            }
+        ],
+        "dockerImageManifestMediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "dockerImageMetadata": {
+            "Architecture": "amd64",
+            "Config": {
+                "Entrypoint": [
+                    "/usr/bin/cluster-version-operator"
+                ],
+                "Env": [
+                    "__doozer=merge",
+                    "BUILD_RELEASE=202101051830.p0",
+                    "BUILD_VERSION=v4.5.0",
+                    "OS_GIT_MAJOR=4",
+                    "OS_GIT_MINOR=5",
+                    "OS_GIT_PATCH=0",
+                    "OS_GIT_TREE_STATE=clean",
+                    "OS_GIT_VERSION=4.5.0-202101051830.p0-0a34ac3",
+                    "SOURCE_GIT_TREE_STATE=clean",
+                    "OS_GIT_COMMIT=0a34ac3",
+                    "SOURCE_DATE_EPOCH=1602278498",
+                    "SOURCE_GIT_COMMIT=0a34ac3632dd869e9975fc6e9ebdcb95ef9374b8",
+                    "SOURCE_GIT_TAG=v1.0.0-268-g0a34ac3",
+                    "SOURCE_GIT_URL=https://github.com/openshift/cluster-version-operator",
+                    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                    "container=oci"
+                ],
+                "Hostname": "4e38d9159ba6",
+                "Labels": {
+                    "io.openshift.release": "4.5.25",
+                    "io.openshift.release.base-image-digest": "sha256:6dd105fd944759cfc9bc22071f11e530ab5aee233506e18ba293d7deb944df4d"
+                },
+                "User": "0"
+            },
+            "ContainerConfig": {},
+            "Created": "2021-01-07T13:33:42Z",
+            "DockerVersion": "1.13.1",
+            "Id": "sha256:0b02150e8d178d4e8d24723d02b934afffbbcd798b854fd7b3ecefaf2280efb9",
+            "Size": 109663686,
+            "apiVersion": "image.openshift.io/1.0",
+            "kind": "DockerImage"
+        },
+        "dockerImageMetadataVersion": "1.0",
+        "dockerImageReference": "quay.io/openshift-release-dev/ocp-release@sha256:b8fa13e09d869089fc5957c32b02b7d3792a0b6f36693432acc0409615ab23b7",
+        "metadata": {
+            "annotations": {
+                "image.openshift.io/dockerLayersOrder": "ascending",
+                "release.openshift.io/creationTimestamp": "2021-01-07T13:34:05Z",
+                "release.openshift.io/hash": "4.5.25-21050",
+                "release.openshift.io/message": "release verification step failed: upgrade",
+                "release.openshift.io/name": "4-stable",
+                "release.openshift.io/phase": "Rejected",
+                "release.openshift.io/reason": "VerificationFailed",
+                "release.openshift.io/rewrite": "false",
+                "release.openshift.io/source": "ocp/release",
+                "release.openshift.io/verify": "{\"upgrade\":{\"state\":\"Failed\",\"url\":\"https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/release-openshift-origin-installer-e2e-aws-upgrade/1347175035449643008\"},\"upgrade-minor\":{\"state\":\"Succeeded\",\"url\":\"https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/release-openshift-origin-installer-e2e-aws-upgrade/1347175035491586048\"}}"
+            },
+            "creationTimestamp": "2021-01-07T13:34:06Z",
+            "name": "sha256:b8fa13e09d869089fc5957c32b02b7d3792a0b6f36693432acc0409615ab23b7",
+            "resourceVersion": "411832119",
+            "uid": "f60f0dca-2474-40f4-abf3-deb84667c043"
+        }
+    },
+    "kind": "ImageStreamTag",
+    "lookupPolicy": {
+        "local": false
+    },
+    "metadata": {
+        "annotations": {
+            "release.openshift.io/creationTimestamp": "2021-01-07T13:34:05Z",
+            "release.openshift.io/hash": "4.5.25-21050",
+            "release.openshift.io/message": "release verification step failed: upgrade",
+            "release.openshift.io/name": "4-stable",
+            "release.openshift.io/phase": "Rejected",
+            "release.openshift.io/reason": "VerificationFailed",
+            "release.openshift.io/rewrite": "false",
+            "release.openshift.io/source": "ocp/release",
+            "release.openshift.io/verify": "{\"upgrade\":{\"state\":\"Failed\",\"url\":\"https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/release-openshift-origin-installer-e2e-aws-upgrade/1347175035449643008\"},\"upgrade-minor\":{\"state\":\"Succeeded\",\"url\":\"https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/release-openshift-origin-installer-e2e-aws-upgrade/1347175035491586048\"}}"
+        },
+        "creationTimestamp": "2021-01-07T13:34:06Z",
+        "name": "release:4.5.25",
+        "namespace": "ocp",
+        "resourceVersion": "412736145",
+        "selfLink": "/apis/image.openshift.io/v1/namespaces/ocp/imagestreamtags/release:4.5.25",
+        "uid": "af8c69dc-0ef5-4af2-8158-7aeee50d7475"
+    },
+    "tag": {
+        "annotations": {
+            "release.openshift.io/creationTimestamp": "2021-01-07T13:34:05Z",
+            "release.openshift.io/hash": "4.5.25-21050",
+            "release.openshift.io/message": "release verification step failed: upgrade",
+            "release.openshift.io/name": "4-stable",
+            "release.openshift.io/phase": "Rejected",
+            "release.openshift.io/reason": "VerificationFailed",
+            "release.openshift.io/rewrite": "false",
+            "release.openshift.io/source": "ocp/release",
+            "release.openshift.io/verify": "{\"upgrade\":{\"state\":\"Failed\",\"url\":\"https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/release-openshift-origin-installer-e2e-aws-upgrade/1347175035449643008\"},\"upgrade-minor\":{\"state\":\"Succeeded\",\"url\":\"https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/release-openshift-origin-installer-e2e-aws-upgrade/1347175035491586048\"}}"
+        },
+        "from": {
+            "kind": "DockerImage",
+            "name": "quay.io/openshift-release-dev/ocp-release:4.5.25-x86_64"
+        },
+        "generation": 21050,
+        "importPolicy": {},
+        "name": "4.5.25",
+        "referencePolicy": {
+            "type": "Source"
+        }
+    }
+}

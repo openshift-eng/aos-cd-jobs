@@ -54,6 +54,11 @@ node('covscan') {
                         defaultValue: false,
                         description: "Do not rebuild scanner images if they are available (will save time during testing if true)."
                     ),
+                    booleanParam(
+                        name: 'REBUILD_REPOS',
+                        defaultValue: false,
+                        description: "Force rebuild of the covscan repositories."
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -107,9 +112,13 @@ enabled_metadata=1
 
                     lock('buildvm2-yum') { // Don't use yum while a job like reposync is
                         // download the repo contents and create local repositories
-                        sh "reposync  -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -e covscan_cache -r covscan -r covscan-testing"
-                        sh "createrepo ${prefix}_repos/covscan"
-                        sh "createrepo ${prefix}_repos/covscan-testing"
+                        if ( params.REBUILD_REPOS ) {
+                            sh "rm -rf ${prefix}_repos"
+                            sh "sudo yum clean metadata"
+                        }
+                        sh "reposync -t -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -e covscan_cache -r covscan -r covscan-testing"
+                        sh "createrepo_c ${prefix}_repos/covscan"
+                        sh "createrepo_c ${prefix}_repos/covscan-testing"
                     }
 
                 }

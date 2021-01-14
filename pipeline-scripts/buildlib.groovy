@@ -122,8 +122,8 @@ def setup_venv() {
 }
 
 def doozer(cmd, opts=[:]){
-    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws_simpledb_doozer_creds', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-        withEnv(['AWS_DEFAULT_REGION=us-east-1']) {
+    withCredentials([usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
+        withEnv(['DOOZER_DB_NAME=dev_build']) {
             return commonlib.shell(
                     returnStdout: opts.capture ?: false,
                     alwaysArchive: opts.capture ?: false,

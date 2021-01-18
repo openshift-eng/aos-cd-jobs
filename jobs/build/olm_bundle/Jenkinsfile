@@ -1,4 +1,4 @@
-node {
+node('covscan') {
     checkout scm
     olm_bundles = load('olm_bundles.groovy')
     olm_bundles.commonlib.describeJob("olm_bundle", """
@@ -87,6 +87,7 @@ pipeline {
                     def only = olm_bundles.commonlib.parseList(params.ONLY)
                     def exclude = olm_bundles.commonlib.parseList(params.EXCLUDE)
                     operator_packages = (only ?: olm_bundles.get_olm_operators()) - exclude
+                    olm_bundles.buildlib.initialize(false, false)  // ensure kinit
                 }
             }
         }

@@ -23,7 +23,9 @@ RUN dnf install -y \
   # clean up
   && dnf clean all \
   # make "python" available
-  && ln -sfn /usr/bin/python3 /usr/bin/python
+  && ln -sfn /usr/bin/python3 /usr/bin/python \
+  # install aws cli
+  && python -m pip install awscli
 
 
 ARG OC_VERSION=latest

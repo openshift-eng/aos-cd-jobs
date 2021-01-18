@@ -1196,12 +1196,12 @@ def cleanWorkdir(workdir, synchronous=false) {
         // Some jobs can make large doozer_workings faster than rm -rf can remove them.
         // Those jobs should call with synchronous.
         sh """
-        rm -rf ${workdir}.rm.*
+        sudo rm -rf ${workdir}.rm.*
         """
     } else {
         sh """
             # see discussion at https://stackoverflow.com/a/37161006 re:
-            JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'rm -rf ${workdir}.rm.*' &
+            JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'sudo rm -rf ${workdir}.rm.*' &
         """
     }
 

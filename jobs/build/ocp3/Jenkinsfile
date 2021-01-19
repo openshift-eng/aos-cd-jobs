@@ -747,23 +747,11 @@ node {
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)
         }
     } catch (err) {
-
-        ATTN = ""
-        try {
-            NEW_BUILD = sh(returnStdout: true, script: "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew latest-build --quiet rhaos-${params.BUILD_VERSION}-rhel-7-candidate atomic-openshift | awk '{print \$1}'").trim()
-            if (PREV_BUILD != null && PREV_BUILD != NEW_BUILD) {
-                // Untag anything tagged by this build if an error occured at any point
-                sh "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew --user=ocp-build untag-build rhaos-${params.BUILD_VERSION}-rhel-7-candidate ${NEW_BUILD}"
-            }
-        } catch (err2) {
-            ATTN = " - UNABLE TO UNTAG!"
-        }
-
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-art-automation@redhat.com",
             replyTo: "aos-team-art@redhat.com",
-            subject: "Error building OSE: ${params.BUILD_VERSION}${ATTN}",
+            subject: "Error building OSE: ${params.BUILD_VERSION}",
             body: """Encountered an error while running OCP pipeline: ${err}
 
 Jenkins job: ${env.BUILD_URL}

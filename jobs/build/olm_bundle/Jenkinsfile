@@ -18,7 +18,7 @@ node('covscan') {
 }
 
 pipeline {
-    agent any
+    agent { label 'covscan' }
 
     options {
         disableResume()

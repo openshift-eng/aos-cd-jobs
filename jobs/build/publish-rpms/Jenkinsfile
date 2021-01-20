@@ -47,4 +47,5 @@ node {
             rm -r ${version}-beta
         """
     )
+    buildlib.cleanWorkspace()
 }

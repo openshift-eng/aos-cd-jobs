@@ -93,6 +93,8 @@ node {
         currentBuild.description = "Error while setting latest ocp client:\n${err}"
         currentBuild.result = "FAILURE"
         throw err
+    } finally {
+        buildlib.cleanWorkdir(env.WORKSPACE)  // at end of job, ok to wipe out code
+        buildlib.cleanWorkspace()
     }
-    buildlib.cleanWorkdir(env.WORKSPACE)  // at end of job, ok to wipe out code
 }

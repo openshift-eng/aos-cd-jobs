@@ -138,5 +138,6 @@ There was an issue running build-sync for OCP ${params.RHCOS_MIRROR_PREFIX}:
         throw ( err )
     } finally {
         commonlib.safeArchiveArtifacts(build.artifacts)
+        buildlib.cleanWorkspace()
     }
 }

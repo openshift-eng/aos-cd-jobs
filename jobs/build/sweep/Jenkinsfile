@@ -136,4 +136,5 @@ node {
         buildlib.attachBuildsToAdvisory(["rpm", "image"], params.BUILD_VERSION)
     }
     currentBuild.description = "Ran without errors\n---------------\n" + currentBuild.description
+    buildlib.cleanWorkspace()
 }

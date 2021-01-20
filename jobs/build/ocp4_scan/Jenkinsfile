@@ -193,5 +193,7 @@ node('covscan') {
         )
 
         throw err
+    } finally {
+        buildlib.cleanWorkspace()
     }
 }

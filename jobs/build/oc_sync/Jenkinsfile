@@ -117,4 +117,5 @@ Jenkins Job: ${buildURL}
         throw err
     }
     buildlib.cleanWorkdir(env.WORKSPACE)  // at end of job, ok to wipe out code
+    buildlib.cleanWorkspace()
 }

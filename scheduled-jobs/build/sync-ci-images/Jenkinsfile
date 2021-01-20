@@ -132,4 +132,5 @@ node {
         }
     }
 
+    buildlib.cleanWorkspace()
 }

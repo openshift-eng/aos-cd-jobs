@@ -189,5 +189,6 @@ node('covscan') {
         commonlib.safeArchiveArtifacts([
             "workDir/*",
         ])
+        buildlib.cleanWorkspace()
     }
 }

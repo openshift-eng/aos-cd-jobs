@@ -141,5 +141,7 @@ node(TARGET_NODE) {
 
         // Re-throw the error in order to fail the job
         throw err
+    } finally {
+        buildlib.cleanWorkspace()
     }
 }

@@ -83,4 +83,6 @@ node(TARGET_NODE) {
         testlib.test_sort_versions()
         echo "END: test_sort_versions()"
     }
+
+    buildlib.cleanWorkspace()
 }

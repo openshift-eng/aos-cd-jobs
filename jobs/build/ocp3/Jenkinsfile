@@ -767,5 +767,6 @@ Jenkins job: ${env.BUILD_URL}
             "doozer_working/*.yml",
         ])
         buildlib.cleanWorkdir(DOOZER_WORKING)
+        buildlib.cleanWorkspace()
     }
 }

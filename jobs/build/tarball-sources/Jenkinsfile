@@ -171,5 +171,8 @@ node {
         currentBuild.description = "Error while running OCP Tarball sources:\n${err}"
         currentBuild.result = "FAILURE"
         throw err
+    } finally {
+        buildlib.cleanWorkspace()
     }
+    
 }

@@ -1174,6 +1174,19 @@ def getGroupBranch(doozerOpts) {
     return branch
 }
 
+def cleanWorkspace() {
+    cleanWs(cleanWhenFailure: false, notFailBuild: true)
+    dir("${workspace}@tmp") {
+        deleteDir()
+    }
+    dir("${workspace}@script") {
+        deleteDir()
+    }
+    dir("${workspace}@libs") {
+        deleteDir()
+    }
+}
+
 WORKDIR_COUNTER=0 // ensure workdir cleanup can be invoked multiple times per job
 def cleanWorkdir(workdir, synchronous=false) {
     // get a fresh workdir; removing the old one can be synchronous or background.

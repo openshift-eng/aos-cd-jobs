@@ -317,5 +317,6 @@ Job console: ${commonlib.buildURL('console')}
                 "doozer_working/brew-logs/**",
             ])
         buildlib.cleanWorkdir(doozer_working)
+        buildlib.cleanWorkspace()
     }
 }

@@ -561,5 +561,6 @@ Quay PullSpec: quay.io/openshift-release-dev/ocp-release:${dest_release_tag}
 
 ${release_info}
         """);
+        buildlib.cleanWorkspace()
     }
 }

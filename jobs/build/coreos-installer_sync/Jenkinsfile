@@ -114,4 +114,6 @@ node {
             )
         }
     }
+
+    buildlib.cleanWorkspace()
 }

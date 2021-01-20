@@ -55,4 +55,6 @@ node() {
     timeout(time: 2, unit: 'HOURS') {
         sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- push.enterprise.sh -v ${MIRROR_RELATIVE_REPOSYNC}"
     }
+
+    buildlib.cleanWorkspace()
 }

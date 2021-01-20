@@ -1,6 +1,12 @@
 properties(
   [
-    disableConcurrentBuilds()
+    disableConcurrentBuilds(),
+    disableResume(),
+    buildDiscarder(
+      logRotator(
+        artifactDaysToKeepStr: '60',
+        daysToKeepStr: '60')
+    ),
   ]
 )
 
@@ -57,5 +63,4 @@ Jenkins job: ${env.BUILD_URL}
 """)
     throw err
   }
-  buildlib.cleanWorkspace()
 }

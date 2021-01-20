@@ -7,8 +7,8 @@ node {
     def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
     commonlib.describeJob("oc_sync", """
-        <h2>Sync the oc and installer clients to mirror</h2>
-        Extracts the clients from the payload cli-artifacts image and publishes them to
+        <h2>Sync the oc, installer, and opm clients to mirror</h2>
+        Extracts the clients from the payload cli-artifacts and operator-registry images and publishes them to
         <a href="http://mirror.openshift.com/pub/openshift-v4/clients/ocp" target="_blank">the mirror</a>
         or <a href="http://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview" target="_blank">ocp-dev-preview</a>
 
@@ -55,6 +55,7 @@ node {
                         ].join(','),
                         trim: true,
                     ),
+                    commonlib.dryrunParam('Take no actions.'),
                     commonlib.suppressEmailParam(),
                     commonlib.mockParam(),
                 ]
@@ -79,34 +80,44 @@ node {
                 error("I'm not sure you want to publish a nightly out as the ocp client type")
             }
             pull_spec = "quay.io/openshift-release-dev/ocp-release:${releaseTag}"
-        } else {
+        } else if (params.CLIENT_TYPE == 'ocp-dev-preview') {
             pull_spec = "quay.io/openshift-release-dev/ocp-release-nightly:${releaseTag}"
+        } else {
+            error("CLIENT_TYPE ${params.CLIENT_TYPE} is unknown.")
         }
 
         sshagent(['aos-cd-test']) {
             stage("sync ocp clients") {
                 // must be able to access remote registry to extract image contents
                 buildlib.registry_quay_dev_login()
-                commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
-                slacklib.to(ocpVersion).say("""
-                *:heavy_check_mark: oc_sync successful*
-                https://mirror.openshift.com/pub/openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.RELEASE_NAME}/
+                timeout(time: 60, unit: 'MINUTES') {
+                    withEnv(["DRY_RUN=${params.DRY_RUN? '1' : ''}"]){
+                        commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
+                    }
+                }
+                if (!params.DRY_RUN) {
+                    slacklib.to(ocpVersion).say("""
+                    *:heavy_check_mark: oc_sync successful*
+                    https://mirror.openshift.com/pub/openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.RELEASE_NAME}/
 
-                buildvm job: ${commonlib.buildURL('console')}
-                """)
+                    buildvm job: ${commonlib.buildURL('console')}
+                    """)
+                }
             }
         }
     } catch (err) {
         def buildURL = env.BUILD_URL.replace('https://buildvm.openshift.eng.bos.redhat.com:8443', 'https://localhost:8888')
-        slacklib.to(ocpVersion).say("""
-        *:heavy_exclamation_mark: oc_sync failed*
-        buildvm job: ${commonlib.buildURL('console')}
-        """)
+        if (!params.DRY_RUN) {
+            slacklib.to(ocpVersion).say("""
+            *:heavy_exclamation_mark: oc_sync failed*
+            buildvm job: ${commonlib.buildURL('console')}
+            """)
+        }
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",
             from: "aos-art-automation@redhat.com",
             replyTo: "aos-team-art@redhat.com",
-            subject: "Error syncing ocp client from payload",
+            subject: "${params.DRY_RUN? '[DRY RUN]' : ''}Error syncing ocp client from payload",
             body: """Encountered an error while syncing ocp client from payload: ${err}
 
 Jenkins Job: ${buildURL}

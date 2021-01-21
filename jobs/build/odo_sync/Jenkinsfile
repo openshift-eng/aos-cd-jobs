@@ -42,7 +42,7 @@ pipeline {
         )
         string(
             name: "SITE_TARBALL_LOCATION",
-            description: "Example: https://github.com/openshift/odo/releases/download/v2.0.1/site.tar.gz",
+            description: "(Optional) Example: https://github.com/openshift/odo/releases/download/v2.0.1/site.tar.gz",
             defaultValue: "",
             trim: true,
         )
@@ -68,15 +68,22 @@ pipeline {
                 stage("linux")   { steps { script { downloadRecursive(params.LINUX_BINARIES_LOCATION,   params.VERSION) }}}
                 stage("macos")   { steps { script { downloadRecursive(params.MACOS_BINARIES_LOCATION,   params.VERSION) }}}
                 stage("windows") { steps { script { downloadRecursive(params.WINDOWS_BINARIES_LOCATION, params.VERSION) }}}
-                stage("site")    { steps { script { downloadRecursive(params.SITE_TARBALL_LOCATION,     params.VERSION) }}}
             }
+        }
+        stage("Download site") {
+            when  { expression { ! params.SITE_TARBALL_LOCATION.isEmpty() }}
+            steps { script { downloadRecursive(params.SITE_TARBALL_LOCATION, params.VERSION) }}
         }
         stage("Combine sha256sums") {
             steps {
                 sh "cat ${params.VERSION}/sha256sum.* >> ${params.VERSION}/SHA256SUM"
                 sh "rm ${params.VERSION}/sha256sum.*"
                 sh "mv ${params.VERSION}/SHA256SUM ${params.VERSION}/sha256sum.txt"
-                sh "sha256sum ${params.VERSION}/site.tar.gz >> ${params.VERSION}/sha256sum.txt"
+                script {
+                    if (!params.SITE_TARBALL_LOCATION.isEmpty()) {
+                        sh "sha256sum ${params.VERSION}/site.tar.gz >> ${params.VERSION}/sha256sum.txt"
+                    }
+                }
             }
         }
 

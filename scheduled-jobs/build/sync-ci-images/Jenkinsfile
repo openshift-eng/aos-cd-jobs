@@ -16,6 +16,10 @@ node {
     properties([
         disableConcurrentBuilds(),
         disableResume(),
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '20',
+                daysToKeepStr: '20')),
         [
             $class: 'ParametersDefinitionProperty',
             parameterDefinitions: [

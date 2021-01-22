@@ -110,6 +110,10 @@ node {
         // only sync AMI to ROSA Marketplace account when no custom sync list is defined
         if ( params.SYNC_LIST == "" ) {
             stage("Mirror ROSA AMIs") {
+                if ( params.ARCH != 'x86_64' ) {
+                    echo "Skipping ROSA sync for non-x86 arch"
+                    return
+                }
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     build.rhcosSyncROSA()
                 }

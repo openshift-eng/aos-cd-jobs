@@ -73,7 +73,7 @@ if [ "$#" -lt 2 ] ; then
   usage
 fi
 
-PUDDLEDIR=${BASEDIR}/AtomicOpenShift/${MAJOR_MINOR}
+PUDDLEDIR=${BASEDIR}/plashets/${MAJOR_MINOR}
 
 # This directory is initially created by puddle as 755.  Setting it to 775
 # allows other trusted users to run puddle/write into this directory once the

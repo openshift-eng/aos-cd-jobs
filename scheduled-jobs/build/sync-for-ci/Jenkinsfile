@@ -24,7 +24,7 @@ def runFor(group, dir, arch="x86_64") {
 
 @NonCPS
 def sortedVersions() {
-  def disabled = ['4.4', '4.3', '4.2']
+  def disabled = []
   return commonlib.ocp4Versions.sort(false).findAll { !disabled.contains(it) }
 }
 

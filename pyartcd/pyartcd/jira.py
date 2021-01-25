@@ -26,7 +26,7 @@ class JIRAClient:
             "issuetype": {"name": fields["issuetype"]["name"]},
             "components": fields.get("components", []).copy(),
             "labels": fields.get("labels", []).copy(),
-            "reporter": {"name": fields["reporter"]["name"]},
+            # "reporter": {"name": fields["reporter"]["name"]},
         }
         assignee = fields.get("assignee", None)
         if assignee:

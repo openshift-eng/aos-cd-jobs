@@ -107,8 +107,10 @@ node {
             buildvm job: ${commonlib.buildURL('console')}
             """)
         }
+        
+        // only run for x86_64 since no AMIs for other arches        
         // only sync AMI to ROSA Marketplace account when no custom sync list is defined
-        if ( params.SYNC_LIST == "" ) {
+        if ( params.SYNC_LIST == "" && params.ARCH == "x86_64") {
             stage("Mirror ROSA AMIs") {
                 if ( params.ARCH != 'x86_64' ) {
                     echo "Skipping ROSA sync for non-x86 arch"
@@ -118,11 +120,11 @@ node {
                     build.rhcosSyncROSA()
                 }
             }
-        }
-        stage("Slack notification to release channel") {
-            slacklib.to(params.BUILD_VERSION).say("""
-            *:heavy_check_mark: rosa_sync (${params.NAME}) successful*
-            """)
+            stage("Slack notification to release channel") {
+                slacklib.to(params.BUILD_VERSION).say("""
+                *:heavy_check_mark: rosa_sync (${params.NAME}) successful*
+                """)
+            }
         }
     } catch ( err ) {
         slacklib.to(params.BUILD_VERSION).say("""

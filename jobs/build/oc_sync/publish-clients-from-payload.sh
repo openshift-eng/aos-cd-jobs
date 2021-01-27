@@ -13,6 +13,9 @@ CLIENT_TYPE=$3
 PULL_SPEC=$4
 
 
+MAJOR=$(echo "$VERSION" | cut -d . -f 1)
+MINOR=$(echo "$VERSION" | cut -d . -f 2)
+
 GOTRACEBACK=all oc version --client
 
 ARCH=$(skopeo inspect docker://${PULL_SPEC} --config | jq .architecture -r)
@@ -80,8 +83,6 @@ function extract_opm() {
         PLATFORMS+=(mac windows)
     fi
 
-    MAJOR=$(echo "$VERSION" | cut -d . -f 1)
-    MINOR=$(echo "$VERSION" | cut -d . -f 2)
     if [ "$MAJOR" -eq 4 ] && [ "$MINOR" -le 6 ]; then
         PREFIX=/usr/bin
     else  # for 4.7+, opm binaries are at /usr/bin/registry/
@@ -112,10 +113,16 @@ function extract_opm() {
 case "$CLIENT_TYPE" in
 ocp|ocp-dev-preview)
     OUTDIR=${WORKSPACE}/tools/${VERSION}
+    >&2 echo "Extracting client tools..."
     extract_tools "$OUTDIR"
-    extract_opm "$OUTDIR"
-    tree "$OUTDIR"
-    cat "$OUTDIR"/sha256sum.txt
+    if [ "$MAJOR" -eq 4 ] && [ "$MINOR" -lt 6 ]; then
+        >&2 echo "Will not extract opm for releases prior to 4.6."
+    else
+        >&2 echo "Extracting opm..."
+        extract_opm "$OUTDIR"
+        tree "$OUTDIR"
+        cat "$OUTDIR"/sha256sum.txt
+    fi
     ;;
 *)
     >&2 echo "Unknown CLIENT_TYPE: $CLIENT_TYPE"

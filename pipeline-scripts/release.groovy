@@ -357,6 +357,7 @@ def stageGetReleaseInfo(quay_url, release_tag){
 }
 
 def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 
@@ -397,8 +398,12 @@ for f in *.tar.gz *.bz *.zip *.tgz ; do
     fi
 done
     ''')
-    withEnv(["OUTDIR=$CLIENT_MIRROR_DIR", "PULL_SPEC=${quay_url}:${from_release_tag}", "ARCH=$arch", "VERSION=$release_name"]){
-        commonlib.shell('''
+
+    if (major == 4 && minor < 6) {
+        echo "Will not extract opm for releases prior to 4.6."
+    } else {
+        withEnv(["OUTDIR=$CLIENT_MIRROR_DIR", "PULL_SPEC=${quay_url}:${from_release_tag}", "ARCH=$arch", "VERSION=$release_name"]){
+            commonlib.shell('''
 function extract_opm() {
     OUTDIR=$1
     mkdir -p "${OUTDIR}"
@@ -440,7 +445,8 @@ function extract_opm() {
     popd
 }
 extract_opm "$OUTDIR"
-        ''')
+            ''')
+        }
     }
 
     sh "tree $CLIENT_MIRROR_DIR"

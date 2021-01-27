@@ -13,6 +13,7 @@ properties(
                     description: 'OCP target branch',
                     $class: 'hudson.model.ChoiceParameterDefinition',
                     choices: [
+                            'rhaos-4.8-rhel-8',
                             'rhaos-4.7-rhel-8',
                             'rhaos-4.6-rhel-8',
                             'rhaos-4.5-rhel-7',

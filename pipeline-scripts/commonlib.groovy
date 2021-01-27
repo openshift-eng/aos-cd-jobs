@@ -6,6 +6,7 @@ ocp3Versions = [
 
 // All buildable versions of ocp4
 ocp4Versions = [
+    "4.8",
     "4.7",
     "4.6",
     "4.5",
@@ -69,6 +70,10 @@ eusVersions = [
  * 'archOverrides' goes away in doozer config.
  */
 ocpReleaseState = [
+        "4.8": [
+            'release': [],
+            "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],
+        ],
         "4.7": [
             'release': [],
             "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],

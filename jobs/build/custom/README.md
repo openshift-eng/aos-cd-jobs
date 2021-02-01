@@ -111,6 +111,9 @@ built in between building RPMs (if any) and images (if any).
 If this run is building RPMs, this parameter is ignored and new
 plashets/compose are always built to include them.
 
+A slack notification is sent to the respective release channel in either case,
+that is if this parameter is set true or if this run is building RPMs.
+
 > :warning: Note that for 3.11 this job cannot create a signed compose (perhaps
 > it should be changed to invoke `signed-compose` when the `SIGNED` flag is set
 > along with this one). For now `signed-compose` should be run separately.

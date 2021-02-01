@@ -3,6 +3,7 @@ node {
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    def slacklib = commonlib.slacklib
     commonlib.describeJob("custom", """
         <h2>Run component builds in ways other jobs can't</h2>
         <b>Timing</b>: This is only ever run by humans, as needed. No job should be calling it.
@@ -173,6 +174,18 @@ node {
                         if ("${majorVersion}" == "4") {
                             buildlib.buildBuildingPlashet(version, release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
                             buildlib.buildBuildingPlashet(version, release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
+
+                            if(params.COMPOSE)
+                                notificationMessage = """
+                                    *:alert: custom ocp4 build compose ran during automation freeze*
+                                    COMPOSE parameter was set to true that forced build compose during automation freeze."""
+                            else
+                                notificationMessage = """
+                                    *:alert: custom ocp4 build compose ran during automation freeze*
+                                    There were RPMs in the build plan that forced build compose during automation freeze."""
+
+                            slacklib.to(commonlib.extractMajorMinorVersion(params.RELEASE_NAME)).say(notificationMessage)
+
                         }
                     }
                 }

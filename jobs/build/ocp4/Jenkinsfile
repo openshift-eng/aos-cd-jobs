@@ -137,7 +137,7 @@ node {
                         stage("build compose") { build.stageBuildCompose() }
                         stage("build compose notification") {
                             // this is where a notification should be sent on slack
-                            slacklib.to(commonlib.extractMajorMinorVersion(params.RELEASE_NAME)).say("""
+                            slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
                                 *:alert: ocp4 build compose ran during automation freeze*
                                  There were RPMs in the build plan that forced build compose during automation freeze.
                             """)

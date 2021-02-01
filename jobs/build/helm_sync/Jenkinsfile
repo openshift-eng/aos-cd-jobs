@@ -18,37 +18,13 @@ pipeline {
     parameters {
         string(
             name: "VERSION",
-            description: "Desired version name. Example: v3.0.1",
+            description: "Desired version name on mirror. Example: 3.0.1",
             defaultValue: "",
             trim: true,
         )
         string(
-            name: "LINUX_AMD64_BINARIES_LOCATION",
-            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/helm/3.2.3-4/signed/linux/helm-linux-amd64.tar.gz",
-            defaultValue: "",
-            trim: true,
-        )
-        string(
-            name: "LINUX_PPC64LE_BINARIES_LOCATION",
-            description: "Example: http://download.eng.bos.redhat.com/brewroot/vol/rhel-8/packages/helm/3.2.3/4.el8/ppc64le/helm-3.2.3-4.el8.ppc64le.rpm",
-            defaultValue: "",
-            trim: true,
-        )
-        string(
-            name: "LINUX_S390X_BINARIES_LOCATION",
-            description: "Example: http://download.eng.bos.redhat.com/brewroot/vol/rhel-8/packages/helm/3.2.3/4.el8/s390x/helm-3.2.3-4.el8.s390x.rpm",
-            defaultValue: "",
-            trim: true,
-        )
-        string(
-            name: "DARWIN_AMD64_BINARIES_LOCATION",
-            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/helm/3.2.3-4/signed/macos/helm-darwin-amd64.tar.gz",
-            defaultValue: "",
-            trim: true,
-        )
-        string(
-            name: "WINDOWS_AMD64_BINARIES_LOCATION",
-            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/helm/3.2.3-4/signed/windows/helm-windows-amd64.exe.tar.gz",
+            name: "FROM_VERSION",
+            description: "The build version to get the artifacts from. e.g. 3.5.0-6 from: http://download.eng.bos.redhat.com/staging-cds/developer/helm/3.5.0-6/signed/",
             defaultValue: "",
             trim: true,
         )
@@ -61,6 +37,9 @@ pipeline {
                     if (!params.VERSION) {
                         error "VERSION must be specified"
                     }
+                    if (!params.FROM_VERSION) {
+                        error "FROM_VERSION must be specified"
+                    }
                 }
             }
         }
@@ -69,36 +48,12 @@ pipeline {
                 sh "rm -rf ${params.VERSION} && mkdir ${params.VERSION}"
             }
         }
-        stage("Download binaries") {
-            parallel {
-                stage("linux amd64")   { steps { script { download(params.LINUX_AMD64_BINARIES_LOCATION,   params.VERSION) }}}
-                stage("linux ppc64le") { steps { script { download(params.LINUX_PPC64LE_BINARIES_LOCATION, params.VERSION) }}}
-                stage("linux s390x")   { steps { script { download(params.LINUX_S390X_BINARIES_LOCATION,   params.VERSION) }}}
-                stage("darwin amd64")  { steps { script { download(params.DARWIN_AMD64_BINARIES_LOCATION,  params.VERSION) }}}
-                stage("windows amd64") { steps { script { download(params.WINDOWS_AMD64_BINARIES_LOCATION, params.VERSION) }}}
-            }
-        }
-        stage("Organize directory") {
+        stage("Copy binaries") {
             steps {
                 sh """
-                cd ${params.VERSION} &&
-
-                mv \$(basename -- ${LINUX_PPC64LE_BINARIES_LOCATION}) helm-linux-ppc64le &&
-                mv \$(basename -- ${LINUX_S390X_BINARIES_LOCATION}) helm-linux-s390x &&
-
-                tar -zxvf \$(basename -- ${LINUX_AMD64_BINARIES_LOCATION}) &&
-                mv helm helm-linux-amd64 &&
-
-                tar -zxvf \$(basename -- ${DARWIN_AMD64_BINARIES_LOCATION}) &&
-                mv helm helm-darwin-amd64 &&
-
-                tar -zxvf \$(basename -- ${WINDOWS_AMD64_BINARIES_LOCATION}) &&
-                mv helm.exe helm-windows-amd64.exe &&
-
-                rm *.tar.gz &&
-                sha256sum * > sha256sum.txt &&
-
-                cd ..
+                cp /mnt/redhat/staging-cds/developer/helm/${params.FROM_VERSION}/signed/*/helm* ${params.VERSION}
+                cd ${params.VERSION}
+                sha256sum * > sha256sum.txt
                 """
             }
         }
@@ -115,8 +70,4 @@ pipeline {
             }
         }
     }
-}
-
-def download(path, destination) {
-    sh "wget --recursive --no-parent --no-directories --directory-prefix ${destination} ${path}"
 }

@@ -482,7 +482,7 @@ node {
 
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
 
-            stage("mirror tools") {
+            stage("mirror binaries") {
                 retry(3) {
                     release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
                 }

@@ -357,6 +357,7 @@ def stageGetReleaseInfo(quay_url, release_tag){
 }
 
 def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 
@@ -371,9 +372,8 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
                                 " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
 
-    if (!params.DRY_RUN) {
-        commonlib.shell(script: tools_extract_cmd)
-        commonlib.shell("cd ${CLIENT_MIRROR_DIR}\n" + '''
+    commonlib.shell(script: tools_extract_cmd)
+    commonlib.shell("cd ${CLIENT_MIRROR_DIR}\n" + '''
 # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
 # So whatever we extract, remove the version specific info and make a symlink with that name.
 for f in *.tar.gz *.bz *.zip *.tgz ; do
@@ -397,10 +397,60 @@ for f in *.tar.gz *.bz *.zip *.tgz ; do
         ln -sfn "$f" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
     fi
 done
-        ''')
+    ''')
+
+    if (major == 4 && minor < 6) {
+        echo "Will not extract opm for releases prior to 4.6."
     } else {
-        echo "Would have run: ${tools_extract_cmd}"
+        withEnv(["OUTDIR=$CLIENT_MIRROR_DIR", "PULL_SPEC=${quay_url}:${from_release_tag}", "ARCH=$arch", "VERSION=$release_name"]){
+            commonlib.shell('''
+function extract_opm() {
+    OUTDIR=$1
+    mkdir -p "${OUTDIR}"
+    OPERATOR_REGISTRY=$(oc adm release info --image-for operator-registry "$PULL_SPEC")
+    # extract opm binaries
+    BINARIES=(opm)
+    PLATFORMS=(linux)
+    if [ "$ARCH" == "x86_64" ]; then  # For x86_64, we have binaries for macOS and Windows
+        BINARIES+=(darwin-amd64-opm windows-amd64-opm)
+        PLATFORMS+=(mac windows)
+    fi
+
+    MAJOR=$(echo "$VERSION" | cut -d . -f 1)
+    MINOR=$(echo "$VERSION" | cut -d . -f 2)
+    if [ "$MAJOR" -eq 4 ] && [ "$MINOR" -le 6 ]; then
+        PREFIX=/usr/bin
+    else  # for 4.7+, opm binaries are at /usr/bin/registry/
+        PREFIX=/usr/bin/registry
+    fi
+
+    PATH_ARGS=()
+    for binary in ${BINARIES[@]}; do
+        PATH_ARGS+=(--path "$PREFIX/$binary:$OUTDIR")
+    done
+
+    GOTRACEBACK=all oc -v5 image extract --confirm --only-files "${PATH_ARGS[@]}" -- "$OPERATOR_REGISTRY"
+
+    # Compress binaries into tar.gz files and calculate sha256 digests
+    pushd "$OUTDIR"
+    for idx in ${!BINARIES[@]}; do
+        binary=${BINARIES[idx]}
+        platform=${PLATFORMS[idx]}
+        chmod +x "$binary"
+        tar -czvf "opm-$platform-$VERSION.tar.gz" "$binary"
+        rm "$binary"
+        ln -sf "opm-$platform-$VERSION.tar.gz" "opm-$platform.tar.gz"
+        sha256sum "opm-$platform-$VERSION.tar.gz" >> sha256sum.txt
+    done
+    popd
+}
+extract_opm "$OUTDIR"
+            ''')
+        }
     }
+
+    sh "tree $CLIENT_MIRROR_DIR"
+    sh "cat $CLIENT_MIRROR_DIR/sha256sum.txt"
 
     // DO NOT use --delete. We only built a part of openshift-v4 locally and don't want to remove
     // anything on the mirror.

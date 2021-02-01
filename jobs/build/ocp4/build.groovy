@@ -169,7 +169,7 @@ def planBuilds() {
         }
         if (!buildPlan.buildRpms) {
             report "RPMs: not building."
-            report "Will still create RPM compose."
+            report "Will not create RPM compose if automation is frozen."
         } else if (changed.rpms) {
             report "RPMs: building " + changed.rpms.join(", ")
             report "Will create RPM compose."

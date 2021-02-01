@@ -4,14 +4,17 @@ node {
     checkout scm
     def build = load("build.groovy")
     def commonlib = build.commonlib
+    def slacklib = commonlib.slacklib
+
     commonlib.describeJob("ocp4", """
         <h2>Build OCP 4.y components incrementally</h2>
         <b>Timing</b>: Usually run automatically from merge_ocp.
         Humans may run as needed. Locks prevent conflicts.
 
         In typical usage, scans for changes that could affect package or image
-        builds and rebuilds the affected components.  Creates new plashets on
-        each run, and runs other jobs to sync builds to nightlies, create
+        builds and rebuilds the affected components.  Creates new plashets if
+        the automation is not frozen or if there are RPMs that are built in this run, 
+        and runs other jobs to sync builds to nightlies, create
         operator metadata, and sweep bugs and builds into advisories.
 
         May also build unconditionally or with limited components.
@@ -119,9 +122,29 @@ node {
                 stage("initialize") { build.initialize() }
                 buildlib.assertBuildPermitted(doozerOpts)
                 stage("build RPMs") { build.stageBuildRpms() }
-                lock("compose-lock-${params.BUILD_VERSION}") {
-                    stage("build compose") { build.stageBuildCompose() }
+
+                // if the automation is not frozen perform compose
+                // otherwise if automation is frozen but there
+                // are rpms in the build plan perform compose
+                // and announce on slack
+
+                if(buildlib.getAutomationState(doozerOpts) in ["no", "False"]){
+                    lock("compose-lock-${params.BUILD_VERSION}") {
+                        stage("build compose") { build.stageBuildCompose() }
+                    }
+                } else if(build.buildPlan.buildRpms){
+                    lock("compose-lock-${params.BUILD_VERSION}") {
+                        stage("build compose") { build.stageBuildCompose() }
+                        stage("build compose notification") {
+                            // this is where a notification should be sent on slack
+                            slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
+                                *:alert: ocp4 build compose ran during automation freeze*
+                                 There were RPMs in the build plan that forced build compose during automation freeze.
+                            """)
+                        }
+                    }
                 }
+
                 stage("update dist-git") { build.stageUpdateDistgit() }
                 stage("build images") { build.stageBuildImages() }
             }

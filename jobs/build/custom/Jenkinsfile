@@ -179,7 +179,7 @@ node {
                                 notificationMessage = """
                                     *:alert: custom ocp4 build compose ran during automation freeze*
                                     COMPOSE parameter was set to true that forced build compose during automation freeze."""
-                            else:
+                            else
                                 notificationMessage = """
                                     *:alert: custom ocp4 build compose ran during automation freeze*
                                     There were RPMs in the build plan that forced build compose during automation freeze."""

@@ -152,7 +152,10 @@ class PrepareReleasePipeline:
             f"--target_release {target_release_str}",
         ]
         _LOGGER.debug("Running command: %s", cmd)
-        subprocess.run(cmd, check=True, universal_newlines=True)
+        bugs = subprocess.run(cmd, check=True, universal_newlines=True, capture_output=True)
+        if bugs:
+            raise ValueError('Release blocker bugs found!')
+            
     
     def create_advisory(self, type: str, kind: str, impetus: str) -> int:
         create_cmd = [

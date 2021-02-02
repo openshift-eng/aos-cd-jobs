@@ -38,8 +38,11 @@ class PrepareReleasePipeline:
         self.working_dir = Path(working_dir).absolute()
         self.dry_run = dry_run
         self.release_version = tuple(map(int, self.release_name.split(".", 2)))
+        self.target_release = (
+            f"{self.release_version[0]}.{self.release_version[1]}"
+        )
         self.group_name = (
-            f"openshift-{self.release_version[0]}.{self.release_version[1]}"
+            f"openshift-{self.target_release}"
         )
         self.candidate_nightlies = {}
         if self.release_version[0] < 4 and nightlies:
@@ -135,6 +138,22 @@ class PrepareReleasePipeline:
             jira_issue_link = jira_issues[0].permalink()
         self.send_notification_email(advisories, jira_issue_link)
 
+        _LOGGER.info("Looking for release blocker bugs...")
+        self.find_blocker_bugs()
+
+    def find_blocker_bugs(self):
+        bz_query = 'https://bugzilla.redhat.com/buglist.cgi?action=wrap&bug_status=NEW&bug_status=ASSIGNED&bug_status=POST&bug_status=MODIFIED&bug_status=ON_DEV&bug_status=ON_QA&f1=component&f10=component&f11=component&f12=component&f13=component&f14=component&f15=component&f16=component&f17=component&f18=component&f19=OP&f2=flagtypes.name&f20=component&f21=target_release&f22=CP&f3=version&f4=component&f5=component&f6=component&f7=component&f8=component&f9=component&list_id=11497875&o1=nowordssubstr&o10=notsubstring&o11=notsubstring&o12=notsubstring&o13=notsubstring&o14=notsubstring&o15=notsubstring&o16=notregexp&o17=notregexp&o18=notregexp&o2=substring&o20=equals&o21=equals&o3=notregexp&o4=notsubstring&o5=notsubstring&o6=notsubstring&o7=notregexp&o8=notsubstring&o9=notsubstring&product=OpenShift%20Container%20Platform&v1=Hawkular%2CDocumentation%2CMigration%2CQuay%2CMulti-Arch%2CRFE%2CISV%2Codo%2Ccrc%2CTest%2CFuse%2Cibm-roks-toolkit%2CMulti-cluster-management%2CCNF%2Ckata-containers%2Cassisted-installer%2CSpecial%2CPerformance%2CCompliance%2CIntegrity&v2=blocker%2B'
+        target_release_str = f"{self.target_release}.0,{self.target_release}.z"
+        cmd = [
+            "bugzilla",
+            "query",
+            "--from-url",
+            bz_query,
+            f"--target_release {target_release_str}",
+        ]
+        _LOGGER.debug("Running command: %s", cmd)
+        subprocess.run(cmd, check=True, universal_newlines=True)
+    
     def create_advisory(self, type: str, kind: str, impetus: str) -> int:
         create_cmd = [
             "elliott",

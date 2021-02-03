@@ -26,7 +26,6 @@ pipeline {
                          "<li>v4.7.0-202101261648.p0</li>" +
                          "<li>v4.7.0</li>" +
                          "<li>v4.7</li>" +
-                         "<li>latest</li>" +
                          "</ul>",
             defaultValue: '',
             trim: true,

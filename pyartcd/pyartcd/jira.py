@@ -22,7 +22,7 @@ class JIRAClient:
         new_fields = {
             "project": {"key": fields["project"]["key"]},
             "summary": fields["summary"],
-            "description": fields["description"],
+            "description": fields["description"] or "",
             "issuetype": {"name": fields["issuetype"]["name"]},
             "components": fields.get("components", []).copy(),
             "labels": fields.get("labels", []).copy(),

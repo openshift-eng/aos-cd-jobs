@@ -357,7 +357,7 @@ def stageGetReleaseInfo(quay_url, release_tag){
 }
 
 def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {
-    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(release_name)
     def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
     def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 

@@ -1,10 +1,11 @@
 import logging
 import re
 import smtplib
+import time
 from datetime import datetime
 from email.generator import Generator
 from email.message import EmailMessage
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,9 +52,22 @@ class MailService:
                      msg["To"], subject, content)
 
         if not dry_run:
-            smtp = smtplib.SMTP(self.smtp_server)
-            smtp.send_message(msg)
-            smtp.quit()
+            # The SMTP server may have a limit on how many simultaneous open connections it will accept from a single IP address.
+            # e.g. smtplib.SMTPConnectError: (421, b'4.7.0 smtp.corp.redhat.com Error: too many connections from 10.0.115.152')
+            retry_count = 5
+            sleep_secs = 3
+            for i in range(retry_count + 1):
+                try:
+                    smtp = smtplib.SMTP(self.smtp_server)
+                    smtp.send_message(msg)
+                    smtp.quit()
+                    break
+                except smtplib.SMTPConnectError as err:
+                    _LOGGER.warn("Error connecting to SMTP server %s: %s", self.smtp_server, str(err))
+                    if i < retry_count:
+                        _LOGGER.warn("(%s/%s) Will retry in %s seconds.", i + 1, retry_count, sleep_secs)
+                        time.sleep(sleep_secs)
+                        sleep_secs *= 2
             _LOGGER.info("Sent email to %s: %s - %s",
                          msg["To"], subject, content)
         else:

@@ -1,0 +1,126 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: prepare-release
+  labels:
+    app: "artcd"
+spec:
+  params:
+  - name: release_name
+    description: |-
+      A unique identifier for the release. The release name should never change.
+      In case of bumping a release with the same content, use ‘override_release_name’.
+  # - name: override_release_name
+  #   description: This parameter is used to rename a release. e.g. 4.6.14 -> 4.6.15
+  - name: release_date
+    description: Expected release date
+  - name: nightlies
+    description: Proposed nightlies for testing and promotion, separated by commas
+  - name: package_owner
+    description: (Optional) Must be an individual email address; may be anyone who wants random advisory spam
+    default: ""
+  - name: dry_run
+    description: If "true", just exercise the steps without actually preparing a release
+    default: "false"
+  steps:
+  - name: prepare-release
+    image: image-registry.openshift-image-registry.svc:5000/art-cd/artcd:latest
+    script: |
+      #!/usr/bin/env python3
+      import logging
+      import subprocess
+
+      from pyartcd.pipelines.prepare_release import main
+      subprocess.run(["ls", "-l", "/usr/local/lib/python3.6/site-packages/certifi/"], check=True, universal_newlines=True)
+      subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"], check=True, universal_newlines=True)
+      args = [
+          "-vv",
+          "--working-dir=./pyartcd_working",
+          "--config=/etc/artcd/artcd.toml",
+          "$(params.release_name)",
+          "--date",
+          "$(params.release_date)",
+      ]
+      package_owner = "$(params.package_owner)"
+      if package_owner:
+          args.extend(["--package-owner", package_owner])
+      if "$(params.dry_run)" == "true":
+          args.append("--dry-run")
+      nightlies = [nightly.strip() for nightly in "$(params.nightlies)".split(",") if nightly.strip()]
+      for nightly in nightlies:
+          args.append("--nightly")
+          args.append(nightly)
+
+      print(f"Running {args}...")
+      main(args)
+
+    env:
+    - name: JIRA_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: jira
+          key: username
+    - name: JIRA_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: jira
+          key: password
+    volumeMounts:
+    - name: artcd-config
+      mountPath: /etc/artcd/
+    - name: elliott-config
+      mountPath: /tekton/home/.config/elliott/
+    - name: doozer-config
+      mountPath: /tekton/home/.config/doozer/
+    - name: ssh-config
+      mountPath: /tekton/home/.ssh/known_hosts
+      subPath: known_hosts
+      readOnly: false
+    - name: git-config
+      mountPath: /tekton/home/.gitconfig
+      subPath: .gitconfig
+      readOnly: false
+    - name: kerberos-config
+      mountPath: /etc/krb5.conf.d/krb5-redhat.conf
+      subPath: krb5-redhat.conf
+    - name: ssh-auth
+      mountPath: /tekton/home/.ssh/id_rsa
+      subPath: id_rsa
+    - name: registry-cred
+      mountPath: /tekton/home/.docker/config.json
+      subPath: .dockerconfigjson
+    - name: bugzilla-apikey
+      mountPath: /tekton/home/.config/python-bugzilla/
+    - name: kerberos-keytab
+      mountPath: /etc/kerberos-keytab
+  volumes:
+  - name: artcd-config
+    configMap:
+      name: artcd-config
+  - name: elliott-config
+    configMap:
+      name: elliott-config
+  - name: doozer-config
+    configMap:
+      name: doozer-config
+  - name: ssh-config
+    configMap:
+      name: ssh-config
+  - name: git-config
+    configMap:
+      name: git-config
+  - name: kerberos-config
+    configMap:
+      name: kerberos-config
+  - name: ssh-auth
+    secret:
+      secretName: artbot-ssh-auth
+  - name: registry-cred
+    secret:
+      secretName: registry-cred
+  - name: bugzilla-apikey
+    secret:
+      secretName: bugzilla-apikey
+  - name: kerberos-keytab
+    secret:
+      secretName: jenkins-buildvm-keytab

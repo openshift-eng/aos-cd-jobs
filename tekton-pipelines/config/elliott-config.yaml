@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elliott-config
+data:
+  settings.yaml: |
+    # Persistent working directory to use
+    working_dir:
+
+    #Git URL or File Path to build data
+    data_path: https://github.com/openshift/ocp-build-data.git
+
+    #Sub-group directory or branch to pull build data
+    group:

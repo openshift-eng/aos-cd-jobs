@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doozer-config
+data:
+  settings.yaml: |
+    #Persistent working directory to use
+    working_dir:
+
+    #Git URL or File Path to build data
+    data_path: https://github.com/openshift/ocp-build-data.git
+
+    #Sub-group directory or branch to pull build data
+    group:
+
+    #Username for running rhpkg / brew / tito
+    user: ocp-build
+
+    # Pointer to relational db to store info in. Possible values: prod, stage, empty
+    # datastore: prod
+
+    # cache_dir: /mnt/workspace/jenkins/doozer_cache
+
+    global_opts:
+      # num of concurrent distgit pull/pushes
+      distgit_threads: 20
+      # timeout for `rhpkg clone` operation
+      rhpkg_clone_timeout: 900
+      # timeout for `rhpkg push` operation
+      rhpkg_push_timeout: 9800

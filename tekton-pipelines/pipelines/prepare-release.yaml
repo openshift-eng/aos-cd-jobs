@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: prepare-release
+  labels:
+    app: "artcd"
+spec:
+  params:
+  - name: release_name
+    description: |-
+      A unique identifier for the release. The release name should never change.
+      In case of bumping a release with the same content, use ‘override_release_name’.
+  # - name: override_release_name
+  #   description: This parameter is used to rename a release. e.g. 4.6.14 -> 4.6.15
+  - name: release_date
+    description: Expected release date
+  - name: nightlies
+    description: Proposed nightlies for testing and promotion, separated by commas
+  - name: package_owner
+    description: (Optional) Must be an individual email address; may be anyone who wants random advisory spam
+    default: "lmeyer@redhat.com"
+  - name: dry_run
+    description: If "true", just exercise the steps without actually preparing a release
+    default: "false"
+  tasks:
+    - name: prepare-release
+      taskRef:
+        name: prepare-release
+      params:
+      - name: release_name
+        value: "$(params.release_name)"
+      - name: release_date
+        value: "$(params.release_date)"
+      - name: nightlies
+        value: "$(params.nightlies)"
+      - name: package_owner
+        value: "$(params.package_owner)"
+      - name: dry_run
+        value: "$(params.dry_run)"

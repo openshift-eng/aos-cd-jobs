@@ -409,7 +409,7 @@ This is the current set of advisories we intend to ship:
         self.mail.send_mail(self.config["email"]["prepare_release_notification_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
 
 
-def main():
+def main(args):
     # parse command line arguments
     parser = argparse.ArgumentParser("prepare-release")
     parser.add_argument("name", help="release name (e.g. 4.6.42)")
@@ -441,7 +441,7 @@ def main():
         action="store_true",
         help="don't actually prepare a new release; just print what would be done",
     )
-    args = parser.parse_args()
+    opts = parser.parse_args(args)
 
     # parse environment variables for credentials
     jira_username = os.environ.get("JIRA_USERNAME")
@@ -452,28 +452,28 @@ def main():
         raise ValueError("JIRA_PASSWORD environment variable is not set")
 
     # configure logging
-    if not args.verbosity:
+    if not opts.verbosity:
         logging.basicConfig(level=logging.WARNING)
-    elif args.verbosity == 1:
+    elif opts.verbosity == 1:
         logging.basicConfig(level=logging.INFO)
-    elif args.verbosity >= 2:
+    elif opts.verbosity >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
     # parse configuration file
-    with open(args.config, "r") as config_file:
+    with open(opts.config, "r") as config_file:
         config = toml.load(config_file)
 
     # start pipeline
     pipeline = PrepareReleasePipeline(
-        name=args.name,
-        date=args.date,
-        nightlies=args.nightlies,
-        package_owner=args.package_owner,
+        name=opts.name,
+        date=opts.date,
+        nightlies=opts.nightlies,
+        package_owner=opts.package_owner,
         config=config,
-        working_dir=args.working_dir,
+        working_dir=opts.working_dir,
         jira_username=jira_username,
         jira_password=jira_password,
-        dry_run=args.dry_run,
+        dry_run=opts.dry_run,
     )
     pipeline.run()
     return 0

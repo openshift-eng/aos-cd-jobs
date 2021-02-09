@@ -19,20 +19,25 @@ pipeline {
 
     parameters {
         string(
-            name: 'BUILD_TAG',
-            description: "Build of ose-operator-sdk from which the contents should be extracted.<br/>" +
-                         "Examples:<br/>" +
-                         "<ul>" +
-                         "<li>v4.7.0-202101261648.p0</li>" +
-                         "<li>v4.7.0</li>" +
-                         "<li>v4.7</li>" +
-                         "</ul>",
+            name: 'OCP_VERSION',
+            description: 'Under which directory to place the binaries.<br/>' +
+                         'Examples:<br/>' +
+                         '<ul>' +
+                         '<li>4.7.0</li>' +
+                         '<li>4.7.0-rc.0</li>' +
+                         '</ul>',
             defaultValue: '',
             trim: true,
         )
         string(
-            name: 'VERSION',
-            description: 'Release version (name of directories published in the mirror)',
+            name: 'BUILD_TAG',
+            description: 'Build of ose-operator-sdk from which the contents should be extracted.<br/>' +
+                         'Examples:<br/>' +
+                         '<ul>' +
+                         '<li>v4.7.0-202101261648.p0</li>' +
+                         '<li>v4.7.0</li>' +
+                         '<li>v4.7</li>' +
+                         '</ul>',
             defaultValue: '',
             trim: true,
         )
@@ -42,39 +47,62 @@ pipeline {
         stage('pre-flight') {
             steps {
                 script {
+                    if (!params.OCP_VERSION) {
+                        error 'OCP_VERSION must be specified'
+                    }
                     if (!params.BUILD_TAG) {
                         error 'BUILD_TAG must be specified'
                     }
-                    if (!params.VERSION) {
-                        error 'VERSION must be specified'
-                    }
-                    currentBuild.displayName = "${params.VERSION}"
-                    currentBuild.description = "${params.BUILD_TAG}"
+                    sdkVersion = ''
+                    buildvmArch = sh(script: 'arch', returnStdout: true).trim()
+                    manifestList = readJSON(
+                        text: sh(
+                            script: "skopeo inspect --raw docker://${imagePath}:${params.BUILD_TAG}",
+                            returnStdout: true,
+                        )
+                    ).manifests
                 }
             }
         }
         stage('extract binaries') {
             steps {
                 script {
-                    def manifestList = readJSON(
-                        text: sh(
-                            script: "skopeo inspect --raw docker://${imagePath}:${params.BUILD_TAG}",
-                            returnStdout: true,
-                        )
-                    ).manifests
                     manifestList.each {
-                        sh "rm -rf ./${params.VERSION} && mkdir ./${params.VERSION}"
+                        def sdkArch = it.platform.architecture == 'amd64' ? 'x86_64' : it.platform.architecture
 
-                        dir("./${params.VERSION}") {
+                        sh "rm -rf ./${sdkArch} && mkdir ./${sdkArch}"
+
+                        dir("./${sdkArch}") {
                             sh "oc image extract ${imagePath}@${it.digest} --path /usr/local/bin/operator-sdk:. --confirm"
                             sh "chmod +x operator-sdk"
-                        }
 
+                            if (buildvmArch == sdkArch) {
+                                def sdkVersionRaw = sh(script: './operator-sdk version', returnStdout: true)
+                                sdkVersion = (sdkVersionRaw =~ /operator-sdk version: "([^"]+)"/).findAll()[0][1]
+                            }
+                        }
+                    }
+                    currentBuild.displayName = "${params.OCP_VERSION}/${sdkVersion}"
+                    currentBuild.description = "${params.BUILD_TAG}"
+                }
+            }
+        }
+        stage('sync tarballs') {
+            steps {
+                script {
+                    manifestList.each {
                         def arch = it.platform.architecture == 'amd64' ? 'x86_64' : it.platform.architecture
-                        sshagent(['aos-cd-test']) {
-                            sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/${arch}/clients/operator-sdk/"
-                            sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/${arch}/clients/operator-sdk/latest"
-                            sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/${arch}/clients/operator-sdk -v"
+
+                        dir("./${arch}") {
+                            def tarballFilename = "operator-sdk-${sdkVersion}-linux-${arch}.tar.gz"
+                            sh "tar -csvf ${tarballFilename} ./operator-sdk"
+
+                            sshagent(['aos-cd-test']) {
+                                sh "ssh use-mirror-upload.ops.rhcloud.com -- mkdir -p /srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}"
+                                sh "scp ${tarballFilename} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}"
+                                sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/${arch}/clients/operator-sdk -v"
+                            }
+
                         }
                     }
                 }

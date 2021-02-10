@@ -352,7 +352,7 @@ node {
                     return
                 }
                 try {  // don't let a slack outage break the job at this point
-                    def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
+                    def modeOptions = [ 'aws', 'gcp', 'azure' ]
                     def testIndex = 0
                     def testLines = []
                     for ( String from_release : previousList) {

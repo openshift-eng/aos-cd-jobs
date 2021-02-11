@@ -332,7 +332,7 @@ node {
                         return
                     }
                     slackChannel.say("Hi @release-artists . A new release is ready and needs some upgrade tests to be triggered. "
-                        + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
+                        + "Please open a chat with @cluster-bot and issue each of these lines individually. Note: mirror variant is broken for upgrade tests at this time, just use 'azure' instead.:\n${testLines.join('\n')}")
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
                 }

@@ -300,7 +300,8 @@ node {
                     }
                 }
             }
-            previousList = previousList.toList().unique()
+            previousList = previousList.toList().unique().sort()
+            Collections.reverse(previousList)
             echo "previousList is ${previousList}"
 
             // must be able to access remote registry for verification
@@ -343,10 +344,11 @@ node {
                     echo "Don't request upgrade tests because SKIP_PAYLOAD_CREATION option is checked."
                     return
                 }
-                if (direct_release_nightly || !is_4stable_release) {
-                    // For a hotfix, there is speed is our goal. Assume testing has already been done.
+                if (direct_release_nightly || !is_4stable_release || arch != 'x86_64') {
+                    // For a hotfix, speed is our goal. Assume testing has already been done.
                     // For an FC, we are so early in the release cycle that non-default upgrade tests are
                     // only noise.
+                    // Skip for non x64 arches because we don't test for that.
                     return
                 }
                 try {  // don't let a slack outage break the job at this point
@@ -364,7 +366,7 @@ node {
                         return
                     }
                     slackChannel.say("Hi @release-artists . A new release is ready and needs some upgrade tests to be triggered. "
-                        + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
+                        + "Please open a chat with @cluster-bot and issue each of these lines individually. Note: mirror variant is broken for upgrade tests at this time, just use 'azure' instead.\n${testLines.join('\n')}")
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
                 }

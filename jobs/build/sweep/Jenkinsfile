@@ -19,7 +19,6 @@ node {
         group.yml.
         For 3.11, all bugs are swept into the rpm advisory.
         For 4.y, bugs are swept into the image or extras advisory.
-        CVEs are not currently swept by this job.
 
         Optionally, builds from our brew candidate tags may also be swept. If necessary,
         the advisory will be first set to NEW_FILES.

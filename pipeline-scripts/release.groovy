@@ -407,7 +407,7 @@ done
 function extract_opm() {
     OUTDIR=$1
     mkdir -p "${OUTDIR}"
-    OPERATOR_REGISTRY=$(oc adm release info --image-for operator-registry "$PULL_SPEC")
+    until OPERATOR_REGISTRY=$(oc adm release info --image-for operator-registry "$PULL_SPEC"); do sleep 10; done
     # extract opm binaries
     BINARIES=(opm)
     PLATFORMS=(linux)

@@ -23,6 +23,9 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
     Requires https://github.com/openshift/openshift-client-python to be setup in your PYTHONPATH.
 
     \b
+    Add github user to this group to enable them: https://github.com/openshift/release/pull/15827
+
+    \b
     If openshift-client-python is in $HOME/projects/openshift-client-python:
     $ export PYTHONPATH=$PYTHONPATH:$HOME/projects/openshift-client-python/packages
 
@@ -43,7 +46,6 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
         arch_suffix = f'-{arch}'
 
     with oc.api_server(api_url='https://api.ci.l2s4.p1.openshiftapps.com:6443'), \
-         oc.options({'as': 'system:admin'}), \
          oc.project(f'ocp{arch_suffix}'):
 
         istag_qname = f'istag/release{arch_suffix}:{release}'

@@ -90,22 +90,6 @@ class PrepareReleasePipeline:
         _LOGGER.info("Creating a release JIRA...")
         jira_issues = self.create_release_jira(advisories)
 
-        _LOGGER.info("Sweep bugs into the the advisories...")
-        self.sweep_bugs()
-
-        _LOGGER.info("Adding placeholder bugs to the advisories...")
-        for kind, advisory in advisories.items():
-            # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
-            if (
-                not advisory
-                or self.release_version[0] >= 4
-                and kind == "image"
-                or self.release_version[0] < 4
-                and kind == "rpm"
-            ):
-                continue
-            self.create_and_attach_placeholder_bug(kind, advisory)
-
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():
             if not advisory:
@@ -119,6 +103,26 @@ class PrepareReleasePipeline:
                 )
             elif kind == "extras":
                 self.sweep_builds("image", advisory, only_non_payload=True)
+
+        # bugs should be swept after builds to have validation
+        # for only those bugs to be attached which have corresponding brew builds
+        # attached to the advisory
+        # currently for rpm advisory and cves only
+        _LOGGER.info("Sweep bugs into the the advisories...")
+        self.sweep_bugs(check_builds=True)
+
+        _LOGGER.info("Adding placeholder bugs to the advisories...")
+        for kind, advisory in advisories.items():
+            # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
+            if (
+                not advisory
+                or self.release_version[0] >= 4
+                and kind == "image"
+                or self.release_version[0] < 4
+                and kind == "rpm"
+            ):
+                continue
+            self.create_and_attach_placeholder_bug(kind, advisory)
 
         # Verify the swept builds match the nightlies
         if self.release_version[0] < 4:
@@ -228,6 +232,7 @@ class PrepareReleasePipeline:
         statuses: List[str] = ["MODIFIED", "ON_QA", "VERIFIED"],
         include_cve: bool = True,
         advisory: Optional[int] = None,
+        check_builds: bool = False,
     ):
         cmd = [
             "elliott",
@@ -238,6 +243,8 @@ class PrepareReleasePipeline:
         ]
         if include_cve:
             cmd.append("--cve-trackers")
+        if check_builds:
+            cmd.append("--check-builds")
         for status in statuses:
             cmd.append("--status=" + status)
         if advisory:

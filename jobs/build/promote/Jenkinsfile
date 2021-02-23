@@ -215,6 +215,7 @@ node {
                 script: "${buildlib.ELLIOTT_BIN} -g ${group} find-bugs --mode blocker"
             ).trim()
 
+            found = true
             try {
                 pattern = ~"Found ([0-9]+) bugs"
                 match = blocker_bugs =~ pattern
@@ -228,7 +229,7 @@ node {
                 taskThread.say('Prompting ARTist for confirmation')
                 commonlib.inputRequired(taskThread) {
                     def resp = input(
-                        message: "Blocker Bugs found! Do not proceed until confirmation from ARTists/bug owners that it is okay to proceed. If the bugs are not blockers, coordinate to remove the blocker+ flag on the bug(s)",
+                        message: "Blocker Bugs found. Do not proceed until confirmation from ARTists/bug owners that it is okay to proceed. If the bugs are not blockers, coordinate to remove the blocker+ flag on the bug(s)",
                         parameters: [
                             booleanParam(
                                 defaultValue: false,

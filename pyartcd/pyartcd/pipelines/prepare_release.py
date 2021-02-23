@@ -64,6 +64,10 @@ class PrepareReleasePipeline:
 
     def run(self):
         self.working_dir.mkdir(parents=True, exist_ok=True)
+
+        _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
+        self.check_blockers()
+
         _LOGGER.info("Creating advisories for release %s...",
                      self.release_name)
         advisories = {}
@@ -139,6 +143,21 @@ class PrepareReleasePipeline:
             jira_issue_link = jira_issues[0].permalink()
         self.send_notification_email(advisories, jira_issue_link)
 
+    def check_blockers(self):
+        cmd = [
+            "elliott",
+            f"--working-dir={self.elliott_working_dir}",
+            f"--group={self.group_name}",
+            "find-bugs",
+            "--mode=blocker",
+            "--exclude-status=ON_QA"
+        ]
+        _LOGGER.debug("Running command: %s", cmd)
+        result = subprocess.run(cmd, capture_output=True, check=True, universal_newlines=True, cwd=self.working_dir)
+        match = re.search(r"Found ([0-9]+) bugs", str(result.stdout))
+        if len(match) > 0 and int(match[1]) != 0:
+            _LOGGER.info(f"{int(match[1])} Blocker Bugs found! Make sure to resolve these blocker bugs before proceeding to promote the release.")
+    
     def create_advisory(self, type: str, kind: str, impetus: str) -> int:
         create_cmd = [
             "elliott",

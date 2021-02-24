@@ -606,7 +606,7 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
                     if compare_nvr(parsed_history_nvr, parsed_nvr) > 0:
                         # Is our historical nvr > target for inclusion in plashet? If it is, a user of the plashet would
                         # pull in the historical nvr with a yum install. We can't allow that. Just give up -- this is
-                        # no in line with the use case of history.
+                        # not in line with the use case of history.
                         plashet_concerns.append(f'Unable to include previous for {package_name} because history {history_nvr} is newer than latest tagged {nvr}')
                         break
                     if include_embargoed is False and is_embargoed(history_nvr):

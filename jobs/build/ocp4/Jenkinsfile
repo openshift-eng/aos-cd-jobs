@@ -134,15 +134,17 @@ node {
                     }
                 } else if(build.buildPlan.buildRpms){
                     lock("compose-lock-${params.BUILD_VERSION}") {
-                        stage("build compose") { build.stageBuildCompose() }
-                        stage("build compose notification") {
-                            // this is where a notification should be sent on slack
+                        stage("build compose") {
+                            build.stageBuildCompose()
                             slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
                                 *:alert: ocp4 build compose ran during automation freeze*
                                  There were RPMs in the build plan that forced build compose during automation freeze.
                             """)
                         }
                     }
+                } else {
+                    // a no-op stage, mainly so the jenkins stage display looks right (static stages between runs).
+                    stage("build compose") { echo "No RPM compose required." }
                 }
 
                 stage("update dist-git") { build.stageUpdateDistgit() }

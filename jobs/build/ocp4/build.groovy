@@ -380,7 +380,7 @@ def stageBuildImages() {
  * required for bare metal installs.
  */
 def stageMirrorRpms() {
-    if (!buildPlan.buildRpms && !buildPlan.forceBuild) {
+    if (!rpmMirror.localPlashetPath) {
         echo "No updated RPMs to mirror."
         return
     }

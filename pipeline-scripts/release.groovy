@@ -851,6 +851,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
             def prs = readFile(prs_file).trim()
             if ( prs ) {  // did we open any?
                 def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n${prs}"
+                slack_msg += "\n@patch-manager ${major}.${minor}.z merge window is open for next week."
                 if ( ghorg == 'openshift' && !noSlackOutput) {
                     slacklib.to('#forum-release').say(slack_msg)
                 } else {

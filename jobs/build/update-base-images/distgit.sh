@@ -91,17 +91,17 @@ build_common() {
     TARGET_DIR=build-$img
     rm -rf ${TARGET_DIR}
     # for RHEL/UBI 8 and RHEL/UBI 7 we use different tags
-    YUM_ARGS="--best --allowerasing"
+    YUM_ARGS=""
     case "$img" in
         rhel8.2.els*) 
 	  BRANCH="rhaos-4.2-rhel-8" ;;
         # for RHEL7 rhaos-4.0-rhel-7 is not in use, for RHEL8 rhaos-4.1-rhel-8 is not in use.
         ubi8*) 
-	  BRANCH="rhaos-4.1-rhel-8" ;;
-        *) 
-	  BRANCH="rhaos-4.0-rhel-7" 
-	  YUM_ARGS=""
+	  BRANCH="rhaos-4.1-rhel-8" 
+	  YUM_ARGS="--best --allowerasing"
 	  ;;
+        *) 
+	  BRANCH="rhaos-4.0-rhel-7" ;;
     esac
     URL="http://pkgs.devel.redhat.com/cgit/containers/openshift-enterprise-base/plain/.oit/signed.repo?h=${BRANCH}"
     rhpkg --user=ocp-build clone --branch ${BRANCH} containers/openshift-enterprise-base ${TARGET_DIR}

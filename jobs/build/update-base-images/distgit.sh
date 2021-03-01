@@ -121,7 +121,7 @@ $a - aarch64
 
     USER root
     RUN echo 'skip_missing_names_on_install=0' >> /etc/yum.conf \\
-     && yum update --best --allowerasing -y $@ \\
+     && yum update --allowerasing -y $@ \\
      && yum clean all
     USER $user
 

@@ -207,6 +207,51 @@ node {
     slackChannel = slacklib.to(FROM_RELEASE_TAG)
     slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}${ params.DRY_RUN ? ' (DRY RUN)' : ''}") {
         taskThread ->
+        
+        stage("Check for Blocker Bugs") {
+            group = "openshift-${major}.${minor}"
+            blocker_bugs = commonlib.shell(
+                returnStdout: true,
+                script: "${buildlib.ELLIOTT_BIN} -g ${group} find-bugs --mode blocker --report"
+            ).trim()
+
+            echo blocker_bugs
+            
+            found = true
+            try {
+                pattern = ~"Found ([0-9]+) bugs"
+                match = blocker_bugs =~ pattern
+                match.find()
+                found = (match[0][1] != '0')
+            } catch(ex) {
+                echo "Please check for blocker bug output"
+            }
+            
+            if (found) {
+                msg = "Blocker bugs found! Prompting ARTist for confirmation"
+                echo msg
+                taskThread.say(msg)
+                commonlib.inputRequired(taskThread) {
+                    def resp = input(
+                        message: "Blocker Bugs found. Do not proceed until confirmation from ARTists/bug owners that it is okay to proceed. If the bugs are not blockers, coordinate to remove the blocker+ flag on the bug(s)",
+                        parameters: [
+                            booleanParam(
+                                defaultValue: false,
+                                description: "Check this checkbox only if you're sure you want to proceed with pending release blocker bugs. Ask #forum-release on slack if you are not sure.",
+                                name: 'IGNORE_BLOCKER_BUGS',
+                            ),
+                        ]
+                    )
+                    if (!resp) {
+                        currentBuild.result = 'ABORTED'
+                        error('Aborting because release blocker bugs found.')
+                    }
+                }
+            } else {
+                echo "No blocker bugs found. Proceeding"
+            }
+        }
+        
         sshagent(['aos-cd-test']) {
             release_info = ""
             name = release_name

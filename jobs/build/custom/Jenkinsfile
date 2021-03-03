@@ -76,8 +76,8 @@ node {
                     ),
                     choice(
                         name: 'IMAGE_MODE',
-                        description: 'How to update image dist-gits: with a source rebase, just dockerfile updates, or not at all (no version/release update)',
-                        choices: ['rebase', 'update-dockerfile', 'nothing'].join('\n'),
+                        description: 'How to update image dist-gits: with a source rebase, or not at all (no version/release update)',
+                        choices: ['rebase', 'nothing'].join('\n'),
                     ),
                     booleanParam(
                         name: 'SIGNED',

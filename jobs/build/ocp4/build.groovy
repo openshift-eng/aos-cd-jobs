@@ -262,12 +262,6 @@ def stageBuildRpms() {
         """
 
     buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
-    if (buildPlan.dryRun) {
-        echo("${buildlib.DOOZER_BIN} ${cmd}")
-        return
-    }
-
-    buildlib.doozer(cmd)
 }
 
 /**

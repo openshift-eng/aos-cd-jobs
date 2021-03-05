@@ -43,6 +43,11 @@ node {
     echo "Received response:\n${resp_string}"
 
     resp = readJSON(text: resp_string)
+    
+    if (resp.containsKey('error')) {
+        error("IIB reported error")
+    }
+    
     job_id = resp['id']
 
     for(int i = 0; i < 20; i++) { // IIB will take time to run

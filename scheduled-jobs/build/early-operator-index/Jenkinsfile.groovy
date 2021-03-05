@@ -50,15 +50,20 @@ node {
     
     job_id = resp['id']
 
+    success = false
     for(int i = 0; i < 20; i++) { // IIB will take time to run
         sleep 60  // give IIB some time, then check in by trying to mirror
         try {
             commonlib.shell("oc image mirror  --keep-manifest-list --filter-by-os='.*' registry-proxy.engineering.redhat.com/rh-osbs/iib:${job_id} quay.io/openshift-release-dev/ocp-release-nightly:iib-int-index-art-operators-${ocpVer}")
             echo "Successfully mirrored image!"
+            success = true
             break
         } catch (e) {
             echo "Exception! ${e}"
         }
     }
 
+    if (!success) {
+        error("Failures reported and retries exhausted")
+    }
 }

@@ -26,7 +26,8 @@ node {
 
     request = [
         'bundles': pullspecs,
-        'from_index': "registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v${ocpVer}"
+        'from_index': "registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v${ocpVer}",
+        'binary_image': "registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-registry:v${ocpVer}.0"
     ]
 
     writeJSON(file: 'request.json', json: request, pretty: 4)

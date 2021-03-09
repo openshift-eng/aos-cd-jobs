@@ -31,6 +31,7 @@ pipeline {
                     if (!params.TKN_VERSION) {
                         error 'TKN_VERSION must be specified'
                     }
+                    target_version = params.TKN_VERSION.split("-")[0]
                 }
             }
         }
@@ -41,8 +42,9 @@ pipeline {
                 sshagent(['aos-cd-test']) {
                     sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all"
                     sh "cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"
-                    sh "scp -r /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all use-mirror-upload:/srv/pub/openshift-v4/clients/pipeline/${params.TKN_VERSION}"
-                    sh "ssh use-mirror-upload ln --symbolic --force --no-dereference /srv/pub/openshift-v4/clients/pipeline/${params.TKN_VERSION} /srv/pub/openshift-v4/clients/pipeline/latest"
+                    sh "echo ${target_version}"
+                    sh "scp -r /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all use-mirror-upload:/srv/pub/openshift-v4/clients/pipeline/${target_version}"
+                    sh "ssh use-mirror-upload ln --symbolic --force --no-dereference /srv/pub/openshift-v4/clients/pipeline/${target_version} /srv/pub/openshift-v4/clients/pipeline/latest"
                     sh 'ssh use-mirror-upload /usr/local/bin/push.pub.sh openshift-v4/clients/pipeline -v'
                 }
             }

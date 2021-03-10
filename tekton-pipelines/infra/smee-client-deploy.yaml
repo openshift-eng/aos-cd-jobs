@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smee-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: artcd
+      component: smee-client
+  template:
+    metadata:
+      labels:
+        app: artcd
+        component: smee-client
+    spec:
+      containers:
+      - name: smee-client
+        image: quay.io/openshift-art/smee-client:latest
+        args: ["smee", "-u", "https://smee.io/DzEq8GpE0HxSMse", "-t", "http://el-github-event-listener:8080"]

@@ -1,0 +1,34 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: update-pipelines
+  labels:
+    app: "artcd"
+spec:
+  description: |
+    update-pipelines takes a aos-cd-jobs git repository and a branch name and
+    applies Tekton pipeline resources from that branch.
+  params:
+  - name: repo-url
+    type: string
+    description: The git repository URL to clone from.
+    default: https://github.com/openshift/aos-cd-jobs.git
+  - name: revision
+    type: string
+    description: The git branch (tag, commit) to clone.
+    default: master
+  workspaces:
+  - name: ws
+    description: default workspace for sharing data between tasks
+  tasks:
+  - name: update-pipelines
+    taskRef:
+      name: update-pipelines
+    workspaces:
+    - name: ws
+      workspace: ws
+    params:
+    - name: repo-url
+      value: $(params.repo-url)
+    - name: revision
+      value: $(params.revision)

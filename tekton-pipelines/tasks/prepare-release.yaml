@@ -24,7 +24,7 @@ spec:
     default: "false"
   steps:
   - name: prepare-release
-    image: image-registry.openshift-image-registry.svc:5000/art-cd/artcd:latest
+    image: quay.io/openshift-art/artcd:latest
     script: |
       #!/usr/bin/env python3
       import logging

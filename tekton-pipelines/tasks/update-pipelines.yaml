@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: update-pipelines
+  labels:
+    app: "artcd"
+spec:
+  params:
+  - name: repo-url
+    type: string
+    description: The git repository URL to clone from.
+    default: https://github.com/openshift/aos-cd-jobs.git
+  - name: revision
+    type: string
+    description: The git branch (tag, commit) to clone.
+    default: master
+  workspaces:
+  - name: ws
+    description: |
+      The folder where we clone aos-cd-jobs to.
+  steps:
+  - name: update-pipelines
+    image: quay.io/openshift-art/artcd:latest
+    script: |
+      #!/usr/bin/env python3
+      from pyartcd.pipelines.update_pipelines import main
+
+      args = ["--working-dir", "$(workspaces.ws.path)", "--repo-url", "$(params.repo-url)", "--revision", "$(params.revision)"]
+      print(f"Running {args}...")
+      main(args)

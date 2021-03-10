@@ -1,0 +1,40 @@
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: github-push-event-binding
+spec:
+  params:
+  - name: repo-full-name
+    value: $(body.repository.full_name)
+  - name: repo-url
+    value: $(body.repository.clone_url)
+  - name: git-commit
+    value: $(body.after)
+  - name: git-ref
+    value: $(body.ref)
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: run-update-pipelines-on-push-template
+spec:
+  params:
+  - name: repo-url
+  - name: git-commit
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: update-pipelines-on-push-
+    spec:
+      pipelineRef:
+        name: update-pipelines
+      params:
+      - name: repo-url
+        value: $(tt.params.repo-url)
+      - name: revision
+        value: $(tt.params.git-commit)
+      workspaces:
+      - name: ws
+        emptyDir: {}

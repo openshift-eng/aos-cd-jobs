@@ -1,5 +1,5 @@
-FROM registry.access.redhat.com/ubi8/ubi:8.3
-LABEL name="openshift-art/art-cd" \
+FROM registry.redhat.io/ubi8/ubi
+LABEL name="openshift-art/artcd" \
   maintainer="OpenShift Team Automated Release Tooling <aos-team-art@redhat.com>"
 
 # trust Red Hat IT Root CA

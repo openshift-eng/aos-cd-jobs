@@ -1,7 +1,7 @@
 kind: "BuildConfig"
 apiVersion: "v1"
 metadata:
-  name: "artcd-image"
+  name: "smee-client-image"
   labels:
     app: "artcd"
 spec:
@@ -9,7 +9,7 @@ spec:
   strategy:
     dockerStrategy:
       forcePull: true
-      dockerfilePath: tekton-pipelines/images/artcd/Dockerfile
+      dockerfilePath: tekton-pipelines/images/smee-client/Dockerfile
   source:
       git:
         uri: "https://github.com/openshift/aos-cd-jobs.git"
@@ -17,9 +17,9 @@ spec:
   output:
     to:
       # kind: "ImageStreamTag"
-      # name: "artcd:latest"
+      # name: "smee-client:latest"
       kind: "DockerImage"
-      name: "quay.io/openshift-art/artcd:latest"
+      name: "quay.io/openshift-art/smee-client:latest"
     pushSecret:
       name: "openshift-art-psi-image-builder-pull-secret"
   resources:

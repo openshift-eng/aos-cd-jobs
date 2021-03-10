@@ -8,17 +8,17 @@ metadata:
 spec:
   serviceAccountName: tekton-triggers-github-sa
   triggers:
-    - name: link-pull-request-to-jira
+    - name: run-update-pipelines-on-push
       interceptors:
-        - github:
-            secretRef:
-              secretName: github-webhook
-              secretKey: secretToken
-            eventTypes:
-              - pull_request
-        - cel:
-            filter: "body.action in ['opened', 'edited', 'reopened', 'closed']"
+      - github:
+          secretRef:
+            secretName: github-webhook
+            secretKey: secretToken
+          eventTypes:
+            - push
+      - cel:
+          filter: body.repository.name == "aos-cd-jobs" && body.ref == "refs/heads/master"
       bindings:
-        - ref: link-pull-request-to-jira
+        - ref: github-push-event-binding
       template:
-        name: link-pull-request-to-jira
+        name: run-update-pipelines-on-push-template

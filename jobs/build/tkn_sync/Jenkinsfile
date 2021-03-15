@@ -32,6 +32,7 @@ pipeline {
                         error 'TKN_VERSION must be specified'
                     }
                     target_version = params.TKN_VERSION.split("-")[0]
+                    target_dir = "/srv/pub/openshift-v4/clients/pipeline/${target_version}"
                 }
             }
         }
@@ -43,9 +44,11 @@ pipeline {
                     sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all"
                     sh "cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"
                     sh "echo ${target_version}"
-                    sh "scp -r /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all use-mirror-upload:/srv/pub/openshift-v4/clients/pipeline/${target_version}"
-                    sh "ssh use-mirror-upload ln --symbolic --force --no-dereference /srv/pub/openshift-v4/clients/pipeline/${target_version} /srv/pub/openshift-v4/clients/pipeline/latest"
-                    sh 'ssh use-mirror-upload /usr/local/bin/push.pub.sh openshift-v4/clients/pipeline -v'
+                    sh "ssh use-mirror-upload rm --recursive --force --verbose ${target_dir}"
+                    sh "ssh use-mirror-upload mkdir -p ${target_dir}"
+                    sh "scp -r /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/* use-mirror-upload:${target_dir}"
+                    sh "ssh use-mirror-upload ln --symbolic --force --no-dereference ${target_dir} /srv/pub/openshift-v4/clients/pipeline/latest"
+                    sh "ssh use-mirror-upload /usr/local/bin/push.pub.sh openshift-v4/clients/pipeline -v"
                 }
             }
         }

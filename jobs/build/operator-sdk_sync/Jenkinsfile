@@ -55,55 +55,81 @@ pipeline {
                     }
                     sdkVersion = ''
                     buildvmArch = sh(script: 'arch', returnStdout: true).trim()
-                    manifestList = readJSON(
+
+                    currentBuild.description = "${params.BUILD_TAG}"
+                    currentBuild.displayName = "${params.OCP_VERSION}"
+
+                    archList = ['x86_64']
+                    readJSON(
                         text: sh(
                             script: "skopeo inspect --raw docker://${imagePath}:${params.BUILD_TAG}",
                             returnStdout: true,
                         )
-                    ).manifests
+                    ).manifests.each {
+                        // We want x86_64 to be the first in the list, as that will be used to extract the
+                        // Operator SDK version, which is used while naming the files.
+                        def sdkArch = it.platform.architecture == 'amd64' ? 'x86_64' : it.platform.architecture
+                        def data = [arch: sdkArch, digest: it.digest]
+                        println("data: ${data}")
+
+                        if (archList.contains(sdkArch)) {
+                            def ind = archList.findIndexOf({it == 'x86_64'})
+                            archList.set(ind, data)
+                        } else {
+                            archList.add(data)
+                        }
+                    }
+                    echo "archList: ${archList}"
                 }
             }
         }
         stage('extract binaries') {
             steps {
                 script {
-                    manifestList.each {
-                        def sdkArch = it.platform.architecture == 'amd64' ? 'x86_64' : it.platform.architecture
-
-                        sh "rm -rf ./${sdkArch} && mkdir ./${sdkArch}"
-
-                        dir("./${sdkArch}") {
+                    archList.each {
+                        sh "rm -rf ./${it.arch} && mkdir ./${it.arch}"
+                        dir("./${it.arch}") {
                             sh "oc image extract ${imagePath}@${it.digest} --path /usr/local/bin/operator-sdk:. --confirm"
                             sh "chmod +x operator-sdk"
 
-                            if (buildvmArch == sdkArch) {
+                            if (it.arch == buildvmArch) {
                                 def sdkVersionRaw = sh(script: './operator-sdk version', returnStdout: true)
                                 sdkVersion = (sdkVersionRaw =~ /operator-sdk version: "([^"]+)"/).findAll()[0][1]
+                                currentBuild.displayName += "/${sdkVersion}"
                             }
+
+                            def tarballFilename = "operator-sdk-${sdkVersion}-linux-${it.arch}.tar.gz"
+                            sh "tar --create --preserve-order --gzip --verbose --file ${tarballFilename} ./operator-sdk"
+                            sh "rm -f ./operator-sdk"
+
+                            // Extract darwin binaries
+                            if (it.arch == "x86_64") {
+                                sh "oc image extract ${imagePath}@${it.digest} --path /usr/share/operator-sdk/mac/operator-sdk:. --confirm"
+                                sh "chmod +x operator-sdk"
+                                tarballFilename = "operator-sdk-${sdkVersion}-darwin-${it.arch}.tar.gz"
+                                sh "tar --create --preserve-order --gzip --verbose --file ${tarballFilename} ./operator-sdk"
+                                sh "rm -f ./operator-sdk"
+                            }
+
                         }
                     }
-                    currentBuild.displayName = "${params.OCP_VERSION}/${sdkVersion}"
-                    currentBuild.description = "${params.BUILD_TAG}"
                 }
             }
         }
         stage('sync tarballs') {
             steps {
                 script {
-                    manifestList.each {
-                        def arch = it.platform.architecture == 'amd64' ? 'x86_64' : it.platform.architecture
-
+                    sh "pwd"
+                    archList.each {
+                        def arch = it.arch
+                        sh "tree ${arch}"
                         dir("./${arch}") {
-                            def tarballFilename = "operator-sdk-${sdkVersion}-linux-${arch}.tar.gz"
-                            sh "tar -csvf ${tarballFilename} ./operator-sdk"
-
                             sshagent(['aos-cd-test']) {
                                 sh "ssh use-mirror-upload.ops.rhcloud.com -- mkdir -p /srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}"
-                                sh "scp ${tarballFilename} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}"
+                                sh "scp -- *.tar.gz use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}"
                                 sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.OCP_VERSION} /srv/pub/openshift-v4/${arch}/clients/operator-sdk/latest"
                                 sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/${arch}/clients/operator-sdk -v"
                             }
-
                         }
                     }
                 }

@@ -397,7 +397,7 @@ node {
                     return
                 }
                 try {  // don't let a slack outage break the job at this point
-                    def modeOptions = [ 'aws', 'gcp', 'azure,mirror' ]
+                    def modeOptions = [ 'aws', 'gcp', 'azure' ]
                     def testIndex = 0
                     def testLines = []
                     for ( String from_release : previousList) {
@@ -411,7 +411,7 @@ node {
                         return
                     }
                     slackChannel.say("Hi @release-artists . A new release is ready and needs some upgrade tests to be triggered. "
-                        + "Please open a chat with @cluster-bot and issue each of these lines individually. Note: mirror variant is broken for upgrade tests at this time, just use 'azure' instead.\n${testLines.join('\n')}")
+                        + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
                 }

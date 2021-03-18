@@ -49,23 +49,23 @@ EOF
 
 function checkDestDir() {
     if [ -d "${DESTDIR}" ]; then
-	# Is this forced?
-	if [ $FORCE -eq 0 ]; then
-	    echo "ERROR: Destination directory already exists and --force was not given"
-	    echo "ERROR: Run this script again with the --force option to continue"
-	    exit 1
-	else
-	    echo "INFO: Destination dir exists, will overwrite contents because --force was given"
-	fi
+        # Is this forced?
+        if [ $FORCE -eq 0 ]; then
+            echo "ERROR: Destination directory already exists and --force was not given"
+            echo "ERROR: Run this script again with the --force option to continue"
+            exit 1
+        else
+            echo "INFO: Destination dir exists, will overwrite contents because --force was given"
+        fi
     else
-	echo "INFO: Destination dir does not exist, will create it"
-	mkdir -p $DESTDIR
+        echo "INFO: Destination dir does not exist, will create it"
+        mkdir -p $DESTDIR
     fi
 }
 
 function downloadImages() {
     for img in $(<${SYNCLIST}); do
-	curl -L --fail --retry 5 -O $img
+        curl -L --fail --retry 5 -O $img
     done
     # rename files to indicate the release they match (including arch suffix by tradition).
     # also create an unversioned symlink to enable consistent incoming links.
@@ -139,38 +139,38 @@ fi
 
 while [ $1 ]; do
     case "$1" in
-	"--prefix")
-	    shift
-	    RHCOS_MIRROR_PREFIX=$1;;
-	"--arch")
-	    shift
-	    ARCH=$1;;
-	"--buildid")
-	    shift
-	    BUILDID=$1;;
-	"--version")
-	    shift
-	    VERSION=$1;;
-	"--synclist")
-	    shift
-	    SYNCLIST=$1;;
-        "--basedir")
-	    shift
-	    BASEDIR=$1;;
-	"--force")
-	    FORCE=1;;
-	"--test")
-	    TEST=1;;
-	"--nolatest")
-	    NOLATEST=1;;
-	"--nomirror")
-	    NOMIRROR=1;;
-	"-h" | "--help")
-	    usage
-	    exit 0;;
-	*)
-	    echo "Unrecognized option provided: '${1}', perhaps you need --help"
-	    exit 1;;
+    "--prefix")
+        shift
+        RHCOS_MIRROR_PREFIX=$1;;
+    "--arch")
+        shift
+        ARCH=$1;;
+    "--buildid")
+        shift
+        BUILDID=$1;;
+    "--version")
+        shift
+        VERSION=$1;;
+    "--synclist")
+        shift
+        SYNCLIST=$1;;
+    "--basedir")
+        shift
+        BASEDIR=$1;;
+    "--force")
+        FORCE=1;;
+    "--test")
+        TEST=1;;
+    "--nolatest")
+        NOLATEST=1;;
+    "--nomirror")
+        NOMIRROR=1;;
+    "-h" | "--help")
+        usage
+        exit 0;;
+    *)
+        echo "Unrecognized option provided: '${1}', perhaps you need --help"
+        exit 1;;
     esac
     shift
 done
@@ -207,9 +207,9 @@ fi
 popd
 if [ $TEST -eq 0 ]; then
     if [ $NOMIRROR -eq 0 ]; then
-	mirror
+        mirror
     else
-	echo "INFO: Not running push.pub command because --nomirror was given"
+        echo "INFO: Not running push.pub command because --nomirror was given"
     fi
 else
     echo "INFO: Not running sync script because --test was given"

@@ -77,7 +77,12 @@ function downloadImages() {
         link="${name/-$BUILDID/}"         # rhcos-qemu...
         [[ $name == $file ]] && continue  # skip files that aren't named that way
         mv "$name" "$file"
-        ln -s "$file" "$link"
+        ln --symbolic "$file" "$link"
+    done
+    # Some customer portals point to the deprecated `rhcos-installer` names rather than `rhcos-live`.
+    # Fix those links.
+    for f in $(find . -maxdepth 1 -type l -name 'rhcos-live-*'); do
+        ln -s "$(readlink $f)" "${f/rhcos-live-/rhcos-installer-}"
     done
 }
 

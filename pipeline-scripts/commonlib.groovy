@@ -10,7 +10,6 @@ ocp4Versions = [
     "4.7",
     "4.6",
     "4.5",
-    "4.4",
 ]
 
 ocpVersions = ocp4Versions + ocp3Versions

@@ -1,88 +1,70 @@
 #!/usr/bin/env groovy
-
 node {
     checkout scm
-    def build = load("build.groovy")
-    def buildlib = build.buildlib
-    def commonlib = build.commonlib
+    load("pipeline-scripts/commonlib.groovy").describeJob("crc_sync", """
+        -----------------------------------
+        Sync Code Ready Container to mirror
+        -----------------------------------
+        http://mirror.openshift.com/pub/openshift-v4/clients/crc/
 
-    commonlib.describeJob("crc_sync", """
-        <h2>Publish CodeReady Containers client to mirrors</h2>
-        <a href="https://developers.redhat.com/products/codeready-containers/overview" target="_blank">Product Overview</a>
-
-        Timing: Whenever the team asks us to do a release, typically with a new
-        minor version GA.
-
-        The CRC team will give us the URL for downloading the latest release,
-        and the other parameters should be self-explanatory.
+        Timing: This is only ever run by humans, upon request.
     """)
+}
 
-    properties(
-        [
-            buildDiscarder(
-                logRotator(
-                    artifactDaysToKeepStr: '',
-                    artifactNumToKeepStr: '30',
-                    daysToKeepStr: '',
-                    numToKeepStr: '30'
-                )
-            ),
-            [
-                $class : 'ParametersDefinitionProperty',
-                parameterDefinitions: [
-                    commonlib.suppressEmailParam(),
-                    string(
-                        name: 'RELEASE_URL',
-                        description: '(REQUIRED) Directory listing to latest release',
-                        trim: true,
-                    ),
-                    string(
-                        name: 'MAIL_LIST_FAILURE',
-                        description: 'Failure Mailing List',
-                        defaultValue: 'aos-art-automation+failed-crc-release@redhat.com',
-                        trim: true,
-                    ),
-                    commonlib.dryrunParam('Do not rsync the bits. Just download them and show what would have been copied'),
-                    commonlib.mockParam(),
-                ]
-            ],
-            disableResume(),
-            disableConcurrentBuilds(),
-        ]
-    )
+pipeline {
+    agent any
+    options { disableResume() }
 
-    commonlib.checkMock()
-
-    stage("Initialize") {
-        buildlib.kinit()
-        currentBuild.displayName = "CRC #${currentBuild.number} "
-        currentBuild.description = params.RELEASE_URL
-        build.initialize()
-    }
-
-    try {
-        sshagent(["openshift-bot"]) {
-            stage("Download release") { build.crcDownloadRelease() }
-            stage("Rsync the release") { build.crcRsyncRelease() }
-            stage("Push to mirrors") { build.crcPushPub() }
-        }
-    } catch (err) {
-        currentBuild.result = "FAILURE"
-        if (params.MAIL_LIST_FAILURE.trim()) {
-            commonlib.email(
-                to: params.MAIL_LIST_FAILURE,
-                from: "aos-art-automation+failed-crc-release@redhat.com",
-                replyTo: "aos-team-art@redhat.com",
-                subject: "Error releasing Code Ready Containers",
-                body: err,
-            )
-        }
-        throw err  // gets us a stack trace FWIW
-    } finally {
-        commonlib.safeArchiveArtifacts([
-                'email/*',
-            ]
+    parameters {
+        string(
+            name: "VERSION",
+            description: "Desired version name. Example: 1.24.0",
+            defaultValue: "",
+            trim: true,
         )
-        buildlib.cleanWorkspace()
+        string(
+            name: "SOURCES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/crc/1.24.0/signed/",
+            defaultValue: "",
+            trim: true,
+        )
     }
+
+    stages {
+        stage("Validate params") {
+            steps {
+                script {
+                    if (!params.VERSION) {
+                        error "VERSION must be specified"
+                    }
+                }
+            }
+        }
+        stage("Clean working dir") {
+            steps {
+                sh "rm -rf ${params.VERSION}"
+            }
+        }
+        stage("Download binaries") {
+            steps {
+                script {
+                    downloadRecursive(params.SOURCES_LOCATION, params.VERSION)
+                }
+            }
+        }
+        stage("Sync to mirror") {
+            steps {
+                sh "tree ${params.VERSION}"
+                sshagent(['aos-cd-test']) {
+                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/crc/"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/crc/latest"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/clients/crc -v"
+                }
+            }
+        }
+    }
+}
+
+def downloadRecursive(path, destination) {
+    sh "wget --recursive --no-parent --reject 'index.html*' --no-directories --directory-prefix ${destination} ${path}"
 }

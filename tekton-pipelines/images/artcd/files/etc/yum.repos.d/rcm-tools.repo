@@ -1,0 +1,27 @@
+[rcm-tools-rhel-8-baseos-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever BaseOS (RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-8/compose/BaseOS/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal
+
+[rcm-tools-rhel-8-baseos-source-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever BaseOS (Source RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-8/compose/BaseOS/source/tree/
+enabled=0
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal
+
+[rcm-tools-rhel-8-server-optional-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever BaseOS - Optional (RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-8/compose/BaseOS-optional/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal
+
+[rcm-tools-rhel-8-server-optional-source-rpms]
+name=RCM Tools for Red Hat Enterprise Linux $releasever BaseOS - Optional (Source RPMs)
+baseurl=http://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-8/compose/BaseOS-optional/source/tree/
+enabled=0
+gpgcheck=1
+gpgkey=http://download.devel.redhat.com/rel-eng/RCMTOOLS/RPM-GPG-KEY-rcminternal

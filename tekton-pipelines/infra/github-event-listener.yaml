@@ -3,6 +3,8 @@ apiVersion: triggers.tekton.dev/v1alpha1
 kind: EventListener
 metadata:
   name: github-event-listener
+  labels:
+    app: "artcd"
 spec:
   serviceAccountName: tekton-triggers-github-sa
   triggers:

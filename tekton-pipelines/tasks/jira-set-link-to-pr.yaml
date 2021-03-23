@@ -3,6 +3,8 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: jira-set-link-to-pr
+  labels:
+    app: "artcd"
 spec:
   params:
   - name: REPO_FULL_NAME

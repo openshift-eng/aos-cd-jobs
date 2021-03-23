@@ -4,6 +4,7 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    def slacklib = commonlib.slacklib
     commonlib.describeJob("sweep", """
         <h2>Sweep bugs</h2>
         <b>Timing</b>: This runs after component builds (ocp3/ocp4/custom jobs),
@@ -121,6 +122,13 @@ node {
                 throw elliottErr
             }
         }
+
+        if (params.ATTACH_BUGS) {
+            slacklib.to(params.VERSION).say("""
+            :warning: @release-artists note: the sweep job was used to sweep *bugs* into advisories.
+            buildvm job: ${commonlib.buildURL('console')}
+            """)
+        }
     }
 
     stage("Sweep builds") {
@@ -133,6 +141,11 @@ node {
             return
         }
         buildlib.attachBuildsToAdvisory(["rpm", "image"], params.BUILD_VERSION)
+
+        slacklib.to(params.VERSION).say("""
+        :warning: @release-artists note: the sweep job was used to sweep *builds* into advisories.
+        buildvm job: ${commonlib.buildURL('console')}
+        """)
     }
     currentBuild.description = "Ran without errors\n---------------\n" + currentBuild.description
     buildlib.cleanWorkspace()

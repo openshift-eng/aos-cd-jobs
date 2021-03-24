@@ -184,7 +184,7 @@ node {
                                     *:alert: custom ocp4 build compose ran during automation freeze*
                                     There were RPMs in the build plan that forced build compose during automation freeze."""
 
-                            slacklib.to(commonlib.extractMajorMinorVersion(params.RELEASE_NAME)).say(notificationMessage)
+                            slacklib.to(params.BUILD_VERSION).say(notificationMessage)
 
                         }
                     }

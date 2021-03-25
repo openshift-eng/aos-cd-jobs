@@ -212,7 +212,7 @@ node {
             group = "openshift-${major}.${minor}"
             
             commonlib.retryAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
-                                    "Blocker Bugs found for release. Do not proceed until confirmation from ARTists/bug owners that it is okay to proceed. If the bugs are not blockers, coordinate to remove the blocker+ flag on the bug(s). RETRY when blocker(s) is finally resolved.") {
+                                    "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
                 release.stageCheckBlockerBug(group)
             }
         }

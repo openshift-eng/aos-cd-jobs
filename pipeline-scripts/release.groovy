@@ -336,6 +336,28 @@ def Map stageWaitForStable(String releaseStream, String releaseName) {
     }
 }
 
+def stageCheckBlockerBug(group){
+    blocker_bugs = commonlib.shell(
+        returnStdout: true,
+        script: "${buildlib.ELLIOTT_BIN} -g ${group} find-bugs --mode blocker --report"
+    ).trim()
+
+    echo blocker_bugs
+    
+    found = true
+    try {
+        pattern = ~"Found ([0-9]+) bugs"
+        match = blocker_bugs =~ pattern
+        match.find()
+        found = (match[0][1] != '0')
+    } catch(ex) {
+        error("Could not parse Blocker bug output. Please check for blocker bug output")
+    }
+    if (found) {
+        error('Blocker Bugs found! Aborting.')
+    }
+}
+
 def stageGetReleaseInfo(quay_url, release_tag){
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${release_tag}"
 

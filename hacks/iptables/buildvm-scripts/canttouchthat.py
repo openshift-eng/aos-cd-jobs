@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import click
 import subprocess
@@ -155,6 +152,16 @@ Running with `--clean` will remove all installed rules.
         print('Error fetching AWS IP addresses. You may need to run --clean mode and then try this command again.')
         exit(1)
 
+    # Allow Fastly CDN service IP ranges
+    try:
+        fastly_cidrs = get_fastly_ip_ranges()
+        print(f'Adding {len(fastly_cidrs)} Fastly IP ranges')
+        cidr_set |= fastly_cidrs
+    except:
+        traceback.print_exc()
+        print('Error fetching Fastly IP addresses. You may need to run --clean mode and then try this command again.')
+        exit(1)
+
     # For each input file specified, add cidrs to the set
     for file in output_networks:
         with open(file, 'r') as f:
@@ -216,6 +223,11 @@ Running with `--clean` will remove all installed rules.
         print('Would have written the following direct rules to {}'.format(DIRECT_XML_PATH))
         print_direct_rules(direct)
 
+def get_fastly_ip_ranges():
+    response = requests.get("https://api.fastly.com/public-ip-list")
+    response.raise_for_status()
+    ip_ranges = response.json()
+    return set(ip_ranges.get("addresses", []) + ip_ranges.get("ipv6_addresses", []))
 
 if __name__ == '__main__':
     main()

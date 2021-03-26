@@ -80,9 +80,9 @@ node {
                         choices: ['rebase', 'nothing'].join('\n'),
                     ),
                     booleanParam(
-                        name: 'SIGNED',
-                        description: '(3.11) Build images against signed RPMs?',
-                        defaultValue: true,
+                        name: 'SCRATCH',
+                        description: 'Run scratch builds (only unrelated images, no children)',
+                        defaultValue: false,
                     ),
                     booleanParam(
                         name: 'SWEEP_BUGS',
@@ -136,7 +136,7 @@ node {
         version = buildlib.determineBuildVersion(params.BUILD_VERSION, buildlib.getGroupBranch(doozerOpts), params.VERSION)
         release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION)
     }
-    def repo_type = params.SIGNED ? "signed" : "unsigned"
+    def repo_type = "signed" // was: params.SIGNED ? "signed" : "unsigned"
     def images = commonlib.cleanCommaList(params.IMAGES)
     def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
     def rpms = commonlib.cleanCommaList(params.RPMS)
@@ -155,7 +155,7 @@ node {
                     currentBuild.description = "building RPM(s): ${rpms}\n"
                     command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
-                    command += "rpms:build --version ${version} --release '${release}' "
+                    command += "rpms:build --version ${version} --release '${release}' ${params.SCRATCH ? '--scratch' : ''} "
 
                     def buildRpms = { ->
                         buildlib.doozer command
@@ -224,7 +224,7 @@ node {
             stage("build images") {
                 if (!any_images_to_build) { return }
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                command = "${base_command} images:build"
+                command = "${base_command} images:build ${params.SCRATCH ? '--scratch' : ''}"
                 try {
                     buildlib.doozer command
                 } catch (err) {
@@ -243,6 +243,7 @@ node {
             }
 
             stage('push images to qe quay') {
+                if (params.SCRATCH || !any_images_to_build) { return }  // no point
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
                 command = "${base_command} images:push --to-defaults"
                 if (majorVersion == 4) {
@@ -257,6 +258,7 @@ node {
             }
 
             stage('sync images') {
+                if (params.SCRATCH || !any_images_to_build) { return }  // no point
                 if (majorVersion == 4) {
                     buildlib.sync_images(
                         majorVersion,

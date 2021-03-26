@@ -114,10 +114,6 @@ plashets/compose are always built to include them.
 A slack notification is sent to the respective release channel in either case,
 that is if this parameter is set true or if this run is building RPMs.
 
-> :warning: Note that for 3.11 this job cannot create a signed compose (perhaps
-> it should be changed to invoke `signed-compose` when the `SIGNED` flag is set
-> along with this one). For now `signed-compose` should be run separately.
-
 ### IMAGES
 
 [List](/jobs/README.md#list-parameters) of image dist-gits to build.  Leave
@@ -154,18 +150,18 @@ This specifies the mode to use with doozer to update image dist-gits:
 > don't want to pull in newer changes; but this is a rare use case, and you
 > don't want to get sloppy and include an operator/operand by accident.
 
-### SIGNED
+### SCRATCH
 
-Nominally this parameter specifies whether to build using a signed or unsigned
-RPM compose, defaulting to signed.
+Build "scratch" brew builds; code is pushed to dist-git and built in brew but
+the builds do not get an NVR, can't be tagged, and can't interfere with
+shipping builds. This is intended to be using only for testing builds.
 
-This has no effect in 4.y; whatever is in the plashets is used, whether signed or unsigned.
+:warning: Nothing can build on a scratch build (there is no registry tag), so
+scratch builds of a parent and descendant are not possible. The descendant
+build will fail. This can only be used for targeted builds, not a mass rebuild.
+:warning:
 
-In 3.11 this does affect whether the build uses the signed or unsigned compose
-(until we get plashets there too someday), and defaults to signed since that is
-one of the main use cases for this job (rebuilding a 3.11 release with signed
-contents). This means of course that you need to use the `signed-compose` job
-to create a signed compose first.
+After a scratch build, images will not be synced.
 
 ### SWEEP\_BUGS
 

@@ -55,8 +55,8 @@ def attach_bundles_to_advisory(bundle_nvrs, advisory) {
     elliott("change-state -s NEW_FILES -a ${advisory} ${params.DRY_RUN ? '--noop' : ''}")
     flags = bundle_nvrs.collect { "--build ${it}" }.join(' ')
     elliott("""find-builds -k image ${flags} ${params.DRY_RUN ? '' : "--attach ${advisory}"}""")
+    sleep(30) // wait for ET validations to be complete
     elliott("change-state -s QE -a ${advisory} ${params.DRY_RUN ? '--noop' : ''}")
-
 }
 
 /*

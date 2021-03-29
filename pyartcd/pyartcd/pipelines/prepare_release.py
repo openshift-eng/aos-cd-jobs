@@ -350,6 +350,10 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 
         def fields_transform(fields):
             labels = set(fields.get("labels", []))
+            # change summary title for security
+            if fields.get("summary"):
+                if "product security" in fields["summary"]:
+                    fields["summary"] = f"{self.release_name} [{self.release_date}]" + fields["summary"]
             if "template" not in labels:
                 return fields  # no need to modify fields of non-template issue
             # remove "template" label

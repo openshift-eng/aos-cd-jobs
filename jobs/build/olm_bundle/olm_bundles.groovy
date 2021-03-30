@@ -21,6 +21,29 @@ def get_olm_operators() {
 }
 
 /*
+ * Make sure 2 advisories belong to the same group that is given
+ */
+def validate_advisories(advisory1, advisory2, group) {
+    def adv1_str = elliott("get ${advisory1}")
+    def adv2_str = elliott("get ${advisory2}")
+    echo adv1_str
+    echo adv2_str
+    
+    // validate advisory1 string contains group(4.7)
+    adv1 = adv1_str.split()
+    index = adv1.findIndexOf { it.contains(group) }
+    if (index == -1) {
+        error("Group ${group} not found in advisory ${advisory1} data. Exiting")
+    }
+    
+    // validate the version of advisory1(4.7.4) is in advisory2 string
+    version = adv1[index]
+    if (!adv2_str.contains(version)) {
+        error("Version mismatch. ${version} not found in advisory ${advisory2} data. Exiting")
+    }
+}
+
+/*
  * Return list of OLM Operator NVRs attached to given <advisory>
  */
 def get_builds_from_advisory(advisory) {

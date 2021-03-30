@@ -91,6 +91,16 @@ pipeline {
                 }
             }
         }
+        stage('Make sure advisories belong to a single group') {
+            when {
+                expression { ! params.EXTRAS_ADVISORY.isEmpty() }
+            }
+            steps {
+                script {
+                    olm_bundles.validate_advisories(params.EXTRAS_ADVISORY, params.METADATA_ADVISORY, params.BUILD_VERSION)
+                }
+            }
+        }
         stage('Get advisory builds') {
             when {
                 expression { ! params.EXTRAS_ADVISORY.isEmpty() }

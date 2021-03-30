@@ -21,6 +21,18 @@ def get_olm_operators() {
 }
 
 /*
+ * Make sure 2 advisories belong to the same group that is given
+ */
+def validate_advisories(advisory1, advisory2, group) {
+    def advisory1_v = elliott("get ${advisory1}")
+    def advisory2_v = elliott("get ${advisory2}")
+    if !(advisory1_v in advisory2_v && group in advisory2_v) {
+        echo(advisory1_v, advisory2_v, group)
+        error("Inconsistent advisories/group")
+    }
+}
+
+/*
  * Return list of OLM Operator NVRs attached to given <advisory>
  */
 def get_builds_from_advisory(advisory) {

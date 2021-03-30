@@ -96,7 +96,9 @@ pipeline {
                 expression { ! params.EXTRAS_ADVISORY.isEmpty() }
             }
             steps {
-                olm_bundles.validate_advisories(params.EXTRAS_ADVISORY, params.METADATA_ADVISORY, params.BUILD_VERSION)
+                script {
+                    olm_bundles.validate_advisories(params.EXTRAS_ADVISORY, params.METADATA_ADVISORY, params.BUILD_VERSION)
+                }
             }
         }
         stage('Get advisory builds') {

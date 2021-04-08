@@ -1,3 +1,8 @@
+hacks/refine-candidate/rpm-builds
+hacks/refine-candidate/rpm-report
+hacks/refine-candidate/unused-builds
+hacks/refine-candidate/unused-components
+
 led / optimized / DLL files
 __pycache__/
 *.py[cod]

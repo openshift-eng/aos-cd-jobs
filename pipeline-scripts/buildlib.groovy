@@ -122,8 +122,6 @@ def setup_venv() {
 }
 
 def doozer(cmd, opts=[:]){
-    /** lmeyer 2021-04-06 - cluster hosting DB is down and this is blocking any builds from happening.
-     * disabling the attempt at db access until that clears up.
     withCredentials([usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
         withEnv(['DOOZER_DB_NAME=dev_build']) {
             return commonlib.shell(
@@ -132,11 +130,6 @@ def doozer(cmd, opts=[:]){
                     script: "doozer ${cleanWhitespace(cmd)}")
         }
     }
-    */
-            return commonlib.shell(
-                    returnStdout: opts.capture ?: false,
-                    alwaysArchive: opts.capture ?: false,
-                    script: "doozer ${cleanWhitespace(cmd)}")
 }
 
 def elliott(cmd, opts=[:]){

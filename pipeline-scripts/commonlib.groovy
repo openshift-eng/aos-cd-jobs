@@ -112,7 +112,6 @@ ocpMajorVersions = [
 ]
 
 ocpBaseImages = [
-        "ansible.runner",
         "elasticsearch",
         "jboss.openjdk18.rhel7",
         "rhscl.nodejs.6.rhel7",

@@ -257,7 +257,7 @@ def stageBuildRpms() {
         """
         ${doozerOpts}
         ${includeExclude "rpms", buildPlan.rpmsIncluded, buildPlan.rpmsExcluded}
-        rpms:build --version v${version.full}
+        beta:rpms:rebase-and-build --version v${version.full}
         --release '${version.release}'
         """
 

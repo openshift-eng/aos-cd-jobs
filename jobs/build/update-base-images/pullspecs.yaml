@@ -3,9 +3,6 @@
 # Otherwise, the combination of `package` and `brew_tag` are used to find the latest image.
 # User can be found by running `podman run -it --entrypoint /usr/bin/id <pullspec>
 
-ansible.runner:
-  pullspec: ansible-runner:1.2.0
-  user: "0"
 elasticsearch:
   # freshmaker rebuilds do not make it into `latest`
   # pullspec: elasticsearch:latest

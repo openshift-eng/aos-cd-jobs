@@ -1482,6 +1482,11 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     (major == 3) ? "--inherit" :  "", // For OCP3.11, we depend on tag inheritance to populate the OSE repo
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
+                    // The networking team requests plashets be built with latest and latest-1 package versions
+                    // --include-previous-for accepts package name prefixes, so "openvswitch" will match openvswitch2.15, openvswitch2.15-devel, ...
+                    "--include-previous-for openvswitch", // this is a package prefix
+                    "--include-previous-for python3-openvswitch", // this is a package prefix
+                    "--include-previous-for ovn", // this is a package prefix
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
             ].join(' '))
         }

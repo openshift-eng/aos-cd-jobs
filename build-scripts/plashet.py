@@ -456,7 +456,7 @@ class KojiWrapper(wrapt.ObjectProxy):
 @click.option('--signing-advisory-mode', required=False, default="clean", type=click.Choice(['leave', 'clean'], case_sensitive=False),
               help='clean=remove all builds on start and successful exit; leave=leave builds attached which the invocation attempted to sign')
 @click.option('--poll-for', default=15, type=click.INT, help='Allow up to this number of minutes for auto-signing')
-@click.option('--include-previous-for', multiple=True, metavar='PACKAGE_NAME', required=False, help='For specified package, include latest-1 tagged nvr in the plashet')
+@click.option('--include-previous-for', multiple=True, metavar='PACKAGE_NAME_PREFFIX', required=False, help='For specified package (may be package name prefix), include latest-1 tagged nvr in the plashet')
 @click.option('--include-previous', default=False, is_flag=True,
               help='Like --include-previous-for, but performs the operation for all packages found in the tags')
 @click.option('--event', required=False, default=None, help='The brew event for the desired tag states')
@@ -493,8 +493,6 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
         # packages changing while we run.
         event_info = koji_proxy.getLastEvent()
         event = event_info['id']
-
-    remaining_previous = set(include_previous_for)
 
     # Gather up all nvrs tagged in the embargoed brew tags into a set.
     embargoed_tag_nvrs = set()
@@ -585,11 +583,10 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
             desired_nvrs.add(nvr)
             nvr_product_version[nvr] = product_version
 
-            if package_name in remaining_previous or include_previous:
+            if package_name.startswith(tuple(include_previous_for)) or include_previous:
                 # The user has asked for non-latest entry for this package to be included in the plashet.
                 # we can try to find this by looking at the packages full history in this tag. Listing is
                 # newest -> oldest tagging event for this tag/package combination.
-                remaining_previous.discard(package_name)  # We assert later that this list is empty
 
                 tag_history = koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event, type='rpm')
                 tracking = False  # There may have been embargo shenanigans above; so we can't assume [0] is our target nvr
@@ -619,9 +616,6 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
 
     if config.include_package and len(config.include_package) != len(desired_nvrs):
         raise IOError(f'Did not find all command line included packages {config.include_package}; only found {desired_nvrs}')
-
-    if remaining_previous:
-        raise IOError(f'Did not find packages specified in --include-previous-for: {list(remaining_previous)}')
 
     # Did any of the archs require signed content?
     possible_signing_needed = signed_desired(config)

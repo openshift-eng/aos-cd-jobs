@@ -1,6 +1,6 @@
 // This will likely only make sense once you understand https://mojo.redhat.com/docs/DOC-1203429
 
-node('covscan') {
+node {
     checkout scm
     def appregistry = load("appregistry.groovy")
     def commonlib = appregistry.commonlib

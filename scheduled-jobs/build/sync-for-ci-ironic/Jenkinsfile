@@ -44,6 +44,7 @@ node() {
                 plashet_arch_args,
                 "from-tags", // plashet mode of operation => build from brew tags
                 "--brew-tag ${prevalidation_tag_name} NOT_APPLICABLE",  // product name is not required since we aren't signing
+                "--include-previous", // enable both pinning and non-pinning for pre-validation
         ].join(' '))
 
         echo "Synchronizing plashet for ${prevalidation_tag_name}"

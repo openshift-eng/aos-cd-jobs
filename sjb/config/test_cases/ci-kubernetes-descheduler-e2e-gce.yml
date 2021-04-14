@@ -83,5 +83,5 @@ overrides:
           JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
           gcloud auth activate-service-account --key-file /data/credentials.json
           gcloud config set project openshift-gce-devel
-          docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+          docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
         fi

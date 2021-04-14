@@ -83,7 +83,7 @@ extensions:
         ssh libvirtactuator 'sudo systemctl start libvirtd'
 
         # run the e2e
-        MAO_IMAGE=$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
+        MAO_IMAGE=$(docker run registry.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
         ssh libvirtactuator "./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -machine-manager-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -nodelink-controller-image $MAO_IMAGE -machine-controller-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri 'qemu+ssh://root@${LIBVIRT_IP}/system?no_verify=1&keyfile=/root/.ssh/actuator.pem/privatekey' -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem"
   system_journals:
     - systemd-journald.service
@@ -124,5 +124,5 @@ overrides:
         trap 'exit 0' EXIT
         if [[ -n "${JOB_SPEC:-}" ]]; then
           JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
-          sudo docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json /data/gcs/*
+          sudo docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json /data/gcs/*
         fi

@@ -116,7 +116,7 @@ enabled_metadata=1
                             sh "rm -rf ${prefix}_repos /var/tmp/yum-covscan"
                             sh "sudo yum clean metadata"
                         }
-                        sh "reposync --cachedir=/var/tmp/yum-covscan -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -e covscan_cache -r covscan -r covscan-testing"
+                        sh "reposync --cachedir=/var/tmp/yum-covscan -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -r covscan -r covscan-testing"
                         sh "createrepo_c ${prefix}_repos/covscan"
                         sh "createrepo_c ${prefix}_repos/covscan-testing"
                     }

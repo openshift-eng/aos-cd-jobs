@@ -14,7 +14,7 @@ extensions:
         <div>
         </div>
     - name: "OS_PUSH_BASE_REGISTRY"
-      default_value: "registry.svc.ci.openshift.org/"
+      default_value: "registry.ci.openshift.org/"
     - name: "OS_PUSH_BASE_REPO"
       default_value: "ci-pr-images/"
     - name: "DEBUG_MAIL"
@@ -194,7 +194,7 @@ extensions:
           -e TENANT_ID=$AZURE_TENANT \
           -e SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID \
           -e NAME=$RESOURCE_GROUP \
-          registry.svc.ci.openshift.org/azure/acs-engine-tests:v3.10 make test-openshift
+          registry.ci.openshift.org/azure/acs-engine-tests:v3.10 make test-openshift
         set -o xtrace
 
   post_actions:

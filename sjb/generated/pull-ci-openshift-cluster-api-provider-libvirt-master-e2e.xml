@@ -158,7 +158,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 JOB_SPEC=&#34;\$( jq --compact-output &#39;.buildid |= &#34;&#39;&#34;\${BUILD_NUMBER}&#34;&#39;&#34;&#39; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
-for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;registry.svc.ci.openshift.org/ci/initupload:latest&#39;; do
+for image in &#39;registry.ci.openshift.org/ci/clonerefs:latest&#39; &#39;registry.ci.openshift.org/ci/initupload:latest&#39;; do
     for (( i = 0; i &lt; 5; i++ )); do
         if docker pull &#34;\${image}&#34;; then
             break
@@ -166,8 +166,8 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
     done
 done
 clonerefs_args=\${CLONEREFS_ARGS:-}
-docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
-docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+docker run -v /data:/data:z registry.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
 sudo chmod -R a+rwX /data
 sudo chown -R origin:origin-git /data
@@ -291,7 +291,7 @@ ssh libvirtactuator &#39;sudo systemctl status libvirtd&#39;
 ssh libvirtactuator &#39;sudo systemctl start libvirtd&#39;
 
 # run the e2e
-MAO_IMAGE=\$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
+MAO_IMAGE=\$(docker run registry.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator)
 ssh libvirtactuator &#34;./machines.test -logtostderr -v 3 -kubeconfig ~/.kube/config -ginkgo.v -machine-manager-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -nodelink-controller-image \$MAO_IMAGE -machine-controller-image gcr.io/k8s-cluster-api/libvirt-machine-controller:0.0.1 -libvirt-uri &#39;qemu+ssh://root@\${LIBVIRT_IP}/system?no_verify=1&amp;keyfile=/root/.ssh/actuator.pem/privatekey&#39; -libvirt-pk /libvirt.pem -ssh-user fedora -ssh-key /guest.pem&#34;
 SCRIPT
 chmod +x &#34;${script}&#34;
@@ -463,7 +463,7 @@ cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
 if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
   JOB_SPEC=&#34;\$( jq --compact-output &#34;.buildid |= \&#34;\${BUILD_NUMBER}\&#34;&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
-  sudo docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json /data/gcs/*
+  sudo docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json /data/gcs/*
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;

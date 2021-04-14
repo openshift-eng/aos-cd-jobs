@@ -566,7 +566,7 @@ node {
                 if (arch == 'x86_64' || params.OPEN_NON_X86_PR ) {
                     commonlib.retrySkipAbort('Open Cincinnati PRs', taskThread) {
                         build(
-                                job: 'build%2Fcincinnati-prs',  propagate: true,
+                                job: '/aos-cd-builds/build%2Fcincinnati-prs',  propagate: true,
                                 parameters: [
                                     buildlib.param('String', 'RELEASE_NAME', release_name),
                                     buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),

@@ -113,10 +113,10 @@ enabled_metadata=1
                     lock('buildvm2-yum') { // Don't use yum while a job like reposync is
                         // download the repo contents and create local repositories
                         if ( params.REBUILD_REPOS ) {
-                            sh "rm -rf ${prefix}_repos"
+                            sh "rm -rf ${prefix}_repos /var/tmp/yum-covscan"
                             sh "sudo yum clean metadata"
                         }
-                        sh "reposync -t -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -e covscan_cache -r covscan -r covscan-testing"
+                        sh "reposync --cachedir=/var/tmp/yum-covscan -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -e covscan_cache -r covscan -r covscan-testing"
                         sh "createrepo_c ${prefix}_repos/covscan"
                         sh "createrepo_c ${prefix}_repos/covscan-testing"
                     }

@@ -116,7 +116,7 @@ node {
                         description: 'Select stage to resume from. Useful to execute remaining steps in the case of a failed promote job.',
                         choices: [
                                 'Not Applicable',
-                                'Mirror binaries',
+                                '1. Mirror binaries',
                             ].join('\n'),
                     ),
                     booleanParam(
@@ -180,11 +180,16 @@ node {
     is_4stable_release = true
     next_is_prerelease = false
 
-    if (params.RESUME_FROM == "Mirror binaries") { // skip stages before mirror binaries
-        params.SKIP_PAYLOAD_CREATION = true
-        params.SKIP_VERIFY_BUGS = true
+    // copy job params into normal vars, since params is an immutable map
+    SKIP_PAYLOAD_CREATION = params.SKIP_PAYLOAD_CREATION
+    SKIP_VERIFY_BUGS = params.SKIP_VERIFY_BUGS
+    SKIP_IMAGE_LIST = params.SKIP_IMAGE_LIST
+
+    if (params.RESUME_FROM.startsWith('1.')) { // skip stages before mirror binaries
+        SKIP_PAYLOAD_CREATION = true
+        SKIP_VERIFY_BUGS = true
         SKIP_TAG_STABLE = true
-        params.SKIP_IMAGE_LIST = true
+        SKIP_IMAGE_LIST = true
     }
     
     release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
@@ -254,7 +259,7 @@ node {
                 currentBuild.displayName += " (dry-run)"
                 currentBuild.description += "[DRY RUN]"
             }
-            if (params.SKIP_PAYLOAD_CREATION) {
+            if (SKIP_PAYLOAD_CREATION) {
                 currentBuild.displayName += " (skip payload creation)"
                 currentBuild.description += "[SKIP PAYLOAD CREATION]"
             }
@@ -283,7 +288,7 @@ node {
             }
 
             previousList = commonlib.parseList(params.PREVIOUS)
-            if ( params.PREVIOUS.trim() == 'auto' && !params.SKIP_PAYLOAD_CREATION) {
+            if ( params.PREVIOUS.trim() == 'auto' && !SKIP_PAYLOAD_CREATION) {
                 taskThread.task('Gather PREVIOUS for release') {
 
                     if (!detect_previous) {
@@ -341,15 +346,15 @@ node {
                     errata_url = ''
                     return
                 }
-                skipVerifyBugs = !ga_release || next_is_prerelease || params.SKIP_VERIFY_BUGS
+                skipVerifyBugs = !ga_release || next_is_prerelease || SKIP_VERIFY_BUGS
                 commonlib.retryAbort("Validating release", taskThread, "Error running release validation") {
-                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, params.SKIP_PAYLOAD_CREATION)
+                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, SKIP_PAYLOAD_CREATION)
                     advisory = advisory ?: retval.advisoryInfo.id
                     errata_url = retval.errataUrl
                 }
             }
             stage("build payload") {
-                if (params.SKIP_PAYLOAD_CREATION) {
+                if (SKIP_PAYLOAD_CREATION) {
                     echo "Don't actually create the payload because SKIP_PAYLOAD_CREATION is checked."
                     return
                 }
@@ -369,7 +374,7 @@ node {
             }
 
             stage("request upgrade tests") {
-                if (params.SKIP_PAYLOAD_CREATION) {
+                if (SKIP_PAYLOAD_CREATION) {
                     echo "Don't request upgrade tests because SKIP_PAYLOAD_CREATION option is checked."
                     return
                 }
@@ -486,7 +491,7 @@ node {
                     echo "Skipping image list for dummy advisory."
                     return
                 }
-                if (params.SKIP_IMAGE_LIST) {
+                if (SKIP_IMAGE_LIST) {
                     currentBuild.description += "[No image list]"
                     return
                 }
@@ -532,7 +537,7 @@ node {
             }
 
             stage("sign artifacts") {
-                if (params.SKIP_PAYLOAD_CREATION) {
+                if (SKIP_PAYLOAD_CREATION) {
                     payloadDigest = release.getPayloadDigest(quay_url, dest_release_tag)
                 }
                 commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {

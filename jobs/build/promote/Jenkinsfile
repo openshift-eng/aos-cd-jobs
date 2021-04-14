@@ -111,6 +111,14 @@ node {
                             'No',
                         ].join('\n'),
                     ),
+                    choice(
+                        name: 'RESUME_FROM',
+                        description: 'Select stage to resume from. Useful to execute remaining steps in the case of a failed promote job.',
+                        choices: [
+                                'Not Applicable',
+                                'Mirror binaries',
+                            ].join('\n'),
+                    ),
                     booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',
                         description: 'DO NOT USE without team lead approval. This is an unusual option.',
@@ -172,6 +180,13 @@ node {
     is_4stable_release = true
     next_is_prerelease = false
 
+    if (params.RESUME_FROM == "Mirror binaries") { // skip stages before mirror binaries
+        params.SKIP_PAYLOAD_CREATION = true
+        params.SKIP_VERIFY_BUGS = true
+        SKIP_TAG_STABLE = true
+        params.SKIP_IMAGE_LIST = true
+    }
+    
     release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
 
@@ -342,6 +357,10 @@ node {
             }
 
             stage("tag stable") {
+                if (params.SKIP_TAG_STABLE) {
+                    echo "Do not tag stable because SKIP_TAG_STABLE is checked."
+                    return
+                }
                 if (!is_4stable_release) {
                     // Something like a hotfix should not go into 4-stable in the release controller
                     return

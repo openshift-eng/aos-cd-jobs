@@ -357,8 +357,8 @@ node {
             }
 
             stage("tag stable") {
-                if (params.SKIP_TAG_STABLE) {
-                    echo "Do not tag stable because SKIP_TAG_STABLE is checked."
+                if (SKIP_TAG_STABLE) {
+                    echo "Do not tag stable because SKIP_TAG_STABLE is set."
                     return
                 }
                 if (!is_4stable_release) {

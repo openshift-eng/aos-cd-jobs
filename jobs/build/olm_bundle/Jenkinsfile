@@ -1,4 +1,4 @@
-node {
+node('covscan') {
     checkout scm
     olm_bundles = load('olm_bundles.groovy')
     olm_bundles.commonlib.describeJob("olm_bundle", """
@@ -18,7 +18,7 @@ node {
 }
 
 pipeline {
-    agent any
+    agent { label 'covscan' }
 
     options {
         disableResume()

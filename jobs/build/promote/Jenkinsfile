@@ -211,7 +211,7 @@ node {
         stage("Check for Blocker Bugs") {
             group = "openshift-${major}.${minor}"
             
-            commonlib.retryAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
+            commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
                                     "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
                 release.stageCheckBlockerBug(group)
             }

@@ -158,7 +158,7 @@ cat &lt;&lt;SCRIPT &gt;&#34;${script}&#34;
 set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 JOB_SPEC=&#34;\$( jq --compact-output &#39;.buildid |= &#34;&#39;&#34;\${BUILD_NUMBER}&#34;&#39;&#34;&#39; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
-for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;registry.svc.ci.openshift.org/ci/initupload:latest&#39;; do
+for image in &#39;registry.ci.openshift.org/ci/clonerefs:latest&#39; &#39;registry.ci.openshift.org/ci/initupload:latest&#39;; do
     for (( i = 0; i &lt; 5; i++ )); do
         if docker pull &#34;\${image}&#34;; then
             break
@@ -166,8 +166,8 @@ for image in &#39;registry.svc.ci.openshift.org/ci/clonerefs:latest&#39; &#39;re
     done
 done
 clonerefs_args=\${CLONEREFS_ARGS:---repo=openshift,origin=master --repo=openshift,aos-cd-jobs=master --repo=openshift,image-registry=master --repo=openshift,kubernetes-metrics-server=master --repo=openshift,origin-web-console-server=master }
-docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
-docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+docker run -v /data:/data:z registry.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json \${PULL_REFS:+--repo=\${REPO_OWNER},\${REPO_NAME}=\${PULL_REFS}} \${clonerefs_args}
+docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v /data:/data:z registry.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 
 sudo chmod -R a+rwX /data
 sudo chown -R origin:origin-git /data
@@ -326,16 +326,16 @@ echo &#34;\${tag}&#34; &gt; &#34;\${jobs_repo}/ORIGIN_TAG&#34;
 # all of these jobs will be removed in later releases
 if [[ &#34;\${tag}&#34; == &#34;v3.11&#34; ]]; then
   for i in service-serving-cert-signer; do
-    if docker pull &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34;; then
-      docker tag &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34; &#34;openshift/origin-\${i}:\$( cat &#34;\${jobs_repo}/ORIGIN_COMMIT&#34; )&#34;
+    if docker pull &#34;registry.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34;; then
+      docker tag &#34;registry.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34; &#34;openshift/origin-\${i}:\$( cat &#34;\${jobs_repo}/ORIGIN_COMMIT&#34; )&#34;
     fi
   done
 fi
 
 if [[ &#34;\${tag}&#34; == &#34;v4.0&#34; ]]; then
   for i in service-serving-cert-signer docker-builder; do
-    if docker pull &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34;; then
-      docker tag &#34;registry.svc.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34; &#34;openshift/origin-\${i}:\$( cat &#34;\${jobs_repo}/ORIGIN_COMMIT&#34; )&#34;
+    if docker pull &#34;registry.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34;; then
+      docker tag &#34;registry.ci.openshift.org/openshift/origin-\${tag}:\${i}&#34; &#34;openshift/origin-\${i}:\$( cat &#34;\${jobs_repo}/ORIGIN_COMMIT&#34; )&#34;
     fi
   done
 fi        
@@ -780,7 +780,7 @@ cd &#34;\${HOME}&#34;
 trap &#39;exit 0&#39; EXIT
 if [[ -n &#34;\${JOB_SPEC:-}&#34; ]]; then
   JOB_SPEC=&#34;\$( jq --compact-output &#34;.buildid |= \&#34;\${BUILD_NUMBER}\&#34;&#34; &lt;&lt;&lt;&#34;\${JOB_SPEC}&#34; )&#34;
-  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
+  docker run -e JOB_SPEC=&#34;\${JOB_SPEC}&#34; -v &#34;/data:/data:z&#34; registry.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin /data/gcs/*
 fi
 SCRIPT
 chmod +x &#34;${script}&#34;

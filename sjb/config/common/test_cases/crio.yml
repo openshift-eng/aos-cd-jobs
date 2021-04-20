@@ -139,7 +139,7 @@ post_actions:
       trap 'exit 0' EXIT
       if [[ -n "${JOB_SPEC:-}" ]]; then
         JOB_SPEC="$( jq --compact-output ".buildid |= \"${BUILD_NUMBER}\"" <<<"${JOB_SPEC}" )"
-        sudo docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.svc.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/*
+        sudo docker run -e JOB_SPEC="${JOB_SPEC}" -v "/data:/data:z" registry.ci.openshift.org/ci/gcsupload:latest --dry-run=false --gcs-path=gs://origin-federated-results --gcs-credentials-file=/data/credentials.json /data/gcs/*
       fi
 artifacts:
   - /go/src/k8s.io/kubernetes/artifacts

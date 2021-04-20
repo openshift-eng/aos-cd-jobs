@@ -25,14 +25,14 @@ extensions:
         sudo chmod a+rw /tmp/.docker/config.json
         export DOCKER_CONFIG=/tmp/.docker
 
-        docker tag cluster-operator:canary registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator:latest
-        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator:latest
+        docker tag cluster-operator:canary registry.ci.openshift.org/openshift-cluster-operator/cluster-operator:latest
+        docker push registry.ci.openshift.org/openshift-cluster-operator/cluster-operator:latest
 
-        docker tag cluster-operator-ansible:canary registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
-        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+        docker tag cluster-operator-ansible:canary registry.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
+        docker push registry.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:latest
 
-        docker tag cluster-operator-ansible:v3.10 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
-        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
+        docker tag cluster-operator-ansible:v3.10 registry.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
+        docker push registry.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.10
 
-        docker tag cluster-operator-ansible:v3.9 registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9
-        docker push registry.svc.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9
+        docker tag cluster-operator-ansible:v3.9 registry.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9
+        docker push registry.ci.openshift.org/openshift-cluster-operator/cluster-operator-ansible:v3.9

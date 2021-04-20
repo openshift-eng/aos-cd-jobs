@@ -22,7 +22,7 @@ extensions:
         <div>
         </div>
     - name: "OS_PUSH_BASE_REGISTRY"
-      default_value: "registry.svc.ci.openshift.org/"
+      default_value: "registry.ci.openshift.org/"
     - name: "OS_PUSH_BASE_REPO"
       default_value: "ci-pr-images/"
     - name: "ORIGIN_TARGET_BRANCH"

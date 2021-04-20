@@ -13,11 +13,11 @@ _PARAMETER_TEMPLATE = Template("""        <hudson.model.StringParameterDefinitio
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>""")
 
-_GCS_UPLOAD = """docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.svc.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
+_GCS_UPLOAD = """docker run -e JOB_SPEC="${JOB_SPEC}" -v /data:/data:z registry.ci.openshift.org/ci/initupload:latest --clone-log=/data/clone.json --dry-run=false --gcs-path=gs://origin-ci-test --gcs-credentials-file=/data/credentials.json --path-strategy=single --default-org=openshift --default-repo=origin
 """
 
 _CLONEREFS_ACTION_TEMPLATE = Template("""JOB_SPEC="$( jq --compact-output '.buildid |= "'"${BUILD_NUMBER}"'"' <<<"${JOB_SPEC}" )"
-for image in 'registry.svc.ci.openshift.org/ci/clonerefs:latest' 'registry.svc.ci.openshift.org/ci/initupload:latest'; do
+for image in 'registry.ci.openshift.org/ci/clonerefs:latest' 'registry.ci.openshift.org/ci/initupload:latest'; do
     for (( i = 0; i < 5; i++ )); do
         if docker pull "${image}"; then
             break
@@ -25,7 +25,7 @@ for image in 'registry.svc.ci.openshift.org/ci/clonerefs:latest' 'registry.svc.c
     done
 done
 clonerefs_args=${CLONEREFS_ARGS:-{% for repo in repos %}--repo={{repo}} {% endfor %}}
-docker run -v /data:/data:z registry.svc.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json ${PULL_REFS:+--repo=${REPO_OWNER},${REPO_NAME}=${PULL_REFS}} ${clonerefs_args}
+docker run -v /data:/data:z registry.ci.openshift.org/ci/clonerefs:latest --src-root=/data --log=/data/clone.json ${PULL_REFS:+--repo=${REPO_OWNER},${REPO_NAME}=${PULL_REFS}} ${clonerefs_args}
 {{upload_to_gcs_step}}
 sudo chmod -R a+rwX /data
 sudo chown -R origin:origin-git /data

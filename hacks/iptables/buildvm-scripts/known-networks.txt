@@ -202,6 +202,9 @@
 # registry.svc.ci.openshift.org
 2607:f8b0:4004:0c09:0000:0000:0000:0080/48
 
+# registry.ci.openshift.org
+3.212.234.35
+
 # registry.access.redhat.com
 173.223.75.141/32
 104.69.48.79/32

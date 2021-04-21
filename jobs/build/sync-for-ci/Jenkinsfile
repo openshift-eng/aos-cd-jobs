@@ -75,10 +75,16 @@ node {
     currentBuild.displayName = "${GROUP} - ${ARCH}"
     REPOSYNC_BASE_DIR="/mnt/workspace/reposync"
     LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${REPOSYNC_DIR}"
-    LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${REPOSYNC_DIR}"
-
     MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
     MIRROR_RELATIVE_REPOSYNC = "reposync/${REPOSYNC_DIR}"
+
+    if ( ARCH != 'x86_64' ) {
+        // Non x86_64 arch directories will have the arch as a suffix
+        LOCAL_SYNC_DIR = "${LOCAL_SYNC_DIR}_${ARCH}"
+        MIRROR_RELATIVE_REPOSYNC = "${MIRROR_RELATIVE_REPOSYNC}_${ARCH}"
+    }
+
+    LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${REPOSYNC_DIR}_${ARCH}"
     MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
     MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
 
@@ -92,20 +98,10 @@ node {
                 // To work on real repos, buildlib operations must run with the permissions of openshift-bot
 
                 stage("sync repos to local") {
-                    cacheDir = "${LOCAL_CACHE_DIR}_${ARCH}"
-
-                    if ( ARCH == 'x86_64' ) {
-                        // Match legacy location for x86_64
-                        syncDir = "${LOCAL_SYNC_DIR}"
-                    } else {
-                        // Non x86_64 arch directories will have the arch as a suffix
-                        syncDir = "${LOCAL_SYNC_DIR}_${ARCH}"
-                    }
-
                     base_args = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
                     // Specify -a ${ARCH} to allow repos to be constructed for the arch even if
                     // if it is not enabled in group.yml.
-                    command = "${base_args} -a ${ARCH} beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
+                    command = "${base_args} -a ${ARCH} beta:reposync --output ${LOCAL_SYNC_DIR}/ --cachedir ${LOCAL_CACHE_DIR}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
                     buildlib.doozer command
 
                     /**
@@ -116,7 +112,7 @@ node {
 
                     sanityCheckRes = commonlib.shell(
                             returnAll: true,
-                            script: "find ${syncDir} -name '*.${ARCH}.rpm' | wc -l"
+                            script: "find ${LOCAL_SYNC_DIR} -name '*.${ARCH}.rpm' | wc -l"
                     )
 
                     if(sanityCheckRes.stdout.trim().toInteger() < 50){

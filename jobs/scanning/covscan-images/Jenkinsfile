@@ -50,9 +50,19 @@ node('covscan') {
                         ].join(',')
                     ],
                     booleanParam(
-                        name: 'PRESERVE_SCANNER_IMAGES',
+                        name: 'PRESERVE_BUILDER_IMAGES',
                         defaultValue: false,
-                        description: "Do not rebuild scanner images if they are available (will save time during testing if true)."
+                        description: "Do not rebuild parent images if they are available (will save time during testing if true)."
+                    ),
+                    booleanParam(
+                        name: 'IGNORE_WAIVED',
+                        defaultValue: false,
+                        description: "Do not compute diffs based on waived results (diff will equal all)."
+                    ),
+                    booleanParam(
+                        name: 'FORCE_ANALYSIS',
+                        defaultValue: false,
+                        description: "Rerun analysis even if results are present for the commit."
                     ),
                     booleanParam(
                         name: 'REBUILD_REPOS',
@@ -134,7 +144,9 @@ enabled_metadata=1
                             --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
                             --result-archive ${RESULTS_ARCHIVE_DIR}
                             --repo-type unsigned
-                            ${params.PRESERVE_SCANNER_IMAGES?'--preserve-scanner-images':''}
+                            ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
+                            ${params.IGNORE_WAIVED?'--ignore-waived':''}
+                            ${params.FORCE_ANALYSIS?'--force-analysis':''}
                 """
             }
         }
@@ -147,6 +159,7 @@ enabled_metadata=1
                 def record = covscan_records[i]
                 def distgit = record['distgit']
                 def distgit_key = record['distgit_key']
+                def stage_number = record['stage_number']
                 def commit_hash = record['commit_hash']
                 def diff_results_js_path = record['diff_results_js_path']
                 def image_name = record['image']
@@ -161,7 +174,7 @@ enabled_metadata=1
 
                 // Copy archive results files to rcm-guest (rsync should no-op if it has happened before). This
                 // includes files like all_results.js and diff_results.html.
-                RCM_RELATIVE_DEST = "rcm-guest/puddles/RHAOS/coverity/results/${distgit_key}/${commit_hash}"
+                RCM_RELATIVE_DEST = "rcm-guest/puddles/RHAOS/coverity/results/${distgit_key}/${commit_hash}/stage_${stage_number}"
                 RCM_GUEST_DEST = "/mnt/${RCM_RELATIVE_DEST}"
                 commonlib.shell("ssh ocp-build@rcm-guest.app.eng.bos.redhat.com mkdir -p ${RCM_GUEST_DEST}")
                 commonlib.shell("rsync -r ${record['commit_results_path']}/ ocp-build@rcm-guest.app.eng.bos.redhat.com:${RCM_GUEST_DEST}")

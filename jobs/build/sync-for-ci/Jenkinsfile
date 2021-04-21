@@ -103,7 +103,9 @@ node {
                     }
 
                     base_args = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
-                    command = "${base_args} beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
+                    // Specify -a ${ARCH} to allow repos to be constructed for the arch even if
+                    // if it is not enabled in group.yml.
+                    command = "${base_args} -a ${ARCH} beta:reposync --output ${syncDir}/ --cachedir ${cacheDir}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
                     buildlib.doozer command
 
                     /**

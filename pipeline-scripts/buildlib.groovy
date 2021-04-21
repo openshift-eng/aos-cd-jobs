@@ -64,13 +64,12 @@ def registry_login() {
 }
 
 def registry_quay_dev_login() {
-    // 2018-11-30 - Login to the
-    // openshift-release-dev/ocp-v4.1-art-dev registry This is just
-    // for test purposes right now
+    // Login to the openshift-release-dev/ocp-v4.0-art-dev registry
+    // Despite the name, this is the location for both dev and production images.
 
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u "openshift-release-dev+art_quay_dev" -p $PASSWORD quay.io'
+        sh 'docker login -u "$USERNAME" -p "$PASSWORD" quay.io'
     }
 }
 

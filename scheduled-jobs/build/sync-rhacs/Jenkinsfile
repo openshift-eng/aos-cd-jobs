@@ -1,0 +1,43 @@
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '', daysToKeepStr: '30')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+node() {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+
+    stage('sync bucket local') {
+        withCredentials([file(credentialsId: 'rhacs-sync-gs-account', variable: 'FILE')]) {
+            sh '''
+            export PATH=$PATH:/mnt/nfs/home/jenkins/google-cloud-sdk/bin
+            rm -rf .config
+            mkdir .config
+            export CLOUDSDK_CONFIG=$PWD/.config
+            gcloud auth activate-service-account --key-file=$FILE
+            DEST=/mnt/workspace/buckets/rhacs-openshift-mirror-src
+            mkdir -p $DEST
+            gsutil rsync -r gs://rhacs-openshift-mirror-src $DEST
+            '''
+        }
+    }
+
+    stage('push to mirror') {
+        MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
+        MIRROR_RELATIVE_PATH = "rhacs"
+        MIRROR_PUB_BASE_DIR = "/srv/pub"
+        MIRROR_SYNC_DIR = "${MIRROR_PUB_BASE_DIR}/${MIRROR_RELATIVE_PATH}"
+        LOCAL_SYNC_DIR="/mnt/workspace/buckets/rhacs-openshift-mirror-src"
+
+        sshagent(['openshift-bot']) {
+            sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}"
+            sh "rsync -avzh --chmod=a+rwx,g-w,o-w --delete -e \"ssh -o StrictHostKeyChecking=no\" ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "
+            timeout(time: 2, unit: 'HOURS') {
+                sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- push.pub.sh -v ${MIRROR_RELATIVE_PATH}"
+            }
+        }
+
+    }
+}

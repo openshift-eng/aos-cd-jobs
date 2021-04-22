@@ -189,6 +189,7 @@ enabled_metadata=1
                     issues = sh(returnStdout: true, script:"cat ${diff_results_js_path} | jq .issues[].checkerName -r | sort | uniq")
                     prodsec_report << [
                             'Image' : image_name,
+                            'Build Stage': "${stage_number}",
                             'Distgit': "${distgit} (hash ${commit_hash})",
                             'Unwaived Issue Count': record['diff_count'],
                             'Unwaived Issue Types': issues.split().join(', '),

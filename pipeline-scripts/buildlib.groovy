@@ -69,7 +69,7 @@ def registry_quay_dev_login() {
 
     withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io',
                       usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-        sh 'docker login -u "$USERNAME" -p "$PASSWORD" quay.io'
+        sh 'docker login -u openshift-release-dev+art_quay_dev -p "$PASSWORD" quay.io'
     }
 }
 

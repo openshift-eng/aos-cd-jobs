@@ -44,18 +44,19 @@ def mkdirs(path, mode=0o755):
     pathlib.Path(str(path)).mkdir(mode=mode, parents=True, exist_ok=True)
 
 
-def update_advisory_builds(config, errata_proxy, advisory_id, nvrs, nvr_product_version):
+def update_advisory_builds(config, errata_proxy, advisory_id, nvres, nvr_product_version):
     """
     Attempts to get a specific set of RPM nvrs attached to an advisory
     :param errata_proxy: proxy
     :param advisory_id: The advisory to modify (should be in NEW_FILES)
     :param product_version: Product version to attach RPMs for (e.g. RHEL-7-OSE-4.5)
-    :param nvrs: A list of RPM nvrs
+    :param nvres: A list of RPM nvrs
     :param nvr_product_version: A map of nvr->product_version
     :return: n/a
     Exception thrown if there is an error.
     """
-    desired_nvrs = set(nvrs)
+
+    desired_nvrs = set([strip_epoch(n) for n in nvres])
     errata_nvrs = set()
     for build in errata_proxy.getErrataBrewBuilds(advisory_id):
         nvr = build["brew_build_nvr"]
@@ -110,14 +111,14 @@ def update_advisory_builds(config, errata_proxy, advisory_id, nvrs, nvr_product_
             raise IOError(f'Unable to add nvrs to advisory {advisory_id}: {to_add}')
 
 
-def _assemble_repo(config, nvrs: List[str]):
+def _assemble_repo(config, nvres: List[str]):
     """
     This method is intended to be wrapped by assemble_repo.
     Assembles one or more architecture specific repos in the
     dest_dir with the specified nvrs. It is expected by the time this method
     is called that all RPMs are signed if any of those arches requires signing.
     :param config: cli config
-    :param nvrs: a list of nvrs to include.
+    :param nvres: a list of nvres to include.
     :return: n/a
     An exception will be thrown if no RPMs can be found matching an nvr.
     """
@@ -134,18 +135,19 @@ def _assemble_repo(config, nvrs: List[str]):
         # Each arch will have its own yum repo & thus needs its own rpm_list
         with open(rpm_list_path, mode='w+') as rl:
 
-            for nvr in nvrs:
+            for nvre in nvres:
+                nvr = strip_epoch(nvre)
                 matched_count = 0
 
-                parsed_nvr = parse_nvr(nvr)
-                package_name = parsed_nvr["name"]
+                nvre_obj = parse_nvr(nvre)
+                package_name = nvre_obj["name"]
 
                 if package_name in config.exclude_package:
-                    logger.info(f'Skipping repo addition for excluded package: {nvr}')
+                    logger.info(f'Skipping repo addition for excluded package: {nvre}')
                     continue
 
                 signed = (signing_mode == 'signed')
-                br_arch_base_path = get_brewroot_arch_base_path(config, nvr, signed)
+                br_arch_base_path = get_brewroot_arch_base_path(config, nvre, signed)
 
                 # Include noarch in each arch specific repo.
                 include_arches = [arch_name, 'noarch']
@@ -153,10 +155,10 @@ def _assemble_repo(config, nvrs: List[str]):
                     brewroot_arch_path = os.path.join(br_arch_base_path, a)
 
                     if not os.path.isdir(brewroot_arch_path):
-                        logger.debug(f'No {a} arch directory for {nvr}')
+                        logger.debug(f'No {a} arch directory for {nvre}')
                         continue
 
-                    logger.info(f'Found {"signed" if signed else "unsigned"} {a} arch directory for {nvr}')
+                    logger.info(f'Found {"signed" if signed else "unsigned"} {a} arch directory for {nvre}')
                     link_name = '{nvr}__{arch}'.format(
                         nvr=nvr,
                         arch=a,
@@ -177,8 +179,8 @@ def _assemble_repo(config, nvrs: List[str]):
                         matched_count += 1
 
                 if not matched_count:
-                    logger.warning("Unable to find any {arch} rpms for {nvr} in {p} ; this may be ok if the package doesn't support the arch and it is not required for that arch".format(
-                                       arch=arch_name, nvr=nvr, p=get_brewroot_arch_base_path(config, nvr, signed)))
+                    logger.warning("Unable to find any {arch} rpms for {nvre} in {p} ; this may be ok if the package doesn't support the arch and it is not required for that arch".format(
+                                       arch=arch_name, nvre=nvre, p=get_brewroot_arch_base_path(config, nvre, signed)))
 
         if os.system('cd {repo_dir} && createrepo_c -i rpm_list .'.format(repo_dir=dest_arch_path)) != 0:
             raise IOError('Error creating repo at: {repo_dir}'.format(repo_dir=dest_arch_path))
@@ -186,13 +188,13 @@ def _assemble_repo(config, nvrs: List[str]):
         print('Successfully created repo at: {repo_dir}'.format(repo_dir=dest_arch_path))
 
 
-def assemble_repo(config, nvrs, event_info=None, extra_data: Dict = None):
+def assemble_repo(config, nvres, event_info=None, extra_data: Dict = None):
     """
     Assembles one or more architecture specific repos in the
     dest_dir with the specified nvrs. It is expected by the time this method
     is called that all RPMs are signed if any of those arches requires signing.
     :param config: cli config
-    :param nvrs: a list of nvrs to include.
+    :param nvres: a list of nvres to include.
     :param event_info: The brew event information to encode into the plashet.yml
     :param extra_data: a dictionary of data that will be added to the plashet.yml file
         if the repo is successfully assembled.
@@ -205,7 +207,7 @@ def assemble_repo(config, nvrs, event_info=None, extra_data: Dict = None):
     with open(os.path.join(config.dest_dir, 'plashet.yml'), mode='w+', encoding='utf-8') as y:
         success = False
         try:
-            _assemble_repo(config, nvrs)
+            _assemble_repo(config, nvres)
             success = True
         finally:
             plashet_info = {
@@ -219,15 +221,15 @@ def assemble_repo(config, nvrs, event_info=None, extra_data: Dict = None):
             yaml.dump(plashet_info, y, default_flow_style=False)
 
 
-def get_brewroot_arch_base_path(config, nvr, signed):
+def get_brewroot_arch_base_path(config, nvre, signed):
     """
     :param config: Base cli config object
-    :param nvr: Will return the base directory under which the arch directories should exist.
+    :param nvre: Will return the base directory under which the arch directories should exist.
     :param signed: If True, the base directory under which signed arch directories should exit.
     An exception will be raised if the nvr cannot be found unsigned in the brewroot as this
     indicates the nvr has not been built.
     """
-    parsed_nvr = parse_nvr(nvr)
+    parsed_nvr = parse_nvr(nvre)
     package_name = parsed_nvr["name"]
     package_version = parsed_nvr["version"]
     package_release = parsed_nvr["release"]
@@ -240,7 +242,7 @@ def get_brewroot_arch_base_path(config, nvr, signed):
     )
 
     if not os.path.isdir(unsigned_arch_base_path):
-        raise IOError(f'Unable to find {nvr} in brewroot filesystem: {unsigned_arch_base_path}')
+        raise IOError(f'Unable to find {nvre} in brewroot filesystem: {unsigned_arch_base_path}')
 
     if not signed:
         return unsigned_arch_base_path
@@ -251,15 +253,15 @@ def get_brewroot_arch_base_path(config, nvr, signed):
         )
 
 
-def is_signed(config, nvr):
+def is_signed(config, nvre):
     """
     :param config: cli config object
-    :param nvr: The nvr to check
+    :param nvre: The nvr to check
     :return: Returns whether the specified nvr is signed with the signing key id. An exception
     will be raise if the nvr can't be found at all in the brew root (i.e. unsigned can't be found).
     """
-    signed_base = get_brewroot_arch_base_path(config, nvr, True)
-    unsigned_base = get_brewroot_arch_base_path(config, nvr, False)
+    signed_base = get_brewroot_arch_base_path(config, nvre, True)
+    unsigned_base = get_brewroot_arch_base_path(config, nvre, False)
 
     if os.path.isdir(signed_base):
         # The signed directory exists, but we also want to make sure that the RPM counts match
@@ -272,7 +274,7 @@ def is_signed(config, nvr):
         unsigned_rpm_count = len(set(glob.glob(f'{unsigned_base}/**/*.rpm', recursive=True)) - set(glob.glob(f'{unsigned_base}/data/**/*.rpm', recursive=True)))
 
         if unsigned_rpm_count != signed_rpm_count:
-            logger.info(f'Found incomplete signed rpm directory for {nvr}; brewroot may still be being built.')
+            logger.info(f'Found incomplete signed rpm directory for {nvre}; brewroot may still be being built.')
             return False
         return True
     else:
@@ -291,24 +293,44 @@ def signed_desired(config):
             raise IOError(f'Unexpected signing mode for arch {a} (must be signed or unsigned): {mode}')
 
 
-def assert_signed(config, nvr, poll_for=15):
+def strip_epoch(nvr: str):
+    """
+    If an NVR string is N-V-R:E, returns only the NVR portion. Otherwise
+    returns NVR exactly as-is.
+    """
+    return nvr.split(':')[0]
+
+
+def to_nvre(build_record):
+    """
+    From a build record object (such as an entry returned by listTagged),
+    returns the full nvre in the form n-v-r:E.
+    """
+    nvr = build_record['nvr']
+    if 'epoch' in build_record and build_record["epoch"] and build_record["epoch"] != 'None':
+        return f'{nvr}:{build_record["epoch"]}'
+    return nvr
+
+
+def assert_signed(config, nvre, poll_for=15):
     """
     Raises an exception if the nvr has not been specified by the config signing key.
     :param config: The cli config
-    :param nvr: The nvr to check
+    :param nvre: The nvr to check.
     :param poll_for: The number of minutes to continue checking until an exception is raised.
     :return: number of minutes used for polling during successful wait for signing
     """
     time_used = 0
-    while not is_signed(config, nvr):
+
+    while not is_signed(config, nvre):
         if poll_for <= 0:
-            br_arch_base_path = get_brewroot_arch_base_path(config, nvr, True)
-            logger.info('Package {nvr} has not been signed; {signed_path} does not exist'.format(
-                nvr=nvr,
+            br_arch_base_path = get_brewroot_arch_base_path(config, nvre, True)
+            logger.info('Package {nvre} has not been signed; {signed_path} does not exist'.format(
+                nvre=nvre,
                 signed_path=br_arch_base_path,
             ))
-            raise IOError('Package {nvr} has not been signed; {signed_path} does not exist'.format(
-                nvr=nvr,
+            raise IOError('Package {nvre} has not been signed; {signed_path} does not exist'.format(
+                nvre=nvre,
                 signed_path=br_arch_base_path,
             ))
         print(f'Waiting for up to {poll_for} more minutes')
@@ -429,7 +451,7 @@ def cli(ctx, base_dir, brew_root, name, signing_key_id, **kwargs):
 
 class KojiWrapper(wrapt.ObjectProxy):
     """
-    We've see the koji client occasionally get
+    We've seen the koji client occasionally get
     Connection Reset by Peer errors.. "requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))"
     Under the theory that these operations just need to be retried,
     this wrapper will automatically retry all invocations of koji APIs.
@@ -499,16 +521,16 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
     embargoed_tag_nvrs.update(embargoed_nvr)
     for ebt in embargoed_brew_tag:
         for build in koji_proxy.listTagged(ebt, latest=False, inherit=False, event=event, type='rpm'):
-            embargoed_tag_nvrs.add(build['nvr'])
+            embargoed_tag_nvrs.add(to_nvre(build))
     logger.info('Will treat the following nvrs as potentially embargoed: {}'.format(embargoed_tag_nvrs))
 
-    actual_embargoed_nvrs = list()  # A list of nvrs detected as embargoed
-    desired_nvrs = set()
-    historical_nvrs = set()
+    actual_embargoed_nvres = list()  # A list of nvres detected as embargoed
+    desired_nvres = set()
+    historical_nvres = set()
     nvr_product_version = {}
     for tag, product_version in brew_tag:
 
-        released_package_nvrs = {}  # maps released package names to the most recently released package (parsed) nvr
+        released_package_nvre_obj = {}  # maps released package names to the most recently released package nvr object (e.g { 'name': ...,  }
         if tag.endswith('-candidate'):
             """
             So here's the thing. If you ship a version of a package 1.16.6 via errata tool, 
@@ -523,65 +545,65 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
             released_tag = tag[:tag.index('-candidate')]
             for build in koji_proxy.listTagged(released_tag, latest=True, inherit=True, event=event, type='rpm'):
                 package_name = build['package_name']
-                released_package_nvrs[package_name] = parse_nvr(build['nvr'])
+                released_package_nvre_obj[package_name] = parse_nvr(to_nvre(build))
 
         for build in koji_proxy.listTagged(tag, latest=True, inherit=inherit, event=event, type='rpm'):
             package_name = build['package_name']
-            nvr = build['nvr']
-            parsed_nvr = parse_nvr(nvr)
+            nvre = to_nvre(build)
+            nvre_obj = parse_nvr(nvre)
 
-            released_nvr = None  # if the package has shipped before, the parsed nvr of the most recently shipped
-            if package_name in released_package_nvrs:
-                released_nvr = released_package_nvrs[package_name]
+            released_nvre_obj = None  # if the package has shipped before, the parsed nvr of the most recently shipped
+            if package_name in released_package_nvre_obj:
+                released_nvre_obj = released_package_nvre_obj[package_name]
 
-            def is_embargoed(an_nvr):
+            def is_embargoed(an_nvre):
                 # .p1 or inclusion in the embargoed_tag_nvrs indicates this rpm is embargoed OR *was* embargoed.
                 # We can ignore it if it has already shipped.
-                parsed_test_nvr = parse_nvr(an_nvr)
-                if released_nvr is None or compare_nvr(parsed_test_nvr, released_nvr) > 0:  # If this nvr hasn't shipped
-                    if '.p1' in an_nvr or an_nvr in embargoed_tag_nvrs:  # It's embargoed!
+                test_nvre_obj = parse_nvr(an_nvre)
+                if released_nvre_obj is None or compare_nvr(test_nvre_obj, released_nvre_obj) > 0:  # If this nvr hasn't shipped
+                    if '.p1' in an_nvre or strip_epoch(an_nvre) in embargoed_tag_nvrs:  # It's embargoed!
                         return True
                 return False
 
             if package_name in config.exclude_package:
-                logger.info(f'Skipping tagged but command line excluded package: {nvr}')
+                logger.info(f'Skipping tagged but command line excluded package: {nvre}')
                 continue
 
             if config.include_package and package_name not in config.include_package:
-                logger.info(f'Skipping tagged but not command line included package: {nvr}')
+                logger.info(f'Skipping tagged but not command line included package: {nvre}')
                 continue
 
-            if is_embargoed(nvr):
+            if is_embargoed(nvre):
                 # An embargoed build has not been shipped.
-                actual_embargoed_nvrs.append(nvr)  # Record that at the time of build, this was considered embargoed
+                actual_embargoed_nvres.append(nvre)  # Record that at the time of build, this was considered embargoed
 
                 if not include_embargoed:
                     # We are being asked to build a plashet without embargoed RPMs. We need to find a stand-in.
                     # Search through the tag's package history to find the last build that was NOT embargoed.
-                    unembargoed_nvr = None
+                    unembargoed_nvre = None
                     for build in koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event, type='rpm'):
-                        test_nvr = build['nvr']
-                        if is_embargoed(test_nvr):
+                        test_nvre = to_nvre(build)
+                        if is_embargoed(test_nvre):
                             continue
-                        unembargoed_nvr = test_nvr
+                        unembargoed_nvre = test_nvre
                         break
 
-                    if unembargoed_nvr is None:
-                        raise IOError(f'Unable to build unembargoed plashet. Lastest build of {package_name} ({nvr}) is embargoed but unable to find unembargoed version in history')
-                    plashet_concerns.append(f'Swapping embargoed nvr {nvr} for unembargoed nvr {unembargoed_nvr}.')
+                    if unembargoed_nvre is None:
+                        raise IOError(f'Unable to build unembargoed plashet. Lastest build of {package_name} ({nvre}) is embargoed but unable to find unembargoed version in history')
+                    plashet_concerns.append(f'Swapping embargoed nvr {nvre} for unembargoed nvr {unembargoed_nvre}.')
                     logger.info(plashet_concerns[-1])
-                    nvr = unembargoed_nvr
+                    nvre = unembargoed_nvre
 
-            if released_nvr:
-                if compare_nvr(parsed_nvr, released_nvr) < 0:  # if the current nvr is less than the released NVR
-                    msg = f'Skipping tagged {nvr} because it is older than a released version: {released_nvr}'
+            if released_nvre_obj:
+                if compare_nvr(nvre_obj, released_nvre_obj) < 0:  # if the current nvr is less than the released NVR
+                    msg = f'Skipping tagged {nvre} because it is older than a released version: {released_nvre_obj}'
                     plashet_concerns.append(msg)
                     logger.error(msg)
                     continue
 
-            logger.info(f'{tag} contains package: {nvr}')
-            desired_nvrs.add(nvr)
-            nvr_product_version[nvr] = product_version
+            logger.info(f'{tag} contains package: {nvre}')
+            desired_nvres.add(nvre)
+            nvr_product_version[strip_epoch(nvre)] = product_version
 
             if package_name.startswith(tuple(include_previous_for)) or include_previous:
                 # The user has asked for non-latest entry for this package to be included in the plashet.
@@ -591,85 +613,85 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
                 tag_history = koji_proxy.listTagged(tag, package=package_name, inherit=True, event=event, type='rpm')
                 tracking = False  # There may have been embargo shenanigans above; so we can't assume [0] is our target nvr
                 for htag in tag_history:
-                    history_nvr = htag['nvr']
-                    if history_nvr == nvr:
+                    history_nvre = to_nvre(htag)
+                    if history_nvre == nvre:
                         # We've found the target NVR in the list. Everything that follows can be considered for history.
                         tracking = True
                         continue
                     if not tracking:
                         # Haven't found our target NVR yet; so we can't consider this entry for history.
                         continue
-                    parsed_history_nvr = parse_nvr(history_nvr)
-                    if compare_nvr(parsed_history_nvr, parsed_nvr) > 0:
+                    history_nvre_obj = parse_nvr(history_nvre)
+                    if compare_nvr(history_nvre_obj, nvre_obj) > 0:
                         # Is our historical nvr > target for inclusion in plashet? If it is, a user of the plashet would
                         # pull in the historical nvr with a yum install. We can't allow that. Just give up -- this is
                         # not in line with the use case of history.
-                        plashet_concerns.append(f'Unable to include previous for {package_name} because history {history_nvr} is newer than latest tagged {nvr}')
+                        plashet_concerns.append(f'Unable to include previous for {package_name} because history {history_nvre} is newer than latest tagged {nvre}')
                         break
-                    if include_embargoed is False and is_embargoed(history_nvr):
+                    if include_embargoed is False and is_embargoed(history_nvre):
                         # smh.. history is still under embargo. What you are guys doing?!
-                        plashet_concerns.append(f'Unable to include previous for {package_name} because history {history_nvr} is under embargo')
+                        plashet_concerns.append(f'Unable to include previous for {package_name} because history {history_nvre} is under embargo')
                         break
-                    historical_nvrs.add(history_nvr)
-                    nvr_product_version[history_nvr] = product_version
+                    historical_nvres.add(history_nvre)
+                    nvr_product_version[strip_epoch(history_nvre)] = product_version
                     break
 
-    if config.include_package and len(config.include_package) != len(desired_nvrs):
-        raise IOError(f'Did not find all command line included packages {config.include_package}; only found {desired_nvrs}')
+    if config.include_package and len(config.include_package) != len(desired_nvres):
+        raise IOError(f'Did not find all command line included packages {config.include_package}; only found {desired_nvres}')
 
     # Did any of the archs require signed content?
     possible_signing_needed = signed_desired(config)
 
     if possible_signing_needed:
-        logger.info(f'At least one architecture requires signed nvrs')
+        logger.info(f'At least one architecture requires signed nvres')
 
-        # Each set must be attached separately because you cannot attach two nvrs of the same
+        # Each set must be attached separately because you cannot attach two nvres of the same
         # package to an errata at the same time.
-        for set_name, nvr_set in {'latest_tagged': desired_nvrs, 'previous_tagged': historical_nvrs}.items():
-            if not nvr_set:
-                logger.info(f'NVR set {set_name} is empty; nothing to sign')
+        for set_name, nvre_set in {'latest_tagged': desired_nvres, 'previous_tagged': historical_nvres}.items():
+            if not nvre_set:
+                logger.info(f'NVRE set {set_name} is empty; nothing to sign')
                 continue
 
             if signing_advisory_id:
                 # Remove all builds attached to advisory before attempting signing
                 update_advisory_builds(config, errata_proxy, signing_advisory_id, [], nvr_product_version)
-                nvrs_for_advisory = []
+                nvres_for_advisory = []
 
-                for nvr in nvr_set:
-                    if not is_signed(config, nvr):
-                        logger.info(f'Found an unsigned nvr in nvr set {set_name} (will attempt to sign): {nvr}')
-                        nvrs_for_advisory.append(nvr)
+                for nvre in nvre_set:
+                    if not is_signed(config, nvre):
+                        logger.info(f'Found an unsigned nvr in nvre set {set_name} (will attempt to sign): {nvre}')
+                        nvres_for_advisory.append(nvre)
 
-                logger.info(f'Updating advisory to get nvr set {set_name} signed: {signing_advisory_id}')
-                update_advisory_builds(config, errata_proxy, signing_advisory_id, nvrs_for_advisory, nvr_product_version)
+                logger.info(f'Updating advisory to get nvre set {set_name} signed: {signing_advisory_id}')
+                update_advisory_builds(config, errata_proxy, signing_advisory_id, nvres_for_advisory, nvr_product_version)
 
             else:
-                logger.warning(f'No signing advisory specified; will simply poll and hope for nvr set {set_name}')
+                logger.warning(f'No signing advisory specified; will simply poll and hope for nvre set {set_name}')
 
             # Whether we've attached to advisory or no, wait until signing require is met
             # or throw exception on timeout.
-            logger.info(f'Waiting for all nvrs in set {set_name} to be signed..')
-            for nvr in desired_nvrs:
-                poll_for -= assert_signed(config, nvr)
+            logger.info(f'Waiting for all nvres in set {set_name} to be signed..')
+            for nvre in desired_nvres:
+                poll_for -= assert_signed(config, nvre)
 
     if signing_advisory_id and signing_advisory_mode == 'clean':
         # Seems that everything is signed; remove builds from the advisory.
         update_advisory_builds(config, errata_proxy, signing_advisory_id, [], nvr_product_version)
 
-    extra_embargo_info = {  # Data related to embargos that will be written into the plashet.yml
+    extra_embargo_info = {  # Data related to embargoes that will be written into the plashet.yml
         'embargoed_permitted': include_embargoed,  # Whether we included or excluded these nvrs in the plashet
-        'detected_as_embargoed': actual_embargoed_nvrs,
+        'detected_as_embargoed': actual_embargoed_nvres,
     }
 
     extra_data = {  # Data that will be included in the plashet.yml after assembly.
         'embargo_info': extra_embargo_info,
-        'included_previous_nvrs': list(historical_nvrs),
+        'included_previous_nvrs': list(historical_nvres),
     }
 
-    all_nvrs = set()
-    all_nvrs.update(desired_nvrs)
-    all_nvrs.update(historical_nvrs)
-    assemble_repo(config, all_nvrs, event_info, extra_data=extra_data)
+    all_nvres = set()
+    all_nvres.update(desired_nvres)
+    all_nvres.update(historical_nvres)
+    assemble_repo(config, all_nvres, event_info, extra_data=extra_data)
 
 
 @cli.command('from-advisories', short_help='Collects a set of RPMs attached to specified advisories.')
@@ -686,6 +708,7 @@ def from_advisories(config, advisory_id, module_builds, poll_for):
 
     nvrs = set()
     for id in advisory_id:
+        # https://gist.github.com/jupierce/7157d5620b7eb218f73542b3f9fec305
         for build in errata_proxy.getErrataBrewBuilds(id):
             nvr = build["brew_build_nvr"]
             is_module = build["is_module"]

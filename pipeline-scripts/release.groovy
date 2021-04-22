@@ -646,7 +646,7 @@ def signArtifacts(Map signingParams) {
     )
 }
 
-def isSupportEUS(ocpVersion) {
+def isSupportEUS(String ocpVersion) {
   return ocpVersion in commonlib.eusVersions
 }
 

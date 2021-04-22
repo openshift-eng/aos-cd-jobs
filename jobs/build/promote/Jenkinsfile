@@ -181,11 +181,15 @@ node {
     next_is_prerelease = false
 
     // copy job params into normal vars, since params is an immutable map
-    SKIP_PAYLOAD_CREATION = params.SKIP_PAYLOAD_CREATION
-    SKIP_VERIFY_BUGS = params.SKIP_VERIFY_BUGS
-    SKIP_IMAGE_LIST = params.SKIP_IMAGE_LIST
+    Boolean SKIP_PAYLOAD_CREATION = params.SKIP_PAYLOAD_CREATION
+    Boolean SKIP_VERIFY_BUGS = params.SKIP_VERIFY_BUGS
+    Boolean SKIP_IMAGE_LIST = params.SKIP_IMAGE_LIST
 
-    if (params.RESUME_FROM.startsWith('1.')) { // skip stages before mirror binaries
+    // set unset vars to default value
+    Boolean SKIP_TAG_STABLE = false
+
+    // skip stages before mirror binaries
+    if (params.RESUME_FROM.startsWith('1.')) {
         SKIP_PAYLOAD_CREATION = true
         SKIP_VERIFY_BUGS = true
         SKIP_TAG_STABLE = true

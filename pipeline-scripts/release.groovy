@@ -646,7 +646,7 @@ def signArtifacts(Map signingParams) {
     )
 }
 
-def isSupportEUS(ocpVersion) {
+def isSupportEUS(String ocpVersion) {
   return ocpVersion in commonlib.eusVersions
 }
 
@@ -707,10 +707,8 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
                 if (fileExists(channelFile)) {
                     channelYaml = readYaml(file: channelFile)
                 } else {
-                    if (prefix != "eus") { // for now we only have eus-4.6
-                      // create the channel if it does not already exist
-                      writeFile(file: channelFile, text: "name: ${channel}\nversions:\n" )
-                    }
+                    // create the channel if it does not already exist
+                    writeFile(file: channelFile, text: "name: ${channel}\nversions:\n" )
                 }
 
                 /**

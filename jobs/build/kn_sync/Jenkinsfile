@@ -1,75 +1,70 @@
 #!/usr/bin/env groovy
-
 node {
     checkout scm
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    def commonlib = buildlib.commonlib
-    commonlib.describeJob("kn_sync", """
-        <h2>Sync the knative (serverless) client to mirror</h2>
-        <a href="http://mirror.openshift.com/pub/openshift-v4/clients/serverless/" target="blank">Product Overview</a>
+    load("pipeline-scripts/commonlib.groovy").describeJob("kn_sync", """
+        ----------------------------------------------
+        Sync the knative (serverless) client to mirror
+        ----------------------------------------------
+        http://mirror.openshift.com/pub/openshift-v4/clients/serverless/
 
-        <b>Timing<b>: This is only ever run by humans, upon request.
+        Timing: This is only ever run by humans, upon request.
     """)
+}
 
+pipeline {
+    agent any
+    options { disableResume() }
 
-    // Expose properties for a parameterized build
-    properties(
-        [
-            buildDiscarder(
-                logRotator(
-                    artifactDaysToKeepStr: '',
-                    artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '')),
-            [
-                $class: 'ParametersDefinitionProperty',
-                parameterDefinitions: [
-                    string(
-                        name: 'KN_VERSION',
-                        description: 'the version of OpenShift Serverless CLI binaries',
-                        defaultValue: "0.2.3",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'KN_URL',
-                        description: 'the RPM download url of OpenShift Serverless CLI binaries',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'MAIL_LIST_FAILURE',
-                        description: 'Failure Mailing List',
-                        defaultValue: [
-                            'nshaikh@redhat.com',
-                            'aos-art-automation+failed-kn-client-sync@redhat.com',
-                        ].join(','),
-                        trim: true,
-                    ),
-                    commonlib.suppressEmailParam(),
-                    commonlib.mockParam(),
-                ]
-            ],
-            disableResume(),
-            disableConcurrentBuilds()
-        ]
-    )
-    commonlib.checkMock()
+    parameters {
+        string(
+            name: "VERSION",
+            description: "Desired version name. Example: 0.20.0",
+            defaultValue: "",
+            trim: true,
+        )
+        string(
+            name: "SOURCES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/openshift-serverless-clients/0.20.0-6/signed/all/",
+            defaultValue: "",
+            trim: true,
+        )
+    }
 
-    try {
-        sshagent(['aos-cd-test']) {
-            stage("sync kn") {
-                buildlib.invoke_on_rcm_guest("publish-kn-binary.sh", params.KN_VERSION, params.KN_URL)
+    stages {
+        stage("Validate params") {
+            steps {
+                script {
+                    if (!params.VERSION) {
+                        error "VERSION must be specified"
+                    }
+                }
             }
         }
-    } catch (err) {
-        commonlib.email(
-            to: "${params.MAIL_LIST_FAILURE}",
-            from: "aos-art-automation+failed-kn-client-sync@redhat.com",
-            replyTo: "aos-team-art@redhat.com",
-            subject: "Error syncing kn client",
-            body: "Encountered an error while syncing kn client: ${err}");
-        currentBuild.description = "Error while syncing kn client:\n${err}"
-        currentBuild.result = "FAILURE"
-        throw err
+        stage("Clean working dir") {
+            steps {
+                sh "rm -rf ${params.VERSION}"
+            }
+        }
+        stage("Download binaries") {
+            steps {
+                script {
+                    downloadRecursive(params.SOURCES_LOCATION, params.VERSION)
+                }
+            }
+        }
+        stage("Sync to mirror") {
+            steps {
+                sh "tree ${params.VERSION}"
+                sshagent(['aos-cd-test']) {
+                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/serverless/"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/serverless/latest"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/clients/serverless -v"
+                }
+            }
+        }
     }
+}
+
+def downloadRecursive(path, destination) {
+    sh "wget --recursive --no-parent --reject 'index.html*' --no-directories --directory-prefix ${destination} ${path}"
 }

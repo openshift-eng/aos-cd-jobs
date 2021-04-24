@@ -4,7 +4,7 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
-    commonlib.describeJob("sign-artifacts", """
+    commonlib.describeJob("sign-rhacs", """
     Signs RHACS images as a temporary measure until they are onboarded with CPaaS.
     """)
 
@@ -40,10 +40,8 @@ node {
                     ),
                     choice(
                         name: 'KEY_NAME',
-                        description: 'Which key to sign with\nIf ENV==stage everything becomes "test"\nFor prod we currently use "redhatrelease2"',
+                        description: 'For prod we currently use "redhatrelease2"',
                         choices: [
-                            "test",
-                            "beta2",
                             "redhatrelease2",
                         ].join("\n"),
                     ),

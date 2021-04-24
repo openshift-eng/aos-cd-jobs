@@ -95,8 +95,7 @@ arch_opt = click.option("--arch", required=True, metavar="ARCHITECTURE",
                    type=click.Choice(['x86_64', 'ppc64le', 's390x']),
                    help="Which architecture this release was built for")
 client_type = click.option("--client-type", required=True, metavar="VAL",
-                   type=click.Choice(['ocp', 'ocp-dev-preview']),
-                   help="What type of client needs to be signed")
+                   help="What repo is this image for?")
 client_cert = click.option("--client-cert", required=True, metavar="CERT-PATH",
                            type=click.Path(exists=True),
                            help="Path to the client certificate for UMB authentication")
@@ -358,9 +357,9 @@ thus allowing the signature to be looked up programmatically.
         },
     }
 
-    release_stage = "ocp-release-nightly" if client_type == 'ocp-dev-preview' else "ocp-release"
-    release_tag = get_release_tag(release_name, arch)
-    pullspec = "quay.io/openshift-release-dev/{}:{}".format(release_stage, release_tag)
+    release_stage = client_type
+    release_tag = release_name
+    pullspec = "registry.redhat.io/rh-acs/{}:{}".format(release_stage, release_tag)
     json_claim['critical']['identity']['docker-reference'] = pullspec
 
     if not digest:

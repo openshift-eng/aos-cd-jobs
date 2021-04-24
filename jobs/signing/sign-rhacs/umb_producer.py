@@ -1,0 +1,1 @@
+../sign-artifacts/umb_producer.py

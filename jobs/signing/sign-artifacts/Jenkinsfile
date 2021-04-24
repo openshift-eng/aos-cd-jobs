@@ -369,7 +369,8 @@ node {
                         }
                     } else if ( params.PRODUCT == 'rhacs' ) {
                         sshagent(["openshift-bot"]) {
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures"
+                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rhacs"
+                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rh-acs"
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
                             if (mirror_result.contains("[FAILURE]")) {
                                 echo mirror_result

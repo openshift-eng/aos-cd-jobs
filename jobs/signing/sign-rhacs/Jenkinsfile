@@ -70,7 +70,7 @@ node {
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
 
-        currentBuild.displayName += "- ${params.REPO}"
+        currentBuild.displayName += "- ${params.REPO}:${params.VERSION}"
         if (params.DRY_RUN) {
             currentBuild.displayName += " (dry-run)"
             currentBuild.description = "[DRY RUN]"
@@ -98,12 +98,12 @@ node {
                     // ######################################################################
                     def baseUmbParams = buildlib.cleanWhitespace("""
                                 --requestor "${buildUserId}" --sig-keyname ${params.KEY_NAME}
-                                --release-name "rhacs.${params.REPO}-${params.VERSION}" --client-cert ${busCertificate}
+                                --release-name "${params.VERSION}" --client-cert ${busCertificate}
                                 --client-key ${busKey} --env prod
                             """)
 
                         def openshiftJsonSignParams = buildlib.cleanWhitespace("""
-                             ${baseUmbParams} --product openshift --arch x86_64 --client-type ocp
+                             ${baseUmbParams} --product openshift --arch x86_64 --client-type ${params.REPO}
                              --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digestParam} ${noop}
                          """)
 
@@ -138,13 +138,12 @@ node {
                         set set -euo pipefail
                         fn=`ls sha256=*`
                         rm -rf staging
-                        mkdir -p staging/rhacs
+                        mv \${fn} tmpsig
+                        mkdir -p \${fn}
+                        mv tmpsig \${fn}/${params.SIGNATURE_NAME}
                         mkdir -p staging/rh-acs
-                        cp -a \${fn} staging/rhacs/${params.REPO}@\${fn}
                         cp -a \${fn} staging/rh-acs/${params.REPO}@\${fn}
-                        mkdir -p staging/rhacs/${params.REPO}
                         mkdir -p staging/rh-acs/${params.REPO}
-                        cp -a \${fn} staging/rhacs/${params.REPO}
                         cp -a \${fn} staging/rh-acs/${params.REPO}
                         scp -r -o StrictHostKeychecking=no staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
                         """

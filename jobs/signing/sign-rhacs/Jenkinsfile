@@ -140,10 +140,12 @@ node {
                         rm -rf staging
                         mkdir -p staging/rhacs
                         mkdir -p staging/rh-acs
-                        cp \${fn} staging/rhacs/${params.REPO}@\${fn}
-                        cp \${fn} staging/rh-acs/${params.REPO}@\${fn}
+                        cp -a \${fn} staging/rhacs/${params.REPO}@\${fn}
+                        cp -a \${fn} staging/rh-acs/${params.REPO}@\${fn}
                         mkdir -p staging/rhacs/${params.REPO}
                         mkdir -p staging/rh-acs/${params.REPO}
+                        cp -a \${fn} staging/rhacs/${params.REPO}
+                        cp -a \${fn} staging/rh-acs/${params.REPO}
                         scp -r -o StrictHostKeychecking=no staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
                         """
                         mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
@@ -162,37 +164,6 @@ node {
                     )
                 }
             }
-        }
-    }
-
-    stage('log sync'){
-        buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
-        echo "Artifact path (source to sync): ${buildArtifactPath}"
-        // Find tool configuration for 'rclone' in bitwarden under
-        // "ART S3 Signing Job Logs Bucket"
-        //
-        // Non-Obvious Option Notes:
-        //   --no-traverse=Don't traverse destination file system on
-        //       copy. We have a lot of files remotely, so this should
-        //       speed things up.
-        //   --max-age=Consider local items modified within the period given
-        //   --low-level-retries 1=Don't bother retrying small
-        //       failures, just do full retries
-        //   --local-no-check-updated=The log we are copying for this
-        //       job is constantly updating, it's ok, don't worry
-        //       about it. We'll update the remote version next time
-        //   --ignore-existing=We can't update s3 objects, so don't
-        //       consider for syncing if they are already on the remote
-        def logCopyOpts = "--verbose copy --s3-chunk-size 5M --exclude 'program.dat' --no-traverse --max-age 24h --retries-sleep 10s --ignore-existing --local-no-check-updated --low-level-retries 1 --retries 5 ${buildArtifactPath} s3SigningLogs:art-build-artifacts/signing-jobs/signing%2Fsign-artifacts/"
-
-	sh "/bin/rclone version"
-
-        if ( !params.DRY_RUN ) {
-            sh "/bin/rclone ${logCopyOpts}"
-        } else {
-            echo "DRY-RUN, not syncing logs (but this would have happened):"
-            echo "Artifact path (source to sync): ${buildArtifactPath}"
-            sh "/bin/rclone --dry-run ${logCopyOpts}"
         }
     }
 

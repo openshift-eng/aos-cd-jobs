@@ -61,6 +61,7 @@ node {
                         choices: [
                             "openshift",
                             "rhcos",
+                            "rhacs",
                         ].join("\n"),
                     ),
                     choice(
@@ -199,6 +200,20 @@ node {
                                 res = commonlib.shell(
                                     returnAll: true,
                                     script: "../umb_producer.py message-digest ${rhcosSha256SignParams}"
+                                )
+                            }
+                        }
+                    } else if ( params.PRODUCT == 'rhacs' ) {
+                        def openshiftJsonSignParams = buildlib.cleanWhitespace("""
+                             ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
+                             --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digestParam} ${noop}
+                         """)
+
+                        echo "Submitting RHACS Payload JSON claim signature request"
+                        retry(3) {
+                            timeout(time: 3, unit: 'MINUTES') {
+                                commonlib.shell(
+                                    script: "../umb_producer.py json-digest ${openshiftJsonSignParams}"
                                 )
                             }
                         }
@@ -352,6 +367,16 @@ node {
                                 error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
                             }
                         }
+                    } else if ( params.PRODUCT == 'rhacs' ) {
+                        sshagent(["openshift-bot"]) {
+                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures"
+                            mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
+                            if (mirror_result.contains("[FAILURE]")) {
+                                echo mirror_result
+                                error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
+                            }
+                        }
+
                     }
                 } finally {
                     echo "Archiving artifacts in jenkins:"

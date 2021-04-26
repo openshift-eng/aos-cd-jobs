@@ -14,6 +14,7 @@ version = [
 ]
 doozerWorking = "${env.WORKSPACE}/doozer_working" // must be in WORKSPACE to archive artifacts
 doozerOpts = "--working-dir ${doozerWorking}"
+allImagebuildfailed = false
 
 // this plan is to be initialized but then adjusted for incremental builds
 buildPlan = [
@@ -347,6 +348,12 @@ def stageBuildImages() {
         def r = buildlib.determine_build_failure_ratio(recordLog)
         if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
             echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+            if (r.failed == r.total) {
+                allImagebuildfailed = true
+                commonlib.slacklib.to(params.BUILD_VERSION).say("""
+                    *:warning:(test-run) all of ${r.total} image builds failed in ocp4 job*
+                """)
+            }
         } else {
             buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
         }

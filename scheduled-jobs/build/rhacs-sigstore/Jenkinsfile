@@ -1,0 +1,56 @@
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '', daysToKeepStr: '30')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+node() {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+
+    stage('scan tags') {
+
+        withCredentials([usernamePassword(credentialsId: 'rhacs_art_sigstore_sync', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+            for ( repo in ['main', 'roxctl', 'scanner', 'scanner-db', 'collector'] ) {
+                // List
+                tags = sh(returnStdout: true, script:"""
+                set -euo pipefail
+                sudo skopeo list-tags --creds ${USERNAME}:${PASSWORD} docker://quay.io/rhacs/rh-acs---${repo} | jq .Tags[] -r
+                """).trim()
+                for ( t : tags.split() ) {
+                    echo "Checking whether tag ${t} is in sigstore"
+                    // To simplify things, the rhacs signing job will place a file named after each
+                    // signed tag on the mirror; this is not part of the signing standard, we just
+                    // use it to stay synchronized.
+                    url = "http://mirror.openshift.com/pub/rhacs/signatures/rh-acs/${repo}/tag.${t}"
+                    def r = httpRequest url
+                    if ( r.status != 200 && r.status != 404 ) {
+                        error("Unexpected http status: ${r.status}; aborting for safety")
+                    }
+                    if ( r.status == 200 ) {
+                        // The tag has an entry; nothing to do`
+                        echo "Signature for tag already exists (${url}); skipping"
+                    } else if ( r.status == 404 ) {
+                        digest = sh(returnStdout: true, script:"""
+                        set -euo pipefail
+                        sudo skopeo inspect --creds ${USERNAME}:${PASSWORD} docker://quay.io/rhacs/rh-acs---${repo}:${tag} | jq .Digest -r
+                        """).trim()
+                        build( job: '/signing-jobs/signing%2Fsign-rhacs',
+                            parameters: [
+                                string(name: 'REPO', value: repo),
+                                string(name: 'VERSION', value: t),
+                                string(name: 'SIGNATURE_NAME', value: ''),
+                                string(name: 'KEY_NAME', value: 'redhatrelease2'),
+                                string(name: 'DIGEST', value: digest),
+                                booleanParam(name: 'DRY_RUN', value: false),
+                                booleanParam(name: 'MOCK', value: false)
+                            ]
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+}

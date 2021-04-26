@@ -148,15 +148,38 @@ node {
                 }
 
                 stage("update dist-git") { build.stageUpdateDistgit() }
-                stage("build images") { build.stageBuildImages() }
+                stage("build images") {
+                    build.stageBuildImages()
+                    branch=build.version.branch
+                    imagelist=build.buildPlan.imagesIncluded.split(',')
+                    for (i = 0; i < imagelist.size(); i++) {
+                        out = commonlib.shell(
+                            returnStdout: true,
+                            script: "brew list-tagged --latest-n=2 --quiet ${branch} | grep ${imagelist[i]} | grep .p0 | wc -l"
+                        )
+                        builds = commonlib.shell(
+                            returnStdout: true,
+                            script: "brew list-tagged --latest-n=2 --quiet ${branch}| grep ${imagelist[i]} | cut -d ' ' -f 1"
+                        )
+                        if (out.contains("1")){
+                            slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
+                                *:alert:(test message) we may catch a newly-embargoed build ${imagelist[i]} in ocp4 build*
+the two recents builds are:
+${builds}
+                            """)
+                        }
+                    }
+                }
             }
             lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
                 stage("mirror RPMs") { build.stageMirrorRpms() }
             }
-            stage("sync images") { build.stageSyncImages() }
-            stage("push qe quay images") { build.stagePushQEImages() }
-            stage("sweep") {
-                buildlib.sweep(params.BUILD_VERSION)
+            if (!buildlib.allImagebuildfailed){
+                stage("sync images") { build.stageSyncImages() }
+                stage("push qe quay images") { build.stagePushQEImages() }
+                stage("sweep") {
+                    buildlib.sweep(params.BUILD_VERSION)
+                }
             }
         }
         stage("report success") { build.stageReportSuccess() }

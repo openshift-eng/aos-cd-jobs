@@ -34,8 +34,8 @@ node {
                     ),
                     string(
                         name: 'SIGNATURE_NAME',
-                        description: 'Signature name\nStart with signature-1 and only increment if adding an additional signature to a release!',
-                        defaultValue: "signature-1",
+                        description: 'Signature name\nStart with signature-1 and only increment if adding an additional signature to a release! Leave blank to auto-detect next signature',
+                        defaultValue: "",
                         trim: true,
                     ),
                     choice(
@@ -132,6 +132,25 @@ node {
 
             dir(workDir) {
                 try {
+                    SIG_NAME = params.SIGNATURE_NAME.trim()
+                    if ( SIG_NAME == "" ) {
+                        for (int i = 1; i < 15; i++) {
+                            url = "http://mirror.openshift.com/pub/rhacs/signatures/rh-acs/${repo}/${REPO}@${DIGEST}/signature-${i}"
+                            r = httpRequest url
+                            if ( r.status == 200 ) {
+                                continue
+                            } else if ( r.status == 404 ) {
+                                SIG_NAME = "signature-${i}"
+                                break
+                            } else {
+                                error("Unexpected HTTP code: ${r} ; aborting out of caution")
+                            }
+                        }
+                        if ( SIG_NAME == "" ) {
+                            error("Error finding free signature file; too many present -- please sanity check")
+                        }
+                    }
+
                     sshagent(["openshift-bot"]) {
                         sh """
                         set -o xtrace
@@ -140,10 +159,12 @@ node {
                         rm -rf staging
                         mv \${fn} tmpsig
                         mkdir -p \${fn}
-                        mv tmpsig \${fn}/${params.SIGNATURE_NAME}
+                        mv tmpsig \${fn}/${SIG_NAME}
                         mkdir -p staging/rh-acs
                         cp -a \${fn} staging/rh-acs/${params.REPO}@\${fn}
                         mkdir -p staging/rh-acs/${params.REPO}
+                        # Touch a file that indicates we have signed for this specific tag; used by rhacs-sigstore scheduled job
+                        touch staging/rh-acs/${params.REPO}/${VERSION}
                         cp -a \${fn} staging/rh-acs/${params.REPO}
                         scp -r -o StrictHostKeychecking=no staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
                         """

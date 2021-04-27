@@ -121,7 +121,10 @@ node {
             lock("github-activity-lock-${params.BUILD_VERSION}") {
                 stage("initialize") { build.initialize() }
                 buildlib.assertBuildPermitted(doozerOpts)
-                stage("build RPMs") { build.stageBuildRpms() }
+                stage("build RPMs") {
+                    if (params.BUILD_VERSION == '4.8') { return }
+                    build.stageBuildRpms()
+                }
 
                 // if the automation is not frozen perform compose
                 // otherwise if automation is frozen but there

@@ -18,7 +18,7 @@ node() {
                 set -euo pipefail
                 sudo skopeo list-tags --creds ${USERNAME}:${PASSWORD} docker://quay.io/rhacs/rh-acs---${repo} | jq .Tags[] -r
                 """).trim()
-                for ( t : tags.split() ) {
+                for ( t in tags.split() ) {
                     echo "Checking whether tag ${t} is in sigstore"
                     // To simplify things, the rhacs signing job will place a file named after each
                     // signed tag on the mirror; this is not part of the signing standard, we just

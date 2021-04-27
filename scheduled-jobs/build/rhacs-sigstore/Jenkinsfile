@@ -16,7 +16,7 @@ node() {
                 // List
                 tags = sh(returnStdout: true, script:"""
                 set -euo pipefail
-                sudo docker run --rm quay.io/skopeo/stable list-tags --creds ${USERNAME}:${PASSWORD} docker://quay.io/rhacs/rh-acs---${repo} | jq .Tags[] -r
+                sudo docker run --rm quay.io/skopeo/stable list-tags --creds ${USERNAME}:${PASSWORD} docker://quay.io/rhacs/rh-acs----${repo} | jq .Tags[] -r
                 """).trim()
                 for ( t in tags.split() ) {
                     echo "Checking whether tag ${t} is in sigstore"

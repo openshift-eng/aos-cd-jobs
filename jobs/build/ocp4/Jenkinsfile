@@ -121,7 +121,13 @@ node {
             lock("github-activity-lock-${params.BUILD_VERSION}") {
                 stage("initialize") { build.initialize() }
                 buildlib.assertBuildPermitted(doozerOpts)
-                stage("build RPMs") { build.stageBuildRpms() }
+                try {
+                    stage("build RPMs") {
+                        build.stageBuildRpms()
+                    }
+                } catch (err) {
+                    currentBuild.result = 'FAILURE'
+                }
 
                 // if the automation is not frozen perform compose
                 // otherwise if automation is frozen but there

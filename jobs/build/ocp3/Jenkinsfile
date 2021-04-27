@@ -638,7 +638,7 @@ node {
                 buildlib.doozer """
                     ${doozerOpts}
                     --source ose ${OSE_DIR}
-                    beta:rpms:rebase-and-build --version v${NEW_VERSION}
+                    rpms:rebase-and-build --version v${NEW_VERSION}
                     --release ${NEW_RELEASE}
                 """
             }

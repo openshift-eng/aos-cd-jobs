@@ -155,7 +155,7 @@ node {
                     currentBuild.description = "building RPM(s): ${rpms}\n"
                     command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
-                    command += "beta:rpms:rebase-and-build --version ${version} --release '${release}' ${params.SCRATCH ? '--scratch' : ''} "
+                    command += "rpms:rebase-and-build --version ${version} --release '${release}' ${params.SCRATCH ? '--scratch' : ''} "
 
                     def buildRpms = { ->
                         buildlib.doozer command

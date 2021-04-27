@@ -34,7 +34,7 @@ node() {
                     } else if ( r.status == 404 ) {
                         digest = sh(returnStdout: true, script:"""
                         set -euo pipefail
-                        sudo skopeo inspect --creds ${USERNAME}:${PASSWORD} docker://quay.io/rhacs/rh-acs---${repo}:${tag} | jq .Digest -r
+                        sudo skopeo inspect --creds ${USERNAME}:${PASSWORD} docker://quay.io/rhacs/rh-acs---${repo}:${t} | jq .Digest -r
                         """).trim()
                         build( job: '/signing-jobs/signing%2Fsign-rhacs',
                             parameters: [

@@ -136,7 +136,7 @@ node {
                     if ( SIG_NAME == "" ) {
                         for (int i = 1; i < 15; i++) {
                             url = "http://mirror.openshift.com/pub/rhacs/signatures/rh-acs/${repo}/${REPO}@${DIGEST}/signature-${i}"
-                            r = httpRequest url, validResponseCodes: '100:404'
+                            r = httpRequest( url: url, validResponseCodes: '100:404' )
                             if ( r.status == 200 ) {
                                 continue
                             } else if ( r.status == 404 ) {

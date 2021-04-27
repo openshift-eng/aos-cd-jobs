@@ -24,7 +24,7 @@ node() {
                     // signed tag on the mirror; this is not part of the signing standard, we just
                     // use it to stay synchronized.
                     url = "http://mirror.openshift.com/pub/rhacs/signatures/rh-acs/${repo}/tag.${t}"
-                    def r = httpRequest url
+                    def r = httpRequest url, validResponseCodes: '100:404'
                     if ( r.status != 200 && r.status != 404 ) {
                         error("Unexpected http status: ${r.status}; aborting for safety")
                     }

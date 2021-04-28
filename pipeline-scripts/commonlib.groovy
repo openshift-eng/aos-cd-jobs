@@ -172,7 +172,7 @@ def mockParam() {
 def doozerParam() {
     return [
         name: 'DOOZER_COMMIT',
-        description: 'Override the default doozer; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+        description: 'Override the doozer submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
         $class: 'hudson.model.StringParameterDefinition',
         defaultValue: ''
     ]

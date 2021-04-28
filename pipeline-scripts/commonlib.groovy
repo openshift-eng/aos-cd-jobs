@@ -169,6 +169,15 @@ def mockParam() {
     ]
 }
 
+def doozerParam() {
+    return [
+        name: 'DOOZER_COMMIT',
+        description: 'Override the default doozer; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+        $class: 'hudson.model.StringParameterDefinition',
+        defaultValue: ''
+    ]
+}
+
 def dryrunParam(description = 'Run job without side effects') {
     return [
         name: 'DRY_RUN',

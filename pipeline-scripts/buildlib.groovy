@@ -112,6 +112,10 @@ def setup_venv() {
 
     try {
         commonlib.shell(script: "pip install --upgrade pip")
+        if (params.DOOZER_COMMIT) {
+            where = DOOZER_COMMIT.split('@')
+            commonlib.shell(script: "rm -rf art-tools/doozer ; cd art-tools; git clone https://github.com/${where[0]}/doozer.git; cd doozer; git checkout ${where[1]}")
+        }
         commonlib.shell(script: "pip install -r art-tools/doozer/requirements.txt")
         commonlib.shell(script: "pip install -r art-tools/elliott/requirements.txt")
     } catch (Exception ex) {

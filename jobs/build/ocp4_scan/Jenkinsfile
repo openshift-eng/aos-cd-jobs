@@ -31,6 +31,7 @@ node('covscan') {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.doozerParam(),
                     string(
                         name: 'VERSIONS',
                         description: '<a href="https://github.com/openshift/aos-cd-jobs/tree/master/jobs#list-parameters">List</a> of versions to scan.',

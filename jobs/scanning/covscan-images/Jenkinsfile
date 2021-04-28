@@ -155,6 +155,11 @@ enabled_metadata=1
         stage('waive') {
             archiveArtifacts(artifacts: "doozer_working/*.log")
             def covscan_records = buildlib.parse_record_log(doozer_working)['covscan']
+
+            if ( ! covscan_records ) {
+                error('No covscan records were created by doozer')
+            }
+
             for ( int i = 0; i < covscan_records.size(); i++ ) {
                 def record = covscan_records[i]
                 def distgit = record['distgit']

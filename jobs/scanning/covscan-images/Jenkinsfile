@@ -69,6 +69,7 @@ node('covscan') {
                         defaultValue: false,
                         description: "Force rebuild of the covscan repositories."
                     ),
+                    commonlib.doozerParam(),
                     commonlib.mockParam(),
                 ]
             ],

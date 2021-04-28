@@ -34,6 +34,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.doozerParam(),
                     string(
                         name: 'GROUP',
                         description: 'The ocp-build-data group to synchronize (e.g. openshift-4.3)',

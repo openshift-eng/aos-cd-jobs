@@ -346,14 +346,19 @@ def stageBuildImages() {
         currentBuild.description += "Failed images: ${failed_images.join(', ')}<br/>"
 
         def r = buildlib.determine_build_failure_ratio(recordLog)
+        if (r.failed == r.total) {
+            allImagebuildfailed = true
+            failed_message = ""
+            for (i = 0; i < failed_images.size(); i++) {
+                failed_messages += "${failed_images[i]}:${failed_map[failed_images[i]]['task_url']}\n"
+            }
+            commonlib.slacklib.to(params.BUILD_VERSION).say("""
+                *:warning: All of ${r.total} image builds failed in ocp4 job*
+${failed_messages}
+            """)
+        }
         if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
             echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
-            if (r.failed == r.total) {
-                allImagebuildfailed = true
-                commonlib.slacklib.to(params.BUILD_VERSION).say("""
-                    *:warning:(test-run) all of ${r.total} image builds failed in ocp4 job*
-                """)
-            }
         } else {
             buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
         }

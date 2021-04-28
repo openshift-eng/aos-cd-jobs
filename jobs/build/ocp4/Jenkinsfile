@@ -34,6 +34,7 @@ node {
                 parameterDefinitions: [
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
+                    commonlib.doozerParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(
                         name: 'NEW_VERSION',

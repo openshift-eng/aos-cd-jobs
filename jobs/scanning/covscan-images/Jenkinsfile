@@ -50,15 +50,26 @@ node('covscan') {
                         ].join(',')
                     ],
                     booleanParam(
-                        name: 'PRESERVE_SCANNER_IMAGES',
+                        name: 'PRESERVE_BUILDER_IMAGES',
                         defaultValue: false,
-                        description: "Do not rebuild scanner images if they are available (will save time during testing if true)."
+                        description: "Do not rebuild parent images if they are available (will save time during testing if true)."
+                    ),
+                    booleanParam(
+                        name: 'IGNORE_WAIVED',
+                        defaultValue: false,
+                        description: "Do not compute diffs based on waived results (diff will equal all)."
+                    ),
+                    booleanParam(
+                        name: 'FORCE_ANALYSIS',
+                        defaultValue: false,
+                        description: "Rerun analysis even if results are present for the commit."
                     ),
                     booleanParam(
                         name: 'REBUILD_REPOS',
                         defaultValue: false,
                         description: "Force rebuild of the covscan repositories."
                     ),
+                    commonlib.doozerParam(),
                     commonlib.mockParam(),
                 ]
             ],
@@ -116,7 +127,7 @@ enabled_metadata=1
                             sh "rm -rf ${prefix}_repos /var/tmp/yum-covscan"
                             sh "sudo yum clean metadata"
                         }
-                        sh "reposync --cachedir=/var/tmp/yum-covscan -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -e covscan_cache -r covscan -r covscan-testing"
+                        sh "reposync --cachedir=/var/tmp/yum-covscan -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -r covscan -r covscan-testing"
                         sh "createrepo_c ${prefix}_repos/covscan"
                         sh "createrepo_c ${prefix}_repos/covscan-testing"
                     }
@@ -134,7 +145,9 @@ enabled_metadata=1
                             --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
                             --result-archive ${RESULTS_ARCHIVE_DIR}
                             --repo-type unsigned
-                            ${params.PRESERVE_SCANNER_IMAGES?'--preserve-scanner-images':''}
+                            ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
+                            ${params.IGNORE_WAIVED?'--ignore-waived':''}
+                            ${params.FORCE_ANALYSIS?'--force-analysis':''}
                 """
             }
         }
@@ -143,10 +156,16 @@ enabled_metadata=1
         stage('waive') {
             archiveArtifacts(artifacts: "doozer_working/*.log")
             def covscan_records = buildlib.parse_record_log(doozer_working)['covscan']
+
+            if ( ! covscan_records ) {
+                error('No covscan records were created by doozer')
+            }
+
             for ( int i = 0; i < covscan_records.size(); i++ ) {
                 def record = covscan_records[i]
                 def distgit = record['distgit']
                 def distgit_key = record['distgit_key']
+                def stage_number = record['stage_number']
                 def commit_hash = record['commit_hash']
                 def diff_results_js_path = record['diff_results_js_path']
                 def image_name = record['image']
@@ -161,7 +180,7 @@ enabled_metadata=1
 
                 // Copy archive results files to rcm-guest (rsync should no-op if it has happened before). This
                 // includes files like all_results.js and diff_results.html.
-                RCM_RELATIVE_DEST = "rcm-guest/puddles/RHAOS/coverity/results/${distgit_key}/${commit_hash}"
+                RCM_RELATIVE_DEST = "rcm-guest/puddles/RHAOS/coverity/results/${distgit_key}/${commit_hash}/stage_${stage_number}"
                 RCM_GUEST_DEST = "/mnt/${RCM_RELATIVE_DEST}"
                 commonlib.shell("ssh ocp-build@rcm-guest.app.eng.bos.redhat.com mkdir -p ${RCM_GUEST_DEST}")
                 commonlib.shell("rsync -r ${record['commit_results_path']}/ ocp-build@rcm-guest.app.eng.bos.redhat.com:${RCM_GUEST_DEST}")
@@ -176,17 +195,40 @@ enabled_metadata=1
                     issues = sh(returnStdout: true, script:"cat ${diff_results_js_path} | jq .issues[].checkerName -r | sort | uniq")
                     prodsec_report << [
                             'Image' : image_name,
+                            'Build Stage': "${stage_number}",
                             'Distgit': "${distgit} (hash ${commit_hash})",
                             'Unwaived Issue Count': record['diff_count'],
                             'Unwaived Issue Types': issues.split().join(', '),
                             'Unwaived Report': diff_results_url,
                             'Unwaived Raw Data': diff_results_js_url,
+                            'Full Issue Count': record['all_count'],
                             'Full Report': all_results_url,
-                            'Full Raw Data': all_results_js_url
+                            'Full Raw Data': all_results_js_url,
+                            'Message': 'There are new, unwaived issues',
                     ]
 
                     echo "Creating ${waive_flag_path} to waive these issues in the future."
                     sh "touch ${waive_flag_path}"  // create flag for future doozer runs
+                } else if ( record['all_count'] != '0' ) {
+                    // There are no differences from the last time, but include report on all
+                    prodsec_report << [
+                            'Image' : image_name,
+                            'Build Stage': "${stage_number}",
+                            'Distgit': "${distgit} (hash ${commit_hash})",
+                            'Unwaived Issue Count': 0,
+                            'Full Issue Count': record['all_count'],
+                            'Full Report': all_results_url,
+                            'Full Raw Data': all_results_js_url,
+                            'Message': 'There are no new issues to report from the last scan',
+                    ]
+                } else {
+                    prodsec_report << [
+                            'Image' : image_name,
+                            'Build Stage': "${stage_number}",
+                            'Distgit': "${distgit} (hash ${commit_hash})",
+                            'Full Issue Count': 0,
+                            'Message': 'No issues reported by scan',
+                    ]
                 }
             }
 

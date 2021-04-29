@@ -348,7 +348,7 @@ def stageBuildImages() {
         def r = buildlib.determine_build_failure_ratio(recordLog)
         if (r.failed == r.total) {
             allImagebuildfailed = true
-            failed_message = ""
+            failed_messages = ""
             for (i = 0; i < failed_images.size(); i++) {
                 failed_messages += "${failed_images[i]}:${failed_map[failed_images[i]]['task_url']}\n"
             }

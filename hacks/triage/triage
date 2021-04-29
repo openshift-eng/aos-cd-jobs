@@ -164,6 +164,7 @@ repo_links() {
   for repo in "${gh_repos[@]}"; do
     echo "https://github.com/openshift/$repo/"{issues,pulls}/
   done
+  echo "https://github.com/pulls?q=is%3Aopen+is%3Apr+label%3Amerge-post-promote+archived%3Afalse+"
 }
 
 jenkins() {

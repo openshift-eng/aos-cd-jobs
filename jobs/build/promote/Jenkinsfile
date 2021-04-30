@@ -208,12 +208,14 @@ node {
     slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}${ params.DRY_RUN ? ' (DRY RUN)' : ''}") {
         taskThread ->
         
-        stage("Check for Blocker Bugs") {
-            group = "openshift-${major}.${minor}"
-            
-            commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
-                                    "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
-                release.stageCheckBlockerBug(group)
+        if (!params.RELEASE_TYPE.startsWith('3.')) { // Skip Blocker Bug check for FCs
+            stage("Check for Blocker Bugs") {
+                group = "openshift-${major}.${minor}"
+                
+                commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
+                                        "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
+                    release.stageCheckBlockerBug(group)
+                }
             }
         }
         

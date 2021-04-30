@@ -43,7 +43,6 @@ node {
                         description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
                         trim: true,
                     ),
-                    commonlib.suppressEmailParam(),
                     commonlib.dryrunParam('Take no actions. Note: still notifies and runs signing job (which fails)'),
                     commonlib.mockParam(),
                 ]
@@ -64,29 +63,63 @@ node {
     }
     s390x_index = nightly_list.findIndexOf { it.contains("s390x") }
     power_index = nightly_list.findIndexOf { it.contains("ppc64le") }
-    if (s390x_index == -1 || power_index == -1) {
+    x86_index = nightly_list.findIndexOf { !it.contains("s390x") && !it.contains("ppc64le") }
+    if (s390x_index == -1 || power_index == -1 || x86_index == -1) {
         error("Something doesn't seem right. Job expects 3 nightlies of each arch")
     }
-    
-    // setup common job params
-    commonparams = [
-        buildlib.param('Choice', 'RELEASE_TYPE', params.RELEASE_TYPE)
-        buildlib.param('String', 'RELEASE_OFFSET', params.RELEASE_OFFSET)
-        booleanParam(name: 'DRY_RUN', value: params.DRY_RUN)
+
+    common_params = [
+        buildlib.param('String','RELEASE_TYPE', params.RELEASE_TYPE),
+        buildlib.param('String','RELEASE_OFFSET', params.RELEASE_OFFSET),
+        buildlib.param('String','ADVISORY', ""),
+        booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
         booleanParam(name: 'MOCK', value: params.MOCK)
     ]
 
-    // trigger jobs
-    for (nightly in nightly_list) {
-        build(
-            job: 'build%2Fpromote',
-            propagate: true,
-            parameters: [
-                buildlib.param('String', 'FROM_RELEASE_TAG', nightly),
-                commonparams,
-            ]
-        )
-        currentBuild.description += "<br>triggered build: ${version}"        
-    }
+    parallel(
+        "x86_64": {
+            stage("x86_64") {
+                def params = common_params.clone()
+                nightly = nightly_list[x86_index]
+                params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
+                
+                build(
+                    job: '/aos-cd-builds/build%2Fpromote',
+                    propagate: false,
+                    parameters: params
+                )
+                currentBuild.description += "<br>triggered promote: ${nightly}"
+            }
+        },
+        "s390x": {
+            stage("s390x") {
+                def params = common_params.clone()
+                nightly = nightly_list[s390x_index]
+                params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
+                
+                build(
+                    job: '/aos-cd-builds/build%2Fpromote',
+                    propagate: false,
+                    parameters: params
+                )
+                currentBuild.description += "<br>triggered promote: ${nightly}"
+            }
+        },
+        "ppc64le": {
+            stage("ppc64le") {
+                def params = common_params.clone()
+                nightly = nightly_list[power_index]
+                params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
+                
+                build(
+                    job: '/aos-cd-builds/build%2Fpromote',
+                    propagate: false,
+                    parameters: params
+                )
+                currentBuild.description += "<br>triggered promote: ${nightly}"
+            }
+        }
+    )
+    
     buildlib.cleanWorkspace()
 }

@@ -18,13 +18,13 @@ pipeline {
     parameters {
         string(
             name: "VERSION",
-            description: "Desired version name on mirror. Example: 3.0.1",
+            description: "Desired version name on mirror. Example: 3.0.5",
             defaultValue: "",
             trim: true,
         )
         string(
-            name: "FROM_VERSION",
-            description: "The build version to get the artifacts from. e.g. 3.5.0-6 from: http://download.eng.bos.redhat.com/staging-cds/developer/helm/3.5.0-6/signed/",
+            name: "SOURCES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/helm/3.5.0-6/signed/all/",
             defaultValue: "",
             trim: true,
         )
@@ -37,31 +37,27 @@ pipeline {
                     if (!params.VERSION) {
                         error "VERSION must be specified"
                     }
-                    if (!params.FROM_VERSION) {
-                        error "FROM_VERSION must be specified"
+                    if (!params.SOURCES_LOCATION) {
+                        error "SOURCES_LOCATION must be specified"
                     }
                 }
             }
         }
         stage("Clean working dir") {
             steps {
-                sh "rm -rf ${params.VERSION} && mkdir ${params.VERSION}"
+                sh "rm -rf ${params.VERSION}"
             }
         }
-        stage("Copy binaries") {
+        stage("Download binaries") {
             steps {
-                sh """
-                cp /mnt/redhat/staging-cds/developer/helm/${params.FROM_VERSION}/signed/*/helm* ${params.VERSION}
-                cd ${params.VERSION}
-                sha256sum * > sha256sum.txt
-                """
+                script {
+                    downloadRecursive(params.SOURCES_LOCATION, params.VERSION)
+                }
             }
         }
         stage("Sync to mirror") {
             steps {
                 sh "tree ${params.VERSION}"
-                sh "cat ${params.VERSION}/sha256sum.txt"
-
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/helm/"
                     sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/helm/latest"
@@ -70,4 +66,8 @@ pipeline {
             }
         }
     }
+}
+
+def downloadRecursive(path, destination) {
+    sh "wget --recursive --no-parent --reject 'index.html*' --no-directories --directory-prefix ${destination} ${path}"
 }

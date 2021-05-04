@@ -34,6 +34,7 @@ node() {
          * The plashets are unsigned as this is just for testing by Ironic's CI systems.
          */
         prevalidation_tag_name = "rhaos-${version}-rhel-8-ironic-prevalidation"
+        embargoed_tag_name = "rhaos-${version}-rhel-8-embargoed"
         plashetDirName = prevalidation_tag_name
         commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
         commonlib.shell([
@@ -44,6 +45,7 @@ node() {
                 plashet_arch_args,
                 "from-tags", // plashet mode of operation => build from brew tags
                 "--brew-tag ${prevalidation_tag_name} NOT_APPLICABLE",  // product name is not required since we aren't signing
+                "--embargoed-brew-tag ${embargoed_tag_name}",
                 "--include-previous", // enable both pinning and non-pinning for pre-validation
         ].join(' '))
 

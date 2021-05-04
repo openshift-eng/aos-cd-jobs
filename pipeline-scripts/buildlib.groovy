@@ -1482,6 +1482,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     "from-tags", // plashet mode of operation => build from brew tags
                     include_embargoed? "--include-embargoed" : "",
                     "--brew-tag rhaos-${major_minor}-rhel-${el_major}-candidate ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
+                    "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed",
                     (major == 3) ? "--inherit" :  "", // For OCP3.11, we depend on tag inheritance to populate the OSE repo
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",

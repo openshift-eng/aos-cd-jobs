@@ -190,8 +190,10 @@ enabled_metadata=1
                 def diff_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html"
                 def diff_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.js"
 
+                unwaived_count = 0
                 if ( record['diff_count'] != '0' ) {
                     // Gather the types of issues recorded in the scan
+                    unwaived_count++
                     issues = sh(returnStdout: true, script:"cat ${diff_results_js_path} | jq .issues[].checkerName -r | sort | uniq")
                     prodsec_report << [
                             'Image' : image_name,
@@ -236,9 +238,8 @@ enabled_metadata=1
 Details of the last OpenShift Coverity Scan:
 
 Images scanned: ${covscan_records.size()}
-Images with unwaived issues: ${prodsec_report.size()}
+Images with unwaived issues: ${unwaived_count}
 
-Unwaived Issue Reports:
 """
             for ( entry in prodsec_report ) {
                 prodsec_text += '\n'

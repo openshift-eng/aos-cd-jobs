@@ -86,8 +86,8 @@ main() {
     fi
     fmt=' -url "%s"'
     ;;
-  chromium)
-    cmd="chromium-browser --new-window '${urls[0]}'"
+  chromium|brave)
+    cmd="$browser-browser --new-window '${urls[0]}'"
     fmt=' -url "%s"'
     ;;
   *)
@@ -170,7 +170,6 @@ repo_links() {
 jenkins() {
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/scheduled-builds/'
-  echo 'https://jenkins-art-jenkins.cloud.paas.psi.redhat.com/job/art-jenkins/'
 }
 
 backlog() {

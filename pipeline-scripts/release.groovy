@@ -162,7 +162,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
 }
 
 def getArchPrivSuffix(arch, priv) {
-    def suffix = arch == "x86_64" ? "" : "-${arch}"
+    def suffix = arch == "x86_64" ? "" : arch == "aarch64" ? "-arm64" : "-${arch}"
     if (priv)
         suffix <<= '-priv'
     return suffix

@@ -22,6 +22,8 @@ ARCH=$(skopeo inspect docker://${PULL_SPEC} --config | jq .architecture -r)
 
 if [[ "${ARCH}" == "amd64" ]]; then
     ARCH="x86_64"
+elif [[ "${ARCH}" == "arm64" ]]; then
+    ARCH="aarch64"
 fi
 
 OC_MIRROR_DIR="/srv/pub/openshift-v4/${ARCH}/clients/${CLIENT_TYPE}"

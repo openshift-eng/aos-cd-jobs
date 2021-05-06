@@ -11,7 +11,10 @@ if [[ -n "${3-}" ]]; then
   rm -rf keep/
   mkdir keep/
   for arch in $ARCHES; do
-    [[ "$arch" == "amd64" ]] && arch=x86_64
+    case "$arch" in
+      amd64) arch=x86_64 ;;
+      arm64) arch=aarch64 ;;
+    esac
     mv *.$arch.rpm keep/
   done
   rm *.rpm
@@ -23,7 +26,7 @@ rm -rf "$VERSION"
 mkdir "$VERSION"
 
 for rpm in *.rpm; do
-  arch="$(awk -F'[.]' '{a = $(NF-1); print a=="x86_64" ? "amd64" : a}' <<<"$rpm")"
+  arch="$(awk -F'[.]' '{a = $(NF-1); print a=="x86_64" ? "amd64" : a=="aarch64" ? "arm64" : a}' <<<"$rpm")"
   rpm2cpio "${rpm}" | cpio -idm --quiet ./usr/bin/coreos-installer
   mv usr/bin/coreos-installer "$VERSION/coreos-installer_$arch"
 done

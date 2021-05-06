@@ -52,6 +52,8 @@ class PrepareReleasePipeline:
                 arch = "s390x"
             elif "ppc64le" in nightly:
                 arch = "ppc64le"
+            elif "arm64" in nightly:
+                arch = "aarch64"
             else:
                 arch = "x86_64"
             if ":" not in nightly:

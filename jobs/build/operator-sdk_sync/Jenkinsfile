@@ -68,7 +68,9 @@ pipeline {
                     ).manifests.each {
                         // We want x86_64 to be the first in the list, as that will be used to extract the
                         // Operator SDK version, which is used while naming the files.
-                        def sdkArch = it.platform.architecture == 'amd64' ? 'x86_64' : it.platform.architecture
+                        def sdkArch = it.platform.architecture == 'amd64' ? 'x86_64' :
+                                      it.platform.architecture == 'arm64' ? 'aarch64' :
+                                      it.platform.architecture
                         def data = [arch: sdkArch, digest: it.digest]
                         println("data: ${data}")
 

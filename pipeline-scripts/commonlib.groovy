@@ -535,6 +535,8 @@ def getReleaseControllerURL(releaseStreamName) {
         arch = "s390x" // e.g. -s390x
     } else if ('ppc64le' in streamNameComponents) {
         arch = "ppc64le"
+    } else if ('arm64' in streamNameComponents) {
+        arch = "arm64"
     }
     return "https://${arch}.ocp.releases.ci.openshift.org"
 }

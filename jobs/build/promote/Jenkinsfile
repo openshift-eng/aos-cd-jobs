@@ -115,8 +115,10 @@ node {
                         name: 'RESUME_FROM',
                         description: 'Select stage to resume from. Useful to execute remaining steps in the case of a failed promote job.',
                         choices: [
-                                'Not Applicable',
+                                '0. The beginning',
                                 '1. Mirror binaries',
+                                '2. Signing',
+                                '3. Cincinnati PRs',
                             ].join('\n'),
                     ),
                     booleanParam(
@@ -185,17 +187,25 @@ node {
         PAYLOAD_CREATION: params.SKIP_PAYLOAD_CREATION,
         VERIFY_BUGS: params.SKIP_VERIFY_BUGS,
         IMAGE_LIST: params.SKIP_IMAGE_LIST,
-        TAG_STABLE: false
+        TAG_STABLE: false,
+        MIRROR_BINARIES: false,
+        SIGNING: false,
     ]
-    
-    // skip stages before mirror binaries
-    if (params.RESUME_FROM.startsWith('1.')) {
+
+    // skip stages as indicated
+    if (params.RESUME_FROM > '1.') {  // turns out '0.whatever' > '0'
         skip.PAYLOAD_CREATION = true
         skip.VERIFY_BUGS = true
         skip.TAG_STABLE = true
         skip.IMAGE_LIST = true
     }
-    
+    if (params.RESUME_FROM > '2.') {
+        skip.MIRROR_BINARIES = true
+    }
+    if (params.RESUME_FROM > '3.') {
+        skip.SIGNING = true
+    }
+
     release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
 
@@ -368,7 +378,7 @@ node {
             }
 
             stage("tag stable") {
-                if (SKIP_TAG_STABLE) {
+                if (skip.TAG_STABLE) {
                     echo "Do not tag stable because SKIP_TAG_STABLE is set."
                     return
                 }
@@ -525,6 +535,10 @@ node {
             buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
 
             stage("mirror binaries") {
+                if (skip.MIRROR_BINARIES) {
+                    echo "Don't mirror binaries because we're resuming later in the job."
+                    return
+                }
                 retry(3) {
                     release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, CLIENT_TYPE)
                 }
@@ -539,12 +553,20 @@ node {
                     echo "DRY_RUN: Not sending release message"
                     return
                 }
+                if (skip.SIGNING) {
+                    echo "Don't send another release message because we're resuming later in the job."
+                    return
+                }
                 release.sendReleaseCompleteMessage(release_obj, advisory, errata_url, arch)
             }
 
             stage("sign artifacts") {
                 if (skip.PAYLOAD_CREATION) {
                     payloadDigest = release.getPayloadDigest(quay_url, dest_release_tag)
+                }
+                if (skip.SIGNING) {
+                    echo "Don't do the signing because we're resuming later in the job."
+                    return
                 }
                 commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {
                     release.signArtifacts(

@@ -111,6 +111,14 @@ node {
                             'No',
                         ].join('\n'),
                     ),
+                    choice(
+                        name: 'RESUME_FROM',
+                        description: 'Select stage to resume from. Useful to execute remaining steps in the case of a failed promote job.',
+                        choices: [
+                                'Not Applicable',
+                                '1. Mirror binaries',
+                            ].join('\n'),
+                    ),
                     booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',
                         description: 'DO NOT USE without team lead approval. This is an unusual option.',
@@ -172,6 +180,22 @@ node {
     is_4stable_release = true
     next_is_prerelease = false
 
+    // copy job params into normal vars, since params is an immutable map
+    def skip = [
+        PAYLOAD_CREATION: params.SKIP_PAYLOAD_CREATION,
+        VERIFY_BUGS: params.SKIP_VERIFY_BUGS,
+        IMAGE_LIST: params.SKIP_IMAGE_LIST,
+        TAG_STABLE: false
+    ]
+    
+    // skip stages before mirror binaries
+    if (params.RESUME_FROM.startsWith('1.')) {
+        skip.PAYLOAD_CREATION = true
+        skip.VERIFY_BUGS = true
+        skip.TAG_STABLE = true
+        skip.IMAGE_LIST = true
+    }
+    
     release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
 
@@ -241,7 +265,7 @@ node {
                 currentBuild.displayName += " (dry-run)"
                 currentBuild.description += "[DRY RUN]"
             }
-            if (params.SKIP_PAYLOAD_CREATION) {
+            if (skip.PAYLOAD_CREATION) {
                 currentBuild.displayName += " (skip payload creation)"
                 currentBuild.description += "[SKIP PAYLOAD CREATION]"
             }
@@ -270,7 +294,7 @@ node {
             }
 
             previousList = commonlib.parseList(params.PREVIOUS)
-            if ( params.PREVIOUS.trim() == 'auto' && !params.SKIP_PAYLOAD_CREATION) {
+            if ( params.PREVIOUS.trim() == 'auto' && !skip.PAYLOAD_CREATION) {
                 taskThread.task('Gather PREVIOUS for release') {
 
                     if (!detect_previous) {
@@ -328,22 +352,26 @@ node {
                     errata_url = ''
                     return
                 }
-                skipVerifyBugs = !ga_release || next_is_prerelease || params.SKIP_VERIFY_BUGS
+                skipVerifyBugs = !ga_release || next_is_prerelease || skip.VERIFY_BUGS
                 commonlib.retryAbort("Validating release", taskThread, "Error running release validation") {
-                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, params.SKIP_PAYLOAD_CREATION)
+                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, skip.PAYLOAD_CREATION)
                     advisory = advisory ?: retval.advisoryInfo.id
                     errata_url = retval.errataUrl
                 }
             }
             stage("build payload") {
-                if (params.SKIP_PAYLOAD_CREATION) {
-                    echo "Don't actually create the payload because SKIP_PAYLOAD_CREATION is checked."
+                if (skip.PAYLOAD_CREATION) {
+                    echo "Don't actually create the payload because SKIP_PAYLOAD_CREATION is set."
                     return
                 }
                 release.stageGenPayload(quay_url, release_name, dest_release_tag, from_release_tag, description, previousList.join(','), errata_url)
             }
 
             stage("tag stable") {
+                if (SKIP_TAG_STABLE) {
+                    echo "Do not tag stable because SKIP_TAG_STABLE is set."
+                    return
+                }
                 if (!is_4stable_release) {
                     // Something like a hotfix should not go into 4-stable in the release controller
                     return
@@ -352,8 +380,8 @@ node {
             }
 
             stage("request upgrade tests") {
-                if (params.SKIP_PAYLOAD_CREATION) {
-                    echo "Don't request upgrade tests because SKIP_PAYLOAD_CREATION option is checked."
+                if (skip.PAYLOAD_CREATION) {
+                    echo "Don't request upgrade tests because SKIP_PAYLOAD_CREATION flag is set."
                     return
                 }
                 if (direct_release_nightly || !is_4stable_release || arch != 'x86_64') {
@@ -469,7 +497,7 @@ node {
                     echo "Skipping image list for dummy advisory."
                     return
                 }
-                if (params.SKIP_IMAGE_LIST) {
+                if (skip.IMAGE_LIST) {
                     currentBuild.description += "[No image list]"
                     return
                 }
@@ -515,7 +543,7 @@ node {
             }
 
             stage("sign artifacts") {
-                if (params.SKIP_PAYLOAD_CREATION) {
+                if (skip.PAYLOAD_CREATION) {
                     payloadDigest = release.getPayloadDigest(quay_url, dest_release_tag)
                 }
                 commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {
@@ -544,7 +572,7 @@ node {
                 if (arch == 'x86_64' || params.OPEN_NON_X86_PR ) {
                     commonlib.retrySkipAbort('Open Cincinnati PRs', taskThread) {
                         build(
-                                job: 'build%2Fcincinnati-prs',  propagate: true,
+                                job: '/aos-cd-builds/build%2Fcincinnati-prs',  propagate: true,
                                 parameters: [
                                     buildlib.param('String', 'RELEASE_NAME', release_name),
                                     buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),

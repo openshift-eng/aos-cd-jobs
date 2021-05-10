@@ -1564,6 +1564,39 @@ def get_owners(doozerOpts, images, rpms=[]) {
     return yamlData
 }
 
+def setBuildType() {
+    if (!isTriggeredByOrganicLifeForms()) {
+        echo "Assuming *PROD* build, triggered by automation"
+        scratch = false
+        return
+    }
+    if (!scratch) {
+        askBuildType()
+    }
+}
+
+def askBuildType() {
+    commonlib.inputRequired(slacklib.to(params.BUILD_VERSION)) {
+        def res = input(
+            message: 'What is the purpose of this build?',
+            parameters: [
+                [$class: 'hudson.model.ChoiceParameterDefinition',
+                 choices: 'TEST\nPROD',
+                 description: 'TEST (from SCRATCH, not pushed to quay). PROD (same as automation does)',
+                 name: 'type']
+            ]
+        )
+        scratch = res == 'TEST'
+    }
+}
+
+@NonCPS
+def isTriggeredByOrganicLifeForms() {
+    currentBuild.rawBuild.getCauses().collect {
+        it.getClass().getCanonicalName().tokenize('.').last()
+    }.contains('UserIdCause')
+}
+
 this.setup_venv()
 
 return this

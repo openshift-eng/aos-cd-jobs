@@ -127,7 +127,7 @@ node {
 
             lock("github-activity-lock-${params.BUILD_VERSION}") {
                 stage("initialize") { build.initialize() }
-                stage("set build type") { build.setBuildType() }
+                stage("set build type") { build.buildlib.setBuildType() }
                 buildlib.assertBuildPermitted(doozerOpts)
                 try {
                     stage("build RPMs") {

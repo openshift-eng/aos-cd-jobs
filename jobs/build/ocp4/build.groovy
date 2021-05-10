@@ -2,7 +2,6 @@
 
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
-slacklib = commonlib.slacklib
 
 // Properties that should be initialized and not updated
 version = [
@@ -86,39 +85,6 @@ def initialize() {
     if (!buildPlan.buildImages) { currentBuild.displayName += " [no images]" }
 
     return planBuilds()
-}
-
-def setBuildType() {
-    if (!isTriggeredByOrganicLifeForms()) {
-        echo "Assuming *PROD* build, triggered by automation"
-        scratch = false
-        return
-    }
-    if (!scratch) {
-        askBuildType()
-    }
-}
-
-def askBuildType() {
-    commonlib.inputRequired(slacklib.to(params.BUILD_VERSION)) {
-        def res = input(
-            message: 'What is the purpose of this build?',
-            parameters: [
-                [$class: 'hudson.model.ChoiceParameterDefinition',
-                 choices: 'TEST\nPROD',
-                 description: 'TEST (from SCRATCH, not pushed to quay). PROD (same as automation does)',
-                 name: 'type']
-            ]
-        )
-        scratch = res == 'TEST'
-    }
-}
-
-@NonCPS
-def isTriggeredByOrganicLifeForms() {
-    currentBuild.rawBuild.getCauses().collect {
-        it.getClass().getCanonicalName().tokenize('.').last()
-    }.contains('UserIdCause')
 }
 
 /**

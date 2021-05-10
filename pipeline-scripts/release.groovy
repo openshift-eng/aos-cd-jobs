@@ -234,6 +234,18 @@ def getPayloadDigest(quay_url, release_tag) {
     return payloadInfo['digest']
 }
 
+def getAdvisoryIds() {
+    def advisories_cmd = """
+        ${buildlib.DOOZER_BIN} --group ${group} config:read-group advisories --yaml 2>/dev/null |
+            yq '[ to_entries[].value ]'
+    """
+    def stdout = commonlib.shell(
+        script: advisories_cmd,
+        returnStdout: true
+    )
+    return new JsonSlurper().parseText(stdout)
+}
+
 @NonCPS
 def parseOcpRelease(text) {
     text.eachLine {

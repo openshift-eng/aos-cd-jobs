@@ -209,6 +209,8 @@ node {
     release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
 
+    group = "openshift-${major}.${minor}"
+
     if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
         release_name = "${major}.${minor}.${release_offset}"
         ga_release = true
@@ -242,14 +244,14 @@ node {
     slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}${ params.DRY_RUN ? ' (DRY RUN)' : ''}") {
         taskThread ->
         
-        if (!params.RELEASE_TYPE.startsWith('3.')) { // Skip Blocker Bug check for FCs
-            stage("Check for Blocker Bugs") {
-                group = "openshift-${major}.${minor}"
-                
-                commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
-                                        "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
-                    release.stageCheckBlockerBug(group)
-                }
+        stage("Check for Blocker Bugs") {
+            if (params.RELEASE_TYPE.startsWith('3.')) {
+                echo "Skip Blocker Bug check for FCs"
+                return
+            }
+            commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
+                                    "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
+                release.stageCheckBlockerBug(group)
             }
         }
         
@@ -367,6 +369,21 @@ node {
                     def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, skip.PAYLOAD_CREATION)
                     advisory = advisory ?: retval.advisoryInfo.id
                     errata_url = retval.errataUrl
+                }
+            }
+            stage("add cve flaw bugs") {
+                if (advisory == -1) {
+                    return
+                }
+                if (major == 4 && !is_4stable_release) {
+                    return
+                }
+                release.getAdvisoryIds().each {
+                    commonlib.retrySkipAbort("Add CVE flaw bugs", taskThread, "Error attaching CVE flaw bugs") {
+                        commonlib.shell(
+                            script: "${buildlib.ELLIOTT_BIN} --group ${group} attach-cve-flaws --advisory ${it} ${params.DRY_RUN ? '--dry-run' : ''}",
+                        )
+                    }
                 }
             }
             stage("build payload") {

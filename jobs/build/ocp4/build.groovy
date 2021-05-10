@@ -94,7 +94,9 @@ def setBuildType() {
         scratch = false
         return
     }
-    askBuildType()
+    if (!scratch) {
+        askBuildType()
+    }
 }
 
 def askBuildType() {

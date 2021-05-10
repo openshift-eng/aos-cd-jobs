@@ -141,6 +141,7 @@ node {
     def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
     def rpms = commonlib.cleanCommaList(params.RPMS)
 
+    scratch = params.SCRATCH
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
 
@@ -149,13 +150,14 @@ node {
             // To work on real repos, buildlib operations must run with the permissions of openshift-bot
             currentBuild.description = ""
 
+            stage("set build type") { buildlib.setBuildType() }
             stage("rpm builds") {
                 if (rpms.toUpperCase() != "NONE") {
                     currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
                     currentBuild.description = "building RPM(s): ${rpms}\n"
                     command = doozerOpts
                     if (rpms) { command += "-r '${rpms}' " }
-                    command += "rpms:rebase-and-build --version ${version} --release '${release}' ${params.SCRATCH ? '--scratch' : ''} "
+                    command += "rpms:rebase-and-build --version ${version} --release '${release}' ${scratch ? '--scratch' : ''} "
 
                     def buildRpms = { ->
                         buildlib.doozer command
@@ -224,7 +226,7 @@ node {
             stage("build images") {
                 if (!any_images_to_build) { return }
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                command = "${base_command} images:build ${params.SCRATCH ? '--scratch' : ''}"
+                command = "${base_command} images:build ${scratch ? '--scratch' : ''}"
                 try {
                     buildlib.doozer command
                 } catch (err) {
@@ -243,7 +245,7 @@ node {
             }
 
             stage('push images to qe quay') {
-                if (params.SCRATCH || !any_images_to_build) { return }  // no point
+                if (scratch || !any_images_to_build) { return }  // no point
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
                 command = "${base_command} images:push --to-defaults"
                 if (majorVersion == 4) {
@@ -258,7 +260,7 @@ node {
             }
 
             stage('sync images') {
-                if (params.SCRATCH || !any_images_to_build) { return }  // no point
+                if (scratch || !any_images_to_build) { return }  // no point
                 if (majorVersion == 4) {
                     buildlib.sync_images(
                         majorVersion,

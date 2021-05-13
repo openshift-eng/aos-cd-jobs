@@ -156,12 +156,11 @@ node('covscan') {
 
                 slacklib.to(params.BUILD_VERSION).say("""
                 *:heavy_check_mark: appregistry ${params.STREAM}:*
-                The following builds were attached to advisory ${params.METADATA_ADVISORY}:
+The following builds were attached to advisory ${params.METADATA_ADVISORY}:
                 ```
                 ${metadataNVRs.join('\n')}
                 ```
-
-                buildvm job: ${commonlib.buildURL('console')}
+buildvm job: ${commonlib.buildURL('console')}
                 """)
             }
         }

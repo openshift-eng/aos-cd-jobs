@@ -366,6 +366,19 @@ def stageBuildImages() {
 
         buildlib.doozer "${doozerOpts} images:streams mirror"
     }
+    // check new embargoed build
+    out = commonlib.shell(
+        returnAll: true,
+        script: "${env.WORKSPACE}/build-scripts/querybuilds.py -v ${version.stream} -t ${version.branch} -i ${buildPlan.imagesIncluded}"
+    )
+    if (out.returnStatus != 0) {
+        commonlib.slacklib.to(version.stream).say("""
+        *:alert: we may catch a newly-embargoed build in ocp4 build*
+${out}
+        """
+        )
+    }
+
 }
 
 /**

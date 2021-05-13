@@ -419,8 +419,8 @@ def stageMirrorRpms() {
     commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- cp -a ${stagingDir} ${destBaseDir}/${rpmMirror.plashetDirName}")
     //  Now we have a plashet named after the original on the mirror. QE wants a 'latest' link there.
     commonlib.shell("ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} \"cd ${destBaseDir}; ln -sfn ${rpmMirror.plashetDirName} latest\"")
-    //  Because the mirrors are always low on space, delete all by the last 5 plashets
-    commonlib.shell("ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} \"cd ${destBaseDir};  rm -rf `ls -d 4.?-20* | sort | tail -n 5 | (grep -v `readlink latest` || true)`  \"")
+    //  Because the mirrors are always low on space, delete all but the lastest 4 plashets
+    commonlib.shell("ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} \"cd ${destBaseDir};  rm -rf `ls -d 4.?-20* | sort | tac | tail -n +5`  \"")
     //  For historical reasons, all puddles were linked to from 'all' directory as well.
     commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- ln -sfn ${destBaseDir}/${rpmMirror.plashetDirName} /srv/enterprise/all/${version.stream}/${rpmMirror.plashetDirName}")
     // Also establish latest link

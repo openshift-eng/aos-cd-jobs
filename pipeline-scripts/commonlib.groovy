@@ -310,7 +310,12 @@ Console Log: ${buildURL('console')}
         to = args.to ?: args.cc ?: args.bcc ?: "NOBODY"
         to = to.replaceAll(/[^@.\w]+/, "_")
         subject = args.get("subject", "NO SUBJECT").replaceAll(/\W+/, "_")
-        filename = String.format("email/email%03d-%s-%s.txt", ++emailIndex, to, subject)
+
+        def filename_ext = ".txt"
+        def max_filename_len = 251 - filename_ext.size()
+        filename = "email/" +
+                   String.format("email%03d-%s-%s", ++emailIndex, to, subject).take(max_filename_len) +
+                   filename_ext
 
         // this is a bit silly but writeYaml and writeFile lack finesse
         body = args.remove("body")  // unreadable when written as yaml

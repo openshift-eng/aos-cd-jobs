@@ -49,7 +49,7 @@ class KojiWrapper(wrapt.ObjectProxy):
 @click.option('--tag', '-t', default=None, type=str, help="provide image tag")
 @click.option('--version', '-v', default=None, type=str, help="Please specify version")
 def query_builds(images, tag, version):
-    # :return: [output,message]
+    # :output: [output,message]
     # output would be formatted list if embargoed build found, else would be empty
     # message include some other alert message like no build found or build don't have expected tag
 
@@ -65,13 +65,13 @@ def query_builds(images, tag, version):
         return ''
 
     for image in images.split(','):
-        pattern = image + '-container-v' + version
+        pattern = image + '-container-v' + version # ironic-container-v4.8
         data = koji_proxy.search(pattern, 'build', 'regexp', {'limit': 2, 'order': '-id'})
         if len(data) != 2:
             # only one build found
             message += f'not enouth recent builds found for {image}\n'
             continue
-        if data[0]['name'].endswith("p0") and data[1]['name'].endswith("p0"):
+        if data[0]['name'].endswith("p1") and data[1]['name'].endswith("p0"):
             # build become private
             result[image] = data
         # check all have correct tag

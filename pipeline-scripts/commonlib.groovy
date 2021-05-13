@@ -312,7 +312,7 @@ Console Log: ${buildURL('console')}
         subject = args.get("subject", "NO SUBJECT").replaceAll(/\W+/, "_")
 
         def filename_ext = ".txt"
-        def max_filename_len = 255 - filename_ext.size()
+        def max_filename_len = 251 - filename_ext.size()
         filename = "email/" +
                    String.format("email%03d-%s-%s", ++emailIndex, to, subject).take(max_filename_len) +
                    filename_ext

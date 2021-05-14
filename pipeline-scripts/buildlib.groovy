@@ -594,41 +594,6 @@ def invoke_on_use_mirror(git_script_filename, Object... args ) {
     ).trim()
 }
 
-/**
- * Extract the puddle name from the puddle output
- * @param puddle_output The captured output of the puddle process
- * @return The puddle directory name (e.g. "2017-08-03.2" )
- */
-// Matcher is not serializable; use NonCPS. Do not call CPS function (e.g. readFile from NonCPS methods; they just won't work)
-@NonCPS
-def extract_puddle_name(puddle_output ) {
-    // Try to match a line like:
-    // mash done in /mnt/rcm-guest/puddles/RHAOS/AtomicOpenShift/3.5/2017-08-07.1/mash/rhaos-3.5-rhel-7-candidate
-    def matcher = puddle_output =~ /mash done in \/mnt\/rcm-guest\/puddles\/([\/a-zA-Z.0-9-]+)/
-    split = matcher[0][1].tokenize("/")
-    return split[ split.size() - 3 ]  // look three back and we should find puddle name
-}
-
-def build_puddle(conf_url, keys, Object...args) {
-    echo "Building puddle: ${conf_url} with arguments: ${args}"
-    if( keys != null ){
-      echo "Using only signed RPMs with keys: ${keys}"
-    }
-
-    key_opt = (keys != null)?"--keys ${keys}":""
-
-    // Ideally, we would call invoke_on_rcm_guest, but jenkins makes it absurd to invoke with conf_url as one of the arguments because the spread operator is not enabled.
-    def puddle_output = sh(
-            returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s -- --conf ${conf_url} ${key_opt} ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/call_puddle.sh",
-    ).trim()
-
-    echo "Puddle output:\n${puddle_output}"
-    def puddle_dir = this.extract_puddle_name( puddle_output )
-    echo "Detected puddle directory: ${puddle_dir}"
-    return puddle_dir
-}
-
 def param(type, name, value) {
     return [$class: type + 'ParameterValue', name: name, value: value]
 }

@@ -571,13 +571,11 @@ node {
                 tag = params.FROM_RELEASE_TAG
 
                 cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$alt_arch/release$alt_arch:$tag) | jq -r .config.config.Labels.version"
-                print(cmd)
-
                 rhcos_build =  commonlib.shell(
                     returnStdout: true,
                     script: cmd
                 )
-                print(rhcos_build)
+                print("RHCOS build: $rhcos_build")
 
                 rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"
                 
@@ -591,13 +589,11 @@ node {
                     booleanParam(name: 'MOCK', value: params.MOCK)
                 ]
 
-                print(sync_params)
-
-                // build(
-                //     job: '/aos-cd-builds/build%252Frhcos_sync',
-                //     propagate: false,
-                //     parameters: sync_params
-                // )
+                build(
+                    job: '/aos-cd-builds/build%252Frhcos_sync',
+                    propagate: false,
+                    parameters: sync_params
+                )
             }
 
             stage("send release message") {

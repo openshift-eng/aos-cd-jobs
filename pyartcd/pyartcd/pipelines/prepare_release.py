@@ -57,8 +57,9 @@ class PrepareReleasePipeline:
             else:
                 arch = "x86_64"
             if ":" not in nightly:
-                # prepend pullsepc URL to nightly name
-                arch_suffix = "" if arch == "x86_64" else "-" + arch
+                # prepend pullspec URL to nightly name
+                # TODO: proper translation facility between brew and go arch nomenclature
+                arch_suffix = "" if arch == "x86_64" else "-amd64" if arch == "aarch64" else "-" + arch
                 nightly = f"registry.ci.openshift.org/ocp{arch_suffix}/release{arch_suffix}:{nightly}"
             self.candidate_nightlies[arch] = nightly
         self.elliott_working_dir = self.working_dir / "elliott-working"

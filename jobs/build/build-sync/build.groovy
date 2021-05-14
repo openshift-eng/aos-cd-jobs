@@ -89,7 +89,7 @@ def buildSyncMirrorImages() {
 }
 
 def backupAllImageStreams() {
-    def allNameSpaces = ["ocp", "ocp-priv", "ocp-s390x", "ocp-s390x-priv", "ocp-ppc64le", "ocp-ppc64le-priv"]
+    def allNameSpaces = ["ocp", "ocp-priv", "ocp-s390x", "ocp-s390x-priv", "ocp-ppc64le", "ocp-ppc64le-priv", "ocp-arm64", "ocp-arm64-priv"]
     for (ns in allNameSpaces) {
         def yaml = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} get is -n ${ns} -o yaml", [capture: true])
         writeFile file:"${ns}.backup.yaml", text: yaml

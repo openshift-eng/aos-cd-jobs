@@ -50,13 +50,7 @@ node {
                     choice(
                         name: 'ARCH',
                         description: 'The architecture for the release. Use "auto" for promoting nightlies. ARCH must be specified when re-promoting an RC."',
-                        choices: [
-                                'auto',
-                                'x86_64',
-                                's390x',
-                                'ppc64le',
-                                'aarch64',
-                            ].join('\n'),
+                        choices: (['auto'] + commonlib.brewArches).join('\n'),
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
@@ -665,7 +659,7 @@ node {
 
         dry_subject = ""
         if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}
-        releaseArch = arch == "x86_64" ? "amd64" : arch == "aarch64" ? "arm64" : "${arch}"
+        releaseArch = commonlib.goArchForBrewArch(arch)
         commonlib.email(
             to: "${params.MAIL_LIST_SUCCESS}",
             replyTo: "aos-team-art@redhat.com",

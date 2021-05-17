@@ -37,7 +37,7 @@ node {
         error("You must provide one or more advisories.")
     }
     
-    advisory_list = params.ADVISORIES.split("[,\\s]+")
+    advisory_list = commonlib.parseList(params.ADVISORIES)
     
     for(adv in advisory_list) {
         res = commonlib.shell(

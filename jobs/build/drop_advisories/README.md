@@ -9,7 +9,7 @@ Drop (mark as not shipping) one or more advisories in ErrataTool. Runs elliott c
 Sometimes we need to drop advisories, in cases like
 - No updated builds found for shipping - in which case we don't need that advisory.
   - when no rpm builds are found, we drop rpm advisory
-  - when no "extras" operator build found, then we drop image and metadata advisories.
+  - when no "extras" operator build found, then we drop extras and metadata advisories.
 - Release as a whole is dropped due to some blocker.
 - Duplicate advisories created by error (this has happened!)
 

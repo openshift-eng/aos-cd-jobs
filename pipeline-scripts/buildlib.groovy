@@ -1446,6 +1446,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     plashet_arch_args,
                     "from-tags", // plashet mode of operation => build from brew tags
                     include_embargoed? "--include-embargoed" : "",
+                    "--inherit",
                     "--brew-tag rhaos-${major_minor}-rhel-${el_major}-candidate ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
                     "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed",
                     (major == 3) ? "--inherit" :  "", // For OCP3.11, we depend on tag inheritance to populate the OSE repo

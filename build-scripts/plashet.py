@@ -19,6 +19,7 @@ import time
 import wrapt
 import sys
 import yaml
+
 from requests_kerberos import HTTPKerberosAuth
 from types import SimpleNamespace
 from typing import Dict, List
@@ -476,7 +477,7 @@ class KojiWrapper(wrapt.ObjectProxy):
 @click.option('--embargoed-nvr', multiple=True, required=False, help='Treat this nvr as embargoed (unless it has already shipped)')
 @click.option('--signing-advisory-id', required=False, help='Use this auto-signing advisory to sign RPMs if necessary.')
 @click.option('--signing-advisory-mode', required=False, default="clean", type=click.Choice(['leave', 'clean'], case_sensitive=False),
-              help='clean=remove all builds on start and successful exit; leave=leave builds attached which the invocation attempted to sign')
+              help='clean=remove all builds on start and successful exit; leave=leave existing builds attached when attempting to sign')
 @click.option('--poll-for', default=15, type=click.INT, help='Allow up to this number of minutes for auto-signing')
 @click.option('--include-previous-for', multiple=True, metavar='PACKAGE_NAME_PREFFIX', required=False, help='For specified package (may be package name prefix), include latest-1 tagged nvr in the plashet')
 @click.option('--include-previous', default=False, is_flag=True,
@@ -639,7 +640,7 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
     if config.include_package and len(config.include_package) != len(desired_nvres):
         raise IOError(f'Did not find all command line included packages {config.include_package}; only found {desired_nvres}')
 
-    # Did any of the archs require signed content?
+    # Did any of the arches require signed content?
     possible_signing_needed = signed_desired(config)
 
     if possible_signing_needed:
@@ -692,6 +693,114 @@ def from_tags(config, brew_tag, embargoed_brew_tag, embargoed_nvr, signing_advis
     all_nvres.update(desired_nvres)
     all_nvres.update(historical_nvres)
     assemble_repo(config, all_nvres, event_info, extra_data=extra_data)
+
+
+@cli.command('from-images', short_help='Collects a set of RPMs attached to specified advisories.')
+@click.pass_obj
+@click.option('--image', 'images', metavar='IMAGE_NVR', multiple=True, required=True, help='Image NVRs which contain RPMs to include in the plashet [multiple].')
+@click.option('--replace', multiple=True, metavar='RPM_PACKAGE_NVR', required=False, help='Include or override the package NVR used in the image(s) with this package version.')
+@click.option('-t', '--brew-tag', multiple=True, required=False, nargs=2, help='One or more brew tags which will be used to sign RPMs required by this plashet: <tag> <product_version>')
+@click.option('--signing-advisory-id', required=False, help='Use this auto-signing advisory to sign RPMs if necessary.')
+@click.option('--poll-for', default=15, type=click.INT, help='Allow up to this number of minutes for auto-signing')
+def from_images(config, images, replace, brew_tag, signing_advisory_id, poll_for):
+    """
+    Creates a directory containing arch specific yum repository subdirectories based on RPMs
+    used within a specific set of existing brew-built images.
+
+    To override a specific RPM package within the specified images, use --replace. The NVR
+    will be included in the plashet instead of the version in the images.
+
+    If the package is not found within an image, --replace will still cause the NVR to be
+    included in the final plashet.
+
+    In order to sign a 'replace' package that is not already signed, specify brew-tags that
+    package have been tagged with. If a package has been tagged before and is unsigned,
+    the signing advisory will be used.
+    """
+
+    koji_proxy = KojiWrapper(koji.ClientSession(config.brew_url, opts={'krbservice': 'brewhub', 'serverca': '/etc/pki/brew/legacy.crt'}))
+    koji_proxy.gssapi_login()
+    errata_proxy = xmlrpclib.ServerProxy(config.errata_xmlrpc_url)
+
+    package_nvrs: Dict[str, str] = dict()  # maps package name to nvr
+
+    replaced = set()
+    sign_using: Dict[str,List[str]] = {}  # Maps production version to the nvrs it should be used to sign
+    for nvr in replace:
+        package_build = koji_proxy.getBuild(nvr)
+        if not package_build:
+            raise IOError(f'Did not find build for replacement package NVR: {nvr}')
+        package_name = package_build['package_name']
+        package_nvrs[package_name] = nvr
+        replaced.add(package_name)
+
+        if not is_signed(config, nvr):
+            # For the signing part of the work, bucket each unsigned NVR into
+            # a product that can potentially sign it.
+            for tag, product_version in brew_tag:
+                if koji_proxy.listTagged(tag, package=package_name):
+                    if product_version not in sign_using:
+                        nvr_list: List[str] = list()
+                        sign_using[product_version] = nvr_list
+                    else:
+                        nvr_list = sign_using[product_version]
+                    nvr_list.append(nvr)
+
+    if signed_desired(config):
+        # Let's see if the any of the --replace NVRs need to be signed before
+        # building the plashet.
+        logger.info(f'At least one architecture requires signed nvres')
+
+        if signing_advisory_id:
+            for product_version, nvr_list in sign_using.items():
+                logger.info(f'Attempting to sign {nvr_list} using product: {product_version} and advisory {signing_advisory_id}')
+                # Remove all builds attached to advisory before attempting signing
+                update_advisory_builds(config, errata_proxy, signing_advisory_id, [],
+                                       product_version)
+                update_advisory_builds(config, errata_proxy, signing_advisory_id, nvr_list,
+                                       product_version)
+        else:
+            logger.warning(f'No signing advisory specified; will poll for any unsigned NVRs')
+
+        # Whether we've attached to advisory or no, wait until signing require is met
+        # or throw exception on timeout.
+        logger.info(f'Waiting for all nvre in set {replace} to be signed..')
+        for nvr in replace:
+            poll_for -= assert_signed(config, nvr)
+
+    for image_nvr in images:
+        image_build = koji_proxy.getBuild(image_nvr)
+        archives = koji_proxy.listArchives(image_build['id'])
+
+        build_cache: Dict[str, Dict] = dict()  # Maps build_id to build object from brew
+        for archive in archives:
+            # Example results of listing RPMs in an given imageID:
+            # https://gist.github.com/jupierce/a8798858104dcf6dfa4bd1d6dd99d2d8
+            archive_id = archive['id']
+            rpm_entries = koji_proxy.listRPMs(imageID=archive_id)
+            for rpm_entry in rpm_entries:
+                build_id = rpm_entry['build_id']
+
+                # Multiple RPMs might be from the same build and multiple images may use
+                # the same build. Cache results to prevent unnecessary queries.
+                if build_id in build_cache:
+                    build = build_cache[build_id]
+                else:
+                    build = koji_proxy.getBuild(build_id)
+                    build_cache[build_id] = build
+
+                package_name = build['package_name']
+                if package_name in replaced:
+                    continue
+
+                nvr = build['nvr']
+                if package_name in package_nvrs and package_nvrs[package_name] != nvr:
+                    raise IOError(f'Images contain inconsistent versions of {package_name}: {nvr} vs {package_nvrs[package_name]} . You must explicitly resolve this with --replace.')
+
+                package_nvrs[package_name] = nvr
+
+    nvrs = package_nvrs.values()
+    assemble_repo(config, nvrs)
 
 
 @cli.command('from-advisories', short_help='Collects a set of RPMs attached to specified advisories.')

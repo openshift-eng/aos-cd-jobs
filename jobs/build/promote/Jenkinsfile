@@ -178,7 +178,7 @@ node {
     ga_release = false
     direct_release_nightly = false
     detect_previous = true
-    candidate_pr_only = false
+    is_prerelease = false
     is_4stable_release = true
     next_is_prerelease = false
 
@@ -215,12 +215,12 @@ node {
         release_name = "${major}.${minor}.${release_offset}"
         ga_release = true
     } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
-        candidate_pr_only = true
+        is_prerelease = true
         release_name = "${major}.${minor}.0-rc.${release_offset}"
     } else if (params.RELEASE_TYPE.startsWith('3.')) { // Feature candidate (around feature complete)
+        is_prerelease = true
         direct_release_nightly = true
         release_name = "${major}.${minor}.0-fc.${release_offset}"
-        candidate_pr_only = true
         CLIENT_TYPE = 'ocp-dev-preview'
     } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
         direct_release_nightly = true
@@ -561,6 +561,41 @@ node {
                 }
             }
 
+            stage("sync RHCOS") {
+                if (!is_prerelease) {
+                    echo "Skipping rhcos sync"
+                    return
+                }
+                
+                alt_arch = arch == "x86_64"? "" : arch
+                tag = params.FROM_RELEASE_TAG
+
+                cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$alt_arch/release$alt_arch:$tag) | jq -r .config.config.Labels.version"
+                rhcos_build =  commonlib.shell(
+                    returnStdout: true,
+                    script: cmd
+                )
+                print("RHCOS build: $rhcos_build")
+
+                rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"
+                
+                sync_params = [
+                    buildlib.param('String','BUILD_VERSION', "$major.$minor"),
+                    buildlib.param('String','NAME', release_name),
+                    buildlib.param('String','ARCH', arch),
+                    buildlib.param('String','RHCOS_MIRROR_PREFIX', rhcos_mirror_prefix),
+                    buildlib.param('String','RHCOS_BUILD', rhcos_build),
+                    booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
+                    booleanParam(name: 'MOCK', value: params.MOCK)
+                ]
+
+                build(
+                    job: '/aos-cd-builds/build%252Frhcos_sync',
+                    propagate: false,
+                    parameters: sync_params
+                )
+            }
+
             stage("send release message") {
                 if (!is_4stable_release) {
                     echo "Not a stable release, not sending message over bus"
@@ -615,7 +650,7 @@ node {
                                 parameters: [
                                     buildlib.param('String', 'RELEASE_NAME', release_name),
                                     buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
-                                    booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: candidate_pr_only),
+                                    booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: is_prerelease),
                                     buildlib.param('String', 'GITHUB_ORG', 'openshift'),
                                     booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
                                 ]

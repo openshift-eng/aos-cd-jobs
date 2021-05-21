@@ -118,7 +118,7 @@ pipeline {
                 sh "tree ./${params.VERSION} && cat ./${params.VERSION}/sha256sum.txt"
                 sshagent(["aos-cd-test"]) {
                     sh "ssh use-mirror-upload.ops.rhcloud.com -- mkdir -p /srv/pub/openshift-v4/clients/butane"
-                    sh "scp -r./${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/butane/"
+                    sh "scp -r ./${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/butane/"
                     sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/butane/latest"
                     sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/clients/butane -v"
                 }

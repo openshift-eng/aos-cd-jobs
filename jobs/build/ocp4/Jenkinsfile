@@ -160,10 +160,12 @@ node {
             lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
                 stage("mirror RPMs") { build.stageMirrorRpms() }
             }
-            stage("sync images") { build.stageSyncImages() }
-            stage("push qe quay images") { build.stagePushQEImages() }
-            stage("sweep") {
-                buildlib.sweep(params.BUILD_VERSION)
+            if (!buildlib.allImagebuildfailed){
+                stage("sync images") { build.stageSyncImages() }
+                stage("push qe quay images") { build.stagePushQEImages() }
+                stage("sweep") {
+                    buildlib.sweep(params.BUILD_VERSION)
+                }
             }
         }
         stage("report success") { build.stageReportSuccess() }

@@ -43,6 +43,11 @@ node {
                                             description : 'Run "oc" commands with the dry-run option set to true',
                                             defaultValue: false,
                                     ),
+                                    booleanParam(
+                                            name        : 'TRIGGER_NEW_NIGHTLY',
+                                            description : 'Forces the release controller to re-run with existing images; no change will be made to payload images in the release. All other parameters will be ignored.',
+                                            defaultValue: false,
+                                    ),
                                     string(
                                             name        : 'IMAGES',
                                             description : '(Optional) Limited list of images to sync, for testing purposes',
@@ -83,6 +88,20 @@ node {
     }
 
     try {
+
+        if (params.TRIGGER_NEW_NIGHTLY) {
+            if (params.DRY_RUN) {
+                echo "Would have triggered new release cut in release controller."
+            } else {
+                echo "Triggering release controller to cut new release using previously synced builds..."
+                buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} -n ocp tag registry.access.redhat.com/ubi8 ${params.BUILD_VERSION}-art-latest:trigger-release-controller")
+                echo "Sleeping so that release controller has time to react..."
+                sleep(10)
+                buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} -n ocp tag ${params.BUILD_VERSION}-art-latest:trigger-release-controller -d")
+            }
+            return
+        }
+
         // This stage is safe to run concurrently. Each build runs
         // these steps in its own directory.
         stage("Generate inputs") { build.buildSyncGenInputs() }

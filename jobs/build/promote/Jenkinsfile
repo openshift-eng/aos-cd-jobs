@@ -567,10 +567,10 @@ node {
                     return
                 }
                 
-                alt_arch = arch == "x86_64"? "" : arch
+                suffix = release.getArchPrivSuffix(arch, false)
                 tag = params.FROM_RELEASE_TAG
 
-                cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$alt_arch/release$alt_arch:$tag) | jq -r .config.config.Labels.version"
+                cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$suffix/release$suffix:$tag) | jq -r .config.config.Labels.version"
                 rhcos_build =  commonlib.shell(
                     returnStdout: true,
                     script: cmd

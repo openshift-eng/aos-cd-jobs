@@ -136,7 +136,9 @@ node {
         version = buildlib.determineBuildVersion(params.BUILD_VERSION, buildlib.getGroupBranch(doozerOpts), params.VERSION)
         release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION)
     }
-    def repo_type = "signed" // was: params.SIGNED ? "signed" : "unsigned"
+    // If any arch is ready for GA, use signed repos for all (plashets will sign everything).
+    def repo_type = commonlib.ocpReleaseState[params.BUILD_VERSION]['release'] ? 'signed' : 'unsigned'
+
     def images = commonlib.cleanCommaList(params.IMAGES)
     def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
     def rpms = commonlib.cleanCommaList(params.RPMS)

@@ -211,11 +211,37 @@ def assemble_repo(config, nvres, event_info=None, extra_data: Dict = None):
             _assemble_repo(config, nvres)
             success = True
         finally:
+
+            packages = list()
+            for nvre in sorted(nvres):
+                nvr = strip_epoch(nvre)
+                build = koji_proxy.getBuild(nvr)
+                tag_listing = koji_proxy.queryHistory(table='tag_listing',
+                                                      build=build['id'])['tag_listing']
+                latest_tag = {}
+                if tag_listing:
+                    tag_listing.sort(key=lambda event: event['create_event'])
+                    tl = tag_listing[-1]
+                    latest_tag = {
+                        'tag_name': tl['tag.name'],
+                        'event': tl['create_event'],
+                    }
+
+                package = {
+                    'package_name': build['package_name'],
+                    'build_id': build['id'],
+                    'nvr': build['nvr'],
+                    'epoch': build['epoch'],
+                    'latest_tag': latest_tag,
+                }
+                packages.append(package)
+
             plashet_info = {
                 'assemble': {
                     'success': success,
                     'concerns': plashet_concerns,
-                    'brew_event': event_info or koji_proxy.getLastEvent()
+                    'brew_event': event_info or koji_proxy.getLastEvent(),
+                    'packages': packages,
                 },
                 'extra': extra_data or {},
             }
@@ -391,7 +417,7 @@ def setup_logging(dest_dir: str):
               multiple=True, default=[], help='Only include specified packages')
 def cli(ctx, base_dir, brew_root, name, signing_key_id, **kwargs):
     """
-    Creates a directory contining one or more arch specific yum repositories by using local
+    Creates a directory containing one or more arch specific yum repositories by using local
     symlinks to a brewroot filesystem location. This avoids network transfer time.
 
     If you need to transfer the resultant repo to a mirror which does not have a

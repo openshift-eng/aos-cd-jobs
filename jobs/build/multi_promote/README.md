@@ -88,5 +88,26 @@ This offset (call it X) is used to construct the release name depending on the r
 3. Feature Candidate: `4.y.0-fc.X`
 4. Hotfix: do not specify an offset; the name of the nightly is re-used.
 
+### IN\_FLIGHT\_PREV
+
+This is used to specify the previous minor version release that is being prepared/promoted
+in the same week. Usually we would have 2-3 releases, e.g. 4.7.13 and 4.6.31 being prepared
+in the week. While promoting 4.7.13, this field would have the value 4.6.31.
+
+If you leave it as blank, you will be prompted later in the job for the input also with the 
+suggested previous releases.
+
+### RESUME\_FROM
+
+**Warning: This would start multiple promote jobs with the given stage. Make sure all previous promote jobs failed on the same stage. Otherwise use the standalone promote job**
+
+Sometimes promote jobs fail either because of an outage or due to a network error,
+or due to some other reason. This param lets you specify a stage to start a promote
+job from.
+
+If you're unsure about the stage previous promote failed or which stage to resume from, 
+it's a good idea to consult other ARTists and read the code since this is an 
+advanced param :)
+
 ## Known issues
 As of right now (May 4th 2021) the job expects 3 nightlies always (for s390x, ppc64le and x86). In the future we want to fix this by varying for release type/version, and for supporting more arches. - [see this comment](https://github.com/openshift/aos-cd-jobs/pull/2606#discussion_r625391662) for details.

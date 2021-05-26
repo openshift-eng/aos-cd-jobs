@@ -166,6 +166,15 @@ for instructions on how to fill this field.
 Once we have `releases.yml` automation this should go away entirely in favor of
 determining the releases from our configuration.
 
+### IN\_FLIGHT\_PREV
+
+This is used to specify the previous minor version release that is being prepared/promoted
+in the same week. Usually we would have 2-3 releases, e.g. 4.7.13 and 4.6.31 being prepared
+in the week. While promoting 4.7.13, this field would have the value 4.6.31.
+
+If you leave it as blank, you will be prompted later in the job for the input also with the 
+suggested previous releases.
+
 ### PERMIT\_PAYLOAD\_OVERWRITE
 
 **DO NOT USE** without discussing with your team or pillar lead for approval.
@@ -192,6 +201,16 @@ automated incremental builds for this version.
 Usually we want to do this to allow builds to begin after the release is
 promoted; set to "No" only if you know of a reason why we want to keep the
 version closed to further builds.
+
+### RESUME\_FROM
+
+Sometimes promote job fail either because of an outage or due to a network error,
+or due to some other reason. This param lets you specify a stage to start a promote
+job from.
+
+If you're unsure about the stage previous promote failed or which stage to resume from, 
+it's a good idea to consult other ARTists and read the code since this is an 
+advanced param :)
 
 ### SKIP\_CINCINNATI\_PR\_CREATION
 

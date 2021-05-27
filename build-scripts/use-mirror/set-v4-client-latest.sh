@@ -23,7 +23,7 @@ set -u
 RELEASE=$1    # e.g. 4.2.0 or 4.3.0-0.nightly-2019-11-08-080321
 CLIENT_TYPE=$2   # e.g. ocp or ocp-dev-preview
 LINK_NAME=$3   # e.g. latest
-ARCHES="${4:-x86_64}"  # e.g. "x86_64 ppc64le s390x"  OR  "all" to detect arches automatically
+ARCHES="${4:-x86_64}"  # e.g. "x86_64 ppc64le s390x aarch64"  OR  "all" to detect arches automatically
 
 BASE_DIR="/srv/pub/openshift-v4"
 
@@ -124,10 +124,11 @@ for arch in ${ARCHES}; do
 
     if [[ ! -z "$USE_CHANNEL" ]]; then
         qarch="${arch}"
-        if [[ "${qarch}" == "x86_64" ]]; then
-            # Graph uses go arch names; translate from brew arch names
-            qarch="amd64"
-        fi
+        # Graph uses go arch names; translate from brew arch names
+        case "${qarch}" in
+            x86_64) qarch="amd64" ;;
+            aarch64) qarch="arm64" ;;
+        esac
         CHANNEL_RELEASES=$(curl -sH 'Accept:application/json' "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" | jq '.nodes[].version' -r)
         if [[ -z "$CHANNEL_RELEASES" ]]; then
             echo "No versions current detected in ${USE_CHANNEL} for arch ${qarch} ; No ${LINK_NAME} will be set"

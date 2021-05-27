@@ -20,6 +20,36 @@ eusVersions = [
     "4.10",
 ]
 
+// some of our systems refer to golang's chosen architecture nomenclature;
+// most use brew's nomenclature or similar. translate.
+brewArches = ["x86_64", "s390x", "ppc64le", "aarch64"]
+brewArchSuffixes = ["", "-s390x", "-ppc64le", "-aarch64"]
+goArches = ["amd64", "s390x", "ppc64le", "arm64"]
+goArchSuffixes = ["", "-s390x", "-ppc64le", "-arm64"]
+def goArchForBrewArch(String brewArch) {
+    if (brewArch in goArches) return brewArch  // allow to already be a go arch, just keep same
+    if (brewArch in brewArches)
+        return goArches[brewArches.findIndexOf {it == brewArch}]
+    error("no such brew arch '${brewArch}' - cannot translate to golang arch")
+}
+def brewArchForGoArch(String goArch) {
+    // some of our systems refer to golang's chosen nomenclature; translate to what we use in brew
+    if (goArch in brewArches) return goArch  // allow to already be a brew arch, just keep same
+    if (goArch in goArches)
+        return brewArches[goArches.findIndexOf {it == goArch}]
+    error("no such golang arch '${goArch}' - cannot translate to brew arch")
+}
+// imagestreams and file names often began without consideration for multi-arch and then
+// added a suffix everywhere to accommodate arches (but kept the legacy location for x86).
+def brewSuffixForArch(String arch) {
+    arch = brewArchForGoArch(arch)  // translate either incoming arch style
+    return brewArchSuffixes[brewArches.findIndexOf {it == arch}]
+}
+def goSuffixForArch(String arch) {
+    arch = goArchForBrewArch(arch)  // translate either incoming arch style
+    return goArchSuffixes[goArches.findIndexOf {it == arch}]
+}
+
 /**
  * Why is ocpReleaseState needed?
  *
@@ -499,12 +529,21 @@ def extractMajorMinorVersionNumbers(String version) {
     Returns the architecture name extracted from a release name.
     Only known architecture names are recognized, defaulting to `defaultArch`.
     e.g.
-        "4.4.0-0.nightly-ppc64le-2019-11-06-041852" => "ppc64le"
-        "4.4.0-0.nightly-s390x-2019-11-06-041852" => "s390x"
-        "4.4.0-0.nightly-2019-11-06-041852" => "x86_64"
+        "4.8.0-0.nightly-2021-01-06-041852" => "amd64"
+        "4.8.0-0.nightly-ppc64le-2021-01-06-041852" => "ppc64le"
+        "4.8.0-0.nightly-s390x-2021-01-06-041852" => "s390x"
+        "4.8.0-0.nightly-arm64-2021-06-06-041852" => "arm64"
 */
+def extractGoArchFromReleaseName(String release, String defaultArch='amd64') {
+    archs = goArches + brewArches  // should normally be go but we can identify either safely
+    for(arch in goArches) {
+        if(arch in release.split('-')) defaultArch = arch
+    }
+    return goArchForBrewArch(defaultArch)
+}
 def extractArchFromReleaseName(String release, String defaultArch='x86_64') {
-    return (release =~ /(x86_64|ppc64le|s390x)?$/)[0][1] ?: defaultArch
+    // get the *brew* arch from release name which is go arch nomenclature
+    return brewArchForGoArch(extractGoArchFromReleaseName(release, goArchForBrewArch(defaultArch)))
 }
 
 /**
@@ -541,10 +580,9 @@ def canLock(lockName, timeout_seconds=10) {
 def getReleaseControllerURL(releaseStreamName) {
     def arch = 'amd64'
     def streamNameComponents = releaseStreamName.split('-') // e.g. ['4', 'stable', 's390x']  or [ '4', 'stable' ]
-    if ('s390x' in streamNameComponents) {
-        arch = "s390x" // e.g. -s390x
-    } else if ('ppc64le' in streamNameComponents) {
-        arch = "ppc64le"
+    for(goArch in goArches) {
+        if (goArch in streamNameComponents)
+            arch = goArch
     }
     return "https://${arch}.ocp.releases.ci.openshift.org"
 }

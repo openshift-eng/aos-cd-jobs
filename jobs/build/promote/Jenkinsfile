@@ -81,8 +81,8 @@ node {
                     ),
                     string(
                         name: 'IN_FLIGHT_PREV',
-                        description: 'This is the in flight release version of previous minor version of OCP. Leave blank to be prompted later in the job. Used to fill upgrade suggestions.',
-                        defaultValue: false,
+                        description: 'This is the in flight release version of previous minor version of OCP. Leave blank to be prompted later in the job. "skip" to indicate that there is no such release in flight. Used to fill upgrade suggestions.',
+                        defaultValue: "",
                         trim: true,
                     ),
                     booleanParam(

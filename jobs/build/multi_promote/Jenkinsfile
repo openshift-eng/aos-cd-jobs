@@ -105,6 +105,8 @@ node {
         booleanParam(name: 'MOCK', value: params.MOCK)
     ]
 
+    promote_job_location = 'build%2Fpromote'
+
     parallel(
         "x86_64": {
             stage("x86_64") {
@@ -113,7 +115,7 @@ node {
                 params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
                 
                 build(
-                    job: '/aos-cd-builds/build%2Fpromote',
+                    job: promote_job_location,
                     propagate: false,
                     parameters: params
                 )
@@ -127,7 +129,7 @@ node {
                 params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
                 
                 build(
-                    job: '/aos-cd-builds/build%2Fpromote',
+                    job: promote_job_location,
                     propagate: false,
                     parameters: params
                 )
@@ -141,7 +143,7 @@ node {
                 params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
                 
                 build(
-                    job: '/aos-cd-builds/build%2Fpromote',
+                    job: promote_job_location,
                     propagate: false,
                     parameters: params
                 )

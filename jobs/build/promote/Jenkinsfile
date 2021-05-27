@@ -595,7 +595,7 @@ node {
                 rhcos_build =  commonlib.shell(
                     returnStdout: true,
                     script: cmd
-                )
+                ).trim()
                 print("RHCOS build: $rhcos_build")
 
                 rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"

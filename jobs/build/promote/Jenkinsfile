@@ -622,7 +622,7 @@ node {
                     echo "Not a stable release, not sending message over bus"
                     return
                 }
-                if (params.DRY_DRUN) {
+                if (params.DRY_RUN) {
                     echo "DRY_RUN: Not sending release message"
                     return
                 }

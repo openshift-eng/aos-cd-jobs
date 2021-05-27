@@ -329,9 +329,12 @@ node {
 
                     prevMinor = minor - 1
                     in_flight_prev_required = true
-                    if (params.IN_FLIGHT_PREV) {
+                    if (params.IN_FLIGHT_PREV.toUpperCase() == 'SKIP') {
+                        print("Skipping asking for in_flight_prev")
+                        in_flight_prev_required = false
+                    } else if (params.IN_FLIGHT_PREV) {
                         in_flight_prev = params.IN_FLIGHT_PREV.trim()
-                        pattern = /4\.$prevMinor\.(\d+)/
+                        pattern = /$major\.$prevMinor\.(\d+)/
                         match = in_flight_prev =~ pattern
                         match.find()
                         if (match.size() == 1) {
@@ -361,9 +364,9 @@ node {
                             )    
                         }
                         in_flight_prev = resp.IN_FLIGHT_PREV
+                        suggest_previous = resp.SUGGESTED
                     }
-                    
-                    previousList = commonlib.parseList(resp.SUGGESTED) + commonlib.parseList(in_flight_prev)
+                    previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
                 }
             }
             previousList = previousList.toList().unique().sort()

@@ -50,12 +50,7 @@ node {
                     choice(
                         name: 'ARCH',
                         description: 'The architecture for the release. Use "auto" for promoting nightlies. ARCH must be specified when re-promoting an RC."',
-                        choices: [
-                                'auto',
-                                'x86_64',
-                                's390x',
-                                'ppc64le',
-                            ].join('\n'),
+                        choices: (['auto'] + commonlib.brewArches).join('\n'),
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
@@ -243,18 +238,18 @@ node {
     slackChannel = slacklib.to(FROM_RELEASE_TAG)
     slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}${ params.DRY_RUN ? ' (DRY RUN)' : ''}") {
         taskThread ->
-        
+
         stage("Check for Blocker Bugs") {
             if (params.RELEASE_TYPE.startsWith('3.')) {
                 echo "Skip Blocker Bug check for FCs"
                 return
             }
-            commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread, 
+            commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread,
                                     "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
                 release.stageCheckBlockerBug(group)
             }
         }
-        
+
         sshagent(['aos-cd-test']) {
             release_info = ""
             name = release_name
@@ -566,7 +561,7 @@ node {
                     echo "Skipping rhcos sync"
                     return
                 }
-                
+
                 suffix = release.getArchPrivSuffix(arch, false)
                 tag = params.FROM_RELEASE_TAG
 
@@ -578,7 +573,7 @@ node {
                 print("RHCOS build: $rhcos_build")
 
                 rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"
-                
+
                 sync_params = [
                     buildlib.param('String','BUILD_VERSION', "$major.$minor"),
                     buildlib.param('String','NAME', release_name),
@@ -664,7 +659,7 @@ node {
 
         dry_subject = ""
         if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}
-        releaseArch = arch == "x86_64" ? "amd64" : "${arch}"
+        releaseArch = commonlib.goArchForBrewArch(arch)
         commonlib.email(
             to: "${params.MAIL_LIST_SUCCESS}",
             replyTo: "aos-team-art@redhat.com",

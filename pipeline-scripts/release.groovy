@@ -370,6 +370,16 @@ def stageCheckBlockerBug(group){
     }
 }
 
+def validateInFlightPrevVersion(in_flight_prev, major, prevMinor) {
+    pattern = /$major\.$prevMinor\.(\d+)/
+    match = in_flight_prev =~ pattern
+    match.find()
+    if (match.size() == 1) {
+        return true
+    }
+    return false
+}
+
 def stageGetReleaseInfo(quay_url, release_tag){
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${release_tag}"
 

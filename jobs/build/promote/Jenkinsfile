@@ -306,71 +306,73 @@ node {
                 }
             }
 
-            previousList = commonlib.parseList(params.PREVIOUS)
-            if ( params.PREVIOUS.trim() == 'auto' && !skip.PAYLOAD_CREATION) {
-                taskThread.task('Gather PREVIOUS for release') {
+            stage("get upgrade edges") {
+                previousList = commonlib.parseList(params.PREVIOUS)
+                if ( params.PREVIOUS.trim() == 'auto' && !skip.PAYLOAD_CREATION) {
+                    taskThread.task('Gather PREVIOUS for release') {
 
-                    if (!detect_previous) {
-                        // Hotfixes don't get a PREVIOUS by default since we don't
-                        // want customers upgrading to it unintentionally.
-                        previousList = []
-                        return
-                    }
+                        if (!detect_previous) {
+                            // Hotfixes don't get a PREVIOUS by default since we don't
+                            // want customers upgrading to it unintentionally.
+                            previousList = []
+                            return
+                        }
 
-                    def acquire_failure = ''
-                    def suggest_previous = ''
-                    try {
-                        suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${release_name}", [capture: true])
-                        echo "Doozer suggested: ${suggest_previous}"
-                    } catch ( cincy_down ) {
-                        acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
-                        echo acquire_failure
-                    }
+                        def acquire_failure = ''
+                        def suggest_previous = ''
+                        try {
+                            suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${release_name}", [capture: true])
+                            echo "Doozer suggested: ${suggest_previous}"
+                        } catch ( cincy_down ) {
+                            acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
+                            echo acquire_failure
+                        }
 
-                    prevMinor = minor - 1
-                    in_flight_prev_required = true
-                    if (params.IN_FLIGHT_PREV.toUpperCase() == 'SKIP') {
-                        print("Skipping asking for in_flight_prev")
-                        in_flight_prev_required = false
-                    } else if (params.IN_FLIGHT_PREV) {
-                        in_flight_prev = params.IN_FLIGHT_PREV.trim()
-                        valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
-                        if (valid) {
-                            print("Proceeding with given in_flight_prev: $in_flight_prev")
+                        prevMinor = minor - 1
+                        in_flight_prev_required = true
+                        if (params.IN_FLIGHT_PREV.toUpperCase() == 'SKIP') {
+                            print("Skipping asking for in_flight_prev")
                             in_flight_prev_required = false
-                        } else {
-                            print("Error validating given in_flight_prev: $in_flight_prev . Asking for manual input")
-                        }
-                    } 
+                        } else if (params.IN_FLIGHT_PREV) {
+                            in_flight_prev = params.IN_FLIGHT_PREV.trim()
+                            valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
+                            if (valid) {
+                                print("Proceeding with given in_flight_prev: $in_flight_prev")
+                                in_flight_prev_required = false
+                            } else {
+                                print("Error validating given in_flight_prev: $in_flight_prev . Asking for manual input")
+                            }
+                        } 
 
-                    if (in_flight_prev_required) {
-                        commonlib.inputRequired(taskThread) {
-                            def resp = input(
-                                message: "${acquire_failure}What PREVIOUS releases should be included in ${release_name} (arch: ${arch})?",
-                                parameters: [
-                                    string(
-                                        defaultValue: "4.${prevMinor}.?",
-                                        description: "This is release ${release_name}. What release is in flight for the previous minor release 4.${prevMinor}?",
-                                        name: 'IN_FLIGHT_PREV',
-                                    ),
-                                    string(
-                                        defaultValue: "${suggest_previous}",
-                                        description: (acquire_failure?acquire_failure:"Doozer thinks these are the other releases to include.") + " Edit as necessary (comma delimited).",
-                                        name: 'SUGGESTED',
-                                    ),
-                                ]
-                            )    
+                        if (in_flight_prev_required) {
+                            commonlib.inputRequired(taskThread) {
+                                def resp = input(
+                                    message: "${acquire_failure}What PREVIOUS releases should be included in ${release_name} (arch: ${arch})?",
+                                    parameters: [
+                                        string(
+                                            defaultValue: "4.${prevMinor}.?",
+                                            description: "This is release ${release_name}. What release is in flight for the previous minor release 4.${prevMinor}?",
+                                            name: 'IN_FLIGHT_PREV',
+                                        ),
+                                        string(
+                                            defaultValue: "${suggest_previous}",
+                                            description: (acquire_failure?acquire_failure:"Doozer thinks these are the other releases to include.") + " Edit as necessary (comma delimited).",
+                                            name: 'SUGGESTED',
+                                        ),
+                                    ]
+                                )    
+                            }
+                            in_flight_prev = resp.IN_FLIGHT_PREV
+                            suggest_previous = resp.SUGGESTED
                         }
-                        in_flight_prev = resp.IN_FLIGHT_PREV
-                        suggest_previous = resp.SUGGESTED
+                        previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
                     }
-                    previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
                 }
+                previousList = previousList.toList().unique().sort()
+                Collections.reverse(previousList)
+                echo "previousList is ${previousList}"
             }
-            previousList = previousList.toList().unique().sort()
-            Collections.reverse(previousList)
-            echo "previousList is ${previousList}"
-
+            
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }

@@ -130,7 +130,7 @@ def doozer(cmd, opts=[:]){
             return commonlib.shell(
                     returnStdout: opts.capture ?: false,
                     alwaysArchive: opts.capture ?: false,
-                    script: "doozer --assembly stream ${cleanWhitespace(cmd)}")
+                    script: "doozer --assembly=${params.ASSEMBLY ?: 'stream'} ${cleanWhitespace(cmd)}")
         }
     }
 }
@@ -1488,6 +1488,8 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     if (el_major >= 8) {
         destBaseDir += "-el${el_major}"
     }
+    def assembly = params.ASSEMBLY ?: "stream"
+    destBaseDir += "/${assembly}"
     // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
     commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
     commonlib.shell([
@@ -1508,6 +1510,11 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     // doozer repo files (which have static urls back to rcm-guest) will resolve.
     def symlink = include_embargoed? "building-embargoed" : "building"
     commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
+
+    // If and only if we are building for "stream" assembly, replace the legacy symlink (e.g. puddles/RHAOS/plashets/{MAJOR}.{MINOR}-el8/building-embargoed) to stream/building-embargoed
+    if (assembly == "stream") {
+        commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}/..; ln -sfn stream/${symlink} ${symlink}\" ")
+    }
     return r
 }
 

@@ -333,6 +333,7 @@ node {
                         if (params.IN_FLIGHT_PREV.toUpperCase() == 'SKIP') {
                             print("Skipping asking for in_flight_prev")
                             in_flight_prev_required = false
+                            in_flight_prev = ""
                         } else if (params.IN_FLIGHT_PREV) {
                             in_flight_prev = params.IN_FLIGHT_PREV.trim()
                             valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
@@ -342,7 +343,7 @@ node {
                             } else {
                                 print("Error validating given in_flight_prev: $in_flight_prev . Asking for manual input")
                             }
-                        } 
+                        }
 
                         if (in_flight_prev_required) {
                             commonlib.inputRequired(taskThread) {
@@ -360,7 +361,7 @@ node {
                                             name: 'SUGGESTED',
                                         ),
                                     ]
-                                )    
+                                )
                             }
                             in_flight_prev = resp.IN_FLIGHT_PREV
                             suggest_previous = resp.SUGGESTED
@@ -372,7 +373,7 @@ node {
                 Collections.reverse(previousList)
                 echo "previousList is ${previousList}"
             }
-            
+
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }

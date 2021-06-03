@@ -1438,8 +1438,10 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     lock('signing-advisory') {
         retry(2) {
             commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case we are retrying..
-            commonlib.shell([
-                    "${env.WORKSPACE}/build-scripts/plashet.py",
+            def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=openshift-${major_minor}"
+            doozer([
+                    doozerOpts,
+                    "config:plashet",
                     "--base-dir ${baseDir}",  // Directory in which to create the yum repo
                     "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
                     "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.

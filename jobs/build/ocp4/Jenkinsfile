@@ -156,7 +156,16 @@ node {
 
                 // Since plashets may have been rebuild, fire off sync for CI. TODO: Run for other arches
                 // if CI ever requires them.
-                build wait: false, job: '/aos-cd-builds/build%2Fsync-for-ci', parameters: [string(name: 'DOOZER_COMMIT', value: ''), string(name: 'GROUP', value: "openshift-${params.BUILD_VERSION}"), string(name: 'REPOSYNC_DIR', value: params.BUILD_VERSION), string(name: 'ARCH', value: 'x86_64'), string(name: 'REPO_TYPE', value: 'unsigned')]
+                build(
+                    job: '/aos-cd-builds/build%2Fsync-for-ci', 
+                    propagate: false,
+                    wait: false,
+                    parameters: [
+                        string(name: 'GROUP', value: "openshift-${params.BUILD_VERSION}"),
+                        string(name: 'REPOSYNC_DIR', value: "${params.BUILD_VERSION}"),
+                        string(name: 'ARCH', value: "x86_64"),
+                    ],
+                )
 
                 stage("update dist-git") { build.stageUpdateDistgit() }
                 stage("build images") { build.stageBuildImages() }

@@ -2,8 +2,8 @@
 
 node {
     checkout scm
-    def build = load("build.groovy")
-    def commonlib = build.commonlib
+    def joblib = load("build.groovy")
+    def commonlib = joblib.commonlib
     def slacklib = commonlib.slacklib
 
     commonlib.describeJob("ocp4", """
@@ -120,11 +120,11 @@ node {
             // with the permissions of openshift-bot
 
             lock("github-activity-lock-${params.BUILD_VERSION}") {
-                stage("initialize") { build.initialize() }
+                stage("initialize") { joblib.initialize() }
                 buildlib.assertBuildPermitted(doozerOpts)
                 try {
                     stage("build RPMs") {
-                        build.stageBuildRpms()
+                        joblib.stageBuildRpms()
                     }
                 } catch (err) {
                     currentBuild.result = 'FAILURE'
@@ -137,12 +137,12 @@ node {
 
                 if(buildlib.getAutomationState(doozerOpts) in ["no", "False"]){
                     lock("compose-lock-${params.BUILD_VERSION}") {
-                        stage("build compose") { build.stageBuildCompose() }
+                        stage("build compose") { joblib.stageBuildCompose() }
                     }
-                } else if(build.buildPlan.buildRpms){
+                } else if(joblib.buildPlan.buildRpms){
                     lock("compose-lock-${params.BUILD_VERSION}") {
                         stage("build compose") {
-                            build.stageBuildCompose()
+                            joblib.stageBuildCompose()
                             slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
                                 *:alert: ocp4 build compose ran during automation freeze*
                                  There were RPMs in the build plan that forced build compose during automation freeze.
@@ -167,21 +167,21 @@ node {
                     ],
                 )
 
-                stage("update dist-git") { build.stageUpdateDistgit() }
-                stage("build images") { build.stageBuildImages() }
+                stage("update dist-git") { joblib.stageUpdateDistgit() }
+                stage("build images") { joblib.stageBuildImages() }
             }
             lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
-                stage("mirror RPMs") { build.stageMirrorRpms() }
+                stage("mirror RPMs") { joblib.stageMirrorRpms() }
             }
             if (!buildlib.allImagebuildfailed){
-                stage("sync images") { build.stageSyncImages() }
-                stage("push qe quay images") { build.stagePushQEImages() }
+                stage("sync images") { joblib.stageSyncImages() }
+                stage("push qe quay images") { joblib.stagePushQEImages() }
                 stage("sweep") {
                     buildlib.sweep(params.BUILD_VERSION)
                 }
             }
         }
-        stage("report success") { build.stageReportSuccess() }
+        stage("report success") { joblib.stageReportSuccess() }
     } catch (err) {
 
         if (!buildlib.isBuildPermitted(doozerOpts)) {
@@ -219,7 +219,7 @@ View the build artifacts and console output on Jenkins:
             "doozer_working/*.yaml",
             "doozer_working/*.yml",
         ])
-        buildlib.cleanWorkdir(build.doozerWorking)
+        buildlib.cleanWorkdir(joblib.doozerWorking)
         buildlib.cleanWorkspace()
     }
 }

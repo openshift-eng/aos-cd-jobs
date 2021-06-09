@@ -21,13 +21,13 @@ pipeline {
             description: "Desired version name. Example: 0.20.0",
             defaultValue: "",
             trim: true,
-        ),
+        )
         string(
             name: "SOURCES_LOCATION",
             description: "Example: http://download.eng.bos.redhat.com/staging-cds/developer/openshift-serverless-clients/0.20.0-6/signed/all/",
             defaultValue: "",
             trim: true,
-        ),
+        )
         booleanParam(
             name: 'SKIP_ARM64',
             description: 'Skip mirroring arm64 binary.',

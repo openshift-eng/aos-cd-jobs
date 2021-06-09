@@ -42,6 +42,9 @@ pipeline {
                     if (!params.VERSION) {
                         error "VERSION must be specified"
                     }
+                    if (!params.SOURCES_LOCATION[-1] != "/") {
+                        error "Location should end with a trailing slash (to not confuse wget)"
+                    }
                 }
             }
         }

@@ -37,8 +37,10 @@ node() {
         embargoed_tag_name = "rhaos-${version}-rhel-8-embargoed"
         plashetDirName = prevalidation_tag_name
         commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
-        commonlib.shell([
-                "${env.WORKSPACE}/build-scripts/plashet.py",
+        def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=${openshift_group}"
+        buildlib.doozer([
+                doozerOpts,
+                "config:plashet",
                 "--base-dir ${baseDir}",  // Directory in which to create the yum repo
                 "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
                 "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.

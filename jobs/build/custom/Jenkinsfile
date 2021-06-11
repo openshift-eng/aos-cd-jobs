@@ -48,6 +48,12 @@ node {
                         trim: true,
                     ),
                     string(
+                        name: 'ASSEMBLY',
+                        description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
+                    string(
                         name: 'DOOZER_DATA_PATH',
                         description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
                         defaultValue: "https://github.com/openshift/ocp-build-data",
@@ -143,6 +149,9 @@ node {
     def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)
     def rpms = commonlib.cleanCommaList(params.RPMS)
 
+    if (params.ASSEMBLY && params.ASSEMBLY != 'stream' && buildlib.doozer("${doozerOpts} config:read-group --default=False assemblies.enabled", [capture: true]).trim() != 'True') {
+        error("ASSEMBLY cannot be set to '${params.ASSEMBLY}' because assemblies are not enabled in ocp-build-data.")
+    }
 
     currentBuild.displayName = "#${currentBuild.number} - ${version}-${release}"
 

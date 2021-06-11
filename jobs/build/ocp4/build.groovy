@@ -48,6 +48,11 @@ def initialize() {
 
     version.stream = params.BUILD_VERSION.trim()
     doozerOpts += " --group 'openshift-${version.stream}'"
+
+    if (params.ASSEMBLY != 'stream' && buildlib.doozer("${doozerOpts} config:read-group --default=False assemblies.enabled", [capture: true]).trim() != 'True') {
+        error("ASSEMBLY cannot be set to '${params.ASSEMBLY}' because assemblies are not enabled in ocp-build-data.")
+    }
+
     version.branch = buildlib.getGroupBranch(doozerOpts)
     version << determineBuildVersion(version.stream, version.branch)
 
@@ -386,6 +391,10 @@ ${failed_messages}
  * required for bare metal installs.
  */
 def stageMirrorRpms() {
+    if (params.ASSEMBLY && params.ASSEMBLY != 'stream') {
+        echo "No need to mirror rpms for non-stream assembly."
+        return
+    }
     if (!rpmMirror.localPlashetPath) {
         echo "No updated RPMs to mirror."
         return

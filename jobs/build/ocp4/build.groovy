@@ -49,7 +49,7 @@ def initialize() {
     version.stream = params.BUILD_VERSION.trim()
     doozerOpts += " --group 'openshift-${version.stream}'"
 
-    if (params.ASSEMBLY && params.ASSEMBLY != 'stream' && buildlib.doozer("${doozerOpts} config:read-group --default=False assemblies.enabled", [capture: true]).trim() != 'True') {
+    if (params.ASSEMBLY != 'stream' && buildlib.doozer("${doozerOpts} config:read-group --default=False assemblies.enabled", [capture: true]).trim() != 'True') {
         error("ASSEMBLY cannot be set to '${params.ASSEMBLY}' because assemblies are not enabled in ocp-build-data.")
     }
 

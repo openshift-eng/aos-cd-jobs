@@ -13,7 +13,7 @@ node {
 
         In typical usage, scans for changes that could affect package or image
         builds and rebuilds the affected components.  Creates new plashets if
-        the automation is not frozen or if there are RPMs that are built in this run, 
+        the automation is not frozen or if there are RPMs that are built in this run,
         and runs other jobs to sync builds to nightlies, create
         operator metadata, and sweep bugs and builds into advisories.
 
@@ -40,6 +40,12 @@ node {
                         name: 'NEW_VERSION',
                         description: '(Optional) version for build instead of most recent\nor "+" to bump most recent version',
                         defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
+                        defaultValue: "stream",
                         trim: true,
                     ),
                     booleanParam(

@@ -55,6 +55,12 @@ node {
                                             trim: true,
                                     ),
                                     string(
+                                            name        : 'EXCLUDE_ARCHES',
+                                            description : '(Optional) List of problem arch(es) NOT to sync (aarch64, ppc64le, s390x, x86_64)',
+                                            defaultValue: "",
+                                            trim: true,
+                                    ),
+                                    string(
                                             name        : 'BREW_EVENT_ID',
                                             description : '(Optional) Look for the latest images as of the given Brew event instead of current',
                                             defaultValue: "",

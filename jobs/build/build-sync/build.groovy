@@ -7,14 +7,23 @@ logLevel = ""
 artifacts = []
 mirroringKeys = []  // 'x86_64', 'x86_64-priv', 's390x', etc
 imageList = ""
+excludeArches = []
 
 def initialize() {
     buildlib.cleanWorkdir(mirrorWorking)
-    def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
-    if ( params.DRY_RUN) {
+    if (params.DRY_RUN) {
         currentBuild.displayName += " [DRY_RUN]"
     }
-    currentBuild.displayName += " OCP ${params.BUILD_VERSION} - ${arches.join(', ')}"
+    def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
+    if ( params.EXCLUDE_ARCHES ) {
+        excludeArches = commonlib.parseList(params.EXCLUDE_ARCHES)
+        currentBuild.displayName += " [EXCLUDE ${excludeArches.join(', ')}]"
+        if ( !arches.containsAll(excludeArches) )
+            error("Trying to exclude arch ${excludeArches} not present in known arches ${arches}")
+        arches.removeAll(excludeArches)
+    }
+
+    currentBuild.displayName += " OCP ${params.BUILD_VERSION}"
     currentBuild.description = "Arches: ${arches.join(', ')}"
     if ( params.DEBUG ) {
         logLevel = " --loglevel=5 "
@@ -36,6 +45,9 @@ def buildSyncGenInputs() {
     echo("Generating SRC=DEST and ImageStreams for arches")
     def images = imageList ? "--images '${imageList}'" : ''
     def brewEventID = params.BREW_EVENT_ID? "--event-id '${params.BREW_EVENT_ID}'" : ''
+    def excludeArchesParam = ""
+    for(arch in excludeArches)
+        excludeArchesParam += " --exclude-arch ${arch}"
     buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
@@ -43,7 +55,7 @@ release:gen-payload
 --is-name ${params.BUILD_VERSION}-art-latest
 --organization ${params.ORGANIZATION}
 --repository ${params.REPOSITORY}
-${brewEventID}
+${brewEventID}${excludeArchesParam}
 """
     echo("Generated files:")
     echo("######################################################################")

@@ -47,7 +47,16 @@ If not specified, the default is to sync every image.
 This can be useful for testing purposes or for hand-crafted updates, because
 syncing all images takes a great deal longer than a handful.
 
-You will usually want to include the openshift-enterprise-cli distgit (see below).
+You will usually want to include the openshift-enterprise-pod distgit (see below).
+
+### EXCLUDE\_ARCHES
+
+[List](/jobs/README.md#list-parameters) of architectures NOT to sync.
+If not specified, the default is to sync every arch that is built for any image.
+
+Sometimes when we are turning arches on and off, it is inconvenient to require
+all the previously-built images to have all arches built (this usually requires
+a full rebuild). With this parameter we can ignore "problematic" arches.
 
 ### BREW\_EVENT\_ID
 
@@ -64,21 +73,21 @@ Quay.io repository to mirror to - there is no reason to ever change this.
 
 ## Known issues
 
-### Multiarch sync must include openshift-enterprise-cli image
+### Multiarch sync must include openshift-enterprise-pod image
 
 The cluster version operator (CVO) requires that all named images be present in
 the payload, or it fails the cluster bootstrap. However, some payload images
 are unavailable on some architectures. In order to keep the CVO from flagging
 this, we sync a "dummy" image in place of missing images for an architecture.
-We have chosen the `cli` image (that is, the `openshift-enterprise-cli`
+We have chosen the `pod` image (that is, the `openshift-enterprise-pod`
 distgit) for our dummy image in these cases, since it is available for all
 arches and contains useful binaries for determining what it is if someone is
 confused about the whole dummy image substitution.
 
-The result is that build-sync requires that `openshift-enterprise-cli` be included in what is synced.
+The result is that build-sync requires that `openshift-enterprise-pod` be included in what is synced.
 This is true even if no substitution is needed, because the job looks up that image before attempting any syncing.
 
-Usually this is no problem since the `cli` image is available. There are two cases where it's not:
+Usually this is no problem since the `pod` image is available. There are two cases where it's not:
 
 1. When building from a newly branched release and this image hasn't built yet.
    In this case, either get the image building, or just tag in one from the previous release in brew.

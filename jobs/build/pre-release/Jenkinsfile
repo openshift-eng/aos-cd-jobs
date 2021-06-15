@@ -39,6 +39,7 @@ node {
                             "x86_64",
                             "s390x",
                             "ppc64le",
+                            "aarch64",
                         ].join("\n"),
                     ),
                     string(

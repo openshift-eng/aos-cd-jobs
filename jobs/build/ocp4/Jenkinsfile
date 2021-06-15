@@ -162,14 +162,14 @@ node {
 
                 // Since plashets may have been rebuild, fire off sync for CI. TODO: Run for other arches
                 // if CI ever requires them.
-                /* 
+                /*
                 // Disabled because it increases 404s from mirror. sync-for-ci completely replaces content, so if
-                // yum is retrieving content while the mirror is being updated, yum can error out. This is 
-                // exascerbated by a 1 minute caching effect in the rpm mirroring pods in CI for repo manifest 
+                // yum is retrieving content while the mirror is being updated, yum can error out. This is
+                // exacerbated by a 1 minute caching effect in the rpm mirroring pods in CI for repo manifest
                 // data: https://github.com/openshift/content-mirror/pull/1#discussion_r581380438 . We need to
                 // find a way to stack these files so that the caching effect does not result in 404s.
                 build(
-                    job: '/aos-cd-builds/build%2Fsync-for-ci', 
+                    job: '/aos-cd-builds/build%2Fsync-for-ci',
                     propagate: false,
                     wait: false,
                     parameters: [
@@ -178,7 +178,6 @@ node {
                         string(name: 'ARCH', value: "x86_64"),
                     ],
                 )*/
-                
 
                 stage("update dist-git") { joblib.stageUpdateDistgit() }
                 stage("build images") { joblib.stageBuildImages() }

@@ -145,7 +145,7 @@ class PrepareReleasePipeline:
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
 
-        if not self.skip_advisories_mode:
+        if not self.default_advisories:
             _LOGGER.info("Sending a notification to QE and multi-arch QE:")
             if self.dry_run:
                 jira_issue_link = "https://jira.example.com/browse/FOO-1"
@@ -227,7 +227,7 @@ class PrepareReleasePipeline:
             if match and match[1] != 1:
                 advisories[kind] = match[1]
             else:
-                raise ValueError("Cannot get advisory value from group.yml")
+                raise ValueError(f"Error parsing advisory value for {kind} from group.yml")
         return advisories
     
     def save_advisories(self, advisories: Dict[str, int]):

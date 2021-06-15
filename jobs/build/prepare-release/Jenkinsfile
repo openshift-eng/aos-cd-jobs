@@ -49,6 +49,11 @@ node {
                             trim: true
                         ),
                         booleanParam(
+                            name: "DEFAULT_ADVISORIES",
+                            description: "Do not create advisories/jira; pick them up from ocp-build-data",
+                            defaultValue: false
+                        ),
+                        booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
@@ -82,6 +87,9 @@ node {
                 "--date",
                 params.DATE
             ]
+            if (params.DEFAULT_ADVISORIES) {
+                cmd << "--default-advisories"
+            }
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
             }

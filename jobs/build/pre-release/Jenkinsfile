@@ -96,10 +96,7 @@ node {
 
             if ( from_release_tag == "" ) {
                 // If no name was specified, interrogate the stream
-                def releaseStream = "${params.BUILD_VERSION}.0-0.nightly"
-                if ( params.ARCH != 'x86_64' ) {
-                    releaseStream += "-${params.ARCH}"
-                }
+                def releaseStream = "${params.BUILD_VERSION}.0-0.nightly${commonlib.goSuffixForArch(params.ARCH)}"
                 // There are different release controllers for OCP - one for each architecture.
                 RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
 

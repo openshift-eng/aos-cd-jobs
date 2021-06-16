@@ -45,7 +45,7 @@ node {
                     choice(
                         name: 'ARCH',
                         description: 'Which architecture of RHCOS build to look for',
-                        choices: (['x86_64', 's390x', 'ppc64le', 'aarch64']),
+                        choices: commonlib.brewArches,
                     ),
                     choice(
                         name: 'RHCOS_MIRROR_PREFIX',
@@ -107,8 +107,8 @@ node {
             buildvm job: ${commonlib.buildURL('console')}
             """)
         }
-        
-        // only run for x86_64 since no AMIs for other arches        
+
+        // only run for x86_64 since no AMIs for other arches
         // only sync AMI to ROSA Marketplace account when no custom sync list is defined
         if ( params.SYNC_LIST == "" && params.ARCH == "x86_64") {
             stage("Mirror ROSA AMIs") {

@@ -29,12 +29,7 @@ node {
                     choice(
                         name: 'ARCH',
                         description: 'The architecture for this release',
-                        choices: [
-                            "x86_64",
-                            "s390x",
-                            "ppc64le",
-                            "aarch64",
-                        ].join("\n"),
+                        choices: commonlib.brewArches,
                     ),
                     string(
                         name: 'NAME',

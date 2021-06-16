@@ -518,6 +518,7 @@ extract_opm "$OUTDIR"
  *   4.1.0-0.nightly-priv-2019-11-08-213727 will return [x86_64, true]
  *   4.1.0-0.nightly-s390x-2019-11-08-213727 will return [s390x, false]
  *   4.1.0-0.nightly-s390x-priv-2019-11-08-213727 will return [s390x, true]
+ *   4.9.0-0.nightly-arm64-priv-2021-06-08-213727 will return [aarch64, true]
  */
 def getReleaseTagArchPriv(from_release_tag) {
     // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
@@ -534,7 +535,7 @@ def getReleaseTagArchPriv(from_release_tag) {
     if (nameComponents[2] == "priv") {
         priv = true
     } else if (!nameComponents[2].isNumber()) {
-        arch = nameComponents[2]
+        arch = commonlib.brewArchForGoArch(nameComponents[2])
         priv = nameComponents[3] == "priv"
     }
     return [arch, priv]

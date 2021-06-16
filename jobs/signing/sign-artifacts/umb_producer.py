@@ -76,8 +76,10 @@ def get_release_tag(release_name, arch):
     e.g.:
     (4.2.0-0.nightly-s390x-2019-12-10-202536, s390x) remains 4.2.0-0.nightly-s390x-2019-12-10-202536
     (4.3.0-0.nightly-2019-12-07-121211, x86_64) becomes 4.3.0-0.nightly-2019-12-07-121211-x86_64
+    (4.9.0-0.nightly-arm64-2021-06-07-121211, aarch64) remains 4.9.0-0.nightly-arm64-2021-06-07-121211
     """
-    return release_name if arch in release_name else "{}-{}".format(release_name, arch)
+    go_arch_for = dict(aarch64="arm64", s390x="s390x", ppc64le="ppc64le", x86_64="amd64")
+    return release_name if go_arch_for[arch] in release_name else "{}-{}".format(release_name, arch)
 
 
 ######################################################################
@@ -100,7 +102,7 @@ sig_keyname = click.option("--sig-keyname", required=True,
 release_name_opt = click.option("--release-name", required=True, metavar="SEMVER",
                             help="Numerical name of this release, for example: 4.1.0-rc.10")
 arch_opt = click.option("--arch", required=True, metavar="ARCHITECTURE",
-                   type=click.Choice(['x86_64', 'ppc64le', 's390x']),
+                   type=click.Choice(['x86_64', 'ppc64le', 's390x', 'aarch64']),
                    help="Which architecture this release was built for")
 client_type = click.option("--client-type", required=True, metavar="VAL",
                    type=click.Choice(['ocp', 'ocp-dev-preview']),

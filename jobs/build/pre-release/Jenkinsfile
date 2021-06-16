@@ -35,12 +35,7 @@ node {
                     choice(
                         name: 'ARCH',
                         description: 'The architecture for this release',
-                        choices: [
-                            "x86_64",
-                            "s390x",
-                            "ppc64le",
-                            "aarch64",
-                        ].join("\n"),
+                        choices: commonlib.brewArches.join("\n"),
                     ),
                     string(
                         name: 'FROM_RELEASE_TAG',
@@ -150,15 +145,15 @@ node {
             stage("sign") {
                 if ( params.MIRROR ) {
                     release.signArtifacts(
-			name: dest_release_tag,
-			signature_name: "signature-1",
-			dry_run: params.DRY_RUN,
-			env: "prod",
-			key_name: "beta2",
-			arch: arch,
-			digest: payloadDigest,
-			client_type: 'ocp-dev-preview',
-		    )
+                        name: dest_release_tag,
+                        signature_name: "signature-1",
+                        dry_run: params.DRY_RUN,
+                        env: "prod",
+                        key_name: "beta2",
+                        arch: arch,
+                        digest: payloadDigest,
+                        client_type: 'ocp-dev-preview',
+                    )
                 }
             }
 

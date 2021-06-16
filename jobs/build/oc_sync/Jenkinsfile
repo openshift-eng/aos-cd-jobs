@@ -37,7 +37,7 @@ node {
                     choice(
                         name: 'ARCH',
                         description: 'architecture being synced',
-                        choices: ['x86_64', 's390x', 'ppc64le'].join('\n'),
+                        choices: commonlib.brewArches.join('\n'),
                     ),
                     choice(
                         name: 'CLIENT_TYPE',

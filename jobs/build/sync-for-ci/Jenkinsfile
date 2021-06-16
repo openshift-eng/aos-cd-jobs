@@ -50,7 +50,7 @@ node {
                     choice(
                         name: 'ARCH',
                         description: 'Architecture of repo to synchronize; must have full definition in group.yml for release',
-                        choices: [ 'x86_64', 'ppc64le', 's390x', 'aarch64' ].join("\n"),
+                        choices: commonlib.brewArches,
                     ),
                     choice(
                         name: 'REPO_TYPE',

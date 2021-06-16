@@ -33,7 +33,7 @@ def initialize() {
     def ocpVersion = params.BUILD_VERSION
     def rhcosBuild = params.RHCOS_BUILD
     def arch = params.ARCH
-    def archSuffix = arch == "x86_64" ? "" : "-${arch}"
+    def archSuffix = commonlib.brewSuffixForArch(arch)
     def archDir = ocpVersion == "4.2" ? "" : "/${arch}"
     baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}/${rhcosBuild}${archDir}"
     baseDir = "/srv/pub/openshift-v4/${arch}/dependencies/rhcos"

@@ -64,6 +64,7 @@ node {
             buildlib.initialize()
             buildlib.registry_quay_dev_login()
             def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.NAME)
+            currentBuild.displayName += " - $major.$minor"
             if (major >= 4 && !params.NIGHTLIES) {
                 error("For OCP 4 releases, you must provide a list of proposed nightlies.")
             }

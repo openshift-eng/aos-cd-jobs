@@ -17,7 +17,7 @@ def elliott(cmd) {
  * Return the brew package name of all OLM operators present in <params.BUILD_VERSION>
  */
 def get_olm_operators() {
-    commonlib.sanitizeInvisible(doozer('olm-bundle:list-olm-operators')).split("\n").findAll { !it.isEmpty() }
+    doozer('olm-bundle:list-olm-operators').split("\n")
 }
 
 /*

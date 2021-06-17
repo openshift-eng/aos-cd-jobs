@@ -42,7 +42,10 @@ node {
     for(adv in advisory_list) {
         res = commonlib.shell(
             returnAll: true,
-            script: "${buildlib.ELLIOTT_BIN} advisory-drop ${adv}",
+            script: """
+              ${buildlib.ELLIOTT_BIN} change-state --state NEW_FILES --advisory ${adv}
+              ${buildlib.ELLIOTT_BIN} advisory-drop ${adv}
+            """,
         )
         print(res)
     }

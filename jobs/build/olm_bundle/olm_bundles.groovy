@@ -17,7 +17,7 @@ def elliott(cmd) {
  * Return the brew package name of all OLM operators present in <params.BUILD_VERSION>
  */
 def get_olm_operators() {
-    commonlib.sanitizeInvisible(doozer('olm-bundle:list-olm-operators')).split("\n").findAll { !it.isEmpty() }
+    doozer('olm-bundle:list-olm-operators').split("\n")
 }
 
 /*
@@ -68,7 +68,7 @@ def get_latest_builds(packages) {
  * Return a list of built <bundle_nvrs>
  */
 def build_bundles(operator_nvrs) {
-    doozer('olm-bundle:list-olm-operators').split("\n")
+    doozer("olm-bundle:rebase-and-build ${operator_nvrs.join(' ')} ${params.FORCE_BUILD ? '--force' : ''}").split("\n")
 }
 
 /*

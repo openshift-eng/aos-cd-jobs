@@ -109,7 +109,7 @@ node {
                                     other_args += " --add-label '${label}'"
                                 }
                                 // Only open PRs on >= 4.6 to leave well enough alone.
-                                rc = sh script:"${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams prs open --add-auto-labels ${other_args} --github-access-token ${GITHUB_TOKEN}", returnStatus: true
+                                rc = sh script:"${buildlib.DOOZER_BIN} --working-dir ${doozerWorking} --group ${group} images:streams prs open --interstitial 840 --add-auto-labels ${other_args} --github-access-token ${GITHUB_TOKEN}", returnStatus: true
                                 // rc=25 is used to indicate PR openings were skipped and to try again later.
                                 if ( rc != 0 && rc != 25) {
                                     error("Error opening PRs for ${group}: ${rc}")

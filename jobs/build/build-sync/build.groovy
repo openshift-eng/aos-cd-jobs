@@ -105,9 +105,12 @@ def backupAllImageStreams() {
     for (ns in allNameSpaces) {
         def yaml = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} get is -n ${ns} -o yaml", [capture: true])
         writeFile file:"${ns}.backup.yaml", text: yaml
+        // Also backup the upgrade graph for the releases
+        def ug = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} get secret/release-upgrade-graph -n ${ns} -o yaml", [capture: true])
+        writeFile file:"${ns}.release-upgrade-graph.backup.yaml", text: ug
     }
-    commonlib.shell("tar zcvf api.ci-backup.tgz *.backup.yaml && rm *.backup.yaml")
-    commonlib.safeArchiveArtifacts(["api.ci-backup.tgz"])
+    commonlib.shell("tar zcvf app.ci-backup.tgz *.backup.yaml && rm *.backup.yaml")
+    commonlib.safeArchiveArtifacts(["app.ci-backup.tgz"])
 }
 
 

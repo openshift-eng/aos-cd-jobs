@@ -269,6 +269,10 @@ node {
 
             description = params.DESCRIPTION
             advisory = params.ADVISORY ? Integer.parseInt(params.ADVISORY.toString()) : 0
+            if (direct_release_nightly) {
+                // Direct nightly releases can skip all advisory related steps.
+                advisory = -1
+            }
             String errata_url
             Map release_obj
 
@@ -377,22 +381,6 @@ node {
             // must be able to access remote registry for verification
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
-            stage("validation") {
-                if (direct_release_nightly) {
-                    advisory = -1
-                }
-                if (advisory == -1) {
-                    // No advisory dance
-                    errata_url = ''
-                    return
-                }
-                skipVerifyBugs = !ga_release || next_is_prerelease || skip.VERIFY_BUGS
-                commonlib.retrySkipAbort("Validating release", taskThread, "Error running release validation") {
-                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, skip.PAYLOAD_CREATION)
-                    advisory = advisory ?: retval.advisoryInfo.id
-                    errata_url = retval.errataUrl
-                }
-            }
             stage("add cve flaw bugs") {
                 if (advisory == -1) {
                     return
@@ -406,6 +394,19 @@ node {
                             script: "${buildlib.ELLIOTT_BIN} --group ${group} attach-cve-flaws --advisory ${it} ${params.DRY_RUN ? '--dry-run' : ''}",
                         )
                     }
+                }
+            }
+            stage("validation") {
+                if (advisory == -1) {
+                    // No advisory dance
+                    errata_url = ''
+                    return
+                }
+                skipVerifyBugs = !ga_release || next_is_prerelease || skip.VERIFY_BUGS
+                commonlib.retrySkipAbort("Validating release", taskThread, "Error running release validation") {
+                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, skip.PAYLOAD_CREATION)
+                    advisory = advisory ?: retval.advisoryInfo.id
+                    errata_url = retval.errataUrl
                 }
             }
             stage("build payload") {

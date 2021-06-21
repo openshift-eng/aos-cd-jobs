@@ -84,14 +84,14 @@ chmod 775 "${PUDDLEDIR}/" || true
 LASTDIR=$(readlink --verbose "${PUDDLEDIR}/building")
 
 # use time of last data modification of building dir as suffix
-MODTS=$(stat -c %Y ${LASTDIR})
+MODIFIED_TIMESTAMP=$(stat -c %Y ${LASTDIR})
 
 # Create a symlink on rcm-guest which includes the OCP version. This
 # helps find puddles on rcm-guest for particular builds. Note that
 # we can't simply rename the directory, because the directory contains
 # puddle.repo contains a URL referring to the puddle directory name
 # that was created by the puddle command.
-VERSIONED_DIR="v${FULL_VERSION}_${MODTS}"  # e.g. v3.7.0-0.173.0_2017-06-09.4
+VERSIONED_DIR="v${FULL_VERSION}_${MODIFIED_TIMESTAMP}"  # e.g. v3.7.0-0.173.0_2017-06-09.4
 ln -sfn "${LASTDIR}" "${PUDDLEDIR}/${VERSIONED_DIR}"
 
 # Create the symlink on rcm-guest. QE appears to use 'latest' here instead of on mirrors.

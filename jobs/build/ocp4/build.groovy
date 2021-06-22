@@ -470,27 +470,6 @@ def stageSyncImages() {
     )
 }
 
-def stagePushQEImages() {
-    def cmd =
-            """
-            ${doozerOpts}
-            ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
-            images:push
-            --to-defaults
-            --filter-by-os='.*'
-            """
-    if(buildPlan.dryRun) {
-        echo "doozer ${cmd}"
-        return
-    }
-    try {
-        buildlib.doozer(cmd)
-    } catch (err) {
-        currentBuild.description += "\n<br>image push to qe quay did not completely succeed"
-        currentBuild.result = "UNSTABLE"
-    }
-}
-
 def stageReportSuccess() {
     def builtNothing = buildPlan.dryRun || !(buildPlan.buildRpms || buildPlan.buildImages)
     def recordLog = builtNothing ? [:] : buildlib.parse_record_log(doozerWorking)

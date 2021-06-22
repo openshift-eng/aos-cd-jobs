@@ -81,7 +81,7 @@ PUDDLEDIR=${BASEDIR}/plashets/${MAJOR_MINOR}
 chmod 775 "${PUDDLEDIR}/" || true
 
 # dereference the building symlink to the actual directory basename: e.g. "2017-06-09.4"
-LASTDIR=$(readlink --verbose "${PUDDLEDIR}/building")
+LASTDIR=stream/$(readlink --verbose "${PUDDLEDIR}/stream/building")
 
 # use time of last data modification of building dir as suffix
 MODIFIED_TIMESTAMP=$(stat -c %Y ${LASTDIR})

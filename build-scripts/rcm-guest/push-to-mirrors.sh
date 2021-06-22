@@ -84,7 +84,7 @@ chmod 775 "${PUDDLEDIR}/" || true
 LASTDIR=stream/$(readlink --verbose "${PUDDLEDIR}/stream/building")
 
 # use time of last data modification of building dir as suffix
-MODIFIED_TIMESTAMP=$(stat -c %Y ${LASTDIR})
+MODIFIED_TIMESTAMP=$(stat -c %Y "${PUDDLEDIR}/${LASTDIR}")
 
 # Create a symlink on rcm-guest which includes the OCP version. This
 # helps find puddles on rcm-guest for particular builds. Note that

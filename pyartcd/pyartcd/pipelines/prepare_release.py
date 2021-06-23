@@ -1,5 +1,6 @@
 import argparse
 import json
+import yaml
 import logging
 import os
 import re
@@ -29,7 +30,8 @@ class PrepareReleasePipeline:
         working_dir: str,
         jira_username: str,
         jira_password: str,
-        dry_run: bool=False,
+        default_advisories: bool = False,
+        dry_run: bool = False,
     ) -> None:
         _LOGGER.info("Initializing and verifying parameters...")
         self.config = config
@@ -37,6 +39,7 @@ class PrepareReleasePipeline:
         self.release_date = date
         self.package_owner = package_owner or self.config["advisory"]["package_owner"]
         self.working_dir = Path(working_dir).absolute()
+        self.default_advisories = default_advisories
         self.dry_run = dry_run
         self.release_version = tuple(map(int, self.release_name.split(".", 2)))
         self.group_name = (
@@ -71,32 +74,48 @@ class PrepareReleasePipeline:
 
         _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
         self.check_blockers()
+        
+        if self.default_advisories:
+            advisories = self.get_advisories()
+        else:
+            _LOGGER.info("Creating advisories for release %s...", self.release_name)
+            advisories = {}
 
-        _LOGGER.info("Creating advisories for release %s...",
-                     self.release_name)
-        advisories = {}
-        if self.release_version[2] == 0:  # GA release
-            advisories["rpm"] = self.create_advisory("RHEA", "rpm", "ga")
-            advisories["image"] = self.create_advisory("RHEA", "image", "ga")
-        else:  # z-stream release
-            advisories["rpm"] = self.create_advisory("RHBA", "rpm", "standard")
-            advisories["image"] = self.create_advisory(
-                "RHBA", "image", "standard")
-        if self.release_version[0] > 3:
-            advisories["extras"] = self.create_advisory(
-                "RHBA", "image", "extras")
-            advisories["metadata"] = self.create_advisory(
-                "RHBA", "image", "metadata")
-        _LOGGER.info("Created advisories: %s", advisories)
+            if self.release_version[2] == 0:  # GA release
+                advisories["rpm"] = self.create_advisory("RHEA", "rpm", "ga")
+                advisories["image"] = self.create_advisory("RHEA", "image", "ga")
+            else:  # z-stream release
+                advisories["rpm"] = self.create_advisory("RHBA", "rpm", "standard")
+                advisories["image"] = self.create_advisory(
+                    "RHBA", "image", "standard")
+            if self.release_version[0] > 3:
+                advisories["extras"] = self.create_advisory(
+                    "RHBA", "image", "extras")
+                advisories["metadata"] = self.create_advisory(
+                    "RHBA", "image", "metadata")
+            _LOGGER.info("Created advisories: %s", advisories)
 
-        _LOGGER.info("Saving the advisories to ocp-build-data...")
-        self.save_advisories(advisories)
+            _LOGGER.info("Saving the advisories to ocp-build-data...")
+            self.save_advisories(advisories)
 
-        _LOGGER.info("Sending an Errata live ID request email...")
-        self.send_live_id_request_mail(advisories)
+            _LOGGER.info("Sending an Errata live ID request email...")
+            self.send_live_id_request_mail(advisories)
 
-        _LOGGER.info("Creating a release JIRA...")
-        jira_issues = self.create_release_jira(advisories)
+            _LOGGER.info("Creating a release JIRA...")
+            jira_issues = self.create_release_jira(advisories)
+
+            _LOGGER.info("Adding placeholder bugs to the advisories...")
+            for kind, advisory in advisories.items():
+                # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
+                if (
+                    not advisory
+                    or self.release_version[0] >= 4
+                    and kind == "image"
+                    or self.release_version[0] < 4
+                    and kind == "rpm"
+                ):
+                    continue
+                self.create_and_attach_placeholder_bug(kind, advisory)
 
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():
@@ -119,19 +138,6 @@ class PrepareReleasePipeline:
         _LOGGER.info("Sweep bugs into the the advisories...")
         self.sweep_bugs(check_builds=True)
 
-        _LOGGER.info("Adding placeholder bugs to the advisories...")
-        for kind, advisory in advisories.items():
-            # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
-            if (
-                not advisory
-                or self.release_version[0] >= 4
-                and kind == "image"
-                or self.release_version[0] < 4
-                and kind == "rpm"
-            ):
-                continue
-            self.create_and_attach_placeholder_bug(kind, advisory)
-
         # Verify the swept builds match the nightlies
         if self.release_version[0] < 4:
             _LOGGER.info("Don't verify payloads for OCP3 releases")
@@ -140,12 +146,13 @@ class PrepareReleasePipeline:
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
 
-        _LOGGER.info("Sending a notification to QE and multi-arch QE:")
-        if self.dry_run:
-            jira_issue_link = "https://jira.example.com/browse/FOO-1"
-        else:
-            jira_issue_link = jira_issues[0].permalink()
-        self.send_notification_email(advisories, jira_issue_link)
+        if not self.default_advisories:
+            _LOGGER.info("Sending a notification to QE and multi-arch QE:")
+            if self.dry_run:
+                jira_issue_link = "https://jira.example.com/browse/FOO-1"
+            else:
+                jira_issue_link = jira_issues[0].permalink()
+            self.send_notification_email(advisories, jira_issue_link)
 
     def check_blockers(self):
         cmd = [
@@ -192,6 +199,37 @@ class PrepareReleasePipeline:
         advisory_num = int(match[1])
         return advisory_num
 
+    def get_advisories(self) -> Dict[str, int]:
+        repo = self.working_dir / "ocp-build-data-push"
+        shutil.rmtree(repo, ignore_errors=True)
+        # shallow clone ocp-build-data
+        cmd = [
+            "git",
+            "-C",
+            self.working_dir,
+            "clone",
+            "-b",
+            self.group_name,
+            "--depth=1",
+            self.config["build_config"]["ocp_build_data_repo_push_url"],
+            "ocp-build-data-push",
+        ]
+        _LOGGER.debug("Running command: %s", cmd)
+        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+
+        # update advisory numbers
+        with open(repo / "group.yml", "r") as f:
+            group_config = yaml.load(f, Loader=yaml.FullLoader)
+
+        advisories = group_config["advisories"]
+        try:
+            for key, val in advisories.items():
+                advisories[key] = int(val)
+        except Exception as ex:
+            raise ValueError(f"Error parsing advisories from group.yml: {ex}")
+        
+        return advisories
+    
     def save_advisories(self, advisories: Dict[str, int]):
         if not advisories:
             return
@@ -444,6 +482,11 @@ def main(args):
         "-v", "--verbosity", action="count", help="[MULTIPLE] increase output verbosity"
     )
     parser.add_argument(
+        "--default-advisories",
+        action="store_true",
+        help="don't create advisories/jira; pick them up from ocp-build-data",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="don't actually prepare a new release; just print what would be done",
@@ -480,6 +523,7 @@ def main(args):
         working_dir=opts.working_dir,
         jira_username=jira_username,
         jira_password=jira_password,
+        default_advisories=opts.default_advisories,
         dry_run=opts.dry_run,
     )
     pipeline.run()

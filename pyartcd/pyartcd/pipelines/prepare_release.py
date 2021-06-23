@@ -104,6 +104,13 @@ class PrepareReleasePipeline:
             _LOGGER.info("Creating a release JIRA...")
             jira_issues = self.create_release_jira(advisories)
 
+            _LOGGER.info("Sending a notification to QE and multi-arch QE:")
+            if self.dry_run:
+                jira_issue_link = "https://jira.example.com/browse/FOO-1"
+            else:
+                jira_issue_link = jira_issues[0].permalink()
+            self.send_notification_email(advisories, jira_issue_link)
+
             _LOGGER.info("Adding placeholder bugs to the advisories...")
             for kind, advisory in advisories.items():
                 # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
@@ -145,14 +152,6 @@ class PrepareReleasePipeline:
             _LOGGER.info("Verify the swept builds match the nightlies...")
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
-
-        if not self.default_advisories:
-            _LOGGER.info("Sending a notification to QE and multi-arch QE:")
-            if self.dry_run:
-                jira_issue_link = "https://jira.example.com/browse/FOO-1"
-            else:
-                jira_issue_link = jira_issues[0].permalink()
-            self.send_notification_email(advisories, jira_issue_link)
 
     def check_blockers(self):
         cmd = [

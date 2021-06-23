@@ -1459,6 +1459,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     "--include-previous-for openvswitch", // this is a package prefix
                     "--include-previous-for python3-openvswitch", // this is a package prefix
                     "--include-previous-for ovn", // this is a package prefix
+                    "--include-previous-for haproxy", // avoid chicken and egg issues with base image & haproxy bumps
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
             ].join(' '))
         }

@@ -219,7 +219,7 @@ class PrepareReleasePipeline:
 
         # update advisory numbers
         with open(repo / "group.yml", "r") as f:
-            group_config = yaml.load(f)
+            group_config = yaml.load(f, Loader=yaml.FullLoader)
 
         advisories = group_config["advisories"]
         try:

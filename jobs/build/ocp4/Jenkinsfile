@@ -187,7 +187,6 @@ node {
             }
             if (!buildlib.allImagebuildfailed){
                 stage("sync images") { joblib.stageSyncImages() }
-                stage("push qe quay images") { joblib.stagePushQEImages() }
                 stage("sweep") {
                     buildlib.sweep(params.BUILD_VERSION)
                 }

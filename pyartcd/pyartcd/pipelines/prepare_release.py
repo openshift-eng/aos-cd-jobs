@@ -1,5 +1,6 @@
 import argparse
 import json
+import yaml
 import logging
 import os
 import re
@@ -215,19 +216,18 @@ class PrepareReleasePipeline:
         ]
         _LOGGER.debug("Running command: %s", cmd)
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+
         # update advisory numbers
         with open(repo / "group.yml", "r") as f:
-            group_config = f.read()
+            group_config = yaml.load(f)
+
+        advisories = group_config["advisories"]
+        try:
+            for key, val in advisories.items():
+                advisories[key] = int(val)
+        except Exception as ex:
+            raise ValueError(f"Error parsing advisories from group.yml: {ex}")
         
-        advisories = {}
-        for kind in ["rpm", "image", "extras", "metadata"]:
-            match = re.search(
-                fr"^\s+{kind}:\s*([0-9]+)$", group_config, flags=re.MULTILINE
-            )
-            if match and match[1] != 1:
-                advisories[kind] = match[1]
-            else:
-                raise ValueError(f"Error parsing advisory value for {kind} from group.yml")
         return advisories
     
     def save_advisories(self, advisories: Dict[str, int]):

@@ -122,6 +122,16 @@ node {
 
                 }
 
+                stage("push to s3") {
+                    try {
+                        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            commonlib.shell(script: "aws s3 sync ${LOCAL_SYNC_DIR}/ ${MIRROR_SYNC_DIR}/")
+                        }
+                    } catch (ex) {
+                        slacklib.to("#art-release").say("Failed syncing ${GROUP} reposync to S3")
+                    }
+                }
+
                 stage("push to mirror") {
                     sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}"
                     sh "rsync -avzh --copy-links --chmod=a+rwx,g-w,o-w --delete -e \"ssh -o StrictHostKeyChecking=no\" ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "

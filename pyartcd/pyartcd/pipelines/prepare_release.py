@@ -124,6 +124,19 @@ class PrepareReleasePipeline:
                     continue
                 self.create_and_attach_placeholder_bug(kind, advisory)
 
+        _LOGGER.info("Adding placeholder bugs to the advisories...")
+        for kind, advisory in advisories.items():
+            # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
+            if (
+                not advisory
+                or self.release_version[0] >= 4
+                and kind == "image"
+                or self.release_version[0] < 4
+                and kind == "rpm"
+            ):
+                continue
+            self.create_and_attach_placeholder_bug(kind, advisory)
+        
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():
             if not advisory:

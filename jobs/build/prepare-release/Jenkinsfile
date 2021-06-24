@@ -82,7 +82,7 @@ node {
             slackChannel = slacklib.to(params.NAME)
             slackChannel.say(":construction: Preparing release for $params.NAME :construction:")
         }
-        
+
         stage("prepare release") {
             def cmd = [
                 "./pyartcd/prepare_release.py",

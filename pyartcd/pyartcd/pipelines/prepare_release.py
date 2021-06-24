@@ -104,6 +104,13 @@ class PrepareReleasePipeline:
             _LOGGER.info("Creating a release JIRA...")
             jira_issues = self.create_release_jira(advisories)
 
+            _LOGGER.info("Sending a notification to QE and multi-arch QE:")
+            if self.dry_run:
+                jira_issue_link = "https://jira.example.com/browse/FOO-1"
+            else:
+                jira_issue_link = jira_issues[0].permalink()
+            self.send_notification_email(advisories, jira_issue_link)
+
             _LOGGER.info("Adding placeholder bugs to the advisories...")
             for kind, advisory in advisories.items():
                 # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
@@ -145,14 +152,6 @@ class PrepareReleasePipeline:
             _LOGGER.info("Verify the swept builds match the nightlies...")
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
-
-        if not self.default_advisories:
-            _LOGGER.info("Sending a notification to QE and multi-arch QE:")
-            if self.dry_run:
-                jira_issue_link = "https://jira.example.com/browse/FOO-1"
-            else:
-                jira_issue_link = jira_issues[0].permalink()
-            self.send_notification_email(advisories, jira_issue_link)
 
     def check_blockers(self):
         cmd = [
@@ -317,7 +316,10 @@ class PrepareReleasePipeline:
         if self.dry_run:
             cmd.append("--dry-run")
         _LOGGER.debug("Running command: %s", cmd)
-        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+
+        # keep check=False so we don't abort
+        subprocess.run(cmd, check=False, universal_newlines=True, cwd=self.working_dir)
+
 
     def sweep_builds(
         self, kind: str, advisory: int, only_payload=False, only_non_payload=False
@@ -336,7 +338,10 @@ class PrepareReleasePipeline:
         if not self.dry_run:
             cmd.append(f"--attach={advisory}")
         _LOGGER.debug("Running command: %s", cmd)
-        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+
+        # keep check=False so we don't abort
+        subprocess.run(cmd, check=False, universal_newlines=True, cwd=self.working_dir)
+
 
     def change_advisory_state(self, advisory: int, state: str):
         cmd = [
@@ -449,6 +454,7 @@ This is the current set of advisories we intend to ship:
             for arch, pullspec in self.candidate_nightlies.items():
                 content += f"- {arch}: {pullspec}\n"
         content += f"\nJIRA ticket: {jira_link}\n"
+        content += f"Note: Advisories are still being prepared, it may take a while before bugs and builds appear.\n"
         content += "\nThanks.\n"
         email_dir = self.working_dir / "email"
         self.mail.send_mail(self.config["email"]["prepare_release_notification_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)

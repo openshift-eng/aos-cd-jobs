@@ -87,6 +87,7 @@ node {
             currentBuild.displayName += " ${version}"
 
             doozerWorking = "${env.WORKSPACE}/wd-${version}"
+            rc = 0
             try{
                 sshagent(["openshift-bot"]) {
                     withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
@@ -114,10 +115,6 @@ node {
                                 if ( rc != 0 && rc != 25) {
                                     error("Error opening PRs for ${group}: ${rc}")
                                 }
-                                if ( rc == 25 ) {
-                                    // Do not "mv ${group} ${prev_dir_name}" because we are not done
-                                    continue
-                                }
                             }
                         }
                     }
@@ -129,8 +126,16 @@ node {
                 sh "rm -rf ${doozerWorking}"
             }
 
-            sh "rm -rf ${prev_dir_name}"
-            sh "mv ${group} ${prev_dir_name}"
+            if ( rc == 25 ) {
+                currentBuild.result = "UNSTABLE"
+                currentBuild.displayName += "-Partial"
+                echo "Some PRs were skipped because parent PRs have not merged yet: ${version}."
+                // Do not "mv ${group} ${prev_dir_name}" because we are not done
+            } else {
+                sh "rm -rf ${prev_dir_name}"
+                sh "mv ${group} ${prev_dir_name}"
+            }
+            
         } else {
             echo "NO changes detected in ocp-build-data group: ${group}"
         }

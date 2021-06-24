@@ -69,12 +69,20 @@ node {
             buildlib.initialize()
             buildlib.registry_quay_dev_login()
             def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.NAME)
-            currentBuild.displayName += " - $major.$minor"
+            currentBuild.displayName += " - $params.NAME"
             if (major >= 4 && !params.NIGHTLIES) {
                 error("For OCP 4 releases, you must provide a list of proposed nightlies.")
             }
             commonlib.shell(script: "pip install -e ./pyartcd")
         }
+        stage ("Notify release channel") {
+            if (params.DRY_RUN) {
+                return
+            }
+            slackChannel = slacklib.to(params.NAME)
+            slackChannel.say(":construction: Preparing release for $params.NAME :construction:")
+        }
+
         stage("prepare release") {
             def cmd = [
                 "./pyartcd/prepare_release.py",

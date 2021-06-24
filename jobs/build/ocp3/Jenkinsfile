@@ -652,8 +652,9 @@ node {
 
                 def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
 
-                buildlib.buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
+                embargoedPlashet = buildlib.buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
                 def plashet = buildlib.buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
+                unembargoedPlashet = plashet
                 PLASHET = plashet.plashetDirName
             }
 
@@ -710,6 +711,18 @@ node {
             if (!params.BUILD_CONTAINER_IMAGES) {
                 SYMLINK_NAME = "no-image-latest"
             }
+
+            try {
+                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    commonlib.shell(script: "aws s3 sync --delete ${unembargoedPlashet.localPlashetPath}/ s3://art-srv-enterprise/srv/enterprise/all/${params.BUILD_VERSION}/${NEW_FULL_VERSION}/")
+                    commonlib.shell(script: "aws s3 sync --delete ${unembargoedPlashet.localPlashetPath}/ s3://art-srv-enterprise/srv/enterprise/all/${params.BUILD_VERSION}/latest/")
+                    commonlib.shell(script: "aws s3 sync --delete ${unembargoedPlashet.localPlashetPath}/ s3://art-srv-enterprise/srv/enterprise/enterprise-${params.BUILD_VERSION}/${NEW_FULL_VERSION}/")
+                    commonlib.shell(script: "aws s3 sync --delete ${unembargoedPlashet.localPlashetPath}/ s3://art-srv-enterprise/srv/enterprise/enterprise-${params.BUILD_VERSION}/latest/")
+                }
+            } catch (ex) {
+                commonlib.slacklib.to("#art-release").say("Failed syncing ${params.BUILD_VERSION} plashet to art-srv-enterprise S3")
+            }
+
 
             // Push the building puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
             buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", SYMLINK_NAME, NEW_FULL_VERSION, BUILD_MODE)

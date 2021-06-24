@@ -410,6 +410,15 @@ def stageMirrorRpms() {
         return
     }
 
+    try {
+        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            commonlib.shell(script: "aws s3 sync --delete ${rpmMirror.localPlashetPath}/ s3://art-srv-enterprise/${destBaseDir}/latest/")
+            commonlib.shell(script: "aws s3 sync --delete ${rpmMirror.localPlashetPath}/ s3://art-srv-enterprise/srv/enterprise/all/${version.stream}/latest")
+        }
+    } catch (ex) {
+        commonlib.slacklib.to("#art-release").say("Failed syncing ${version.stream} plashet to art-srv-enterprise S3")
+    }
+
     /**
      * Just in case this is the first time we have built this release, create the release's staging directory.
      * What is staging? Glad you asked. rsync isn't dumb. If it finds a remote file already present,

@@ -412,7 +412,7 @@ def stageMirrorRpms() {
 
     try {
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-            commonlib.shell(script: "aws s3 sync --delete ${rpmMirror.localPlashetPath}/ s3://art-srv-enterprise/${destBaseDir}/latest/")
+            commonlib.shell(script: "aws s3 sync --delete ${rpmMirror.localPlashetPath}/ s3://art-srv-enterprise${destBaseDir}/latest/")  // Note destBaseDir already has a / prefix
             commonlib.shell(script: "aws s3 sync --delete ${rpmMirror.localPlashetPath}/ s3://art-srv-enterprise/srv/enterprise/all/${version.stream}/latest")
         }
     } catch (ex) {

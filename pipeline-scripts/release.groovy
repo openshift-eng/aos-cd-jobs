@@ -102,8 +102,9 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
     echo "Verifying advisory ${advisoryInfo.id} (https://errata.engineering.redhat.com/advisory/${advisoryInfo.id}) status"
     if (advisoryInfo.status != 'QE' && permitAnyAdvisoryState == false) {
         error("🚫 Advisory ${advisoryInfo.id} is not in QE state.")
+    } else {
+        echo "✅ Advisory ${advisoryInfo.id} is in ${advisoryInfo.status} state."
     }
-    echo "✅ Advisory ${advisoryInfo.id} is in ${advisoryInfo.status} state."
 
     // Extract live ID from advisory info
     // Examples:

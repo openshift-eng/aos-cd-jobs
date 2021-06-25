@@ -85,7 +85,7 @@ if __name__ == '__main__':
     print('Cookies:\n')
     pprint.pprint(signed_cookies)
 
-    print('\nFlat form for cluster secret')
+    print('\nFlat form for cluster secret "cloudfront-cookies" (filename within secret: cloudfront-cookies.inc)')
     cloudfront_signed_cookies_content = 'set $CLOUDFRONT_SIGNED_COOKIES "'
     for k, v in signed_cookies.items():
         cloudfront_signed_cookies_content += f'{k}={v}; '

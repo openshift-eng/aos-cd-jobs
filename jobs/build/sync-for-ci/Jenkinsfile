@@ -125,7 +125,7 @@ node {
                 stage("push to s3") {
                     try {
                         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                            commonlib.shell(script: "aws s3 sync --delete ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise/${MIRROR_SYNC_DIR}/")
+                            commonlib.shell(script: "aws s3 sync --delete ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/") // Note that MIRROR_SYNC_DIR has / prefix.
                         }
                     } catch (ex) {
                         slacklib.to("#art-release").say("Failed syncing ${GROUP} reposync to S3")

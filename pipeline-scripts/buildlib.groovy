@@ -681,34 +681,19 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null) {
     def fullVersion = "${major}.${minor}"
     def results = []
 
-    if (minor > 5 || major > 4) {
-        parallel "build-sync": {
-            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
+    parallel "build-sync": {
+        results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
+            param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
+            param('String', 'ASSEMBLY', assembly),
+            param('Boolean', 'DRY_RUN', params.DRY_RUN),
+        ])
+    }, "olm-bundle": {
+        if (operator_nvrs != []) {  // If operator_nvrs is given but empty, we will not build bundles.
+            results.add build(job: 'build%2Folm_bundle', propagate: false, parameters: [
                 param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
                 param('String', 'ASSEMBLY', assembly),
+                param('String', 'OPERATOR_NVRS', operator_nvrs != null ? operator_nvrs.join(",") : ""),
                 param('Boolean', 'DRY_RUN', params.DRY_RUN),
-            ])
-        }, "olm-bundle": {
-            if (operator_nvrs != []) {  // If operator_nvrs is given but empty, we will not build bundles.
-                results.add build(job: 'build%2Folm_bundle', propagate: false, parameters: [
-                    param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
-                    param('String', 'ASSEMBLY', assembly),
-                    param('String', 'OPERATOR_NVRS', operator_nvrs != null ? operator_nvrs.join(",") : ""),
-                    param('Boolean', 'DRY_RUN', params.DRY_RUN),
-                ])
-            }
-        }
-    } else {
-        parallel "build-sync": {
-            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
-                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
-                param('String', 'ASSEMBLY', assembly),
-                param('Boolean', 'DRY_RUN', params.DRY_RUN),
-            ])
-        }, appregistry: {
-            results.add build(job: 'build%2Fappregistry', propagate: false, parameters: [
-                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
-                param('Boolean', 'MOCK', params.DRY_RUN), // It has no DRY_RUN parameter
             ])
         }
     }

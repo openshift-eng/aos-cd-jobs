@@ -673,7 +673,7 @@ node {
                                 parameters: [
                                     buildlib.param('String', 'RELEASE_NAME', release_name),
                                     buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
-                                    booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: is_prerelease),
+                                    booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: true),
                                     buildlib.param('String', 'GITHUB_ORG', 'openshift'),
                                     booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
                                 ]

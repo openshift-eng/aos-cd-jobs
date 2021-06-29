@@ -13,6 +13,7 @@ node {
             parameterDefinitions: [
                 commonlib.dryrunParam(),
                 commonlib.mockParam(),
+                commonlib.doozerParam(),
                 string(
                     name: 'GOLANG_VERSION',
                     description: 'Golang version (e.g. 1.14.1)',

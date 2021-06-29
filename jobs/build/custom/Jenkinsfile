@@ -32,6 +32,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION'),
+                    commonlib.doozerParam(),
                     booleanParam(
                         name: 'IGNORE_LOCKS',
                         description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',

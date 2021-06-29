@@ -262,6 +262,16 @@ def stageBuildRpms() {
         """
 
     buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
+    // check new embargoed build
+    rpmlist = buildPlan.rpmsIncluded.replaceAll(',', ' ')
+    report = buildlib.doozer("${doozerOpts} -q detect-embargo rpms --version ${version.stream} ${rpmlist}", [captureRC: true]).trim()
+    if (report.returnStatus == 0) {
+        commonlib.slacklib.to(version.stream).say("""
+        *:alert: we may catch a newly-embargoed rpm in ocp4 build*
+${report.returnStdout}
+        """
+        )
+    }
 }
 
 /**
@@ -368,8 +378,8 @@ def stageBuildImages() {
     }
     // check new embargoed build
     imagelist = buildPlan.imagesIncluded.replaceAll(',', ' ')
-    report = buildlib.doozer("${doozerOpts} -q detect-embargo images --version ${version.stream} ${imagelist}", [capture: true]).trim()
-    if (report.returnStatus != 2) {
+    report = buildlib.doozer("${doozerOpts} -q detect-embargo images --version ${version.stream} ${imagelist}", [captureRC: true]).trim()
+    if (report.returnStatus == 0) {
         commonlib.slacklib.to(version.stream).say("""
         *:alert: we may catch a newly-embargoed build in ocp4 build*
 ${report.returnStdout}

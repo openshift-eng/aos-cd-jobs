@@ -17,7 +17,7 @@ node {
 
     workDir = "${env.WORKSPACE}/doozer_working"
     sh "rm -rf ${workDir}"
-    ocpVer = "4.8"
+    ocpVer = "4.9"
 
     // Note this logic will start to fail when versions of the operators start to be attached to
     // advisories and pushed to staging.

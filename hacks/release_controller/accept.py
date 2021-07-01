@@ -84,12 +84,8 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
                 print(WARNING + '--confirm was not specified. Run again to apply these changes.' + ENDC)
                 exit(0)
 
-        result, changed = istag.modify_and_apply(make_release_accepted, retries=10)
-        if not changed:
-            print(WARNING + 'No change was applied to the object' + ENDC)
-            print(f'Details:\n{result.as_json()}')
-            exit(1)
-
+        make_release_accepted(istag)
+        istag.replace()
         print('Success!')
         print(f'Backup written to: {backup_filename}')
 

@@ -434,11 +434,11 @@ for f in *.tar.gz *.bz *.zip *.tgz ; do
     #  - openshift-client-linux-4.1.9.tar.gz
     #  - openshift-install-mac-4.3.0-0.nightly-s390x-2020-01-06-081137.tar.gz
     #  ...
-    # So, match, and store in a group, any non-digit up to the point we find -DIGIT. Ignore everything else
+    # So, match, and store in a group, any character up to the point we find -DIGIT. Ignore everything else
     # until we match (and store in a group) one of the valid file extensions.
-    if [[ "$f" =~ ^([^0-9]+)-[0-9].*(tar.gz|tgz|bz|zip)$ ]]; then
+    if [[ "$f" =~ ^([^-]+)((-[^0-9][^-]+)+)-[0-9].*(tar.gz|tgz|bz|zip)$ ]]; then
         # Create a symlink like openshift-client-linux.tgz => openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
-        ln -sfn "$f" "${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+        ln -sfn "$f" "${BASH_REMATCH[1]}${BASH_REMATCH[2]}.${BASH_REMATCH[4]}"
     fi
 done
     ''')

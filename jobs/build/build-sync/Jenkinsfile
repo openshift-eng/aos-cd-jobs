@@ -33,6 +33,12 @@ node {
                                     commonlib.suppressEmailParam(),
                                     commonlib.mockParam(),
                                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                                    string(
+                                        name: 'ASSEMBLY',
+                                        description: 'The name of an assembly to sync.',
+                                        defaultValue: "stream",
+                                        trim: true,
+                                    ),
                                     booleanParam(
                                             name        : 'DEBUG',
                                             description : 'Run "oc" commands with greater logging',
@@ -57,12 +63,6 @@ node {
                                     string(
                                             name        : 'EXCLUDE_ARCHES',
                                             description : '(Optional) List of problem arch(es) NOT to sync (aarch64, ppc64le, s390x, x86_64)',
-                                            defaultValue: "",
-                                            trim: true,
-                                    ),
-                                    string(
-                                            name        : 'BREW_EVENT_ID',
-                                            description : '(Optional) Look for the latest images as of the given Brew event instead of current',
                                             defaultValue: "",
                                             trim: true,
                                     ),
@@ -95,7 +95,7 @@ node {
 
     try {
 
-        if (params.TRIGGER_NEW_NIGHTLY) {
+        if (params.TRIGGER_NEW_NIGHTLY && params.ASSEMBLY == "stream" ) {
             if (params.DRY_RUN) {
                 echo "Would have triggered new release cut in release controller."
             } else {

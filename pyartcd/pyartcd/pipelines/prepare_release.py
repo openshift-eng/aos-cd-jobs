@@ -316,10 +316,7 @@ class PrepareReleasePipeline:
         if self.dry_run:
             cmd.append("--dry-run")
         _LOGGER.debug("Running command: %s", cmd)
-
-        # keep check=False so we don't abort
-        subprocess.run(cmd, check=False, universal_newlines=True, cwd=self.working_dir)
-
+        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     def sweep_builds(
         self, kind: str, advisory: int, only_payload=False, only_non_payload=False
@@ -338,10 +335,7 @@ class PrepareReleasePipeline:
         if not self.dry_run:
             cmd.append(f"--attach={advisory}")
         _LOGGER.debug("Running command: %s", cmd)
-
-        # keep check=False so we don't abort
-        subprocess.run(cmd, check=False, universal_newlines=True, cwd=self.working_dir)
-
+        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     def change_advisory_state(self, advisory: int, state: str):
         cmd = [

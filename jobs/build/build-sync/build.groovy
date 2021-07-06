@@ -44,7 +44,6 @@ def initialize() {
 def buildSyncGenInputs() {
     echo("Generating SRC=DEST and ImageStreams for arches")
     def images = imageList ? "--images '${imageList}'" : ''
-    def brewEventID = params.BREW_EVENT_ID? "--event-id '${params.BREW_EVENT_ID}'" : ''
     def excludeArchesParam = ""
     for(arch in excludeArches)
         excludeArchesParam += " --exclude-arch ${arch}"
@@ -52,10 +51,9 @@ def buildSyncGenInputs() {
 ${images}
 --working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
 release:gen-payload
---is-name ${params.BUILD_VERSION}-art-latest
 --organization ${params.ORGANIZATION}
 --repository ${params.REPOSITORY}
-${brewEventID}${excludeArchesParam}
+${excludeArchesParam}
 """
     echo("Generated files:")
     echo("######################################################################")

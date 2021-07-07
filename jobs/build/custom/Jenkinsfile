@@ -254,21 +254,6 @@ node {
                 }
             }
 
-            stage('push images to qe quay') {
-                if (params.SCRATCH || !any_images_to_build) { return }  // no point
-                base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                command = "${base_command} images:push --to-defaults"
-                if (majorVersion == 4) {
-                    command += " --filter-by-os='.*'"  // full multi-arch sync
-                }
-                try {
-                    buildlib.doozer command
-                } catch (err) {
-                    currentBuild.description += "\n<br>image push to qe quay did not completely succeed"
-                    currentBuild.result = "UNSTABLE"
-                }
-            }
-
             stage('sync images') {
                 if (params.SCRATCH || !any_images_to_build) { return }  // no point
                 if (majorVersion == 4) {

@@ -1,7 +1,4 @@
-FROM fedora:32
-LABEL name="aos-cd-jobs-dev" \
-  description="aos-cd-jobs development container image" \
-  maintainer="OpenShift Automated Release Tooling (ART) Team <aos-team-art@redhat.com>"
+FROM fedora:34
 
 # Trust the Red Hat IT Root CA and set up rcm-tools repo
 RUN curl -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt --fail -L \
@@ -12,14 +9,15 @@ RUN curl -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt --fail -L \
 
 RUN dnf install -y \
     # runtime dependencies
-    krb5-workstation python-bugzilla-cli git rsync docker \
-    python3 python3-certifi python3-rpm \
-    koji brewkoji \
+    krb5-workstation git tig rsync koji skopeo podman rpmdevtools \
+    python3 python3-certifi python3-rpm python3-kobo-rpmlib  \
     # development dependencies
-    gcc gcc-c++ krb5-devel libgit2-devel openssl-devel krb5-devel \
-    python3-devel python3-pip \
-    # other tools
-    bash-completion vim tmux procps-ng psmisc wget curl net-tools iproute socat \
+    gcc krb5-devel \
+    python3-devel python3-pip python3-wheel \
+    # other tools for development and troubleshooting
+    bash-completion vim tmux procps-ng psmisc wget net-tools iproute socat \
+    # install rcm-tools
+    koji brewkoji rhpkg \
   # clean up
   && dnf clean all \
   # make "python" available
@@ -43,11 +41,18 @@ ARG USER_GID=$USER_UID
 # Create the "dev" user
 RUN groupadd --gid "$USER_GID" "$USERNAME" \
     && useradd --uid "$USER_UID" --gid "$USER_GID" -m "$USERNAME" \
-    && mkdir -p /workspaces/{aos-cd-jobs,ocp-build-data} \
+    && mkdir -p /workspaces/{aos-cd-jobs,aos-cd-jobs-working} \
     && chown -R "${USER_UID}:${USER_GID}" /home/"$USERNAME" /workspaces \
     && chmod 0755 /home/"$USERNAME" \
     && echo "$USERNAME" ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/"$USERNAME" \
     && chmod 0440 /etc/sudoers.d/"$USERNAME"
+
+# Preinstall dependencies
+COPY ./ /tmp/aos-cd-jobs/
+RUN chown "$USERNAME" -R /tmp/aos-cd-jobs \
+ && pushd /tmp/aos-cd-jobs/pyartcd \
+ && sudo -u "$USERNAME" pip3 install --user -r ./requirements.txt -r ./requirements-dev.txt ./ \
+ && popd && rm -rf /tmp/aos-cd-jobs
 
 USER "$USER_UID"
 WORKDIR /workspaces/aos-cd-jobs

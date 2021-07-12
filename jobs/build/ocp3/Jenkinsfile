@@ -260,7 +260,6 @@ node {
                         defaultValue: [
                             'aos-cicd@redhat.com',
                             'aos-qe@redhat.com',
-                            'multi-arch-zstream-testing@redhat.com',
                             'aos-art-automation+new-ocp3-build@redhat.com',
                         ].join(','),
                         trim: true,

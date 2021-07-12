@@ -93,7 +93,7 @@ class TestJIRAClient(TestCase):
         ]
 
         mock_jira = mock.MagicMock()
-        mock_jira.create_issues.side_effect = lambda field_list: [{"error":None, "input_fields":fields.copy(), "issue": mock.MagicMock(raw={"fields": fields.copy()})} for fields in field_list]
+        mock_jira.create_issues.side_effect = lambda field_list: [{"error": None, "input_fields": fields.copy(), "issue": mock.MagicMock(raw={"fields": fields.copy()})} for fields in field_list]
         client = JIRAClient(mock_jira)
         client.get_issue = mock.MagicMock(side_effect=lambda key: next(filter(lambda issue: issue.key == key, source_issue.fields.subtasks)))
         client.clone_issue = mock.MagicMock()

@@ -14,11 +14,16 @@ setup(
     author_email="aos-team-art@redhat.com",
     version="0.0.1-dev",
     description="Python based pipeline library for managing and automating Red Hat OpenShift Container Platform releases",
-    url="https://github.com/openshift/aos-cd-jobs",
+    url="https://github.com/openshift/aos-cd-jobs/",
     license="Apache License, Version 2.0",
     packages=find_packages(exclude=["tests", "tests.*"]),
     include_package_data=True,
     install_requires=INSTALL_REQUIRES,
+    entry_points={
+        'console_scripts': [
+            'artcd = pyartcd.__main__:main'
+        ]
+    },
     test_suite='tests',
     dependency_links=[],
     python_requires='>=3.6',

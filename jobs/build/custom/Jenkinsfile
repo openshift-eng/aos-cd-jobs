@@ -187,16 +187,15 @@ node {
                             buildlib.buildBuildingPlashet(version, release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
                             buildlib.buildBuildingPlashet(version, release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
 
-                            if(params.COMPOSE)
-                                notificationMessage = """
-                                    *:alert: custom ocp4 build compose ran during automation freeze*
-                                    COMPOSE parameter was set to true that forced build compose during automation freeze."""
-                            else
-                                notificationMessage = """
-                                    *:alert: custom ocp4 build compose ran during automation freeze*
-                                    There were RPMs in the build plan that forced build compose during automation freeze."""
-
-                            slacklib.to(params.BUILD_VERSION).say(notificationMessage)
+                            if (buildlib.getAutomationState(doozerOpts) in ["scheduled", "yes", "True"]) {
+                                slacklib.to(params.BUILD_VERSION).say(params.COMPOSE ?
+                                    """ *:alert: custom build compose ran during automation freeze*
+                                        COMPOSE parameter was set to true, forcing a compose during automation freeze."""
+                                    :
+                                    """*:alert: custom build compose ran during automation freeze*
+                                        RPM rebuild(s) in the build plan forced a compose during automation freeze."""
+                                )
+                            }
 
                         }
                     }

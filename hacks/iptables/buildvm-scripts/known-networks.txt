@@ -232,3 +232,6 @@
 96.6.42.179
 23.208.140.80
 23.208.140.34
+
+# https://ftp.belnet.be / jenkins{,-2-plugins} archives
+193.190.0.0/15

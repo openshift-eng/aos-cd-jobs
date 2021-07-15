@@ -21,7 +21,7 @@ def isolate_el_version_in_branch(branch_name: str) -> Optional[int]:
     a RHEL version. If it does, it returns the version value as int.
     If it is not found, None is returned.
     """
-    match = re.match(r'.*rhel-(\d+)(?:\.+|$)', branch_name)
+    match = re.fullmatch(r'.*rhel-(\d+).*', branch_name)
     if match:
         return int(match.group(1))
 

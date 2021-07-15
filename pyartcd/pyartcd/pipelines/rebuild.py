@@ -52,7 +52,7 @@ class RebuildPipeline:
 
         # sets environment variables for Doozer
         self._doozer_env_vars = os.environ.copy()
-        self._doozer_env_vars["DOOZER_WORKING_DIR"] = self.runtime.working_dir / "doozer-working"
+        self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self.runtime.working_dir / "doozer-working")
         ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
         if ocp_build_data_url:
             self._doozer_env_vars["DOOZER_DATA_PATH"] = ocp_build_data_url
@@ -125,7 +125,7 @@ class RebuildPipeline:
             click.secho("Build completes. Please update the assembly schema in releases.yaml to pin the following NVR(s) to the assembly:\n", fg="green")
             for nvr in nvrs:
                 click.secho(f"\t{nvr}", fg="green")
-            example_schema = self._generate_example_schema(nvrs)
+            example_schema = yaml.safe_dump(self._generate_example_schema(nvrs))
             click.secho(f"\nExample schema:\n\n{example_schema}", fg="green")
 
     async def _load_group_config(self):
@@ -305,7 +305,7 @@ class RebuildPipeline:
             else:
                 await exectools.cmd_assert_async(cmd)
 
-    async def _build_plashets(self, timestamp: str, el_version: int, group_config: Dict) -> Tuple[str, str, str, str]:
+    async def _build_plashets(self, timestamp: str, el_version: int, group_config: Dict) -> Tuple[Path, str, Path, str]:
         """ Build plashet repos and return the URL to rebuild.repo
         :return: (plashet_a_dir, plashet_a_url, plashet_b_dir, plashet_b_url)
         """
@@ -428,12 +428,12 @@ class RebuildPipeline:
         if self.runtime.dry_run:
             cmd.append("--dry-run")
 
-        await exectools.cmd_assert_async(cmd)
+        await exectools.cmd_assert_async(cmd, env=self._doozer_env_vars)
 
         if self.runtime.dry_run:
             return []
         # parse record.log
-        with open(self._doozer_env_vars["DOOZER_WORKING_DIR"] / "record.log", "r") as file:
+        with open(Path(self._doozer_env_vars["DOOZER_WORKING_DIR"]) / "record.log", "r") as file:
             record_log = parse_record_log(file)
             return record_log["build"][-1]["nvrs"].split(",")
 
@@ -460,11 +460,11 @@ class RebuildPipeline:
             return []
 
         # parse record.log
-        with open(self._doozer_env_vars["DOOZER_WORKING_DIR"] / "record.log", "r") as file:
+        with open(Path(self._doozer_env_vars["DOOZER_WORKING_DIR"]) / "record.log", "r") as file:
             record_log = parse_record_log(file)
             return record_log["build_rpm"][-1]["nvrs"].split(",")
 
-    def _generate_example_schema(self, nvrs: List[str]):
+    def _generate_example_schema(self, nvrs: List[str]) -> Dict:
         is_entry = {}
         if self.type == RebuildType.IMAGE:
             member_type = "images"
@@ -496,7 +496,7 @@ class RebuildPipeline:
                 }
             }
         }
-        return yaml.safe_dump(schema)
+        return schema
 
 
 @cli.command("rebuild")

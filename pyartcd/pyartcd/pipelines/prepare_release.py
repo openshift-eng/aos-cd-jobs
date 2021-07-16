@@ -74,7 +74,7 @@ class PrepareReleasePipeline:
 
         _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
         self.check_blockers()
-        
+
         if self.default_advisories:
             advisories = self.get_advisories()
         else:
@@ -169,7 +169,7 @@ class PrepareReleasePipeline:
         match = re.search(r"Found ([0-9]+) bugs", str(result.stdout))
         if match and int(match[1]) != 0:
             _LOGGER.info(f"{int(match[1])} Blocker Bugs found! Make sure to resolve these blocker bugs before proceeding to promote the release.")
-    
+
     def create_advisory(self, type: str, kind: str, impetus: str) -> int:
         create_cmd = [
             "elliott",
@@ -226,9 +226,9 @@ class PrepareReleasePipeline:
                 advisories[key] = int(val)
         except Exception as ex:
             raise ValueError(f"Error parsing advisories from group.yml: {ex}")
-        
+
         return advisories
-    
+
     def save_advisories(self, advisories: Dict[str, int]):
         if not advisories:
             return
@@ -448,7 +448,7 @@ This is the current set of advisories we intend to ship:
             for arch, pullspec in self.candidate_nightlies.items():
                 content += f"- {arch}: {pullspec}\n"
         content += f"\nJIRA ticket: {jira_link}\n"
-        content += f"Note: Advisories are still being prepared, it may take a while before bugs and builds appear.\n"
+        content += "Note: Advisories are still being prepared, it may take a while before bugs and builds appear.\n"
         content += "\nThanks.\n"
         email_dir = self.working_dir / "email"
         self.mail.send_mail(self.config["email"]["prepare_release_notification_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)

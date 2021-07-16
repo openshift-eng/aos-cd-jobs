@@ -13,7 +13,6 @@
 		// This will ignore your local shell user setting for Linux since shells like zsh are typically
 		// not in base container images. You can also update this to an specific shell to ensure VS Code
 		// uses the right one for terminals and tasks. For example, /bin/bash (or /bin/ash for Alpine).
-		"terminal.integrated.shell.linux": "/bin/bash",
 		"python.pythonPath": "/usr/bin/python3",
 		"python.linting.pylintEnabled": false,
 		"python.linting.flake8Enabled": true,
@@ -34,7 +33,7 @@
 	// Uncomment the next line if you want to publish any ports.
 	// "appPort": [],
 	// Uncomment the next line to run commands after the container is created - for example installing git.
-	"postCreateCommand": "sudo chown -R dev: /workspaces/aos-cd-jobs-working /home/dev/",
+	"postCreateCommand": "sudo chown -R dev: /workspaces/ && pip3 install --user -r ./pyartcd/requirements-dev.txt -e ./pyartcd",
 	// Add the IDs of extensions you want installed when the container is created in the array below.
 	"extensions": [
 		"ms-python.vscode-pylance",

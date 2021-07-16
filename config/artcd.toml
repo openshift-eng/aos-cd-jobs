@@ -1,22 +1,25 @@
 [advisory]
-assigned_to="openshift-qe-errata@redhat.com"
-manager="vlaad@redhat.com"
-package_owner="lmeyer@redhat.com"
+assigned_to = "openshift-qe-errata@redhat.com"
+manager = "vlaad@redhat.com"
+package_owner = "lmeyer@redhat.com"
 
 [build_config]
-ocp_build_data_repo_push_url="git@github.com:openshift/ocp-build-data.git"
+# ocp_build_data_url = "https://github.com/openshift/ocp-build-data.git"
+ocp_build_data_repo_push_url = "git@github.com:openshift/ocp-build-data.git"
 
 [email]
-smtp_server="smtp.corp.redhat.com"
-from="aos-art-automation@redhat.com"
-reply_to="aos-team-art@redhat.com"
-cc=["aos-team-art@redhat.com"]
-live_id_request_recipients=["openshift-ccs@redhat.com"]
-prepare_release_notification_recipients=["multi-arch-zstream-testing@redhat.com", "aos-qe@redhat.com"]
+smtp_server = "smtp.corp.redhat.com"
+from = "aos-art-automation@redhat.com"
+reply_to = "aos-team-art@redhat.com"
+cc = ["aos-team-art@redhat.com"]
+live_id_request_recipients = ["openshift-ccs@redhat.com"]
+prepare_release_notification_recipients = [
+    "multi-arch-zstream-testing@redhat.com",
+    "aos-qe@redhat.com",
+]
 
 [jira]
-url="https://issues.redhat.com"
-
+url = "https://issues.redhat.com"
 [jira.templates]
-ocp4="OCPPLAN-4756"
-ocp3="OCPPLAN-1373"
+ocp4 = "OCPPLAN-4756"
+ocp3 = "OCPPLAN-1373"

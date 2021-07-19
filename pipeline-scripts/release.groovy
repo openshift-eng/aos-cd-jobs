@@ -235,15 +235,9 @@ def getPayloadDigest(quay_url, release_tag) {
 }
 
 def getAdvisoryIds() {
-    def advisories_cmd = """
-        ${buildlib.DOOZER_BIN} --group ${group} config:read-group advisories --yaml 2>/dev/null |
-            yq '[ to_entries[].value ]'
-    """
-    def stdout = commonlib.shell(
-        script: advisories_cmd,
-        returnStdout: true
-    )
-    return new JsonSlurper().parseText(stdout)
+    def yamlStr = buildlib.doozer("--group ${group} config:read-group advisories --yaml", [capture: true])
+    def yamlData = readYaml text: yamlStr
+    return yamlData.values()
 }
 
 @NonCPS
@@ -355,7 +349,7 @@ def stageCheckBlockerBug(group){
     ).trim()
 
     echo blocker_bugs
-    
+
     found = true
     try {
         pattern = ~"Found ([0-9]+) bugs"

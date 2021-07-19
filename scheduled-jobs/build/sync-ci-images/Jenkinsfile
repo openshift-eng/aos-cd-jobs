@@ -35,6 +35,12 @@ node {
                     defaultValue: "",
                     trim: true,
                 ),
+                string(
+                        name: 'ASSEMBLY',
+                        description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
+                        defaultValue: "stream",
+                        trim: true,
+                ),
                 [
                     name: 'SKIP_WAITS',
                     description: 'Skip sleeps',

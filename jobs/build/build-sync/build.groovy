@@ -127,7 +127,7 @@ def buildSyncApplyImageStreams() {
         artifacts.addAll(["pre-apply-${namespace}-${theStream}.json"])
 
         // We check for updates by comparing the object's 'resourceVersion'
-        def currentResourceVersion = currentIS.metadata.resourceVersion
+        def currentResourceVersion = currentIS.metadata?.resourceVersion ?: 0
         echo("Current resourceVersion for ${theStream}: ${currentResourceVersion}")
 
         // Ok, try the update. Jack that debug output up high, just in case
@@ -160,7 +160,7 @@ def buildSyncApplyImageStreams() {
 // namespace. The image stream is also saved locally for debugging
 // purposes.
 def getImageStream(is, ns) {
-    def isJson = readJSON(text: buildlib.oc(" get is ${is} -n ${ns} -o json --kubeconfig ${buildlib.ciKubeconfig}", [capture: true]))
+    def isJson = readJSON(text: buildlib.oc(" get is ${is} -n ${ns} --ignore-not-found -o json --kubeconfig ${buildlib.ciKubeconfig}", [capture: true]).trim() ?: "{}")
     return isJson
 }
 

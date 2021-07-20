@@ -47,7 +47,7 @@ def destReleaseTag(String releaseName, String arch) {
  */
 Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, boolean permitPayloadOverwrite = false, boolean permitAnyAdvisoryState = false, String nightly, String arch, boolean skipVerifyBugs = false, boolean skipPayloadCreation = false) {
     def retval = [:]
-    def version = commonlib.extractMajorMinorVersion(dest_release_tag)
+    version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
     res = commonlib.shell(
             returnAll: true,
@@ -90,7 +90,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
         echo "Getting current advisory for OCP $version from build data..."
         res = commonlib.shell(
                 returnAll: true,
-                script: "${buildlib.ELLIOTT_BIN} --group=openshift-${version} get --json - --use-default-advisory image",
+                script: "${buildlib.ELLIOTT_BIN} --group=openshift-${version} --assembly ${params.ASSEMBLY ?: 'stream'} get --json - --use-default-advisory image",
             )
         if(res.returnStatus != 0) {
             error("🚫 Advisory number for OCP $version couldn't be found from ocp_build_data.")
@@ -180,7 +180,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
         metadata += "}"
     }
 
-    def (arch, priv) = getReleaseTagArchPriv(from_release_tag)
+    def (arch, priv) = from_release_tag ? getReleaseTagArchPriv(from_release_tag) : [params.ARCH, false]
 
     echo "Generating release payload"
     echo "CI release name: ${from_release_tag}"
@@ -192,7 +192,12 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
 
     // build oc command
     def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
-    cmd += "-n ocp${publicSuffix} --from-release=registry.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag} "
+    cmd += "-n ocp${publicSuffix} "
+    if (from_release_tag) {
+        cmd += "--from-release=registry.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag} "
+    } else {
+        cmd += "--from-image-stream ${params.VERSION}-art-assembly-${params.ASSEMBLY}${publicSuffix} "
+    }
     if (previous != "") {
         cmd += "--previous \"${previous}\" "
     }
@@ -234,10 +239,10 @@ def getPayloadDigest(quay_url, release_tag) {
     return payloadInfo['digest']
 }
 
-def getAdvisoryIds() {
+def getAdvisories(String group) {
     def yamlStr = buildlib.doozer("--group ${group} config:read-group advisories --yaml", [capture: true])
     def yamlData = readYaml text: yamlStr
-    return yamlData.values()
+    return yamlData
 }
 
 @NonCPS

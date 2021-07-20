@@ -1,4 +1,5 @@
 #!/usr/bin/groovy
+import java.net.URLEncoder
 
 commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
@@ -1538,6 +1539,20 @@ def get_owners(doozerOpts, images, rpms=[]) {
             """, [capture: true]
         )
     return yamlData
+}
+
+def get_releases_config(String group) {
+    def r = httpRequest(
+        url: "https://raw.githubusercontent.com/openshift/ocp-build-data/${URLEncoder.encode(group, 'utf-8')}/releases.yml",
+        httpMode: 'GET',
+        timeout: 30,
+        validResponseCodes: '200:404',
+    )
+    if (r.status == 200)
+        return readYaml(text: r.content)
+    if (r.status == 404)
+        return null
+    error("Unable to get releases config: HTTP Error ${r.status}")
 }
 
 this.setup_venv()

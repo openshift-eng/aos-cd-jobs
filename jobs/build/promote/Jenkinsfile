@@ -32,14 +32,21 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.ocpVersionParam('VERSION', '4'),  // not used by "stream" assembly
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'The name of an assembly to promote.',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
                     string(
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Build tag to pull from (e.g. 4.1.0-0.nightly-2019-04-22-005054)',
+                        description: 'Build tag to pull from (e.g. 4.1.0-0.nightly-2019-04-22-005054). Do not specify for a non-stream assembly.',
                         trim: true,
                     ),
                     choice(
                         name: 'RELEASE_TYPE',
-                        description: 'Select [1. Standard Release] unless discussed with team lead',
+                        description: 'Select [1. Standard Release] unless discussed with team lead. Not used by non-stream assembly.',
                         choices: [
                                 '1. Standard Release (Named, Signed, Previous, All Channels)',
                                 '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
@@ -49,12 +56,12 @@ node {
                     ),
                     choice(
                         name: 'ARCH',
-                        description: 'The architecture for the release. Use "auto" for promoting nightlies. ARCH must be specified when re-promoting an RC."',
+                        description: 'The architecture for the release. Use "auto" for promoting nightlies. ARCH must be specified when promoting an assembly or re-promoting an RC."',
                         choices: (['auto'] + commonlib.brewArches).join('\n'),
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
-                        description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
+                        description: 'Integer. Do not specify for assembly or hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
                         trim: true,
                     ),
                     string(
@@ -187,6 +194,8 @@ node {
     is_prerelease = false
     is_4stable_release = true
     next_is_prerelease = false
+    def release_config = null
+    def (major, minor) = [0, 0]
 
     // copy job params into normal vars, since params is an immutable map
     def skip = [
@@ -212,32 +221,64 @@ node {
         skip.SIGNING = true
     }
 
-    release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
-    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
+    if (params.ASSEMBLY && params.ASSEMBLY != "stream") {
+        if (!params.ARCH || params.ARCH == "auto") {
+            error("You must explicitly specify an ARCH to promote a release for a non-stream assembly.")
+        }
+        if (!params.VERSION) {
+            error("You must explicitly specify a VERSION to promote a release for a non-stream assembly.")
+        }
+        (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
+        group = "openshift-${major}.${minor}"
+        // FIXME: Only support standard X.Y.Z and hotfix releases for now. RCs and FCs are not supported yet.
+        release_config = buildlib.get_releases_config(group)?.releases?.get(params.ASSEMBLY)
+        if (!release_config) {
+            error("Assembly ${params.ASSEMBLY} is not defined in releases.yml.")
+        }
 
-    group = "openshift-${major}.${minor}"
-
-    if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
-        release_name = "${major}.${minor}.${release_offset}"
-        ga_release = true
-    } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
-        is_prerelease = true
-        release_name = "${major}.${minor}.0-rc.${release_offset}"
-    } else if (params.RELEASE_TYPE.startsWith('3.')) { // Feature candidate (around feature complete)
-        is_prerelease = true
-        direct_release_nightly = true
-        release_name = "${major}.${minor}.0-fc.${release_offset}"
-        CLIENT_TYPE = 'ocp-dev-preview'
-    } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
-        direct_release_nightly = true
-        detect_previous = false
-        is_4stable_release = false
-        // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
-        release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
-        CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
+        direct_release_nightly = !release.getAdvisories(group)?.image  // Whether this assembly should go through Errata process is determined by group config advisories.
+        def release_type = release_config.assembly?.type?: "standard"  // Defaults to "standard" release if not specified
+        switch(release_type) {
+        case "standard":
+            release_name = params.ASSEMBLY
+            ga_release = true
+            break
+        case "custom":
+            release_name = "${major}.${minor}.0-assembly.${params.ASSEMBLY}"
+            detect_previous = false
+            is_4stable_release = false
+            CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
+            break
+        default:
+            error("Unsupported release type $release_type")
+        }
     } else {
-        error('Unknown release type: ' + params.RELEASE_TYPE)
+        release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
+        (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
+        group = "openshift-${major}.${minor}"
+        if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
+            release_name = "${major}.${minor}.${release_offset}"
+            ga_release = true
+        } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
+            is_prerelease = true
+            release_name = "${major}.${minor}.0-rc.${release_offset}"
+        } else if (params.RELEASE_TYPE.startsWith('3.')) { // Feature candidate (around feature complete)
+            is_prerelease = true
+            direct_release_nightly = true
+            release_name = "${major}.${minor}.0-fc.${release_offset}"
+            CLIENT_TYPE = 'ocp-dev-preview'
+        } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
+            direct_release_nightly = true
+            detect_previous = false
+            is_4stable_release = false
+            // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
+            release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
+            CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
+        } else {
+            error('Unknown release type: ' + params.RELEASE_TYPE)
+        }
     }
+
     if (major > 3 && ga_release) {
         def next_minor = "${major}.${minor + 1}"
         if (!(commonlib.ocpReleaseState[next_minor] && commonlib.ocpReleaseState[next_minor]["release"])) {
@@ -251,8 +292,8 @@ node {
         taskThread ->
 
         stage("Check for Blocker Bugs") {
-            if (params.RELEASE_TYPE.startsWith('3.')) {
-                echo "Skip Blocker Bug check for FCs"
+            if (!ga_release) {
+                echo "Skip Blocker Bug check for FCs, RCs, and custom releases"
                 return
             }
             commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread,
@@ -264,10 +305,17 @@ node {
         sshagent(['aos-cd-test']) {
             release_info = ""
             name = release_name
-
-            from_release_tag = params.FROM_RELEASE_TAG.trim()
-            // arch will fallback to params.ARCH if it is not part of the release name
-            (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
+            def from_release_tag = null
+            if (release_config) { // We are promoting a release for a non-stream assembly
+                arch = params.ARCH
+                priv = false  // should not contain embargoed content
+                def reference_releases = release_config.assembly?.basis?.reference_releases?: [:]
+                from_release_tag = reference_releases[arch]
+            } else {
+                from_release_tag = params.FROM_RELEASE_TAG.trim()
+                // arch will fallback to params.ARCH if it is not part of the release name
+                (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
+            }
 
             RELEASE_STREAM_NAME = "4-stable${release.getArchPrivSuffix(arch, false)}"
             dest_release_tag = release.destReleaseTag(release_name, arch)
@@ -282,7 +330,7 @@ node {
             Map release_obj
 
             currentBuild.displayName = "${name} (${arch})"
-            currentBuild.description = "${from_release_tag} -> ${release_name}"
+            currentBuild.description = from_release_tag ? "${from_release_tag} -> ${release_name}" : release_name
             if (params.DRY_RUN) {
                 currentBuild.displayName += " (dry-run)"
                 currentBuild.description += "[DRY RUN]"
@@ -371,11 +419,11 @@ node {
                                         ),
                                     ]
                                 )
+                                in_flight_prev = resp.IN_FLIGHT_PREV
+                                suggest_previous = resp.SUGGESTED
+                                previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
                             }
-                            in_flight_prev = resp.IN_FLIGHT_PREV
-                            suggest_previous = resp.SUGGESTED
                         }
-                        previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
                     }
                 }
                 previousList = previousList.toList().unique().sort()
@@ -397,10 +445,10 @@ node {
                 if (major == 4 && !is_4stable_release) {
                     return
                 }
-                release.getAdvisoryIds().each {
+                release.getAdvisories(group).each {
                     commonlib.retrySkipAbort("Add CVE flaw bugs", taskThread, "Error attaching CVE flaw bugs") {
                         commonlib.shell(
-                            script: "${buildlib.ELLIOTT_BIN} --group ${group} attach-cve-flaws --advisory ${it} ${params.DRY_RUN ? '--dry-run' : ''}",
+                            script: "${buildlib.ELLIOTT_BIN} --group ${group} --assembly ${params.ASSEMBLY ?: 'stream'} attach-cve-flaws --advisory ${it.value} ${params.DRY_RUN ? '--dry-run' : ''}",
                         )
                     }
                 }
@@ -413,7 +461,7 @@ node {
                 }
                 skipVerifyBugs = !ga_release || next_is_prerelease || skip.VERIFY_BUGS
                 commonlib.retrySkipAbort("Validating release", taskThread, "Error running release validation") {
-                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, params.FROM_RELEASE_TAG, arch, skipVerifyBugs, skip.PAYLOAD_CREATION)
+                    def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, from_release_tag, arch, skipVerifyBugs, skip.PAYLOAD_CREATION)
                     advisory = advisory ?: retval.advisoryInfo.id
                     errata_url = retval.errataUrl
                 }
@@ -600,7 +648,7 @@ node {
                 }
 
                 suffix = release.getArchPrivSuffix(arch, false)
-                tag = params.FROM_RELEASE_TAG
+                tag = from_release_tag
 
                 cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$suffix/release$suffix:$tag) | jq -r .config.config.Labels.version"
                 rhcos_build =  commonlib.shell(
@@ -673,6 +721,10 @@ node {
                 }
                 if ( params.SKIP_CINCINNATI_PR_CREATION ) {
                     echo "SKIP_CINCINNATI_PR_CREATION set; skipping PR creation"
+                    return
+                }
+                if (!is_4stable_release) {
+                    echo "Skipping PR creation for custom (hotfix) release."
                     return
                 }
                 if (arch == 'x86_64' || params.OPEN_NON_X86_PR ) {

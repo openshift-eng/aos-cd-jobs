@@ -111,7 +111,7 @@ node {
                         buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams check-upstream")
                         withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                             if ( (major == 4 && minor >= 6) || major > 4 ) {
-                                other_args = ''
+                                other_args = '--add-label "bugzilla/valid-bug" --add-label "cherry-pick-approved"'
                                 for ( label in params.ADD_LABELS.split() ) {
                                     other_args += " --add-label '${label}'"
                                 }

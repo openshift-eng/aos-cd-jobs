@@ -42,6 +42,7 @@ setup_dist_git() {
 
 # download jenkins war
 prep_jenkins_war() {
+    set -eu
     wget --no-verbose https://ftp.belnet.be/pub/jenkins/war-stable/${VERSION}/jenkins.war
     wget --no-verbose https://ftp.belnet.be/pub/jenkins/war-stable/${VERSION}/jenkins.war.sha256
     sha256sum --check jenkins.war.sha256

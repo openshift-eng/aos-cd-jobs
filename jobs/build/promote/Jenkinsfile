@@ -123,6 +123,11 @@ node {
                             ].join('\n'),
                     ),
                     booleanParam(
+                        name: 'SKIP_ATTACH_CVE_FLAWS',
+                        description: 'Skip elliott attach-cve-flaws step',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',
                         description: 'DO NOT USE without team lead approval. This is an unusual option.',
                         defaultValue: false,
@@ -382,6 +387,10 @@ node {
             buildlib.registry_quay_dev_login()
             stage("versions") { release.stageVersions() }
             stage("add cve flaw bugs") {
+                if ( params.SKIP_ATTACH_CVE_FLAWS ) {
+                    echo "skipping attach cve flaws step"
+                    return
+                }
                 if (advisory == -1) {
                     return
                 }

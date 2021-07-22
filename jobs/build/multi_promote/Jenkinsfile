@@ -78,24 +78,28 @@ node {
         error("You must provide a list of proposed nightlies.")
     }
 
-    release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
-    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
-    if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
-        release_name = "${major}.${minor}.${release_offset}"
-    } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
-        release_name = "${major}.${minor}.0-rc.${release_offset}"
-    } else if (params.RELEASE_TYPE.startsWith('3.')) { // Feature candidate (around feature complete)
-        release_name = "${major}.${minor}.0-fc.${release_offset}"
-    } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
-        // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
-        release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
-    }
-    currentBuild.displayName = release_name
-    
     nightly_list = params.NIGHTLIES.split("[,\\s]+")
+
+    if (nightly_list.size() != 0) {
+        release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
+        def (major, minor) = commonlib.extractMajorMinorVersionNumbers(nightly_list[0])
+        if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
+            release_name = "${major}.${minor}.${release_offset}"
+        } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
+            release_name = "${major}.${minor}.0-rc.${release_offset}"
+        } else if (params.RELEASE_TYPE.startsWith('3.')) { // Feature candidate (around feature complete)
+            release_name = "${major}.${minor}.0-fc.${release_offset}"
+        } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
+            // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
+            release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
+        }
+        currentBuild.displayName = release_name
+    }
+    
     s390x_index = nightly_list.findIndexOf { it.contains("s390x") }
     power_index = nightly_list.findIndexOf { it.contains("ppc64le") }
     x86_index = nightly_list.findIndexOf { !it.contains("s390x") && !it.contains("ppc64le") }
+
     if (s390x_index == -1 || power_index == -1 || x86_index == -1) {
         def resp = input(
             message: "Something doesn't seem right. Job expects 3 nightlies of each arch. Do you still want to proceed with given nightlies $nightly_list ?",

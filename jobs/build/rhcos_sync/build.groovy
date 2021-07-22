@@ -80,12 +80,12 @@ def rhcosSyncPrintArtifacts() {
     writeFile file: syncList, text: "${imageUrls.join('\n')}"
 }
 
-def rhcosSyncMirrorArtifacts() {
+def rhcosSyncMirrorArtifacts(rhcos_mirror_prefix, arch, rhcos_build, name) {
     sh("scp ${syncList} use-mirror-upload.ops.rhcloud.com:/tmp/")
-    def invokeOpts = " --prefix ${params.RHCOS_MIRROR_PREFIX}" +
-        " --arch ${params.ARCH}" +
-        " --buildid ${params.RHCOS_BUILD}" +
-        " --version ${params.NAME}" 
+    def invokeOpts = " --prefix ${rhcos_mirror_prefix}" +
+        " --arch ${arch}" +
+        " --buildid ${rhcos_build}" +
+        " --version ${name}" 
 
     if ( params.FORCE ) {
             invokeOpts += " --force"

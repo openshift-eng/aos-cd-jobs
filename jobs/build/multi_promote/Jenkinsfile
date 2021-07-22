@@ -59,6 +59,11 @@ node {
                                 '3. Cincinnati PRs',
                             ].join('\n'),
                     ),
+                    booleanParam(
+                        name: 'SKIP_ATTACH_CVE_FLAWS',
+                        description: 'Skip elliott attach-cve-flaws step',
+                        defaultValue: false,
+                    ),
                     commonlib.dryrunParam('Take no actions. Note: still notifies and runs signing job (which fails)'),
                     commonlib.mockParam(),
                 ]
@@ -72,6 +77,20 @@ node {
     if (!params.NIGHTLIES) {
         error("You must provide a list of proposed nightlies.")
     }
+
+    release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.FROM_RELEASE_TAG)
+    if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
+        release_name = "${major}.${minor}.${release_offset}"
+    } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
+        release_name = "${major}.${minor}.0-rc.${release_offset}"
+    } else if (params.RELEASE_TYPE.startsWith('3.')) { // Feature candidate (around feature complete)
+        release_name = "${major}.${minor}.0-fc.${release_offset}"
+    } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
+        // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
+        release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
+    }
+    currentBuild.displayName = release_name
     
     nightly_list = params.NIGHTLIES.split("[,\\s]+")
     s390x_index = nightly_list.findIndexOf { it.contains("s390x") }
@@ -99,6 +118,7 @@ node {
         buildlib.param('String','IN_FLIGHT_PREV', params.IN_FLIGHT_PREV),
         buildlib.param('String','RESUME_FROM', params.RESUME_FROM),
         buildlib.param('String','ADVISORY', ""),
+        booleanParam(name: 'SKIP_ATTACH_CVE_FLAWS', value: params.SKIP_ATTACH_CVE_FLAWS),
         booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
         booleanParam(name: 'MOCK', value: params.MOCK)
     ]

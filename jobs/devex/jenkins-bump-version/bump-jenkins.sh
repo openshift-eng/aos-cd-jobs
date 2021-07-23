@@ -42,15 +42,19 @@ setup_dist_git() {
 
 # download jenkins war
 prep_jenkins_war() {
-    wget https://updates.jenkins-ci.org/download/war/${VERSION}/jenkins.war
+    set -eu
+    wget --no-verbose https://ftp.belnet.be/pub/jenkins/war-stable/${VERSION}/jenkins.war
+    wget --no-verbose https://ftp.belnet.be/pub/jenkins/war-stable/${VERSION}/jenkins.war.sha256
+    sha256sum --check jenkins.war.sha256
     mv jenkins.war jenkins.${UVERSION}.war
+    rm jenkins.war.sha256
 }
 
 # update changelog
 update_dist_git () {
   if [ ! -f *.spec ]; then
-        # Get the spec and supporting files from a prior release
-        git pull --no-edit --allow-unrelated-histories origin rhaos-3.7-rhel-7
+      echo "No .spec file found. Exiting.">/dev/stderr
+      exit 1
   fi
   REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg new-sources jenkins.${UVERSION}.war
   $SCRIPTS_DIR/rpm-bump-version.sh "${UVERSION}"

@@ -26,9 +26,16 @@ node {
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
+                        commonlib.ocpVersionParam('VERSION', '4'),
+                        string(
+                            name: "ASSEMBLY",
+                            description: "The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)",
+                            defaultValue: "stream",
+                            trim: true
+                        ),
                         string(
                             name: "NAME",
-                            description: "The expected release name (e.g. 4.6.42)",
+                            description: "The expected release name (e.g. 4.6.42); Do not specify for a non-stream assembly.",
                             trim: true
                         ),
                         string(
@@ -39,7 +46,7 @@ node {
                         ),
                         string(
                             name: "NIGHTLIES",
-                            description: "(Optional for 3.y.z) list of proposed nightlies for each arch, separated by comma",
+                            description: "(Optional for 3.y.z) list of proposed nightlies for each arch, separated by comma; Do not specify for a non-stream assembly (nightlies should be in releases.yml)",
                             trim: true
                         ),
                         string(
@@ -50,7 +57,7 @@ node {
                         ),
                         booleanParam(
                             name: "DEFAULT_ADVISORIES",
-                            description: "Do not create advisories/jira; pick them up from ocp-build-data",
+                            description: "Do not create advisories/jira; pick them up from ocp-build-data; Do not specify for a non-stream assembly (advisories should be in releases.yml)",
                             defaultValue: false
                         ),
                         booleanParam(
@@ -68,11 +75,16 @@ node {
         stage("initialize") {
             buildlib.initialize()
             buildlib.registry_quay_dev_login()
-            def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.NAME)
-            currentBuild.displayName += " - $params.NAME"
-            if (major >= 4 && !params.NIGHTLIES) {
-                error("For OCP 4 releases, you must provide a list of proposed nightlies.")
+            if (params.NAME) {
+                def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.NAME)
+                currentBuild.displayName += " - $params.NAME"
+                if (major >= 4 && !params.NIGHTLIES) {
+                    error("For OCP 4 releases, you must provide a list of proposed nightlies.")
+                }
+            } else {
+                currentBuild.displayName += " - $params.VERSION - $params.ASSEMBLY"
             }
+
             commonlib.shell(script: "pip install -e ./pyartcd")
         }
         stage ("Notify release channel") {
@@ -84,22 +96,27 @@ node {
         }
 
         stage("prepare release") {
+            sh "mkdir -p ./artcd_working"
             def cmd = [
-                "./pyartcd/prepare_release.py",
+                "artcd",
                 "-vv",
-                "--working-dir=./pyartcd_working",
-                "--config=./config/artcd.toml",
-                params.NAME,
-                "--package-owner",
-                params.PACKAGE_OWNER,
-                "--date",
-                params.DATE
+                "--working-dir=./artcd_working",
+                "--config", "./config/artcd.toml",
             ]
-            if (params.DEFAULT_ADVISORIES) {
-                cmd << "--default-advisories"
-            }
             if (params.DRY_RUN) {
                 cmd << "--dry-run"
+            }
+            cmd += [
+                "prepare-release",
+                "--group", "openshift-${params.VERSION}",
+                "--assembly", params.ASSEMBLY,
+                "--date", params.DATE,
+            ]
+            if (params.NAME) {
+                cmd << "--name" << params.NAME
+            }
+            if (params.DEFAULT_ADVISORIES) {
+                cmd << "--default-advisories"
             }
             if (params.PACKAGE_OWNER)
                 cmd << "--package-owner" << params.PACKAGE_OWNER

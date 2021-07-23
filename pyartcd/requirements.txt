@@ -1,4 +1,7 @@
+aiofiles
 click
 Jinja2
 jira
 toml
+rh-elliott
+ruamel.yaml

@@ -6,12 +6,15 @@ metadata:
     app: "artcd"
 spec:
   params:
+  - name: group
+    description: Group name. e.g. openshift-4.9
+  - name: assembly
+    description: The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)
+    default: "stream"
   - name: release_name
     description: |-
       A unique identifier for the release. The release name should never change.
       In case of bumping a release with the same content, use ‘override_release_name’.
-  # - name: override_release_name
-  #   description: This parameter is used to rename a release. e.g. 4.6.14 -> 4.6.15
   - name: release_date
     description: Expected release date
   - name: nightlies
@@ -27,6 +30,10 @@ spec:
       taskRef:
         name: prepare-release
       params:
+      - name: group
+        value: "$(params.group)"
+      - name: assembly
+        value: "$(params.assembly)"
       - name: release_name
         value: "$(params.release_name)"
       - name: release_date

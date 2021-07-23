@@ -6,12 +6,15 @@ metadata:
     app: "artcd"
 spec:
   params:
+  - name: group
+    description: Group name. e.g. openshift-4.9
+  - name: assembly
+    description: The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)
+    default: "stream"
   - name: release_name
     description: |-
       A unique identifier for the release. The release name should never change.
       In case of bumping a release with the same content, use ‘override_release_name’.
-  # - name: override_release_name
-  #   description: This parameter is used to rename a release. e.g. 4.6.14 -> 4.6.15
   - name: release_date
     description: Expected release date
   - name: nightlies
@@ -29,30 +32,38 @@ spec:
       #!/usr/bin/env python3
       import logging
       import subprocess
+      from pathlib import Path
 
-      from pyartcd.pipelines.prepare_release import main
+      Path("./artcd_working").mkdir(parents=True, exist_ok=True)
+
       subprocess.run(["ls", "-l", "/usr/local/lib/python3.6/site-packages/certifi/"], check=True, universal_newlines=True)
       subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"], check=True, universal_newlines=True)
       args = [
           "-vv",
-          "--working-dir=./pyartcd_working",
+          "--working-dir=./artcd_working",
           "--config=/etc/artcd/artcd.toml",
-          "$(params.release_name)",
-          "--date",
-          "$(params.release_date)",
       ]
+      if "$(params.dry_run)" == "true":
+          args.append("--dry-run")
+      args.extend([
+          "prepare-release",
+          "--group", "$(params.group)",
+          "--assembly", "$(params.assembly)",
+          "--date", "$(params.release_date)",
+      ])
+      release_name = "$(params.release_name)"
+      if release_name:
+          args.extend(["--name", release_name])
       package_owner = "$(params.package_owner)"
       if package_owner:
           args.extend(["--package-owner", package_owner])
-      if "$(params.dry_run)" == "true":
-          args.append("--dry-run")
       nightlies = [nightly.strip() for nightly in "$(params.nightlies)".split(",") if nightly.strip()]
       for nightly in nightlies:
           args.append("--nightly")
           args.append(nightly)
 
-      print(f"Running {args}...")
-      main(args)
+      print(f"Running artcd {args}...")
+      subprocess.run(["artcd"] + args, check=True, universal_newlines=True)
 
     env:
     - name: JIRA_USERNAME

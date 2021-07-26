@@ -2,8 +2,9 @@
 
 node {
     checkout scm
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
-    def commonlib = buildlib.commonlib
+    def release = load("pipeline-scripts/release.groovy")
+    def buildlib = release.buildlib
+    def commonlib = release.commonlib
     commonlib.describeJob("multi_promote", """
         <h2>Kick off multiple promote jobs for selected nightlies</h2>
     """)
@@ -23,9 +24,16 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.ocpVersionParam('VERSION', '4'),  // not used by "stream" assembly
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'The name of an assembly to promote.',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
                     choice(
                         name: 'RELEASE_TYPE',
-                        description: 'Select [1. Standard Release] unless discussed with team lead',
+                        description: 'Select [1. Standard Release] unless discussed with team lead. Not used by non-stream assembly.',
                         choices: [
                                 '1. Standard Release (Named, Signed, Previous, All Channels)',
                                 '2. Release Candidate (Named, Signed, Previous, Candidate Channel)',
@@ -35,12 +43,12 @@ node {
                     ),
                     string(
                         name: "NIGHTLIES",
-                        description: "List of proposed nightlies for each arch, separated by comma",
+                        description: "List of proposed nightlies for each arch, separated by comma. Do not specify for a non-stream assembly.",
                         trim: true
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
-                        description: 'Integer. Do not specify for hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
+                        description: 'Integer. Do not specify for hotfix and non-stream assembly. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
                         trim: true,
                     ),
                     string(
@@ -73,16 +81,29 @@ node {
 
     commonlib.checkMock()
 
-    // some basic validations
-    if (!params.NIGHTLIES) {
-        error("You must provide a list of proposed nightlies.")
-    }
+    String[] nightly_list = []
 
-    nightly_list = params.NIGHTLIES.split("[,\\s]+")
-
-    if (nightly_list.size() != 0) {
+    def (major, minor) = [0, 0]
+    //commonlib.ocpReleaseState
+    if (params.ASSEMBLY && params.ASSEMBLY != "stream") {
+        version = params.VERSION
+        if (!version) {
+            error("You must explicitly specify a VERSION to promote a release for a non-stream assembly.")
+        }
+        (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+        currentBuild.displayName = "${version}: assembly ${params.ASSEMBLY}"
+    } else {
+        // some basic validations
+        if (!params.NIGHTLIES) {
+            error("You must provide a list of proposed nightlies.")
+        }
+        nightly_list = params.NIGHTLIES.split("[,\\s]+")
+        versions = nightly_list.collect{ commonlib.extractMajorMinorVersionNumbers(it) }
+        if (versions.toSet().size() != 1) {
+            error("Nightlies belong to different OCP versions.")
+        }
+        (major, minor) = versions[0]
         release_offset = params.RELEASE_OFFSET?params.RELEASE_OFFSET.toInteger():0
-        def (major, minor) = commonlib.extractMajorMinorVersionNumbers(nightly_list[0])
         if (params.RELEASE_TYPE.startsWith('1.')) { // Standard X.Y.Z release
             release_name = "${major}.${minor}.${release_offset}"
         } else if (params.RELEASE_TYPE.startsWith('2.')) { // Release candidate (after code freeze)
@@ -95,28 +116,32 @@ node {
         }
         currentBuild.displayName = release_name
     }
-    
-    s390x_index = nightly_list.findIndexOf { it.contains("s390x") }
-    power_index = nightly_list.findIndexOf { it.contains("ppc64le") }
-    x86_index = nightly_list.findIndexOf { !it.contains("s390x") && !it.contains("ppc64le") }
 
-    if (s390x_index == -1 || power_index == -1 || x86_index == -1) {
-        def resp = input(
-            message: "Something doesn't seem right. Job expects 3 nightlies of each arch. Do you still want to proceed with given nightlies $nightly_list ?",
-            parameters: [
-                booleanParam(
-                    name: 'PROCEED',
-                    defaultValue: false,
-                    description: "Are you sure to proceed with the given nightlies?"
-                )
-            ]
-        )
-        if (!resp) {
-            error("Aborting.")
+    def arches = commonlib.ocpReleaseState["${major}.${minor}"]?.release
+    def archNightlyMap = nightly_list.collectEntries {[release.getReleaseTagArchPriv(it)[0], it]}  // key is arch, value is nightly
+
+    if (nightly_list) {
+        // Assert nightly_list is complete
+        if (archNightlyMap.keySet() != arches.toSet()) {
+            def resp = input(
+                message: "Something doesn't seem right. Job expects one nightly of each arch. Do you still want to proceed with given nightlies $nightly_list?",
+                parameters: [
+                    booleanParam(
+                        name: 'PROCEED',
+                        defaultValue: false,
+                        description: "Are you sure to proceed with the given nightlies?"
+                    )
+                ]
+            )
+            if (!resp) {
+                error("Aborting.")
+            }
         }
     }
 
     common_params = [
+        buildlib.param('String','VERSION', params.VERSION),
+        buildlib.param('String','ASSEMBLY', params.ASSEMBLY),
         buildlib.param('String','RELEASE_TYPE', params.RELEASE_TYPE),
         buildlib.param('String','RELEASE_OFFSET', params.RELEASE_OFFSET),
         buildlib.param('String','IN_FLIGHT_PREV', params.IN_FLIGHT_PREV),
@@ -129,56 +154,23 @@ node {
 
     promote_job_location = 'build%2Fpromote'
 
-    parallel(
-        "x86_64": {
-            stage("x86_64") {
-                if (x86_index != -1) {
+    parallel(arches.collectEntries { arch ->
+        [arch, {
+            stage(arch) {
                     def params = common_params.clone()
-                    nightly = nightly_list[x86_index]
-                    params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
-                    
+                    nightly = archNightlyMap[arch]
+                    params << buildlib.param('String','FROM_RELEASE_TAG', nightly?: "")
+                    params << buildlib.param('String','ARCH', arch)
+
                     build(
                         job: promote_job_location,
-                        propagate: false,
+                        propagate: true,
                         parameters: params
                     )
-                    currentBuild.description += "<br>triggered promote: ${nightly}"
-                }
+                    currentBuild.description += "<br>triggered promote: ${arch}"
             }
-        },
-        "s390x": {
-            stage("s390x") {
-                if (s390x_index != -1) {
-                    def params = common_params.clone()
-                    nightly = nightly_list[s390x_index]
-                    params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
-                    
-                    build(
-                        job: promote_job_location,
-                        propagate: false,
-                        parameters: params
-                    )
-                    currentBuild.description += "<br>triggered promote: ${nightly}"    
-                }
-            }
-        },
-        "ppc64le": {
-            stage("ppc64le") {
-                if (power_index != -1) {
-                    def params = common_params.clone()
-                    nightly = nightly_list[power_index]
-                    params << buildlib.param('String','FROM_RELEASE_TAG', nightly)
-                    
-                    build(
-                        job: promote_job_location,
-                        propagate: false,
-                        parameters: params
-                    )
-                    currentBuild.description += "<br>triggered promote: ${nightly}"
-                }
-            }
-        }
-    )
-    
+        }]
+    })
+
     buildlib.cleanWorkspace()
 }

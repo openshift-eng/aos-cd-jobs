@@ -140,20 +140,14 @@ class PrepareReleasePipeline:
             _LOGGER.info("Created advisories: %s", advisories)
 
             _LOGGER.info("Saving the advisories to ocp-build-data...")
-            await self.save_advisories(advisories)
+            advisories_changed = await self.save_advisories(advisories)
 
-            _LOGGER.info("Sending an Errata live ID request email...")
-            self.send_live_id_request_mail(advisories)
+            if advisories_changed:
+                _LOGGER.info("Sending an Errata live ID request email...")
+                self.send_live_id_request_mail(advisories)
 
             _LOGGER.info("Creating a release JIRA...")
             jira_issues = self.create_release_jira(advisories)
-
-            _LOGGER.info("Sending a notification to QE and multi-arch QE:")
-            if self.dry_run:
-                jira_issue_link = "https://jira.example.com/browse/FOO-1"
-            else:
-                jira_issue_link = jira_issues[0].permalink()
-            self.send_notification_email(advisories, jira_issue_link)
 
             _LOGGER.info("Adding placeholder bugs to the advisories...")
             for kind, advisory in advisories.items():
@@ -196,6 +190,13 @@ class PrepareReleasePipeline:
             _LOGGER.info("Verify the swept builds match the nightlies...")
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
+
+        _LOGGER.info("Sending a notification to QE and multi-arch QE:")
+        if self.dry_run:
+            jira_issue_link = "https://jira.example.com/browse/FOO-1"
+        else:
+            jira_issue_link = jira_issues[0].permalink()
+        self.send_notification_email(advisories, jira_issue_link)
 
     async def load_releases_config(self) -> Dict:
         repo = self.working_dir / "ocp-build-data-push"
@@ -246,6 +247,9 @@ class PrepareReleasePipeline:
             "--exclude-status=ON_QA",
             "--report"
         ]
+        if self.runtime.dry_run:
+            _LOGGER.warning("[DRY RUN] Would have run %s", cmd)
+            return
         _LOGGER.debug("Running command: %s", cmd)
         result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True, universal_newlines=True, cwd=self.working_dir)
         _LOGGER.info(result.stdout)
@@ -337,8 +341,12 @@ class PrepareReleasePipeline:
         await exectools.cmd_assert_async(cmd)
         cmd = ["git", "-C", str(repo), "add", "."]
         await exectools.cmd_assert_async(cmd)
-        cmd = ["git", "-C", str(repo), "commit", "-m",
-               f"Prepare release {self.release_name}"]
+        cmd = ["git", "-C", str(repo), "diff-index", "--quiet", "HEAD"]
+        rc = await exectools.cmd_assert_async(cmd, check=False)
+        if rc == 0:
+            _LOGGER.warn("Skip saving advisories: No changes.")
+            return False
+        cmd = ["git", "-C", str(repo), "commit", "-m", f"Prepare release {self.release_name}"]
         await exectools.cmd_assert_async(cmd)
         if not self.dry_run:
             _LOGGER.info("Pushing changes to upstream...")
@@ -347,6 +355,7 @@ class PrepareReleasePipeline:
         else:
             _LOGGER.warn("Would have run %s", cmd)
             _LOGGER.warn("Would have pushed changes to upstream")
+        return True
 
     def create_and_attach_placeholder_bug(self, kind: str, advisory: int):
         cmd = [

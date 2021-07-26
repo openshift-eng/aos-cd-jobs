@@ -24,8 +24,8 @@ node('covscan') {
         [
             buildDiscarder(
                 logRotator(
-                    artifactDaysToKeepStr: '2',
-                    daysToKeepStr: '2'
+                    artifactDaysToKeepStr: '20',
+                    daysToKeepStr: '20'
                 )
             ),
             [

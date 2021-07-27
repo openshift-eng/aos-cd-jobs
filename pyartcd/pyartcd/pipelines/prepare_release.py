@@ -146,9 +146,6 @@ class PrepareReleasePipeline:
                 _LOGGER.info("Sending an Errata live ID request email...")
                 self.send_live_id_request_mail(advisories)
 
-            _LOGGER.info("Creating a release JIRA...")
-            jira_issues = self.create_release_jira(advisories)
-
             _LOGGER.info("Adding placeholder bugs to the advisories...")
             for kind, advisory in advisories.items():
                 # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
@@ -161,6 +158,9 @@ class PrepareReleasePipeline:
                 ):
                     continue
                 self.create_and_attach_placeholder_bug(kind, advisory)
+
+        _LOGGER.info("Creating a release JIRA...")
+        jira_issues = self.create_release_jira(advisories)
 
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():

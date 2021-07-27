@@ -1542,6 +1542,7 @@ def get_owners(doozerOpts, images, rpms=[]) {
 }
 
 def get_releases_config(String group) {
+    // FIXME: This method doesn't handle assembly inheritance.
     def r = httpRequest(
         url: "https://raw.githubusercontent.com/openshift/ocp-build-data/${URLEncoder.encode(group, 'utf-8')}/releases.yml",
         httpMode: 'GET',

@@ -1,20 +1,26 @@
-import argparse
 import json
-import yaml
 import logging
 import os
 import re
 import shutil
 import subprocess
-from subprocess import PIPE
-from argparse import ArgumentError
+from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from subprocess import PIPE
+from typing import Dict, List, Optional, Tuple
+from urllib.parse import quote
 
+import aiofiles
+import click
 import jinja2
-import toml
+from elliottlib.assembly import assembly_group_config
+from elliottlib.model import Model
+from pyartcd import exectools
+from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.jira import JIRAClient
 from pyartcd.mail import MailService
+from pyartcd.runtime import Runtime
+from ruamel.yaml import YAML
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,94 +28,126 @@ _LOGGER = logging.getLogger(__name__)
 class PrepareReleasePipeline:
     def __init__(
         self,
-        name: str,
+        runtime: Runtime,
+        group: Optional[str],
+        assembly: Optional[str],
+        name: Optional[str],
         date: str,
         nightlies: List[str],
         package_owner: str,
-        config: Dict[str, Any],
-        working_dir: str,
         jira_username: str,
         jira_password: str,
         default_advisories: bool = False,
-        dry_run: bool = False,
     ) -> None:
         _LOGGER.info("Initializing and verifying parameters...")
-        self.config = config
-        self.release_name = name
-        self.release_date = date
-        self.package_owner = package_owner or self.config["advisory"]["package_owner"]
-        self.working_dir = Path(working_dir).absolute()
-        self.default_advisories = default_advisories
-        self.dry_run = dry_run
-        self.release_version = tuple(map(int, self.release_name.split(".", 2)))
-        self.group_name = (
-            f"openshift-{self.release_version[0]}.{self.release_version[1]}"
-        )
+        self.runtime = runtime
+        self.assembly = assembly or "stream"
+        self.release_name = None
+        group_match = None
+        if group:
+            group_match = re.fullmatch(r"openshift-(\d+).(\d)", group)
+            if not group_match:
+                raise ValueError(f"Invalid group name: {group}")
+        self.group_name = group
         self.candidate_nightlies = {}
-        if self.release_version[0] < 4 and nightlies:
-            _LOGGER.warn("No nightly needed for OCP3 releases")
-        if self.release_version[0] >= 4 and not nightlies:
-            raise ArgumentError("You need to specify at least one nightly.")
-        for nightly in nightlies:
-            if "s390x" in nightly:
-                arch = "s390x"
-            elif "ppc64le" in nightly:
-                arch = "ppc64le"
-            elif "arm64" in nightly:
-                arch = "aarch64"
-            else:
-                arch = "x86_64"
-            if ":" not in nightly:
-                # prepend pullspec URL to nightly name
-                # TODO: proper translation facility between brew and go arch nomenclature
-                arch_suffix = "" if arch == "x86_64" else "-arm64" if arch == "aarch64" else "-" + arch
-                nightly = f"registry.ci.openshift.org/ocp{arch_suffix}/release{arch_suffix}:{nightly}"
-            self.candidate_nightlies[arch] = nightly
+        if self.assembly == "stream":
+            if not name:
+                raise ValueError("Release name is required to prepare a release from stream assembly.")
+            self.release_name = name
+            self.release_version = tuple(map(int, name.split(".", 2)))
+            if group and group != f"openshift-{self.release_version[0]}.{self.release_version[1]}":
+                raise ValueError(f"Group name {group} doesn't match release name {name}")
+            if self.release_version[0] < 4 and nightlies:
+                raise ValueError("No nightly needed for OCP3 releases")
+            if self.release_version[0] >= 4 and not nightlies:
+                raise ValueError("You need to specify at least one nightly.")
+            self.candidate_nightlies = self.parse_nighties(nightlies)
+        else:
+            if name:
+                raise ValueError("Release name cannot be set for a non-stream assembly.")
+            if nightlies:
+                raise ValueError("Nightlies cannot be specified in job parameter for a non-stream assembly.")
+            if not group_match:
+                raise ValueError("A valid group is required to prepare a release for a non-stream assembly.")
+            self.release_version = (int(group_match[1]), int(group_match[2]), 0)
+            if default_advisories:
+                raise ValueError("default_advisories cannot be set for a non-stream assembly.")
+
+        self.release_date = date
+        self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
+        self.working_dir = self.runtime.working_dir.absolute()
+        self.default_advisories = default_advisories
+        self.dry_run = self.runtime.dry_run
         self.elliott_working_dir = self.working_dir / "elliott-working"
-        self._jira_client = JIRAClient.from_url(config["jira"]["url"], (jira_username, jira_password))
-        self.mail = MailService.from_config(config)
+        self._jira_client = JIRAClient.from_url(self.runtime.config["jira"]["url"], (jira_username, jira_password))
+        self.mail = MailService.from_config(self.runtime.config)
 
-    def run(self):
+    async def run(self):
         self.working_dir.mkdir(parents=True, exist_ok=True)
+        build_data_repo = self.working_dir / "ocp-build-data-push"
+        shutil.rmtree(build_data_repo, ignore_errors=True)
 
-        _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
-        self.check_blockers()
+        release_config = None
+        group_config = await self.load_group_config()
+
+        if self.assembly != "stream":
+            releases_config = await self.load_releases_config()
+            release_config = releases_config.get("releases", {}).get(self.assembly)
+            if not release_config:
+                raise ValueError(f"Assembly {self.assembly} is not defined in releases.yml for group {self.group_name}.")
+            group_config = assembly_group_config(Model(releases_config), self.assembly, Model(group_config)).primitive()
+            asssembly_type = release_config.get("assembly", {}).get("type", "standard")
+            if asssembly_type == "standard":
+                self.release_name = self.assembly
+                self.release_version = tuple(map(int, self.release_name.split(".", 2)))
+            elif asssembly_type == "custom":
+                self.release_name = f"{self.release_version[0]}.{self.release_version[1]}.0-assembly.{self.assembly}"
+            elif asssembly_type == "candidate":
+                self.release_name = f"{self.release_version[0]}.{self.release_version[1]}.0-{self.assembly}"
+            nightlies = release_config.get("assembly", {}).get("basis", {}).get("reference_releases", {}).values()
+            self.candidate_nightlies = self.parse_nighties(nightlies)
+
+        if release_config and asssembly_type != "standard":
+            _LOGGER.warning("No need to check Blocker Bugs for assembly %s", self.assembly)
+        else:
+            _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
+            self.check_blockers()
+
+        advisories = {}
 
         if self.default_advisories:
-            advisories = self.get_advisories()
+            advisories = group_config.get("advisories", {})
         else:
             _LOGGER.info("Creating advisories for release %s...", self.release_name)
-            advisories = {}
+            if release_config:
+                advisories = group_config.get("advisories", {})
 
             if self.release_version[2] == 0:  # GA release
-                advisories["rpm"] = self.create_advisory("RHEA", "rpm", "ga")
-                advisories["image"] = self.create_advisory("RHEA", "image", "ga")
+                if advisories.get("rpm", 0) <= 0:
+                    advisories["rpm"] = self.create_advisory("RHEA", "rpm", "ga")
+                if advisories.get("image", 0) <= 0:
+                    advisories["image"] = self.create_advisory("RHEA", "image", "ga")
             else:  # z-stream release
-                advisories["rpm"] = self.create_advisory("RHBA", "rpm", "standard")
-                advisories["image"] = self.create_advisory(
-                    "RHBA", "image", "standard")
+                if advisories.get("rpm", 0) <= 0:
+                    advisories["rpm"] = self.create_advisory("RHBA", "rpm", "standard")
+                if advisories.get("image", 0) <= 0:
+                    advisories["image"] = self.create_advisory("RHBA", "image", "standard")
             if self.release_version[0] > 3:
-                advisories["extras"] = self.create_advisory(
-                    "RHBA", "image", "extras")
-                advisories["metadata"] = self.create_advisory(
-                    "RHBA", "image", "metadata")
+                if advisories.get("extras", 0) <= 0:
+                    advisories["extras"] = self.create_advisory("RHBA", "image", "extras")
+                if advisories.get("metadata", 0) <= 0:
+                    advisories["metadata"] = self.create_advisory("RHBA", "image", "metadata")
             _LOGGER.info("Created advisories: %s", advisories)
 
             _LOGGER.info("Saving the advisories to ocp-build-data...")
-            self.save_advisories(advisories)
+            advisories_changed = await self.save_advisories(advisories)
 
-            _LOGGER.info("Sending an Errata live ID request email...")
-            self.send_live_id_request_mail(advisories)
+            if advisories_changed:
+                _LOGGER.info("Sending an Errata live ID request email...")
+                self.send_live_id_request_mail(advisories)
 
             _LOGGER.info("Creating a release JIRA...")
             jira_issues = self.create_release_jira(advisories)
-
-            _LOGGER.info("Sending a notification to QE and multi-arch QE:")
-            if self.dry_run:
-                jira_issue_link = "https://jira.example.com/browse/FOO-1"
-            else:
-                jira_issue_link = jira_issues[0].permalink()
-            self.send_notification_email(advisories, jira_issue_link)
 
             _LOGGER.info("Adding placeholder bugs to the advisories...")
             for kind, advisory in advisories.items():
@@ -153,16 +191,65 @@ class PrepareReleasePipeline:
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
 
+        _LOGGER.info("Sending a notification to QE and multi-arch QE:")
+        if self.dry_run:
+            jira_issue_link = "https://jira.example.com/browse/FOO-1"
+        else:
+            jira_issue_link = jira_issues[0].permalink()
+        self.send_notification_email(advisories, jira_issue_link)
+
+    async def load_releases_config(self) -> Dict:
+        repo = self.working_dir / "ocp-build-data-push"
+        if not repo.exists():
+            await self.clone_build_data(repo)
+        async with aiofiles.open(repo / "releases.yml", "r") as f:
+            content = await f.read()
+        yaml = YAML(typ="safe")
+        return yaml.load(content)
+
+    async def load_group_config(self) -> Dict:
+        repo = self.working_dir / "ocp-build-data-push"
+        if not repo.exists():
+            await self.clone_build_data(repo)
+        async with aiofiles.open(repo / "group.yml", "r") as f:
+            content = await f.read()
+        yaml = YAML(typ="safe")
+        return yaml.load(content)
+
+    @classmethod
+    def parse_nighties(cls, nighty_tags: List[str]) -> Dict[str, str]:
+        arch_nightlies = {}
+        for nightly in nighty_tags:
+            if "s390x" in nightly:
+                arch = "s390x"
+            elif "ppc64le" in nightly:
+                arch = "ppc64le"
+            elif "arm64" in nightly:
+                arch = "aarch64"
+            else:
+                arch = "x86_64"
+            if ":" not in nightly:
+                # prepend pullspec URL to nightly name
+                # TODO: proper translation facility between brew and go arch nomenclature
+                arch_suffix = "" if arch == "x86_64" else "-arm64" if arch == "aarch64" else "-" + arch
+                nightly = f"registry.ci.openshift.org/ocp{arch_suffix}/release{arch_suffix}:{nightly}"
+            arch_nightlies[arch] = nightly
+        return arch_nightlies
+
     def check_blockers(self):
         cmd = [
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
+            "--assembly", self.assembly,
             "find-bugs",
             "--mode=blocker",
             "--exclude-status=ON_QA",
             "--report"
         ]
+        if self.runtime.dry_run:
+            _LOGGER.warning("[DRY RUN] Would have run %s", cmd)
+            return
         _LOGGER.debug("Running command: %s", cmd)
         result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True, universal_newlines=True, cwd=self.working_dir)
         _LOGGER.info(result.stdout)
@@ -175,12 +262,13 @@ class PrepareReleasePipeline:
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
+            "--assembly", self.assembly,
             "create",
             f"--type={type}",
             f"--kind={kind}",
             f"--impetus={impetus}",
-            f"--assigned-to={self.config['advisory']['assigned_to']}",
-            f"--manager={self.config['advisory']['manager']}",
+            f"--assigned-to={self.runtime.config['advisory']['assigned_to']}",
+            f"--manager={self.runtime.config['advisory']['manager']}",
             f"--package-owner={self.package_owner}",
             f"--date={self.release_date}",
         ]
@@ -198,87 +286,83 @@ class PrepareReleasePipeline:
         advisory_num = int(match[1])
         return advisory_num
 
-    def get_advisories(self) -> Dict[str, int]:
-        repo = self.working_dir / "ocp-build-data-push"
-        shutil.rmtree(repo, ignore_errors=True)
+    async def clone_build_data(self, local_path: Path):
+        shutil.rmtree(local_path, ignore_errors=True)
         # shallow clone ocp-build-data
         cmd = [
             "git",
             "-C",
-            self.working_dir,
+            str(self.working_dir),
             "clone",
             "-b",
             self.group_name,
             "--depth=1",
-            self.config["build_config"]["ocp_build_data_repo_push_url"],
-            "ocp-build-data-push",
+            self.runtime.config["build_config"]["ocp_build_data_repo_push_url"],
+            str(local_path),
         ]
         _LOGGER.debug("Running command: %s", cmd)
-        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+        await exectools.cmd_assert_async(cmd)
 
-        # update advisory numbers
-        with open(repo / "group.yml", "r") as f:
-            group_config = yaml.load(f, Loader=yaml.FullLoader)
-
-        advisories = group_config["advisories"]
-        try:
-            for key, val in advisories.items():
-                advisories[key] = int(val)
-        except Exception as ex:
-            raise ValueError(f"Error parsing advisories from group.yml: {ex}")
-
-        return advisories
-
-    def save_advisories(self, advisories: Dict[str, int]):
+    async def save_advisories(self, advisories: Dict[str, int]):
         if not advisories:
             return
         repo = self.working_dir / "ocp-build-data-push"
-        shutil.rmtree(repo, ignore_errors=True)
-        # shallow clone ocp-build-data
-        cmd = [
-            "git",
-            "-C",
-            self.working_dir,
-            "clone",
-            "-b",
-            self.group_name,
-            "--depth=1",
-            self.config["build_config"]["ocp_build_data_repo_push_url"],
-            "ocp-build-data-push",
-        ]
-        _LOGGER.debug("Running command: %s", cmd)
-        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
-        # update advisory numbers
-        with open(repo / "group.yml", "r") as f:
-            group_config = f.read()
-        for kind, advisory in advisories.items():
-            new_group_config = re.sub(
-                fr"^(\s+{kind}:)\s*[0-9]+$", fr"\1 {advisory}", group_config, count=1, flags=re.MULTILINE
-            )
-            group_config = new_group_config
-        # freeze automation
-        group_config = re.sub(r"^freeze_automation:.*", "freeze_automation: scheduled", group_config, count=1, flags=re.MULTILINE)
-        # update group.yml
-        with open(repo / "group.yml", "w") as f:
-            f.write(group_config)
-        cmd = ["git", "-C", repo, "add", "."]
-        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
-        cmd = ["git", "-C", repo, "commit", "-m",
-               "Update advisories and freeze automation on group.yml"]
-        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+        if not repo.exists():
+            await self.clone_build_data(repo)
+
+        if not self.assembly or self.assembly == "stream":
+            # update advisory numbers in group.yml
+            with open(repo / "group.yml", "r") as f:
+                group_config = f.read()
+            for kind, advisory in advisories.items():
+                new_group_config = re.sub(
+                    fr"^(\s+{kind}:)\s*[0-9]+$", fr"\1 {advisory}", group_config, count=1, flags=re.MULTILINE
+                )
+                group_config = new_group_config
+            # freeze automation
+            group_config = re.sub(r"^freeze_automation:.*", "freeze_automation: scheduled", group_config, count=1, flags=re.MULTILINE)
+            # update group.yml
+            with open(repo / "group.yml", "w") as f:
+                f.write(group_config)
+        else:
+            # update releases.yml (if we are operating on a non-stream assembly)
+            yaml = YAML(typ="rt")
+            yaml.preserve_quotes = True
+            async with aiofiles.open(repo / "releases.yml", "r") as f:
+                old = await f.read()
+            releases_config = yaml.load(old)
+            releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("group", {})["advisories"] = advisories
+            out = StringIO()
+            yaml.dump(releases_config, out)
+            async with aiofiles.open(repo / "releases.yml", "w") as f:
+                await f.write(out.getvalue())
+
+        cmd = ["git", "-C", str(repo), "--no-pager", "diff"]
+        await exectools.cmd_assert_async(cmd)
+        cmd = ["git", "-C", str(repo), "add", "."]
+        await exectools.cmd_assert_async(cmd)
+        cmd = ["git", "-C", str(repo), "diff-index", "--quiet", "HEAD"]
+        rc = await exectools.cmd_assert_async(cmd, check=False)
+        if rc == 0:
+            _LOGGER.warn("Skip saving advisories: No changes.")
+            return False
+        cmd = ["git", "-C", str(repo), "commit", "-m", f"Prepare release {self.release_name}"]
+        await exectools.cmd_assert_async(cmd)
         if not self.dry_run:
             _LOGGER.info("Pushing changes to upstream...")
-            cmd = ["git", "-C", repo, "push", "origin", self.group_name]
-            subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+            cmd = ["git", "-C", str(repo), "push", "origin", self.group_name]
+            await exectools.cmd_assert_async(cmd)
         else:
             _LOGGER.warn("Would have run %s", cmd)
             _LOGGER.warn("Would have pushed changes to upstream")
+        return True
 
     def create_and_attach_placeholder_bug(self, kind: str, advisory: int):
         cmd = [
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
+            "--assembly", self.assembly,
             "create-placeholder",
             f"--kind={kind}",
             f"--attach={advisory}",
@@ -300,6 +384,7 @@ class PrepareReleasePipeline:
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
+            "--assembly", self.assembly,
             "find-bugs",
             "--mode=sweep",
         ]
@@ -325,6 +410,7 @@ class PrepareReleasePipeline:
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
+            "--assembly", self.assembly,
             "find-builds",
             f"--kind={kind}",
         ]
@@ -342,6 +428,7 @@ class PrepareReleasePipeline:
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
+            "--assembly", self.assembly,
             "change-state",
             "-s",
             state,
@@ -359,6 +446,7 @@ class PrepareReleasePipeline:
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
+            "--assembly", self.assembly,
             "verify-payload",
             f"{pullspec}",
             f"{advisory}",
@@ -381,7 +469,7 @@ Please fix advisories and nightlies to match each other, manually verify them wi
 update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 
     def create_release_jira(self, advisories: Dict[str, int]):
-        template_issue_key = self.config["jira"]["templates"][f"ocp{self.release_version[0]}"]
+        template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]
 
         _LOGGER.info("Creating release JIRA from template %s...",
                      template_issue_key)
@@ -434,7 +522,7 @@ This is the current set of advisories we intend to ship:
             )
 
         email_dir = self.working_dir / "email"
-        self.mail.send_mail(self.config["email"]["live_id_request_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
+        self.mail.send_mail(self.runtime.config["email"]["live_id_request_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
 
     def send_notification_email(self, advisories: Dict[str, int], jira_link: str):
         subject = f"OCP {self.release_name} advisories and nightlies"
@@ -451,48 +539,28 @@ This is the current set of advisories we intend to ship:
         content += "Note: Advisories are still being prepared, it may take a while before bugs and builds appear.\n"
         content += "\nThanks.\n"
         email_dir = self.working_dir / "email"
-        self.mail.send_mail(self.config["email"]["prepare_release_notification_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
+        self.mail.send_mail(self.runtime.config["email"]["prepare_release_notification_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
 
 
-def main(args):
-    # parse command line arguments
-    parser = argparse.ArgumentParser("prepare-release")
-    parser.add_argument("name", help="release name (e.g. 4.6.42)")
-    parser.add_argument(
-        "--date", required=True, help="expected release date (e.g. 2020-11-25)"
-    )
-    parser.add_argument(
-        "--nightly",
-        dest="nightlies",
-        action="append",
-        default=[],
-        help="[MULTIPLE] candidate nightly",
-    )
-    parser.add_argument(
-        "--package-owner",
-        default="lmeyer@redhat.com",
-        help="Must be an individual email address; may be anyone who wants random advisory spam",
-    )
-    parser.add_argument("-c", "--config", required=True,
-                        help="configuration file")
-    parser.add_argument(
-        "-C", "--working-dir", default=".", help="set working directory"
-    )
-    parser.add_argument(
-        "-v", "--verbosity", action="count", help="[MULTIPLE] increase output verbosity"
-    )
-    parser.add_argument(
-        "--default-advisories",
-        action="store_true",
-        help="don't create advisories/jira; pick them up from ocp-build-data",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="don't actually prepare a new release; just print what would be done",
-    )
-    opts = parser.parse_args(args)
-
+@cli.command("prepare-release")
+@click.option("-g", "--group", metavar='NAME', required=True,
+              help="The group of components on which to operate. e.g. openshift-4.9")
+@click.option("--assembly", metavar="ASSEMBLY_NAME", required=True, default="stream",
+              help="The name of an assembly to rebase & build for. e.g. 4.9.1")
+@click.option("--name", metavar="RELEASE_NAME",
+              help="release name (e.g. 4.6.42)")
+@click.option("--date", metavar="YYYY-MMM-DD", required=True,
+              help="Expected release date (e.g. 2020-11-25)")
+@click.option("--package-owner", metavar='EMAIL',
+              help="Advisory package owner; Must be an individual email address; May be anyone who wants random advisory spam")
+@click.option("--nightly", "nightlies", metavar="TAG", multiple=True,
+              help="[MULTIPLE] Candidate nightly")
+@click.option("--default-advisories", is_flag=True,
+              help="don't create advisories/jira; pick them up from ocp-build-data")
+@pass_runtime
+@click_coroutine
+async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
+                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool):
     # parse environment variables for credentials
     jira_username = os.environ.get("JIRA_USERNAME")
     jira_password = os.environ.get("JIRA_PASSWORD")
@@ -500,31 +568,17 @@ def main(args):
         raise ValueError("JIRA_USERNAME environment variable is not set")
     if not jira_password:
         raise ValueError("JIRA_PASSWORD environment variable is not set")
-
-    # configure logging
-    if not opts.verbosity:
-        logging.basicConfig(level=logging.WARNING)
-    elif opts.verbosity == 1:
-        logging.basicConfig(level=logging.INFO)
-    elif opts.verbosity >= 2:
-        logging.basicConfig(level=logging.DEBUG)
-
-    # parse configuration file
-    with open(opts.config, "r") as config_file:
-        config = toml.load(config_file)
-
     # start pipeline
     pipeline = PrepareReleasePipeline(
-        name=opts.name,
-        date=opts.date,
-        nightlies=opts.nightlies,
-        package_owner=opts.package_owner,
-        config=config,
-        working_dir=opts.working_dir,
+        runtime=runtime,
+        group=group,
+        assembly=assembly,
+        name=name,
+        date=date,
+        nightlies=nightlies,
+        package_owner=package_owner,
         jira_username=jira_username,
         jira_password=jira_password,
-        default_advisories=opts.default_advisories,
-        dry_run=opts.dry_run,
+        default_advisories=default_advisories,
     )
-    pipeline.run()
-    return 0
+    await pipeline.run()

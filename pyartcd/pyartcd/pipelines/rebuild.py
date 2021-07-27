@@ -47,7 +47,7 @@ class RebuildPipeline:
         # determines OCP version
         match = re.fullmatch(r"openshift-(\d+).(\d)", group)
         if not match:
-            raise ValueError(f"Invalid group name: {match}")
+            raise ValueError(f"Invalid group name: {group}")
         self._ocp_version = (int(match[1]), int(match[2]))
 
         # sets environment variables for Doozer

@@ -377,6 +377,7 @@ node {
 
                         def acquire_failure = ''
                         def suggest_previous = ''
+                        def in_flight_prev = ''
                         try {
                             suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${release_name}", [capture: true])
                             echo "Doozer suggested: ${suggest_previous}"
@@ -388,6 +389,7 @@ node {
                         prevMinor = minor - 1
                         in_flight_prev_required = true
                         if (params.IN_FLIGHT_PREV.toUpperCase() == 'SKIP') {
+                            previousList = commonlib.parseList(suggest_previous)
                             print("Skipping asking for in_flight_prev")
                             in_flight_prev_required = false
                             in_flight_prev = ""
@@ -395,6 +397,7 @@ node {
                             in_flight_prev = params.IN_FLIGHT_PREV.trim()
                             valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
                             if (valid) {
+                                previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
                                 print("Proceeding with given in_flight_prev: $in_flight_prev")
                                 in_flight_prev_required = false
                             } else {

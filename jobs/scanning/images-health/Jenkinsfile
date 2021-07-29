@@ -1,5 +1,3 @@
-
-
 node() {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -58,5 +56,32 @@ node() {
             currentBuild.result = "FAILURE"
             throw exception  // gets us a stack trace FWIW
         }
-    }
+
+        Date today = new Date();
+        Calendar c = Calendar.getInstance();
+        c.setTime(today);
+        if (c.get(Calendar.DAY_OF_WEEK) == 2 ) {  // to avoid spam message only check once on Mon
+            withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GIT_TOKEN')]) {
+                slackChannel = slacklib.to(BUILD_VERSION)
+                try {
+                    report = buildlib.doozer("${doozerOpts} images:upstreampulls", [capture: true]).trim()
+                    if (report) {
+                        echo "The report:\n${report}"
+                        if (params.SEND_TO_SLACK) {
+                            slackChannel.say(":scroll: Howdy! Some upstream prs are still open for ${group}\n${report}")
+                        }
+                    } else {
+                        echo "There are open pr left."
+                        if (params.SEND_TO_SLACK) {
+                            slackChannel.say(":scroll: All prs are merged for ${group}")
+                        }
+                    }
+                } catch (exception) {
+                    slackChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
+                    currentBuild.result = "FAILURE"
+                    throw exception  // gets us a stack trace FWIW
+                }
+            }
+
+        }
 }

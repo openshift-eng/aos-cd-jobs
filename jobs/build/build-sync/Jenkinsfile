@@ -66,17 +66,10 @@ node {
                                             defaultValue: "",
                                             trim: true,
                                     ),
-                                    string(
-                                            name        : 'ORGANIZATION',
-                                            description : 'Quay.io organization to mirror to (do not change)',
-                                            defaultValue: "openshift-release-dev",
-                                            trim: true,
-                                    ),
-                                    string(
-                                            name        : 'REPOSITORY',
-                                            description : 'Quay.io repository to mirror to (do not change)',
-                                            defaultValue: "ocp-v4.0-art-dev",
-                                            trim: true,
+                                    booleanParam(
+                                            name        : 'EMERGENCY_IGNORE_ISSUES',
+                                            description : 'Ignore all issues with constructing payload. Do not use without approval.',
+                                            defaultValue: false,
                                     ),
                             ],
                     ]

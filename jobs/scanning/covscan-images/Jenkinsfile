@@ -161,6 +161,7 @@ enabled_metadata=1
                 error('No covscan records were created by doozer')
             }
 
+            unwaived_count = 0
             for ( int i = 0; i < covscan_records.size(); i++ ) {
                 def record = covscan_records[i]
                 def distgit = record['distgit']
@@ -190,7 +191,6 @@ enabled_metadata=1
                 def diff_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html"
                 def diff_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.js"
 
-                unwaived_count = 0
                 if ( record['diff_count'] != '0' ) {
                     // Gather the types of issues recorded in the scan
                     unwaived_count++
@@ -278,14 +278,9 @@ Results have been printed above and archived in this job. To submit them to prod
 - Categorization
   - Category: Product Security
   - Topic: Support/Information Request
-- Short description should include how many flaws were found and what is
-  the maximum severity if they can determine that.
-  E.g.: "4 probable flaws found in OpenShift (max severity Important)"
-- The Description (body) of the ticket should contain as much contextual
-  information as possible about the probable flaws, so that the Incoming
-  engineers can do a first look without having to go through many links.
-  Links to commits and other information are obviously fine and needed,
-  but the body of the ticket should not be just a list of links.
+- Short description "OpenShift 4.Y Feature Freeze Coverity Scan Results"
+- The Description (body) of the ticket be the pasted content of the Jenkins
+  "prodsec-report.txt" artifact.
 - The ticket should come from an address of an actual person or team, so
   that Incoming can respond back with further clarification questions if
   needed.

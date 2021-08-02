@@ -33,6 +33,7 @@ node {
                                     commonlib.suppressEmailParam(),
                                     commonlib.mockParam(),
                                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                                    commonlib.doozerParam(),
                                     string(
                                         name: 'ASSEMBLY',
                                         description: 'The name of an assembly to sync.',

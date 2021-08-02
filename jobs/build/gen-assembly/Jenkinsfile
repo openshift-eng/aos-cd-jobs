@@ -58,7 +58,7 @@ node {
                 for (nightly in params.NIGHTLIES.split(',')) {
                     nightly_args += " --nightly ${nightly.trim()}"
                 }
-                cmd = "--group openshift-${BUILD_VERSION} release:gen-assembly --name ${ASSEMBLY_NAME} from-nightlies ${nightly_args}"
+                cmd = "--group openshift-${BUILD_VERSION} release:gen-assembly --name ${ASSEMBLY_NAME} from-releases ${nightly_args}"
                 if (params.CUSTOM) {
                     cmd += ' --custom'
                 }

@@ -51,7 +51,8 @@ def buildSyncGenInputs() {
 ${images}
 --working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
 release:gen-payload
-${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
+--organization ${params.ORGANIZATION}
+--repository ${params.REPOSITORY}
 ${excludeArchesParam}
 """
     echo("Generated files:")

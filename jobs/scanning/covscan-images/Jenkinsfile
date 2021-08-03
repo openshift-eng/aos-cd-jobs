@@ -284,7 +284,7 @@ Results have been printed above and archived in this job. To submit them to prod
 - The ticket should come from an address of an actual person or team, so
   that Incoming can respond back with further clarification questions if
   needed.
-4. Send an email to openshift-prodsec@redhat.com to alert them to the ticket.
+4. Send an email to prodsec-openshift@redhat.com to alert them to the ticket.
 
 Example ticket: https://redhat.service-now.com/surl.do?n=INC1389259
 """

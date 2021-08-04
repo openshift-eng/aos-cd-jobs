@@ -113,10 +113,10 @@ client_cert = click.option("--client-cert", required=True, metavar="CERT-PATH",
 client_key = click.option("--client-key", required=True, metavar="KEY-PATH",
                           type=click.Path(exists=True),
                           help="Path to the client key for UMB authentication")
-env = click.option("--env", required=False, metavar="ENVIRONMENT",
-                   default='stage',
-                   type=click.Choice(['dev', 'stage', 'prod']),
-                   help="Which UMB environment to send to")
+env_click_obj = click.option("--env", required=False, metavar="ENVIRONMENT",
+                             default='stage',
+                             type=click.Choice(['dev', 'stage', 'prod']),
+                             help="Which UMB environment to send to")
 noop = click.option("--noop", type=bool, is_flag=True, default=False,
                     help="If given, DO NOT request signature, "
                     "show the JSON that WOULD be sent over the bus")
@@ -127,6 +127,8 @@ ca_certs = click.option("--ca-certs", type=click.Path(exists=True),
 digest = click.option("--digest", metavar="DIGEST", help="Pass the digest that should be signed")
 
 # ---------------------------------------------------------------------
+
+env_value = None  # Will be set to value of click_env_obj parameter
 
 
 @click.group(context_settings=context_settings)
@@ -241,7 +243,10 @@ def art_consumer_callback(msg, notsure):
 
 
 def consumer_thread(consumer):
-    consumer.consume(ART_CONSUMER.format(env=env), art_consumer_callback)
+    global env_value
+    if not env_value:
+        raise ValueError('env_value has not been set yet.')
+    consumer.consume(ART_CONSUMER.format(env=env_value), art_consumer_callback)
 
 
 def consumer_start(consumer):
@@ -266,7 +271,7 @@ def get_producer_consumer(env, certificate, private_key, trusted_certificates):
 @client_cert
 @client_key
 @client_type
-@env
+@env_click_obj
 @noop
 @ca_certs
 @arch_opt
@@ -279,6 +284,9 @@ the 'sha256sum` command (hence the strange command name). In the ART
 world, this is for signing message digests from extracting OpenShift
 tools, as well as RHCOS bare-betal message digests.
 """
+    global env_value
+    env_value = env
+
     if product == 'openshift':
         artifact_url = MESSAGE_DIGESTS[product].format(
             arch=arch,
@@ -338,7 +346,7 @@ tools, as well as RHCOS bare-betal message digests.
 @client_cert
 @client_key
 @client_type
-@env
+@env_click_obj
 @noop
 @ca_certs
 @digest
@@ -353,6 +361,9 @@ payload images". After the json digest is signed we publish the
 signature in a location which follows a specific directory pattern,
 thus allowing the signature to be looked up programmatically.
     """
+    global env_value
+    env_value = env
+
     json_claim = {
         "critical": {
             "image": {

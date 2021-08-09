@@ -66,5 +66,5 @@ pipeline {
 }
 
 def downloadRecursive(path, destination) {
-    sh "wget --recursive --no-parent --reject 'index.html*' --no-directories --directory-prefix ${destination} ${path}"
+    sh "wget --recursive --no-parent --reject 'index.html*' --no-directories --no-verbose --directory-prefix ${destination} ${path}"
 }

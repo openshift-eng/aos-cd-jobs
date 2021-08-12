@@ -124,8 +124,19 @@ node {
 
                 stage("push to s3") {
                     try {
+                        // Cloudfont doesn't provide directory listings out of the box. To provide a browser friendly experience
+                        // we run a tool that generates static index.html files.
+                        sh "${WORKSPACE}/hacks/art-srv-index.html-gen/generate_directory_index_html.py ${LOCAL_SYNC_DIR} -r"
                         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                            commonlib.shell(script: "aws s3 sync --delete ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/") // Note that MIRROR_SYNC_DIR has / prefix.
+                            // Sync is not transactional. If we update repomd.xml before files it references are populated,
+                            // users of the repo will get a 404. So we run in three passes:
+                            // 1. On the first pass, exclude files like repomd.xml and do not delete any old files. This ensures that we  are only adding
+                            // new rpms, filelist archives, etc.
+                            commonlib.shell(script: "aws s3 sync --exclude '*/repomd.xml' ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/") // Note that MIRROR_SYNC_DIR has / prefix.
+                            // 2. On the second pass, include only the repomd.xml.
+                            commonlib.shell(script: "aws s3 sync --exclude '*' --include '*/repomd.xml' ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/")
+                            // 3. Everyhing should be sync'd in a consistent way -- just delete anything old with --delete.
+                            commonlib.shell(script: "aws s3 sync --delete  ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/")
                         }
                     } catch (ex) {
                         slacklib.to("#art-release").say("Failed syncing ${GROUP} reposync to S3")
@@ -140,6 +151,7 @@ node {
                         sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- push.enterprise.sh -v ${MIRROR_RELATIVE_REPOSYNC}"
                     }
                 }
+
             }
         }
     } catch (err) {

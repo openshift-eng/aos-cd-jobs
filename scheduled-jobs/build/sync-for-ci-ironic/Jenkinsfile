@@ -53,12 +53,12 @@ node() {
 
         echo "Synchronizing plashet for ${prevalidation_tag_name}"
 
-        sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}" // make ci-ironic if it doesn't exist
-        commonlib.shell "rsync -avzh --copy-links --chmod=a+rwx,g-w,o-w --delete -e \"ssh -o StrictHostKeyChecking=no\" ${baseDir}/${plashetDirName}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR}/${plashetDirName} "
+        sh "ssh ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}" // make ci-ironic if it doesn't exist
+        commonlib.shell "rsync -avzh --copy-links --chmod=a+rwx,g-w,o-w --delete ${baseDir}/${plashetDirName}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR}/${plashetDirName} "
     }
 
     timeout(time: 2, unit: 'HOURS') {
-        sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- push.enterprise.sh -v ${MIRROR_RELATIVE_REPOSYNC}"
+        sh "ssh ${MIRROR_TARGET} -- push.enterprise.sh -v ${MIRROR_RELATIVE_REPOSYNC}"
     }
 
     buildlib.cleanWorkspace()

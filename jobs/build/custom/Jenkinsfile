@@ -255,12 +255,22 @@ node {
 
             stage('sync images') {
                 if (params.SCRATCH || !any_images_to_build) { return }  // no point
-                if (majorVersion == 4) {
+                if (majorVersion >= 4) {
+                    def record_log = buildlib.parse_record_log(doozer_working)
+                    def records = record_log.get('build', [])
+                    def operator_nvrs = []
+                    for (record in records) {
+                        if (record["has_olm_bundle"] != '1' || record['status'] != '0' || !record["nvrs"]) {
+                            continue
+                        }
+                        operator_nvrs << record["nvrs"].split(",")[0]
+                    }
                     buildlib.sync_images(
                         majorVersion,
                         minorVersion,
                         "aos-team-art@redhat.com", // "reply to"
-                        currentBuild.number
+                        params.ASSEMBLY,
+                        operator_nvrs,
                     )
                 }
             }

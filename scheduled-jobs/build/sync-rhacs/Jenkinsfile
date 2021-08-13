@@ -32,10 +32,10 @@ node() {
         LOCAL_SYNC_DIR="/mnt/workspace/buckets/rhacs-openshift-mirror-src"
 
         sshagent(['openshift-bot']) {
-            sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}"
-            sh "rsync -avzh --chmod=a+rwx,g-w,o-w --exclude=signatures--delete -e \"ssh -o StrictHostKeyChecking=no\" ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "
+            sh "ssh ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}"
+            sh "rsync -avzh --chmod=a+rwx,g-w,o-w --exclude=signatures--delete ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "
             timeout(time: 2, unit: 'HOURS') {
-                sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- push.pub.sh -v ${MIRROR_RELATIVE_PATH}"
+                sh "ssh ${MIRROR_TARGET} -- push.pub.sh -v ${MIRROR_RELATIVE_PATH}"
             }
         }
 

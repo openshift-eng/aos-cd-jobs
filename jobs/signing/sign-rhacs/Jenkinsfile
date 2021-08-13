@@ -167,7 +167,7 @@ node {
                         # Touch a file that indicates we have signed for this specific tag; used by rhacs-sigstore scheduled job
                         touch staging/rh-acs/${params.REPO}/${VERSION}
                         cp -a \${fn} staging/rh-acs/${params.REPO}
-                        scp -r -o StrictHostKeychecking=no staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
+                        scp -r staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
                         """
                         mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
                         if (mirror_result.contains("[FAILURE]")) {

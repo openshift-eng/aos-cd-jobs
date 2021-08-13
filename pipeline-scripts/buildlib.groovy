@@ -667,11 +667,12 @@ def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs =
     }
 }
 
-def sync_images(major, minor, mail_list, build_number) {
+def sync_images(major, minor, mail_list, assembly, operator_nvrs = null) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
     // stream is updated with the new tags and pullspecs.
     // Also update the app registry with operator manifests.
+    // If operator_nvrs is given, will only build manifests for specified operator NVRs.
     // If builds don't succeed, email and set result to UNSTABLE.
     if(major < 4) {
         currentBuild.description = "Invalid sync request: Sync images only applies to 4.x+ builds"
@@ -682,33 +683,45 @@ def sync_images(major, minor, mail_list, build_number) {
 
     if (minor > 5 || major > 4) {
         parallel "build-sync": {
-            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
-                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
-            )
+            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
+                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
+                param('String', 'ASSEMBLY', assembly),
+                param('Boolean', 'DRY_RUN', params.DRY_RUN),
+            ])
         }, "olm-bundle": {
-            results.add build(job: 'build%2Folm_bundle', propagate: false, parameters:
-                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
-            )
+            if (operator_nvrs != []) {  // If operator_nvrs is given but empty, we will not build bundles.
+                results.add build(job: 'build%2Folm_bundle', propagate: false, parameters: [
+                    param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
+                    param('String', 'ASSEMBLY', assembly),
+                    param('String', 'OPERATOR_NVRS', operator_nvrs != null ? operator_nvrs.join(",") : ""),
+                    param('Boolean', 'DRY_RUN', params.DRY_RUN),
+                ])
+            }
         }
     } else {
         parallel "build-sync": {
-            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters:
-                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
-            )
+            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
+                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
+                param('String', 'ASSEMBLY', assembly),
+                param('Boolean', 'DRY_RUN', params.DRY_RUN),
+            ])
         }, appregistry: {
-            results.add build(job: 'build%2Fappregistry', propagate: false, parameters:
-                [ param('String', 'BUILD_VERSION', fullVersion) ]  // https://stackoverflow.com/a/53735041
-            )
+            results.add build(job: 'build%2Fappregistry', propagate: false, parameters: [
+                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
+                param('Boolean', 'MOCK', params.DRY_RUN), // It has no DRY_RUN parameter
+            ])
         }
     }
     if ( results.any { it.result != 'SUCCESS' } ) {
-        commonlib.email(
-            replyTo: mail_list,
-            to: "aos-art-automation+failed-image-sync@redhat.com",
-            from: "aos-art-automation@redhat.com",
-            subject: "Problem syncing images after ${currentBuild.displayName}",
-            body: "Jenkins console: ${commonlib.buildURL('console')}",
-        )
+        if (!params.DRY_RUN) {
+            commonlib.email(
+                replyTo: mail_list,
+                to: "aos-art-automation+failed-image-sync@redhat.com",
+                from: "aos-art-automation@redhat.com",
+                subject: "Problem syncing images after ${currentBuild.displayName}",
+                body: "Jenkins console: ${commonlib.buildURL('console')}",
+            )
+        }
         currentBuild.result = 'UNSTABLE'
     }
 }

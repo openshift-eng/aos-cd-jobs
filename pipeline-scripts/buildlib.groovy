@@ -126,14 +126,11 @@ def setup_venv() {
 }
 
 def doozer(cmd, opts=[:]){
-    withCredentials([usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
-        withEnv(['DOOZER_DB_NAME=art_dash']) {
+            // build DB not enabled during outage
             return commonlib.shell(
-                    returnStdout: opts.capture ?: false,
-                    alwaysArchive: opts.capture ?: false,
-                    script: "doozer --assembly=${params.ASSEMBLY ?: 'stream'} ${cleanWhitespace(cmd)}")
-        }
-    }
+                returnStdout: opts.capture ?: false,
+                alwaysArchive: opts.capture ?: false,
+                script: "doozer --assembly=${params.ASSEMBLY ?: 'stream'} ${cleanWhitespace(cmd)}")
 }
 
 def elliott(cmd, opts=[:]){

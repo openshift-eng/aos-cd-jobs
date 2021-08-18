@@ -893,7 +893,22 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
             def prs = readFile(prs_file).trim()
             if ( prs ) {  // did we open any?
                 def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n${prs}"
-                slack_msg += "\n@patch-manager ${major}.${minor}.z merge window is open for next week."
+                def next_release_name = "${major}.${minor}.z"
+                if ( releaseName.charAt(0).isDigit() ) { // something like 4.5.12?
+                    try {
+                        def parts = releaseName.split('\\D')  // split on any non-digit; '4.2.5' => ['4','2','5']
+                        if ( parts.length == 3 ) { // if we get exactly three parts
+                            def next_micro = Integer.parseInt(parts[2]) + 1
+                            next_release_name = "${major}.${minor}.${next_micro}"
+                        } else {
+                            echo "ERROR Unexpected releaseName ${releaseName}"
+                        }
+                    } catch ( pe ) {
+                        echo "ERROR determining nextReleaseName for ${releaseName}; using default ${next_release_name}: ${pe}"
+                    }
+                }
+
+                slack_msg += "\n@patch-manager ${next_release_name} merge window is open for next week."
                 if ( ghorg == 'openshift' && !noSlackOutput) {
                     slacklib.to('#forum-release').say(slack_msg)
                 } else {

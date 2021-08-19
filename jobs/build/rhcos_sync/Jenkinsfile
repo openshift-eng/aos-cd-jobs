@@ -95,9 +95,7 @@ node {
     )
 
     commonlib.checkMock()
-    
-    
-    
+
     if (params.OVERRIDE_RHCOS_BUILD != "") {
         if (params.OVERRIDE_ARCH == "" || params.OVERRIDE_NAME == "") {
             error("Need OVERRIDE_ARCH, OVERRIDE_NAME values")
@@ -112,13 +110,13 @@ node {
         if (!params.FROM_RELEASE_TAG) {
             error("Need FROM_RELEASE_TAG")
         }
-        
+
         tag = params.FROM_RELEASE_TAG
         (major, minor) = commonlib.extractMajorMinorVersionNumbers(tag)
-        
+
         (arch, priv) = release.getReleaseTagArchPriv(tag)
         suffix = release.getArchPrivSuffix(arch, priv)
-        
+
         cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$suffix/release$suffix:$tag) | jq -r .config.config.Labels.version"
         rhcos_build =  commonlib.shell(
             returnStdout: true,
@@ -131,7 +129,7 @@ node {
         // todo: if 4.X.Y exact release name then major.minor else pre-release
         rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"
     }
-    
+
     echo("Initializing RHCOS-${params.RHCOS_MIRROR_PREFIX} sync: #${currentBuild.number}")
     build.initialize()
 
@@ -141,8 +139,8 @@ node {
         } else {
             stage("Get/Generate sync list") { build.rhcosSyncManualInput() }
         }
-        stage("Mirror artifacts") { 
-            build.rhcosSyncMirrorArtifacts(rhcos_mirror_prefix, arch, rhcos_build, name) 
+        stage("Mirror artifacts") {
+            build.rhcosSyncMirrorArtifacts(rhcos_mirror_prefix, arch, rhcos_build, name)
         }
         // stage("Gen AMI docs") { build.rhcosSyncGenDocs() }
         stage("Slack notification to release channel") {

@@ -28,7 +28,7 @@ fi
 
 OC_MIRROR_DIR="/srv/pub/openshift-v4/${ARCH}/clients/${CLIENT_TYPE}"
 
-SSH_OPTS="-l jenkins_aos_cd_bot -o StrictHostKeychecking=no use-mirror-upload.ops.rhcloud.com"
+SSH_OPTS="-l jenkins_aos_cd_bot use-mirror-upload.ops.rhcloud.com"
 
 #check if already exists
 if ssh ${SSH_OPTS} "[ -d ${OC_MIRROR_DIR}/${VERSION} ]";
@@ -140,7 +140,7 @@ fi
 #sync to use-mirror-upload
 rsync \
     -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
-    -e "ssh -l jenkins_aos_cd_bot -o StrictHostKeyChecking=no" \
+    -e "ssh -l jenkins_aos_cd_bot" \
     "${OUTDIR}" \
     use-mirror-upload.ops.rhcloud.com:${OC_MIRROR_DIR}/
 

@@ -302,10 +302,10 @@ node {
                         """)
                         sshagent(["openshift-bot"]) {
                             def mirrorReleasePath = (params.ENV == 'stage') ? 'test' : 'release'
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
+                            sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
                             if (mirrorReleasePath == 'release') {
-                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
-                                sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
+                                sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
+                                sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
                             }
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'openshift-v4/signatures')
                             if (mirror_result.contains("[FAILURE]")) {
@@ -344,7 +344,7 @@ node {
 
                         sshagent(["openshift-bot"]) {
                             def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.NAME}"
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
+                            sh "rsync -avzh sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                             if (mirror_result.contains("[FAILURE]")) {
                                 echo mirror_result
@@ -356,7 +356,7 @@ node {
                             def name_parts = params.NAME.split('\\.')
                             def nameXY = "${name_parts[0]}.${name_parts[1]}"
                             def mirrorReleasePath = "openshift-v4/${params.ARCH}/dependencies/rhcos/${nameXY}/${params.NAME}"
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
+                            sh "rsync -avzh sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
                             if (mirror_result.contains("[FAILURE]")) {
                                 echo mirror_result
@@ -365,8 +365,8 @@ node {
                         }
                     } else if ( params.PRODUCT == 'rhacs' ) {
                         sshagent(["openshift-bot"]) {
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rhacs"
-                            sh "rsync -avzh -e \"ssh -o StrictHostKeyChecking=no\" sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rh-acs"
+                            sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rhacs"
+                            sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rh-acs"
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
                             if (mirror_result.contains("[FAILURE]")) {
                                 echo mirror_result

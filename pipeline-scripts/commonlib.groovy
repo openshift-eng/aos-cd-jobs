@@ -222,12 +222,12 @@ def dryrunParam(description = 'Run job without side effects') {
     ]
 }
 
-def ocpVersionParam(name='MINOR_VERSION', majorVersion='all') {
+def ocpVersionParam(name='MINOR_VERSION', majorVersion='all', extraOpts=[]) {
     return [
         name: name,
         description: 'OSE Version',
         $class: 'hudson.model.ChoiceParameterDefinition',
-        choices: ocpMajorVersions[majorVersion].join('\n'),
+        choices: (extraOpts + ocpMajorVersions[majorVersion]).join('\n'),
     ]
 }
 

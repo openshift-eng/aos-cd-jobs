@@ -45,24 +45,24 @@ node {
                     ),
                     string(
                         name: 'OVERRIDE_BUILD',
-                        description: 'ID of the RHCOS build to sync. e.g.: 42.80.20190828.2. This overrides PAYLOAD_IMAGE.',
+                        description: 'ID of the RHCOS build to sync. e.g.: 42.80.20190828.2. This overrides FROM_RELEASE_TAG.',
                         defaultValue: "",
                         trim: true,
                     ),
                     choice(
                         name: 'OVERRIDE_ARCH',
-                        description: 'Which architecture of RHCOS build to look for. This overrides PAYLOAD_IMAGE. Required with OVERRIDE_RHCOS_BUILD',
+                        description: 'Which architecture of RHCOS build to look for. This overrides FROM_RELEASE_TAG. Required with OVERRIDE_BUILD',
                         choices: ([""] + commonlib.brewArches),
                     ),
                     string(
                         name: 'OVERRIDE_NAME',
-                        description: 'The release name, like 4.2.0, or 4.2.0-0.nightly-2019-08-28-152644. This overrides PAYLOAD_IMAGE. Required with OVERRIDE_RHCOS_BUILD',
+                        description: 'The release name, like 4.2.0, or 4.2.0-0.nightly-2019-08-28-152644. This overrides FROM_RELEASE_TAG. Required with OVERRIDE_BUILD',
                         defaultValue: "",
                         trim: true,
                     ),
                     choice(
-                        name: 'OVERRIDE_MIRROR_PREFIX',
-                        description: 'Where to place this release under https://mirror.openshift.com/pub/openshift-v4/ARCH/dependencies/rhcos/. Auto sets to image version for stable releases, pre-release for all other.',
+                        name: 'MIRROR_PREFIX',
+                        description: 'Where to place this release under https://mirror.openshift.com/pub/openshift-v4/ARCH/dependencies/rhcos/. Auto sets to image version for stable releases (example if FROM_RELEASE_TAG is 4.8.4-x86_64 then directory is 4.8), pre-release for all other FROM_RELEASE_TAG values. "auto" cannot be used with OVERRIDE_BUILD',
                         choices: (['auto' ,'pre-release', 'test'] + commonlib.ocp4Versions),
                     ),
                     string(
@@ -96,14 +96,14 @@ node {
 
     commonlib.checkMock()
 
-    if (params.OVERRIDE_RHCOS_BUILD != "") {
+    if (params.OVERRIDE_BUILD != "") {
         if (params.OVERRIDE_ARCH == "" || params.OVERRIDE_NAME == "") {
             error("Need OVERRIDE_ARCH, OVERRIDE_NAME values")
         }
-        if (params.RHCOS_MIRROR_PREFIX == "auto") {
-            error("RHCOS_MIRROR_PREFIX cannot be auto, need to be explicit")
+        if (params.MIRROR_PREFIX == "auto") {
+            error("MIRROR_PREFIX cannot be auto, need to be explicit")
         }
-        rhcos_build = params.OVERRIDE_RHCOS_BUILD
+        rhcos_build = params.OVERRIDE_BUILD
         arch = params.OVERRIDE_ARCH
         name = params.OVERRIDE_NAME
     } else {
@@ -125,12 +125,13 @@ node {
         print("RHCOS build: $rhcos_build")
     }
 
-    if (params.RHCOS_MIRROR_PREFIX == 'auto') {
-        // todo: if 4.X.Y exact release name then major.minor else pre-release
-        rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"
+    if (params.MIRROR_PREFIX == 'auto') {
+        pattern = /$major\.$minor\.(\d+)-$arch/
+        is_stable = a ==~ pattern
+        rhcos_mirror_prefix = is_stable ? "$major.$minor" : "pre-release"
     }
 
-    echo("Initializing RHCOS-${params.RHCOS_MIRROR_PREFIX} sync: #${currentBuild.number}")
+    echo("Initializing RHCOS-${params.MIRROR_PREFIX} sync: #${currentBuild.number}")
     build.initialize()
 
     try {

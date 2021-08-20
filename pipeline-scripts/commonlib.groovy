@@ -661,4 +661,38 @@ def retryAbort(goal, slackOutput=null, prompt='', cl) {
     _retryWithOptions(goal, ['RETRY', 'ABORT'], slackOutput, prompt, cl)
 }
 
+def syncRepoToS3Mirror(local_dir, s3_path) {
+    try {
+        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            // Sync is not transactional. If we update repomd.xml before files it references are populated,
+            // users of the repo will get a 404. So we run in three passes:
+            // 1. On the first pass, exclude files like repomd.xml and do not delete any old files. This ensures that we  are only adding
+            // new rpms, filelist archives, etc.
+            shell(script: "aws s3 sync --exclude '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}") // Note that s3_path has / prefix.
+            // 2. On the second pass, include only the repomd.xml.
+            shell(script: "aws s3 sync --exclude '*' --include '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}")
+            // 3. Everyhing should be sync'd in a consistent way -- just delete anything old with --delete.
+            shell(script: "aws s3 sync --delete  ${local_dir} s3://art-srv-enterprise${s3_path}")
+        }
+    } catch (e) {
+        slacklib.to("#art-release").say("Failed syncing ${local_dir} repo to art-srv-enterprise S3 path ${s3_path}")
+    }
+}
+
+def syncDirToS3Mirror(local_dir, s3_path, include_only='') {
+    try {
+        extra_args = ""
+        if (include_only) {
+            // --include only takes effect if files are excluded.
+            extra_args = "--exclude '*' --include '${include_only}'"
+        }
+        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            shell(script: "aws s3 sync ${extra_args} --delete  ${local_dir} s3://art-srv-enterprise${s3_path}")
+        }
+    } catch (e) {
+        slacklib.to("#art-release").say("Failed syncing ${local_dir} repo to art-srv-enterprise S3 path ${s3_path}")
+    }
+}
+
+
 return this

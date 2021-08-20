@@ -19,6 +19,7 @@ node() {
     MIRROR_RELATIVE_REPOSYNC = "reposync/ci-ironic"
     MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
     MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
+    S3_MIRROR_SYNC_DIR = "/enterprise/${MIRROR_RELATIVE_REPOSYNC}"
 
     for ( String version : sortedVersions() ) {
 
@@ -48,6 +49,7 @@ node() {
                 "from-tags", // plashet mode of operation => build from brew tags
                 "--brew-tag ${prevalidation_tag_name} NOT_APPLICABLE",  // product name is not required since we aren't signing
                 "--embargoed-brew-tag ${embargoed_tag_name}",
+                "--inherit",
                 "--include-previous", // enable both pinning and non-pinning for pre-validation
         ].join(' '))
 
@@ -55,6 +57,7 @@ node() {
 
         sh "ssh ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}" // make ci-ironic if it doesn't exist
         commonlib.shell "rsync -avzh --copy-links --chmod=a+rwx,g-w,o-w --delete ${baseDir}/${plashetDirName}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR}/${plashetDirName} "
+        commonlib.syncRepoToS3Mirror("${baseDir}/${plashetDirName}/", "${S3_MIRROR_SYNC_DIR}/${plashetDirName}/")
     }
 
     timeout(time: 2, unit: 'HOURS') {

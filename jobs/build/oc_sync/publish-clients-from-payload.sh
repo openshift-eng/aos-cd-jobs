@@ -27,6 +27,7 @@ elif [[ "${ARCH}" == "arm64" ]]; then
 fi
 
 OC_MIRROR_DIR="/srv/pub/openshift-v4/${ARCH}/clients/${CLIENT_TYPE}"
+S3_MIRROR_DIR="/pub/openshift-v4/${ARCH}/clients/${CLIENT_TYPE}"
 
 SSH_OPTS="-l jenkins_aos_cd_bot use-mirror-upload.ops.rhcloud.com"
 
@@ -143,6 +144,8 @@ rsync \
     -e "ssh -l jenkins_aos_cd_bot" \
     "${OUTDIR}" \
     use-mirror-upload.ops.rhcloud.com:${OC_MIRROR_DIR}/
+
+aws s3 sync --delete  ${OUTDIR}/ s3://art-srv-enterprise${S3_MIRROR_DIR}/
 
 retry() {
   local count exit_code

@@ -91,8 +91,10 @@ node {
                 // must be able to access remote registry to extract image contents
                 buildlib.registry_quay_dev_login()
                 timeout(time: 60, unit: 'MINUTES') {
-                    withEnv(["DRY_RUN=${params.DRY_RUN? '1' : ''}"]){
-                        commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
+                    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                        withEnv(["DRY_RUN=${params.DRY_RUN? '1' : ''}"]){
+                            commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
+                        }
                     }
                 }
                 if (!params.DRY_RUN) {

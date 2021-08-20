@@ -2,6 +2,8 @@ node {
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
+    def slacklib = commonlib.slacklib
+
     commonlib.describeJob("sync-for-ci", """
         <h2>Sync internal repositories and images where CI can use them</h2>
         </b>Timing</b>: Usually run by scheduled job several times daily per 4.y version/arch.
@@ -88,6 +90,7 @@ node {
     LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${REPOSYNC_DIR}_${ARCH}"
     MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
     MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
+    S3_SYNC_DIR = "/enterprise/${MIRROR_RELATIVE_REPOSYNC}"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     DOOZER_WORKING = "${WORKSPACE}/doozer_working"
@@ -123,24 +126,7 @@ node {
                 }
 
                 stage("push to s3") {
-                    try {
-                        // Cloudfont doesn't provide directory listings out of the box. To provide a browser friendly experience
-                        // we run a tool that generates static index.html files.
-                        sh "${WORKSPACE}/hacks/art-srv-index.html-gen/generate_directory_index_html.py ${LOCAL_SYNC_DIR} -r"
-                        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                            // Sync is not transactional. If we update repomd.xml before files it references are populated,
-                            // users of the repo will get a 404. So we run in three passes:
-                            // 1. On the first pass, exclude files like repomd.xml and do not delete any old files. This ensures that we  are only adding
-                            // new rpms, filelist archives, etc.
-                            commonlib.shell(script: "aws s3 sync --exclude '*/repomd.xml' ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/") // Note that MIRROR_SYNC_DIR has / prefix.
-                            // 2. On the second pass, include only the repomd.xml.
-                            commonlib.shell(script: "aws s3 sync --exclude '*' --include '*/repomd.xml' ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/")
-                            // 3. Everyhing should be sync'd in a consistent way -- just delete anything old with --delete.
-                            commonlib.shell(script: "aws s3 sync --delete  ${LOCAL_SYNC_DIR}/ s3://art-srv-enterprise${MIRROR_SYNC_DIR}/")
-                        }
-                    } catch (ex) {
-                        slacklib.to("#art-release").say("Failed syncing ${GROUP} reposync to S3")
-                    }
+                    commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/")
                 }
 
                 stage("push to mirror") {

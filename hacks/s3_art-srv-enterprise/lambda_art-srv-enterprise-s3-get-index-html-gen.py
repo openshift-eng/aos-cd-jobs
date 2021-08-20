@@ -1,56 +1,124 @@
-#!/usr/bin/env python3
-# ---
-# Copyright 2020 glowinthedark
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-#
-# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#
-# See the License for the specific language governing permissions and limitations under the License.
-# ---
-#
-# Generate index.html files for
-# all subdirectories in a directory tree.
-
-# -handle symlinked files and folders: displayed with custom icons
-
-# By default only the current folder is processed.
-
-# Use -r or --recursive to process nested folders.
-
-import argparse
-import datetime
+import boto3
 import os
-import sys
-from pathlib import Path
 from urllib.parse import quote
+from pathlib import Path
+from io import StringIO
+
+VERBOSE = False
 
 DEFAULT_OUTPUT_FILE = 'index.html'
 
+# bytes pretty-printing
+UNITS_MAPPING = [
+    (1024 ** 5, ' PB'),
+    (1024 ** 4, ' TB'),
+    (1024 ** 3, ' GB'),
+    (1024 ** 2, ' MB'),
+    (1024 ** 1, ' KB'),
+    (1024 ** 0, (' byte', ' bytes')),
+]
 
-def process_dir(top_dir, opts):
-    glob_patt = opts.filter or '*'
 
-    path_top_dir: Path
-    path_top_dir = Path(top_dir)
-    index_file = None
+class S3Path:
+    def __init__(self, is_dir: bool, s3_entry):
+        self._is_dir = is_dir
+        self._is_symlink = False
+        self._last_modified = s3_entry.get('LastModified', None)  # Only included in file entries (not directory keys)
+        self._size = s3_entry.get('Size', 0)
+        if self._is_dir:
+            self._absolute = s3_entry['Prefix'].lstrip('/')
+        else:
+            self._absolute = s3_entry['Key']
+        self.name = Path(self._absolute).name
 
-    index_path = Path(path_top_dir, opts.output_file)
+    def is_dir(self):
+        return self._is_dir
 
-    if opts.verbose:
-        print(f'Traversing dir {path_top_dir.absolute()}')
+    def is_file(self):
+        return not self.is_dir()
 
+    def size(self):
+        return self._size
+
+    def last_modified(self):
+        return self._last_modified
+
+    def is_symlink(self):
+        return False
+
+    def absolute(self):
+        return self._absolute
+
+
+# This function is a generator
+def s3_list_dir(s3_conn, bucket_name: str, dir_path: str):
     try:
-        index_file = open(index_path, 'w')
-    except Exception as e:
-        print('cannot create file %s %s' % (index_path, e))
-        return
+        dir_path = dir_path.lstrip('/')
+        if dir_path not in [None, '', '.', '/']:
+            prefix = dir_path.rstrip('/') + '/'
+        else:
+            prefix = ''
 
+        s3_result = {}
+        while not s3_result or s3_result['IsTruncated']:
+            continuation_key = s3_result.get('NextContinuationToken', None)
+            kwargs = {}
+            if continuation_key:
+                kwargs['ContinuationToken'] = continuation_key
+
+            if VERBOSE:
+                print(f'Querying {bucket_name} with prefix {prefix} and continuation: {continuation_key}')
+            s3_result = s3_conn.list_objects_v2(Bucket=bucket_name, Prefix=prefix, Delimiter="/", **kwargs)
+
+            if VERBOSE:
+                print(f'Query result: {s3_result}')
+
+            # Example CommonPrefixes entry: {'Prefix': 'srv/enterprise/reposync/rhel-server-ose-rpms/repodata/'}
+            for entry in s3_result.get('CommonPrefixes', []):
+                yield S3Path(True, entry)
+
+            # Example Content entry:
+            # {'Key': 'srv/enterprise/reposync/rhel-server-ose-rpms/repodata/2b6b8a6cd35f2ce8f82b7d00cbc32f08c1b37e74cbd84874d3d03425b6721dfb-filelists.xml.gz',
+            #    'LastModified': datetime.datetime(2021, 6, 23, 23, 29, 59, tzinfo=tzutc()),
+            #    'ETag': '"570dacca4771943793bf981ca2c0ba1d"',
+            #    'Size': 62780,
+            #    'StorageClass': 'STANDARD'}
+            for entry in s3_result.get('Contents', []):
+                if entry['Key'] == prefix:
+                    # If there was an actual 'directory' object created to for this prefix
+                    continue
+                yield S3Path(False, entry)
+    except Exception as e:
+        yield e
+
+
+def pretty_size(bytes, units=UNITS_MAPPING):
+    """Human-readable file sizes.
+
+    ripped from https://pypi.python.org/pypi/hurry.filesize/
+    """
+    for factor, suffix in units:
+        if bytes >= factor:
+            break
+    amount = int(bytes / factor)
+
+    if isinstance(suffix, tuple):
+        singular, multiple = suffix
+        if amount == 1:
+            suffix = singular
+        else:
+            suffix = multiple
+    return str(amount) + suffix
+
+
+def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
+    if not path_top_dir:
+        return None
+
+    if VERBOSE:
+        print(f'Traversing dir {str(path_top_dir)}')
+
+    index_file = StringIO()
     index_file.write("""<!DOCTYPE html>
 <html>
 <head>
@@ -325,25 +393,23 @@ def process_dir(top_dir, opts):
                  """)
 
     # sort dirs first
-    sorted_entries = sorted(path_top_dir.glob(glob_patt), key=lambda p: (p.is_file(), p.name))
 
-    entry: Path
-    for entry in sorted_entries:
+    entry: S3Path
+    entry_count: int = 0
+    for entry in s3_list_dir(s3_conn, bucket_name, str(path_top_dir)):
+
+        # If the generator yields an exception, we can't continue
+        if isinstance(entry, Exception):
+            raise entry
 
         # don't include index.html in the file listing
-        if entry.name.lower() == opts.output_file.lower():
+        if entry.name.lower() == DEFAULT_OUTPUT_FILE:
             continue
 
-        if entry.is_dir() and opts.recursive:
-            process_dir(entry, opts)
-
-        # From Python 3.6, os.access() accepts path-like objects
-        if (not entry.is_symlink()) and not os.access(str(entry), os.W_OK):
-            print(f"*** WARNING *** entry {entry.absolute()} is not writable! SKIPPING!")
-            continue
-        if opts.verbose:
+        if VERBOSE:
             print(f'{entry.absolute()}')
 
+        entry_count += 1
         size_bytes = -1  ## is a folder
         size_pretty = '&mdash;'
         last_modified = '-'
@@ -351,11 +417,9 @@ def process_dir(top_dir, opts):
         last_modified_iso = ''
         try:
             if entry.is_file():
-                size_bytes = entry.stat().st_size
+                size_bytes = entry.size()
                 size_pretty = pretty_size(size_bytes)
-
-            if entry.is_dir() or entry.is_file():
-                last_modified = datetime.datetime.fromtimestamp(entry.stat().st_mtime).replace(microsecond=0)
+                last_modified = entry.last_modified().replace(microsecond=0)
                 last_modified_iso = last_modified.isoformat()
                 last_modified_human_readable = last_modified.strftime("%c")
 
@@ -404,72 +468,52 @@ def process_dir(top_dir, opts):
 </main>
 </body>
 </html>""")
-    if index_file:
-        index_file.close()
+    return index_file.getvalue(), entry_count
 
 
-# bytes pretty-printing
-UNITS_MAPPING = [
-    (1024 ** 5, ' PB'),
-    (1024 ** 4, ' TB'),
-    (1024 ** 3, ' GB'),
-    (1024 ** 2, ' MB'),
-    (1024 ** 1, ' KB'),
-    (1024 ** 0, (' byte', ' bytes')),
-]
+def lambda_handler(event, context):
+    if VERBOSE:
+        print(event)
 
+    bucket_name = 'art-srv-enterprise'
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    s3_conn = boto3.client('s3')
+    request = event['Records'][0]['cf']['request']
+    headers = request['headers']
+    uri = request.get('uri', '')
 
-def pretty_size(bytes, units=UNITS_MAPPING):
-    """Human-readable file sizes.
+    if '..' in uri:
+        return request
 
-    ripped from https://pypi.python.org/pypi/hurry.filesize/
-    """
-    for factor, suffix in units:
-        if bytes >= factor:
-            break
-    amount = int(bytes / factor)
-
-    if isinstance(suffix, tuple):
-        singular, multiple = suffix
-        if amount == 1:
-            suffix = singular
+    if uri.endswith('/'):
+        dir_key = uri.rstrip('/')
+    else:
+        if uri.endswith('index.html'):
+            dir_key = uri.rsplit('/', 1)[0]  # Strip off index.html
         else:
-            suffix = multiple
-    return str(amount) + suffix
+            dir_key = uri
 
+    content, entry_count = process_dir(s3_conn, bucket_name, Path(dir_key))
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='''DESCRIPTION:
-    Generate directory index files (recursive is OFF by default).
-    Start from current dir or from folder passed as first positional argument.
-    Optionally filter by file types with --filter "*.py". ''')
+    if entry_count == 0:
+        return request
 
-    parser.add_argument('top_dir',
-                        nargs='?',
-                        action='store',
-                        help='top folder from which to start generating indexes, '
-                             'use current folder if not specified',
-                        default=os.getcwd())
-
-    parser.add_argument('--filter', '-f',
-                        help='only include files matching glob',
-                        required=False)
-
-    parser.add_argument('--output-file', '-o',
-                        metavar='filename',
-                        default=DEFAULT_OUTPUT_FILE,
-                        help=f'Custom output file, by default "{DEFAULT_OUTPUT_FILE}"')
-
-    parser.add_argument('--recursive', '-r',
-                        action='store_true',
-                        help="recursively process nested dirs (FALSE by default)",
-                        required=False)
-
-    parser.add_argument('--verbose', '-v',
-                        action='store_true',
-                        help='***WARNING: can take longer time with complex file tree structures on slow terminals***'
-                             ' verbosely list every processed file',
-                        required=False)
-
-    config = parser.parse_args(sys.argv[1:])
-    process_dir(config.top_dir, config)
+    return {
+        'status': '200',
+        'statusDescription': 'OK',
+        'headers': {
+            'cache-control': [
+                {
+                    'key': 'Cache-Control',
+                    'value': 'max-age=0'
+                }
+            ],
+            "content-type": [
+                {
+                    'key': 'Content-Type',
+                    'value': 'text/html'
+                }
+            ]
+        },
+        'body': content,
+    }

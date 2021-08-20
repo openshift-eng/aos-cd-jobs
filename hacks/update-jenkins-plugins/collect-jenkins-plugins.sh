@@ -99,8 +99,12 @@ get_plugin() {
 
     plugin=$(echo "${plugin_line}:" | cut -d : -f 1)
     plugin_version=$(echo "${plugin_line}:" | cut -d : -f 2)
-
-    plugin_url="https://ftp.belnet.be/pub/jenkins/plugins/${plugin}/${plugin_version}/${plugin}.hpi"
+    
+    if [ -z "${plugin_version}" -o "${plugin_version}" == "latest" ]; then
+        plugin_url="https://ftp.belnet.be/pub/jenkins/plugins/${plugin}/latest/${plugin}.hpi"
+    else
+        plugin_url="https://ftp.belnet.be/pub/jenkins/plugins/${plugin}/${plugin_version}/${plugin}.hpi"
+    fi
 
     tmp_hpi_file="${tmp_hpis_dir}/${plugin}.hpi"
 

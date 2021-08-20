@@ -504,6 +504,16 @@ extract_opm "$OUTDIR"
 				error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
 			}
         }
+
+        // Publish the clients to our S3 bucket as well.
+        try {
+            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                commonlib.shell(script: "aws s3 sync ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/")
+            }
+        } catch (ex) {
+            slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")
+        }
+
     } else {
         echo "Not mirroring; would have run: ${rsync_cmd}"
     }

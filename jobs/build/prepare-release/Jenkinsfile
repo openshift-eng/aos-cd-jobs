@@ -136,6 +136,23 @@ node {
                 }
             }
         }
+        stage("trigger olm_bundle") {
+            if (major !=4 || minor < 6) {
+                echo "Skipping olm_bundle jobs for releases prior to 4.6. Trigger appregistry job."
+                return
+            }
+            build(
+                job: 'build%252Folm_bundle',
+                propagate: true,
+                parameters: [
+                    buildlib.param('String','BUILD_VERSION', "$major.$minor"),
+                    buildlib.param('String','EXTRAS_ADVISORY', extras),
+                    buildlib.param('String','METADATA_ADVISORY', metadata),
+                    booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
+                ]
+            )
+            currentBuild.description += "<br>triggered olm_bundle"
+        }
         stage("save artifacts") {
             commonlib.safeArchiveArtifacts([
                 "pyartcd_working/email/**",

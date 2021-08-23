@@ -2,7 +2,8 @@
 
 node {
     checkout scm
-    load('pipeline-scripts/commonlib.groovy').describeJob("tkn_sync", """
+    commonlib = load('pipeline-scripts/commonlib.groovy')
+    commonlib.describeJob("tkn_sync", """
         -----------------------------------------------
         Sync the Tekton pipeline client (tkn) to mirror
         -----------------------------------------------
@@ -33,6 +34,7 @@ pipeline {
                     }
                     target_version = params.TKN_VERSION.split("-")[0]
                     target_dir = "/srv/pub/openshift-v4/clients/pipeline/${target_version}"
+                    s3_target_dir = "/pub/openshift-v4/clients/pipeline/${target_version}"
                 }
             }
         }
@@ -40,6 +42,9 @@ pipeline {
         stage('Sync to mirror') {
             steps {
                 sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all ; cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"
+                syncDirToS3Mirror.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/", "${s3_target_dir}/" )
+                syncDirToS3Mirror.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/", "/pub/openshift-v4/clients/pipeline/latest/" )
+
                 sshagent(['aos-cd-test']) {
                     sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all"
                     sh "cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"

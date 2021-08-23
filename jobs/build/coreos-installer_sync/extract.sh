@@ -31,4 +31,8 @@ for rpm in *.rpm; do
   mv usr/bin/coreos-installer "$VERSION/coreos-installer_$arch"
 done
 
+if [[ -f ${VERSION}/coreos-installer_amd64 ]]; then
+    ln --symbolic --force --no-dereference coreos-installer_amd64 "${VERSION}/coreos-installer"
+fi
+
 tree "$VERSION"

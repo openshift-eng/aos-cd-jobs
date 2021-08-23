@@ -403,6 +403,7 @@ def stageMirrorRpms() {
     def openshift_mirror_bastion = "use-mirror-upload.ops.rhcloud.com"
     def openshift_mirror_user = "jenkins_aos_cd_bot"
     def destBaseDir = "/srv/enterprise/enterprise-${version.stream}"
+    def s3BaseDir = "/enterprise/enterprise-${version.stream}"
     def stagingDir = "${destBaseDir}/staging"
 
     if (buildPlan.dryRun) {
@@ -410,14 +411,8 @@ def stageMirrorRpms() {
         return
     }
 
-    try {
-        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-            commonlib.shell(script: "aws s3 sync --delete ${rpmMirror.localPlashetPath}/ s3://art-srv-enterprise${destBaseDir}/latest/")  // Note destBaseDir already has a / prefix
-            commonlib.shell(script: "aws s3 sync --delete ${rpmMirror.localPlashetPath}/ s3://art-srv-enterprise/srv/enterprise/all/${version.stream}/latest")
-        }
-    } catch (ex) {
-        commonlib.slacklib.to("#art-release").say("Failed syncing ${version.stream} plashet to art-srv-enterprise S3")
-    }
+    commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "${s3BaseDir}/latest/") // Note s3BaseDir already has a / prefix
+    commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "/enterprise/all/${version.stream}/latest/")
 
     /**
      * Just in case this is the first time we have built this release, create the release's staging directory.

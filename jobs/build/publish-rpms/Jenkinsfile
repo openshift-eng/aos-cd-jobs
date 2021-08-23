@@ -38,14 +38,19 @@ node {
     version = params.BUILD_VERSION
     path = "openshift-v4/dependencies/rpms/${version}-beta"
     mirror_dir = "/srv/pub/${path}"
-    commonlib.shell(
-        script: """
-            set -e
-            ./collect-deps.sh ${version}
-            rsync --recursive --delete ${version}-beta/ use-mirror-upload:${mirror_dir}
-            ssh use-mirror-upload 'createrepo --database ${mirror_dir} && /usr/local/bin/push.pub.sh ${path} -v'
-            rm -r ${version}-beta
-        """
-    )
+    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        commonlib.shell(
+            script: """
+                set -e
+                ./collect-deps.sh ${version}
+                createrepo_c ${version}-beta -v
+                rsync --recursive --delete ${version}-beta/ use-mirror-upload:${mirror_dir}
+                ssh use-mirror-upload '/usr/local/bin/push.pub.sh ${path} -v'
+                # Mirror to s3 as well
+                aws s3 sync --delete ${version}-beta/ s3://art-srv-enterprise/pub/${path}/
+                rm -r ${version}-beta
+            """
+        )
+    }
     buildlib.cleanWorkspace()
 }

@@ -97,6 +97,9 @@ node {
             return
         }
 
+        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/clients/coreos-installer/${params.VERSION}/")
+        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/clients/coreos-installer/latest/")
+
         sshagent(['aos-cd-test']) {
             commonlib.shell(
                 script: """
@@ -104,9 +107,6 @@ node {
                     cd ${workdir}
                     ssh ${mirror} mkdir -p ${dir}
                     scp -r ${params.VERSION} ${mirror}:${dir}/${params.VERSION}
-                    if [[ -f ${params.VERSION}/coreos-installer_amd64 ]]; then
-                        ssh ${mirror} ln --symbolic --force --no-dereference coreos-installer_amd64 ${dir}/${params.VERSION}/coreos-installer
-                    fi
                     ssh ${mirror} ln --symbolic --force --no-dereference ${params.VERSION} ${dir}/latest
                     ssh ${mirror} tree ${dir}
                     ssh ${mirror} /usr/local/bin/push.pub.sh openshift-v4/clients/coreos-installer -v

@@ -118,6 +118,13 @@ node {
     }
 
     def arches = commonlib.ocpReleaseState["${major}.${minor}"]?.release
+    if (!arches) {
+        arches = commonlib.ocpReleaseState["${major}.${minor}"]?."pre-release"
+        if (!arches) {
+            error("Could not find arches for OCP version :( Make sure they are specified in commonlib.ocpReleaseState: $commonlib.ocpReleaseState")
+        }
+    }
+
     def archNightlyMap = nightly_list.collectEntries {[release.getReleaseTagArchPriv(it)[0], it]}  // key is arch, value is nightly
 
     if (nightly_list) {
@@ -153,7 +160,6 @@ node {
     ]
 
     promote_job_location = 'build%2Fpromote'
-
     parallel(arches.collectEntries { arch ->
         [arch, {
             stage(arch) {

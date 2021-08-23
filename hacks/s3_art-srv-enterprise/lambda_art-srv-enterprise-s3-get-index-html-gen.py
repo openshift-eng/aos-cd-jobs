@@ -119,7 +119,7 @@ def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
         print(f'Traversing dir {str(path_top_dir)}')
 
     index_file = StringIO()
-    index_file.write("""<!DOCTYPE html>
+    body_top = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -363,10 +363,8 @@ def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
     </defs>
     </svg>
 <header>
-    <h1>"""
-                     f'{path_top_dir.name}'
-                     """</h1>
-                 </header>
+    <h1>""" f'{path_top_dir.name}' """</h1>
+             </header>
                  <main>
                  <div class="listing">
                      <table aria-describedby="summary">
@@ -390,7 +388,7 @@ def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
                              <td class="hideable">&mdash;</td>
                              <td class="hideable"></td>
                          </tr>
-                 """)
+    """
 
     # sort dirs first
 
@@ -460,6 +458,10 @@ def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
             <td class="hideable"></td>
         </tr>
 """)
+        if index_file.tell() > 1000000:
+            # CloudFront origin responses are limited to 1MB. Leave enough space for headers and body_top.
+            body_top += "<tr><td></td><td><b>Too many files. Listing truncated...</b></td><td></td><td></td><td></td></tr>\n"
+            break
 
     index_file.write("""
             </tbody>
@@ -468,7 +470,7 @@ def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
 </main>
 </body>
 </html>""")
-    return index_file.getvalue(), entry_count
+    return body_top + index_file.getvalue(), entry_count
 
 
 def lambda_handler(event, context):

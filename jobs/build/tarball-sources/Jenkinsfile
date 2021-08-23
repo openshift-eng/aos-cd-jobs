@@ -129,7 +129,7 @@ node {
                     Attaching source tarballs to be published on ftp.redhat.com as in https://projects.engineering.redhat.com/browse/RCMTEMPL-6549
                     """
                 withCredentials([usernamePassword(
-                    credentialsId: 'rcm-jira-openshift-art-automation',
+                    credentialsId: 'jboss_jira_login',
                     usernameVariable: 'JIRA_USERNAME',
                     passwordVariable: 'JIRA_PASSWORD',
                 )]) {

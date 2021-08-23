@@ -80,6 +80,9 @@ pipeline {
         }
         stage("Sync to mirror") {
             steps {
+                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/clients/camel-k/${params.VERSION}/")
+                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/clients/camel-k/latest/")
+
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/camel-k/"
                     sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/camel-k/latest"

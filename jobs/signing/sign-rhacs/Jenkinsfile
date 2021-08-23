@@ -153,26 +153,29 @@ node {
                     }
 
                     sshagent(["openshift-bot"]) {
-                        sh """
-                        set -o xtrace
-                        set set -euo pipefail
-                        fn=`ls sha256=*`
-                        rm -rf staging
-                        mv \${fn} tmpsig
-                        mkdir -p \${fn}
-                        mv tmpsig \${fn}/${SIG_NAME}
-                        mkdir -p staging/rh-acs
-                        cp -a \${fn} staging/rh-acs/${params.REPO}@\${fn}
-                        mkdir -p staging/rh-acs/${params.REPO}
-                        # Touch a file that indicates we have signed for this specific tag; used by rhacs-sigstore scheduled job
-                        touch staging/rh-acs/${params.REPO}/${VERSION}
-                        cp -a \${fn} staging/rh-acs/${params.REPO}
-                        scp -r staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
-                        """
-                        mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
-                        if (mirror_result.contains("[FAILURE]")) {
-                            echo mirror_result
-                            error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
+                        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                            sh """
+                            set -o xtrace
+                            set set -euo pipefail
+                            fn=`ls sha256=*`
+                            rm -rf staging
+                            mv \${fn} tmpsig
+                            mkdir -p \${fn}
+                            mv tmpsig \${fn}/${SIG_NAME}
+                            mkdir -p staging/rh-acs
+                            cp -a \${fn} staging/rh-acs/${params.REPO}@\${fn}
+                            mkdir -p staging/rh-acs/${params.REPO}
+                            # Touch a file that indicates we have signed for this specific tag; used by rhacs-sigstore scheduled job
+                            touch staging/rh-acs/${params.REPO}/${VERSION}
+                            cp -a \${fn} staging/rh-acs/${params.REPO}
+                            scp -r staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
+                            aws s3 sync staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
+                            """
+                            mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
+                            if (mirror_result.contains("[FAILURE]")) {
+                                echo mirror_result
+                                error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
+                            }
                         }
                     }
                 } finally {

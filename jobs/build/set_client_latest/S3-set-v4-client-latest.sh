@@ -89,7 +89,7 @@ for arch in ${ARCHES}; do
     # stable-4.2
     # ...
     # Then we use sort | tac to order the versions and find the greatest '4.x' directory
-    LATEST_LINK=$(aws s3 ls "s3://art-srv-enterprise/${target_dir}/${LINK_NAME}-" | grep PRE | awk '{print $2}' | tr -d '/' | sort -V | tac | head -n 1)
+    LATEST_LINK=$(aws s3 ls "s3://art-srv-enterprise/${target_dir}/${LINK_NAME}-" | grep PRE | awk '{print $2}' | tr -d '/' | sort -V | tac | head -n 1 || true)
 
     if [[ "${LATEST_LINK}" == "${MAJOR_MINOR_LINK}" ]]; then
       # If the current major.minor is the latest of this type of link, then update the "overall".

@@ -81,7 +81,7 @@ node {
         }
 
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-            commonlib.shell("./set_client_latest/S3-set-v4-client-latest.sh ${params.CHANNEL_OR_RELEASE} ${params.CLIENT_TYPE} ${params.LINK_NAME} ${params.ARCHES}")
+            commonlib.shell("./S3-set-v4-client-latest.sh ${params.CHANNEL_OR_RELEASE} ${params.CLIENT_TYPE} ${params.LINK_NAME} ${params.ARCHES}")
         }
 
         timeout(15) {

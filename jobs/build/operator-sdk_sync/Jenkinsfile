@@ -41,6 +41,11 @@ pipeline {
             defaultValue: '',
             trim: true,
         )
+        booleanParam(
+            name: 'UPDATE_LATEST_SYMLINK',
+            description: 'You just want to update "latest" on the highest 4.x version',
+            defaultValue: true,
+        )
     }
 
     stages {
@@ -132,7 +137,9 @@ pipeline {
                             sshagent(['aos-cd-test']) {
                                 sh "ssh use-mirror-upload.ops.rhcloud.com -- mkdir -p /srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}"
                                 sh "rsync -av --no-g --progress *.tar.gz use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}/"
-                                sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.OCP_VERSION} /srv/pub/openshift-v4/${arch}/clients/operator-sdk/latest"
+                                if (params.UPDATE_LATEST_SYMLINK) {
+                                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.OCP_VERSION} /srv/pub/openshift-v4/${arch}/clients/operator-sdk/latest"
+                                }
                                 sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/${arch}/clients/operator-sdk -v"
                             }
                         }

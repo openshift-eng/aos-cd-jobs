@@ -100,6 +100,26 @@ node {
                 }
             }
         }
+        stage("operator bundle build") {
+            def doozer_working = "${env.WORKSPACE}/artcd_working/doozer-working"
+            def record_log = buildlib.parse_record_log(doozer_working)
+            def records = record_log.get('build', [])
+            def operator_nvrs = []
+            for (record in records) {
+                if (record["has_olm_bundle"] != '1' || record['status'] != '0' || !record["nvrs"]) {
+                    continue
+                }
+                operator_nvrs << record["nvrs"].split(",")[0]
+            }
+            if (operator_nvrs != []) {  // If operator_nvrs is given but empty, we will not build bundles.
+                build(job: 'build%2Folm_bundle', propagate: true, parameters: [
+                    buildlib.param('String', 'BUILD_VERSION',params.BUILD_VERSION),
+                    buildlib.param('String', 'ASSEMBLY', params.ASSEMBLY),
+                    buildlib.param('String', 'OPERATOR_NVRS', operator_nvrs.join(",")),
+                    buildlib.param('Boolean', 'DRY_RUN', params.DRY_RUN),
+                ])
+            }
+        }
         stage("save artifacts") {
             commonlib.safeArchiveArtifacts([
                 "artcd_working/email/**",

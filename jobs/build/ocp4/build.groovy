@@ -462,15 +462,22 @@ def stageSyncImages() {
         echo "No built images to sync."
         return
     }
-    if(buildPlan.dryRun) {
-        echo "Not syncing images in a dry run."
-        return
+
+    def record_log = buildlib.parse_record_log(doozerWorking)
+    def records = record_log.get('build', [])
+    def operator_nvrs = []
+    for (record in records) {
+        if (record["has_olm_bundle"] != '1' || record['status'] != '0' || !record["nvrs"]) {
+            continue
+        }
+        operator_nvrs << record["nvrs"].split(",")[0]
     }
     buildlib.sync_images(
         version.major,
         version.minor,
         "aos-team-art@redhat.com",
-        currentBuild.number
+        params.ASSEMBLY,
+        operator_nvrs,
     )
 }
 

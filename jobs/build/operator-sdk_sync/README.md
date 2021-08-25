@@ -25,6 +25,11 @@ Examples:
 - v4.7.0
 - v4.7
 
+### UPDATE_LATEST_SYMLINK
+
+Point "latest" symlink to version being published.
+Usually, you'll only want to do that on the highest 4.x version.
+
 ## Known issues
 
 ### Job reports as 'SUCCESS' but sync to one of the mirrors failed

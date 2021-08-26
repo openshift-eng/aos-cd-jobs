@@ -752,6 +752,35 @@ node {
                     echo "Skipping PR creation for non-x86 CPU arch"
                 }
             }
+
+            stage("validate RHSAs") {
+                if (params.DRY_RUN) {
+                    return
+                }
+                if (advisory == -1) {
+                    return
+                }
+                if (major == 4 && !is_4stable_release) {
+                    return
+                }
+                release.getAdvisoryIds().each {
+                    res = commonlib.shell(
+                        script: "${buildlib.ELLIOTT_BIN} validate-rhsa ${it}",
+                        returnAll: true,
+                    )
+                    if (res.returnStatus != 0) {
+                        msg = """
+                            Review of CVE situation required for advisory <https://errata.devel.redhat.com/advisory/${it}|${it}>.
+                            Report:
+                            ```
+                            ${res.stdout}
+                            ```
+                            Note: For GA image advisories this is expected to fail.
+                        """.stripIndent()
+                        slacklib.to(version).say(msg)
+                    }
+                }
+            }
         }
 
         dry_subject = ""

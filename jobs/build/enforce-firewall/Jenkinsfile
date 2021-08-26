@@ -51,6 +51,8 @@ node {
 
         Checks if the firewall rules are enforcing. If they are not then they will be reapplied.
 
+        Manually-specified allowed addrs may be updated in <code>hacks/iptables/buildvm-scripts/known-networks.txt</code>
+
         If the rules are reapplied by this job then a notification will be sent over slack to the <code>#team-art</code> channel.
 
         <h2>Disabling the firewall</h2>This job can also be used to <b>temporarily</b> disable the firewall. Check the <code>DISABLE</code> box on the build

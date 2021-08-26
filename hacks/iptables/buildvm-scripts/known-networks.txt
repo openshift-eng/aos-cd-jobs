@@ -243,9 +243,13 @@
 193.190.0.0/15
 
 # bugzilla
+# resolves to e1890.dsca.akamaiedge.net, we really need a domain-based proxy
 23.39.188.82
 23.46.58.193
 104.108.97.116
+96.17.129.206
+2600:1408:20:c89::762
+2600:1408:20:ca2::762
 
 # github
 # what topics exist?:

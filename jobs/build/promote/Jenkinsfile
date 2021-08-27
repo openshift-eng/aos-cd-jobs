@@ -763,14 +763,15 @@ node {
                 if (major == 4 && !is_4stable_release) {
                     return
                 }
-                release.getAdvisoryIds().each {
+                release.getAdvisories(group).each {
+                    advisory_id = "${it.value}"
                     res = commonlib.shell(
-                        script: "${buildlib.ELLIOTT_BIN} validate-rhsa ${it}",
+                        script: "${buildlib.ELLIOTT_BIN} validate-rhsa ${advisory_id}",
                         returnAll: true,
                     )
                     if (res.returnStatus != 0) {
                         msg = """
-                            Review of CVE situation required for advisory <https://errata.devel.redhat.com/advisory/${it}|${it}>.
+                            Review of CVE situation required for advisory <https://errata.devel.redhat.com/advisory/${advisory_id}|${advisory_id}>.
                             Report:
                             ```
                             ${res.stdout}

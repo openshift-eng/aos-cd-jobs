@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 node {
     checkout scm
-    def commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib = load("pipeline-scripts/commonlib.groovy")
     commonlib.describeJob("rosa_sync", """
         ------------------------------------------------------
         Sync ROSA (Red Hat OpenShift Service on AWS) to mirror

@@ -36,7 +36,7 @@ def create_advisory(name) {
         "--package-owner ${params.PACKAGE_OWNER}"
     ].join(" ")
 
-    if (params.DATE != null) {
+    if (params.DATE) {
         create_cmd += " --date ${params.DATE}"
     }
     if (params.DRY_RUN != true) {
@@ -65,6 +65,34 @@ def create_placeholder(kind) {
         out = buildlib.elliott(cmd, [capture: true])
     }
     echo "out: ${out}"
+}
+
+def create_textonly() {
+  cmd = [
+      "--group openshift-${params.VERSION}",
+      "create-textonly",
+      "--synopsis ${params.SYNOPIS}",
+      "--topic ${params.TOPIC}",
+      "--description ${params.DESCRIPTION}",
+      "--solution ${params.SOLUTION}",
+      "--bugtitle ${params.BUGTITLE}",
+      "--bugdescription ${params.BUGDESCRIPTION}",
+      "--assigned-to ${params.ASSIGNED_TO}",
+      "--manager ${params.MANAGER}",
+      "--package-owner ${params.PACKAGE_OWNER}"
+  ].join(' ')
+  if (params.DATE) {
+      create_cmd += " --date ${params.DATE}"
+  }
+  echo "elliott cmd: ${cmd}"
+  if (params.DRY_RUN) {
+      out = "DRY RUN mode, command did not run"
+  } else {
+      out = buildlib.elliott(cmd, [capture: true])
+      advisory_id = buildlib.extractAdvisoryId(out)
+      currentBuild.description += "Text only advisory:  https://errata.devel.redhat.com/advisory/${advisory_id}<br />"
+  }
+  echo "out: ${out}"
 }
 
 return this

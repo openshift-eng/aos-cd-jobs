@@ -196,7 +196,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
     if (from_release_tag) {
         cmd += "--from-release=registry.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag} "
     } else {
-        cmd += "--from-image-stream ${params.VERSION}-art-assembly-${params.ASSEMBLY}${publicSuffix} "
+        cmd += "--reference-mode=source --from-image-stream ${params.VERSION}-art-assembly-${params.ASSEMBLY}${publicSuffix} "
     }
     if (previous != "") {
         cmd += "--previous \"${previous}\" "

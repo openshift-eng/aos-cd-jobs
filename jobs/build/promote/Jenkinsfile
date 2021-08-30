@@ -61,7 +61,7 @@ node {
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
-                        description: 'Integer. Do not specify for assembly or hotfix. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
+                        description: 'Integer. Do not specify for standard or candidate assembly. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate, 4.5.X-assembly.ASSEMBLY_NAME for custom release',
                         trim: true,
                     ),
                     string(
@@ -244,7 +244,11 @@ node {
             ga_release = true
             break
         case "custom":
-            release_name = "${major}.${minor}.0-assembly.${params.ASSEMBLY}"
+            if (!params.RELEASE_OFFSET) {
+                error("RELEASE_OFFSET is required when promoting a custom release payload. Use 0 if this is not a derivative of any GA named release.")
+            }
+            release_offset = params.RELEASE_OFFSET.toInteger()
+            release_name = "${major}.${minor}.${release_offset}-assembly.${params.ASSEMBLY}"
             detect_previous = false
             is_4stable_release = false
             CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key

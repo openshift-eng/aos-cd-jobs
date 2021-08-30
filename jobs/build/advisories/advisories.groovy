@@ -36,7 +36,7 @@ def create_advisory(name) {
         "--package-owner ${params.PACKAGE_OWNER}"
     ].join(" ")
 
-    if (params.DATE != null) {
+    if (params.DATE) {
         create_cmd += " --date ${params.DATE}"
     }
     if (params.DRY_RUN != true) {
@@ -81,7 +81,7 @@ def create_textonly() {
       "--manager ${params.MANAGER}",
       "--package-owner ${params.PACKAGE_OWNER}"
   ].join(' ')
-  if (params.DATE != null) {
+  if (params.DATE) {
       create_cmd += " --date ${params.DATE}"
   }
   echo "elliott cmd: ${cmd}"

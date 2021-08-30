@@ -245,7 +245,7 @@ node {
             break
         case "custom":
             if (!params.RELEASE_OFFSET) {
-                error("RELEASE_OFFSET is required when promoting a custom release payload.")
+                error("RELEASE_OFFSET is required when promoting a custom release payload. Use 0 if this is not a derivative of any GA named release.")
             }
             release_offset = params.RELEASE_OFFSET.toInteger()
             release_name = "${major}.${minor}.${release_offset}-assembly.${params.ASSEMBLY}"

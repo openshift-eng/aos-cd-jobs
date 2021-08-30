@@ -48,7 +48,7 @@ node {
                     ),
                     string(
                         name: 'RELEASE_OFFSET',
-                        description: 'Integer. Do not specify for hotfix and non-stream assembly. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate ',
+                        description: 'Integer. Do not specify for standard or candidate assembly. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate, 4.5.X-assembly.ASSEMBLY_NAME for custom release',
                         trim: true,
                     ),
                     string(

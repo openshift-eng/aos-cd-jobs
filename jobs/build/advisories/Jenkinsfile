@@ -175,7 +175,7 @@ node {
                         draft << "- ${it.key}: https://errata.devel.redhat.com/advisory/${it.value}"
                     }
                     body = draft.join('\n')
-                    if (params.DRY_RUN || params.TEXT_ONLY) {
+                    if (params.DRY_RUN) {
                         out = "DRY RUN mode, email did not send to ${params.LIVE_ID_MAIL_LIST}\n\n subject: Live IDs for ${params.VERSION}\n\n body: ${body}"
                         echo "out: ${out}"
                     } else {

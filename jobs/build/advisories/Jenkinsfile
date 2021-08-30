@@ -97,6 +97,42 @@ node {
                             ].join(","),
                             trim: true
                         ),
+                        booleanParam(
+                            name: 'TEXT_ONLY',
+                            description: 'Create one text only advisory, the following params should modified manually if this is true',
+                            defaultValue: false,
+                        ),
+                        string(
+                            name: 'SYNOPIS'
+                            description: 'Synopsis value for text only advisory',
+                            defaultVale: "OpenShift Container Platform 4.7.z notification of delayed upgrade path to 4.8"
+                        ),
+                        string(
+                            name: 'TOPIC'
+                            description: 'Topic value for text only advisory',
+                            defaultVale: "Upgrading from Red Hat OpenShift Container Platform version 4.7.z to version 4.8 is not currently available."
+                        ),
+                        string(
+                            name: 'DESCRIPTION'
+                            description: 'Description value for text only advisory',
+                            defaultVale: "Red Hat has discovered an issue in OpenShift Container Platform 4.7.17 that provides sufficient cause for Red Hat to not support installations of, or upgrades to, version 4.7.17:\n\nhttps://bugzilla.redhat.com/show_bug.cgi?id=1973006\n\nFor more information, see https://access.redhat.com/solutions/6131081\n\nThe delayed availability of this upgrade path does not affect the support of clusters as documented in the OpenShift Container Platform version life cycle policy, and Red Hat will provide supported update paths as soon as possible. \n\nYou can view the OpenShift Container Platform life cycle policy at https://access.redhat.com/support/policy/updates/openshift\n\nFor more information about upgrade paths and recommendations, see https://docs.openshift.com/container-platform/4.6/updating/updating-cluster-between-minor.html#upgrade-version-paths"
+                        ),
+                        string(
+                            name: 'SOLUTION'
+                            description: 'Solution value for text only advisory',
+                            defaultVale: "eneral Guidance:\n\nAll OpenShift Container Platform 4.6 users are advised to upgrade to the next version when it is available in the appropriate release channel. To check for currently recommended updates, use the OpenShift Console or the CLI oc command. \n\nOutside of a cluster, view the currently recommended upgrade paths with the Red Hat OpenShift Container Platform Update Graph tool
+                            https://access.redhat.com/labs/ocpupgradegraph/update_channel\nInstructions for upgrading a cluster are available at https://docs.openshift.com/container-platform/4.6/updating/updating-cluster-between-minor.html#understanding-upgrade-channels_updating-cluster-between-minor"
+                        ),
+                        string(
+                            name: 'BUGTITLE'
+                            description: 'Bug title value for the bug used in text only advisory',
+                            defaultVale: "No upgrade edge available from 4.6.32 to 4.7"
+                        ),
+                        string(
+                            name: 'BUGDESCRIPTION'
+                            description: 'Bug description value for the bug used in text only advisory',
+                            defaultVale: "Description of problem:\nUpgrading from Red Hat OpenShift Container Platform version 4.7.z to version 4.8 is not currently available.\nCustomers would have to upgrade to 4.7.z or later to upgrade to 4.8 version."
+                        ),
                         commonlib.mockParam(),
                     ]
                 ],
@@ -114,11 +150,15 @@ node {
                 buildlib.kinit()
             }
             stage("create advisories") {
-                lib.create_advisory("image")
-                lib.create_advisory("rpm")
-                if (major > 3) {
-                    lib.create_advisory("extras")
-                    lib.create_advisory("metadata")
+                if (params.TEXT_ONLY) {
+                    lib.create_textonly()
+                } else {
+                    lib.create_advisory("image")
+                    lib.create_advisory("rpm")
+                    if (major > 3) {
+                        lib.create_advisory("extras")
+                        lib.create_advisory("metadata")
+                    }
                 }
             }
 
@@ -150,42 +190,48 @@ node {
             }
             sshagent(["openshift-bot"]) {
                 stage("commit new advisories to ocp-build-data") {
-                    def edit = [
-                        "rm -rf ocp-build-data",
-                        "git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git",
-                        "cd ocp-build-data"
-                    ]
-                    for (advisory in lib.ADVISORIES) {
-                        edit << "sed -Ei 's/^  ${advisory.key}: [0-9]+\$/  ${advisory.key}: ${advisory.value}/' group.yml"
-                    }
-                    commit = [
-                        "git diff",
-                        "git add .",
-                        "git commit -m 'Update advisories on group.yml'",
-                        "git push origin openshift-${params.VERSION}",
-                    ]
+                    if (params.TEXT_ONLY != True) {
+                        def edit = [
+                            "rm -rf ocp-build-data",
+                            "git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git",
+                            "cd ocp-build-data"
+                        ]
+                        for (advisory in lib.ADVISORIES) {
+                            edit << "sed -Ei 's/^  ${advisory.key}: [0-9]+\$/  ${advisory.key}: ${advisory.value}/' group.yml"
+                        }
+                        commit = [
+                            "git diff",
+                            "git add .",
+                            "git commit -m 'Update advisories on group.yml'",
+                            "git push origin openshift-${params.VERSION}",
+                        ]
 
-                    cmd = (edit << commit).flatten().join('\n')
+                        cmd = (edit << commit).flatten().join('\n')
 
-                    echo "shell cmd: ${cmd}"
-                    if (params.DRY_RUN) {
-                        out = "DRY RUN mode, command did not run"
+                        echo "shell cmd: ${cmd}"
+                        if (params.DRY_RUN) {
+                            out = "DRY RUN mode, command did not run"
+                        } else {
+                            out = commonlib.shell(
+                                returnStdout: true,
+                                script: cmd
+                            )
+                        }
+                        echo "out: ${out}"
                     } else {
-                        out = commonlib.shell(
-                            returnStdout: true,
-                            script: cmd
-                        )
+                        echo "skip commit text only advisory to ocp-build-data"
                     }
-                    echo "out: ${out}"
                 }
             }
 
             stage("add placeholder bugs to advisories") {
-                lib.ADVISORIES.each {
-                    if (it.key == "rpm" && major == 3) { return }
-                    if (it.key == "image" && major > 3) { return }
-                    if (it.key.contains('rhsa')) { return }
-                    lib.create_placeholder(it.key)
+                if (params.TEXT_ONLY != True) {
+                    lib.ADVISORIES.each {
+                        if (it.key == "rpm" && major == 3) { return }
+                        if (it.key == "image" && major > 3) { return }
+                        if (it.key.contains('rhsa')) { return }
+                        lib.create_placeholder(it.key)
+                    }
                 }
             }
 

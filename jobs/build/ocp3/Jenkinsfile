@@ -109,7 +109,7 @@ OpenShift Version: v${version}
 ${inject_notes}
 RPMs:
     Plashet (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${params.BUILD_VERSION}/${PLASHET}
-    Exernal Mirror: ${mirrorURL}/${PLASHET}
+    External Mirror: ${mirrorURL}/${PLASHET}
 ${image_details}
 
 Brew:

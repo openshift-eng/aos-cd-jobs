@@ -4,14 +4,14 @@ The legacy infrastructure run by Service Delivery is to be [decommissioned EOY 2
 
 The current direction for replacing this infrastructure is an AWS S3 bucket behind CloudFront.
 
-CloudFront provides worldwide distribution, but it is not a drop in replacement.
-- 
+CloudFront provides worldwide distribution, but it is not a drop in replacement. It did not:
 - Provide an Apache-style file listing for directory structures within that S3 bucket (S3 content is not even technically organized by directories). 
+- Provide for client certificate authentication like the legacy mirror.openshift.com/enterprise. 
 
 ### /enterprise authentication
-CloudFront does not support client certificate based authentication (used by mirror.openshift.com/enterprise today). Client certificate based auth could have been preserved with a small deployment (e.g. of nginx) to proxy requests, but this introduced an unnecessary bottleneck and would have created an operations concern for the ART team.
+CloudFront does not support client certificate based authentication (used by the legacy mirror.openshift.com/enterprise). Client certificate based auth could have been preserved with a small deployment (e.g. of nginx) to proxy requests, but this introduced an unnecessary bottleneck and would have created a new operational concern for the ART team.
 
-Instead, the new infrastructure will be secured with basic auth (username & password) for authentication. This is enforced by a CloudFront function setup as a View Request hook. The View Request checks basic authentication whenever a /enterprise path is requested. See lambda_art-srv-request-basic-auth.js, but note that the username/password has been removed from the code. 
+Instead, the new infrastructure will be secured with basic auth (username & password) for authentication. This is enforced by a CloudFront function setup as a View Request hook. The View Request checks basic authentication whenever a /enterprise path is requested. See cloudfront_function_art-srv-request-basic-auth.js, but note that the username/password has been removed from the code. 
 
 
 ### /pub directory listing
@@ -22,6 +22,7 @@ The solution has different aspects:
 2. A CloudFront behavior is setup to handle requests to *.index.html. An Origin Request Lambda@Edge function is setup to handle those requests (see lambda_art-srv-enterprise-s3-get-index-html-gen.py). It queries S3 and formulates an index.html dynamically and sends it back to the client. 
 3. An Origin Response method is setup for the '*' behavior. It detects 403 (permission denied - which indicates the file was not found in S3) and determines whether to redirect the client to a directory listing (i.e. the path requested plus '/'). This catch ensures that customers typing in a directory name with out a trailing slash will get redirected to a directory listing index of a file-not-found (see lambda_art-srv-enterprise-s3-redirect-base-to-index-html.py).  
 
-
+### Generating credentials
+See gen_password.py. You must ex
 
  

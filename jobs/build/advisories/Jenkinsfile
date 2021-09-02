@@ -99,39 +99,63 @@ node {
                         ),
                         booleanParam(
                             name: 'TEXT_ONLY',
-                            description: 'Create one text only advisory, the following params should modified manually if this is true',
+                            description: 'Create one text only advisory, the following params should modified manually ref this doc https://docs.google.com/document/d/1f2nhs2u59G_iyd3JI_IJq9C2rvM1z5vjWTLE133oToI if this is true',
                             defaultValue: false,
                         ),
-                        string(
+                        text(
                             name: 'SYNOPIS'
                             description: 'Synopsis value for text only advisory',
-                            defaultVale: "OpenShift Container Platform 4.7.z notification of delayed upgrade path to 4.8"
+                            defaultValue: "OpenShift Container Platform 4.7.z notification of delayed upgrade path to 4.8"
                         ),
-                        string(
+                        text(
                             name: 'TOPIC'
                             description: 'Topic value for text only advisory',
-                            defaultVale: "Upgrading from Red Hat OpenShift Container Platform version 4.7.z to version 4.8 is not currently available."
+                            defaultValue: "Upgrading from Red Hat OpenShift Container Platform version 4.7.z to version 4.8 is not currently available."
                         ),
-                        string(
+                        text(
                             name: 'DESCRIPTION'
                             description: 'Description value for text only advisory',
-                            defaultVale: "Red Hat has discovered an issue in OpenShift Container Platform 4.7.17 that provides sufficient cause for Red Hat to not support installations of, or upgrades to, version 4.7.17:\n\nhttps://bugzilla.redhat.com/show_bug.cgi?id=1973006\n\nFor more information, see https://access.redhat.com/solutions/6131081\n\nThe delayed availability of this upgrade path does not affect the support of clusters as documented in the OpenShift Container Platform version life cycle policy, and Red Hat will provide supported update paths as soon as possible. \n\nYou can view the OpenShift Container Platform life cycle policy at https://access.redhat.com/support/policy/updates/openshift\n\nFor more information about upgrade paths and recommendations, see https://docs.openshift.com/container-platform/4.6/updating/updating-cluster-between-minor.html#upgrade-version-paths"
+                            defaultValue: '''Red Hat has discovered an issue in OpenShift Container Platform 4.7.17 that provides sufficient cause for Red Hat to not support installations of, or upgrades to, version 4.7.17:
+
+https://bugzilla.redhat.com/show_bug.cgi?id=1973006
+
+For more information, see https://access.redhat.com/solutions/6131081
+
+The delayed availability of this upgrade path does not affect the support of clusters as documented in the OpenShift Container Platform version life cycle policy, and Red Hat will provide supported update paths as soon as possible.
+
+You can view the OpenShift Container Platform life cycle policy at https://access.redhat.com/support/policy/updates/openshift
+
+For more information about upgrade paths and recommendations, see https://docs.openshift.com/container-platform/4.6/updating/updating-cluster-between-minor.html#upgrade-version-paths
+                                           ''',
                         ),
-                        string(
+                        text(
                             name: 'SOLUTION'
                             description: 'Solution value for text only advisory',
-                            defaultVale: "eneral Guidance:\n\nAll OpenShift Container Platform 4.6 users are advised to upgrade to the next version when it is available in the appropriate release channel. To check for currently recommended updates, use the OpenShift Console or the CLI oc command. \n\nOutside of a cluster, view the currently recommended upgrade paths with the Red Hat OpenShift Container Platform Update Graph tool
-                            https://access.redhat.com/labs/ocpupgradegraph/update_channel\nInstructions for upgrading a cluster are available at https://docs.openshift.com/container-platform/4.6/updating/updating-cluster-between-minor.html#understanding-upgrade-channels_updating-cluster-between-minor"
+                            defaultValue: '''eneral Guidance:
+                            
+All OpenShift Container Platform 4.6 users are advised to upgrade to the next version when it is available in the appropriate release channel. To check for currently recommended updates, use the OpenShift Console or the CLI oc command.
+
+Outside of a cluster, view the currently recommended upgrade paths with the Red Hat OpenShift Container Platform Update Graph tool
+
+https://access.redhat.com/labs/ocpupgradegraph/update_channel
+
+Instructions for upgrading a cluster are available at https://docs.openshift.com/container-platform/4.6/updating/updating-cluster-between-minor.html#understanding-upgrade-channels_updating-cluster-between-minor
+                                          ''',
                         ),
-                        string(
+                        text(
                             name: 'BUGTITLE'
                             description: 'Bug title value for the bug used in text only advisory',
-                            defaultVale: "No upgrade edge available from 4.6.32 to 4.7"
+                            defaultValue: "No upgrade edge available from 4.6.32 to 4.7"
                         ),
-                        string(
+                        text(
                             name: 'BUGDESCRIPTION'
                             description: 'Bug description value for the bug used in text only advisory',
-                            defaultVale: "Description of problem:\nUpgrading from Red Hat OpenShift Container Platform version 4.7.z to version 4.8 is not currently available.\nCustomers would have to upgrade to 4.7.z or later to upgrade to 4.8 version."
+                            defaultValue: '''Description of problem:
+                            
+Upgrading from Red Hat OpenShift Container Platform version 4.7.z to version 4.8 is not currently available.
+
+Customers would have to upgrade to 4.7.z or later to upgrade to 4.8 version.
+                                          ''',
                         ),
                         commonlib.mockParam(),
                     ]
@@ -190,7 +214,7 @@ node {
             }
             sshagent(["openshift-bot"]) {
                 stage("commit new advisories to ocp-build-data") {
-                    if (params.TEXT_ONLY != True) {
+                    if (params.TEXT_ONLY != true) {
                         def edit = [
                             "rm -rf ocp-build-data",
                             "git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git",
@@ -225,7 +249,7 @@ node {
             }
 
             stage("add placeholder bugs to advisories") {
-                if (params.TEXT_ONLY != True) {
+                if (params.TEXT_ONLY != true) {
                     lib.ADVISORIES.each {
                         if (it.key == "rpm" && major == 3) { return }
                         if (it.key == "image" && major > 3) { return }

@@ -296,8 +296,8 @@ node {
         }
     }
 
-    slackChannel = slacklib.to(FROM_RELEASE_TAG)
-    slackChannel.task("Public release prep for: ${FROM_RELEASE_TAG}${ params.DRY_RUN ? ' (DRY RUN)' : ''}") {
+    slackChannel = slacklib.to(release_name)
+    slackChannel.task("Public release prep for: ${release_name}${ params.DRY_RUN ? ' (DRY RUN)' : ''}") {
         taskThread ->
 
         stage("Check for Blocker Bugs") {

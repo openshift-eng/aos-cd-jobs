@@ -6,6 +6,7 @@ node {
     def build = load("build.groovy")
     def buildlib = build.buildlib
     def commonlib = build.commonlib
+    def slacklib = commonlib.slacklib
     commonlib.describeJob("build-sync", """
         <h2>Mirror latest 4.y images to nightlies</h2>
         <b>Timing</b>: usually automated. Human might use to revert or hand-advance nightly membership.
@@ -87,6 +88,8 @@ node {
         sh "oc version -o yaml"
     }
 
+    failCountFile = "${BUILD_VERSION}-assembly.${ASSEMBLY}.count"
+
     try {
 
         if (params.TRIGGER_NEW_NIGHTLY && params.ASSEMBLY == "stream" ) {
@@ -118,7 +121,28 @@ node {
         lock("oc-applying-lock-OCP-${params.BUILD_VERSION}") {
             stage("oc apply") { build.buildSyncApplyImageStreams() }
         }
+
+        // Successful buildsync, reset fail count
+        writeFile file: failCountFile, text: "0"
+
     } catch (err) {
+        failCount = 1
+        if (fileExists(failCountFile)) {
+            failCountStr = readFile(failCountFile).trim()
+            if (failCountStr.isInteger()) {
+                failCount = failCountStr.toInteger() + 1
+            }
+        }
+        writeFile file: failCountFile, text: "${failCount}"
+
+        if (failCount > 1) {
+            msg = "@release-artists - pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
+            slacklib.to(params.BUILD_VERSION).failure(msg)
+            if (assembly == "stream") {
+                slacklib.to("#forum-release").failure(msg)
+            }
+        }
+
         currentBuild.displayName += " [FAILURE]"
         commonlib.email(
                 to: "aos-art-automation+failed-build-sync@redhat.com",

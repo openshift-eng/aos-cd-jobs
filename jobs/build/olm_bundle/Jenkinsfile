@@ -136,6 +136,7 @@ pipeline {
             }
             steps {
                 script {
+                    operator_packages = (only ?: olm_bundles.get_olm_operators()) - exclude
                     operator_nvrs = olm_bundles.get_builds_from_advisory(params.EXTRAS_ADVISORY).findAll {
                         nvr -> operator_packages.any { nvr.startsWith(it) }
                     }

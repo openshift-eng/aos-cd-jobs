@@ -68,7 +68,7 @@ node {
                     ),
                     booleanParam(
                         name: 'COMPOSE',
-                        description: 'Build plashets/compose (always true if building RPMs)',
+                        description: 'Build plashets/compose (always true if building RPMs or images for non-stream assembly)',
                         defaultValue: false,
                     ),
                     string(
@@ -177,7 +177,7 @@ node {
             }
 
             stage("repo: ose 'building'") {
-                if (params.COMPOSE || rpms.toUpperCase() != "NONE") {
+                if (params.COMPOSE || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
                     lock("compose-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
                         def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
                         echo 'Building plashet'

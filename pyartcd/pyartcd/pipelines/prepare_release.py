@@ -222,10 +222,6 @@ class PrepareReleasePipeline:
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
 
-        # Verify attached operators
-        if advisories.get("metadata"):
-            await self.verify_attached_operators(advisories["image"], advisories["extras"], advisories["metadata"])
-
         _LOGGER.info("Sending a notification to QE and multi-arch QE...")
         if self.dry_run:
             jira_issue_link = "https://jira.example.com/browse/FOO-1"
@@ -236,6 +232,9 @@ class PrepareReleasePipeline:
         # Move advisories to QE
         for kind, advisory in advisories.items():
             try:
+                if kind == "metadata":
+                    # Verify attached operators
+                    await self.verify_attached_operators(advisories["image"], advisories["extras"], advisories["metadata"])
                 self.change_advisory_state(advisory, "QE")
             except CalledProcessError as ex:
                 _LOGGER.warning(f"Unable to move {kind} advisory {advisory} to QE: {ex}")

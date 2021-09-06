@@ -48,7 +48,7 @@ class PrepareReleasePipeline:
         self.release_name = None
         group_match = None
         if group:
-            group_match = re.fullmatch(r"openshift-(\d+).(\d)", group)
+            group_match = re.fullmatch(r"openshift-(\d+).(\d+)", group)
             if not group_match:
                 raise ValueError(f"Invalid group name: {group}")
         self.group_name = group

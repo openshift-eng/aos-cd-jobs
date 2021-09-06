@@ -293,7 +293,11 @@ class PrepareReleasePipeline:
             _LOGGER.warning("[DRY RUN] Would have run %s", cmd)
             return
         _LOGGER.debug("Running command: %s", cmd)
-        result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True, universal_newlines=True, cwd=self.working_dir)
+        result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=False, universal_newlines=True, cwd=self.working_dir)
+        if result.returncode != 0:
+            raise IOError(
+                f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}"
+            )
         _LOGGER.info(result.stdout)
         match = re.search(r"Found ([0-9]+) bugs", str(result.stdout))
         if match and int(match[1]) != 0:

@@ -127,7 +127,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
     }
 
     slackChannel = slacklib.to(version)
-    if (arch == 'amd64' || arch == 'x86_64') {
+    if (nightly && (arch == 'amd64' || arch == 'x86_64')) {
         echo "Verifying payload"
         res = commonlib.shell(
                 returnAll: true,

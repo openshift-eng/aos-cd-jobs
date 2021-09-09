@@ -222,12 +222,13 @@ class PrepareReleasePipeline:
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
 
-        _LOGGER.info("Sending a notification to QE and multi-arch QE...")
-        if self.dry_run:
-            jira_issue_link = "https://jira.example.com/browse/FOO-1"
-        else:
-            jira_issue_link = jira_issue.permalink()
-        self.send_notification_email(advisories, jira_issue_link)
+        if build_data_changed or self.candidate_nightlies:
+            _LOGGER.info("Sending a notification to QE and multi-arch QE...")
+            if self.dry_run:
+                jira_issue_link = "https://jira.example.com/browse/FOO-1"
+            else:
+                jira_issue_link = jira_issue.permalink()
+            self.send_notification_email(advisories, jira_issue_link)
 
         # Move advisories to QE
         for kind, advisory in advisories.items():

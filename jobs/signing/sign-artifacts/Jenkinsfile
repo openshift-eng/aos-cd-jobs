@@ -259,7 +259,7 @@ node {
                         // the signed artifact is 'signature-1'
                         //
                         // 2) A message digest (sha256sum.txt) is mirrored to
-                        // https://mirror.openshift.com/pub/openshift-v4/clients/
+                        // https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/
                         // using this directory structure:
                         //
                         // ocp/
@@ -342,11 +342,11 @@ node {
                         // just received the sha256sum.txt.gpg file for openshift
                         // release 4.1.0-rc.5. We will mirror this file to:
                         //
-                        // https://mirror.openshift.com/pub/openshift-v4/clients/
+                        // https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/
                         //  --> ocp/
                         //  ----> `.artifacts.name`/
                         //  ------> sha256sum.txt.gpg
-                        //  ==> https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.1.0-rc.5/sha256sum.txt.gpg
+                        //  ==> https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/4.1.0-rc.5/sha256sum.txt.gpg
 
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {

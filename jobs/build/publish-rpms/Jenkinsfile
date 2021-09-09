@@ -36,7 +36,7 @@ node {
     commonlib.checkMock()
 
     version = params.BUILD_VERSION
-    path = "openshift-v4/dependencies/rpms/${version}-beta"
+    path = "openshift-v4/x86_64/dependencies/rpms/${version}-beta"
     mirror_dir = "/srv/pub/${path}"
     withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
         commonlib.shell(

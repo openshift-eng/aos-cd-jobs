@@ -5,7 +5,7 @@
 Sync butane binaries to mirror.openshift.com.
 (formerly the Fedora CoreOS Config Transpiler, FCCT)
 
-<http://mirror.openshift.com/pub/openshift-v4/clients/butane/>
+<http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/>
 
 ## Timing
 
@@ -33,7 +33,7 @@ This job performs the following steps:
 2. extract the binaries from each RPM, appending the corresponding arch to each filename
 3. create a `butane` symlink, pointing to the `butane-amd64` binary
 4. calculate the shasum of each binary
-5. sync them to https://mirror.openshift.com/pub/openshift-v4/clients/butane/, under a directory named
+5. sync them to https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/, under a directory named
 by the given version name.
 
 ### Example

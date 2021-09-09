@@ -666,8 +666,18 @@ def retryAbort(goal, slackOutput=null, prompt='', cl) {
     _retryWithOptions(goal, ['RETRY', 'ABORT'], slackOutput, prompt, cl)
 }
 
+def checkS3Path(s3_path) {
+    if (s3_path.startsWith('/pub/openshift-v4/clients') ||
+        s3_path.startsWith('/pub/openshift-v4/amd64') ||
+        s3_path.startsWith('/pub/openshift-v4/arm64') ||
+        s3_path.startsWith('/pub/openshift-v4/dependencies')) {
+        error("Invalid location on s3 (${s3_path}); these are virtual/read-only locations on the s3 backed mirror. Quality your path with /pub/openshift-v4/<brew_arch_name>/ instead.")
+    }
+}
+
 def syncRepoToS3Mirror(local_dir, s3_path) {
     try {
+        checkS3Path(s3_path)
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
             // Sync is not transactional. If we update repomd.xml before files it references are populated,
             // users of the repo will get a 404. So we run in three passes:
@@ -686,6 +696,7 @@ def syncRepoToS3Mirror(local_dir, s3_path) {
 
 def syncDirToS3Mirror(local_dir, s3_path, include_only='') {
     try {
+        checkS3Path(s3_path)
         extra_args = ""
         if (include_only) {
             // --include only takes effect if files are excluded.

@@ -5,7 +5,7 @@ node {
         ----------------------------------------------
         Sync the knative (serverless) client to mirror
         ----------------------------------------------
-        http://mirror.openshift.com/pub/openshift-v4/clients/serverless/
+        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/serverless/
 
         Timing: This is only ever run by humans, upon request.
     """)
@@ -63,13 +63,13 @@ pipeline {
         stage("Sync to mirror") {
             steps {
                 sh "tree ${params.VERSION}"
-                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/clients/serverless/${params.VERSION}/")
-                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/clients/serverless/latest/")
+                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/serverless/${params.VERSION}/")
+                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/serverless/latest/")
 
                 sshagent(['aos-cd-test']) {
-                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/serverless/"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/serverless/latest"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/clients/serverless -v"
+                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/x86_64/clients/serverless/"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/x86_64/clients/serverless/latest"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/serverless -v"
                 }
             }
         }

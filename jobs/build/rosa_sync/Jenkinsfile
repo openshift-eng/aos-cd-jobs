@@ -57,8 +57,8 @@ pipeline {
             steps {
                 sh "tree ${params.VERSION}"
                 script {
-                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/clients/rosa/${params.VERSION}/")
-                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/clients/rosa/latest/")
+                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/rosa/${params.VERSION}/")
+                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/rosa/latest/")
                 }
 
                 sshagent(['aos-cd-test']) {

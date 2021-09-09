@@ -5,7 +5,7 @@ node {
         -----------------------------
         Sync Camel-K client to mirror
         -----------------------------
-        http://mirror.openshift.com/pub/openshift-v4/clients/camel-k/
+        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/camel-k/
 
         Timing: This is only ever run by humans, upon request.
     """)
@@ -80,13 +80,13 @@ pipeline {
         }
         stage("Sync to mirror") {
             steps {
-                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/clients/camel-k/${params.VERSION}/")
-                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/clients/camel-k/latest/")
+                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/camel-k/${params.VERSION}/")
+                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/camel-k/latest/")
 
                 sshagent(['aos-cd-test']) {
-                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/camel-k/"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/camel-k/latest"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/clients/camel-k -v"
+                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/x86_64/clients/camel-k/"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/x86_64/clients/camel-k/latest"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/camel-k -v"
                 }
             }
         }

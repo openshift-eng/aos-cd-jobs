@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This job will publish the dependent RPMs to mirror location under https://mirror.openshift.com/pub/openshift-v4/dependencies/rpms/<4.y-beta>
+This job will publish the dependent RPMs to mirror location under https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rpms/<4.y-beta>
 So that we can test out pre-GA versions on RHEL 7 workers
 
 ## Timing

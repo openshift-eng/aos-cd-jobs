@@ -6,7 +6,7 @@ node {
 
     commonlib.describeJob("coreos-installer_sync", """
         <h2>Sync contents of the coreos-installer RPM to mirror</h2>
-        http://mirror.openshift.com/pub/openshift-v4/clients/coreos-installer/
+        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/coreos-installer/
 
         Timing: This is only ever run by humans, upon request.
     """)
@@ -85,7 +85,7 @@ node {
 
     stage("Sync to mirror") {
         def mirror = "use-mirror-upload.ops.rhcloud.com"
-        def dir = "/srv/pub/openshift-v4/clients/coreos-installer"
+        def dir = "/srv/pub/openshift-v4/x86_64/clients/coreos-installer"
 
         if (params.DRY_RUN) {
             commonlib.shell(
@@ -97,8 +97,8 @@ node {
             return
         }
 
-        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/clients/coreos-installer/${params.VERSION}/")
-        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/clients/coreos-installer/latest/")
+        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/${params.VERSION}/")
+        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/latest/")
 
         sshagent(['aos-cd-test']) {
             commonlib.shell(
@@ -109,7 +109,7 @@ node {
                     scp -r ${params.VERSION} ${mirror}:${dir}/${params.VERSION}
                     ssh ${mirror} ln --symbolic --force --no-dereference ${params.VERSION} ${dir}/latest
                     ssh ${mirror} tree ${dir}
-                    ssh ${mirror} /usr/local/bin/push.pub.sh openshift-v4/clients/coreos-installer -v
+                    ssh ${mirror} /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/coreos-installer -v
                 """
             )
         }

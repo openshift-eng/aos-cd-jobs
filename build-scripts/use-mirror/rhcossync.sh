@@ -19,7 +19,7 @@ function usage() {
 usage: ${0} [OPTIONS]
 
 This script will create directories under
-https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/{--PREFIX}/{--VERSION}/
+https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/{--PREFIX}/{--VERSION}/
 containing the items provided in --synclist as well as a sha256sum.txt
 file generated from those items.
 

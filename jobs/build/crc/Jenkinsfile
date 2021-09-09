@@ -6,7 +6,7 @@ node {
         -----------------------------------
         Sync Code Ready Container to mirror
         -----------------------------------
-        http://mirror.openshift.com/pub/openshift-v4/clients/crc/
+        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/crc/
 
         Timing: This is only ever run by humans, upon request.
     """)
@@ -57,13 +57,13 @@ pipeline {
             steps {
                 sh "tree ${params.VERSION}"
                 script {
-                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/clients/crc/${params.VERSION}/")
-                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/clients/crc/latest/")
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/crc/${params.VERSION}/")
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/crc/latest/")
                 }
                 sshagent(['aos-cd-test']) {
-                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/clients/crc/"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/clients/crc/latest"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/clients/crc -v"
+                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/x86_64/clients/crc/"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/x86_64/clients/crc/latest"
+                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/crc -v"
                 }
             }
         }

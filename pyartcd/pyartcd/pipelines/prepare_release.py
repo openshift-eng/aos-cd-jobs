@@ -6,21 +6,24 @@ import shutil
 import subprocess
 from io import StringIO
 from pathlib import Path
-from subprocess import PIPE
+from subprocess import PIPE, CalledProcessError
 from typing import Dict, List, Optional, Tuple
-from urllib.parse import quote
 
 import aiofiles
 import click
 import jinja2
 from elliottlib.assembly import assembly_group_config
+from elliottlib.errata import get_bug_ids
 from elliottlib.model import Model
+from jira.resources import Issue
 from pyartcd import exectools
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.jira import JIRAClient
 from pyartcd.mail import MailService
+from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +48,7 @@ class PrepareReleasePipeline:
         self.release_name = None
         group_match = None
         if group:
-            group_match = re.fullmatch(r"openshift-(\d+).(\d)", group)
+            group_match = re.fullmatch(r"openshift-(\d+).(\d+)", group)
             if not group_match:
                 raise ValueError(f"Invalid group name: {group}")
         self.group_name = group
@@ -79,20 +82,32 @@ class PrepareReleasePipeline:
         self.default_advisories = default_advisories
         self.dry_run = self.runtime.dry_run
         self.elliott_working_dir = self.working_dir / "elliott-working"
+        self.doozer_working_dir = self.working_dir / "doozer-working"
         self._jira_client = JIRAClient.from_url(self.runtime.config["jira"]["url"], (jira_username, jira_password))
         self.mail = MailService.from_config(self.runtime.config)
+        # sets environment variables for Elliott and Doozer
+        self._ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
+        self._doozer_env_vars = os.environ.copy()
+        self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self.doozer_working_dir)
+        self._elliott_env_vars = os.environ.copy()
+        self._elliott_env_vars["ELLIOTT_WORKING_DIR"] = str(self.elliott_working_dir)
+        if self._ocp_build_data_url:
+            self._elliott_env_vars["ELLIOTT_DATA_PATH"] = self._ocp_build_data_url
+            self._doozer_env_vars["DOOZER_DATA_PATH"] = self._ocp_build_data_url
 
     async def run(self):
         self.working_dir.mkdir(parents=True, exist_ok=True)
         build_data_repo = self.working_dir / "ocp-build-data-push"
         shutil.rmtree(build_data_repo, ignore_errors=True)
+        shutil.rmtree(self.elliott_working_dir, ignore_errors=True)
+        shutil.rmtree(self.doozer_working_dir, ignore_errors=True)
 
         release_config = None
         group_config = await self.load_group_config()
 
         if self.assembly != "stream":
             releases_config = await self.load_releases_config()
-            release_config = releases_config.get("releases", {}).get(self.assembly)
+            release_config = releases_config.get("releases", {}).get(self.assembly, {})
             if not release_config:
                 raise ValueError(f"Assembly {self.assembly} is not defined in releases.yml for group {self.group_name}.")
             group_config = assembly_group_config(Model(releases_config), self.assembly, Model(group_config)).primitive()
@@ -120,7 +135,7 @@ class PrepareReleasePipeline:
         else:
             _LOGGER.info("Creating advisories for release %s...", self.release_name)
             if release_config:
-                advisories = group_config.get("advisories", {})
+                advisories = group_config.get("advisories", {}).copy()
 
             if self.release_version[2] == 0:  # GA release
                 if advisories.get("rpm", 0) <= 0:
@@ -137,30 +152,37 @@ class PrepareReleasePipeline:
                     advisories["extras"] = self.create_advisory("RHBA", "image", "extras")
                 if advisories.get("metadata", 0) <= 0:
                     advisories["metadata"] = self.create_advisory("RHBA", "image", "metadata")
-            _LOGGER.info("Created advisories: %s", advisories)
 
-            _LOGGER.info("Saving the advisories to ocp-build-data...")
-            advisories_changed = await self.save_advisories(advisories)
+        advisories_changed = advisories != group_config.get("advisories", {})
 
-            if advisories_changed:
-                _LOGGER.info("Sending an Errata live ID request email...")
-                self.send_live_id_request_mail(advisories)
+        _LOGGER.info("Ensuring JIRA ticket for release %s...", self.release_name)
+        jira_issue_key = group_config.get("release_jira")
+        jira_template_vars = {
+            "release_name": self.release_name,
+            "x": self.release_version[0],
+            "y": self.release_version[1],
+            "z": self.release_version[2],
+            "release_date": self.release_date,
+            "advisories": advisories,
+            "candidate_nightlies": self.candidate_nightlies,
+        }
+        if jira_issue_key:
+            _LOGGER.info("Reusing existing release JIRA %s", jira_issue_key)
+            jira_issue = self._jira_client.get_issue(jira_issue_key)
+            subtasks = [self._jira_client.get_issue(subtask.key) for subtask in jira_issue.fields.subtasks]
+            self.update_release_jira(jira_issue, subtasks, jira_template_vars)
+        else:
+            _LOGGER.info("Creating a release JIRA...")
+            jira_issues = self.create_release_jira(jira_template_vars)
+            jira_issue = jira_issues[0] if jira_issues else None
+            jira_issue_key = jira_issue.key if jira_issue else None
 
-            _LOGGER.info("Adding placeholder bugs to the advisories...")
-            for kind, advisory in advisories.items():
-                # don't create placeholder bugs for OCP 4 image advisory and OCP 3 rpm advisory
-                if (
-                    not advisory
-                    or self.release_version[0] >= 4
-                    and kind == "image"
-                    or self.release_version[0] < 4
-                    and kind == "rpm"
-                ):
-                    continue
-                self.create_and_attach_placeholder_bug(kind, advisory)
+        _LOGGER.info("Updating ocp-build-data...")
+        build_data_changed = await self.update_build_data(advisories, jira_issue_key)
 
-        _LOGGER.info("Creating a release JIRA...")
-        jira_issues = self.create_release_jira(advisories)
+        if advisories_changed or build_data_changed:
+            _LOGGER.info("Sending an Errata live ID request email...")
+            self.send_live_id_request_mail(advisories)
 
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():
@@ -175,6 +197,8 @@ class PrepareReleasePipeline:
                 )
             elif kind == "extras":
                 self.sweep_builds("image", advisory, only_non_payload=True)
+            elif kind == "metadata":
+                await self.build_and_attach_bundles(advisory)
 
         # bugs should be swept after builds to have validation
         # for only those bugs to be attached which have corresponding brew builds
@@ -182,6 +206,13 @@ class PrepareReleasePipeline:
         # currently for rpm advisory and cves only
         _LOGGER.info("Sweep bugs into the the advisories...")
         self.sweep_bugs(check_builds=True)
+
+        _LOGGER.info("Adding placeholder bugs...")
+        for kind, advisory in advisories.items():
+            bug_ids = get_bug_ids(advisory)
+            if not bug_ids:  # Only create placeholder bug if the advisory has no attached bugs
+                _LOGGER.info("Create placeholder bug for %s advisory %s...", kind, advisory)
+                self.create_and_attach_placeholder_bug(kind, advisory)
 
         # Verify the swept builds match the nightlies
         if self.release_version[0] < 4:
@@ -191,12 +222,23 @@ class PrepareReleasePipeline:
             for _, payload in self.candidate_nightlies.items():
                 self.verify_payload(payload, advisories["image"])
 
-        _LOGGER.info("Sending a notification to QE and multi-arch QE:")
-        if self.dry_run:
-            jira_issue_link = "https://jira.example.com/browse/FOO-1"
-        else:
-            jira_issue_link = jira_issues[0].permalink()
-        self.send_notification_email(advisories, jira_issue_link)
+        if build_data_changed or self.candidate_nightlies:
+            _LOGGER.info("Sending a notification to QE and multi-arch QE...")
+            if self.dry_run:
+                jira_issue_link = "https://jira.example.com/browse/FOO-1"
+            else:
+                jira_issue_link = jira_issue.permalink()
+            self.send_notification_email(advisories, jira_issue_link)
+
+        # Move advisories to QE
+        for kind, advisory in advisories.items():
+            try:
+                if kind == "metadata":
+                    # Verify attached operators
+                    await self.verify_attached_operators(advisories["image"], advisories["extras"], advisories["metadata"])
+                self.change_advisory_state(advisory, "QE")
+            except CalledProcessError as ex:
+                _LOGGER.warning(f"Unable to move {kind} advisory {advisory} to QE: {ex}")
 
     async def load_releases_config(self) -> Dict:
         repo = self.working_dir / "ocp-build-data-push"
@@ -251,7 +293,11 @@ class PrepareReleasePipeline:
             _LOGGER.warning("[DRY RUN] Would have run %s", cmd)
             return
         _LOGGER.debug("Running command: %s", cmd)
-        result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=True, universal_newlines=True, cwd=self.working_dir)
+        result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=False, universal_newlines=True, cwd=self.working_dir)
+        if result.returncode != 0:
+            raise IOError(
+                f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}"
+            )
         _LOGGER.info(result.stdout)
         match = re.search(r"Found ([0-9]+) bugs", str(result.stdout))
         if match and int(match[1]) != 0:
@@ -284,6 +330,7 @@ class PrepareReleasePipeline:
             r"https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)", result.stdout
         )
         advisory_num = int(match[1])
+        _LOGGER.info("Created %s advisory %s", impetus, advisory_num)
         return advisory_num
 
     async def clone_build_data(self, local_path: Path):
@@ -303,9 +350,9 @@ class PrepareReleasePipeline:
         _LOGGER.debug("Running command: %s", cmd)
         await exectools.cmd_assert_async(cmd)
 
-    async def save_advisories(self, advisories: Dict[str, int]):
-        if not advisories:
-            return
+    async def update_build_data(self, advisories: Dict[str, int], jira_issue_key: Optional[str]):
+        if not advisories and not jira_issue_key:
+            return False
         repo = self.working_dir / "ocp-build-data-push"
         if not repo.exists():
             await self.clone_build_data(repo)
@@ -331,7 +378,9 @@ class PrepareReleasePipeline:
             async with aiofiles.open(repo / "releases.yml", "r") as f:
                 old = await f.read()
             releases_config = yaml.load(old)
-            releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("group", {})["advisories"] = advisories
+            group_config = releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("group", {})
+            group_config["advisories"] = advisories
+            group_config["release_jira"] = jira_issue_key
             out = StringIO()
             yaml.dump(releases_config, out)
             async with aiofiles.open(repo / "releases.yml", "w") as f:
@@ -373,6 +422,7 @@ class PrepareReleasePipeline:
         else:
             subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def sweep_bugs(
         self,
         statuses: List[str] = ["MODIFIED", "ON_QA", "VERIFIED"],
@@ -403,6 +453,7 @@ class PrepareReleasePipeline:
         _LOGGER.debug("Running command: %s", cmd)
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def sweep_builds(
         self, kind: str, advisory: int, only_payload=False, only_non_payload=False
     ):
@@ -441,6 +492,7 @@ class PrepareReleasePipeline:
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
         _LOGGER.info("Moved advisory %d to %s", advisory, state)
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def verify_payload(self, pullspec: str, advisory: int):
         cmd = [
             "elliott",
@@ -468,7 +520,7 @@ class PrepareReleasePipeline:
 Please fix advisories and nightlies to match each other, manually verify them with `elliott verify-payload`,
 update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 
-    def create_release_jira(self, advisories: Dict[str, int]):
+    def create_release_jira(self, template_vars: Dict):
         template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]
 
         _LOGGER.info("Creating release JIRA from template %s...",
@@ -479,33 +531,125 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
         def fields_transform(fields):
             labels = set(fields.get("labels", []))
             # change summary title for security
-            if fields.get("summary"):
-                if "product security" in fields["summary"]:
-                    fields["summary"] = f"{self.release_name} [{self.release_date}]" + fields["summary"]
             if "template" not in labels:
                 return fields  # no need to modify fields of non-template issue
             # remove "template" label
             fields["labels"] = list(labels - {"template"})
-            if fields.get("summary"):
-                fields["summary"] = f"Release {self.release_name} [{self.release_date}]"
-            if fields.get("description"):
-                template = jinja2.Template(fields["description"])
-                fields["description"] = template.render(
-                    advisories=advisories,
-                    release_date=self.release_date,
-                    candiate_nightlies=self.candidate_nightlies,
-                ).strip()
-            return fields
+            return self._render_jira_template(fields, template_vars)
         if self.dry_run:
             fields = fields_transform(template_issue.raw["fields"].copy())
-            _LOGGER.info(
-                "Would have created release JIRA %s", fields["summary"])
+            _LOGGER.warning(
+                "[DRY RUN] Would have created release JIRA: %s", fields["summary"])
             return []
         new_issues = self._jira_client.clone_issue_with_subtasks(
             template_issue, fields_transform=fields_transform)
         _LOGGER.info("Created release JIRA: %s", new_issues[0].permalink())
         return new_issues
 
+    @staticmethod
+    def _render_jira_template(fields: Dict, template_vars: Dict):
+        fields.copy()
+        try:
+            fields["summary"] = jinja2.Template(fields["summary"]).render(template_vars)
+        except jinja2.TemplateSyntaxError as ex:
+            _LOGGER.warning("Failed to render JIRA template text: %s", ex)
+        try:
+            fields["description"] = jinja2.Template(fields["description"]).render(template_vars)
+        except jinja2.TemplateSyntaxError as ex:
+            _LOGGER.warning("Failed to render JIRA template text: %s", ex)
+        return fields
+
+    def update_release_jira(self, issue: Issue, subtasks: List[Issue], template_vars: Dict[str, int]):
+        template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]
+        _LOGGER.info("Updating release JIRA %s from template %s...", issue.key, template_issue_key)
+        template_issue = self._jira_client.get_issue(template_issue_key)
+        old_fields = {
+            "summary": issue.fields.summary,
+            "description": issue.fields.description,
+        }
+        fields = {
+            "summary": template_issue.fields.summary,
+            "description": template_issue.fields.description,
+        }
+        if "template" in template_issue.fields.labels:
+            fields = self._render_jira_template(fields, template_vars)
+        jira_changed = fields != old_fields
+        if not self.dry_run:
+            issue.update(fields)
+        else:
+            _LOGGER.warning("Would have updated JIRA ticket %s with summary %s", issue.key, fields["summary"])
+
+        _LOGGER.info("Updating subtasks for release JIRA %s...", issue.key)
+        template_subtasks = [self._jira_client.get_issue(subtask.key) for subtask in template_issue.fields.subtasks]
+        if len(subtasks) != len(template_subtasks):
+            _LOGGER.warning("Release JIRA %s has different number of subtasks from the template ticket %s. Subtasks will not be updated.", issue.key, template_issue.key)
+            return
+        for subtask, template_subtask in zip(subtasks, template_subtasks):
+            fields = {
+                "summary": template_subtask.fields.summary,
+                "description": template_subtask.fields.description,
+            }
+            if "template" in template_subtask.fields.labels:
+                fields = self._render_jira_template(fields, template_vars)
+            if not self.dry_run:
+                subtask.update(fields)
+            else:
+                _LOGGER.warning("Would have updated JIRA ticket %s with summary %s", subtask.key, fields["summary"])
+
+        return jira_changed
+
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
+    async def build_and_attach_bundles(self, metadata_advisory: int):
+        _LOGGER.info("Finding OLM bundles (will rebuild if not present)...")
+        cmd = [
+            "doozer",
+            f"--group={self.group_name}",
+            "--assembly", self.assembly,
+            "olm-bundle:rebase-and-build",
+        ]
+        if self.dry_run:
+            cmd.append("--dry-run")
+        _LOGGER.debug("Running command: %s", cmd)
+        await exectools.cmd_assert_async(cmd, env=self._doozer_env_vars, cwd=self.working_dir)
+         # parse record.log
+        with open(self.doozer_working_dir / "record.log", "r") as file:
+            record_log = parse_record_log(file)
+        bundle_nvrs = [record["bundle_nvr"] for record in record_log["build_olm_bundle"] if record["status"] == "0"]
+
+        if not bundle_nvrs:
+            return
+        _LOGGER.info("Attaching bundle builds %s to advisory %s...", bundle_nvrs, metadata_advisory)
+        cmd = [
+            "elliott",
+            f"--group={self.group_name}",
+            "--assembly", self.assembly,
+            "find-builds",
+            f"--kind=image",
+        ]
+        for bundle_nvr in bundle_nvrs:
+            cmd.append("--build")
+            cmd.append(bundle_nvr)
+        if not self.dry_run and metadata_advisory:
+            cmd.append(f"--attach")
+            cmd.append(f"{metadata_advisory}")
+        _LOGGER.debug("Running command: %s", cmd)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, cwd=self.working_dir)
+
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
+    async def verify_attached_operators(self, *advisories: List[int]):
+        cmd = [
+            "elliott",
+            f"--group={self.group_name}",
+            f"--assembly={self.assembly}",
+            "verify-attached-operators",
+            "--"
+        ]
+        for advisory in advisories:
+            cmd.append(f"{advisory}")
+        _LOGGER.debug("Running command: %s", cmd)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, cwd=self.working_dir)
+
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def send_live_id_request_mail(self, advisories: Dict[str, int]):
         subject = f"Live IDs for {self.release_name}"
         main_advisory = "image" if self.release_version[0] >= 4 else "rpm"
@@ -524,6 +668,7 @@ This is the current set of advisories we intend to ship:
         email_dir = self.working_dir / "email"
         self.mail.send_mail(self.runtime.config["email"]["live_id_request_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
 
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def send_notification_email(self, advisories: Dict[str, int], jira_link: str):
         subject = f"OCP {self.release_name} advisories and nightlies"
         content = f"This is the current set of advisories for {self.release_name}:\n"
@@ -536,10 +681,9 @@ This is the current set of advisories we intend to ship:
             for arch, pullspec in self.candidate_nightlies.items():
                 content += f"- {arch}: {pullspec}\n"
         content += f"\nJIRA ticket: {jira_link}\n"
-        content += "Note: Advisories are still being prepared, it may take a while before bugs and builds appear.\n"
         content += "\nThanks.\n"
         email_dir = self.working_dir / "email"
-        self.mail.send_mail(self.runtime.config["email"]["prepare_release_notification_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
+        self.mail.send_mail(self.runtime.config["email"][f"prepare_release_notification_recipients_ocp{self.release_version[0]}"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
 
 
 @cli.command("prepare-release")

@@ -26,7 +26,7 @@ node {
                 [
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
-                        commonlib.ocpVersionParam('VERSION', '4'),
+                        commonlib.ocpVersionParam('VERSION'),
                         string(
                             name: "ASSEMBLY",
                             description: "The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)",
@@ -75,13 +75,16 @@ node {
         stage("initialize") {
             buildlib.initialize()
             buildlib.registry_quay_dev_login()
-            if (params.NAME) {
+            if (params.ASSEMBLY == "stream") {
                 def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.NAME)
                 currentBuild.displayName += " - $params.NAME"
                 if (major >= 4 && !params.NIGHTLIES) {
                     error("For OCP 4 releases, you must provide a list of proposed nightlies.")
                 }
             } else {
+                if (params.NAME) {
+                    error("NAME must not be specified if ASSEMBLY is not 'stream'.")
+                }
                 currentBuild.displayName += " - $params.VERSION - $params.ASSEMBLY"
             }
 
@@ -91,58 +94,72 @@ node {
             if (params.DRY_RUN) {
                 return
             }
-            slackChannel = slacklib.to(params.NAME)
-            slackChannel.say(":construction: Preparing release for $params.NAME :construction:")
+            slackChannel = slacklib.to(params.NAME?: params.VERSION)
+            slackChannel.say(":construction: prepare-release for ${params.NAME?: params.ASSEMBLY} :construction:")
         }
-
-        stage("prepare release") {
-            sh "mkdir -p ./artcd_working"
-            def cmd = [
-                "artcd",
-                "-vv",
-                "--working-dir=./artcd_working",
-                "--config", "./config/artcd.toml",
-            ]
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
-            }
-            cmd += [
-                "prepare-release",
-                "--group", "openshift-${params.VERSION}",
-                "--assembly", params.ASSEMBLY,
-                "--date", params.DATE,
-            ]
-            if (params.NAME) {
-                cmd << "--name" << params.NAME
-            }
-            if (params.DEFAULT_ADVISORIES) {
-                cmd << "--default-advisories"
-            }
-            if (params.PACKAGE_OWNER)
-                cmd << "--package-owner" << params.PACKAGE_OWNER
-            if (params.NIGHTLIES) { // unlike other languages you are familar,like Python, "".split() returns [""]
-                for (nightly in params.NIGHTLIES.split("[,\\s]+")) {
-                    cmd << "--nightly" << nightly.trim()
+        try {
+            stage("prepare release") {
+                sh "mkdir -p ./artcd_working"
+                def cmd = [
+                    "artcd",
+                    "-vv",
+                    "--working-dir=./artcd_working",
+                    "--config", "./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "prepare-release",
+                    "--group", "openshift-${params.VERSION}",
+                    "--assembly", params.ASSEMBLY,
+                    "--date", params.DATE,
+                ]
+                if (params.NAME) {
+                    cmd << "--name" << params.NAME
+                }
+                if (params.DEFAULT_ADVISORIES) {
+                    cmd << "--default-advisories"
+                }
+                if (params.PACKAGE_OWNER)
+                    cmd << "--package-owner" << params.PACKAGE_OWNER
+                if (params.NIGHTLIES) { // unlike other languages you are familar,like Python, "".split() returns [""]
+                    for (nightly in params.NIGHTLIES.split("[,\\s]+")) {
+                        cmd << "--nightly" << nightly.trim()
+                    }
+                }
+                sshagent(["openshift-bot"]) {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'jboss_jira_login',
+                        usernameVariable: 'JIRA_USERNAME',
+                        passwordVariable: 'JIRA_PASSWORD',
+                    )]) {
+                        echo "Will run ${cmd}"
+                        commonlib.shell(script: cmd.join(' '))
+                    }
                 }
             }
-            sshagent(["openshift-bot"]) {
-                withCredentials([usernamePassword(
-                    credentialsId: 'jboss_jira_login',
-                    usernameVariable: 'JIRA_USERNAME',
-                    passwordVariable: 'JIRA_PASSWORD',
-                )]) {
-                    echo "Will run ${cmd}"
-                    commonlib.shell(script: cmd.join(' '))
-                }
-            }
-        }
-        stage("save artifacts") {
+        } catch (err) {
+            currentBuild.result = "FAILURE"
+            throw err
+        } finally {
             commonlib.safeArchiveArtifacts([
-                "pyartcd_working/email/**",
-                "pyartcd_working/**/*.json",
-                "pyartcd_working/**/*.log",
+                "artcd_working/email/**",
+                "artcd_working/**/*.json",
+                "artcd_working/**/*.log",
+                "artcd_working/**/*.yaml",
+                "artcd_working/**/*.yml",
             ])
+            if (!params.DRY_RUN) {
+                slackChannel = slacklib.to(params.NAME?: params.VERSION)
+                if (currentBuild.currentResult == "SUCCESS") {
+                    slackChannel.say(":heavy_check_mark: prepare-release for ${params.NAME?: params.ASSEMBLY} completes.")
+                } else {
+                    slackChannel.say(":warning: prepare-release for ${params.NAME?: params.ASSEMBLY} has result ${currentBuild.currentResult}.")
+                }
+
+            }
+            buildlib.cleanWorkspace()
         }
-        buildlib.cleanWorkspace()
     }
 }

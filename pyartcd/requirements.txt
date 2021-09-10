@@ -5,3 +5,4 @@ jira
 toml
 rh-elliott
 ruamel.yaml
+tenacity

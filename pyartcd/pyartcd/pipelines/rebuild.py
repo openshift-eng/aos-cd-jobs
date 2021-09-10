@@ -45,7 +45,7 @@ class RebuildPipeline:
         self.logger = logger or runtime.logger
 
         # determines OCP version
-        match = re.fullmatch(r"openshift-(\d+).(\d)", group)
+        match = re.fullmatch(r"openshift-(\d+).(\d+)", group)
         if not match:
             raise ValueError(f"Invalid group name: {group}")
         self._ocp_version = (int(match[1]), int(match[2]))

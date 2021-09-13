@@ -30,7 +30,6 @@ import groovy.json.JsonOutput
 email_to_slack_map = [
     'lmeyer@redhat.com': '@sosiouxme',
     'jdelft@redhat.com': '@joep',
-    'shiywang@redhat.com': '@Shiyang Wang',
 ]
 
 def getDefaultChannel() {
@@ -53,6 +52,18 @@ def getBuildURL() {
 
 def getDisplayName() {
     return "${currentBuild.displayName}"
+}
+
+@NonCPS
+def stripMsg(msg) {
+    def out_txt = []
+    msg.eachLine {line ->
+        trimmed = line.trim()
+        if (trimmed.length() > 0) {
+            out_txt << trimmed
+        }
+    }
+    return out_txt.join('\n')
 }
 
 def notifySlack(channel, as_user, text, attachments=[], thread_ts=null, replyBroadcast=false, verbose=false) {
@@ -84,7 +95,7 @@ def notifySlack(channel, as_user, text, attachments=[], thread_ts=null, replyBro
         ]
 
         if ( text ) {
-            base['text'] = text
+            base['text'] = stripMsg(text)
         }
 
         if ( thread_ts ) {
@@ -190,6 +201,7 @@ class SlackOutputter {
      */
     public say(msg, attachments=[], replyBroadcast=false) {
         def new_thread_ts = this.thread_ts
+
         if ( this.channel ) {
             def responseJson = script.notifySlack(this.channel, as_user, msg, attachments, this.thread_ts, replyBroadcast, this.verbose)
             if ( ! new_thread_ts ) {

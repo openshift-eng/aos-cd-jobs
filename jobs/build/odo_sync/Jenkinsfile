@@ -1,7 +1,8 @@
 #!/usr/bin/env groovy
 node {
     checkout scm
-    load("pipeline-scripts/commonlib.groovy").describeJob("odo_sync", """
+    commonlib = load('pipeline-scripts/commonlib.groovy')
+    commonlib.describeJob("odo_sync", """
         ----------------------------------
         Sync OpenShift Do client to mirror
         ----------------------------------

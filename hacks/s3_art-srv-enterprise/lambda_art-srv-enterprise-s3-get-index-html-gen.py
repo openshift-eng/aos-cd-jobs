@@ -1,6 +1,6 @@
 import boto3
 import os
-from urllib.parse import quote
+from urllib.parse import quote, parse_qs, unquote
 from pathlib import Path
 from io import StringIO
 
@@ -111,7 +111,7 @@ def pretty_size(bytes, units=UNITS_MAPPING):
     return str(amount) + suffix
 
 
-def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
+def process_dir(s3_conn, bucket_name: str, path_top_dir: str, entry_offset=0):
     if not path_top_dir:
         return None
 
@@ -408,6 +408,10 @@ def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
             print(f'{entry.absolute()}')
 
         entry_count += 1
+
+        if entry_count < entry_offset:
+            continue
+
         size_bytes = -1  ## is a folder
         size_pretty = '&mdash;'
         last_modified = '-'
@@ -459,8 +463,7 @@ def process_dir(s3_conn, bucket_name: str, path_top_dir: str):
         </tr>
 """)
         if index_file.tell() > 1000000:
-            # CloudFront origin responses are limited to 1MB. Leave enough space for headers and body_top.
-            body_top += "<tr><td></td><td><b>Too many files. Listing truncated...</b></td><td></td><td></td><td></td></tr>\n"
+            body_top += f'<tr><td></td><td><b>Listing truncated...</b> <a href="?entry={entry_count + 1}">Next Page</a></td><td></td><td></td><td></td></tr>\n'
             break
 
     index_file.write("""
@@ -483,9 +486,21 @@ def lambda_handler(event, context):
     request = event['Records'][0]['cf']['request']
     headers = request['headers']
     uri = request.get('uri', '')
+    query_string = request.get('querystring', '')
+    query_components = parse_qs(query_string)
+
+    if VERBOSE:
+        print(f'query_components: {query_components}')
+
+    entry_offset = 0
+    if 'entry' in query_components:
+        entry_offset = int(query_components['entry'][0])
 
     if '..' in uri:
         return request
+
+    # The browser may have escaped chars like + with %2B. Decode for API based S3 queries.
+    uri = unquote(uri)
 
     if uri.endswith('/'):
         dir_key = uri.rstrip('/')
@@ -495,7 +510,7 @@ def lambda_handler(event, context):
         else:
             dir_key = uri
 
-    content, entry_count = process_dir(s3_conn, bucket_name, Path(dir_key))
+    content, entry_count = process_dir(s3_conn, bucket_name, Path(dir_key), entry_offset=entry_offset)
 
     if entry_count == 0:
         return request

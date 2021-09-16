@@ -15,6 +15,34 @@ function a2b(a) {
   return h;
 }
 
+var encodings = {
+  '\+': "%2B",
+  '\!': "%21",
+  '\"': "%22",
+  '\#': "%23",
+  '\$': "%24",
+  '\&': "%26",
+  '\'': "%27",
+  '\(': "%28",
+  '\)': "%29",
+  '\*': "%2A",
+  '\,': "%2C",
+  '\:': "%3A",
+  '\;': "%3B",
+  '\=': "%3D",
+  '\?': "%3F",
+  '\@': "%40",
+};
+
+function encodeS3URI(filename) {
+  return encodeURI(filename) // Do the standard url encoding
+              .replace(
+                  /(\+|!|"|#|\$|&|'|\(|\)|\*|\+|,|:|;|=|\?|@)/img,
+                  function(match) { return encodings[match]; }
+              );
+
+}
+
 function handler(event) {
     var request = event.request;
     var uri = request.uri;
@@ -50,6 +78,16 @@ function handler(event) {
 
         // Anything not in /pub requires basic auth header
         if (headers == undefined || headers.authorization == undefined) {
+            if (uri == '/') {
+                // The one exception is if the user hits / without auth, we
+                // try to be friendly and redirect them..
+                var response = {
+                        statusCode: 302,
+                        statusDescription: 'Found',
+                        headers: { "location": { "value": "/pub" } }
+                    };
+                return response
+            }
             return unauthorized;
         }
 
@@ -83,6 +121,12 @@ function handler(event) {
     if (uri.endsWith('/')) {
         request.uri += 'index.html';
     }
+
+    // Some clients may send in URL with literal '+' and other chars that need to be escaped
+    // in order for the the URL to resolve via an S3 HTTP request. decoding and then
+    // re-encoding should ensure that clients that do or don't encode will always
+    // head toward the S3 origin encoded.
+    request.uri = encodeS3URI(decodeURIComponent(request.uri))
 
     return request;
 }

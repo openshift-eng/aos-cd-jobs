@@ -43,7 +43,7 @@ pipeline {
         )
         string(
             name: 'OPERATOR_NVRS',
-            description: '(Optional) List **only** the operator NVRs you want to build bunles for, everything else gets ignored',
+            description: '(Optional) List **only** the operator NVRs you want to build bundles for, everything else gets ignored. The operators should not be mode:disabled/wip in ocp-build-data',
             defaultValue: "",
             trim: true,
         )

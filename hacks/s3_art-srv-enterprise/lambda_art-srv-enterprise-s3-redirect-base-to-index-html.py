@@ -1,13 +1,13 @@
-import json
 import boto3
+from urllib.parse import unquote
 
 
 def lambda_handler(event, context):
+    request = event['Records'][0]['cf']['request']
+    uri = request['uri']
     response = event['Records'][0]['cf']['response']
 
     if int(response['status']) == 403:  # This is basically file-not-found from s3 if the user is authenticated
-        request = event['Records'][0]['cf']['request']
-        uri = request['uri']
 
         if uri.endswith('/') or uri.endswith('/index.html'):
             # Nothing to do. This should have already hit the index.html
@@ -17,11 +17,11 @@ def lambda_handler(event, context):
         bucket_name = 'art-srv-enterprise'
         s3 = boto3.resource('s3', region_name='us-east-1')
         s3_conn = boto3.client('s3')
-        prefix = uri.lstrip('/')
+        prefix = unquote(uri.lstrip('/'))  # URL escaped chars like "%2B" need to be converted to + for s3 API query.
         s3_result = s3_conn.list_objects_v2(Bucket=bucket_name, Prefix=prefix, Delimiter="/")
 
         if s3_result.get('CommonPrefixes', []) or s3_result.get('Contents', []):
-            print(f'Redirecting because: {s3_result}')
+            # print(f'Redirecting because: {s3_result}')
             # If there are "sub-directories" or "files" in this directory, redirect with a trailing slash
             # So that the user will get a directory listing.
             host = request['headers']['host'][0]['value']

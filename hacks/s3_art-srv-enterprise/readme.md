@@ -23,6 +23,9 @@ The solution has different aspects:
 3. An Origin Response method is setup for the '*' behavior. It detects 403 (permission denied - which indicates the file was not found in S3) and determines whether to redirect the client to a directory listing (i.e. the path requested plus '/'). This catch ensures that customers typing in a directory name with out a trailing slash will get redirected to a directory listing index of a file-not-found (see lambda_art-srv-enterprise-s3-redirect-base-to-index-html.py).  
 
 ### Generating credentials
-See gen_password.py. You must ex
+See gen_password.py. 
+
+### Backup and restore
+The art-srv-enterprise bucket has S3 versioning enabled. This means that deleted files can be restored if it is done quickly. There is a lifecycle rule that will permanently delete these files after 30 days.
 
  

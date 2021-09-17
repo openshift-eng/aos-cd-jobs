@@ -37,6 +37,7 @@ def initialize() {
     def archDir = ocpVersion == "4.2" ? "" : "/${arch}"
     baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}/${rhcosBuild}${archDir}"
     baseDir = "/srv/pub/openshift-v4/${arch}/dependencies/rhcos"
+    s3MirrorBaseDir = "/pub/openshift-v4/${arch}/dependencies/rhcos"
     // Actual meta.json
     metaUrl = baseUrl + "/meta.json"
 
@@ -81,13 +82,12 @@ def rhcosSyncPrintArtifacts() {
 
 def rhcosSyncMirrorArtifacts() {
     sh("scp ${syncList} use-mirror-upload.ops.rhcloud.com:/tmp/")
-    def invokeOpts = "--" +
-        " --prefix ${params.RHCOS_MIRROR_PREFIX}" +
+    def invokeOpts = " --prefix ${params.RHCOS_MIRROR_PREFIX}" +
         " --arch ${params.ARCH}" +
         " --buildid ${params.RHCOS_BUILD}" +
         " --version ${params.NAME}" +
-        " --synclist /tmp/${syncList}" +
-        " --basedir ${baseDir}"
+        " --synclist /tmp/${syncList}"
+
     if ( params.FORCE ) {
             invokeOpts += " --force"
     }
@@ -101,7 +101,12 @@ def rhcosSyncMirrorArtifacts() {
             invokeOpts += " --nomirror"
     }
 
-    buildlib.invoke_on_use_mirror("rhcossync.sh", invokeOpts)
+    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        commonlib.shell("${env.WORKSPACE}/jobs/build/rhcos_sync/S3-rhcossync.sh ${invokeOpts} --basedir ${s3MirrorBaseDir}")
+    }
+
+    buildlib.invoke_on_use_mirror("rhcossync.sh", "-- ${invokeOpts} --basedir ${baseDir}")
+
 }
 
 def rhcosSyncROSA() {

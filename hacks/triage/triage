@@ -153,10 +153,16 @@ bz_cves() {
 }
 
 rhcos_urls() {
+  local r major minor
   for r in "${releases[@]}"; do
-    # openshift-4 and higher, ending with .0
-    [[ "$r" =~ ^[4-9][0-9]*\. ]] &&
-      echo "https://jenkins-rhcos-art.cloud.privileged.psi.redhat.com/job/rhcos-art-rhcos-$r/"
+    major="${r%.*}"
+    minor="${r#*.}"
+    (( major < 4 )) && continue
+    echo "https://jenkins-rhcos-art.cloud.privileged.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
+    echo "https://jenkins-rhcos.cloud.s390x.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
+    echo "https://jenkins-rhcos.cloud.p8.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
+    (( minor < 9 )) && continue
+    echo "https://jenkins-rhcos.cloud.arm.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
   done
 }
 

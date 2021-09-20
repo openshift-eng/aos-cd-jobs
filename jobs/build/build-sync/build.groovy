@@ -114,7 +114,7 @@ def backupAllImageStreams() {
 def buildSyncApplyImageStreams() {
     echo("Updating ImageStream's")
     def failures = []
-    def isFiles = findFiles(glob: '"${mirrorWorking}/image_stream.*.yaml').collect{ it.path }
+    def isFiles = findFiles(glob: "MIRROR_working/image_stream.*.yaml").collect{ it.path }
     for ( String isFile: isFiles ) {
         def imageStream = readYaml file: isFile
         def theStream = imageStream.metadata.name

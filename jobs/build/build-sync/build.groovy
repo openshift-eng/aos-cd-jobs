@@ -114,8 +114,8 @@ def backupAllImageStreams() {
 def buildSyncApplyImageStreams() {
     echo("Updating ImageStream's")
     def failures = []
-    for ( String key: mirroringKeys ) {
-        def isFile = "${mirrorWorking}/image_stream.${key}.yaml"
+    def isFiles = findFiles(glob: "MIRROR_working/image_stream.*.yaml").collect{ it.path }
+    for ( String isFile: isFiles ) {
         def imageStream = readYaml file: isFile
         def theStream = imageStream.metadata.name
         def namespace = imageStream.metadata.namespace
@@ -146,8 +146,8 @@ def buildSyncApplyImageStreams() {
                 continue
             }
             echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
-            currentBuild.description += "\nImageStream update failed for ${key}"
-            failures << key
+            currentBuild.description += "\nImageStream update failed for ${isFile}"
+            failures << isFile
         }
     }
     if (failures) {

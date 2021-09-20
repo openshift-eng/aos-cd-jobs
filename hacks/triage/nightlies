@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+halp() {
+  cat <<-EOHALP
+	nightlies: open web pages of release controller with a bunch of nightlies.
+	
+	nighlies -h|--help
+	  Show help
+	
+	nightlies
+	  Show release controller links for the arches
+	
+	nightlies 4.9
+	  Show release controller overview pages with the list 4.9 nightlies
+	
+	nightlies 4.9 latest|-l|--latest
+	  Show the latest nightlies
+	EOHALP
+}
+version=""
+latest=0
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help|help)
+      halp
+      exit 0
+      ;;
+    latest|l|-l|--latest)
+      latest=1
+      ;;
+    *)
+      version="$arg"
+      ;;
+  esac
+done
+
+if ((latest)) && [[ -z "$version" ]]; then
+  echo "Cannot 'latest' without a version"
+  halp
+  exit 1
+fi
+
+if [[ -n "${version}" ]]; then
+  stream="$version.0-0.nightly"
+fi
+
+arches=(
+  amd64
+  ppc64le
+  s390x
+  arm64
+)
+
+build_link() {
+  # Building urls of the following form:
+  # https://amd64.ocp.releases.ci.openshift.org/releasestream/4.9.0-0.nightly/latest
+  # https://amd64.ocp.releases.ci.openshift.org/#4.9.0-0.nightly
+  # https://amd64.ocp.releases.ci.openshift.org/
+
+  local stream
+  stream="${1:-}"
+  if [[ "$arch" != "amd64" && -n "$stream" ]]; then
+    stream="${stream}-$arch"
+  fi
+  
+  if ((latest)) && [[ -n "$stream" ]]; then
+    pointer="releasestream/$stream/latest"
+  elif [[ -z "$stream" ]]; then
+    pointer=""
+  else
+    pointer="#$stream"
+  fi
+  echo "https://$arch.ocp.releases.ci.openshift.org/$pointer"
+}
+
+for arch in "${arches[@]}"; do
+  if [[ -n "$version" && "$arch" == arm64 ]]; then
+    major="${version%.*}"
+    minor="${version#*.}"
+    if (( major == 4 && minor < 9 )); then
+      continue
+    fi
+  fi
+  build_link ${stream:-}
+done | qute-slurp

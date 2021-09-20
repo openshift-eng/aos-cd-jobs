@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+versions=(
+  "4.6"
+  "4.7"
+  "4.8"
+  "4.9"
+)
+
+assembly_types=(
+  building
+  shipping
+)
+
+ln -svf "$PWD"/{assembly-urls,nightlies,triage} ~/bin
+
+rm -vf advisories*.desktop nightlies*.desktop
+rm -vf ~/.local/share/applications/advisories-*.desktop
+rm -vf ~/.local/share/applications/nightlies-*.desktop
+
+for version in "${versions[@]}"; do
+  for type in "${assembly_types[@]}"; do
+    sed -e "s/%VERSION%/$version/g" -e "s/%TYPE%/$type/g" advisories-desktop.template >"advisories-$version-$type.desktop"
+  done
+  sed -e "s/%VERSION%/$version/g" -e 's/%TYPE%/latest/g' nightlies-desktop.template >"nightlies-$version-latest.desktop"
+  sed -e "s/%VERSION%/$version/g" -e 's/ %TYPE%//g' nightlies-desktop.template >"nightlies-$version-overview.desktop"
+done
+sed -e 's/%VERSION%//g' -e 's/%TYPE%//g' nightlies-desktop.template > nightlies.desktop
+
+mv -v advisories-*.desktop nightlies*.desktop ~/.local/share/applications/
+cp -v triage.desktop ~/.local/share/applications/
+update-desktop-database -v ~/.local/share/applications
+
+for size in 16 22 32 48 64 128; do
+  xdg-icon-resource install --size "$size" --novendor "$PWD/openshift.png" openshift
+done

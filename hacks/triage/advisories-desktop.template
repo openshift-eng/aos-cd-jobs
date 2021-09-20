@@ -1,0 +1,13 @@
+[Desktop Entry]
+
+Name=%VERSION% %TYPE% Assembly Browser
+GenericName=Advisory Browser
+Comment=ART Advisory Browser for %TYPE% advisories for OCP %VERSION%
+Exec=assembly-urls %TYPE% %VERSION%
+Icon=openshift
+Categories=ProjectManagement;Office;
+Terminal=false
+Type=Application
+MimeType=application/x-desktop;
+Version=1.0
+# vim: ft=desktop

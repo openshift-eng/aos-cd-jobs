@@ -78,7 +78,7 @@ node {
         def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
         def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg)
         if ( prs ) {  // did we open any?
-            release.sendCincinnatiPRsSlackNotification(releaseName, prs, ghorg, noSlackOutput)
+            release.sendCincinnatiPRsSlackNotification(releaseName, params.FROM_RELEASE_TAG.trim(), prs, ghorg, noSlackOutput)
         }
 
     }

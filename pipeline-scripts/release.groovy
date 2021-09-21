@@ -904,7 +904,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
     }
 }
 
-def sendCincinnatiPRsSlackNotification(releaseName, prs, ghorg='openshift', noSlackOutput=false) {
+def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='openshift', noSlackOutput=false) {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
 
     def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n${prs}"

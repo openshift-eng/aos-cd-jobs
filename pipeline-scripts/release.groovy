@@ -691,9 +691,8 @@ def isSupportEUS(String ocpVersion) {
  * @param candidate_only Only open PR for candidate; there is no advisory
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
  *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
- * @param noSlackOutput If true, ota-monitor will not be notified
  */
-def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='openshift', noSlackOutput=false) {
+def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='openshift') {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
@@ -900,19 +899,26 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
                 }
             }
 
-            def prs = readFile(prs_file).trim()
-            if ( prs ) {  // did we open any?
-                def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n${prs}"
-                slack_msg += "\n@patch-manager ${major}.${minor}.z merge window is open for next week."
-                if ( ghorg == 'openshift' && !noSlackOutput) {
-                    slacklib.to('#forum-release').say(slack_msg)
-                } else {
-                    echo "Would have sent the following slack notification to #forum-release"
-                    echo slack_msg
-                }
-            }
-
+            return readFile(prs_file).trim()
         }
+    }
+}
+
+def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='openshift', noSlackOutput=false) {
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
+
+    def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n\n"
+    if ( fromReleaseTag ) {
+        slack_msg += "This release was promoted using nightly registry.ci.openshift.org/ocp/release:${fromReleaseTag}\n"
+    }
+    slack_msg += "${prs}\n"
+    slack_msg += "@patch-manager Please continue merging PRs for the next release.\n"
+
+    if ( ghorg == 'openshift' && !noSlackOutput) {
+        slacklib.to('#forum-release').say(slack_msg)
+    } else {
+        echo "Would have sent the following slack notification to #forum-release"
+        echo slack_msg
     }
 }
 

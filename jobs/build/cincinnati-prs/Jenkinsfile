@@ -26,6 +26,12 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     string(
+                        name: 'FROM_RELEASE_TAG',
+                        description: 'Nightly from which the release was derived (only used for Slack notification)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'RELEASE_NAME',
                         description: 'The name of the release to add to Cincinnati via PRs',
                         defaultValue: "",
@@ -67,7 +73,14 @@ node {
     currentBuild.displayName = params.RELEASE_NAME
     currentBuild.description = ""
     dir(workdir) {
-        release.openCincinnatiPRs(params.RELEASE_NAME.trim(), params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, params.GITHUB_ORG.trim(), params.SKIP_OTA_SLACK_NOTIFICATION)
+        def releaseName = params.RELEASE_NAME.trim()
+        def ghorg = params.GITHUB_ORG.trim()
+        def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
+        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg)
+        if ( prs ) {  // did we open any?
+            release.sendCincinnatiPRsSlackNotification(releaseName, params.FROM_RELEASE_TAG.trim(), prs, ghorg, noSlackOutput)
+        }
+
     }
     buildlib.cleanWorkdir(workdir)
     buildlib.cleanWorkspace()

@@ -744,6 +744,7 @@ node {
                         build(
                                 job: '/aos-cd-builds/build%2Fcincinnati-prs',  propagate: true,
                                 parameters: [
+                                    buildlib.param('String', 'FROM_RELEASE_TAG', params.FROM_RELEASE_TAG),
                                     buildlib.param('String', 'RELEASE_NAME', release_name),
                                     buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
                                     booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: true),

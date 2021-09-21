@@ -70,7 +70,7 @@ node {
         def releaseName = params.RELEASE_NAME.trim()
         def ghorg = params.GITHUB_ORG.trim()
         def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
-        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg, noSlackOutput)
+        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg)
         if ( prs ) {  // did we open any?
             release.sendCincinnatiPRsSlackNotification(releaseName, prs, ghorg, noSlackOutput)
         }

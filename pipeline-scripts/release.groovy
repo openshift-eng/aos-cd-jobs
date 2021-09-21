@@ -691,9 +691,8 @@ def isSupportEUS(String ocpVersion) {
  * @param candidate_only Only open PR for candidate; there is no advisory
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
  *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
- * @param noSlackOutput If true, ota-monitor will not be notified
  */
-def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='openshift', noSlackOutput=false) {
+def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='openshift') {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")

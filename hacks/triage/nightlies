@@ -19,33 +19,13 @@ halp() {
 	  Show the latest nightlies
 	EOHALP
 }
-version=""
-latest=0
 
-for arg in "$@"; do
-  case "$arg" in
-    -h|--help|help)
-      halp
-      exit 0
-      ;;
-    latest|l|-l|--latest)
-      latest=1
-      ;;
-    *)
-      version="$arg"
-      ;;
-  esac
-done
+main() {
+  parse_args "$@"
+  urls=( $(build_urls) )
 
-if ((latest)) && [[ -z "$version" ]]; then
-  echo "Cannot 'latest' without a version"
-  halp
-  exit 1
-fi
-
-if [[ -n "${version}" ]]; then
-  stream="$version.0-0.nightly"
-fi
+  open-urls
+}
 
 arches=(
   amd64
@@ -53,6 +33,44 @@ arches=(
   s390x
   arm64
 )
+
+script="$(readlink "$0" || echo "$0")"
+source "${script%/*}/open-urls"
+
+parse_args() {
+  version=""
+  latest=0
+
+  for arg in "$@"; do
+    case "$arg" in
+      -h|--help|help)
+        halp
+        exit 0
+        ;;
+      latest|l|-l|--latest)
+        latest=1
+        ;;
+      firefox|chrome|chromium|brave|qutebrowser)
+        browser="$arg"
+        ;;
+      *)
+        version="$arg"
+        ;;
+    esac
+  done
+
+  : ${browser:=${BROWSER-firefox}}
+
+  if ((latest)) && [[ -z "$version" ]]; then
+    echo "Cannot 'latest' without a version"
+    halp
+    exit 1
+  fi
+
+  if [[ -n "${version}" ]]; then
+    stream="$version.0-0.nightly"
+  fi
+}
 
 build_link() {
   # Building urls of the following form:
@@ -76,13 +94,19 @@ build_link() {
   echo "https://$arch.ocp.releases.ci.openshift.org/$pointer"
 }
 
-for arch in "${arches[@]}"; do
-  if [[ -n "$version" && "$arch" == arm64 ]]; then
-    major="${version%.*}"
-    minor="${version#*.}"
-    if (( major == 4 && minor < 9 )); then
-      continue
+build_urls() {
+  for arch in "${arches[@]}"; do
+    if [[ -n "$version" && "$arch" == arm64 ]]; then
+      major="${version%.*}"
+      minor="${version#*.}"
+      if (( major == 4 && minor < 9 )); then
+        continue
+      fi
     fi
-  fi
-  build_link ${stream:-}
-done | qute-slurp
+    build_link ${stream:-}
+  done
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

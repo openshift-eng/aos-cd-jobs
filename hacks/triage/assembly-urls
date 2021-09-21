@@ -2,9 +2,6 @@
 
 shopt -s extglob
 
-script="$(readlink $0)"
-source "${script%/*}/open-urls"
-
 halp() {
   cat <<-EOHELP
 	assembly-urls: Parse release.yml for a branch to output urls
@@ -23,6 +20,15 @@ halp() {
 	  assembly-urls 4.9
 	EOHELP
 }
+
+main() {
+  parse_args "$@"
+  urls=( $(build_urls) )
+  open-urls
+}
+
+script="$(readlink "$0" || echo "$0")"
+source "${script%/*}/open-urls"
 
 parse_args() {
   for arg in "$@"; do
@@ -100,12 +106,6 @@ build_urls() {
           ][]
       ' <<<"$yaml"
   fi
-}
-
-main() {
-  parse_args "$@"
-  urls=( $(build_urls) )
-  open-urls
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

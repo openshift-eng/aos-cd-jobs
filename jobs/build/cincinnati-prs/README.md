@@ -25,6 +25,10 @@ A human would only need to run it if the job failed somehow before running it.
 
 See [Standard Parameters](/jobs/README.md#standard-parameters).
 
+### FROM\_RELEASE\_TAG
+
+Nightly from which the release was derived. Only used for informational purposes on the Slack notification message.
+
 ### RELEASE\_NAME
 
 The name of the release to add to Cincinnati via PRs, for example "4.5.6" or "4.6.0-fc.0"

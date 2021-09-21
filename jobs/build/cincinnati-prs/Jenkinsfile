@@ -26,6 +26,12 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     string(
+                        name: 'FROM_RELEASE_TAG',
+                        description: 'Nightly from which the release was derived (only used for Slack notification)',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'RELEASE_NAME',
                         description: 'The name of the release to add to Cincinnati via PRs',
                         defaultValue: "",

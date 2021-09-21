@@ -900,11 +900,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
                 }
             }
 
-            def prs = readFile(prs_file).trim()
-            if ( prs ) {  // did we open any?
-                sendCincinnatiPRsSlackNotification(releaseName, prs, ghorg, noSlackOutput)
-            }
-
+            return readFile(prs_file).trim()
         }
     }
 }

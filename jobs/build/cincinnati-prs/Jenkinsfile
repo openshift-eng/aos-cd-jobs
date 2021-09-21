@@ -67,7 +67,10 @@ node {
     currentBuild.displayName = params.RELEASE_NAME
     currentBuild.description = ""
     dir(workdir) {
-        release.openCincinnatiPRs(params.RELEASE_NAME.trim(), params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, params.GITHUB_ORG.trim(), params.SKIP_OTA_SLACK_NOTIFICATION)
+        def releaseName = params.RELEASE_NAME.trim()
+        def ghorg = params.GITHUB_ORG.trim()
+        def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
+        release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg, noSlackOutput)
     }
     buildlib.cleanWorkdir(workdir)
     buildlib.cleanWorkspace()

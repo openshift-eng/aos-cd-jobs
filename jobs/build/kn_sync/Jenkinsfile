@@ -1,7 +1,8 @@
 #!/usr/bin/env groovy
 node {
     checkout scm
-    load("pipeline-scripts/commonlib.groovy").describeJob("kn_sync", """
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib.describeJob("kn_sync", """
         ----------------------------------------------
         Sync the knative (serverless) client to mirror
         ----------------------------------------------

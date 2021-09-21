@@ -907,8 +907,11 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
 def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='openshift', noSlackOutput=false) {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
 
-    def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n${prs}"
-    slack_msg += "\n@patch-manager ${major}.${minor}.z merge window is open for next week."
+    def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n\n"
+    slack_msg += "This release was promoted using nightly registry.ci.openshift.org/ocp/release:${fromReleaseTag}\n"
+    slack_msg += "${prs}\n"
+    slack_msg += "@patch-manager Please continue merging PRs for the next release.\n"
+
     if ( ghorg == 'openshift' && !noSlackOutput) {
         slacklib.to('#forum-release').say(slack_msg)
     } else {

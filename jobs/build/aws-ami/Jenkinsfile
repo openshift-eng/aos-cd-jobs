@@ -80,6 +80,7 @@ def FORM_PAYLOAD = "OPENSHIFT_VERSION=${OPENSHIFT_VERSION}&OPENSHIFT_RELEASE=${O
 
 node('openshift-build-1') {
     checkout scm
+    buildlib = load('pipeline-scripts/buildlib.groovy')
     commonlib = load("pipeline-scripts/commonlib.groovy")
     commonlib.describeJob("aws-ami", """
         <h2>Publish 3.11 AMI to AWS<h2>

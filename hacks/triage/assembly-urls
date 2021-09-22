@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+
+shopt -s extglob
+
+halp() {
+  cat <<-EOHELP
+	assembly-urls: Parse release.yml for a branch to output urls
+	Expects a branch indicator (e.g. 4.8), and an assembly name (e.g. 4.9.0-rc3).
+	If branch is not detected, it will be tried to get inferred from the assembly name.
+	If assembly name is not specified, the newest (top-most) entry will be selected.
+	Special assembly names:
+	- building: Newest. What we are building this week
+	- shipping: 2nd newest
+	Examples:
+	  assembly-urls --help
+	  assembly-urls 4.8 4.8.11
+	  assembly-urls 4.7.30
+	  assembly-urls building 4.8
+	  assembly-urls shipping 4.7
+	  assembly-urls 4.9
+	EOHELP
+}
+
+main() {
+  parse_args "$@"
+  urls=( $(build_urls) )
+  open-urls
+}
+
+script="$(readlink "$0" || echo "$0")"
+source "${script%/*}/open-urls"
+
+parse_args() {
+  for arg in "$@"; do
+    if [[ "$arg" =~ ^(-h|--help|help|halp)$ ]]; then
+      halp
+      exit
+    elif [[ "$arg" =~ ^4\.[0-9]+$ ]]; then
+      branch="openshift-$arg"
+    elif [[ "$arg" =~ ^(b|building|-b|--building)$ ]]; then
+      assembly=building
+    elif [[ "$arg" =~ ^(s|shipping|-s|--shipping)$ ]]; then
+      assembly=shipping
+    elif [[ "$arg" =~ ^(firefox|chrome|chromium|brave|qutebrowser)$ ]]; then
+      browser="$arg"
+    else
+      assembly="$arg"
+    fi
+  done
+
+  if [[ -z "$branch" && -n "$assembly" ]]; then
+    branch="$(awk -F'[.]' '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && $3 ~ /^[0-9]+(-(rc|fc).[0-9]+)?$/ && NF == 3 {printf("openshift-%s.%s", $1, $2); next} {exit(1)}' <<<"$assembly")"
+    [[ -z "$branch" ]] && {
+      echo "Could not parse valid looking branch">/dev/stderr
+      exit 1
+    }
+  elif [[ -n "$branch" && -z "$assembly" ]]; then
+    assembly=building
+  elif [[ -z "$branch" && -z "$assembly" ]]; then
+    halp >/dev/stderr
+    exit 1
+  fi
+
+  : ${browser:=${BROWSER-firefox}}
+
+  echo "branch: $branch" >/dev/stderr
+  echo "assembly: $assembly" >/dev/stderr
+  echo "browser: $browser" >/dev/stderr
+}
+
+build_urls() {
+  yaml="$(curl -sSL "https://github.com/openshift/ocp-build-data/raw/$branch/releases.yml")"
+  if [[ "$assembly" =~ ^(building|shipping)$ ]]; then
+    [[ "$assembly" == building ]] && index=0 || index=1
+    yq -r \
+    --arg index "$index" \
+    --arg errata "https://errata.devel.redhat.com/advisory" \
+    --arg jira "https://issues.redhat.com/browse" '
+      [
+        .releases
+        | to_entries[]
+        | [ select(.key | test("^([0-9]+[.][0-9]+[.][0-9]+|(rc|fc)[.][0-9]+)$")) ] | .[0]
+      ][$index | tonumber]
+      | .value.assembly.group
+      | [ ( .advisories
+          | to_entries[]
+          | @text "\($errata)/\(.value)"
+        ),
+          @text "\($jira)/\(.release_jira)"
+        ][]
+    ' <<<"$yaml"
+  else
+    yq -r \
+      --arg assembly "$assembly" \
+      --arg errata "https://errata.devel.redhat.com/advisory" \
+      --arg jira "https://issues.redhat.com/browse" '
+        .releases
+        | to_entries[]
+        | select(.key == $assembly)
+        | .value.assembly.group
+        | [ ( .advisories
+              | to_entries[]
+              | @text "\($errata)/\(.value)"
+            ),
+              @text "\($jira)/\(.release_jira)"
+          ][]
+      ' <<<"$yaml"
+  fi
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

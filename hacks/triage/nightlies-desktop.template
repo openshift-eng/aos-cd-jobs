@@ -1,0 +1,14 @@
+[Desktop Entry]
+
+Name=Nightlies %VERSION% %TYPE%
+Comment=Nightlies browser for OCP %VERSION% %TYPE%
+GenericName=Browser window of nightlies
+Type=Application
+MimeType=application/x-desktop;
+Version=1.0
+Exec=nightlies %VERSION% %TYPE% 
+Icon=openshift
+Terminal=false
+Categories=ProjectManagement;Office;Openshift;RedHat;Utility;
+
+# vim: ft=desktop

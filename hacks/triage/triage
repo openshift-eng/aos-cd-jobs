@@ -68,44 +68,11 @@ main() {
     $(repo_links)
     $(triage_docs)
   )
-
-  case "$browser" in
-  qutebrowser)
-    cmd="qutebrowser '${urls[0]}'"
-    fmt=" ':open --tab %s'"
-    ;;
-  firefox)
-    cmd="firefox -url '${urls[0]}'"
-    fmt=' -url "%s"'
-    ;;
-  chrome)
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      cmd="/Applications/Google\\ \\Chrome.app/Contents/MacOS/Google\\ \\Chrome --new-window '${urls[0]}'"
-    else
-      cmd="google-chrome --new-window '${urls[0]}'"
-    fi
-    fmt=' -url "%s"'
-    ;;
-  chromium|brave)
-    cmd="$browser-browser --new-window '${urls[0]}'"
-    fmt=' -url "%s"'
-    ;;
-  *)
-    echo "Do not understand browser $BROWSER. Exiting"
-    halp >/dev/stderr
-    exit 1
-    ;;
-  esac
-
-  cmd="$cmd $(printf "$fmt" "${urls[@]:1}")"
-
-  if [[ -n "${I3SOCK:-}" ]]; then
-    # We are running in i3. Use i3-msg exec
-    cmd="i3-msg exec -- \"$cmd\""
-  fi
-  echo "$cmd" >/dev/stderr
-  eval "$cmd"
+  open-urls
 }
+
+script="$(readlink "$0" || echo "$0")"
+source "${script%/*}/open-urls"
 
 releases=(
   $(
@@ -153,10 +120,16 @@ bz_cves() {
 }
 
 rhcos_urls() {
+  local r major minor
   for r in "${releases[@]}"; do
-    # openshift-4 and higher, ending with .0
-    [[ "$r" =~ ^[4-9][0-9]*\. ]] &&
-      echo "https://jenkins-rhcos-art.cloud.privileged.psi.redhat.com/job/rhcos-art-rhcos-$r/"
+    major="${r%.*}"
+    minor="${r#*.}"
+    (( major < 4 )) && continue
+    echo "https://jenkins-rhcos-art.cloud.privileged.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
+    echo "https://jenkins-rhcos.cloud.s390x.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
+    echo "https://jenkins-rhcos.cloud.p8.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
+    (( minor < 9 )) && continue
+    echo "https://jenkins-rhcos.cloud.arm.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
   done
 }
 

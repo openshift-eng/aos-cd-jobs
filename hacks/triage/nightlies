@@ -6,7 +6,7 @@ halp() {
   cat <<-EOHALP
 	nightlies: open web pages of release controller with a bunch of nightlies.
 	
-	nighlies -h|--help
+	nightlies -h|--help
 	  Show help
 	
 	nightlies

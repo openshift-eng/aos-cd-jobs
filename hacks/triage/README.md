@@ -7,7 +7,7 @@ In particular:
 ## triage
 Opens web browser with incoming stuff and problems
 
-## assembllies
+## assemblies
 Opens a web browser with urls relating to an assembly. Includes desktop items
 for *4.8 building* and *4.7 shipping*.
 

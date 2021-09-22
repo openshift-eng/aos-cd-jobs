@@ -1,0 +1,40 @@
+open-urls() {
+  case "$browser" in
+  qutebrowser)
+    cmd="qutebrowser '${urls[0]}'"
+    fmt=" ':open --tab %s'"
+    ;;
+  firefox)
+    cmd="firefox -url '${urls[0]}'"
+    fmt=' -url "%s"'
+    ;;
+  chrome)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      cmd="/Applications/Google\\ \\Chrome.app/Contents/MacOS/Google\\ \\Chrome --new-window '${urls[0]}'"
+    else
+      cmd="google-chrome --new-window '${urls[0]}'"
+    fi
+    fmt=' -url "%s"'
+    ;;
+  chromium|brave)
+    cmd="$browser-browser --new-window '${urls[0]}'"
+    fmt=' -url "%s"'
+    ;;
+  *)
+    echo "Do not understand browser $BROWSER. Exiting"
+    halp >/dev/stderr
+    exit 1
+    ;;
+  esac
+
+  cmd="$cmd $(printf "$fmt" "${urls[@]:1}")"
+
+  if [[ -n "${I3SOCK:-}" ]]; then
+    # We are running in i3. Use i3-msg exec
+    cmd="i3-msg exec -- \"$cmd\""
+  fi
+  echo "$cmd" >/dev/stderr
+  eval "$cmd"
+}
+
+# vim: ft=bash

@@ -101,7 +101,7 @@ def rhcosSyncMirrorArtifacts() {
     }
 
     withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-        commonlib.shell("${env.WORKSPACE}/S3-rhcossync.sh ${invokeOpts} --basedir ${s3MirrorBaseDir} --synclist ${syncList}")
+        commonlib.shell("${env.WORKSPACE}/S3-rhcossync.sh ${invokeOpts} --basedir ${s3MirrorBaseDir} --synclist ${env.WORKSPACE}/${syncList}")
     }
 
     buildlib.invoke_on_use_mirror("rhcossync.sh", "-- ${invokeOpts} --synclist /tmp/${syncList} --basedir ${baseDir}")

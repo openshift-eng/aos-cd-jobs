@@ -46,6 +46,7 @@ def cli(ctx: click.Context, config: Optional[str], working_dir: Optional[str], d
         logging.basicConfig(level=logging.INFO)
     elif verbosity >= 2:
         logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger("requests_kerberos").setLevel(logging.INFO)
     else:
         raise ValueError(f"Invalid verbosity {verbosity}")
     ctx.obj = Runtime.from_config_file(config_filename, working_dir=Path(working_dir), dry_run=dry_run)

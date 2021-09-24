@@ -36,14 +36,6 @@ node() {
         group = "openshift-${version}"
         def arches = buildlib.branch_arches(group)
 
-        if ( version == '4.8' ) {
-            // We are enabling aarch for reposync ahead of actual support in group.yml
-            // This logic can be removed when 4.8 is building with aarch.
-            if ( !arches.contains('aarch64') ) {
-                arches.add('aarch64')
-            }
-        }
-
         for ( String arch : arches ) {
             runFor(group, version, arch)
         }

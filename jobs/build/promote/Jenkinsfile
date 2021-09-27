@@ -256,7 +256,7 @@ node {
         case "candidate":
             is_prerelease = true
             release_name = "${major}.${minor}.0-${params.ASSEMBLY}"
-            if (params.ASSEMBLY.startsWith('fc') {
+            if (params.ASSEMBLY.startsWith('fc')) {
                 CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
             }
             break

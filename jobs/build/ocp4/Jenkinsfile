@@ -142,10 +142,10 @@ node {
                 // and announce on slack
 
                 stage("build compose") {
-                    if (buildlib.isBuildPermitted(doozerOpts) || joblib.buildPlan.buildRpms) {
+                    if (buildlib.getAutomationState(doozerOpts) in ["yes", "True"] || joblib.buildPlan.buildRpms) {
                         lock("compose-lock-${params.BUILD_VERSION}") {
                             joblib.stageBuildCompose()
-                            if(joblib.buildPlan.buildRpms) {
+                            if (joblib.buildPlan.buildRpms && buildlib.getAutomationState(doozerOpts) in ["scheduled", "False"]) {
                                 slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
                                     *:alert: ocp4 build compose ran during automation freeze*
                                      There were RPMs in the build plan that forced build compose during automation freeze.

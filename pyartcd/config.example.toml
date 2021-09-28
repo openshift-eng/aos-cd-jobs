@@ -12,7 +12,6 @@ smtp_server="smtp.corp.redhat.com"
 from="aos-art-automation@redhat.com"
 reply_to="aos-team-art@redhat.com"
 cc=["aos-team-art@redhat.com"]
-live_id_request_recipients=["openshift-ccs@redhat.com"]
 prepare_release_notification_recipients_ocp4=["multi-arch-zstream-testing@redhat.com", "aos-qe@redhat.com"]
 prepare_release_notification_recipients_ocp3=["aos-qe@redhat.com"]
 

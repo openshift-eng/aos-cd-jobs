@@ -17,7 +17,6 @@ data:
     from="aos-art-automation@redhat.com"
     reply_to="aos-team-art@redhat.com"
     cc=["aos-team-art@redhat.com"]
-    live_id_request_recipients=["openshift-ccs@redhat.com"]
     prepare_release_notification_recipients=["multi-arch-zstream-testing@redhat.com", "aos-qe@redhat.com"]
 
     [jira]

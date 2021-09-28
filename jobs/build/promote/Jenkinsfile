@@ -433,9 +433,16 @@ node {
                                         ),
                                     ]
                                 )
-                                in_flight_prev = resp.IN_FLIGHT_PREV
+                                in_flight_prev = commonlib.parseList(resp.IN_FLIGHT_PREV)
+                                if (in_flight_prev) {
+                                    in_flight_prev = in_flight_prev[0]
+                                    valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
+                                    if (!valid) {
+                                        error("Error validating given in_flight_prev: $in_flight_prev")
+                                    }
+                                }
                                 suggest_previous = resp.SUGGESTED
-                                previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
+                                previousList = commonlib.parseList(suggest_previous) + in_flight_prev
                             }
                         }
                     }
@@ -516,7 +523,18 @@ node {
                     def modeOptions = [ 'aws', 'gcp', 'azure' ]
                     def testIndex = 0
                     def testLines = []
-                    for ( String from_release : previousList) {
+                    def calcUpgradeTest = ''
+
+                    try {
+                        calcUpgradeTestOut = buildlib.doozer("release:calc-upgrade-tests --version ${release_name}", [capture: true])
+                        echo "Doozer suggested upgrade tests for: ${calcUpgradeTestOut}"
+                    } catch ( cincy_down ) {
+                        acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
+                        echo acquire_failure
+                    }
+                    upgradeTestList = commonlib.parseList(calcUpgradeTestOut) + in_flight_prev
+
+                    for ( String from_release : upgradeTestList) {
                         mode = modeOptions[testIndex % modeOptions.size()]
                         testLines << "test upgrade ${from_release} ${release_name} ${mode}"
                         testIndex++

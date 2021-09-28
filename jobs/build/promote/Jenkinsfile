@@ -433,9 +433,16 @@ node {
                                         ),
                                     ]
                                 )
-                                in_flight_prev = resp.IN_FLIGHT_PREV
+                                in_flight_prev = commonlib.parseList(resp.IN_FLIGHT_PREV)
+                                if (in_flight_prev) {
+                                    in_flight_prev = in_flight_prev[0]
+                                    valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
+                                    if (!valid) {
+                                        error("Error validating given in_flight_prev: $in_flight_prev")
+                                    }
+                                }
                                 suggest_previous = resp.SUGGESTED
-                                previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
+                                previousList = commonlib.parseList(suggest_previous) + in_flight_prev
                             }
                         }
                     }

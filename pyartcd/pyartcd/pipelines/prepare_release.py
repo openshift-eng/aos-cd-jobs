@@ -180,10 +180,6 @@ class PrepareReleasePipeline:
         _LOGGER.info("Updating ocp-build-data...")
         build_data_changed = await self.update_build_data(advisories, jira_issue_key)
 
-        if advisories_changed or build_data_changed:
-            _LOGGER.info("Sending an Errata live ID request email...")
-            self.send_live_id_request_mail(advisories)
-
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():
             if not advisory:
@@ -648,25 +644,6 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             cmd.append(f"{advisory}")
         _LOGGER.debug("Running command: %s", cmd)
         await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, cwd=self.working_dir)
-
-    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
-    def send_live_id_request_mail(self, advisories: Dict[str, int]):
-        subject = f"Live IDs for {self.release_name}"
-        main_advisory = "image" if self.release_version[0] >= 4 else "rpm"
-        content = f"""Hello docs team,
-
-ART would like to request Live IDs for our {self.release_name} advisories:
-{main_advisory}: https://errata.devel.redhat.com/advisory/{advisories[main_advisory]}
-
-This is the current set of advisories we intend to ship:
-"""
-        for kind, advisory in advisories.items():
-            content += (
-                f"- {kind}: https://errata.devel.redhat.com/advisory/{advisory}\n"
-            )
-
-        email_dir = self.working_dir / "email"
-        self.mail.send_mail(self.runtime.config["email"]["live_id_request_recipients"], subject, content, archive_dir=email_dir, dry_run=self.dry_run)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def send_notification_email(self, advisories: Dict[str, int], jira_link: str):

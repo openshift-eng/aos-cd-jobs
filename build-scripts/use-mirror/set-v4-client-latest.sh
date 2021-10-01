@@ -129,7 +129,7 @@ for arch in ${ARCHES}; do
             x86_64) qarch="amd64" ;;
             aarch64) qarch="arm64" ;;
         esac
-        CHANNEL_RELEASES=$(curl -sH 'Accept:application/json' "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" | jq '.nodes[].version' -r)
+        CHANNEL_RELEASES=$(curl -sH 'Accept:application/json' --cacert ~/cacert.pem "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" | jq '.nodes[].version' -r)
         if [[ -z "$CHANNEL_RELEASES" ]]; then
             echo "No versions current detected in ${USE_CHANNEL} for arch ${qarch} ; No ${LINK_NAME} will be set"
             if [[ "${MODE}" == "all" ]]; then

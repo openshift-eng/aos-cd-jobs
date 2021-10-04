@@ -32,7 +32,7 @@ apiVersion: tekton.dev/v1beta1
 ￼
 ￼        kinit -f -k -t
 ￼        /etc/ocp-build-buildvm.openshift.eng.bos.redhat.com.keytab
-￼        ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM
+￼        ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM
 ￼
 ￼        #klist
 ￼

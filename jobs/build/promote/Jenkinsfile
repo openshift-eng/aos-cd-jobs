@@ -528,11 +528,12 @@ node {
                     try {
                         calcUpgradeTestOut = buildlib.doozer("release:calc-upgrade-tests --version ${release_name}", [capture: true])
                         echo "Doozer suggested upgrade tests for: ${calcUpgradeTestOut}"
+                        echo "in_flight_prev is: ${in_flight_prev}"
                     } catch ( cincy_down ) {
                         acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
                         echo acquire_failure
                     }
-                    upgradeTestList = commonlib.parseList(calcUpgradeTestOut) + in_flight_prev
+                    upgradeTestList = commonlib.parseList(calcUpgradeTestOut + ',' + in_flight_prev)
 
                     for ( String from_release : upgradeTestList) {
                         mode = modeOptions[testIndex % modeOptions.size()]

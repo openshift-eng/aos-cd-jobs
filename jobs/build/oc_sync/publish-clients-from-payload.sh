@@ -145,7 +145,7 @@ rsync \
     "${OUTDIR}" \
     use-mirror-upload.ops.rhcloud.com:${OC_MIRROR_DIR}/
 
-aws s3 sync --delete  ${OUTDIR}/ s3://art-srv-enterprise${S3_MIRROR_DIR}/
+aws s3 sync --no-progress --delete  ${OUTDIR}/ s3://art-srv-enterprise${S3_MIRROR_DIR}/
 
 retry() {
   local count exit_code

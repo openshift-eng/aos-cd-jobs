@@ -467,7 +467,7 @@ function extract_opm() {
         PATH_ARGS+=(--path "/usr/bin/registry/$binary:$OUTDIR")
     done
 
-    GOTRACEBACK=all oc -v5 image extract --confirm --only-files "${PATH_ARGS[@]}" -- "$OPERATOR_REGISTRY"
+    GOTRACEBACK=all oc -v4 image extract --confirm --only-files "${PATH_ARGS[@]}" -- "$OPERATOR_REGISTRY"
 
     # Compress binaries into tar.gz files and calculate sha256 digests
     pushd "$OUTDIR"

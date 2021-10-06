@@ -1,7 +1,8 @@
 #!/usr/bin/env groovy
 node {
     checkout scm
-    load("pipeline-scripts/commonlib.groovy").describeJob("camel-k_sync", """
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib.describeJob("camel-k_sync", """
         -----------------------------
         Sync Camel-K client to mirror
         -----------------------------

@@ -108,7 +108,7 @@ pipeline {
                             error("Cannot use EXTRAS_ADVISORY or METADATA_ADVISORY when building for non-stream assembly.")
                         }
                     } else {
-                        currentBuild.displayName  = "${params.EXTRAS_ADVISORY ?: '-'} "
+                        currentBuild.displayName  += " ${params.EXTRAS_ADVISORY ?: ''}"
                     }
                     if (operator_nvrs && (only || exclude)) {
                         error("Cannot use OPERATOR_NVRS with ONLY or EXCLUDE.")

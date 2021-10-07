@@ -307,12 +307,17 @@ def stageUpdateDistgit() {
         echo "${buildlib.DOOZER_BIN} ${cmd}"
         return
     }
-    buildlib.doozer(cmd)
-    // TODO: if rebase fails for required images, notify image owners, and still notify on other reconciliations
-    buildlib.notify_dockerfile_reconciliations(doozerWorking, version.stream)
-    // TODO: if a non-required rebase fails, notify ART and the image owners
-
-    buildlib.notify_bz_info_missing(doozerWorking, version.stream)
+    try {
+        buildlib.doozer(cmd)
+    } catch(err) {
+        commonlib.slacklib.to(params.BUILD_VERSION).say("*:warning: Updating distgit failed, build halted*")
+        throw err
+    } finally {
+        // TODO: if rebase fails for required images, notify image owners, and still notify on other reconciliations
+        buildlib.notify_dockerfile_reconciliations(doozerWorking, version.stream)
+        // TODO: if a non-required rebase fails, notify ART and the image owners
+        buildlib.notify_bz_info_missing(doozerWorking, version.stream)
+    }
 }
 
 /**

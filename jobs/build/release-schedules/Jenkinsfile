@@ -1,0 +1,44 @@
+#!/usr/bin/env groovy
+
+node {
+    try {
+        checkout scm
+        commonlib = load("pipeline-scripts/commonlib.groovy")
+        slacklib = commonlib.slacklib
+        
+        sshagent(["openshift-bot"]) {
+            stage("clone the ocp release schedules") {
+                def clone = [
+                    "rm -rf schedule",
+                    "git clone --single-branch --branch master git@gitlab.cee.redhat.com:ocp-release-schedule/schedule.git",
+                    "cd schedule"
+                ]
+                cmd = (clone).flatten().join('\n')
+
+                echo "shell cmd: ${cmd}"
+                out = commonlib.shell(
+                    script: cmd
+                )
+            }
+        }
+
+
+         stage("generate the ocp release schedules") {
+            def schedules_cmd = "schedule-generator --kubeconfig /home/jenkins/kubeconfigs/sa.release-schedules-cm-updater.app.ci.config --schedule-dir . --dry-run=false"
+            echo "shell cmd: ${schedules_cmd}"
+            out = commonlib.shell(
+                script: schedules_cmd
+            )
+        }
+
+    } catch (e) {
+        notifyFailed()
+        throw e
+    }
+    
+}
+
+def notifyFailed() {
+    slackChannel = slacklib.to('#ops-testplatform')
+    slackChannel.failure("Unable to sync content to the configMap release-schedules on app.ci; Contact ART team to inspect this job run")
+}

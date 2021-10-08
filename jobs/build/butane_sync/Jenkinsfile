@@ -116,8 +116,10 @@ pipeline {
         stage("sync to mirror") {
             steps {
                 sh "tree ./${params.VERSION} && cat ./${params.VERSION}/sha256sum.txt"
-                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/${params.VERSION}/")
-                commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/latest/")
+                script {
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/${params.VERSION}/")
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/latest/")
+                }
                 sshagent(["aos-cd-test"]) {
                     sh "ssh use-mirror-upload.ops.rhcloud.com -- mkdir -p /srv/pub/openshift-v4/x86_64/clients/butane"
                     sh "scp -r ./${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/x86_64/clients/butane/"

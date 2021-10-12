@@ -11,7 +11,6 @@ node {
                 def clone = [
                     "rm -rf schedule",
                     "git clone --single-branch --branch master https://buildvm:${GITLAB_PAT}@gitlab.cee.redhat.com/ocp-release-schedule/schedule.git",
-                    "cd schedule"
                 ]
                 cmd = (clone).flatten().join('\n')
 
@@ -24,7 +23,7 @@ node {
 
 
          stage("generate the ocp release schedules") {
-            def schedules_cmd = "schedule-generator --kubeconfig /home/jenkins/kubeconfigs/sa.release-schedules-cm-updater.app.ci.config --schedule-dir . --dry-run=false"
+            def schedules_cmd = "schedule-generator --kubeconfig /home/jenkins/kubeconfigs/sa.release-schedules-cm-updater.app.ci.config --schedule-dir schedule --dry-run=false"
             echo "shell cmd: ${schedules_cmd}"
             out = commonlib.shell(
                 script: schedules_cmd

@@ -10,7 +10,7 @@ node {
             stage("clone the ocp release schedules") {
                 def clone = [
                     "rm -rf schedule",
-                    'git clone --single-branch --branch master https://buildvm:$GITLAB_PAT@gitlab.cee.redhat.com/ocp-release-schedule/schedule.git',
+                    "git clone --single-branch --branch master https://buildvm:${GITLAB_PAT}@gitlab.cee.redhat.com/ocp-release-schedule/schedule.git",
                     "cd schedule"
                 ]
                 cmd = (clone).flatten().join('\n')

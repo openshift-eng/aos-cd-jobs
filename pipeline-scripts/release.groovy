@@ -442,6 +442,40 @@ for f in *.tar.gz *.bz *.zip *.tgz ; do
 done
     ''')
 
+    if ( minor > 0 && (client_type == "ocp-dev-preview" || release_name.indexOf('-fc.') > -1 || release_name.indexOf('-rc.') > -1 ) {
+        try {
+            // To encourage customers to explore dev-previews & pre-GA releases, populate changelog
+            // https://issues.redhat.com/browse/ART-3040
+            prevMinor = minor - 1
+            rcURL = commonlib.getReleaseControllerURL(release_name)
+            rcArch = commonlib.getReleaseControllerArch(release_name)
+            stableStream = (rcArch=="amd64")?"4-stable":"4-stable-${rcArch}"
+            prevGA = "${major}.${prevMinor}.0"
+            outputDest = "${BASE_TO_MIRROR_DIR}/changelog.html"
+
+            // See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
+            def check = httpRequest(
+                url: "${rcURL}/releasestream/${stableStream}/release/${prevGA}",
+                httpMode: 'GET',
+                validResponseCodes: '200,404',  // if we get 404, do not compute changelog yet; prev has not GA'd.
+                timeout: 30,
+            )
+            if (check.status == 200) {
+                // If prevGA is known to the release controller, compute the changelog html
+                def response = httpRequest(
+                    url: "${rcURL}/changelog?from=4.${prevMinor}.0&to=${release_name}&format=html",
+                    httpMode: 'GET',
+                    timeout: 180,
+                )
+                writeFile(file: outputDest, content: response.content)
+            } else {
+                writeFile(file: outputDest, content: "<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once ${prevGA} is officially released.</p></body></html>")
+            }
+        } catch (clex) {
+            slacklib.to(release_name).failure("Error generating changelog for release", clex)
+        }
+    }
+
     if (major == 4 && minor < 6) {
         echo "Will not extract opm for releases prior to 4.6."
     } else {

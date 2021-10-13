@@ -576,18 +576,25 @@ def canLock(lockName, timeout_seconds=10) {
 
 /**
  * Each OCP architecture gets its own release controller. They are hosted
- * on different routes. This method returns a URL based on the name of the
+ * on different routes. This method returns the golang arch name used by the
+ * release controller based on the name of the
  * release stream you want to query.
- * @param releaseStreamName - e.g. 4-stable or 4-stable-s390x
- * @return Returns something like "https://s390x.ocp.releases.ci.openshift.org"
+ * @param releaseStreamName or nightly name - e.g. 4-stable or 4-stable-s390x or 4.9.0-0.nightly-s390x-2021-10-08-232627
+ * @return Returns a golang arch name like "s390x" or "amd64"
  */
-def getReleaseControllerURL(releaseStreamName) {
+def getReleaseControllerArch(releaseStreamName) {
     def arch = 'amd64'
     def streamNameComponents = releaseStreamName.split('-') // e.g. ['4', 'stable', 's390x']  or [ '4', 'stable' ]
     for(goArch in goArches) {
-        if (goArch in streamNameComponents)
+        if (goArch in streamNameComponents) {
             arch = goArch
+        }
     }
+    return arch
+}
+
+def getReleaseControllerURL(releaseStreamName) {
+    arch = getReleaseControllerArch(releaseStreamName)
     return "https://${arch}.ocp.releases.ci.openshift.org"
 }
 

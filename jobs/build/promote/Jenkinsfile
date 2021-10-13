@@ -196,6 +196,8 @@ node {
     next_is_prerelease = false
     def release_config = null
     def (major, minor) = [0, 0]
+    Map advisory_map = [:]
+    int advisory = 0
 
     // copy job params into normal vars, since params is an immutable map
     def skip = [
@@ -228,6 +230,9 @@ node {
         if (!params.VERSION) {
             error("You must explicitly specify a VERSION to promote a release for a non-stream assembly.")
         }
+        if (params.ADVISORY) {
+            error("Cannot override image advisory number for a non-stream assembly.")
+        }
         (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
         group = "openshift-${major}.${minor}"
         // FIXME: Only support standard X.Y.Z and hotfix releases for now. RCs and FCs are not supported yet.
@@ -235,8 +240,9 @@ node {
         if (!release_config) {
             error("Assembly ${params.ASSEMBLY} is not defined in releases.yml.")
         }
-
-        direct_release_nightly = !release.getAdvisories(group)?.image  // Whether this assembly should go through Errata process is determined by group config advisories.
+        advisory_map = release.getAdvisories(group)?: [:]
+        advisory = advisory_map?.image?: -1
+        direct_release_nightly = advisory <= 0  // Whether this assembly should go through Errata process is determined by group config advisories.
         def release_type = release_config.assembly?.type?: "standard"  // Defaults to "standard" release if not specified
         switch(release_type) {
         case "standard":
@@ -288,6 +294,12 @@ node {
         } else {
             error('Unknown release type: ' + params.RELEASE_TYPE)
         }
+        advisory_map = release.getAdvisories(group)?: [:]
+        if (params.ADVISORY) {
+            advisory = Integer.parseInt(params.ADVISORY.toString())
+        } else {
+            advisory = advisory_map?.image?: -1
+        }
     }
 
     if (major > 3 && ga_release) {
@@ -332,7 +344,6 @@ node {
             dest_release_tag = release.destReleaseTag(release_name, arch)
 
             description = params.DESCRIPTION
-            advisory = params.ADVISORY ? Integer.parseInt(params.ADVISORY.toString()) : 0
             if (direct_release_nightly) {
                 // Direct nightly releases can skip all advisory related steps.
                 advisory = -1
@@ -463,10 +474,13 @@ node {
                 if (advisory == -1) {
                     return
                 }
-                if (major == 4 && !is_4stable_release) {
+                if (!is_4stable_release) {
                     return
                 }
-                release.getAdvisories(group).each {
+                advisory_map.each {
+                    if (it.value <= 0) {
+                        return
+                    }
                     commonlib.retrySkipAbort("Add CVE flaw bugs", taskThread, "Error attaching CVE flaw bugs") {
                         commonlib.shell(
                             script: "${buildlib.ELLIOTT_BIN} --group ${group} --assembly ${params.ASSEMBLY ?: 'stream'} attach-cve-flaws --advisory ${it.value} ${params.DRY_RUN ? '--dry-run' : ''}",
@@ -785,10 +799,10 @@ node {
                 if (advisory == -1) {
                     return
                 }
-                if (major == 4 && !is_4stable_release) {
+                if (!is_4stable_release) {
                     return
                 }
-                release.getAdvisories(group).each {
+                advisory_map.each {
                     advisory_id = "${it.value}"
                     res = commonlib.shell(
                         script: "${buildlib.ELLIOTT_BIN} validate-rhsa ${advisory_id}",

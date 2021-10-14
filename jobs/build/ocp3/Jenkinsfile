@@ -717,9 +717,18 @@ node {
                     commonlib.syncRepoToS3Mirror("${unembargoedPlashet.localPlashetPath}/", "/enterprise/all/${params.BUILD_VERSION}/latest/" )
                     commonlib.syncRepoToS3Mirror("${unembargoedPlashet.localPlashetPath}/", "/enterprise/enterprise-${params.BUILD_VERSION}/${NEW_FULL_VERSION}/" )
                     commonlib.syncRepoToS3Mirror("${unembargoedPlashet.localPlashetPath}/", "/enterprise/enterprise-${params.BUILD_VERSION}/latest/" )
+                    commonlib.syncRepoToS3Mirror("${unembargoedPlashet.localPlashetPath}/", "/enterprise/online-prod/latest/" )  // Still used by SD V3 infra
                 }
             } catch (ex) {
-                commonlib.slacklib.to("#art-release").say("Failed syncing ${params.BUILD_VERSION} plashet to art-srv-enterprise S3")
+                commonlib.slacklib.to(params.BUILD_VERSION).failure("Failed syncing ${params.BUILD_VERSION} plashet to art-srv-enterprise S3")
+            }
+
+            try {
+                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    commonlib.shell("./s3-publish-oc-binary.sh ${unembargoedPlashet.localPlashetPath} ${params.BUILD_VERSION} ${NEW_FULL_VERSION}")
+                }
+            } catch (ex) {
+                commonlib.slacklib.to(params.BUILD_VERSION).failure("Failed ${params.BUILD_VERSION} publishing oc binary art-srv-enterprise S3")
             }
 
 

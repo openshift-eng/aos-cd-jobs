@@ -37,7 +37,7 @@ spec:
       Path("./artcd_working").mkdir(parents=True, exist_ok=True)
 
       subprocess.run(["ls", "-l", "/usr/local/lib/python3.6/site-packages/certifi/"], check=True, universal_newlines=True)
-      subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@REDHAT.COM"], check=True, universal_newlines=True)
+      subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM"], check=True, universal_newlines=True)
       args = [
           "-vv",
           "--working-dir=./artcd_working",

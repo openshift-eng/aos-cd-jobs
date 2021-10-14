@@ -693,10 +693,7 @@ node {
                     return
                 }
 
-                suffix = release.getArchPrivSuffix(arch, false)
-                tag = from_release_tag
-
-                cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$suffix/release$suffix:$tag) | jq -r .config.config.Labels.version"
+                cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content ${quay_url}:${dest_release_tag}) | jq -r .config.config.Labels.version"
                 rhcos_build =  commonlib.shell(
                     returnStdout: true,
                     script: cmd

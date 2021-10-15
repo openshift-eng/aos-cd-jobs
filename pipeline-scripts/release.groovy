@@ -442,7 +442,7 @@ for f in *.tar.gz *.bz *.zip *.tgz ; do
 done
     ''')
 
-    if ( minor > 0 && (client_type == "ocp-dev-preview" || release_name.indexOf('-fc.') > -1 || release_name.indexOf('-rc.') > -1) ) {
+    if ( minor > 0 ) {
         try {
             // To encourage customers to explore dev-previews & pre-GA releases, populate changelog
             // https://issues.redhat.com/browse/ART-3040

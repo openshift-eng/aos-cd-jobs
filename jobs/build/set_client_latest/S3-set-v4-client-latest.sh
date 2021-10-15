@@ -96,5 +96,11 @@ for arch in ${ARCHES}; do
       # For example, if we just copied out stable-4.9 and stable-4.10 does not exist yet, then
       # We should have a directory "stable" with the 4.9 content.
       aws s3 sync --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${LINK_NAME}/"
+      
+      # On the old mirror, clients/ocp-dev-preview/pre-release linked to ../ocp/candidate. Replicate that by copying the artifacts over.
+      if [[ "$LINK_NAME" == "candidate" ]]; then
+        # This is where console.openshift.com points to find dev-preview artifacts
+        aws s3 sync --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/pre-release/"
+      fi      
     fi
 done

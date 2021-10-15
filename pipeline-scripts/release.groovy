@@ -452,6 +452,7 @@ done
             stableStream = (rcArch=="amd64")?"4-stable":"4-stable-${rcArch}"
             prevGA = "${major}.${prevMinor}.0"
             outputDest = "${CLIENT_MIRROR_DIR}/changelog.html"
+            outputDestMd = "${CLIENT_MIRROR_DIR}/changelog.md"
 
             // See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
             def check = httpRequest(
@@ -468,8 +469,17 @@ done
                     timeout: 180,
                 )
                 writeFile(file: outputDest, text: response.content)
+                
+                // Also collect the output in markdown for SD to consume
+                response = httpRequest(
+                    url: "${rcURL}/changelog?from=4.${prevMinor}.0&to=${release_name}",
+                    httpMode: 'GET',
+                    timeout: 180,
+                )
+                writeFile(file: outputDestMd, text: response.content)
             } else {
                 writeFile(file: outputDest, text: "<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once ${prevGA} is officially released.</p></body></html>")
+                writeFile(file: outputDestMd, text: "Changelog information cannot be computed for this release. Changelog information will be populated for new releases once ${prevGA} is officially released.")
             }
         } catch (clex) {
             slacklib.to(release_name).failure("Error generating changelog for release", clex)

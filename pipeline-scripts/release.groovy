@@ -451,7 +451,7 @@ done
             rcArch = commonlib.getReleaseControllerArch(release_name)
             stableStream = (rcArch=="amd64")?"4-stable":"4-stable-${rcArch}"
             prevGA = "${major}.${prevMinor}.0"
-            outputDest = "${BASE_TO_MIRROR_DIR}/changelog.html"
+            outputDest = "${CLIENT_MIRROR_DIR}/changelog.html"
 
             // See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
             def check = httpRequest(

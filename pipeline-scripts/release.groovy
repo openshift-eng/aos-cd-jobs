@@ -467,9 +467,9 @@ done
                     httpMode: 'GET',
                     timeout: 180,
                 )
-                writeFile(file: outputDest, content: response.content)
+                writeFile(file: outputDest, text: response.content)
             } else {
-                writeFile(file: outputDest, content: "<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once ${prevGA} is officially released.</p></body></html>")
+                writeFile(file: outputDest, text: "<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once ${prevGA} is officially released.</p></body></html>")
             }
         } catch (clex) {
             slacklib.to(release_name).failure("Error generating changelog for release", clex)

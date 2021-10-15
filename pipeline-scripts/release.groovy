@@ -450,9 +450,12 @@ done
             rcURL = commonlib.getReleaseControllerURL(release_name)
             rcArch = commonlib.getReleaseControllerArch(release_name)
             stableStream = (rcArch=="amd64")?"4-stable":"4-stable-${rcArch}"
-            prevGA = "${major}.${prevMinor}.0"
             outputDest = "${CLIENT_MIRROR_DIR}/changelog.html"
             outputDestMd = "${CLIENT_MIRROR_DIR}/changelog.md"
+
+            // If the previous minor is not yet GA, look for the latest fc/rc. If the previous minor is GA, this should
+            // always return 4.m.0.
+            prevGA = commonlib.shell(returnStdout: true, script:"curl -s -X GET -G https://amd64.ocp.releases.ci.openshift.org/api/v1/releasestream/4-stable/latest --data-urlencode 'in=>4.${prevMinor}.0-0 <4.${prevMinor}.1' | jq -r .name")
 
             // See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
             def check = httpRequest(

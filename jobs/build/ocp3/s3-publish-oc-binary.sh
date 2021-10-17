@@ -20,7 +20,7 @@ extract() {
     local arch rpm
     mkdir macosx windows
     for arch in x86_64 ${ARCH}; do
-        rpm=$(echo "$(rpm_path)/${PKG}"*/"$(rpm_name)"*)
+        rpm=$(echo "$(rpm_path)/"*/"$(rpm_name)"*)
         if [[ "${arch}" != x86_64 && ! -e "${rpm}" ]]; then continue; fi
         mkdir "${arch}"
         if [[ "${arch}" != x86_64 ]]; then

@@ -49,7 +49,7 @@ pkg_tar() {
     tar --owner 0 --group 0 -C "$1" -zc oc -f "${OUTDIR}/${dir}/oc.tar.gz"
 }
 
-PKG=${3:-atomic-openshift}
+PKG=${4:-atomic-openshift}
 RPM=${PKG}-clients
 ARCH='aarch64 ppc64le s390x'
 TMPDIR=$PWD/tmp-rpm-extract

@@ -7,7 +7,7 @@ VERSION=$3
 
 
 rpm_path() {
-    printf "${RPM_PATH}" "${arch}"
+    echo "${PLASHET_DIR}/${arch}/os/Packages"
 }
 
 rpm_name() {
@@ -49,7 +49,6 @@ pkg_tar() {
     tar --owner 0 --group 0 -C "$1" -zc oc -f "${OUTDIR}/${dir}/oc.tar.gz"
 }
 
-RPM_PATH=${PLASHET_DIR}/%s/os/Packages
 PKG=${3:-atomic-openshift}
 RPM=${PKG}-clients
 ARCH='aarch64 ppc64le s390x'

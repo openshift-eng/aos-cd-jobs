@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi:8.3
+FROM registry.access.redhat.com/ubi8/ubi:8.4
 LABEL name="openshift-art/art-cd" \
   maintainer="OpenShift Team Automated Release Tooling <aos-team-art@redhat.com>"
 

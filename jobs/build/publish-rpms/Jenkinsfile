@@ -47,7 +47,7 @@ node {
                 rsync --recursive --delete ${version}-beta/ use-mirror-upload:${mirror_dir}
                 ssh use-mirror-upload '/usr/local/bin/push.pub.sh ${path} -v'
                 # Mirror to s3 as well
-                aws s3 sync --delete ${version}-beta/ s3://art-srv-enterprise/pub/${path}/
+                aws s3 sync --no-progress --delete ${version}-beta/ s3://art-srv-enterprise/pub/${path}/
                 rm -r ${version}-beta
             """
         )

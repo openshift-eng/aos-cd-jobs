@@ -77,7 +77,7 @@ for arch in ${ARCHES}; do
 
     MAJOR_MINOR_LINK="${LINK_NAME}-${MAJOR_MINOR}"  # e.g. latest-4.3  or  stable-4.3
 
-    aws s3 sync --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${MAJOR_MINOR_LINK}/"
+    aws s3 sync --no-progress --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${MAJOR_MINOR_LINK}/"
 
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls
     # returns lines lke:
@@ -95,7 +95,7 @@ for arch in ${ARCHES}; do
       # If the current major.minor is the latest of this type of link, then update the "overall".
       # For example, if we just copied out stable-4.9 and stable-4.10 does not exist yet, then
       # We should have a directory "stable" with the 4.9 content.
-      aws s3 sync --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${LINK_NAME}/"
+      aws s3 sync --no-progress --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${LINK_NAME}/"
       
       # On the old mirror, clients/ocp-dev-preview/pre-release linked to ../ocp/candidate. Replicate that by copying the artifacts over.
       if [[ "$LINK_NAME" == "candidate" ]]; then

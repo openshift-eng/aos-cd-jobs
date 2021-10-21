@@ -169,7 +169,7 @@ node {
                             touch staging/rh-acs/${params.REPO}/${VERSION}
                             cp -a \${fn} staging/rh-acs/${params.REPO}
                             scp -r staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
-                            aws s3 sync staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
+                            aws s3 sync --no-progress staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
                             """
                             mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
                             if (mirror_result.contains("[FAILURE]")) {

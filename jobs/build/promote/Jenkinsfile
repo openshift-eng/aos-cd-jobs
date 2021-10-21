@@ -546,7 +546,7 @@ node {
                         acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
                         echo acquire_failure
                     }
-                    upgradeTestList = commonlib.parseList(calcUpgradeTestOut) + in_flight_prev
+                    upgradeTestList = commonlib.parseList(calcUpgradeTestOut) + (in_flight_prev_required ? in_flight_prev : [])
 
                     for ( String from_release : upgradeTestList) {
                         mode = modeOptions[testIndex % modeOptions.size()]

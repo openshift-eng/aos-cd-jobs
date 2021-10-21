@@ -594,7 +594,7 @@ def getReleaseControllerArch(releaseStreamName) {
 }
 
 def getReleaseControllerURL(releaseStreamName) {
-    arch = getReleaseControllerArch(releaseStreamName)
+    def arch = getReleaseControllerArch(releaseStreamName)
     return "https://${arch}.ocp.releases.ci.openshift.org"
 }
 

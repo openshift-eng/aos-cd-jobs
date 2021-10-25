@@ -97,6 +97,11 @@ in the week. While promoting 4.7.13, this field would have the value 4.6.31.
 If you leave it as blank, you will be prompted later in the job for the input also with the 
 suggested previous releases.
 
+### SKIP\_ATTACH\_CVE\_FLAWS, SKIP\_CINCINNATI\_PR\_CREATION, PERMIT\_ALL\_ADVISORY\_STATES
+
+Parameters that are passed through to the `promote` job and have the
+[same meaning as documented there](../promote/README.md).
+
 ### RESUME\_FROM
 
 **Warning: This would start multiple promote jobs with the given stage. Make sure all previous promote jobs failed on the same stage. Otherwise use the standalone promote job**

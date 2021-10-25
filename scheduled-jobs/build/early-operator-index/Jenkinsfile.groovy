@@ -18,6 +18,7 @@ node {
     workDir = "${env.WORKSPACE}/doozer_working"
     sh "rm -rf ${workDir}"
     ocpVer = "4.10"
+    operatorIndexBaseVersion = "4.9"
     operatorRegistryVersion = "4.9"
     
     // Print out bundle pullspecs alongside of distgit keys to help identify bundles which have not been built yet.
@@ -31,7 +32,7 @@ node {
     
     request = [
         'bundles': pullspecs.findAll { it != "None" },  // Ignore bundle if it has not been built yet
-        'from_index': "registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v${ocpVer}",
+        'from_index': "registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v${operatorIndexBaseVersion}",
         'binary_image': "registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-registry:v${operatorRegistryVersion}.0"
     ]
 

@@ -18,18 +18,21 @@ node {
     workDir = "${env.WORKSPACE}/doozer_working"
     sh "rm -rf ${workDir}"
     ocpVer = "4.10"
-
+    operatorRegistryVersion = "4.9"
+    
+    // Print out bundle pullspecs alongside of distgit keys to help identify bundles which have not been built yet.
+    echo "Doozer pullspecs by distgit_key"
+    buildlib.doozer("--group=openshift-${ocpVer} --working-dir=${workDir} olm-bundle:print " + '{distgit_key} {bundle_pullspec}')
+    
     // Note this logic will start to fail when versions of the operators start to be attached to
     // advisories and pushed to staging.
     def pullspecs = buildlib.doozer("--group=openshift-${ocpVer} --working-dir=${workDir} olm-bundle:print " + '{bundle_pullspec}',
             [capture: true]).trim().split()
     
-    echo "Doozer pullspecs:\n{pullspecs}"
-
     request = [
         'bundles': pullspecs.findAll { it != "None" },  // Ignore bundle if it has not been built yet
         'from_index': "registry-proxy.engineering.redhat.com/rh-osbs/iib-pub-pending:v${ocpVer}",
-        'binary_image': "registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-registry:v${ocpVer}.0"
+        'binary_image': "registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-registry:v${operatorRegistryVersion}.0"
     ]
 
     writeJSON(file: 'request.json', json: request, pretty: 4)

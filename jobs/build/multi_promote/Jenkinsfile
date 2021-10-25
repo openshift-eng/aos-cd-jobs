@@ -77,6 +77,11 @@ node {
                         description: 'Skip cincinnati PR creation',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: 'PERMIT_ALL_ADVISORY_STATES',
+                        description: 'DO NOT USE without team lead approval. Allows "Standard" promotion when advisory is not in QE state.',
+                        defaultValue: false,
+                    ),
                     commonlib.dryrunParam('Take no actions. Note: still notifies and runs signing job (which fails)'),
                     commonlib.mockParam(),
                 ]
@@ -161,6 +166,7 @@ node {
         buildlib.param('String','ADVISORY', ""),
         booleanParam(name: 'SKIP_ATTACH_CVE_FLAWS', value: params.SKIP_ATTACH_CVE_FLAWS),
         booleanParam(name: 'SKIP_CINCINNATI_PR_CREATION', value: params.SKIP_CINCINNATI_PR_CREATION),
+        booleanParam(name: 'PERMIT_ALL_ADVISORY_STATES', value: params.PERMIT_ALL_ADVISORY_STATES),
         booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
         booleanParam(name: 'MOCK', value: params.MOCK)
     ]

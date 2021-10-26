@@ -33,10 +33,20 @@ node() {
 
         sshagent(['openshift-bot']) {
             sh "ssh ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}"
-            sh "rsync -avzh --chmod=a+rwx,g-w,o-w --exclude=signatures--delete ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "
+            sh "rsync -avzh --chmod=a+rwx,g-w,o-w --exclude=signatures --delete ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "
             timeout(time: 2, unit: 'HOURS') {
                 sh "ssh ${MIRROR_TARGET} -- push.pub.sh -v ${MIRROR_RELATIVE_PATH}"
             }
+        }
+
+        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            commonlib.shell(
+                script: """
+                    set -e
+                    aws s3 sync --no-progress --delete ${LOCAL_SYNC_DIR}/assets/ s3://art-srv-enterprise/pub/rhacs/assets/
+                    aws s3 sync --no-progress --delete ${LOCAL_SYNC_DIR}/charts/ s3://art-srv-enterprise/pub/rhacs/charts/
+                """
+            )
         }
 
     }

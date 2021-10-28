@@ -1,0 +1,126 @@
+// Scans the last 3 nightlies and periodicly warns stakeholders if all have failed.
+// NOTE: This job relies on workspace for keeping last retrieved state.
+
+import java.text.SimpleDateFormat
+import net.sf.json.*
+
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '30', numToKeepStr: '')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+arch_suffixes = [
+    '',
+    's390x',
+    'ppc64le',
+    'arm64'
+]
+
+node() {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    description = ""
+
+    sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'") // for parsing dates like 2021-10-27T03:27:03Z
+    for ( arch in arch_suffixes ) {
+        arch_suffix = ''
+        if (arch) {
+            arch_suffix = '-' + arch
+        }
+        releases = {}
+        withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
+            sh("oc -n ocp${arch_suffix} get is/release${arch_suffix} --output json > release${arch_suffix}.json")
+            releases = readJSON(file: "release${arch_suffix}.json")
+        }
+
+        if (!releases.spec || !releases.spec.tags) {
+            continue
+        }
+
+        states = [:]
+        for ( tag in releases.spec.tags ) {
+            if ( !tag.containsKey('annotations') ) {
+                continue
+            }
+            annotations = tag.opt('annotations')
+            if ( annotations == null ) {
+                echo "Annotations were null: ${annotations}"
+                continue
+            }
+            if ( annotations instanceof JSONNull ) {
+                echo "Annotations were JSONNull: ${annotations}"
+                continue
+            }
+            if ( !annotations.containsKey('release.openshift.io/name') ) {
+                echo "Annotations lacked key  release.openshift.io/name: ${annotations}"
+                continue
+            }
+            if ( !annotations.containsKey('release.openshift.io/creationTimestamp') ) {
+                echo "Annotations lacked key  release.openshift.io/creationTimestamp: ${annotations}"
+                continue
+            }
+            if ( !annotations.containsKey('release.openshift.io/phase') ) {
+                echo "Annotations lacked key  release.openshift.io/phase: ${annotations}"
+                continue
+            }
+
+            stream_name = annotations.get('release.openshift.io/name')  // e.g. 4-stable or 4.8.0-0.nightly
+            if (!stream_name.endsWith(".nightly${arch_suffix}")) {
+                continue
+            }
+            creationTimeStr = annotations.get('release.openshift.io/creationTimestamp')
+            creationTime = sdf.parse(creationTimeStr)
+            phase = annotations.get('release.openshift.io/phase') // "Rejected" or "Accepted"
+
+            if (!states[stream_name]) {
+                states[stream_name] = [:]
+            }
+
+            states[stream_name][creationTime] = phase
+        }
+
+        echo "\n\nComputed: ${states}"
+
+        for ( stream_name in states.keySet() ) {
+            echo "Analyzing stream: ${stream_name}"
+            stream_results = states[stream_name]
+            echo "  Results: ${stream_results}"
+            // I realize I could have used a TreeMap for sorted keys, but trying
+            // to keep Jenkins script approvals to a minimum.
+            nightly_dates = new ArrayList(stream_results.keySet()).sort().reverse()
+            if ( nightly_dates.size() >= 3 ) {
+                rejects = 0
+                for ( int i = 0; i < 3; i++ ) {
+                    if ( stream_results[nightly_dates[i]] != "Rejected" ) {
+                        break
+                    }
+                    rejects++
+                }
+
+                if (rejects == 3) {
+                    // The three latest nightlies have been rejected.
+                    echo "The last three nightlies for ${stream_name} have been rejected: ${stream_results}"
+                    currentBuild.result = "UNSTABLE"
+                    notificationFile = "${stream_name}.last_notification"
+                    lastNotification = 0
+                    if (fileExists(notificationFile)) {
+                        numStr = readFile(file: notificationFile).trim()
+                        if (numStr?.isLong()) {
+                            lastNotification = numStr.toLong()
+                        }
+                    }
+                    if ( System.currentTimeMillis() - lastNotification > 1000 * 60 * 60 * 8 ) {
+                        // has it been longer than X hours since the last notification?
+                        echo "Notification will occur!"
+                        writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
+                        currentBuild.description += "\nNotifying for ${stream_name}"
+                        commonlib.slacklib.to(stream_name).failure("Detected latest ${rejects} nightlies have been rejected in ${stream_name}")
+                    }
+                } else {
+                    echo "The last three nightlies didn't all fail for ${stream_name} have been rejected: ${stream_results}"
+                }
+            }
+        }
+    }
+}

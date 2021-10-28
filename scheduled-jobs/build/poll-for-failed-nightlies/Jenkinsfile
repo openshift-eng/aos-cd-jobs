@@ -115,7 +115,7 @@ node() {
                         echo "Notification will occur!"
                         writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
                         currentBuild.description += "\nNotifying for ${stream_name}"
-                        commonlib.slacklib.to(stream_name).failure("Detected latest ${rejects} nightlies have been rejected in ${stream_name}")
+                        commonlib.slacklib.to(stream_name).failure("@release-artists - Detected latest ${rejects} nightlies have been rejected in ${stream_name}")
                     }
                 } else {
                     echo "The last three nightlies didn't all fail for ${stream_name} have been rejected: ${stream_results}"

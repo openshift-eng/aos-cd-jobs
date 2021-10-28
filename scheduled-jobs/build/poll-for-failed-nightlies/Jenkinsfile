@@ -83,7 +83,7 @@ node() {
         echo "\n\nComputed: ${states}"
 
         for ( stream_name in states.keySet() ) {
-            echo "Analyzing stream: ${stream_name}"
+            echo "\n\nAnalyzing stream: ${stream_name}"
             stream_results = states[stream_name]
             echo "  Results: ${stream_results}"
             // I realize I could have used a TreeMap for sorted keys, but trying
@@ -116,6 +116,8 @@ node() {
                         writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
                         currentBuild.description += "\nNotifying for ${stream_name}"
                         commonlib.slacklib.to(stream_name).failure("@release-artists - Detected latest ${rejects} nightlies have been rejected in ${stream_name}")
+                    } else {
+                        echo "Skipping notification since it has not been more than 8 hours since the last notification: ${System.currentTimeMillis()} - ${lastNotification}"
                     }
                 } else {
                     echo "The last three nightlies didn't all fail for ${stream_name} have been rejected: ${stream_results}"

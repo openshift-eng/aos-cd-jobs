@@ -103,17 +103,17 @@ node {
                             defaultValue: false,
                         ),
                         text(
-                            name: 'SYNOPIS'
+                            name: 'SYNOPIS',
                             description: 'Synopsis value for text only advisory',
                             defaultValue: "OpenShift Container Platform 4.7.z notification of delayed upgrade path to 4.8"
                         ),
                         text(
-                            name: 'TOPIC'
+                            name: 'TOPIC',
                             description: 'Topic value for text only advisory',
                             defaultValue: "Upgrading from Red Hat OpenShift Container Platform version 4.7.z to version 4.8 is not currently available."
                         ),
                         text(
-                            name: 'DESCRIPTION'
+                            name: 'DESCRIPTION',
                             description: 'Description value for text only advisory',
                             defaultValue: '''Red Hat has discovered an issue in OpenShift Container Platform 4.7.17 that provides sufficient cause for Red Hat to not support installations of, or upgrades to, version 4.7.17:
 
@@ -129,7 +129,7 @@ For more information about upgrade paths and recommendations, see https://docs.o
                                            ''',
                         ),
                         text(
-                            name: 'SOLUTION'
+                            name: 'SOLUTION',
                             description: 'Solution value for text only advisory',
                             defaultValue: '''eneral Guidance:
                             
@@ -143,12 +143,12 @@ Instructions for upgrading a cluster are available at https://docs.openshift.com
                                           ''',
                         ),
                         text(
-                            name: 'BUGTITLE'
+                            name: 'BUGTITLE',
                             description: 'Bug title value for the bug used in text only advisory',
                             defaultValue: "No upgrade edge available from 4.6.32 to 4.7"
                         ),
                         text(
-                            name: 'BUGDESCRIPTION'
+                            name: 'BUGDESCRIPTION',
                             description: 'Bug description value for the bug used in text only advisory',
                             defaultValue: '''Description of problem:
                             

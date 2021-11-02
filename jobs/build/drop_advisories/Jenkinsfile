@@ -25,6 +25,12 @@ node {
                         description: 'One or more advisories to drop, comma separated',
                         trim: true
                     ),
+                    string(
+                        name: 'COMMENT',
+                        description: 'The comment will add to the bug attached on the advisory to explain the reason, if not set will use default comment',
+                        defaultValue: "This bug will be dropped from current advisory because the advisory will also be dropped and not going to be shipped.",
+                        trim: true
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -43,12 +49,14 @@ node {
         res = commonlib.shell(
             returnAll: true,
             script: """
+              ${buildlib.ELLIOTT_BIN} repair-bugs --advisory ${adv} --all --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
+              ${buildlib.ELLIOTT_BIN} remove-bugs --advisory ${adv} --all
               ${buildlib.ELLIOTT_BIN} change-state --state NEW_FILES --advisory ${adv}
               ${buildlib.ELLIOTT_BIN} advisory-drop ${adv}
             """,
         )
         print(res)
     }
-        
+
     buildlib.cleanWorkspace()
 }

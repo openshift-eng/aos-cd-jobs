@@ -172,7 +172,7 @@ This is used to specify the previous minor version release that is being prepare
 in the same week. Usually we would have 2-3 releases, e.g. 4.7.13 and 4.6.31 being prepared
 in the week. While promoting 4.7.13, this field would have the value 4.6.31.
 
-If you leave it as blank, you will be prompted later in the job for the input also with the 
+If you leave it as blank, you will be prompted later in the job for the input also with the
 suggested previous releases.
 
 ### PERMIT\_PAYLOAD\_OVERWRITE
@@ -208,8 +208,8 @@ Sometimes promote job fail either because of an outage or due to a network error
 or due to some other reason. This param lets you specify a stage to start a promote
 job from.
 
-If you're unsure about the stage previous promote failed or which stage to resume from, 
-it's a good idea to consult other ARTists and read the code since this is an 
+If you're unsure about the stage previous promote failed or which stage to resume from,
+it's a good idea to consult other ARTists and read the code since this is an
 advanced param :)
 
 ### SKIP\_CINCINNATI\_PR\_CREATION
@@ -260,6 +260,12 @@ Address(es) to mail when the job succeeds.
 ### MAIL\_LIST\_FAILURE
 
 Address(es) to mail when the job fails.
+
+## Interactive prompts
+
+In case of a prevalidation failure, the promote job will prompt the user to choose an option: RETRY, SKIP, or ABORT. If the user chooses SKIP, a justification is required. This justification can be anything that provides breadcrumbs to how the decision was made - link to a slack thread or document, "Luke told me in a sync call that it can wait until next week" or whatever.
+
+Please note the justification will be public. Don't include confidential information.
 
 ## Dependencies
 

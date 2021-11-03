@@ -472,7 +472,7 @@ done
                     timeout: 180,
                 )
                 writeFile(file: outputDest, text: response.content)
-                
+
                 // Also collect the output in markdown for SD to consume
                 response = httpRequest(
                     url: "${rcURL}/changelog?from=4.${prevMinor}.0&to=${release_name}",
@@ -738,8 +738,9 @@ def isSupportEUS(String ocpVersion) {
  * @param candidate_only Only open PR for candidate; there is no advisory
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
  *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
+ * @param candidate_pr_note additional Cincinnati candidate PR text
  */
-def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='openshift') {
+def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='openshift', candidate_pr_note='') {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
@@ -837,6 +838,9 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
                     switch(prefix) {
                         case 'prerelease':
                         case 'candidate':
+                            if (candidate_pr_note) {
+                                pr_messages << candidate_pr_note
+                            }
                             pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
                             labelArgs = "-l 'lgtm,approved'"
                             extraSlackComment = "automatically approved"
@@ -880,6 +884,9 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
                     if ( isReleaseCandidate ) {
                         // Errata is irrelevant for release candidate.
                         pr_messages << "This is a release candidate. There is no advisory associated."
+                        if (candidate_pr_note) {
+                            pr_messages << candidate_pr_note
+                        }
                         pr_messages << 'Please merge immediately.'
                     } else {
                         pr_messages << "Promoting a hotfix release (e.g. for a single customer). There is no advisory associated."
@@ -951,7 +958,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
     }
 }
 
-def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='openshift', noSlackOutput=false) {
+def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='openshift', noSlackOutput=false, additional_text='') {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
 
     def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n\n"
@@ -959,6 +966,9 @@ def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='
         slack_msg += "This release was promoted using nightly registry.ci.openshift.org/ocp/release:${fromReleaseTag}\n"
     }
     slack_msg += "${prs}\n"
+    if (additional_text) {
+        slack_msg += "${additional_text}\n"
+    }
     slack_msg += "@patch-manager Please continue merging PRs for the next release.\n"
 
     if ( ghorg == 'openshift' && !noSlackOutput) {

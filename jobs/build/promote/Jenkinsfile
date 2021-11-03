@@ -198,6 +198,8 @@ node {
     def (major, minor) = [0, 0]
     Map advisory_map = [:]
     int advisory = 0
+    def justifications = []
+    def reasonFieldDescription = "A justification is required if SKIP is used. WARNING: This will be public. Don't include confidential information."
 
     // copy job params into normal vars, since params is an immutable map
     def skip = [
@@ -319,9 +321,22 @@ node {
                 echo "Skip Blocker Bug check for FCs, RCs, and custom releases"
                 return
             }
-            commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread,
-                                    "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs") {
+            def (action, reason) = commonlib.retrySkipAbort("Waiting for Blocker Bugs to be resolved", taskThread,
+                                    "Blocker Bugs found for release; do not proceed without resolving. See https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#handling-blocker-bugs",
+                                    reasonFieldDescription) {
                 release.stageCheckBlockerBug(group)
+            }
+            if (action == "SKIP") {
+                if (!reason) {
+                    error("A justification is required but not given.")
+                }
+                def justification = """User ${env.BUILD_USER_EMAIL} chose to override the problem identified during:
+
+Waiting for Blocker Bugs to be resolved => hudson.AbortException: Blocker Bugs found! Aborting.
+
+The reason given was:
+${reason}"""
+                justifications << justification
             }
         }
 
@@ -481,10 +496,22 @@ node {
                     if (it.value <= 0) {
                         return
                     }
-                    commonlib.retrySkipAbort("Add CVE flaw bugs", taskThread, "Error attaching CVE flaw bugs") {
+                    def (action, reason) = commonlib.retrySkipAbort("Add CVE flaw bugs", taskThread, "Error attaching CVE flaw bugs", reasonFieldDescription) {
                         commonlib.shell(
                             script: "${buildlib.ELLIOTT_BIN} --group ${group} --assembly ${params.ASSEMBLY ?: 'stream'} attach-cve-flaws --advisory ${it.value} ${params.DRY_RUN ? '--dry-run' : ''}",
                         )
+                    }
+                    if (action == "SKIP") {
+                        if (!reason) {
+                            error("A justification is required but not given.")
+                        }
+                        def justification = """User ${env.BUILD_USER_EMAIL} chose to override the problem identified during:
+
+Unable to attach CVE flaw bugs to advisory ${it.value}.
+
+The reason given was:
+${reason}"""
+                        justifications << justification
                     }
                 }
             }
@@ -495,10 +522,22 @@ node {
                     return
                 }
                 skipVerifyBugs = !ga_release || next_is_prerelease || skip.VERIFY_BUGS
-                commonlib.retrySkipAbort("Validating release", taskThread, "Error running release validation") {
+                def (action, reason) = commonlib.retrySkipAbort("Validating release", taskThread, "Error running release validation", reasonFieldDescription) {
                     def retval = release.stageValidation(quay_url, dest_release_tag, advisory, params.PERMIT_PAYLOAD_OVERWRITE, params.PERMIT_ALL_ADVISORY_STATES, from_release_tag, arch, skipVerifyBugs, skip.PAYLOAD_CREATION)
                     advisory = advisory ?: retval.advisoryInfo.id
                     errata_url = retval.errataUrl
+                }
+                if (action == "SKIP") {
+                    if (!reason) {
+                        error("A justification is required but not given.")
+                    }
+                    def justification = """User ${env.BUILD_USER_EMAIL} chose to override the problem identified during:
+
+Error running release validation
+
+The reason given was:
+${reason}"""
+                    justifications << justification
                 }
             }
             stage("build payload") {
@@ -743,7 +782,7 @@ node {
                     echo "Don't do the signing because we're resuming later in the job."
                     return
                 }
-                commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job") {
+                def (action, reason) = commonlib.retrySkipAbort("Signing artifacts", taskThread, "Error running signing job", reasonFieldDescription) {
                     release.signArtifacts(
                         name: name,
                         signature_name: "signature-1",
@@ -754,6 +793,18 @@ node {
                         digest: payloadDigest,
                         client_type: CLIENT_TYPE,
                     )
+                }
+                if (action == "SKIP") {
+                    if (!reason) {
+                        error("A justification is required but not given.")
+                    }
+                    def justification = """User ${env.BUILD_USER_EMAIL} chose to override the problem identified during:
+
+Error signing artifacts.
+
+The reason given was:
+${reason}"""
+                    justifications << justification
                 }
             }
 
@@ -771,6 +822,13 @@ node {
                     return
                 }
                 if (arch == 'x86_64' || params.OPEN_NON_X86_PR ) {
+                    def candidate_pr_note = ""
+                    if (justifications) {
+                        candidate_pr_note += ""
+                        for (String justification: justifications) {
+                            candidate_pr_note += "${justification}\n"
+                        }
+                    }
                     commonlib.retrySkipAbort('Open Cincinnati PRs', taskThread) {
                         build(
                                 job: '/aos-cd-builds/build%2Fcincinnati-prs',  propagate: true,
@@ -780,6 +838,7 @@ node {
                                     buildlib.param('String', 'ADVISORY_NUM', "${advisory}"),
                                     booleanParam(name: 'CANDIDATE_CHANNEL_ONLY', value: true),
                                     buildlib.param('String', 'GITHUB_ORG', 'openshift'),
+                                    buildlib.param('String', 'CANDIDATE_PR_NOTE', candidate_pr_note),
                                     booleanParam(name: 'SKIP_OTA_SLACK_NOTIFICATION', value: params.SKIP_OTA_SLACK_NOTIFICATION)
                                 ]
                         )

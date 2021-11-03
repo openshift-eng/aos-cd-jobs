@@ -612,8 +612,10 @@ def inputRequired(slackOutput=null, cl) {
     }
 }
 
-def _retryWithOptions(goal, options, slackOutput=null, prompt='', cl) {
+def _retryWithOptions(goal, options, slackOutput=null, prompt='', reasonFieldDescription='', cl) {
     def success = false
+    def action = ''
+    def reason = ''
     if (!slackOutput) {
         slackOutput = slacklib.to(null)
     }
@@ -631,20 +633,33 @@ def _retryWithOptions(goal, options, slackOutput=null, prompt='', cl) {
                     prompt = "Problem encountered during: ${goal}"
                 }
 
-                def resp = input message: prompt,
-                        parameters: [
-                                [
-                                        $class     : 'hudson.model.ChoiceParameterDefinition',
-                                        choices    : options.join('\n'),
-                                        description : 'Retry this goal, Skip this goal, or Abort the pipeline',
-                                        name       : 'action'
-                                ]
-                        ]
+                def parameters = [
+                    [
+                            $class     : 'hudson.model.ChoiceParameterDefinition',
+                            choices    : options.join('\n'),
+                            description : 'Retry this goal, Skip this goal, or Abort the pipeline',
+                            name       : 'action'
+                    ]
+                ]
+                if (reasonFieldDescription) {
+                    parameters << string(
+                        description: reasonFieldDescription,
+                        name: 'reason',
+                        trim: true,
+                    )
+                }
 
-                def action = (resp instanceof String)?resp:resp.action
+                def resp = input message: prompt, parameters: parameters
+
+                action = (resp instanceof String)?resp:resp.action
+                reason = reasonFieldDescription? resp.reason : ""
 
                 echo "User selected: ${action}"
-                slackOutput.say("User selected: ${action}")
+                def slackMessage = "User selected: ${action}"
+                if (reason) {
+                    slackMessage += "\nThe reason given was: ${reason}"
+                }
+                slackOutput.say(slackMessage)
 
                 switch(action) {
                     case 'RETRY':
@@ -652,6 +667,9 @@ def _retryWithOptions(goal, options, slackOutput=null, prompt='', cl) {
                         break
                     case 'SKIP':
                         echo "User chose to skip."
+                        if (reasonFieldDescription && !reason) {
+                            error("Justification is required but not given. Aborting")
+                        }
                         success = true  // fake it
                         break
                     case 'ABORT':
@@ -660,16 +678,17 @@ def _retryWithOptions(goal, options, slackOutput=null, prompt='', cl) {
             }
         }
     }
+    return [action, reason]
 }
 
 // WARNING: make really sure that nothing in the closure is required for
 // functioning after the user chooses SKIP.
-def retrySkipAbort(goal, slackOutput=null, prompt='', cl) {
-    _retryWithOptions(goal, ['RETRY', 'SKIP', 'ABORT'], slackOutput, prompt, cl)
+def retrySkipAbort(goal, slackOutput=null, prompt='', reasonFieldDescription='', cl) {
+    return _retryWithOptions(goal, ['RETRY', 'SKIP', 'ABORT'], slackOutput, prompt, reasonFieldDescription, cl)
 }
 
 def retryAbort(goal, slackOutput=null, prompt='', cl) {
-    _retryWithOptions(goal, ['RETRY', 'ABORT'], slackOutput, prompt, cl)
+    return _retryWithOptions(goal, ['RETRY', 'ABORT'], slackOutput, prompt, cl)
 }
 
 def checkS3Path(s3_path) {

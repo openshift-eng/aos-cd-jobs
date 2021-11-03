@@ -54,6 +54,12 @@ node {
                         defaultValue: "openshift",
                         trim: true,
                     ),
+                    string(
+                        name: 'CANDIDATE_PR_NOTE',
+                        description: 'additional Cincinnati candidate PR text',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: 'SKIP_OTA_SLACK_NOTIFICATION',
                         description: 'Do not notify OTA team',
@@ -76,9 +82,9 @@ node {
         def releaseName = params.RELEASE_NAME.trim()
         def ghorg = params.GITHUB_ORG.trim()
         def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
-        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg)
+        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg, params.CANDIDATE_PR_NOTE)
         if ( prs ) {  // did we open any?
-            release.sendCincinnatiPRsSlackNotification(releaseName, params.FROM_RELEASE_TAG.trim(), prs, ghorg, noSlackOutput)
+            release.sendCincinnatiPRsSlackNotification(releaseName, params.FROM_RELEASE_TAG.trim(), prs, ghorg, noSlackOutput, params.CANDIDATE_PR_NOTE)
         }
 
     }

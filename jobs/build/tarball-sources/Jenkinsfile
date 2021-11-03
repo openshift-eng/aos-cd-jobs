@@ -44,7 +44,7 @@ node {
                     ),
                     string(
                         name: 'JIRA',
-                        description: 'Add this job link to the jira after it complete',
+                        description: 'Add this job link as a comment to the jira after it complete, JIRA can be like OCPPLAN-7498',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -162,12 +162,11 @@ buildvm job:   ${commonlib.buildURL('console')}
             }
             
             stage("add comment to jira card") {
-                jiracard = params.JIRA ? Integer.parseInt(params.JIRA.toString()) : 0
-                if (jiracard != 0) {
+                if (！params.JIRA.trim().equals("")) {
                     comment = """
                     tarball-source job: ${commonlib.buildURL('console')}
                     """
-                    cmd = "artjira comment -id=\"${jiracard}\" -comment=\"${comment}\""
+                    cmd = "artjira comment -id=\"${params.JIRA}\" -comment=\"${comment}\""
                     jira = commonlib.shell(
                         script: cmd,
                         returnStdout: true

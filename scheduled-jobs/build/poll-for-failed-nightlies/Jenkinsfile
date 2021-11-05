@@ -116,6 +116,8 @@ node() {
                         writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
                         currentBuild.description += "\nNotifying for ${stream_name}"
                         commonlib.slacklib.to(stream_name).failure("@release-artists - Detected latest ${rejects} nightlies have been rejected in ${stream_name}")
+                        commonlib.slacklib.to('#forum-release').say("@patch-manager - ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}")
+                        commonlib.slacklib.to('#forum-release-oversight').say("ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}")
                     } else {
                         echo "Skipping notification since it has not been more than 8 hours since the last notification: ${System.currentTimeMillis()} - ${lastNotification}"
                     }

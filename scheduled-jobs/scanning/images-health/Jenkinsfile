@@ -12,6 +12,7 @@ def runFor(version) {
             job: '../scanning/scanning%2Fimages-health',
             parameters: [
                 string(name: 'BUILD_VERSION', value: version),
+                string(name: 'ALERT_DATE', value: 'Monday')
             ],
             propagate: false,
         )

@@ -90,7 +90,7 @@ node() {
                             color: "#f2c744",
                             blocks: [[type: "section", text: [type: "mrkdwn", text: text]]]
                         ]
-                        slackChannel.pinAttachment(attachments)
+                        slackChannel.pinAttachment(attachment)
                         if (params.SEND_TO_SLACK) {
                             slackChannel.say(":scroll: Howdy! Some alignment prs are still open for ${group}\n", [attachment])
                         }

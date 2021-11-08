@@ -80,9 +80,9 @@ node() {
                     if (report) {
                         data = readYaml text: report
                         text = ""
-                        data.each { email, repo ->
+                        data.each { email, repos ->
                             text += "*${email} is a contact for these PRs:*\n"
-                            repos.each { repo, prs ->
+                            repos.each { _, prs ->
                                 prs.each { pr -> text += ":black_small_square:${pr.pr_url}\n" }
                             }
                         }

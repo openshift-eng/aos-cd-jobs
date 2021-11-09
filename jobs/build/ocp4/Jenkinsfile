@@ -128,12 +128,12 @@ node {
             lock("github-activity-lock-${params.BUILD_VERSION}") {
                 stage("initialize") { joblib.initialize() }
                 buildlib.assertBuildPermitted(doozerOpts)
-                try {
-                    stage("build RPMs") {
+                stage("build RPMs") {
+                    try {
                         joblib.stageBuildRpms()
+                    } catch (err) {
+                        currentBuild.result = 'FAILURE'
                     }
-                } catch (err) {
-                    currentBuild.result = 'FAILURE'
                 }
 
                 // if the automation is not frozen perform compose
@@ -141,23 +141,18 @@ node {
                 // are rpms in the build plan perform compose
                 // and announce on slack
 
-                if(buildlib.getAutomationState(doozerOpts) in ["no", "False"]){
-                    lock("compose-lock-${params.BUILD_VERSION}") {
-                        stage("build compose") { joblib.stageBuildCompose() }
-                    }
-                } else if(joblib.buildPlan.buildRpms){
-                    lock("compose-lock-${params.BUILD_VERSION}") {
-                        stage("build compose") {
+                stage("build compose") {
+                    if (buildlib.getAutomationState(doozerOpts) in ["yes", "True"] || joblib.buildPlan.buildRpms) {
+                        lock("compose-lock-${params.BUILD_VERSION}") {
                             joblib.stageBuildCompose()
-                            slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
-                                *:alert: ocp4 build compose ran during automation freeze*
-                                 There were RPMs in the build plan that forced build compose during automation freeze.
-                            """)
+                            if (joblib.buildPlan.buildRpms && buildlib.getAutomationState(doozerOpts) in ["scheduled", "False"]) {
+                                slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
+                                    *:alert: ocp4 build compose ran during automation freeze*
+                                     There were RPMs in the build plan that forced build compose during automation freeze.
+                                """)
+                            }
                         }
                     }
-                } else {
-                    // a no-op stage, mainly so the jenkins stage display looks right (static stages between runs).
-                    stage("build compose") { echo "No RPM compose required." }
                 }
 
                 // Since plashets may have been rebuild, fire off sync for CI. TODO: Run for other arches
@@ -185,11 +180,13 @@ node {
             lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
                 stage("mirror RPMs") { joblib.stageMirrorRpms() }
             }
-            if (!buildlib.allImagebuildfailed){
-                stage("sync images") { joblib.stageSyncImages() }
-                stage("sweep") {
-                    buildlib.sweep(params.BUILD_VERSION)
-                }
+            stage("sync images") {
+                if (buildlib.allImagebuildfailed) { return }
+                joblib.stageSyncImages()
+            }
+            stage("sweep") {
+                if (buildlib.allImagebuildfailed) { return }
+                buildlib.sweep(params.BUILD_VERSION)
             }
         }
         stage("report success") { joblib.stageReportSuccess() }

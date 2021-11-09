@@ -49,6 +49,9 @@ pipeline {
         stage("check-regressions") {
             steps {
                 script {
+                    if (next_is_prerelease(params.BUILD_VERSION)) {
+                        return
+                    }
                     bugs = commonlib.shell(
                         returnStdout: true,
                         script: """
@@ -91,4 +94,10 @@ pipeline {
             }
         }
     }
+}
+
+def next_is_prerelease(version) {
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+    def next_version = major.toString() + '.' + (minor + 1).toString()
+    commonlib.ocpReleaseState[next_version]['release'].isEmpty()
 }

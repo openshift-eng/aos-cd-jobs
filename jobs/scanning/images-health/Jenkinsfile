@@ -48,7 +48,7 @@ node() {
     timestamps {
 
         releaseChannel = slacklib.to(BUILD_VERSION)
-        aosArtChannel = slacklib.to("aos-art")
+        aosArtChannel = slacklib.to("#aos-art")
 
         try {
             report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()

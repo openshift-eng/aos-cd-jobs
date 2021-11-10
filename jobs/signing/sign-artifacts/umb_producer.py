@@ -219,18 +219,19 @@ the same way each time.
                        private_key=private_key, trusted_certificates=trusted_certificates)
 
 
-def art_consumer_callback(msg, notsure):
+def art_consumer_callback(msg, data):
     """`msg` is a `Message` object which has various attributes. Such as `body`.
 
-    `notsure` I am not sure what that is. I only got as far as knowing
-    this callback requires two parameters.
+    `data` user data
     """
     print(msg)
     body = json.loads(msg.body)
     print(json.dumps(body, indent=4))
+    if body['msg']['request_id'] != data["request_id"]:
+        print("Expecting request_id {}, but got {}".format(data['request_id'], body['msg']['request_id']))
+        return None, False  # this received message doesn't match our request id; ignore it and continue receiving messages
     if body['msg']['signing_status'] != 'success':
-        print("ERROR: robosignatory failed to sign artifact")
-        exit(1)
+        return IOError("ERROR: robosignatory failed to sign artifact"), True
     else:
         # example: https://datagrepper.stage.engineering.redhat.com/id?id=2019-0304004b-d1e6-4e03-b28d-cfa1e5f59948&is_raw=true&size=extra-large
         result = body['msg']['signed_artifact']
@@ -239,18 +240,20 @@ def art_consumer_callback(msg, notsure):
             fp.write(base64.decodestring(result))
             fp.flush()
         print("Wrote {} to disk".format(body['msg']['artifact_meta']['name']))
-        return True
+        return True, True
 
 
-def consumer_thread(consumer):
+def consumer_thread(consumer, request_id):
     global env_value
     if not env_value:
         raise ValueError('env_value has not been set yet.')
-    consumer.consume(ART_CONSUMER.format(env=env_value), art_consumer_callback)
+    result = consumer.consume(ART_CONSUMER.format(env=env_value), art_consumer_callback, data={"request_id": request_id}, auto_accept=False)
+    if isinstance(result, IOError):
+        print(str(result))
+        exit(1)
 
-
-def consumer_start(consumer):
-    t = threading.Thread(target=consumer_thread, args=(consumer,))
+def consumer_start(consumer, request_id):
+    t = threading.Thread(target=consumer_thread, args=(consumer, request_id))
     t.start()
     return t
 
@@ -327,7 +330,7 @@ tools, as well as RHCOS bare-betal message digests.
         print(to_send)
     else:
         producer, consumer = get_producer_consumer(env, client_cert, client_key, ca_certs)
-        consumer_thread = consumer_start(consumer)
+        consumer_thread = consumer_start(consumer, request_id)
         producer_send_msg(producer, {}, to_send)
         print("Message we sent over the bus:")
         print(to_send)
@@ -418,7 +421,7 @@ thus allowing the signature to be looked up programmatically.
         print(to_send)
     else:
         producer, consumer = get_producer_consumer(env, client_cert, client_key, ca_certs)
-        consumer_thread = consumer_start(consumer)
+        consumer_thread = consumer_start(consumer, request_id)
         producer_send_msg(producer, {}, to_send)
         print("Message we sent over the bus:")
         print(to_send)

@@ -34,9 +34,13 @@ spec:
       import subprocess
       from pathlib import Path
 
+      subprocess.run(["rm", "-rf", "/root/.ssh"], check=True, universal_newlines=True)
+      subprocess.run(["cp", "-r", "/tekton/home/.ssh", "/root/.ssh"], check=True, universal_newlines=True)
+      subprocess.run(["chmod", "700", "/root/.ssh"], check=True, universal_newlines=True)
+      subprocess.run(["chmod", "600", "/root/.ssh/id_rsa"], check=True, universal_newlines=True)
+
       Path("./artcd_working").mkdir(parents=True, exist_ok=True)
 
-      subprocess.run(["ls", "-l", "/usr/local/lib/python3.6/site-packages/certifi/"], check=True, universal_newlines=True)
       subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM"], check=True, universal_newlines=True)
       args = [
           "-vv",
@@ -76,19 +80,22 @@ spec:
         secretKeyRef:
           name: jira
           key: password
+    # https://github.com/tektoncd/pipeline/issues/2013
+    - name: HOME
+      value: /root
     volumeMounts:
     - name: artcd-config
       mountPath: /etc/artcd/
     - name: elliott-config
-      mountPath: /tekton/home/.config/elliott/
+      mountPath: /root/.config/elliott/
     - name: doozer-config
-      mountPath: /tekton/home/.config/doozer/
+      mountPath: /root/.config/doozer/
     - name: ssh-config
       mountPath: /tekton/home/.ssh/known_hosts
       subPath: known_hosts
       readOnly: false
     - name: git-config
-      mountPath: /tekton/home/.gitconfig
+      mountPath: /root/.gitconfig
       subPath: .gitconfig
       readOnly: false
     - name: kerberos-config
@@ -98,10 +105,10 @@ spec:
       mountPath: /tekton/home/.ssh/id_rsa
       subPath: id_rsa
     - name: registry-cred
-      mountPath: /tekton/home/.docker/config.json
+      mountPath: /root/.docker/config.json
       subPath: .dockerconfigjson
     - name: bugzilla-apikey
-      mountPath: /tekton/home/.config/python-bugzilla/
+      mountPath: /root/.config/python-bugzilla/
     - name: kerberos-keytab
       mountPath: /etc/kerberos-keytab
   volumes:

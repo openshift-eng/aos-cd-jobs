@@ -23,8 +23,8 @@ data:
      auth_to_local = DEFAULT
     }
 
-   #DO NOT ADD A [domain_realms] section
-   #https://mojo.redhat.com/docs/DOC-1166841
+    # DO NOT ADD A [domain_realms] section
+    # https://mojo.redhat.com/docs/DOC-1166841
 
     [libdefaults]
     # Workaround for running `kinit` in an unprivileged container

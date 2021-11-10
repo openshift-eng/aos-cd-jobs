@@ -45,6 +45,14 @@ def buildSyncGenInputs() {
     echo("Generating SRC=DEST and ImageStreams for arches")
     def images = imageList ? "--images '${imageList}'" : ''
     def excludeArchesParam = ""
+    def emergencyArgs = ""
+    
+    //EMERGENCY WORKAROUND; REMOVE!
+    if (params.BUILD_VERSION == "4.10") {
+        emergencyArgs = " --emergency-ignore-issues --exclude-arch aarch64 --exclude-arch ppc64le --exclude-arch s390x"
+    }
+    
+    
     for(arch in excludeArches)
         excludeArchesParam += " --exclude-arch ${arch}"
     buildlib.doozer """
@@ -53,6 +61,7 @@ ${images}
 release:gen-payload
 ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
 ${excludeArchesParam}
+${emergencyArgs}
 """
     echo("Generated files:")
     echo("######################################################################")

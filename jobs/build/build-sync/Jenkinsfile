@@ -89,6 +89,7 @@ node {
     }
 
     failCountFile = "${BUILD_VERSION}-assembly.${ASSEMBLY}.count"
+    currentBuild.displayName = "${BUILD_VERSION} - ${ASSEMBLY}"
 
     try {
 

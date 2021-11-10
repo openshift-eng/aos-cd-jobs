@@ -47,23 +47,25 @@ node() {
 
     timestamps {
 
-        slackChannel = slacklib.to(BUILD_VERSION)
+        releaseChannel = slacklib.to(BUILD_VERSION)
+        aosArtChannel = slacklib.to("#aos-art")
 
         try {
             report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
             if (report) {
                 echo "The report:\n${report}"
                 if (params.SEND_TO_SLACK) {
-                    slackChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                    releaseChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                    aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
                 }
             } else {
                 echo "There are no issues to report."
                 if (params.SEND_TO_SLACK) {
-                    slackChannel.say(":heavy_check_mark: All images are healthy for ${group}")
+                    releaseChannel.say(":heavy_check_mark: All images are healthy for ${group}")
                 }
             }
         } catch (exception) {
-            slackChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
+            releaseChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
             currentBuild.result = "FAILURE"
             throw exception  // gets us a stack trace FWIW
         }
@@ -74,7 +76,7 @@ node() {
         c.setTime(today);
         if ( week[c.get(Calendar.DAY_OF_WEEK)] == params.ALERT_DATE ) {  // to avoid spam message only check once on Mon
             withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-                slackChannel = slacklib.to(BUILD_VERSION)
+                releaseChannel = slacklib.to(BUILD_VERSION)
                 try {
                     report = buildlib.doozer("${doozerOpts} images:streams prs list", [capture: true]).trim()
                     if (report) {
@@ -90,18 +92,18 @@ node() {
                             color: "#f2c744",
                             blocks: [[type: "section", text: [type: "mrkdwn", text: text]]]
                         ]
-                        slackChannel.pinAttachment(attachment)
+                        releaseChannel.pinAttachment(attachment)
                         if (params.SEND_TO_SLACK) {
-                            slackChannel.say(":scroll: Howdy! Some alignment prs are still open for ${group}\n", [attachment])
+                            releaseChannel.say(":scroll: Howdy! Some alignment prs are still open for ${group}\n", [attachment])
                         }
                     } else {
                         echo "There are no alignment prs left open."
                         if (params.SEND_TO_SLACK) {
-                            slackChannel.say(":scroll: All prs are merged for ${group}")
+                            releaseChannel.say(":scroll: All prs are merged for ${group}")
                         }
                     }
                 } catch (exception) {
-                    slackChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
+                    releaseChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
                     currentBuild.result = "FAILURE"
                     throw exception  // gets us a stack trace FWIW
                 }

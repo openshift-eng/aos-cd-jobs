@@ -98,6 +98,7 @@ node {
 
     // must be able to access remote registry for verification
     buildlib.registry_quay_dev_login()
+    def timestamp = new Date().format("yyyyMMddHHmmss")
 
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
@@ -157,7 +158,7 @@ node {
 
                         def openshiftJsonSignParams = buildlib.cleanWhitespace("""
                              ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
-                             --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digestParam} ${noop}
+                             --request-id 'openshift-json-digest-${timestamp}${requestIdSuffix}' ${digestParam} ${noop}
                          """)
 
                         echo "Submitting OpenShift Payload JSON claim signature request"
@@ -173,7 +174,7 @@ node {
 
                         def openshiftSha256SignParams = buildlib.cleanWhitespace("""
                             ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
-                            --request-id 'openshift-message-digest-${env.BUILD_ID}${requestIdSuffix}' ${noop}
+                            --request-id 'openshift-message-digest-${timestamp}${requestIdSuffix}' ${noop}
                         """)
 
                         echo "Submitting OpenShift sha256 message-digest signature request"
@@ -187,7 +188,7 @@ node {
                     } else if ( params.PRODUCT == 'rhcos' ) {
                         def rhcosSha256SignParams = buildlib.cleanWhitespace("""
                             ${baseUmbParams} --product rhcos ${noop} --arch ${params.ARCH}
-                            --request-id 'rhcos-message-digest-${env.BUILD_ID}${requestIdSuffix}'
+                            --request-id 'rhcos-message-digest-${timestamp}${requestIdSuffix}'
                         """)
 
                         echo "Submitting RHCOS sha256 message-digest signature request"
@@ -202,7 +203,7 @@ node {
                     } else if ( params.PRODUCT == 'rhacs' ) {
                         def openshiftJsonSignParams = buildlib.cleanWhitespace("""
                              ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
-                             --request-id 'openshift-json-digest-${env.BUILD_ID}${requestIdSuffix}' ${digestParam} ${noop}
+                             --request-id 'openshift-json-digest-${timestamp}${requestIdSuffix}' ${digestParam} ${noop}
                          """)
 
                         echo "Submitting RHACS Payload JSON claim signature request"

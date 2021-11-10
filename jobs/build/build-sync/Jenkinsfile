@@ -158,6 +158,7 @@ There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
         throw (err)
     } finally {
         commonlib.safeArchiveArtifacts(build.artifacts)
-        sh "rm ${env.WORKSPACE}/doozer_working"  // do not use cleanWorkspace as this will remove failure cound
+        sh "rm -rf ${env.WORKSPACE}/doozer_working"  // do not use cleanWorkspace as this will remove failure count
+        sh "rm -rf ${mirrorWorking}"
     }
 }

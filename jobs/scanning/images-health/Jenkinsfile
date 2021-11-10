@@ -47,14 +47,16 @@ node() {
 
     timestamps {
 
-        slackChannel = slacklib.to(BUILD_VERSION)
+        releaseChannel = slacklib.to(BUILD_VERSION)
+        aosArtChannel = slacklib.to("aos-art")
 
         try {
             report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
             if (report) {
                 echo "The report:\n${report}"
                 if (params.SEND_TO_SLACK) {
-                    slackChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                    releaseChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                    aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
                 }
             } else {
                 echo "There are no issues to report."

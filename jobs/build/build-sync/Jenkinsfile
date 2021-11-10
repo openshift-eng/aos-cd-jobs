@@ -158,6 +158,6 @@ There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
         throw (err)
     } finally {
         commonlib.safeArchiveArtifacts(build.artifacts)
-        buildlib.cleanWorkspace()
+        sh "rm ${env.WORKSPACE}/doozer_working"  // do not use cleanWorkspace as this will remove failure cound
     }
 }

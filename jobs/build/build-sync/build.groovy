@@ -47,13 +47,13 @@ def buildSyncGenInputs() {
     def images = imageList ? "--images '${imageList}'" : ''
     def excludeArchesParam = ""
     def emergencyArgs = ""
-    
+
     //EMERGENCY WORKAROUND; REMOVE!
     if (params.BUILD_VERSION == "4.10") {
-        emergencyArgs = " --emergency-ignore-issues --exclude-arch aarch64 --exclude-arch ppc64le --exclude-arch s390x"
+        emergencyArgs = " --emergency-ignore-issues"
     }
-    
-    
+
+
     for(arch in excludeArches)
         excludeArchesParam += " --exclude-arch ${arch}"
     buildlib.doozer """

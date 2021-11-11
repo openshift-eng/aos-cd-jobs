@@ -153,8 +153,6 @@ class PrepareReleasePipeline:
                 if advisories.get("metadata", 0) <= 0:
                     advisories["metadata"] = self.create_advisory("RHBA", "image", "metadata")
 
-        advisories_changed = advisories != group_config.get("advisories", {})
-
         _LOGGER.info("Ensuring JIRA ticket for release %s...", self.release_name)
         jira_issue_key = group_config.get("release_jira")
         jira_template_vars = {
@@ -607,7 +605,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             cmd.append("--dry-run")
         _LOGGER.debug("Running command: %s", cmd)
         await exectools.cmd_assert_async(cmd, env=self._doozer_env_vars, cwd=self.working_dir)
-         # parse record.log
+        # parse record.log
         with open(self.doozer_working_dir / "record.log", "r") as file:
             record_log = parse_record_log(file)
         bundle_nvrs = [record["bundle_nvr"] for record in record_log["build_olm_bundle"] if record["status"] == "0"]
@@ -620,13 +618,13 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             f"--group={self.group_name}",
             "--assembly", self.assembly,
             "find-builds",
-            f"--kind=image",
+            "--kind=image",
         ]
         for bundle_nvr in bundle_nvrs:
             cmd.append("--build")
             cmd.append(bundle_nvr)
         if not self.dry_run and metadata_advisory:
-            cmd.append(f"--attach")
+            cmd.append("--attach")
             cmd.append(f"{metadata_advisory}")
         _LOGGER.debug("Running command: %s", cmd)
         await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, cwd=self.working_dir)

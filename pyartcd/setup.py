@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, unicode_literals
 from setuptools import setup, find_packages
 import sys
 if sys.version_info < (3, 6):

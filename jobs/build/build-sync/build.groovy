@@ -1,5 +1,6 @@
 buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
+slacklib = commonlib.slacklib
 
 // doozer_working must be in WORKSPACE in order to have artifacts archived
 mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
@@ -160,7 +161,10 @@ def buildSyncApplyImageStreams() {
         }
     }
     if (failures) {
-        throw new Exception("Image Stream did not update for ${failures}")
+        msg = "Image Stream did not update for ${failures}"
+        slackChannel = slacklib.to(params.BUILD_VERSION)
+        slackChannel.say(msg)
+        throw new Exception(msg)
     }
 }
 

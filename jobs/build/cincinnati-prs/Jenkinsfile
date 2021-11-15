@@ -43,11 +43,6 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    booleanParam(
-                        name: 'CANDIDATE_CHANNEL_ONLY',
-                        description: 'Only open a PR for the candidate channel',
-                        defaultValue: false
-                    ),
                     string(
                         name: 'GITHUB_ORG',
                         description: 'The github org containing cincinnati-graph-data fork to open PRs against (use for testing)',
@@ -82,7 +77,7 @@ node {
         def releaseName = params.RELEASE_NAME.trim()
         def ghorg = params.GITHUB_ORG.trim()
         def noSlackOutput = params.SKIP_OTA_SLACK_NOTIFICATION
-        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), params.CANDIDATE_CHANNEL_ONLY, ghorg, params.CANDIDATE_PR_NOTE)
+        def prs = release.openCincinnatiPRs(releaseName, params.ADVISORY_NUM.trim(), ghorg, params.CANDIDATE_PR_NOTE)
         if ( prs ) {  // did we open any?
             release.sendCincinnatiPRsSlackNotification(releaseName, params.FROM_RELEASE_TAG.trim(), prs, ghorg, noSlackOutput, params.CANDIDATE_PR_NOTE)
         }

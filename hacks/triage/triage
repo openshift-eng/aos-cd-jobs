@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 # Data
 gh_repos=(
   aos-cd-jobs
@@ -10,6 +8,7 @@ gh_repos=(
   elliott
   art-ci-toolkit
   art-bot
+  ocp-build-data-validator
 )
 
 bz_query_params=(
@@ -45,34 +44,33 @@ halp() {
 }
 
 main() {
+  declare -a topics=()
   for arg in "$@"; do
     case "$arg" in
     -h | --help | help)
       halp
       exit 0
       ;;
-    *)
+    rhcos|bz|pr|prs|buildvm)
+      [[ "$arg" == pr ]] && arg=prs
+      topics+=("$arg")
+      ;;
+    qutebrowser|chromium|chrome|brave|firefox|mozilla-firefox)
       browser="$arg"
       ;;
+    *)
+      echo "Do not understand $arg" >/dev/stderr
+      halp >/dev/stderr
+      exit 1
     esac
   done
 
   : ${browser:=${BROWSER-firefox}}
 
-  urls=(
-    $(jenkins)
-    $(rhcos_urls)
-    $(bz_non_cves)
-    $(bz_cves)
-    $(backlog)
-    $(repo_links)
-    $(triage_docs)
-  )
+  (( ${#topics[@]} == 0 )) && topics=(jenkins rhcos bz backlog prs triage_docs)
+  urls=( $(for topic in "${topics[@]}"; do "$topic"; done) )
   open-urls
 }
-
-script="$(readlink "$0" || echo "$0")"
-source "${script%/*}/open-urls"
 
 releases=(
   $(
@@ -111,15 +109,14 @@ bugzilla() {
   echo "${base_url}${query}${release_query}"
 }
 
-bz_non_cves() {
+bz() {
+  # non-cves
   echo "$(bugzilla)&keywords=SecurityTracking%2C%20&keywords_type=nowords"
-}
-
-bz_cves() {
+  # cves
   echo "$(bugzilla)&keywords=SecurityTracking%2C%20&keywords_type=allwords"
 }
 
-rhcos_urls() {
+rhcos() {
   local r major minor
   for r in "${releases[@]}"; do
     major="${r%.*}"
@@ -133,14 +130,12 @@ rhcos_urls() {
   done
 }
 
-repo_links() {
-  for repo in "${gh_repos[@]}"; do
-    echo "https://github.com/openshift/$repo/"{issues,pulls}/
-  done
+prs() {
+  printf "https://github.com/openshift/%s/pulls/\n" "${gh_repos[@]}"
   echo "https://github.com/pulls?q=is%3Aopen+is%3Apr+label%3Amerge-post-promote+archived%3Afalse+"
 }
 
-jenkins() {
+buildvm() {
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/scheduled-builds/'
 }
@@ -155,5 +150,9 @@ triage_docs() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
+  script="$(readlink "$0" || echo "$0")"
+  source "${script%/*}/open-urls"
+
   main "$@"
 fi

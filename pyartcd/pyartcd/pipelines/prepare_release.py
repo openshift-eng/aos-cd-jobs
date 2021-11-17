@@ -655,6 +655,9 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             content += "\nNightlies:\n"
             for arch, pullspec in self.candidate_nightlies.items():
                 content += f"- {arch}: {pullspec}\n"
+        else:
+            content += "\nThis release is NOT directly based on existing nightlies.\n"
+            content += f"Its definition is provided by the assembly found under key '{self.assembly_name}' in https://github.com/openshift/ocp-build-data/blob/{self.group_name}/releases.yml\n"
         content += f"\nJIRA ticket: {jira_link}\n"
         content += "\nThanks.\n"
         email_dir = self.working_dir / "email"

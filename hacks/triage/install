@@ -31,6 +31,10 @@ sed -e 's/%VERSION%//g' -e 's/%TYPE%//g' nightlies-desktop.template > nightlies.
 
 mv -v advisories-*.desktop nightlies*.desktop ~/.local/share/applications/
 cp -v triage.desktop ~/.local/share/applications/
+for topic in rhcos bz prs buildvm; do
+  echo "Creating ~/.local/share/applications/triage-$topic.desktop" >/dev/stderr
+  sed -e "s/Exec=triage/Exec=triage $topic/" -e "s/Name=Triage/Name=Triage $topic/" triage.desktop >~/.local/share/applications/triage-$topic.desktop
+done
 update-desktop-database -v ~/.local/share/applications
 
 for size in 16 22 32 48 64 128; do

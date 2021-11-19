@@ -48,7 +48,10 @@ node() {
     timestamps {
 
         releaseChannel = slacklib.to(BUILD_VERSION)
-        aosArtChannel = slacklib.to("#aos-art")
+        /* Disabling notifications in #aos-art until https://issues.redhat.com/browse/ART-3425
+         * is resolved, as it generated quite some noise
+         */
+        // aosArtChannel = slacklib.to("#aos-art")
 
         try {
             report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
@@ -56,7 +59,7 @@ node() {
                 echo "The report:\n${report}"
                 if (params.SEND_TO_SLACK) {
                     releaseChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
-                    aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                    // aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
                 }
             } else {
                 echo "There are no issues to report."

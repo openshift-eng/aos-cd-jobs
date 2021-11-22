@@ -39,6 +39,18 @@ node {
                             description: 'Custom assemblies are not for official release. They can, for example, not have all required arches for the group.',
                             defaultValue: false,
                         ),
+                        string(
+                            name: 'IN_FLIGHT_PREV',
+                            description: 'This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".',
+                            defaultValue: "",
+                            trim: true,
+                        ),
+                        string(
+                            name: 'PREVIOUS',
+                            description: '[Optional] Leave empty to use suggested previous. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
+                            defaultValue: "",
+                            trim: true,
+                        ),
                         commonlib.mockParam(),
                     ]
                 ],
@@ -50,6 +62,9 @@ node {
             buildlib.initialize()
             buildlib.registry_quay_dev_login()
             currentBuild.displayName += " - ${BUILD_VERSION} - ${ASSEMBLY_NAME}"
+            if (!params.IN_FLIGHT_PREV) {
+                error('IN_FLIGHT_PREV is required. If there is no in-flight release, use "none".')
+            }
         }
 
         stage("gen-assembly") {
@@ -61,6 +76,21 @@ node {
                 cmd = "--group openshift-${BUILD_VERSION} release:gen-assembly --name ${ASSEMBLY_NAME} from-releases ${nightly_args}"
                 if (params.CUSTOM) {
                     cmd += ' --custom'
+                    if ((params.IN_FLIGHT_PREV && params.IN_FLIGHT_PREV != 'none') || params.PREVIOUS) {
+                        error("Specifying IN_FLIGHT_PREV or PREVIOUS for a custom release is not allowed.")
+                    }
+                }
+                else {
+                    if (params.IN_FLIGHT_PREV && params.IN_FLIGHT_PREV != 'none') {
+                        cmd += " --in-flight ${IN_FLIGHT_PREV}"
+                    }
+                    if (params.PREVIOUS) {
+                        for (previous in params.PREVIOUS.split(',')) {
+                            cmd += " --previous ${previous.trim()}"
+                        }
+                    } else {
+                        cmd += ' --auto-previous'
+                    }
                 }
                 buildlib.doozer(cmd)
             }

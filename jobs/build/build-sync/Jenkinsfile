@@ -41,6 +41,12 @@ node {
                                         defaultValue: "stream",
                                         trim: true,
                                     ),
+                                    string(
+                                        name: 'DOOZER_DATA_PATH',
+                                        description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
+                                        defaultValue: "https://github.com/openshift/ocp-build-data",
+                                        trim: true,
+                                    ),
                                     booleanParam(
                                             name        : 'DEBUG',
                                             description : 'Run "oc" commands with greater logging',

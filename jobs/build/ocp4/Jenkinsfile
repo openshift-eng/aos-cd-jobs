@@ -136,21 +136,22 @@ node {
                     }
                 }
 
-                // if the automation is not frozen perform compose
-                // otherwise if automation is frozen but there
-                // are rpms in the build plan perform compose
-                // and announce on slack
-
                 stage("build compose") {
-                    if (buildlib.getAutomationState(doozerOpts) in ["yes", "True"] || joblib.buildPlan.buildRpms) {
-                        lock("compose-lock-${params.BUILD_VERSION}") {
+                    lock("compose-lock-${params.BUILD_VERSION}") {
+                        /*   Complicated conditions ahead:
+                         * - If build is not permitted: (automation is frozen, and a human did not trigger the build), isBuildPermitted will have stopped the build already
+                         * - If automation is not frozen, go ahead
+                         * - If automation is "scheduled" and job was triggered by human and there were no RPMs in the build plan: Do not build compose
+                         * - If automation is "scheduled" and job was triggered by human and there were RPMs in the build plan: Build compose, and warn
+                         */
+                        if (!(buildlib.getAutomationState(doozerOpts) in ["scheduled", "yes", "True"]) || (buildlib.getAutomationState(doozerOpts) == "scheduled" && joblib.buildPlan.buildRpms)) {
                             joblib.stageBuildCompose()
-                            if (joblib.buildPlan.buildRpms && buildlib.getAutomationState(doozerOpts) in ["scheduled", "False"]) {
-                                slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
-                                    *:alert: ocp4 build compose ran during automation freeze*
-                                     There were RPMs in the build plan that forced build compose during automation freeze.
-                                """)
-                            }
+                        }
+                        if (buildlib.getAutomationState(doozerOpts) == "scheduled" && joblib.buildPlan.buildRpms) {
+                            slacklib.to(commonlib.extractMajorMinorVersion(params.BUILD_VERSION)).say("""
+                                *:alert: ocp4 build compose ran during automation freeze*
+                                There were RPMs in the build plan that forced build compose during automation freeze.
+                            """)
                         }
                     }
                 }

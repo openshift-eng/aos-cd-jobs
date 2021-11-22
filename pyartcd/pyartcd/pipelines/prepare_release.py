@@ -182,7 +182,6 @@ class PrepareReleasePipeline:
         for kind, advisory in advisories.items():
             if not advisory:
                 continue
-            self.change_advisory_state(advisory, "NEW_FILES")
             if kind == "rpm":
                 self.sweep_builds("rpm", advisory)
             elif kind == "image":

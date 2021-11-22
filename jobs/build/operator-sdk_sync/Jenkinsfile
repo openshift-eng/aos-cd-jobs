@@ -132,7 +132,9 @@ pipeline {
                         sh "tree ${arch}"
                         dir("./${arch}") {
                             commonlib.syncDirToS3Mirror(".", "/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}/", "*.tar.gz")
-                            commonlib.syncDirToS3Mirror(".", "/pub/openshift-v4/${arch}/clients/operator-sdk/latest/", "*.tar.gz")
+                            if (params.UPDATE_LATEST_SYMLINK) {
+                                commonlib.syncDirToS3Mirror(".", "/pub/openshift-v4/${arch}/clients/operator-sdk/latest/", "*.tar.gz")
+                            }
 
                             sshagent(['aos-cd-test']) {
                                 sh "ssh use-mirror-upload.ops.rhcloud.com -- mkdir -p /srv/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}"

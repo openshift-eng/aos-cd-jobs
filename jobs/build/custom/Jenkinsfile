@@ -235,7 +235,7 @@ node {
             stage("build images") {
                 if (!any_images_to_build) { return }
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                command = "${base_command} images:build ${params.SCRATCH ? '--scratch' : ''}"
+                command = "${base_command} images:build --push-to-defaults ${params.SCRATCH ? '--scratch' : ''}"
                 try {
                     buildlib.doozer command
                 } catch (err) {

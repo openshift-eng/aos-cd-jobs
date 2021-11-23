@@ -154,27 +154,6 @@ override.
 Once we have `releases.yml` automation this should go away entirely in favor of
 using the advisories from our configuration.
 
-### PREVIOUS
-
-This is used to specify which releases to allow to upgrade to this release.
-
-If you leave it as `auto`, you will be prompted later in the job with suggested
-previous releases.  Otherwise, follow
-[item #6 "PREVIOUS" of the z-stream doc](https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image)
-for instructions on how to fill this field.
-
-Once we have `releases.yml` automation this should go away entirely in favor of
-determining the releases from our configuration.
-
-### IN\_FLIGHT\_PREV
-
-This is used to specify the previous minor version release that is being prepared/promoted
-in the same week. Usually we would have 2-3 releases, e.g. 4.7.13 and 4.6.31 being prepared
-in the week. While promoting 4.7.13, this field would have the value 4.6.31.
-
-If you leave it as blank, you will be prompted later in the job for the input also with the
-suggested previous releases.
-
 ### PERMIT\_PAYLOAD\_OVERWRITE
 
 **DO NOT USE** without discussing with your team or pillar lead for approval.

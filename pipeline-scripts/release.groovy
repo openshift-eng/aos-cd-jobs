@@ -245,6 +245,12 @@ def getAdvisories(String group) {
     return yamlData
 }
 
+def getGroupConfig(String group) {
+    def yamlStr = buildlib.doozer("--group ${group} config:read-group --yaml", [capture: true])
+    def yamlData = readYaml text: yamlStr
+    return yamlData
+}
+
 @NonCPS
 def parseOcpRelease(text) {
     text.eachLine {

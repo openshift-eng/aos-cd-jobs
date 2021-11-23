@@ -51,12 +51,6 @@ node {
                         description: 'Integer. Do not specify for standard or candidate assembly. If offset is X for 4.5 nightly => Release name is 4.5.X for standard, 4.5.0-rc.X for Release Candidate, 4.5.0-fc.X for Feature Candidate, 4.5.X-assembly.ASSEMBLY_NAME for custom release',
                         trim: true,
                     ),
-                    string(
-                        name: 'IN_FLIGHT_PREV',
-                        description: 'This is the in flight release version of previous minor version of OCP. Leave blank to be prompted later in the job. "skip" to indicate that there is no such release in flight. Used to fill upgrade suggestions.',
-                        defaultValue: "",
-                        trim: true,
-                    ),
                     choice(
                         name: 'RESUME_FROM',
                         description: 'Select stage to resume from. Useful to execute remaining steps in the case of a failed promote job.',
@@ -161,7 +155,6 @@ node {
         buildlib.param('String','ASSEMBLY', params.ASSEMBLY),
         buildlib.param('String','RELEASE_TYPE', params.RELEASE_TYPE),
         buildlib.param('String','RELEASE_OFFSET', params.RELEASE_OFFSET),
-        buildlib.param('String','IN_FLIGHT_PREV', params.IN_FLIGHT_PREV),
         buildlib.param('String','RESUME_FROM', params.RESUME_FROM),
         buildlib.param('String','ADVISORY', ""),
         booleanParam(name: 'SKIP_ATTACH_CVE_FLAWS', value: params.SKIP_ATTACH_CVE_FLAWS),

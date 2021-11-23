@@ -80,18 +80,6 @@ node {
                             ].join(' '),
                         trim: true,
                     ),
-                    string(
-                        name: 'PREVIOUS',
-                        description: 'Use auto to be prompted later in the job with suggested previous. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
-                        defaultValue: "auto",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'IN_FLIGHT_PREV',
-                        description: 'This is the in flight release version of previous minor version of OCP. Leave blank to be prompted later in the job. "skip" to indicate that there is no such release in flight. Used to fill upgrade suggestions.',
-                        defaultValue: "",
-                        trim: true,
-                    ),
                     booleanParam(
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
@@ -190,14 +178,16 @@ node {
     def CLIENT_TYPE = 'ocp'
     ga_release = false
     direct_release_nightly = false
-    detect_previous = true
+    require_previous = true
     is_prerelease = false
     is_4stable_release = true
     next_is_prerelease = false
     def release_config = null
     def (major, minor) = [0, 0]
+    Map group_config = [:]
     Map advisory_map = [:]
     int advisory = 0
+    def previousList = []
     def justifications = []
     def reasonFieldDescription = "A justification is required if SKIP is used. WARNING: This will be public. Don't include confidential information."
 
@@ -237,12 +227,12 @@ node {
         }
         (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
         group = "openshift-${major}.${minor}"
-        // FIXME: Only support standard X.Y.Z and hotfix releases for now. RCs and FCs are not supported yet.
         release_config = buildlib.get_releases_config(group)?.releases?.get(params.ASSEMBLY)
         if (!release_config) {
             error("Assembly ${params.ASSEMBLY} is not defined in releases.yml.")
         }
-        advisory_map = release.getAdvisories(group)?: [:]
+        group_config = release.getGroupConfig(group)?: [:]
+        advisory_map = group_config.advisories?: [:]
         advisory = advisory_map?.image?: -1
         direct_release_nightly = advisory <= 0  // Whether this assembly should go through Errata process is determined by group config advisories.
         def release_type = release_config.assembly?.type?: "standard"  // Defaults to "standard" release if not specified
@@ -257,7 +247,7 @@ node {
             }
             release_offset = params.RELEASE_OFFSET.toInteger()
             release_name = "${major}.${minor}.${release_offset}-assembly.${params.ASSEMBLY}"
-            detect_previous = false
+            require_previous = false
             is_4stable_release = false
             CLIENT_TYPE = 'ocp-dev-preview'  // Trigger beta2 key
             break
@@ -288,7 +278,7 @@ node {
             CLIENT_TYPE = 'ocp-dev-preview'
         } else if (params.RELEASE_TYPE.startsWith('4.')) {   // Hotfix for a specific customer
             direct_release_nightly = true
-            detect_previous = false
+            require_previous = false
             is_4stable_release = false
             // ignore offset. Release is named same as nightly but with 'hotfix' instead of 'nightly'.
             release_name = params.FROM_RELEASE_TAG.trim().replaceAll('nightly', 'hotfix')
@@ -401,80 +391,16 @@ ${reason}"""
             }
 
             stage("get upgrade edges") {
-                previousList = commonlib.parseList(params.PREVIOUS)
-                if ( params.PREVIOUS.trim() == 'auto' && !skip.PAYLOAD_CREATION) {
-                    taskThread.task('Gather PREVIOUS for release') {
-
-                        if (!detect_previous) {
-                            // Hotfixes don't get a PREVIOUS by default since we don't
-                            // want customers upgrading to it unintentionally.
-                            previousList = []
-                            return
-                        }
-
-                        def acquire_failure = ''
-                        def suggest_previous = ''
-                        def in_flight_prev = ''
-                        try {
-                            suggest_previous = buildlib.doozer("release:calc-previous -a ${arch} --version ${release_name}", [capture: true])
-                            echo "Doozer suggested: ${suggest_previous}"
-                        } catch ( cincy_down ) {
-                            acquire_failure = '****Doozer was not able to acquire data from Cincinnati. Inputs will need to be determined manually****. '
-                            echo acquire_failure
-                        }
-
-                        prevMinor = minor - 1
-                        in_flight_prev_required = true
-                        if (params.IN_FLIGHT_PREV.toUpperCase() == 'SKIP') {
-                            previousList = commonlib.parseList(suggest_previous)
-                            print("Skipping asking for in_flight_prev")
-                            in_flight_prev_required = false
-                            in_flight_prev = ""
-                        } else if (params.IN_FLIGHT_PREV) {
-                            in_flight_prev = params.IN_FLIGHT_PREV.trim()
-                            valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
-                            if (valid) {
-                                previousList = commonlib.parseList(suggest_previous) + commonlib.parseList(in_flight_prev)
-                                print("Proceeding with given in_flight_prev: $in_flight_prev")
-                                in_flight_prev_required = false
-                            } else {
-                                print("Error validating given in_flight_prev: $in_flight_prev . Asking for manual input")
-                            }
-                        }
-
-                        if (in_flight_prev_required) {
-                            commonlib.inputRequired(taskThread) {
-                                def resp = input(
-                                    message: "${acquire_failure}What PREVIOUS releases should be included in ${release_name} (arch: ${arch})?",
-                                    parameters: [
-                                        string(
-                                            defaultValue: "4.${prevMinor}.?",
-                                            description: "This is release ${release_name}. What release is in flight for the previous minor release 4.${prevMinor}?",
-                                            name: 'IN_FLIGHT_PREV',
-                                        ),
-                                        string(
-                                            defaultValue: "${suggest_previous}",
-                                            description: (acquire_failure?acquire_failure:"Doozer thinks these are the other releases to include.") + " Edit as necessary (comma delimited).",
-                                            name: 'SUGGESTED',
-                                        ),
-                                    ]
-                                )
-                                in_flight_prev = commonlib.parseList(resp.IN_FLIGHT_PREV)
-                                if (in_flight_prev) {
-                                    in_flight_prev = in_flight_prev[0]
-                                    valid = release.validateInFlightPrevVersion(in_flight_prev, major, prevMinor)
-                                    if (!valid) {
-                                        error("Error validating given in_flight_prev: $in_flight_prev")
-                                    }
-                                }
-                                suggest_previous = resp.SUGGESTED
-                                previousList = commonlib.parseList(suggest_previous) + in_flight_prev
-                            }
-                        }
-                    }
+                if (!require_previous) {
+                    // Custom releases don't get a PREVIOUS list
+                    return
                 }
-                previousList = previousList.toList().unique().sort()
-                Collections.reverse(previousList)
+                if (group_config?.upgrades == null) {
+                    error("Group config for assembly ${params.ASSEMBLY} is missing `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrade` field to empty array `[]`.")
+                }
+                if (group_config.upgrades) {
+                    previousList = commonlib.parseList(group_config.upgrades)
+                }
                 echo "previousList is ${previousList}"
             }
 

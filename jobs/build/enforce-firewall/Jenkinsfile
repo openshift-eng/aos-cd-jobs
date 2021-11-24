@@ -30,12 +30,6 @@ node {
                         $class: 'hudson.model.BooleanParameterDefinition',
                         defaultValue: false,
                     ],
-                    [
-                        name: 'FORCE_APPLY',
-                        description: "Apply firewall rules even if it seems to be running (e.g. if rules have changed)",
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false,
-                    ],
                 ]
             ],
             disableResume(),
@@ -63,45 +57,9 @@ node {
         <h2>Parameters</h2><ul><li><b>DRY_RUN</b> - Only <b>check</b> if the rules are presently enforcing</li><li><b>DISABLE</b> - <b>Temporarily</b> turn off the firewall</li></ul>
     """)
     commonlib.checkMock()
-    needApplied = false
-    reapplied = false
+    previouslyDisabled = false
     disabled = false
     notifyChannel = '#team-art'
-
-    // ######################################################################
-    // Check if the firewall rules are presently enforcing. If they
-    // are enforcing then we should not be able to query random hosts
-    // not on the allowed list.
-    stage ("Check state") {
-        if ( params.FORCE_APPLY ) {
-            echo "Force applying"
-            needApplied = true
-            return // exit the step
-        }
-        // No reason to check the state if we're just going to turn it off
-        if ( !params.DISABLE ) {
-            try {
-                def extAccess = httpRequest(responseHandle: 'NONE',
-                                            url: 'https://www.yahoo.com',
-                                            timeout: 15)
-                needApplied = true
-                if ( params.DRY_RUN ) {
-                    currentBuild.displayName = "[NOOP] - Needs enforcing"
-                } else {
-                    currentBuild.displayName = "Needs enforcing"
-                }
-            } catch (ex) {
-                echo "Firewall is already enforcing"
-                if ( params.DRY_RUN ) {
-                    currentBuild.displayName = "[NOOP] - Already enforcing"
-                } else {
-                    currentBuild.displayName = "Already enforcing"
-                }
-            }
-        } else {
-            echo "This is a 'disable' request, skipping the enforcement check"
-        }
-    }
 
     stage ("Maybe apply/clean") {
         if ( params.DISABLE ) {
@@ -115,12 +73,19 @@ node {
                 echo "The firewall rules would have been cleaned"
             }
         } else {
-            if ( needApplied && !params.DRY_RUN ) {
+            if ( !params.DRY_RUN ) {
+                try {
+                    def tmp = httpRequest(responseHandle: 'NONE',
+                                                url: 'https://www.yahoo.com',
+                                                timeout: 15)
+                    previouslyDisabled = true
+                } catch (ex) {
+                    previouslyDisabled = false
+                }
                 echo "Applying firewall rules"
                 commonlib.shell(
                     script: "sudo hacks/iptables/buildvm-scripts/canttouchthat.py -n hacks/iptables/buildvm-scripts/known-networks.txt --enforce"
                 )
-                reapplied = true
             } else {
                 echo "Firewall is already enabled (or this is a dry run), nothing to do"
             }
@@ -140,8 +105,8 @@ node {
                 echo "The rules would have been cleaned, however, you requested a DRY RUN"
             }
         } else {
-            if ( reapplied && !params.DRY_RUN ) {
-                currentBuild.displayName = "Enforced the rules"
+            if ( previouslyDisabled && !params.DRY_RUN ) {
+                currentBuild.displayName = "Reenabled the rules"
                 slackChannel = slacklib.to(notifyChannel)
                 slackChannel.say(':itsfine-fire: The firewall rules have been reapplied to the buildvm :itsfine-fire:')
             } else {

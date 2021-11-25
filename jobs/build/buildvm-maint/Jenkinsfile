@@ -56,20 +56,6 @@ node('openshift-build-1') {
             errors = []
 
             try {
-                stage("push images") {
-                    dir ( "enterprise-images" ) {
-                        script {
-                            buildlib.doozer("--working-dir ${doozer_working} --group sync-misc images:push --to-defaults")
-                            buildlib.cleanWorkdir(doozer_working)
-                        }
-                    }
-                }
-            } catch ( ex1 ) {
-                echo "ERROR: ex1 occurred: " + ex1
-                errors[1] = ex1
-            }
-
-            try {
                 stage("legacy maint") {
                     withEnv(["PATH=${env.PATH}:${pwd()}/build-scripts/ose_images"]) {
                         sh "./scripts/maintenance.sh"

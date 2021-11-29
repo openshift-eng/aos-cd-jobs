@@ -38,11 +38,6 @@ node('covscan') {
                         defaultValue: commonlib.ocp4Versions.join(','),
                         trim: true,
                     ),
-                    booleanParam(
-                        name: 'CLEAN_CLONE',
-                        defaultValue: false,
-                        description: 'Force all git repos to be re-pulled',
-                    ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',

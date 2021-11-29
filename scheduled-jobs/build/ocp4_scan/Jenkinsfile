@@ -5,7 +5,11 @@ properties( [
     disableResume(),
 ] )
 
-b = build job: '../aos-cd-builds/build%2Focp4_scan', propagate: false
+def versionJobs = [:]
+for ( version in commonlib.ocp4Versions ) {
+    versionJobs["scan-v${version}"] = {
+        build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSION', value: version)], propagate: false
+    }
+}
 
-currentBuild.description = "${b.displayName} - ${b.result}\n"
-currentBuild.result = b.result
+parallel versionJobs

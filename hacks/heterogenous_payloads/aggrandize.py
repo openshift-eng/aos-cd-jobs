@@ -14,7 +14,7 @@ def execute(cmd_list) -> Tuple[int, str, str]:
 
 
 @click.command()
-@click.option('-a', '--arch', 'arches', multiple=True, default=['amd64', 's390x', 'ppc64le'], help='Architectures to include in manifest list payload')
+@click.option('-a', '--arch', 'arches', multiple=True, default=['amd64', 's390x', 'ppc64le'], help='Architectures to include in manifest list payload; options: amd64, s390x, ppc64le, arm64')
 @click.option('-r', '--release', required=True, help='Release name (e.g. 4.3.13)')
 @click.option("--image-stream-file", required=False, default='', help='Imagestream file appropriate for release payload with manifest lists for components')
 @click.option("--dry-run", type=bool, is_flag=True, default=False, help="Only print the information that would be assembled into the new release payload")

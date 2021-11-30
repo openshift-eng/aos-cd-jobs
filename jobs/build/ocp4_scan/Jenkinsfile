@@ -85,10 +85,18 @@ node('covscan') {
                             echo "Builds are not currently permitted for ${version} -- skipping"
                             continue
                         }
+                        
+                        wrap([$class: 'BuildUser']) {
+                            if ( env.BUILD_USER_EMAIL ) { // null if triggered by timer
+                                timerBased = false
+                            } else {
+                                timerBased = true
+                            }
+                        }                        
 
                         // Check versions.size because if the user requested a specific version,
                         // they will expect it to happen, even if they need to wait.
-                        if (versions.size() != 1 && !commonlib.canLock(activityLockName)) {
+                        if ((timerBased || versions.size() != 1) && !commonlib.canLock(activityLockName)) {
                             echo "Looks like there is another build ongoing for ${version} -- skipping for this run"
                             continue
                         }

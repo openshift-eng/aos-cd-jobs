@@ -742,11 +742,11 @@ ${reason}"""
                 rhcos_mirror_prefix = is_prerelease ? "pre-release" : "$major.$minor"
 
                 sync_params = [
-                    buildlib.param('String','BUILD_VERSION', "$major.$minor"),
-                    buildlib.param('String','NAME', release_name),
+                    buildlib.param('String','OCP_VERSION', "$major.$minor"),
+                    buildlib.param('String','OVERRIDE_NAME', release_name),
                     buildlib.param('String','ARCH', arch),
-                    buildlib.param('String','RHCOS_MIRROR_PREFIX', rhcos_mirror_prefix),
-                    buildlib.param('String','RHCOS_BUILD', rhcos_build),
+                    buildlib.param('String','MIRROR_PREFIX', rhcos_mirror_prefix),
+                    buildlib.param('String','OVERRIDE_BUILD', rhcos_build),
                     booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
                     booleanParam(name: 'MOCK', value: params.MOCK)
                 ]

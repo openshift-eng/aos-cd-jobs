@@ -56,8 +56,7 @@ node('covscan') {
                     commonlib.mockParam(),
                 ]
             ],
-            disableResume(),
-            disableConcurrentBuilds()
+            disableResume()
         ]
     )
 

@@ -113,7 +113,7 @@ def rhcosSyncGenDocs(rhcosBuild) {
         // TODO
         // sh("sh ../gen-docs.sh < meta.json > rhcos-${rhcosBuild}.adoc")
     }
-    artifacts.add("${rhcosWorking}/rhcos-${params.rhcosBuild}.adoc")
+    artifacts.add("${rhcosWorking}/rhcos-${rhcosBuild}.adoc")
 }
 
 

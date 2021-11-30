@@ -41,19 +41,21 @@ pipeline {
 
         stage('Sync to mirror') {
             steps {
-                sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all ; cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"
-                syncDirToS3Mirror.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/", "${s3_target_dir}/" )
-                syncDirToS3Mirror.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/", "/pub/openshift-v4/x86_64/clients/pipeline/latest/" )
+                script {
+                    sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all ; cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"
+                    commonlib.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/", "${s3_target_dir}/" )
+                    commonlib.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/", "/pub/openshift-v4/x86_64/clients/pipeline/latest/" )
 
-                sshagent(['aos-cd-test']) {
-                    sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all"
-                    sh "cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"
-                    sh "echo ${target_version}"
-                    sh "ssh use-mirror-upload rm --recursive --force --verbose ${target_dir}"
-                    sh "ssh use-mirror-upload mkdir -p ${target_dir}"
-                    sh "scp -r /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/* use-mirror-upload:${target_dir}"
-                    sh "ssh use-mirror-upload ln --symbolic --force --no-dereference ${target_dir} /srv/pub/openshift-v4/x86_64/clients/pipeline/latest"
-                    sh "ssh use-mirror-upload /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/pipeline -v"
+                    sshagent(['aos-cd-test']) {
+                        sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all"
+                        sh "cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/sha256sum.txt"
+                        sh "echo ${target_version}"
+                        sh "ssh use-mirror-upload rm --recursive --force --verbose ${target_dir}"
+                        sh "ssh use-mirror-upload mkdir -p ${target_dir}"
+                        sh "scp -r /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/signed/all/* use-mirror-upload:${target_dir}"
+                        sh "ssh use-mirror-upload ln --symbolic --force --no-dereference ${target_dir} /srv/pub/openshift-v4/x86_64/clients/pipeline/latest"
+                        sh "ssh use-mirror-upload /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/pipeline -v"
+                    }
                 }
             }
         }

@@ -111,7 +111,7 @@ node {
         }
         ocpVersion = params.OCP_VERSION
         rhcosBuild = params.OVERRIDE_BUILD
-        arch = params.OVERRIDE_ARCH
+        arch = params.ARCH
         name = params.OVERRIDE_NAME
     } else {
         if (!params.FROM_RELEASE_TAG) {

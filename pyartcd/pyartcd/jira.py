@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Callable, Dict, List, Any
+from typing import Optional, Callable, Dict, List, Any
 from jira import JIRA, Issue
 import logging
 
@@ -7,8 +7,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class JIRAClient:
     @classmethod
-    def from_url(cls, server_url: str, basic_auth: Optional[Tuple[str, str]] = None):
-        client = JIRA(server_url, basic_auth=basic_auth)
+    def from_url(cls, server_url: str, token_auth: Optional[str] = None):
+        client = JIRA(server_url, token_auth=token_auth)
         return JIRAClient(client)
 
     def __init__(self, jira: JIRA) -> None:
@@ -95,3 +95,13 @@ class JIRAClient:
             _LOGGER.debug("Cloned %d subtasks...",
                           len(source_issue.fields.subtasks))
         return new_issues
+
+    def create_issue(self, project: str, issue_type: str, summary: str, description: str):
+        fields = {
+            "project": {"key": project},
+            "summary": summary,
+            "description": description,
+            "issuetype": {"name": issue_type},
+        }
+        new_issue = self._client.create_issue(fields=fields)
+        return new_issue

@@ -2,7 +2,7 @@ aiofiles
 click
 contextvars
 Jinja2
-jira
+jira ~= 3.1.1
 toml
 rh-elliott
 ruamel.yaml

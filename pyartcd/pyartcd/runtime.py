@@ -1,8 +1,11 @@
 import logging
+import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import toml
+
+from pyartcd.jira import JIRAClient
 
 
 class Runtime:
@@ -21,3 +24,10 @@ class Runtime:
         with open(config_filename, "r") as config_file:
             config_dict = toml.load(config_file)
         return Runtime(config=config_dict, working_dir=working_dir, dry_run=dry_run)
+
+    def new_jira_client(self, jira_token: Optional[str] = None):
+        if not jira_token:
+            jira_token = os.environ.get("JIRA_TOKEN")
+            if not jira_token:
+                raise ValueError("JIRA_TOKEN environment variable is not set")
+        return JIRAClient.from_url(self.config["jira"]["url"], token_auth=jira_token)

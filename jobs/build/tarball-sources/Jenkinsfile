@@ -162,7 +162,7 @@ buildvm job:   ${commonlib.buildURL('console')}
             }
             
             stage("add comment to jira card") {
-                if (！params.JIRA.trim().equals("")) {
+                if (params.JIRA) {
                     comment = """
                     tarball-source job: ${commonlib.buildURL('console')}
                     """

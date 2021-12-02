@@ -52,7 +52,7 @@ def buildSyncGenInputs() {
     buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}"
---data-path "${doozer_data_path}"
+--data-path "${params.DOOZER_DATA_PATH}"
 --group 'openshift-${params.BUILD_VERSION}'
 release:gen-payload
 ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}

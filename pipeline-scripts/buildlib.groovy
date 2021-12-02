@@ -685,7 +685,6 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null) {
         results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
             param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
             param('String', 'ASSEMBLY', assembly),
-            param('String', 'DOOZER_DATA_PATH', doozer_data_path),
             param('Boolean', 'DRY_RUN', params.DRY_RUN),
         ])
     }, "olm-bundle": {

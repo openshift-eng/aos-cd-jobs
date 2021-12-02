@@ -270,7 +270,6 @@ node {
                         minorVersion,
                         "aos-team-art@redhat.com", // "reply to"
                         params.ASSEMBLY,
-                        doozer_data_path,
                         operator_nvrs
                     )
                 }

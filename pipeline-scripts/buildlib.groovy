@@ -667,7 +667,7 @@ def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs =
     }
 }
 
-def sync_images(major, minor, mail_list, assembly, doozer_data_path, operator_nvrs = null) {
+def sync_images(major, minor, mail_list, assembly, operator_nvrs = null) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
     // stream is updated with the new tags and pullspecs.

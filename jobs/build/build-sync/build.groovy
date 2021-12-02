@@ -48,12 +48,16 @@ def buildSyncGenInputs() {
     def excludeArchesParam = ""
     for(arch in excludeArches)
         excludeArchesParam += " --exclude-arch ${arch}"
+    def skipGCTaggingParam = params.DRY_RUN ? '--skip-gc-tagging' : ''
     buildlib.doozer """
 ${images}
---working-dir "${mirrorWorking}" --group 'openshift-${params.BUILD_VERSION}'
+--working-dir "${mirrorWorking}"
+--data-path "${doozer_data_path}"
+--group 'openshift-${params.BUILD_VERSION}'
 release:gen-payload
 ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
 ${excludeArchesParam}
+${skipGCTaggingParam}
 """
     echo("Generated files:")
     echo("######################################################################")

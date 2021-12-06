@@ -684,6 +684,12 @@ node {
                             --filter-by-os amd64
                             --push-to-defaults ${ODCS_OPT}
                         """
+                        buildlib.doozer """
+                            ${doozerOpts}
+                            --images=openshift-enterprise
+                            images:push
+                            --to-defaults
+                        """
                     }
                     catch (err) {
                         record_log = buildlib.parse_record_log(DOOZER_WORKING)

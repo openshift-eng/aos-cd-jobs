@@ -684,6 +684,15 @@ node {
                             --filter-by-os amd64
                             --push-to-defaults ${ODCS_OPT}
                         """
+                        // The late push of openshift-enterprise broke since assemblies are available, as
+                        // the search for trhe latest build gets pinned to the brew event. Rather than
+                        // actually fixing, just push this until OCP3.11 or reg-aws is EOL.
+                        buildlib.doozer """
+                            ${doozerOpts}
+                            --images=openshift-enterprise
+                            images:push
+                            --to-defaults
+                        """
                     }
                     catch (err) {
                         record_log = buildlib.parse_record_log(DOOZER_WORKING)

@@ -1,5 +1,6 @@
-buildlib = load("pipeline-scripts/buildlib.groovy")
-commonlib = buildlib.commonlib
+releaselib = load("pipeline-scripts/release.groovy")
+buildlib = releaselib.buildlib
+commonlib = releaselib.commonlib
 rhcosWorking = "rhcos_working"
 logLevel = ""
 dryRun = ""
@@ -14,7 +15,7 @@ syncList = "rhcos-synclist-${currentBuild.number}.txt"
 enforce_allowlist = false
 rhcos_allowlist = [ "gcp", "initramfs", "iso", "kernel", "metal", "openstack", "qemu", "vmware", "dasd" ]
 
-def initialize() {
+def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     buildlib.cleanWorkdir(rhcosWorking)
 
     // Example URL paths (visit https://releases-rhcos-art.cloud.privileged.psi.redhat.com/ to view yourself):
@@ -30,9 +31,6 @@ def initialize() {
     // 4.3 with non-x86 arch:   releases/rhcos-4.3-s390x/43.81.202001300441.0/s390x/meta.json
 
     // Sub in some vars according to params
-    def ocpVersion = params.BUILD_VERSION
-    def rhcosBuild = params.RHCOS_BUILD
-    def arch = params.ARCH
     def archSuffix = commonlib.brewSuffixForArch(arch)
     def archDir = ocpVersion == "4.2" ? "" : "/${arch}"
     baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}/${rhcosBuild}${archDir}"
@@ -41,9 +39,7 @@ def initialize() {
     // Actual meta.json
     metaUrl = baseUrl + "/meta.json"
 
-    name = params.NAME
-
-    currentBuild.displayName = "${params.NAME} - ${params.RHCOS_BUILD}:${params.ARCH} - ${params.RHCOS_MIRROR_PREFIX}"
+    currentBuild.displayName = "${name} - ${rhcosBuild}:${arch} - ${mirrorPrefix}"
     currentBuild.description = "Meta JSON: ${metaUrl}"
 
     if ( params.DRY_RUN ) {
@@ -80,12 +76,12 @@ def rhcosSyncPrintArtifacts() {
     writeFile file: syncList, text: "${imageUrls.join('\n')}"
 }
 
-def rhcosSyncMirrorArtifacts() {
+def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
     sh("scp ${syncList} use-mirror-upload.ops.rhcloud.com:/tmp/")
-    def invokeOpts = " --prefix ${params.RHCOS_MIRROR_PREFIX}" +
-        " --arch ${params.ARCH}" +
-        " --buildid ${params.RHCOS_BUILD}" +
-        " --version ${params.NAME}" 
+    def invokeOpts = " --prefix ${rhcosMirrorPrefix}" +
+        " --arch ${arch}" +
+        " --buildid ${rhcosBuild}" +
+        " --version ${name}" 
 
     if ( params.FORCE ) {
             invokeOpts += " --force"
@@ -112,12 +108,12 @@ def rhcosSyncROSA() {
     commonlib.shell("${env.WORKSPACE}/build-scripts/rosa-sync/rosa_sync.sh ${rhcosWorking}/meta.json ${params.DRY_RUN}")
 }
 
-def rhcosSyncGenDocs() {
+def rhcosSyncGenDocs(rhcosBuild) {
     dir( rhcosWorking ) {
         // TODO
-        // sh("sh ../gen-docs.sh < meta.json > rhcos-${params.RHCOS_BUILD}.adoc")
+        // sh("sh ../gen-docs.sh < meta.json > rhcos-${rhcosBuild}.adoc")
     }
-    artifacts.add("${rhcosWorking}/rhcos-${params.RHCOS_BUILD}.adoc")
+    artifacts.add("${rhcosWorking}/rhcos-${rhcosBuild}.adoc")
 }
 
 

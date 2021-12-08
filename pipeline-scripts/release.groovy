@@ -727,8 +727,7 @@ def signArtifacts(Map signingParams) {
 
 /**
  * Opens a series of PRs against the cincinnati-graph-data GitHub repository.
- *    Specifically, a PR for the candidate channel prefix associated with the specified release
- *    and the next minor channels (major.minor+1) IFF those channels currently exist.
+ *    Specifically, a PR for the version-agnostic candidate channel.
  * @param releaseName The name of the release (e.g. "4.3.6")
  * @param advisory The internal advisory number in errata tool. Specify -1 if there is no advisory (e.g. hotfix or rc).
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
@@ -741,7 +740,6 @@ def openCincinnatiPRs(releaseName, advisory, ghorg='openshift', candidate_pr_not
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
     }
     def internal_errata_url = "https://errata.devel.redhat.com/advisory/${advisory}"
-    def minorNext = minor + 1
     boolean isReleaseCandidate = commonlib.isPreRelease(releaseName)
 
     if ( isReleaseCandidate || advisory.toInteger() <= 0 ) {
@@ -759,16 +757,11 @@ def openCincinnatiPRs(releaseName, advisory, ghorg='openshift', candidate_pr_not
         sh "rm -f ${prs_file} && touch ${prs_file}"  // make sure we start with a clean slate
 
         sh "git clone git@github.com:${ghorg}/cincinnati-graph-data.git"
-        dir('cincinnati-graph-data/channels') {
-            def prefixes = [ "candidate" ]  // we used to manage more...
-
+        dir('cincinnati-graph-data/internal-channels') {
+            def channels = [ "candidate" ]  // we used to manage more...
             prURLs = [:]  // Will map channel to opened PR
-            for ( String prefix : prefixes ) {
-                channel = "${prefix}-${major}.${minor}"
+            for ( String channel : channels ) {
                 channelFile = "${channel}.yaml"
-                upgradeChannel = "${prefix}-${major}.${minorNext}"
-                upgradeChannelFile = "${upgradeChannel}.yaml"
-
                 channelYaml = [ name: channel, versions: [] ]
                 if (fileExists(channelFile)) {
                     channelYaml = readYaml(file: channelFile)
@@ -793,50 +786,28 @@ def openCincinnatiPRs(releaseName, advisory, ghorg='openshift', candidate_pr_not
 
                 addToChannel = !isInChannel(releaseName, channelYaml.get('versions', []))
 
-                upgradeChannelYaml = [ name: upgradeChannel, versions: [] ]
-                addToUpgradeChannel = false
-                releasesForUpgradeChannel = []
-                if ( internal_errata_url || isReleaseCandidate ) {
-                    if (fileExists(upgradeChannelFile)) {
-                        upgradeChannelYaml = readYaml(file: upgradeChannelFile)
-                        upgradeChannelVersions = upgradeChannelYaml.get('versions', [])
+                echo "Creating PR for ${channel} channel"
+                branchName = "pr-${channel}-${releaseName}"
+                pr_title = "Enable ${releaseName} in ${channel} channel"
 
-                        // at least one version must be present & make sure that releaseName is not already there
-                        if ( upgradeChannelVersions && !isInChannel(releaseName, upgradeChannelVersions) ) {
-                            releasesForUpgradeChannel = [ releaseName ]
-                            addToUpgradeChannel = true
-                        }
-                    }
-                } else {
-                    // This is just a tactical release for a given customer (e.g. promoting a nightly).
-                    // There should no upgrade path encouraged for it.
-                }
-
-                echo "Creating PR for ${prefix} channel(s)"
-                branchName = "pr-${prefix}-${releaseName}"
-                pr_title = "Enable ${releaseName} in ${prefix} channel(s)"
-
-                labelArgs = ''
+                labelArgs = "-l 'lgtm,approved'"
                 extraSlackComment = ''
 
                 pr_messages = [ pr_title ]
 
                 if ( internal_errata_url ) {
-                    switch(prefix) {
-                        case 'prerelease':
+                    switch(channel) {
                         case 'candidate':
                             if (candidate_pr_note) {
                                 pr_messages << candidate_pr_note
                             }
                             pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
-                            labelArgs = "-l 'lgtm,approved'"
                             extraSlackComment = "automatically approved"
                             break
                         default:
-                            error("Unknown prefix: ${prefix}")
+                            error("Unknown channel: ${channel}")
                     }
                 } else {  // merge non-GA release PRs immediately
-                    labelArgs = "-l 'lgtm,approved'"
                     if ( isReleaseCandidate ) {
                         // Errata is irrelevant for release candidate.
                         pr_messages << "This is a release candidate. There is no advisory associated."
@@ -850,12 +821,8 @@ def openCincinnatiPRs(releaseName, advisory, ghorg='openshift', candidate_pr_not
                     }
                 }
 
-                if ( addToUpgradeChannel ) {
-                    pr_messages << "This PR will also enable upgrades from ${releaseName} to releases in ${upgradeChannel}"
-                }
-
-                if ( !addToChannel && !addToUpgradeChannel ) {
-                    def pr_info = "No Cincinnati PRs opened for ${prefix}. Might have been done by previous architecture's release build.\n"
+                if ( !addToChannel ) {
+                    def pr_info = "No Cincinnati PRs opened for ${channel}. Might have been done by previous architecture's release build.\n"
                     echo pr_info
                     currentBuild.description += pr_info
                     continue
@@ -881,31 +848,17 @@ def openCincinnatiPRs(releaseName, advisory, ghorg='openshift', candidate_pr_not
                             echo '- ${releaseName}' >> ${channelFile}   # add the entry
                             git add ${channelFile}
                         fi
-                        if [[ "${addToUpgradeChannel}" == "true" ]]; then
-                            # We want to insert the previous minors right after versions: so they stay above other entries.
-                            # Why not set it in right before the next minor begins? Because we don't confuse a comment line that might exist above the next minor.
-                            # First, create a file with the content we want to insert
-                            echo -n > ul.txt  # Clear from previous channels
-                            for urn in ${releasesForUpgradeChannel.join(' ')} ; do
-                                echo "- \$urn" >> ul.txt  # add the entry to lines to insert
-                            done
-                            echo >> ul.txt
-                            rm -f slice*  # Remove any files from previous csplit runs
-                            csplit ${upgradeChannelFile} '/versions:/+1' --prefix slice   # create slice00 (up to and including versions:) and slice01 (everything after)
-                            cat slice00 ul.txt slice01 > ${upgradeChannelFile}
-                            git add ${upgradeChannelFile}
-                        fi
                         git commit -m "${pr_title}"
                         git push -u origin ${branchName}
                         export GITHUB_TOKEN=${access_token}
-                        hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${prefix}.pr
-                        cat ${prefix}.pr >> ${prs_file}    # Aggregate all PRs
+                        hub pull-request -b ${ghorg}:master ${labelArgs} -h ${ghorg}:${branchName} ${messageArgs} > ${channel}.pr
+                        cat ${channel}.pr >> ${prs_file}    # Aggregate all PRs
                         if test -n "${extraSlackComment}"; then
                             echo "${extraSlackComment}" >> "${prs_file}"
                         fi
                         """
 
-                    prURLs[prefix] = readFile("${prefix}.pr").trim()
+                    prURLs[channel] = readFile("${channel}.pr").trim()
                 }
             }
 

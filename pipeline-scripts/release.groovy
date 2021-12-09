@@ -760,10 +760,7 @@ def openCincinnatiPRs(releaseName, advisory, ghorg='openshift', candidate_pr_not
 
         sh "git clone git@github.com:${ghorg}/cincinnati-graph-data.git"
         dir('cincinnati-graph-data/channels') {
-            def prefixes = [ "candidate" ]
-            if ( major == 4 && minor == 1 ) {
-                prefixes = [ "prerelease" ]
-            }
+            def prefixes = [ "candidate" ]  // we used to manage more...
 
             prURLs = [:]  // Will map channel to opened PR
             for ( String prefix : prefixes ) {

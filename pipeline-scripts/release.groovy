@@ -725,33 +725,31 @@ def signArtifacts(Map signingParams) {
     )
 }
 
-def isSupportEUS(String ocpVersion) {
-  return ocpVersion in commonlib.eusVersions
-}
-
 /**
  * Opens a series of PRs against the cincinnati-graph-data GitHub repository.
- *    Specifically, a PR for each channel prefix (e.g. candidate, fast, stable) associated with the specified release
+ *    Specifically, a PR for the candidate channel prefix associated with the specified release
  *    and the next minor channels (major.minor+1) IFF those channels currently exist.
  * @param releaseName The name of the release (e.g. "4.3.6")
  * @param advisory The internal advisory number in errata tool. Specify -1 if there is no advisory (e.g. hotfix or rc).
- * @param candidate_only Only open PR for candidate; there is no advisory
  * @param ghorg For testing purposes, you can call this method specifying a personal github org/account. The
  *        openshift-bot must be a contributor in your fork of cincinnati-graph-data.
  * @param candidate_pr_note additional Cincinnati candidate PR text
  */
-def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='openshift', candidate_pr_note='') {
+def openCincinnatiPRs(releaseName, advisory, ghorg='openshift', candidate_pr_note='') {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
     if ( major != 4 ) {
         error("Unable to open PRs for unknown major minor: ${major}.${minor}")
     }
     def internal_errata_url = "https://errata.devel.redhat.com/advisory/${advisory}"
     def minorNext = minor + 1
-    boolean isReleaseCandidate = candidate_only
+    boolean isReleaseCandidate = commonlib.isPreRelease(releaseName)
 
-    if ( candidate_only || advisory.toInteger() <= 0 ) {
+    if ( isReleaseCandidate || advisory.toInteger() <= 0 ) {
         // There is not advisory for this release
         internal_errata_url = ''
+    }
+    if ( !isReleaseCandidate && internal_errata_url == '' ) {
+       error("Only pre-releases are allowed to skip errata, and ${releaseName} is not a pre-release")
     }
 
     sshagent(["openshift-bot"]) {
@@ -762,18 +760,7 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
 
         sh "git clone git@github.com:${ghorg}/cincinnati-graph-data.git"
         dir('cincinnati-graph-data/channels') {
-            def prefixes = [ "candidate", "fast", "stable"]
-            if ( major == 4 && minor == 1 ) {
-                prefixes = [ "prerelease", "stable"]
-            }
-            if ( isSupportEUS("${major}.${minor}") ) {
-                prefixes = [ "candidate", "fast", "stable", "eus"]
-            }
-
-            if (isReleaseCandidate) {
-                // Release Candidates never go past candidate
-                prefixes = prefixes.subList(0, 1)
-            }
+            def prefixes = [ "candidate" ]  // we used to manage more...
 
             prURLs = [:]  // Will map channel to opened PR
             for ( String prefix : prefixes ) {
@@ -844,37 +831,6 @@ def openCincinnatiPRs(releaseName, advisory, candidate_only=false, ghorg='opensh
                             pr_messages << "Please merge immediately. This PR does not need to wait for an advisory to ship, but the associated advisory is ${internal_errata_url} ."
                             labelArgs = "-l 'lgtm,approved'"
                             extraSlackComment = "automatically approved"
-                            break
-                        case 'fast':
-                            pr_messages << "Please merge as soon as ${internal_errata_url} is shipped live OR if a Cincinnati-first release is approved."
-                            if (prURLs.containsKey('candidate')) {
-                                pr_messages << "This should provide adequate soak time for candidate channel PR ${prURLs.candidate}"
-                            }
-                            // For non-candidate, put a hold on the PR to prevent accidental merging
-                            labelArgs = "-l 'do-not-merge/hold'"
-                            break
-                        case 'stable':
-                            // For non-candidate, put a hold on the PR to prevent accidental merging
-                            labelArgs = "-l 'do-not-merge/hold'"
-                            pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
-
-                            if (prURLs.containsKey('prerelease')) {
-                                pr_messages << "This should provide adequate soak time for prerelease channel PR ${prURLs.prerelease}"
-                            }
-                            if (prURLs.containsKey('fast')) {
-                                pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
-                            }
-
-                            break
-                        case 'eus':
-                            // currently put eus change in a seperate PR as same as stable channel
-                            labelArgs = "-l 'do-not-merge/hold'"
-                            pr_messages << "Please merge within 48 hours of ${internal_errata_url} shipping live OR a Cincinnati-first release."
-
-                            if (prURLs.containsKey('fast')) {
-                                pr_messages << "This should provide adequate soak time for fast channel PR ${prURLs.fast}"
-                            }
-
                             break
                         default:
                             error("Unknown prefix: ${prefix}")

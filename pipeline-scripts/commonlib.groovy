@@ -15,11 +15,6 @@ ocp4Versions = [
 
 ocpVersions = ocp4Versions + ocp3Versions
 
-eusVersions = [
-    "4.6",
-    "4.10",
-]
-
 // some of our systems refer to golang's chosen architecture nomenclature;
 // most use brew's nomenclature or similar. translate.
 brewArches = ["x86_64", "s390x", "ppc64le", "aarch64"]
@@ -527,6 +522,16 @@ String extractMajorMinorVersion(String version) {
  */
 def extractMajorMinorVersionNumbers(String version) {
     return (version =~ /^(\d+)\.(\d+)/)[0].subList(1,3).collect { it as int }
+}
+
+/**
+ * Given a SemVer version string x.y.z,
+ * returns true if and only if the release contains a pre-release component.
+ * e.g. "4.1.0-rc.9" => true
+ * https://semver.org/spec/v2.0.0.html#spec-item-9
+ */
+String isPreRelease(String version) {
+    return (version =~ /^(\d+\.\d+\.\d+(-?))/)[0][1] == "-"
 }
 
 /**

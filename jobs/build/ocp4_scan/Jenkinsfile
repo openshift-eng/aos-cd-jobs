@@ -147,6 +147,20 @@ node('covscan') {
                                 )
                                 currentBuild.description += "<br>triggered build: ${version}"
                             } else if (rhcosChanged) {
+                                echo "Checking rhcos builds for consistency"
+                                res = buildlib.doozer(
+                                    """
+                                    --working-dir ${doozer_working}
+                                    --group 'openshift-${version}'
+                                    inspect:rhcos
+                                    """, [capture: true]
+                                )
+                                echo $res.stdout
+                                if (res.returnStatus != 0) {
+                                    echo "rhcos builds inconsistent. skipping triggering build-sync"
+                                    continue
+                                }
+
                                 build(
                                     job: 'build%2Fbuild-sync',
                                     propagate: false,

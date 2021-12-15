@@ -183,6 +183,7 @@ fi
 # Copy the files out to their main location
 aws s3 sync --no-progress --delete ./ "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/"
 if [ $NOLATEST -eq 0 ]; then
+    aws s3 sync --no-progress --delete "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/" "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/" 
     emulateSymlinks "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/"
 else
     echo "INFO: Not updating 'latest' symlink because --nolatest was given"

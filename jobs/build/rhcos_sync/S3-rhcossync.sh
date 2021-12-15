@@ -95,7 +95,7 @@ function emulateSymlinks() {
         LATEST_LINK=$(aws s3 ls "s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${MAJOR_NEXT_MINOR}." | grep PRE | awk '{print $2}' | tr -d '/' | sort -V | tac | head -n 1 || true)
         # LATEST_LINK will end up being something like 4.9.0-fc.0 if the next major exists or "" if it does not.
 
-        if [[ -n "${LATEST_LINK}" ]]; then
+        if [[ -z "${LATEST_LINK}" ]]; then
             aws s3 sync --no-progress --delete "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/${RHCOS_MIRROR_PREFIX}/latest/
         fi
 
@@ -105,7 +105,7 @@ function emulateSymlinks() {
         # 4.x  (not 4.x.0.....). The query will be files within the directory OR nothing if the directory does not exist/is empty.
         LATEST_CONTENT=$(aws s3 ls "s3://art-srv-enterprise${BASEDIR}/${MAJOR_NEXT_MINOR}/" | grep PRE || true)
 
-        if [[ -n "${LATEST_CONTENT}" ]]; then
+        if [[ -z "${LATEST_CONTENT}" ]]; then
             aws s3 sync --no-progress --delete ./ s3://art-srv-enterprise${BASEDIR}/latest/
         fi
     fi

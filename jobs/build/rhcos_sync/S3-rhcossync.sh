@@ -106,7 +106,7 @@ function emulateSymlinks() {
         LATEST_CONTENT=$(aws s3 ls "s3://art-srv-enterprise${BASEDIR}/${MAJOR_NEXT_MINOR}/" | grep PRE || true)
 
         if [[ -z "${LATEST_CONTENT}" ]]; then
-            aws s3 sync --no-progress --delete ./ s3://art-srv-enterprise${BASEDIR}/latest/
+            aws s3 sync --no-progress --delete "${S3_SOURCE}" s3://art-srv-enterprise${BASEDIR}/latest/
         fi
     fi
 

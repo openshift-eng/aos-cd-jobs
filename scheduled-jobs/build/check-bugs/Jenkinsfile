@@ -1,0 +1,14 @@
+properties( [
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+] )
+
+def commonlib = load("pipeline-scripts/commonlib.groovy")
+commonlib.ocpVersions.each { it ->
+    b = build(
+        job: '../aos-cd-builds/build%2Fcheck-bugs',
+        propagate: false,
+        parameters: [string(name: 'BUILD_VERSION', it)],
+    )
+}

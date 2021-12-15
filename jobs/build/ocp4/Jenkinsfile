@@ -178,12 +178,14 @@ node {
                 stage("update dist-git") { joblib.stageUpdateDistgit() }
                 stage("build images") { joblib.stageBuildImages() }
             }
-            lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
-                stage("mirror RPMs") { joblib.stageMirrorRpms() }
-            }
             stage("sync images") {
                 if (buildlib.allImagebuildfailed) { return }
                 joblib.stageSyncImages()
+            }
+            stage("mirror RPMs") {
+                lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
+                    joblib.stageMirrorRpms()
+                }
             }
             stage("sweep") {
                 if (buildlib.allImagebuildfailed) { return }

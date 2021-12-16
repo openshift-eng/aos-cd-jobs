@@ -53,6 +53,11 @@ node('covscan') {
                         ].join(','),
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'DRY_RUN',
+                        description: 'Run scan without triggering subsequent jobs',
+                        defaultValue: false,
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -66,6 +71,10 @@ node('covscan') {
 
     currentBuild.displayName = "#${currentBuild.number} Scanning versions ${params.VERSIONS}"
     currentBuild.description = ""
+
+    if params.DRY_RUN {
+        currentBuild.displayName += "[DRY_RUN]"
+    }
 
     try {
         successful = []
@@ -136,26 +145,49 @@ node('covscan') {
                             def changed = buildlib.getChanges(yamlData)
                             if ( changed.rpms || changed.images ) {
                                 echo "Detected source changes: ${changed}"
-                                build(
-                                    job: 'build%2Focp4',
-                                    propagate: false,
-                                    wait: false,
-                                    parameters: [
-                                        string(name: 'BUILD_VERSION', value: version),
-                                        booleanParam(name: 'FORCE_BUILD', value: false),
-                                    ]
-                                )
-                                currentBuild.description += "<br>triggered build: ${version}"
+                                if ( params.DRY_RUN ) {
+                                    echo "Would have triggered ocp4 job"
+                                } else {
+                                    build(
+                                        job: 'build%2Focp4',
+                                        propagate: false,
+                                        wait: false,
+                                        parameters: [
+                                            string(name: 'BUILD_VERSION', value: version),
+                                            booleanParam(name: 'FORCE_BUILD', value: false),
+                                        ]
+                                    )
+                                    currentBuild.description += "<br>triggered build: ${version}"
+                                }
+                                
                             } else if (rhcosChanged) {
-                                build(
-                                    job: 'build%2Fbuild-sync',
-                                    propagate: false,
-                                    wait: false,
-                                    parameters: [
-                                        string(name: 'BUILD_VERSION', value: version),
-                                    ]
+                                echo "Checking rhcos builds for consistency"
+                                res = buildlib.doozer(
+                                    """
+                                    --working-dir ${doozer_working}
+                                    --group 'openshift-${version}'
+                                    inspect:stream INCONSISTENT_RHCOS_RPMS
+                                    """, [capture: true]
                                 )
-                                currentBuild.description += "<br>triggered build-sync: ${version}"
+                                echo $res.stdout
+                                if (res.returnStatus != 0) {
+                                    echo "rhcos builds inconsistent. skipping triggering build-sync"
+                                    continue
+                                }
+
+                                if ( params.DRY_RUN ) {
+                                    echo "Would have triggered build-sync job"
+                                } else {
+                                    build(
+                                        job: 'build%2Fbuild-sync',
+                                        propagate: false,
+                                        wait: false,
+                                        parameters: [
+                                            string(name: 'BUILD_VERSION', value: version),
+                                        ]
+                                    )
+                                    currentBuild.description += "<br>triggered build-sync: ${version}"
+                                }
                             }
                         }
                     } catch (err) {

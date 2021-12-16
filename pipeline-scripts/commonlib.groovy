@@ -721,6 +721,7 @@ def syncRepoToS3Mirror(local_dir, s3_path) {
         }
     } catch (e) {
         slacklib.to("#art-release").say("Failed syncing ${local_dir} repo to art-srv-enterprise S3 path ${s3_path}")
+        throw e
     }
 }
 
@@ -737,6 +738,7 @@ def syncDirToS3Mirror(local_dir, s3_path, include_only='') {
         }
     } catch (e) {
         slacklib.to("#art-release").say("Failed syncing ${local_dir} repo to art-srv-enterprise S3 path ${s3_path}")
+        throw e
     }
 }
 

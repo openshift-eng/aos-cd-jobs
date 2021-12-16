@@ -83,28 +83,13 @@ node {
                     ),
                     choice(
                         name: 'IMAGE_MODE',
-                        description: 'How to update image dist-gits: with a source rebase, or not at all (no version/release update)',
+                        description: 'How to update image dist-gits: with a source rebase, or not at all (re-run as-is)',
                         choices: ['rebase', 'nothing'].join('\n'),
                     ),
                     booleanParam(
                         name: 'SCRATCH',
                         description: 'Run scratch builds (only unrelated images, no children)',
                         defaultValue: false,
-                    ),
-                    booleanParam(
-                        name: 'SWEEP_BUGS',
-                        description: 'Sweep and attach bugs to advisories',
-                        defaultValue: false,
-                    ),
-                    string(
-                        name: 'IMAGE_ADVISORY_ID',
-                        description: 'Advisory id for attaching new images if desired. Enter "default" to use current advisory from ocp-build-data',
-                        trim: true
-                    ),
-                    string(
-                        name: 'RPM_ADVISORY_ID',
-                        description: 'Advisory id for attaching new rpms if desired. Enter "default" to use current advisory from ocp-build-data',
-                        trim: true,
                     ),
                     commonlib.suppressEmailParam(),
                     string(
@@ -272,36 +257,6 @@ node {
                         params.ASSEMBLY,
                         operator_nvrs,
                     )
-                }
-            }
-
-            stage ('Attach Images') {
-                if (params.IMAGE_ADVISORY_ID != "") {
-                    def attach = params.IMAGE_ADVISORY_ID == "default" ? "--use-default-advisory image" : "--attach ${params.IMAGE_ADVISORY_ID}"
-                    buildlib.elliott """
-                    --data-path ${doozer_data_path}
-                    --group 'openshift-${majorVersion}.${minorVersion}'
-                    find-builds
-                    --kind image
-                    ${attach}
-                    """
-                }
-
-                if (params.RPM_ADVISORY_ID != "") {
-                    def attach = params.RPM_ADVISORY_ID == "default" ? "--use-default-advisory rpm" : "--attach ${params.RPM_ADVISORY_ID}"
-                    buildlib.elliott """
-                    --data-path ${doozer_data_path}
-                    --group 'openshift-${majorVersion}.${minorVersion}'
-                    find-builds
-                    --kind rpm
-                    ${attach}
-                    """
-                }
-            }
-
-            stage('sweep') {
-                if (params.SWEEP_BUGS) {
-                    buildlib.sweep(params.BUILD_VERSION)
                 }
             }
 

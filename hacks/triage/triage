@@ -1,5 +1,26 @@
 #!/usr/bin/env bash
 
+shopt -s extglob
+
+topics=(
+  jenkins
+  rhcos
+  bz
+  backlog
+  prs
+  triage_docs
+)
+
+browsers=(
+  brave
+  chrome
+  chromium
+  firefox
+  mozilla-firefox
+  qutebrowser
+)
+
+
 # Data
 gh_repos=(
   aos-cd-jobs
@@ -9,6 +30,13 @@ gh_repos=(
   art-ci-toolkit
   art-bot
   ocp-build-data-validator
+)
+
+rhcos_consoles=(
+  'https://privileged.psi.redhat.com/console/project/rhcos-art/browse/pods'
+  'https://p8.psi.redhat.com:8443/console/project/rhcos/browse/pipelines'
+  'https://osbs-s390x-3.prod.engineering.redhat.com:8443/console/project/rhcos/browse/pipelines'
+  'https://osbs-aarch64-1.engineering.redhat.com:8443/console/project/rhcos/'
 )
 
 bz_query_params=(
@@ -37,48 +65,57 @@ halp() {
   cat <<-EOF
 	$0: Open all links needed for the triage manager role in a single browser window.
 	Listens to the \$BROWSER environment variable to select the browser. Currently supports
-	chrome, firefox and qutebrowser.
+	${browsers[@]}.
+	The following topic may be selected: ${topics[@]}.
+
+	Usage:
+	  $0 firefox rhcos bz
+	
 	For more information about the RedHat Openshift ART Triage manager role, visit
 	https://mojo.redhat.com/docs/DOC-1207451
 	EOF
 }
 
+make_pattern() {
+  declare -n arr="$1"
+  echo "^($(echo "${arr[@]}" | tr ' ' '|'))$"
+}
+
 main() {
-  declare -a topics=()
+  declare -a user_topics=()
+  topic_pattern="$(make_pattern topics)"
+  browser_pattern="$(make_pattern browsers)"
   for arg in "$@"; do
-    case "$arg" in
-    -h | --help | help)
+    if [[ "$arg" =~ ^(-h|help|--help)$ ]]; then
       halp
       exit 0
-      ;;
-    rhcos|bz|pr|prs|buildvm)
+    elif [[ "$arg" =~ $topic_pattern ]]; then
       [[ "$arg" == pr ]] && arg=prs
-      topics+=("$arg")
-      ;;
-    qutebrowser|chromium|chrome|brave|firefox|mozilla-firefox)
+      user_topics+=("$arg")
+    elif [[ "$arg" =~ $browser_pattern ]]; then
       browser="$arg"
-      ;;
-    *)
+    else
       echo "Do not understand $arg" >/dev/stderr
       halp >/dev/stderr
       exit 1
-    esac
+    fi
   done
 
   : ${browser:=${BROWSER-firefox}}
 
-  (( ${#topics[@]} == 0 )) && topics=(jenkins rhcos bz backlog prs triage_docs)
-  urls=( $(for topic in "${topics[@]}"; do "$topic"; done) )
+  (( ${#user_topics[@]} == 0 )) && user_topics="${topics[@]}"
+  urls=( $(for topic in "${user_topics[@]}"; do "$topic"; done) )
   open-urls
 }
 
 releases=(
   $(
-    executable="$(readlink -f "$0")"
+    sourcefile="$BASH_SOURCE"
+    executable="$(readlink -f "$sourcefile")"
     commonlib="${executable%/*/*/*}/pipeline-scripts/commonlib.groovy"
 
     [[ -f "$commonlib" ]] || {
-      echo "Script assumes ocp-cat is symlinked to aos-cd-jobs to determine versions. Fail">/dev/stderr
+      echo "Script assumes ocp-cat is symlinked to aos-cd-jobs. Fail">/dev/stderr
       exit 1
     }
 
@@ -127,6 +164,9 @@ rhcos() {
     echo "https://jenkins-rhcos.cloud.p8.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
     (( minor < 9 )) && continue
     echo "https://jenkins-rhcos.cloud.arm.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
+  done
+  for console in "${rhcos_consoles[@]}"; do
+    echo "$console"
   done
 }
 

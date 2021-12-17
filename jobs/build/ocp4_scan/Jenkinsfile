@@ -72,7 +72,7 @@ node('covscan') {
     currentBuild.displayName = "#${currentBuild.number} Scanning versions ${params.VERSIONS}"
     currentBuild.description = ""
 
-    if params.DRY_RUN {
+    if (params.DRY_RUN) {
         currentBuild.displayName += "[DRY_RUN]"
     }
 

@@ -19,26 +19,18 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 ######################################################################
 URLS = {
     'dev': (
-        'amqps://messaging-devops-broker01.dev1.ext.devlab.redhat.com:5671',
-        'amqps://messaging-devops-broker02.dev1.ext.devlab.redhat.com:5671',
         'amqps://messaging-devops-broker03.dev1.ext.devlab.redhat.com:5671',
         'amqps://messaging-devops-broker04.dev1.ext.devlab.redhat.com:5671',
     ),
     'qa': (
-        'amqps://messaging-devops-broker01.web.qa.ext.phx1.redhat.com:5671',
-        'amqps://messaging-devops-broker02.web.qa.ext.phx1.redhat.com:5671',
         'amqps://messaging-devops-broker03.web.qa.ext.phx1.redhat.com:5671',
         'amqps://messaging-devops-broker04.web.qa.ext.phx1.redhat.com:5671',
     ),
     'stage': (
-        'amqps://messaging-devops-broker01.web.stage.ext.phx2.redhat.com:5671',
-        'amqps://messaging-devops-broker02.web.stage.ext.phx2.redhat.com:5671',
         'amqps://messaging-devops-broker03.web.stage.ext.phx2.redhat.com:5671',
         'amqps://messaging-devops-broker04.web.stage.ext.phx2.redhat.com:5671',
     ),
     'prod': (
-        'amqps://messaging-devops-broker01.web.prod.ext.phx2.redhat.com:5671',
-        'amqps://messaging-devops-broker02.web.prod.ext.phx2.redhat.com:5671',
         'amqps://messaging-devops-broker03.web.prod.ext.phx2.redhat.com:5671',
         'amqps://messaging-devops-broker04.web.prod.ext.phx2.redhat.com:5671',
     ),

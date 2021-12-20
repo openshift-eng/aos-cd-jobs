@@ -30,28 +30,17 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.ocpVersionParam('VERSION'),
                     string(
-                        name: 'COMPONENTS',
-                        description: '(REQUIRED) Brew component name',
-                        defaultValue: "logging-fluentd-container",
-                        trim: true,
+                        name: "ASSEMBLY",
+                        description: "The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)",
+                        defaultValue: "stream",
+                        trim: true
                     ),
                     string(
                         name: 'ADVISORY',
-                        description: '(REQUIRED) Image release advisory number.',
+                        description: '(Optional) Image release advisory number. Leave empty to load from ocp-build-data.',
                         defaultValue: "",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'JIRA',
-                        description: 'Add this job link as a comment to the jira after it complete, JIRA can be like OCPPLAN-7498',
-                        defaultValue: "",
-                        trim: true,
-                    ),
-                    string(
-                        name: 'RCM_GUEST',
-                        description: 'Details of RCM GUEST',
-                        defaultValue: "ocp-build@rcm-guest.app.eng.bos.redhat.com:/mnt/rcm-guest/ocp-client-handoff/",
                         trim: true,
                     ),
                     string(
@@ -62,6 +51,11 @@ node {
                         ].join(','),
                         trim: true,
                     ),
+                    booleanParam(
+                        name: "DRY_RUN",
+                        description: "Take no action, just echo what the job would have done.",
+                        defaultValue: false
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -70,108 +64,55 @@ node {
 
     commonlib.checkMock()
     buildlib.initialize()
+    commonlib.shell(script: "pip install -e ./pyartcd")
 
     try {
         sshagent(['openshift-bot']) {
+            currentBuild.description = "OCP ${params.VERSION} - ${params.ASSEMBLY}"
             advisory = params.ADVISORY ? Integer.parseInt(params.ADVISORY.toString()) : 0
-            if (advisory == 0) {
-                error "Need to provide an ADVISORY ID"
-            }
-            def components = params.COMPONENTS.replaceAll(',', ' ').split(' ')
-            def filename = "tarball-source-output.txt"
-            def outdir = "/mnt/nfs/home/jenkins/container-sources/"
-            def rcm_guest = params.RCM_GUEST.toString()
-            currentBuild.description = "tarball: ${components}"
 
-            stage("elliott tarball-source") {
-                component_args = ""
-                components.each {
-                    component_args += "--component ${it}"
+            def output = ""
+
+            stage("run tarball-sources") {
+                sh "rm -rf ./artcd_working"
+                sh "mkdir -p ./artcd_working"
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config", "./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
                 }
-                buildlib.elliott """
-                    tarball-sources create
-                    --out-dir=${outdir}
-                    --force
-                    ${component_args}
-                    ${advisory} > ${filename}
-                """
-            }
-
-            stage("rsync") {
-                cmd = "rsync -avz --no-perms --no-owner --no-group ${outdir} ${rcm_guest}"
-                res = commonlib.shell(
-                    script: cmd,
-                    returnAll: true
-                )
-                if(res.returnStatus != 0 || res.stderr != "") {
-                    error "rsync executing failed..."
+                cmd += [
+                    "tarball-sources",
+                    "--group", "openshift-${params.VERSION}",
+                    "--assembly", params.ASSEMBLY,
+                ]
+                if (advisory) {
+                    cmd << "--advisory" << "${advisory}"
                 }
-            }
-
-            stage("file ticket to RCM") {
-                // use awk to print out the lines that contain ${advisory}
-                // sth like this:
-                // RHEL-7-OSE-4.2/${advisory}/release/logging-fluentd-container-v4.2.26-202003230335.tar.gz 
-                cmd = """awk '/${advisory}/ { save=\$0 }END{ print save }' ${filename}"""
-                verify = commonlib.shell(
-                        script: cmd,
-                        returnStdout: true
-                )
-
-                cmd = """echo '${verify}' |awk -F '-v' '{print \$2}' |awk -F '-' '{print \$1}' """
-                version = commonlib.shell(
-                        script: cmd,
-                        returnStdout: true
-                )
-
-                currentBuild.description += " ocp ${version}"
-                description = """Hi RCM,
-                    The OpenShift ART team needs to provide sources for `${components}` in https://errata.devel.redhat.com/advisory/${advisory}
-
-                    The following sources are uploaded to ${rcm_guest}
-
-                    ${verify}
-
-                    Attaching source tarballs to be published on ftp.redhat.com as in https://projects.engineering.redhat.com/browse/RCMTEMPL-6549
-                    """
-                withCredentials([usernamePassword(
-                    credentialsId: 'jboss_jira_login',
-                    usernameVariable: 'JIRA_USERNAME',
-                    passwordVariable: 'JIRA_PASSWORD',
-                )]) {
-                    withEnv(["ds=${description}"]){
-                        cmd = "artjira create -summary=\"OCP Tarball sources\" -description=\"${ds}\""
-                        jira = commonlib.shell(
-                            script: cmd,
-                            returnStdout: true
-                        )
+                if (params.DEFAULT_ADVISORIES) {
+                    cmd << "--default-advisories"
+                }
+                sshagent(["openshift-bot"]) {
+                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                        echo "Will run ${cmd}"
+                        output = commonlib.shell(script: cmd.join(' '), returnStdout: true)
                     }
                 }
-                echo "sucessfully run cmd: ${jira}"
             }
 
             stage("slack notification to release channel") {
-                def jiraKey = (jira =~ /CLOUDDST-\d+/)[0]
-                jiraCardURL = "https://projects.engineering.redhat.com/browse/${jiraKey}"
+                def jiraKey = (output =~ /CLOUDDST-\d+/)[0]
+                jiraCardURL = "https://issues.redhat.com/browse/${jiraKey}"
 
                 slacklib.to(version).say("""
                 *:heavy_check_mark: tarball-sources sent to CLOUDDST*
 CLOUDDST JIRA: ${jiraCardURL}
 buildvm job:   ${commonlib.buildURL('console')}
                 """)
-            }
-            
-            stage("add comment to jira card") {
-                if (params.JIRA) {
-                    comment = """
-                    tarball-source job: ${commonlib.buildURL('console')}
-                    """
-                    cmd = "artjira comment -id=\"${params.JIRA}\" -comment=\"${comment}\""
-                    jira = commonlib.shell(
-                        script: cmd,
-                        returnStdout: true
-                    )
-                }
             }
         }
 
@@ -193,5 +134,5 @@ buildvm job:   ${commonlib.buildURL('console')}
     } finally {
         buildlib.cleanWorkspace()
     }
-    
+
 }

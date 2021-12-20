@@ -38,8 +38,7 @@ class PrepareReleasePipeline:
         date: str,
         nightlies: List[str],
         package_owner: str,
-        jira_username: str,
-        jira_password: str,
+        jira_token: str,
         default_advisories: bool = False,
     ) -> None:
         _LOGGER.info("Initializing and verifying parameters...")
@@ -83,7 +82,7 @@ class PrepareReleasePipeline:
         self.dry_run = self.runtime.dry_run
         self.elliott_working_dir = self.working_dir / "elliott-working"
         self.doozer_working_dir = self.working_dir / "doozer-working"
-        self._jira_client = JIRAClient.from_url(self.runtime.config["jira"]["url"], (jira_username, jira_password))
+        self._jira_client = JIRAClient.from_url(self.runtime.config["jira"]["url"], token_auth=jira_token)
         self.mail = MailService.from_config(self.runtime.config)
         # sets environment variables for Elliott and Doozer
         self._ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
@@ -683,12 +682,9 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
                   package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool):
     # parse environment variables for credentials
-    jira_username = os.environ.get("JIRA_USERNAME")
-    jira_password = os.environ.get("JIRA_PASSWORD")
-    if not jira_username:
-        raise ValueError("JIRA_USERNAME environment variable is not set")
-    if not jira_password:
-        raise ValueError("JIRA_PASSWORD environment variable is not set")
+    jira_token = os.environ.get("JIRA_TOKEN")
+    if not jira_token:
+        raise ValueError("JIRA_TOKEN environment variable is not set")
     # start pipeline
     pipeline = PrepareReleasePipeline(
         runtime=runtime,
@@ -698,8 +694,7 @@ async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[st
         date=date,
         nightlies=nightlies,
         package_owner=package_owner,
-        jira_username=jira_username,
-        jira_password=jira_password,
+        jira_token=jira_token,
         default_advisories=default_advisories,
     )
     await pipeline.run()

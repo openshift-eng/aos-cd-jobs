@@ -8,7 +8,6 @@ from mock import ANY, AsyncMock, MagicMock, Mock
 from mock.mock import patch
 from pyartcd import constants
 from pyartcd.pipelines.rebuild import RebuildPipeline, RebuildType
-from pyartcd.runtime import Runtime
 
 
 class TestRebuildPipeline(TestCase):

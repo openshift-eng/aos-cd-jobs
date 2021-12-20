@@ -58,10 +58,15 @@ async def cmd_gather_async(cmd: Union[List[str], str], check: bool = True, **kwa
     else:
         cmd_list = cmd
     logger.debug("Executing:cmd_gather_async %s", cmd_list)
-    proc = await asyncio.subprocess.create_subprocess_exec(cmd_list[0], *cmd_list[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, **kwargs)
+    # capture stdout and stderr if they are not set in kwargs
+    if "stdout" not in kwargs:
+        kwargs["stdout"] = asyncio.subprocess.PIPE
+    if "stderr" not in kwargs:
+        kwargs["stderr"] = asyncio.subprocess.PIPE
+    proc = await asyncio.subprocess.create_subprocess_exec(cmd_list[0], *cmd_list[1:], **kwargs)
     stdout, stderr = await proc.communicate()
-    stdout = stdout.decode()
-    stderr = stderr.decode()
+    stdout = stdout.decode() if stdout else ""
+    stderr = stderr.decode() if stderr else ""
     if proc.returncode != 0:
         msg = f"Process {cmd_list!r} exited with {proc.returncode}\nstdout>>{stdout}<<\nstderr>>{stderr}<<\n"
         if check:

@@ -1,6 +1,5 @@
 from unittest import TestCase, mock
 
-import jira
 from pyartcd.jira import JIRAClient
 
 
@@ -8,15 +7,25 @@ class TestJIRAClient(TestCase):
     @mock.patch("pyartcd.jira.JIRA")
     def test_from_url(self, MockJIRA):
         url = "https://jira.example.com"
-        basic_auth = ("username", "password")
-        client = JIRAClient.from_url(url, basic_auth=basic_auth)
+        token_auth = "fake_token"
+        client = JIRAClient.from_url(url, token_auth=token_auth)
         self.assertEqual(client._client, MockJIRA.return_value)
-        MockJIRA.assert_called_once_with(url, basic_auth=basic_auth)
+        MockJIRA.assert_called_once_with(url, token_auth=token_auth)
 
     def test_get_issue(self):
         client = JIRAClient(mock.MagicMock())
         client.get_issue("FOO-1")
         client._client.issue.assert_called_once_with("FOO-1")
+
+    def test_create_issue(self):
+        client = JIRAClient(mock.MagicMock())
+        client.create_issue("TEST-PROJECT", "Ticket", "summary", "description")
+        client._client.create_issue.assert_called_once_with(fields={
+            "project": {"key": "TEST-PROJECT"},
+            "summary": "summary",
+            "description": "description",
+            "issuetype": {"name": "Ticket"},
+        })
 
     def test_clone_issue(self):
         source_issue = mock.MagicMock(

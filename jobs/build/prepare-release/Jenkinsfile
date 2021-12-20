@@ -102,7 +102,7 @@ node {
                 sh "mkdir -p ./artcd_working"
                 def cmd = [
                     "artcd",
-                    "-vv",
+                    "-v",
                     "--working-dir=./artcd_working",
                     "--config", "./config/artcd.toml",
                 ]
@@ -129,11 +129,7 @@ node {
                     }
                 }
                 sshagent(["openshift-bot"]) {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'jboss_jira_login',
-                        usernameVariable: 'JIRA_USERNAME',
-                        passwordVariable: 'JIRA_PASSWORD',
-                    )]) {
+                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                         echo "Will run ${cmd}"
                         commonlib.shell(script: cmd.join(' '))
                     }

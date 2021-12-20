@@ -70,16 +70,11 @@ spec:
       subprocess.run(["artcd"] + args, check=True, universal_newlines=True)
 
     env:
-    - name: JIRA_USERNAME
+    - name: JIRA_TOKEN
       valueFrom:
         secretKeyRef:
           name: jira
-          key: username
-    - name: JIRA_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: jira
-          key: password
+          key: token
     # https://github.com/tektoncd/pipeline/issues/2013
     - name: HOME
       value: /root

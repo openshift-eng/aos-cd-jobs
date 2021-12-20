@@ -1,6 +1,11 @@
 import re
 from typing import Optional, Tuple
 
+import yaml
+import os
+
+from pyartcd import exectools
+
 
 def isolate_el_version_in_release(release: str) -> Optional[int]:
     """
@@ -38,3 +43,18 @@ def isolate_major_minor_in_group(group_name: str) -> Tuple[int, int]:
     if not match:
         return None, None
     return int(match[1]), int(match[2])
+
+
+async def load_group_config(group: str, assembly: str, env=None):
+    cmd = [
+        "doozer",
+        "--group", group,
+        "--assembly", assembly,
+        "config:read-group",
+        "--yaml",
+    ]
+    if env is None:
+        env = os.environ.copy()
+    _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=env)
+    group_config = yaml.safe_load(stdout)
+    return group_config

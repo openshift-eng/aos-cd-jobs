@@ -100,6 +100,8 @@ node {
     buildlib.registry_quay_dev_login()
     def timestamp = new Date().format("yyyyMMddHHmmss")
 
+    def timeout = 6
+
     stage('sign-artifacts') {
         def noop = params.DRY_RUN ? " --noop" : " "
 
@@ -163,7 +165,7 @@ node {
 
                         echo "Submitting OpenShift Payload JSON claim signature request"
                         retry(3) {
-                            timeout(time: 3, unit: 'MINUTES') {
+                            timeout(time: timeout, unit: 'MINUTES') {
                                 commonlib.shell(
                                     script: "../umb_producer.py json-digest ${openshiftJsonSignParams}"
                                 )
@@ -179,7 +181,7 @@ node {
 
                         echo "Submitting OpenShift sha256 message-digest signature request"
                         retry(3) {
-                            timeout(time: 3, unit: 'MINUTES') {
+                            timeout(time: timeout, unit: 'MINUTES') {
                                 commonlib.shell(
                                     script: "../umb_producer.py message-digest ${openshiftSha256SignParams}"
                                 )
@@ -193,7 +195,7 @@ node {
 
                         echo "Submitting RHCOS sha256 message-digest signature request"
                         retry(3) {
-                            timeout(time: 3, unit: 'MINUTES') {
+                            timeout(time: timeout, unit: 'MINUTES') {
                                 res = commonlib.shell(
                                     returnAll: true,
                                     script: "../umb_producer.py message-digest ${rhcosSha256SignParams}"
@@ -208,7 +210,7 @@ node {
 
                         echo "Submitting RHACS Payload JSON claim signature request"
                         retry(3) {
-                            timeout(time: 3, unit: 'MINUTES') {
+                            timeout(time: timeout, unit: 'MINUTES') {
                                 commonlib.shell(
                                     script: "../umb_producer.py json-digest ${openshiftJsonSignParams}"
                                 )

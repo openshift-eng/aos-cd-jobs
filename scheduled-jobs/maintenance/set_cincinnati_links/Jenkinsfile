@@ -25,7 +25,10 @@ def runFor(version, channelPrefix, linkName) {
 
 @NonCPS
 def sortedVersions() {
-  return commonlib.ocp4Versions.sort(false)
+  return commonlib.ocp4Versions.sort {
+    def _, minor = it.tokenize('.')
+    minor
+  }
 }
 
 node() {

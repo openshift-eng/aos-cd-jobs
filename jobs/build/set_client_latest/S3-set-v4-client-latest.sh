@@ -77,7 +77,7 @@ for arch in ${ARCHES}; do
 
     MAJOR_MINOR_LINK="${LINK_NAME}-${MAJOR_MINOR}"  # e.g. latest-4.3  or  stable-4.3
 
-    aws s3 sync --no-progress --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${MAJOR_MINOR_LINK}/"
+    aws s3 sync --no-progress --exact-timestamps --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${MAJOR_MINOR_LINK}/"
 
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls
     # returns lines lke:

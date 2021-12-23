@@ -59,7 +59,7 @@ function transferClientIfNeeded() {
     if ! rclone check "${S3_SRC}" "${S3_DEST}" ; then
         rclone sync -c "${S3_SRC}" "${S3_DEST}"
         # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
-        aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "${S3_DEST_PATH}*"
+        aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/${S3_DEST_PATH}*"
     fi
 }
 

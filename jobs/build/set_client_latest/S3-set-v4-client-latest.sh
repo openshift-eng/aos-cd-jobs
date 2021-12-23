@@ -44,6 +44,25 @@ if [[ "${MODE}" == "all" || "${MODE}" == "any" ]]; then
     ARCHES="x86_64 s390x ppc64le 	aarch64"
 fi
 
+function transferClientIfNeeded() {
+    # Don't use "aws s3 sync" as it only pays attention to filesize. For files like 'sha256sum.txt' which are
+    # usually the same size, it will not update them. rclone can use checksums.
+
+    S3_SRC_PATH="$1"  # e.g. pub/...../adir/
+    S3_DEST_PATH="$2"  # e.g. pub/....../bdir/
+    # The first name is a registered config on buildvm ($ rclone config edit). The second name is the bucket.
+    RCLONE_ADDR="osd-art-account:art-srv-enterprise"
+    S3_SRC="${RCLONE_ADDR}/${S3_SRC_PATH}"
+    S3_DEST="${RCLONE_ADDR}/${S3_DEST_PATH}"
+
+    # If directories are out of sync, then check will return an error
+    if ! rclone check "${S3_SRC}" "${S3_DEST}" ; then
+        rclone sync -c "${S3_SRC}" "${S3_DEST}"
+        # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
+        aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "${S3_DEST_PATH}/*"
+    fi
+}
+
 for arch in ${ARCHES}; do
 
     if [[ ! -z "$USE_CHANNEL" ]]; then
@@ -53,7 +72,7 @@ for arch in ${ARCHES}; do
             x86_64) qarch="amd64" ;;
             aarch64) qarch="arm64" ;;
         esac
-        CHANNEL_RELEASES=$(curl -sH 'Accept:application/json' "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" | jq '.nodes[].version' -r)
+        CHANNEL_RELEASES=$(curl -sH "Accept:application/json" "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" | jq '.nodes[].version' -r)
         if [[ -z "$CHANNEL_RELEASES" ]]; then
             echo "No versions currently detected in ${USE_CHANNEL} for arch ${qarch} ; No ${LINK_NAME} will be set"
             if [[ "${MODE}" == "all" ]]; then
@@ -77,7 +96,7 @@ for arch in ${ARCHES}; do
 
     MAJOR_MINOR_LINK="${LINK_NAME}-${MAJOR_MINOR}"  # e.g. latest-4.3  or  stable-4.3
 
-    aws s3 sync --no-progress --exact-timestamps --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${MAJOR_MINOR_LINK}/"
+    transferClientIfNeeded "${target_dir}/${RELEASE}/" "${target_dir}/${MAJOR_MINOR_LINK}/"
 
     # List the all the other "latest-4.x" or "stable-4.x" directory names. s3 ls
     # returns lines lke:
@@ -95,12 +114,12 @@ for arch in ${ARCHES}; do
       # If the current major.minor is the latest of this type of link, then update the "overall".
       # For example, if we just copied out stable-4.9 and stable-4.10 does not exist yet, then
       # We should have a directory "stable" with the 4.9 content.
-      aws s3 sync --no-progress --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/${target_dir}/${LINK_NAME}/"
-      
+      transferClientIfNeeded "${target_dir}/${RELEASE}/" "${target_dir}/${LINK_NAME}/"
+
       # On the old mirror, clients/ocp-dev-preview/pre-release linked to ../ocp/candidate. Replicate that by copying the artifacts over.
       if [[ "$LINK_NAME" == "candidate" ]]; then
         # This is where console.openshift.com points to find dev-preview artifacts
-        aws s3 sync --delete "s3://art-srv-enterprise/${target_dir}/${RELEASE}/" "s3://art-srv-enterprise/pub/openshift-v4/${arch}/clients/ocp-dev-preview/pre-release/"
-      fi      
+        transferClientIfNeeded "${target_dir}/${RELEASE}/" "pub/openshift-v4/${arch}/clients/ocp-dev-preview/pre-release/"
+      fi
     fi
 done

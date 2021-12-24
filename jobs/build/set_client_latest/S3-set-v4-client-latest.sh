@@ -24,6 +24,7 @@ RELEASE=$1    # e.g. 4.2.0 or 4.3.0-0.nightly-2019-11-08-080321
 CLIENT_TYPE=$2   # e.g. ocp or ocp-dev-preview
 LINK_NAME=$3   # e.g. latest
 ARCHES="${4:-x86_64}"  # e.g. "x86_64 ppc64le s390x aarch64"  OR  "all" to detect arches automatically
+FORCE_UPDATE=${FORCE_UPDATE:-0}  # Ignore whether differences are detected and copy into place.
 
 BASE_DIR="pub/openshift-v4"
 
@@ -55,9 +56,10 @@ function transferClientIfNeeded() {
     S3_SRC="${RCLONE_ADDR}/${S3_SRC_PATH}"
     S3_DEST="${RCLONE_ADDR}/${S3_DEST_PATH}"
 
-    # If directories are out of sync, then check will return an error
-    if ! rclone check "${S3_SRC}" "${S3_DEST}" ; then
-        rclone sync -c "${S3_SRC}" "${S3_DEST}"
+    CHECK_RESULT="$?"
+    # If non-multipart files in the directories are out of sync, then check will return an error
+    if ! rclone check "${S3_SRC}" "${S3_DEST}" || [[ "${FORCE_UPDATE}" == "1" ]]; then
+        rclone copy "${S3_SRC}" "${S3_DEST}"
         # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
         aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/${S3_DEST_PATH}*"
     fi

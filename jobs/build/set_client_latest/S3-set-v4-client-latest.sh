@@ -59,7 +59,10 @@ function transferClientIfNeeded() {
     CHECK_RESULT="$?"
     # If non-multipart files in the directories are out of sync, then check will return an error
     if ! rclone check "${S3_SRC}" "${S3_DEST}" || [[ "${FORCE_UPDATE}" == "1" ]]; then
-        rclone copy "${S3_SRC}" "${S3_DEST}"
+        # rclone sync will check md5 sums on non-multipart files and file sizes on multi-part files. If 'check'
+        # detects either, just copy (don't sync as it will try to be smart and not copy files with the same name & size).
+        rclone copy "${S3_SRC}" "${S3_DEST}"  # Copy over all files, regardless of the difference detected
+        rclone sync -c "${S3_SRC}" "${S3_DEST}"  # Run sync to delete any files that should no longer be present. 
         # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
         aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/${S3_DEST_PATH}*"
     fi

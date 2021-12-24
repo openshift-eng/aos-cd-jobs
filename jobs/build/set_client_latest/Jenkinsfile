@@ -60,6 +60,11 @@ node {
                         ].join(','),
                         trim: true,
                     ),
+                    booleanParam(
+                            name        : 'FORCE_UPDATE',
+                            description : 'Update directories even if no change is detected',
+                            defaultValue: false,
+                    ),                    
                     commonlib.mockParam(),
                 ]
             ],
@@ -81,7 +86,9 @@ node {
         }
 
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-            commonlib.shell("./S3-set-v4-client-latest.sh ${params.CHANNEL_OR_RELEASE} ${params.CLIENT_TYPE} ${params.LINK_NAME} ${params.ARCHES}")
+            withEnv(["FORCE_UPDATE=${params.FORCE_UPDATE? '1' : '0'}"]){
+                commonlib.shell("./S3-set-v4-client-latest.sh ${params.CHANNEL_OR_RELEASE} ${params.CLIENT_TYPE} ${params.LINK_NAME} ${params.ARCHES}")
+            }
         }
 
         timeout(15) {

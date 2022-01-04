@@ -12,6 +12,7 @@ node() {
     stage('sync bucket local') {
         withCredentials([file(credentialsId: 'rhacs-sync-gs-account', variable: 'FILE')]) {
             sh '''
+            unset https_proxy
             export PATH=$PATH:/mnt/nfs/home/jenkins/google-cloud-sdk/bin
             rm -rf .config
             mkdir .config

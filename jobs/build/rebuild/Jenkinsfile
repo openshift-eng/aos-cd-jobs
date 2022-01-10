@@ -44,6 +44,11 @@ node {
                             trim: true
                         ),
                         booleanParam(
+                            name: 'IGNORE_LOCKS',
+                            description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                            defaultValue: false
+                        ),
+                        booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
@@ -96,8 +101,10 @@ node {
             }
             sshagent(["openshift-bot"]) {
                 echo "Will run ${cmd}"
-                lock("github-activity-lock-${params.BUILD_VERSION}") {
-                    commonlib.shell(script: cmd.join(' '))
+                if (params.IGNORE_LOCKS) {
+                     commonlib.shell(script: cmd.join(' '))
+                } else {
+                    lock("github-activity-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
                 }
             }
         }

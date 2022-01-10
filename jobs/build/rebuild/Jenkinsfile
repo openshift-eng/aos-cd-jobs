@@ -22,6 +22,7 @@ node {
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
                         commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                        commonlib.doozerParam(),
                         string(
                             name: "ASSEMBLY",
                             description: "The name of an assembly to rebase & build for. e.g. 4.9.1",

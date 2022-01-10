@@ -98,7 +98,6 @@ function handler(event) {
 
         var found = false;
 
-        console.log(username)
         if (username == SHARED_USER) {
             if (password == SUPER_SECRET_PASSWORD_SHARED_USER) {
                 found = true;

@@ -169,7 +169,7 @@ node('covscan') {
                                     inspect:stream INCONSISTENT_RHCOS_RPMS
                                     """, [capture: true]
                                 )
-                                echo $res.stdout
+                                echo res.stdout
                                 if (res.returnStatus != 0) {
                                     echo "rhcos builds inconsistent. skipping triggering build-sync"
                                     continue

@@ -530,8 +530,10 @@ def extractMajorMinorVersionNumbers(String version) {
  * e.g. "4.1.0-rc.9" => true
  * https://semver.org/spec/v2.0.0.html#spec-item-9
  */
-String isPreRelease(String version) {
-    return (version =~ /^(\d+\.\d+\.\d+(-?))/)[0][1] == "-"
+Boolean isPreRelease(String version) {
+    def matcher = version =~  /^(?:\d+\.\d+\.\d+)(-(?:rc|fc))?/
+    if (matcher[0][-1]) { return true }
+    return false
 }
 
 /**

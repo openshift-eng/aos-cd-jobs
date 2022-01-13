@@ -16,13 +16,13 @@ node {
                 commonlib.doozerParam(),
                 string(
                     name: 'GOLANG_VERSION',
-                    description: 'Golang version (e.g. 1.14.1)',
+                    description: 'Golang version (e.g. 1.16.12)',
                     trim: true,
                 ),
                 string(
-                        name: 'RELEASE',
-                        description: '(Optional) Release string for build instead of default (timestamp.el8 or timestamp.el7)',
-                        trim: true,
+                    name: 'RELEASE',
+                    description: '(Optional) Release string for build instead of default (timestamp.el8 or timestamp.el7)',
+                    trim: true,
                 ),
                 choice(
                     name: 'RHEL_VERSION',

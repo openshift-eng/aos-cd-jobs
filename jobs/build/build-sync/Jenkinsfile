@@ -144,9 +144,11 @@ node {
 
         if (failCount > 1) {
             msg = "@release-artists - pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
-            slacklib.to(params.BUILD_VERSION).failure(msg)
-            if (assembly == "stream" && (failCount == 2 || failCount == 5 || failCount == 15)) { // don't spam forum-release
+            if (failCount % 2 == 0) {  // spam ourselves a little more often than forum-release
                 slacklib.to(params.BUILD_VERSION).failure(msg)
+            }
+            if (assembly == "stream" && (failCount % 5 == 0)) {  // let forum-release know why no new builds
+                slacklib.to("#forum-release").failure(msg)
             }
         }
 

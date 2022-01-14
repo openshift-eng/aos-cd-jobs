@@ -1,3 +1,4 @@
+
 slacklib = load("pipeline-scripts/slacklib.groovy")
 
 ocp3Versions = [
@@ -6,6 +7,7 @@ ocp3Versions = [
 
 // All buildable versions of ocp4
 ocp4Versions = [
+    "4.11",
     "4.10",
     "4.9",
     "4.8",
@@ -93,6 +95,10 @@ def goSuffixForArch(String arch) {
  * 'archOverrides' goes away in doozer config.
  */
 ocpReleaseState = [
+        "4.11": [
+            'release': [],
+            "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],
+        ],
         "4.10": [
             'release': [],
             "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],

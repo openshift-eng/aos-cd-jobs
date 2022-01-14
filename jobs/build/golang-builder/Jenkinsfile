@@ -15,14 +15,24 @@ node {
                 commonlib.mockParam(),
                 commonlib.doozerParam(),
                 string(
-                    name: 'GOLANG_VERSION',
-                    description: 'Golang version (e.g. 1.14.1)',
+                    name: 'DOOZER_DATA_PATH',
+                    description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                    defaultValue: "https://github.com/openshift/ocp-build-data",
                     trim: true,
                 ),
                 string(
-                        name: 'RELEASE',
-                        description: '(Optional) Release string for build instead of default (timestamp.el8 or timestamp.el7)',
-                        trim: true,
+                    name: 'GOLANG_VERSION',
+                    description: 'Golang version (e.g. 1.16.12)',
+                    trim: true,
+                ),
+                string(
+                    name: 'RELEASE',
+                    description: '(Optional) Release string for build instead of default (timestamp.el8 or timestamp.el7)',
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'SCRATCH',
+                    description: 'Perform a scratch build (will not use an NVR or update tags)',
                 ),
                 choice(
                     name: 'RHEL_VERSION',
@@ -71,7 +81,7 @@ pipeline {
                         error("Invalid Golang version ${params.GOLANG_VERSION}")
                     env._GOLANG_MAJOR_MINOR = commonlib.extractMajorMinorVersion(params.GOLANG_VERSION)
                     def group = params.RHEL_VERSION == "7" ? "golang-${env._GOLANG_MAJOR_MINOR}" : "rhel-${params.RHEL_VERSION}-golang-${env._GOLANG_MAJOR_MINOR}"
-                    env._DOOZER_OPTS = "--working-dir ${WORKSPACE}/doozer_working --group $group"
+                    env._DOOZER_OPTS = "--data-path ${params.DOOZER_DATA_PATH} --working-dir ${WORKSPACE}/doozer_working --group $group"
                     currentBuild.displayName = "${params.GOLANG_VERSION}"
                 }
             }
@@ -92,6 +102,8 @@ pipeline {
                         opts = "${env._DOOZER_OPTS} images:build --repo-type unsigned --push-to-defaults"
                         if (params.DRY_RUN)
                             opts += " --dry-run"
+                        if (params.SCRATCH)
+                            opts += " --scratch"
                         buildlib.doozer(opts)
                     }
                 }

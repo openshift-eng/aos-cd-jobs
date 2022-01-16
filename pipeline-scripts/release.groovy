@@ -401,10 +401,8 @@ def stageGetReleaseInfo(quay_url, release_tag){
 
 def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(release_name)
-    def MIRROR_HOST = "use-mirror-upload.ops.rhcloud.com"
-    def MIRROR_V4_BASE_DIR = "/srv/pub/openshift-v4"
 
-    // Anything under this directory will be sync'd to MIRROR_HOST /srv/pub/openshift-v4/...
+    // Anything under this directory will be sync'd to the mirror
     def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
     sh "rm -rf ${BASE_TO_MIRROR_DIR}"
 
@@ -537,32 +535,19 @@ extract_opm "$OUTDIR"
     sh "tree $CLIENT_MIRROR_DIR"
     sh "cat $CLIENT_MIRROR_DIR/sha256sum.txt"
 
-    // DO NOT use --delete. We only built a part of openshift-v4 locally and don't want to remove
-    // anything on the mirror.
-    rsync_cmd = "rsync -avzh --chmod=a+rwx,g-w,o-w -e 'ssh -o StrictHostKeyChecking=no' "+
-                " ${BASE_TO_MIRROR_DIR}/ ${MIRROR_HOST}:${MIRROR_V4_BASE_DIR}/ "
-
+    mirror_cmd = "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
     if ( ! params.DRY_RUN ) {
-        commonlib.shell(script: rsync_cmd)
-        timeout(time: 60, unit: 'MINUTES') {
-			mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", "openshift-v4", '-v')
-			if (mirror_result.contains("[FAILURE]")) {
-				echo(mirror_result)
-				error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
-			}
-        }
-
-        // Publish the clients to our S3 bucket as well.
+        // Publish the clients to our S3 bucket.
         try {
             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                commonlib.shell(script: "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/")
+                commonlib.shell(script: mirror_cmd)
             }
         } catch (ex) {
             slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")
         }
 
     } else {
-        echo "Not mirroring; would have run: ${rsync_cmd}"
+        echo "Not mirroring; would have run: ${mirror_cmd}"
     }
 
 }

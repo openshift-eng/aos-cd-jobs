@@ -232,11 +232,9 @@ node {
         // sha digests for a directory of contents
         // ######################################################################
 
-        mirrorTarget = "use-mirror-upload.ops.rhcloud.com"
         if (params.DRY_RUN) {
             echo "Would have archived artifacts in jenkins"
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
-            echo "    invoke_on_use_mirror push.pub.sh MIRROR_PATH"
         } else {
             echo "Mirroring artifacts to mirror.openshift.com/pub/"
 
@@ -306,19 +304,11 @@ node {
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                                 def mirrorReleasePath = (params.ENV == 'stage') ? 'test' : 'release'
-                                sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
                                 sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
                                 if (mirrorReleasePath == 'release') {
-                                    sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
                                     sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
 
-                                    sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
                                     sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
-                                }
-                                mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'openshift-v4/signatures')
-                                if (mirror_result.contains("[FAILURE]")) {
-                                    echo mirror_result
-                                    error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
                                 }
                             }
                         }
@@ -354,14 +344,7 @@ node {
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                                 def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.NAME}"
-                                sh "rsync -avzh sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
                                 sh "aws s3 sync --no-progress --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
-
-                                mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
-                                if (mirror_result.contains("[FAILURE]")) {
-                                    echo mirror_result
-                                    error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
-                                }
                             }
                         }
                     } else if ( params.PRODUCT == 'rhcos') {
@@ -370,27 +353,14 @@ node {
                                 def name_parts = params.NAME.split('\\.')
                                 def nameXY = "${name_parts[0]}.${name_parts[1]}"
                                 def mirrorReleasePath = "openshift-v4/${params.ARCH}/dependencies/rhcos/${nameXY}/${params.NAME}"
-                                sh "rsync -avzh sha256sum.txt.gpg ${mirrorTarget}:/srv/pub/${mirrorReleasePath}/sha256sum.txt.gpg"
                                 sh "aws s3 sync --no-progress --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
-                                mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", mirrorReleasePath)
-                                if (mirror_result.contains("[FAILURE]")) {
-                                    echo mirror_result
-                                    error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
-                                }
                             }
                         }
                     } else if ( params.PRODUCT == 'rhacs' ) {
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                                sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rhacs"
                                 sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rhacs/"
-                                sh "rsync -avzh sha256=* ${mirrorTarget}:/srv/pub/rhacs/signatures/rh-acs"
                                 sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rh-acs/"
-                                mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
-                                if (mirror_result.contains("[FAILURE]")) {
-                                    echo mirror_result
-                                    error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
-                                }
                             }
                         }
 

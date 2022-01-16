@@ -400,60 +400,15 @@ def stageMirrorRpms() {
         return
     }
 
-    def openshift_mirror_bastion = "use-mirror-upload.ops.rhcloud.com"
-    def openshift_mirror_user = "jenkins_aos_cd_bot"
-    def destBaseDir = "/srv/enterprise/enterprise-${version.stream}"
     def s3BaseDir = "/enterprise/enterprise-${version.stream}"
-    def stagingDir = "${destBaseDir}/staging"
 
     if (buildPlan.dryRun) {
-        echo "Would have copied plashet to ${openshift_mirror_user}@${openshift_mirror_bastion}:${destBaseDir}"
+        echo "Would have copied plashet to mirror.openshift.com${s3BaseDir }"
         return
     }
 
     commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "${s3BaseDir}/latest/") // Note s3BaseDir already has a / prefix
     commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "/enterprise/all/${version.stream}/latest/")
-
-    /**
-     * Just in case this is the first time we have built this release, create the release's staging directory.
-     * What is staging? Glad you asked. rsync isn't dumb. If it finds a remote file already present,
-     * it will avoid transferring the source file. That means you can dramatically speed up rsync if your
-     * source and destination on differ by a little.
-     * Each time we build 4.x, probably only a few RPMs actually change. So, we have a 4.x staging directory
-     * we rsync to.
-     */
-    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- mkdir -p ${stagingDir}")
-    commonlib.shell([
-            "rsync",
-            "-av",  // archive mode, verbose
-            "--copy-links",  // The local repo is composed of symlinks to brewroot; use-mirror does not have brewroot mounted, so we need to copy content, not the symlinks
-            "--progress",
-            "-h", // human readable numbers
-            "--no-g",  // use default group on mirror for the user we are logging in with
-            "--omit-dir-times",
-            "--delete-after", // anything that was in staging, but is no longer there, delete it after a successful transfer
-            "--chmod=Dug=rwX,ugo+r",
-            "--perms",
-            "${rpmMirror.localPlashetPath}/",  // local directory we just built with plashet. NOTICE THE TRAILILNG slash. This means copy the files within, but not the directory name.
-            "${openshift_mirror_user}@${openshift_mirror_bastion}:${stagingDir}"  // we want the arch repos to land in staging.
-    ].join(" "))
-
-    // We now have a staging plashet out on the mirror bastion with yum repo content. Now we need to
-    // make copy of it with the real plashet name. We could use hardlinks, but that seems to cause issues
-    // with the mirror infrastructure's replication to subordinates.
-    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- cp -a ${stagingDir} ${destBaseDir}/${rpmMirror.plashetDirName}")
-    //  Now we have a plashet named after the original on the mirror. QE wants a 'latest' link there.
-    commonlib.shell("ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} \"cd ${destBaseDir}; ln -sfn ${rpmMirror.plashetDirName} latest\"")
-    //  Because the mirrors are always low on space, delete all but the lastest 4 plashets
-    commonlib.shell("""ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} 'cd ${destBaseDir};  rm -rf `ls | grep "4.*" | sort | tac | tail -n +5`  '""")
-    //  For historical reasons, all puddles were linked to from 'all' directory as well.
-    commonlib.shell("""ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- ln -sfn ${destBaseDir}/${rpmMirror.plashetDirName} /srv/enterprise/all/${version.stream}/${rpmMirror.plashetDirName}""")
-    // Also establish latest link
-    commonlib.shell("ssh -t ${openshift_mirror_user}@${openshift_mirror_bastion} \"cd /srv/enterprise/all/${version.stream}; ln -sfn ${rpmMirror.plashetDirName} latest\"")
-    // Instruct the mirror infrastructure to push content to the subordinate hosts.
-    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- push.enterprise.sh -v  enterprise-${version.stream}")
-    commonlib.shell("ssh ${openshift_mirror_user}@${openshift_mirror_bastion} -- push.enterprise.sh -v  all")
-
     echo "Finished mirroring OCP ${version.full} to openshift mirrors"
 }
 

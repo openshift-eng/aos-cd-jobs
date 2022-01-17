@@ -32,7 +32,7 @@ def initialize() {
     imageList = commonlib.cleanCommaList(params.IMAGES)
     if ( imageList ) {
         echo("Only syncing specified images: ${imageList}")
-        currentBuild.description += "\nImages: ${imageList}"
+        currentBuild.description += "<br>Images: ${imageList}"
         currentBuild.displayName += " [${imageList.split(',').size()} Image(s)]"
     }
 }
@@ -148,11 +148,31 @@ def buildSyncApplyImageStreams() {
         if ( newResourceVersion == currentResourceVersion ) {
             if ( params.DRY_RUN ) {
                 echo("IS `.metadata.resourceVersion` has not updated, which is expected in a dry run.")
+            } else {
+                echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
+                currentBuild.description += "<br>ImageStream update failed for ${isFile}"
+                failures << isFile
+            }
+        }
+        if ( params.PUBLISH ) {
+            def reponame = namespace.replace("ocp", "release")
+            def image = "registry.ci.openshift.org/${namespace}/${reponame}:${theStream}"
+            def name = "${params.BUILD_VERSION}.0-${params.ASSEMBLY}"  // must be semver
+            def cmd = """
+                adm release new -n ${namespace} --name ${name} --to-image=${image}
+                --reference-mode=source --from-image-stream ${theStream}
+            """
+
+            if ( params.DRY_RUN ) {
+                echo("Would have created the release image as follows: ${cmd}")
                 continue
             }
-            echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
-            currentBuild.description += "\nImageStream update failed for ${isFile}"
-            failures << isFile
+            buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
+            retry(3) {  // many times the IS is in a weird state for a while
+                sleep(5)
+                buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} ${cmd}")
+            }
+            currentBuild.description += "<br>Published ${image}"
         }
     }
     if (failures) {

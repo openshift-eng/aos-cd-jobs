@@ -41,6 +41,11 @@ node {
                                         defaultValue: "stream",
                                         trim: true,
                                     ),
+                                    booleanParam(
+                                            name        : 'PUBLISH',
+                                            description : 'Publish release image(s) directly to registry.ci for testing',
+                                            defaultValue: false,
+                                    ),
                                     string(
                                         name: 'DOOZER_DATA_PATH',
                                         description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',

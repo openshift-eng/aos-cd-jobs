@@ -36,6 +36,13 @@ for multiple arches.)
 
 See [Standard Parameters](/jobs/README.md#standard-parameters).
 
+### PUBLISH
+
+This is intended for publishing a release image for assemblies (which would not
+otherwise get an entry on the release-controller). An image per arch will be
+published to registry.ci like nightlies -- the job description will list the
+locations.
+
 ### DEBUG
 
 Run "oc" commands with greater logging if they seem to be doing something funny.

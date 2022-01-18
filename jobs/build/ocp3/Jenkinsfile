@@ -740,11 +740,6 @@ node {
                 commonlib.slacklib.to(params.BUILD_VERSION).failure("Failed ${params.BUILD_VERSION} publishing oc binary art-srv-enterprise S3")
             }
 
-
-            // Push the building puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
-            buildlib.invoke_on_rcm_guest("push-to-mirrors.sh", SYMLINK_NAME, NEW_FULL_VERSION, BUILD_MODE)
-
-            // push-to-mirrors.sh sets up a different puddle name on rcm-guest and the mirrors
             PLASHET = "v${NEW_FULL_VERSION}_${PLASHET}"
             final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
 
@@ -766,8 +761,6 @@ node {
                         params.MAIL_LIST_FAILURE)
                 }
             }
-
-            buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
 
             stage("sweep") {
                 buildlib.sweep(params.BUILD_VERSION)

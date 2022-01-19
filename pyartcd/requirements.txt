@@ -1,3 +1,4 @@
+aiohttp[speedups] >= 3.6
 aiofiles
 click
 contextvars
@@ -5,5 +6,8 @@ Jinja2
 jira ~= 3.1.1
 toml
 rh-elliott
+rh-doozer
 ruamel.yaml
+semver ~= 2.13.0
+slack_sdk ~= 3.13.0
 tenacity

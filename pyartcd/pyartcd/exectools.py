@@ -68,7 +68,7 @@ async def cmd_gather_async(cmd: Union[List[str], str], check: bool = True, **kwa
     stdout = stdout.decode() if stdout else ""
     stderr = stderr.decode() if stderr else ""
     if proc.returncode != 0:
-        msg = f"Process {cmd_list!r} exited with {proc.returncode}\nstdout>>{stdout}<<\nstderr>>{stderr}<<\n"
+        msg = f"Process {cmd_list!r} exited with code {proc.returncode}.\nstdout>>{stdout}<<\nstderr>>{stderr}<<\n"
         if check:
             raise ChildProcessError(msg)
         else:
@@ -91,7 +91,7 @@ async def cmd_assert_async(cmd: Union[List[str], str], check: bool = True, **kwa
     proc = await asyncio.subprocess.create_subprocess_exec(cmd_list[0], *cmd_list[1:], **kwargs)
     returncode = await proc.wait()
     if returncode != 0:
-        msg = f"Process {cmd_list!r} exited with {returncode}"
+        msg = f"Process {cmd_list!r} exited with code {returncode}."
         if check:
             raise ChildProcessError(msg)
         else:

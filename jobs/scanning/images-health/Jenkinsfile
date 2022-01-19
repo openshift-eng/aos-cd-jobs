@@ -64,7 +64,7 @@ node() {
             } else {
                 echo "There are no issues to report."
                 if (params.SEND_TO_SLACK) {
-                    releaseChannel.say(":heavy_check_mark: All images are healthy for ${group}")
+                    releaseChannel.say(":white_check_mark: All images are healthy for ${group}")
                 }
             }
         } catch (exception) {

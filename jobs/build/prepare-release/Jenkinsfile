@@ -149,7 +149,7 @@ node {
             if (!params.DRY_RUN) {
                 slackChannel = slacklib.to(params.NAME?: params.VERSION)
                 if (currentBuild.currentResult == "SUCCESS") {
-                    slackChannel.say(":heavy_check_mark: prepare-release for ${params.NAME?: params.ASSEMBLY} completes.")
+                    slackChannel.say(":white_check_mark: prepare-release for ${params.NAME?: params.ASSEMBLY} completes.")
                 } else {
                     slackChannel.say(":warning: prepare-release for ${params.NAME?: params.ASSEMBLY} has result ${currentBuild.currentResult}.")
                 }

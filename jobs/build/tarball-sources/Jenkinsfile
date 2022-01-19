@@ -109,7 +109,7 @@ node {
                 jiraCardURL = "https://issues.redhat.com/browse/${jiraKey}"
 
                 slacklib.to(version).say("""
-                *:heavy_check_mark: tarball-sources sent to CLOUDDST*
+                *:white_check_mark: tarball-sources sent to CLOUDDST*
 CLOUDDST JIRA: ${jiraCardURL}
 buildvm job:   ${commonlib.buildURL('console')}
                 """)

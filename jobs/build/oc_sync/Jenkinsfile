@@ -99,7 +99,7 @@ node {
                 }
                 if (!params.DRY_RUN) {
                     slacklib.to(ocpVersion).say("""
-                    *:heavy_check_mark: oc_sync successful*
+                    *:white_check_mark: oc_sync successful*
                     https://mirror.openshift.com/pub/openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.RELEASE_NAME}/
 
                     buildvm job: ${commonlib.buildURL('console')}

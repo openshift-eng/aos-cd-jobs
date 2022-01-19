@@ -1,4 +1,4 @@
-// Scans the last 3 nightlies and periodicly warns stakeholders if all have failed.
+// Scans the last THRESHOLD nightlies and periodicly warns stakeholders if all have failed.
 // NOTE: This job relies on workspace for keeping last retrieved state.
 
 import java.text.SimpleDateFormat
@@ -82,6 +82,7 @@ node() {
 
         echo "\n\nComputed: ${states}"
 
+        THRESHOLD = 2  // If this number fail sequentially, start alerts.
         for ( stream_name in states.keySet() ) {
             echo "\n\nAnalyzing stream: ${stream_name}"
             stream_results = states[stream_name]
@@ -89,18 +90,18 @@ node() {
             // I realize I could have used a TreeMap for sorted keys, but trying
             // to keep Jenkins script approvals to a minimum.
             nightly_dates = new ArrayList(stream_results.keySet()).sort().reverse()
-            if ( nightly_dates.size() >= 3 ) {
+            if ( nightly_dates.size() >= THRESHOLD ) {
                 rejects = 0
-                for ( int i = 0; i < 3; i++ ) {
+                for ( int i = 0; i < THRESHOLD; i++ ) {
                     if ( stream_results[nightly_dates[i]] != "Rejected" ) {
                         break
                     }
                     rejects++
                 }
 
-                if (rejects == 3) {
-                    // The three latest nightlies have been rejected.
-                    echo "The last three nightlies for ${stream_name} have been rejected: ${stream_results}"
+                if (rejects == THRESHOLD) {
+                    // The N latest nightlies have been rejected.
+                    echo "The last ${THRESHOLD} nightlies for ${stream_name} have been rejected: ${stream_results}"
                     currentBuild.result = "UNSTABLE"
                     notificationFile = "${stream_name}.last_notification"
                     lastNotification = 0
@@ -110,7 +111,8 @@ node() {
                             lastNotification = numStr.toLong()
                         }
                     }
-                    if ( System.currentTimeMillis() - lastNotification > 1000 * 60 * 60 * 8 ) {
+                    HOURS = 4
+                    if ( System.currentTimeMillis() - lastNotification > 1000 * 60 * 60 * HOURS ) {
                         // has it been longer than X hours since the last notification?
                         echo "Notification will occur!"
                         writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
@@ -119,10 +121,10 @@ node() {
                         commonlib.slacklib.to('#forum-release').say("@patch-manager - ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}")
                         commonlib.slacklib.to('#forum-release-oversight').say("ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}")
                     } else {
-                        echo "Skipping notification since it has not been more than 8 hours since the last notification: ${System.currentTimeMillis()} - ${lastNotification}"
+                        echo "Skipping notification since it has not been more than ${HOURS} hours since the last notification: ${System.currentTimeMillis()} - ${lastNotification}"
                     }
                 } else {
-                    echo "The last three nightlies didn't all fail for ${stream_name} have been rejected: ${stream_results}"
+                    echo "The last ${THRESHOLD} nightlies didn't all fail for ${stream_name} have been rejected: ${stream_results}"
                 }
             }
         }

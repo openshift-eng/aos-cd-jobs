@@ -71,5 +71,5 @@ class MailService:
             _LOGGER.info("Sent email to %s: %s - %s",
                          msg["To"], subject, content)
         else:
-            _LOGGER.warn("Would have sent email: %s", msg)
+            _LOGGER.warn("[DRY RUN] Would have sent email: %s", msg)
         return msg

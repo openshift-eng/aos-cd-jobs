@@ -163,7 +163,7 @@ node {
         // stage("Gen AMI docs") { build.rhcosSyncGenDocs(rhcosBuild) }
         stage("Slack notification to release channel") {
             slacklib.to(ocpVersion).say("""
-            *:heavy_check_mark: rhcos_sync (${mirrorPrefix}) successful*
+            *:white_check_mark: rhcos_sync (${mirrorPrefix}) successful*
             https://mirror.openshift.com/pub/openshift-v4/${arch}/dependencies/rhcos/${mirrorPrefix}/${name}/
 
             buildvm job: ${commonlib.buildURL('console')}
@@ -187,7 +187,7 @@ node {
             }
             stage("Slack notification to release channel") {
                 slacklib.to(ocpVersion).say("""
-                *:heavy_check_mark: rosa_sync (${name}) successful*
+                *:white_check_mark: rosa_sync (${name}) successful*
                 """)
             }
         }

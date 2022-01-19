@@ -177,7 +177,7 @@ pipeline {
             steps {
                 script {
                     olm_bundles.slacklib.to(params.BUILD_VERSION).say("""
-                    *:heavy_check_mark: olm_bundle*
+                    *:white_check_mark: olm_bundle*
 The following builds were attached to advisory ${params.METADATA_ADVISORY}:
                     ```
                     ${bundle_nvrs.join('\n')}

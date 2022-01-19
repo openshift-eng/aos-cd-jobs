@@ -261,7 +261,7 @@ Customers would have to upgrade to 4.7.z or later to upgrade to 4.8 version.
 
             stage("slack notification to release channel") {
                 slacklib.to(params.VERSION).say("""
-                *:heavy_check_mark: New advisories created:*
+                *:white_check_mark: New advisories created:*
                 ${currentBuild.description}
 
                 buildvm job: ${commonlib.buildURL('console')}

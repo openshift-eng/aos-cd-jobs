@@ -1,5 +1,6 @@
-# Promote OCP 4 release images
+# Promote OCP 4 release images (deprecated)
 
+Use [promote-assembly](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fpromote-assembly/) instead.
 ## Purpose
 
 This job creates release images as described in the

@@ -1,4 +1,7 @@
-# Multi Promote Job
+# Multi Promote Job (deprecated)
+
+Use [promote-assembly](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fpromote-assembly/) instead.
+
 
 ## Description
 

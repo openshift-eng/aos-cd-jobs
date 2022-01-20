@@ -8,7 +8,8 @@ node {
     def commonlib = release.commonlib
     def slacklib = commonlib.slacklib
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
-    commonlib.describeJob("promote", """
+    commonlib.describeJob("⛔❌⛔ promote (deprecated) ⛔❌⛔ ", """
+        <b>Deprecated. Use <a href="/job/aos-cd-builds/job/build%252Fpromote-assembly/">promote-assembly</a> instead</b>
         <h2>Publish official OCP 4 release artifacts</h2>
         <b>Timing</b>: <a href="https://github.com/openshift/art-docs/blob/master/4.y.z-stream.md#create-the-release-image" target="_blank">4.y z-stream doc</a>
 

@@ -1,5 +1,6 @@
-# Promote OCP 4 release images
+# Promote OCP 4 release images (deprecated)
 
+Use [promote-assembly](../promote-assembly/) instead.
 ## Purpose
 
 This job creates release images as described in the

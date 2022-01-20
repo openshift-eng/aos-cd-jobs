@@ -5,7 +5,9 @@ node {
     def release = load("pipeline-scripts/release.groovy")
     def buildlib = release.buildlib
     def commonlib = release.commonlib
-    commonlib.describeJob("multi_promote", """
+    commonlib.describeJob("⛔❌⛔ multi_promote (deprecated) ⛔❌⛔ ", """
+        <b>Deprecated. Use <a href="/job/aos-cd-builds/job/build%252Fpromote-assembly/">promote-assembly</a> instead</b>
+
         <h2>Kick off multiple promote jobs for selected nightlies</h2>
     """)
 

@@ -6,7 +6,7 @@ node {
     def buildlib = release.buildlib
     def commonlib = release.commonlib
     commonlib.describeJob("⛔❌⛔ multi_promote (deprecated) ⛔❌⛔ ", """
-        <b>Deprecated. Use <a href="https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fpromote-assembly/">promote-assembly</a> instead</b>
+        <b>Deprecated. Use <a href="/job/aos-cd-builds/job/build%252Fpromote-assembly/">promote-assembly</a> instead</b>
 
         <h2>Kick off multiple promote jobs for selected nightlies</h2>
     """)

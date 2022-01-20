@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This script verifies if distgits for images managed by ocp-build-data exist for a branch.
+# This is to replace the `doozer images:clone` verification step, as that consumes a lot of time.
+# This completes in a few seconds.
+
+new="$new_version"
+
+check_branch() {
+  local repo branch result url
+  repo="$1"
+  branch="$2"
+  url="http://pkgs.devel.redhat.com/cgit/${repo}/tree/?h=${branch}"
+  result=bad
+  if curl --fail -XHEAD -sSL "$url" >/dev/null 2>&1; then
+    result=good
+  fi
+  echo "$result:$repo:$branch"
+}
+export -f check_branch
+
+image_list() {
+  doozer -g openshift-$new images:list 2>/dev/null |
+    awk '
+      !f && /---/ { f=1; next }
+      /----/ { f=0; next }
+      f
+    '
+}
+
+rpm_list() {
+  cat <<EORPM
+rpms/afterburn
+rpms/bootupd
+rpms/conmon
+rpms/console-login-helper-messages
+rpms/containernetworking-plugins
+rpms/coreos-installer
+rpms/cri-o
+rpms/cri-tools
+rpms/ignition
+rpms/jq
+rpms/oniguruma
+rpms/openshift
+rpms/openshift-ansible
+rpms/openshift-clients
+rpms/openshift-enterprise-service-idler
+rpms/openshift-kuryr
+rpms/redhat-release-coreos
+rpms/runc
+rpms/toolbox
+EORPM
+}
+
+rm -f log
+
+{
+  image_list |
+    xargs --max-args=1 --max-procs=16 -I {} bash -c "check_branch {} rhaos-$new-rhel-8" |
+  rpm_list |
+    xargs --max-args=1 --max-procs=16 -I {} bash -c "check_branch {} rhaos-$new-rhel-7" |
+  rpm_list |
+    xargs --max-args=1 --max-procs=16 -I {} bash -c "check_branch {} rhaos-$new-rhel-8" |
+} |
+  awk '
+    /^good:/{g++}
+    /^bad:/{b++}
+    END {printf("good: %s, bad: %s, %s %%\n", g, b, int(100 * g /(g+b)))}
+  '

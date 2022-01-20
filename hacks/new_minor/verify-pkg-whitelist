@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+pkg_whitelist() {
+  tag="$1"
+  brew --quiet list-pkgs --tag "$tag" | awk '{print $1}' | sort
+}
+
+new="$new_version"
+old="$old_version"
+
+for rhel in 7 8; do
+  echo "====== rhel-$rhel ======"
+  echo "only in $old"
+  echo "               only in $new"
+  comm -3 <(pkg_whitelist "rhaos-$old-rhel-$rhel") <(pkg_whitelist "rhaos-$new-rhel-$rhel")
+done

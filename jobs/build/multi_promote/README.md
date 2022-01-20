@@ -1,4 +1,7 @@
-# Multi Promote Job
+# Multi Promote Job (deprecated)
+
+Use [promote-assembly](../promote-assembly/) instead.
+
 
 ## Description
 

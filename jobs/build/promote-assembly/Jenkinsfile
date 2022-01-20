@@ -122,6 +122,9 @@ node {
         buildlib.registry_quay_dev_login()
     }
 
+    // release_info is the output of `artcd promote` command.
+    // It is a dict containing the information of the promoted release.
+    // e.g. {"group": "openshift-4.8", "assembly": "4.8.28", "type": "standard", "name": "4.8.28", "content": {"s390x": {"pullspec": "quay.io/openshift-release-dev/ocp-release:4.8.28-s390x", "digest": "sha256:b33d11a797022f9394aca5f05f1fcba8faa3fcc607f0cdd6e75666f8f93e7141", "from_release": "registry.ci.openshift.org/ocp-s390x/release-s390x:4.8.0-0.nightly-s390x-2022-01-19-035735", "rhcos_version": "48.84.202201111102-0"}, "x86_64": {"pullspec": "quay.io/openshift-release-dev/ocp-release:4.8.28-x86_64", "digest": "sha256:ba1299680b542e46744307afc7effc15957a20592d88de4651610b52ed8be9a8", "from_release": "registry.ci.openshift.org/ocp/release:4.8.0-0.nightly-2022-01-19-035759", "rhcos_version": "48.84.202201102304-0"}, "ppc64le": {"pullspec": "quay.io/openshift-release-dev/ocp-release:4.8.28-ppc64le", "digest": "sha256:791790c88018eb9848765797f4348d4d5161dc342c61ec67d41770873e574a43", "from_release": "registry.ci.openshift.org/ocp-ppc64le/release-ppc64le:4.8.0-0.nightly-ppc64le-2022-01-19-035729", "rhcos_version": "48.84.202201102304-0"}}, "justifications": [], "advisory": 87060, "live_url": "https://access.redhat.com/errata/RHBA-2022:0172"}
     def release_info = {}
 
     stage("promote release") {
@@ -344,7 +347,7 @@ node {
             to: "${params.MAIL_LIST_SUCCESS}",
             replyTo: "aos-team-art@redhat.com",
             from: "aos-art-automation@redhat.com",
-            subject: "${dry_subject}Success building release payload: ${release_name}",
+            subject: "${dry_subject}Success building release payload: ${release_info.name}",
             body: """
 Jenkins Job: ${env.BUILD_URL}
 PullSpecs: ${pullspecs.join(",")}

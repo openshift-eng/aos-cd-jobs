@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+new_version="$1"
+
+IFS=. read -r major minor <<<"4.11"
+
+valid_input=1
+[[ "$major" =~ ^[0-9]+$ ]] || valid_input=0
+[[ "$minor" =~ ^[0-9]+$ ]] || valid_input=0
+
+(( valid_input )) || {
+  echo "Need single arg specifying new version, e.g. '4.11'" >/dev/stderr
+  exit 1
+}
+
+old_version="$major.$((minor - 1))"
+
+export new_version
+export old_version
+
+for f in ./verify-*; do
+  echo "Running $f"
+  $f
+done

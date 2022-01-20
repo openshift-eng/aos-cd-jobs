@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+old="rhaos-$old_version"
+new="rhaos-$new_version"
+
+export LC_ALL=C
+
+echo "Tag existance needing inspection:"
+comm -3 <(brew list-tags "${new}-rhel-*"| sort) <(brew list-tags "${old}-rhel-*" | sed "s/^${old}/$new/" | sort)
+
+echo "Tag inheritance needing inspection:"
+
+tag_arches() {
+  local tag
+  tag="$1"
+  brew call --json-output getTag "$tag" | jq -r '.arches | gsub(" +"; "\n")' | sort
+}
+
+tag_children() {
+  local tag
+  tag="$1"
+  brew call --json-output getInheritanceData "$tag" |
+    jq -r '.[].name' |
+    sort
+}
+
+for tag in $(brew list-tags "${new}*"); do
+  old_tag="$(sed "s/^$new/$old/" <<<"$tag")"
+  result=wrong
+  if diff -q <(tag_children "$tag") <(tag_children "$old_tag" | sed "s/^$old/$new/") >/dev/null 2>&1; then
+    result=good
+  fi
+  [[ "$result" == wrong ]] && echo "$result:tag_inheritance:$tag"
+done
+
+echo "Tag arches needing inspection:"
+for tag in $(brew list-tags "${new}*"); do
+  old_tag="$(sed "s/^$new/$old/" <<<"$tag")"
+  result=wrong
+  if diff -q <(tag_arches "$tag") <(tag_arches "$old_tag" | sed "s/^$old/$new/") >/dev/null 2>&1; then
+    result=good
+  fi
+  [[ "$result" == wrong ]] && echo "$result:tag_arches:$tag"
+done

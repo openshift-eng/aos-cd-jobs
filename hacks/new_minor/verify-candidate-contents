@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+builds() {
+  tag="$1"
+  brew -q list-tagged --latest "$tag" |
+    awk '
+      $3 != "ocp-build/buildvm.openshift.eng.bos.redhat.com" && \
+        $3 != "osp-build/osp-trunk.hosted.upshift.rdu2.redhat.com" && \
+        $3 != "contra/pipeline" && \
+        $3 != "openvswitch-ci/openvswitch-ci.ntdv.lab.eng.bos.redhat.com" \
+        { print $1 }
+      ' |
+    sort
+}
+
+old="$old_version"
+new="$new_version"
+
+for rhel in 7 8; do
+  echo "==== Checking $rhel ===="
+  echo "only in $old"
+  echo "        only in $new"
+  comm -3 <(builds rhaos-$old-rhel-$rhel-candidate) <(builds rhaos-$new-rhel-$rhel-candidate)
+done

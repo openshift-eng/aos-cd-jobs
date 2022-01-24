@@ -162,32 +162,35 @@ node('covscan') {
                                 
                             } else if (rhcosChanged) {
                                 echo "Checking rhcos builds for consistency"
-                                res = buildlib.doozer(
-                                    """
-                                    --working-dir ${doozer_working}
-                                    --group 'openshift-${version}'
-                                    inspect:stream INCONSISTENT_RHCOS_RPMS
-                                    """, [capture: true]
-                                )
-                                echo res.stdout
-                                if (res.returnStatus != 0) {
-                                    echo "rhcos builds inconsistent. skipping triggering build-sync"
+                                try {
+                                    stdout = buildlib.doozer(
+                                        """
+                                        --working-dir ${doozer_working}
+                                        --group 'openshift-${version}'
+                                        inspect:stream INCONSISTENT_RHCOS_RPMS
+                                        """, [capture: true]
+                                    )
+                                    echo stdout
+                                } catch(err) {
+                                    echo "Error checking for INCONSISTENT_RHCOS_RPMS:\n${err}"
+                                    echo "RHCOS builds inconsistent, not triggering build-sync"
                                     continue
                                 }
 
                                 if ( params.DRY_RUN ) {
                                     echo "Would have triggered build-sync job"
-                                } else {
-                                    build(
-                                        job: 'build%2Fbuild-sync',
-                                        propagate: false,
-                                        wait: false,
-                                        parameters: [
-                                            string(name: 'BUILD_VERSION', value: version),
-                                        ]
-                                    )
-                                    currentBuild.description += "<br>triggered build-sync: ${version}"
+                                    continue
                                 }
+
+                                build(
+                                    job: 'build%2Fbuild-sync',
+                                    propagate: false,
+                                    wait: false,
+                                    parameters: [
+                                        string(name: 'BUILD_VERSION', value: version),
+                                    ]
+                                )
+                                currentBuild.description += "<br>triggered build-sync: ${version}"
                             }
                         }
                     } catch (err) {

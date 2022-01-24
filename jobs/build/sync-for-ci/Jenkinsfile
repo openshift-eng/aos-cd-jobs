@@ -83,6 +83,8 @@ node {
     if ( ARCH != 'x86_64' ) {
         // Non x86_64 arch directories will have the arch as a suffix
         LOCAL_SYNC_DIR = "${LOCAL_SYNC_DIR}_${ARCH}"
+        // Copy to mirror location at arch qualified location
+        MIRROR_RELATIVE_REPOSYNC = "${MIRROR_RELATIVE_REPOSYNC}_${ARCH}"
     }
 
     LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${REPOSYNC_DIR}_${ARCH}"

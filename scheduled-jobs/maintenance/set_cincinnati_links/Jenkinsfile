@@ -25,9 +25,10 @@ def runFor(version, channelPrefix, linkName) {
 
 @NonCPS
 def sortedVersions() {
-  return commonlib.ocp4Versions.sort {
-    def _, minor = it.tokenize('.')
-    minor
+  // Return versions honoring semver
+  return commonlib.ocp4Versions.sort(false) {
+    def (major, minor) = it.tokenize('.')
+    major*100000 + minor
   }
 }
 

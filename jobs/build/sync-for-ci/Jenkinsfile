@@ -78,18 +78,14 @@ node {
     currentBuild.displayName = "${GROUP} - ${ARCH}"
     REPOSYNC_BASE_DIR="/mnt/workspace/reposync"
     LOCAL_SYNC_DIR = "${REPOSYNC_BASE_DIR}/${REPOSYNC_DIR}"
-    MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
     MIRROR_RELATIVE_REPOSYNC = "reposync/${REPOSYNC_DIR}"
 
     if ( ARCH != 'x86_64' ) {
         // Non x86_64 arch directories will have the arch as a suffix
         LOCAL_SYNC_DIR = "${LOCAL_SYNC_DIR}_${ARCH}"
-        MIRROR_RELATIVE_REPOSYNC = "${MIRROR_RELATIVE_REPOSYNC}_${ARCH}"
     }
 
     LOCAL_CACHE_DIR = "${REPOSYNC_BASE_DIR}_cache/${REPOSYNC_DIR}_${ARCH}"
-    MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
-    MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
     S3_SYNC_DIR = "/enterprise/${MIRROR_RELATIVE_REPOSYNC}"
 
     // doozer_working must be in WORKSPACE in order to have artifacts archived
@@ -128,16 +124,6 @@ node {
                 stage("push to s3") {
                     commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/")
                 }
-
-                stage("push to mirror") {
-                    sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}"
-                    sh "rsync -avzh --copy-links --chmod=a+rwx,g-w,o-w --delete ${LOCAL_SYNC_DIR}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR} "
-
-                    timeout(time: 2, unit: 'HOURS') {
-                        sh "ssh -o StrictHostKeyChecking=no ${MIRROR_TARGET} -- push.enterprise.sh -v ${MIRROR_RELATIVE_REPOSYNC}"
-                    }
-                }
-
             }
         }
     } catch (err) {

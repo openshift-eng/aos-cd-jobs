@@ -24,8 +24,13 @@ def runFor(group, dir, arch="x86_64") {
 
 @NonCPS
 def sortedVersions() {
+  // Return versions honoring semver, but exclude disabled
   def disabled = []
-  return commonlib.ocp4Versions.sort(false).findAll { !disabled.contains(it) }
+  def s = commonlib.ocp4Versions.sort(false) {
+    def (major, minor) = it.tokenize('.')
+    major*100000 + minor
+  }
+  return s.findAll { !disabled.contains(it) }
 }
 
 node() {

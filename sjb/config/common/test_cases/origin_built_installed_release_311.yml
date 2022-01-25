@@ -15,10 +15,11 @@ extensions:
         name=rhel-7-server-ansible-2.6-rpms
         baseurl=https://mirror.openshift.com/enterprise/rhel/rhel-7-server-ansible-2.6-rpms/
         enabled=1
-        sslclientcert=/var/lib/yum/client-cert.pem
-        sslclientkey=/var/lib/yum/client-key.pem
         sslverify=0
         REPO
+        set +x
+        echo "username=$MIRROR_OS_USER" >> /etc/yum.repos.d/dockertested.repo
+        echo "password=$MIRROR_OS_PASS" >> /etc/yum.repos.d/dockertested.repo
 
         sudo yum repolist
     - type: "script"

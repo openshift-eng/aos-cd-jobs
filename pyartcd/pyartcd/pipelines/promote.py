@@ -93,7 +93,7 @@ class PromotePipeline:
             # Get previous list
             upgrades_str: Optional[str] = group_config.get("upgrades")
             if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
-                raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrade` field to empty string.")
+                raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to empty string.")
             previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
             # Ensure all versions in previous list are valid semvers.
             if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
@@ -185,7 +185,7 @@ class PromotePipeline:
             pullspecs = list(map(lambda r: r["image"], release_infos))
             if not tag_stable:
                 self._logger.warning("This release will not appear on release controllers. Pullspecs: %s", release_name, ", ".join(pullspecs))
-                await self._slack_client.say(f"Hi @release-artists. Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {', '.join(pullspecs)}", slack_thread)
+                await self._slack_client.say(f"Hi @release-artists . Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {', '.join(pullspecs)}", slack_thread)
             else:  # Wait for release images to be accepted by the release controllers
                 self._logger.info("All release images for %s have been successfully promoted. Pullspecs: %s", release_name, ", ".join(pullspecs))
 
@@ -290,7 +290,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         if not match:
             raise IOError(f"Could determine whether this release has blocker bugs. Elliott printed unexpected message: {stdout}")
         if int(match[1]) != 0:
-            raise VerificationError(f"{int(match[1])} blocker Bug(s) found for release; do not proceed without resolving. See https://github.com/openshift-eng/art-docs/blob/master/release/4.y.z-stream.md#handling-blocker-bugs")
+            raise VerificationError(f"{int(match[1])} blocker Bug(s) found for release; do not proceed without resolving. See https://github.com/openshift-eng/art-docs/blob/master/release/4.y.z-stream.md#handling-blocker-bugs. Elliott output: {stdout}")
 
     async def attach_cve_flaws(self, advisory: int):
         # raise ChildProcessError("test")

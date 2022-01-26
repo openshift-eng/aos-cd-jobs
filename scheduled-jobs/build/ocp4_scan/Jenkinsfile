@@ -1,7 +1,8 @@
 node {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
-    
+    slacklib = commonlib.slacklib
+
     properties( [
         buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
         disableConcurrentBuilds(),
@@ -12,7 +13,13 @@ node {
     for ( version in commonlib.ocp4Versions ) {
         def cv = "${version}" // make sure we use a locally scoped variable
         versionJobs["scan-v${version}"] = {
-            build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSIONS', value: "${cv}")], propagate: false
+            try {
+                timeout(activity: true, time: 30, unit: 'MINUTES') {
+                    build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSIONS', value: "${cv}")], propagate: false
+                }
+            } catch (te) {
+                slacklib.to(cv).failure("Error running ocp_scan", te)
+            }
         }
     }
 

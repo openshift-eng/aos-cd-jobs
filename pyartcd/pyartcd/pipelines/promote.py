@@ -67,14 +67,12 @@ class PromotePipeline:
         logger.info("Loading build data...")
         group_config = await util.load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
         releases_config = await util.load_releases_config(self._doozer_working_dir / "ocp-build-data")
-        release_config: Optional[Dict] = releases_config.get("releases", {}).get(self.assembly)
-        if release_config is None:
+        if releases_config.get("releases", {}).get(self.assembly) is None:
             raise ValueError(f"To promote this release, assembly {self.assembly} must be explictly defined in releases.yml.")
-
-        release_issue_waivers = release_config.get("assembly", {}).get("waives", [])
+        permits = util.get_assembly_promotion_permits(releases_config, self.assembly)
 
         # Get release name
-        assembly_type = util.get_assembly_type(self.assembly, releases_config)
+        assembly_type = util.get_assembly_type(releases_config, self.assembly)
         release_name = util.get_release_name(assembly_type, self.group, self.assembly, self.release_offset)
         # Ensure release name is valid
         if not VersionInfo.isvalid(release_name):
@@ -111,7 +109,7 @@ class PromotePipeline:
                     await self.check_blocker_bugs()
                 except VerificationError as err:
                     logger.warn("Blocker bugs found for release; do not proceed without resolving; see https://github.com/openshift-eng/art-docs/blob/master/release/4.y.z-stream.md#handling-blocker-bugs: %s", err)
-                    justification = self._reraise_if_not_waived(err, "BLOCKER_BUGS", release_issue_waivers)
+                    justification = self._reraise_if_not_permitted(err, "BLOCKER_BUGS", permits)
                     justifications.append(justification)
                 logger.info("No blocker bugs found.")
 
@@ -129,7 +127,7 @@ class PromotePipeline:
                 await asyncio.gather(*futures)
             except ChildProcessError as err:
                 logger.warn("Error attaching CVE flaw bugs: %s", err)
-                justification = self._reraise_if_not_waived(err, "CVE_FLAWS", release_issue_waivers)
+                justification = self._reraise_if_not_permitted(err, "CVE_FLAWS", permits)
                 justifications.append(justification)
 
             # Ensure the image advisory is in QE (or later) state.
@@ -140,7 +138,7 @@ class PromotePipeline:
             if assembly_type == assembly.AssemblyTypes.STANDARD:
                 if image_advisory <= 0:
                     err = VerificationError(f"No associated image advisory for {self.assembly} is defined.")
-                    self._raise_if_not_waived(err, "NO_ERRATA", release_issue_waivers)
+                    self._raise_if_not_waived(err, "NO_ERRATA", permits)
                     logger.warning("%s", err)
                 else:
                     logger.info("Verifying associated image advisory %s...", image_advisory)
@@ -152,7 +150,7 @@ class PromotePipeline:
                         errata_url = f"https://access.redhat.com/errata/{live_id}"  # don't quote
                     except VerificationError as err:
                         logger.warning("%s", err)
-                        justification = self._raise_if_not_waived(err, "INVALID_ERRATA_STATUS", release_issue_waivers)
+                        justification = self._raise_if_not_waived(err, "INVALID_ERRATA_STATUS", permits)
                         justifications.append(justification)
 
             # Verify attached bugs
@@ -166,7 +164,7 @@ class PromotePipeline:
                         await self.verify_attached_bugs(advisories)
                     except ChildProcessError as err:
                         logger.warn("Error verifying attached bugs: %s", err)
-                        justification = self._reraise_if_not_waived(err, "ATTACHED_BUGS", release_issue_waivers)
+                        justification = self._reraise_if_not_permitted(err, "ATTACHED_BUGS", permits)
                         justifications.append(justification)
 
             # Promote release images
@@ -178,7 +176,7 @@ class PromotePipeline:
                 metadata["description"] = str(description)
             if errata_url:
                 metadata["url"] = errata_url
-            reference_releases = release_config.get("assembly", {}).get("basis", {}).get("reference_releases", {})
+            reference_releases = util.get_assmebly_basis(releases_config, self.assembly).get("reference_releases", {})
             tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE]
             release_infos = await self.promote_all_arches(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)
@@ -265,14 +263,14 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
 
         json.dump(data, sys.stdout)
 
-    def _reraise_if_not_waived(self, err: VerificationError, code: str, waivers: Iterable[Dict]):
-        waiver = next(filter(lambda waiver: waiver["code"] == code, waivers), None)
-        if not waiver:
+    def _reraise_if_not_permitted(self, err: VerificationError, code: str, permits: Iterable[Dict]):
+        permit = next(filter(lambda waiver: waiver["code"] == code, permits), None)
+        if not permit:
             raise err
-        justification: Optional[str] = waiver.get("why")
+        justification: Optional[str] = permit.get("why")
         if not justification:
-            raise ValueError("A justification is required to waive issue %s.", code)
-        self.logger.warn("Issue %s is waived with justification: %s", err, justification)
+            raise ValueError("A justification is required to permit issue %s.", code)
+        self.logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
 
     async def check_blocker_bugs(self):
@@ -492,7 +490,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             test_commands.append(f"test upgrade {edge} {release_name} {platform}")
         return test_commands
 
-    async def build_release_image(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], dest_image_pullspec: str, src_image_pullspec: Optional[str]):
+    async def build_release_image(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], dest_image_pullspec: str, reference_release: Optional[str]):
         go_arch_suffix = util.go_suffix_for_arch(arch, is_private=False)
         cmd = [
             "oc",
@@ -506,8 +504,8 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         ]
         if self.runtime.dry_run:
             cmd.append("--dry-run")
-        if src_image_pullspec:
-            cmd.append(f"--from-release=registry.ci.openshift.org/ocp{go_arch_suffix}/release{go_arch_suffix}:{src_image_pullspec}")
+        if reference_release:
+            cmd.append(f"--from-release=registry.ci.openshift.org/ocp{go_arch_suffix}/release{go_arch_suffix}:{reference_release}")
         else:
             major, minor = util.isolate_major_minor_in_group(self.group)
             src_image_stream = f"{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"

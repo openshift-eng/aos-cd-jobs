@@ -72,9 +72,14 @@ async def load_releases_config(build_data_path: os.PathLike) -> Dict:
     return yaml.safe_load(content)
 
 
-def get_assembly_type(assembly_name: str, releases_config: Dict):
+def get_assembly_type(releases_config: Dict, assembly_name: str):
     return assembly.assembly_type(model.Model(releases_config), assembly_name)
 
+def get_assmebly_basis(releases_config: Dict, assembly_name: str):
+    return assembly.assembly_basis(model.Model(releases_config), assembly_name)
+
+def get_assembly_promotion_permits(releases_config: Dict, assembly_name: str):
+    return assembly._assembly_config_struct(model.Model(releases_config), assembly_name, 'promotion_permits', {})
 
 def get_release_name(assembly_type: str, group_name: str, assembly_name: str, release_offset: Optional[int]):
     major, minor = isolate_major_minor_in_group(group_name)

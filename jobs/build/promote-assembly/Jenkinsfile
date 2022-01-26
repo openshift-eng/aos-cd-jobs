@@ -159,9 +159,6 @@ node {
             cmd << "--arch=${arch}"
         }
         echo "Will run ${cmd}"
-        env.https_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
-        env.http_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
-        env.no_proxy="localhost,127.0.0.1,openshiftapps.com,engineering.redhat.com,devel.redhat.com,bos.redhat.com,github.com"
         withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()

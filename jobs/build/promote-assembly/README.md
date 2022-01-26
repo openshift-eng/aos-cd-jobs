@@ -160,6 +160,28 @@ After signing the release, the
 is used to create PRs to have the release (and upgrade edges) included in OCP 4
 [release channels](https://github.com/openshift/cincinnati-graph-data/tree/master/channels).
 
+## Permit certain validation failures
+This job runs a lot of validations against the release content, advisories, and bugs before actually promoting the release.
+In case of a validation error, a slack message will be sent to corresponding release channel.
+The release artist can rerun the job to retry (it is reentrant), or define a `promotion_permits` entry in assembly definition to permit that failure. A justification should be also given in the `why` field. Note the justification message will be public, so don't include any confidential or customer related information.
+
+Example:
+
+```yaml
+releases:
+  4.10.99:
+    assembly:
+      type: standard
+      promotion_permits:
+      - code: ATTACHED_BUGS
+        why: Luke told me this can be ignored
+```
+
+List of codes:
+- *BLOCKER_BUGS* Blocker bugs found for release.
+- *ATTACHED_BUGS* Error verifying attached bugs
+- *CVE_FLAWS* Error attaching CVE flaw bugs
+
 ## Known issues
 
 ### General flakiness

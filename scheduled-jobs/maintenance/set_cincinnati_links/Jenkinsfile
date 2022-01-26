@@ -27,7 +27,13 @@ def runFor(version, channelPrefix, linkName) {
 def sortedVersions() {
   // Return versions honoring semver
   return commonlib.ocp4Versions.sort(false) {
-    def (major, minor) = it.tokenize('.')
+    def major_minor = it.tokenize('.')
+
+    assert major_minor.size() == 2
+
+    def major = major_minor[0]
+    def minor = major_minor[1]
+
     major*100000 + minor
   }
 }

@@ -122,11 +122,9 @@ node {
     }
 
     stage('mirror artifacts') {
-        mirrorTarget = "use-mirror-upload.ops.rhcloud.com"
         if (params.DRY_RUN) {
             echo "Would have archived artifacts in jenkins"
             echo "Would have mirrored artifacts to mirror.openshift.com/pub/:"
-            echo "    invoke_on_use_mirror push.pub.sh MIRROR_PATH"
         } else {
             echo "Mirroring artifacts to mirror.openshift.com/pub/"
 
@@ -168,14 +166,8 @@ node {
                             # Touch a file that indicates we have signed for this specific tag; used by rhacs-sigstore scheduled job
                             touch staging/rh-acs/${params.REPO}/${VERSION}
                             cp -a \${fn} staging/rh-acs/${params.REPO}
-                            scp -r staging/* ${mirrorTarget}:/srv/pub/rhacs/signatures/
                             aws s3 sync --no-progress staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
                             """
-                            mirror_result = buildlib.invoke_on_use_mirror("push.pub.sh", 'rhacs/signatures')
-                            if (mirror_result.contains("[FAILURE]")) {
-                                echo mirror_result
-                                error("Error running signed artifact sync push.pub.sh:\n${mirror_result}")
-                            }
                         }
                     }
                 } finally {

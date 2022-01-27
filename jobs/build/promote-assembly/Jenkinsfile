@@ -271,7 +271,7 @@ node {
         }
         for (arch in arches) {
             arch = commonlib.brewArchForGoArch(arch)
-            release.sendReleaseCompleteMessage(["name": release_info.name], release_info.advisory, release_info.live_url, arch)
+            release.sendReleaseCompleteMessage(release_info.name, release_info.advisory, release_info.live_url, arch)
         }
     }
 

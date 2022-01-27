@@ -269,10 +269,11 @@ node {
             echo "DRY_RUN: Would have sent release messages."
             return
         }
-        for (arch in arches) {
-            arch = commonlib.brewArchForGoArch(arch)
-            release.sendReleaseCompleteMessage(["name": release_info.name], release_info.advisory, release_info.live_url, arch)
-        }
+        // disable CI message till we have resolution to https://issues.redhat.com/browse/ART-3710
+        // for (arch in arches) {
+        //     arch = commonlib.brewArchForGoArch(arch)
+        //     release.sendReleaseCompleteMessage(["name": release_info.name], release_info.advisory, release_info.live_url, arch)
+        // }
     }
 
     stage("channel prs") {

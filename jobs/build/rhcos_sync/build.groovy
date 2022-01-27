@@ -7,7 +7,6 @@ dryRun = ""
 artifacts = []
 baseUrl = ""
 metaUrl = ""
-baseDir = ""
 syncList = "rhcos-synclist-${currentBuild.number}.txt"
 // RHCOS artifacts that were published in 4.2/4.3
 // QEMU added because bare-metal IPI installs need it for now
@@ -34,7 +33,6 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     def archSuffix = commonlib.brewSuffixForArch(arch)
     def archDir = ocpVersion == "4.2" ? "" : "/${arch}"
     baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}/${rhcosBuild}${archDir}"
-    baseDir = "/srv/pub/openshift-v4/${arch}/dependencies/rhcos"
     s3MirrorBaseDir = "/pub/openshift-v4/${arch}/dependencies/rhcos"
     // Actual meta.json
     metaUrl = baseUrl + "/meta.json"
@@ -77,7 +75,6 @@ def rhcosSyncPrintArtifacts() {
 }
 
 def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
-    sh("scp ${syncList} use-mirror-upload.ops.rhcloud.com:/tmp/")
     def invokeOpts = " --prefix ${rhcosMirrorPrefix}" +
         " --arch ${arch}" +
         " --buildid ${rhcosBuild}" +
@@ -99,9 +96,6 @@ def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
     withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
         commonlib.shell("${env.WORKSPACE}/S3-rhcossync.sh ${invokeOpts} --basedir ${s3MirrorBaseDir} --synclist ${env.WORKSPACE}/${syncList}")
     }
-
-    buildlib.invoke_on_use_mirror("rhcossync.sh", "-- ${invokeOpts} --synclist /tmp/${syncList} --basedir ${baseDir}")
-
 }
 
 def rhcosSyncROSA() {

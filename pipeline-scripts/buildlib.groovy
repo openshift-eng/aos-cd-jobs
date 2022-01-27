@@ -24,6 +24,7 @@ def initialize(test=false, checkMock=true, regAws=false) {
         this.kinit()
     }
     this.path_setup()
+    this.proxy_setup()
 
     GITHUB_URLS = [:]
     GITHUB_BASE_PATHS = [:]
@@ -38,6 +39,12 @@ def path_setup() {
     sh "rm -rf ${GOPATH}"  // Remove any cruft
     sh "mkdir -p ${GOPATH}"
     echo "Initialized env.GOPATH: ${env.GOPATH}"
+}
+
+def proxy_setup() {
+    env.https_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
+    env.http_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
+    env.no_proxy="localhost,127.0.0.1,openshiftapps.com,engineering.redhat.com,devel.redhat.com,bos.redhat.com,github.com"
 }
 
 def kinit() {

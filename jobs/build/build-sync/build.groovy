@@ -131,6 +131,13 @@ def buildSyncApplyImageStreams() {
         writeJSON(file: currentISfilename, json: currentIS)
         artifacts.addAll(["pre-apply-${namespace}-${theStream}.json"])
 
+        // Make sure there's still an update to IS
+        def diffStatus = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} diff --filename=${isFile}", [returnStatus: true])
+        if ( diffStatus == 0 ) {
+            echo("No difference found in generated and current IS. Skipping")
+            continue
+        }
+
         // We check for updates by comparing the object's 'resourceVersion'
         def currentResourceVersion = currentIS.metadata?.resourceVersion ?: 0
         echo("Current resourceVersion for ${theStream}: ${currentResourceVersion}")
@@ -147,23 +154,14 @@ def buildSyncApplyImageStreams() {
         writeJSON(file: newISfilename, json: newIS)
         artifacts.addAll(["post-apply-${namespace}-${theStream}.json"])
 
-        // Make sure they had a change
-        diffStatus = commonlib.shell(
-            returnStatus: true
-            script: "diff ${currentISfilename} ${newISfilename}"
-        )
-        if ( diffStatus == 0 ) {
-            echo("Previous and current IS are the same, .metadata.resourceVersion not expected to change")
-        } else {
-            def newResourceVersion = newIS.metadata.resourceVersion
-            if ( newResourceVersion == currentResourceVersion ) {
-                if ( params.DRY_RUN ) {
-                    echo("IS `.metadata.resourceVersion` has not updated, which is expected in a dry run.")
-                } else {
-                    echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
-                    currentBuild.description += "<br>ImageStream update failed for ${isFile}"
-                    failures << isFile
-                }
+        def newResourceVersion = newIS.metadata.resourceVersion
+        if ( newResourceVersion == currentResourceVersion ) {
+            if ( params.DRY_RUN ) {
+                echo("IS `.metadata.resourceVersion` has not updated, which is expected in a dry run.")
+            } else {
+                echo("IS `.metadata.resourceVersion` has not updated, it should have updated. Please use the debug info above to report this issue")
+                currentBuild.description += "<br>ImageStream update failed for ${isFile}"
+                failures << isFile
             }
         }
         if ( params.PUBLISH ) {

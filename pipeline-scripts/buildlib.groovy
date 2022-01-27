@@ -154,6 +154,7 @@ def elliott(cmd, opts=[:]){
 def oc(cmd, opts=[:]){
     return commonlib.shell(
         returnStdout: opts.capture ?: false,
+        returnStatus: opts.returnStatus ?: false,
         script: "GOTRACEBACK=all /usr/bin/oc ${cleanWhitespace(cmd)}"
     )
 }

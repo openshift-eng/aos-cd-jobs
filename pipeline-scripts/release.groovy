@@ -863,7 +863,6 @@ def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='
     if (additional_text) {
         slack_msg += "${additional_text}\n"
     }
-    slack_msg += "@patch-manager Please continue merging PRs for the next release.\n"
 
     if ( ghorg == 'openshift' && !noSlackOutput) {
         slacklib.to('#forum-release').say(slack_msg)

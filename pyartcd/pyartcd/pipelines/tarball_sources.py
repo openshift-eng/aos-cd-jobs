@@ -59,7 +59,7 @@ class TarballSourcesPipeline:
             cmd.append(f"--component={c}")
         for ad in advisories:
             cmd.append(f"{ad}")
-        _, out, _ = await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars, capture_stderr=False)
+        _, out, _ = await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars, stderr=None)
         # look for lines like `RHEL-7-OSE-4.2/${advisory}/release/logging-fluentd-container-v4.2.26-202003230335.tar.gz`
         pattern = re.compile(r"^(.+\.tar\.gz)$")
         tarball_files = [line for line in out.splitlines() if pattern.match(line)]

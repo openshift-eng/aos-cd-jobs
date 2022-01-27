@@ -129,7 +129,7 @@ def buildSyncApplyImageStreams() {
         def currentIS = getImageStream(theStream, namespace)
         def currentISfilename = "pre-apply-${namespace}-${theStream}.json"
         writeJSON(file: currentISfilename, json: currentIS)
-        artifacts.addAll(["pre-apply-${namespace}-${theStream}.json"])
+        artifacts.addAll([currentISfilename])
 
         // Make sure there's still an update to IS
         def diffStatus = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} diff --filename=${isFile}", [returnStatus: true])
@@ -152,7 +152,7 @@ def buildSyncApplyImageStreams() {
         def newIS = getImageStream(theStream, namespace)
         newISfilename = "post-apply-${namespace}-${theStream}.json"
         writeJSON(file: newISfilename, json: newIS)
-        artifacts.addAll(["post-apply-${namespace}-${theStream}.json"])
+        artifacts.addAll([newISfilename])
 
         def newResourceVersion = newIS.metadata.resourceVersion
         if ( newResourceVersion == currentResourceVersion ) {

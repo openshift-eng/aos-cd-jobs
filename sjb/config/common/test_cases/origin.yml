@@ -160,11 +160,12 @@ actions:
       name=dockertested
       baseurl=https://mirror.openshift.com/enterprise/rhel/dockertested/x86_64/os/
       enabled=1
-      sslclientcert=/var/lib/yum/client-cert.pem
-      sslclientkey=/var/lib/yum/client-key.pem
       sslverify=0
       REPO
       fi
+      set +x
+      echo "username=$MIRROR_OS_USER" >> /etc/yum.repos.d/dockertested.repo
+      echo "password=$MIRROR_OS_PASS" >> /etc/yum.repos.d/dockertested.repo
 post_actions:
   - type: "host_script"
     title: "assemble GCS output"

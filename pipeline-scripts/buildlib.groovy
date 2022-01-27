@@ -24,7 +24,6 @@ def initialize(test=false, checkMock=true, regAws=false) {
         this.kinit()
     }
     this.path_setup()
-    this.proxy_setup()
 
     GITHUB_URLS = [:]
     GITHUB_BASE_PATHS = [:]
@@ -1565,5 +1564,6 @@ def get_releases_config(String group) {
 }
 
 this.setup_venv()
+this.proxy_setup()
 
 return this

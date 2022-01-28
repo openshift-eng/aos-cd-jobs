@@ -134,6 +134,11 @@ for (( i = 0; i &lt; 10; i++ )); do
             if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
                 break
             fi
+        done
+            for (( i = 0; i &lt; 10; i++ )); do
+            if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/mirror-os-cred.sh openshiftdevel:/data/mirror-os-cred.sh; then
+                break
+            fi
         done</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
@@ -419,6 +424,8 @@ set -o errexit -o nounset -o pipefail -o xtrace
 cd &#34;\${HOME}&#34;
 sudo touch /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
 sudo chmod a+rw /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+set +x
+source /data/mirror-os-cred.sh
 cat &lt;&lt;REPO &gt;/etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
 [rhel-7-server-ansible-2.6-rpms]
 name=rhel-7-server-ansible-2.6-rpms
@@ -427,8 +434,8 @@ enabled=1
 sslverify=0
 REPO
 set +x
-echo &#34;username=\$MIRROR_OS_USER&#34; &gt;&gt; /etc/yum.repos.d/dockertested.repo
-echo &#34;password=\$MIRROR_OS_PASS&#34; &gt;&gt; /etc/yum.repos.d/dockertested.repo
+echo &#34;username=\$MIRROR_OS_USER&#34; &gt;&gt; /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+echo &#34;password=\$MIRROR_OS_PASS&#34; &gt;&gt; /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
 
 sudo yum repolist
 SCRIPT

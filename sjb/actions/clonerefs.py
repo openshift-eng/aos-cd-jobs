@@ -66,6 +66,11 @@ class ClonerefsAction(Action):
             if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
                 break
             fi
+        done
+            for (( i = 0; i < 10; i++ )); do
+            if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/mirror-os-cred.sh openshiftdevel:/data/mirror-os-cred.sh; then
+                break
+            fi
         done""",
                     output_format=self.output_format
                 )

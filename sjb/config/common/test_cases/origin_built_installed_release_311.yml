@@ -10,6 +10,8 @@ extensions:
       script: |-
         sudo touch /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
         sudo chmod a+rw /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+        set +x
+        source /data/mirror-os-cred.sh
         cat <<REPO >/etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
         [rhel-7-server-ansible-2.6-rpms]
         name=rhel-7-server-ansible-2.6-rpms
@@ -18,8 +20,8 @@ extensions:
         sslverify=0
         REPO
         set +x
-        echo "username=$MIRROR_OS_USER" >> /etc/yum.repos.d/dockertested.repo
-        echo "password=$MIRROR_OS_PASS" >> /etc/yum.repos.d/dockertested.repo
+        echo "username=$MIRROR_OS_USER" >> /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+        echo "password=$MIRROR_OS_PASS" >> /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
 
         sudo yum repolist
     - type: "script"

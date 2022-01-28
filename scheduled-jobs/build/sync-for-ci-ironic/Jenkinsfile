@@ -15,11 +15,7 @@ node() {
     commonlib = buildlib.commonlib
     baseDir = "${env.WORKSPACE}/ci-ironic"
 
-    MIRROR_TARGET = "use-mirror-upload.ops.rhcloud.com"
-    MIRROR_RELATIVE_REPOSYNC = "reposync/ci-ironic"
-    MIRROR_ENTERPRISE_BASE_DIR = "/srv/enterprise"
-    MIRROR_SYNC_DIR = "${MIRROR_ENTERPRISE_BASE_DIR}/${MIRROR_RELATIVE_REPOSYNC}"
-    S3_MIRROR_SYNC_DIR = "/enterprise/${MIRROR_RELATIVE_REPOSYNC}"
+    S3_MIRROR_SYNC_DIR = "/enterprise/reposync/ci-ironic"
 
     for ( String version : sortedVersions() ) {
 
@@ -55,13 +51,7 @@ node() {
 
         echo "Synchronizing plashet for ${prevalidation_tag_name}"
 
-        sh "ssh ${MIRROR_TARGET} -- mkdir --mode 755 -p ${MIRROR_SYNC_DIR}" // make ci-ironic if it doesn't exist
-        commonlib.shell "rsync -avzh --copy-links --chmod=a+rwx,g-w,o-w --delete ${baseDir}/${plashetDirName}/ ${MIRROR_TARGET}:${MIRROR_SYNC_DIR}/${plashetDirName} "
         commonlib.syncRepoToS3Mirror("${baseDir}/${plashetDirName}/", "${S3_MIRROR_SYNC_DIR}/${plashetDirName}/")
-    }
-
-    timeout(time: 2, unit: 'HOURS') {
-        sh "ssh ${MIRROR_TARGET} -- push.enterprise.sh -v ${MIRROR_RELATIVE_REPOSYNC}"
     }
 
     buildlib.cleanWorkspace()

@@ -132,7 +132,7 @@ def buildSyncApplyImageStreams() {
         artifacts.addAll([currentISfilename])
 
         // Make sure there's still an update to IS
-        def diffStatus = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} diff --filename=${isFile}", [returnStatus: true])
+        def diffStatus = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} diff --filename=${isFile}", [capture: true, returnStatus: true])
         if ( diffStatus == 0 ) {
             echo("No difference found in generated and current IS. Skipping")
             continue

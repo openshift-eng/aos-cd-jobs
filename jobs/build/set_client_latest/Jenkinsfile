@@ -91,10 +91,6 @@ node {
             }
         }
 
-        timeout(15) {
-            result = buildlib.invoke_on_use_mirror("set-v4-client-latest.sh", params.CHANNEL_OR_RELEASE, params.CLIENT_TYPE, params.LINK_NAME, params.ARCHES)
-        }
-        echo "${result}"
     } catch (err) {
         commonlib.email(
             to: "${params.MAIL_LIST_FAILURE}",

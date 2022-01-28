@@ -138,13 +138,6 @@ if [ "${DRY_RUN:-0}" -ne 0 ]; then
     exit 0
 fi
 
-#sync to use-mirror-upload
-rsync \
-    -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
-    -e "ssh -l jenkins_aos_cd_bot" \
-    "${OUTDIR}" \
-    use-mirror-upload.ops.rhcloud.com:${OC_MIRROR_DIR}/
-
 aws s3 sync --no-progress --delete  ${OUTDIR}/ s3://art-srv-enterprise${S3_MIRROR_DIR}/
 
 retry() {
@@ -160,6 +153,3 @@ retry() {
     fi
   done
 }
-
-# kick off full mirror push
-retry ssh ${SSH_OPTS} timeout 15m /usr/local/bin/push.pub.sh "openshift-v4/${ARCH}/clients/${CLIENT_TYPE}/${VERSION}" -v

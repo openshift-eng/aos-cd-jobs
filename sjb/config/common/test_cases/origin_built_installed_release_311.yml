@@ -10,6 +10,8 @@ extensions:
       script: |-
         sudo touch /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
         sudo chmod a+rw /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+        set +x
+        source /var/lib/jenkins/mirror-os-cred.sh
         cat <<REPO >/etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
         [rhel-7-server-ansible-2.6-rpms]
         name=rhel-7-server-ansible-2.6-rpms

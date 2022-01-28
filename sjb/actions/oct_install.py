@@ -14,7 +14,7 @@ EOF
 source "${WORKSPACE}/activate"
 mkdir -p "${OCT_CONFIG_HOME}"
 rm -rf "${OCT_CONFIG_HOME}/origin-ci-tool"
-if [[ -f /var/lib/jenkins/mirror-os-cred.sh ]; then
+if [[ -f /var/lib/jenkins/mirror-os-cred.sh ]]; then
   source /var/lib/jenkins/mirror-os-cred.sh
 else
   echo "ERROR: missing file: mirror-os-cred.sh"

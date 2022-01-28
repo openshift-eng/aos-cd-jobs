@@ -19,7 +19,8 @@ arch_suffixes = [
 
 node() {
     checkout scm
-    commonlib = load("pipeline-scripts/commonlib.groovy")
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
     description = ""
 
     sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'") // for parsing dates like 2021-10-27T03:27:03Z

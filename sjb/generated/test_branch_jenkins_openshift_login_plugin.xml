@@ -419,8 +419,8 @@ enabled=1
 sslverify=0
 REPO
 set +x
-echo &#34;username=\$MIRROR_OS_USER&#34; &gt;&gt; /etc/yum.repos.d/dockertested.repo
-echo &#34;password=\$MIRROR_OS_PASS&#34; &gt;&gt; /etc/yum.repos.d/dockertested.repo
+echo &#34;username=\$MIRROR_OS_USER&#34; &gt;&gt; /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+echo &#34;password=\$MIRROR_OS_PASS&#34; &gt;&gt; /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
 
 sudo yum repolist
 SCRIPT

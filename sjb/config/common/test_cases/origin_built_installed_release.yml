@@ -20,8 +20,8 @@ extensions:
         sslverify=0
         REPO
         set +x
-        echo "username=$MIRROR_OS_USER" >> /etc/yum.repos.d/dockertested.repo
-        echo "password=$MIRROR_OS_PASS" >> /etc/yum.repos.d/dockertested.repo
+        echo "username=$MIRROR_OS_USER" >> /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
+        echo "password=$MIRROR_OS_PASS" >> /etc/yum.repos.d/rhel-7-server-ansible-2.6-rpms.repo
 
         sudo yum repolist
     - type: "script"

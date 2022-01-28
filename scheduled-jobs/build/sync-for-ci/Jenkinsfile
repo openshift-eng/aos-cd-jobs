@@ -27,7 +27,13 @@ def sortedVersions() {
   // Return versions honoring semver, but exclude disabled
   def disabled = []
   def s = commonlib.ocp4Versions.sort(false) {
-    def (major, minor) = it.tokenize('.')
+    def major_minor = it.tokenize('.')
+
+    assert major_minor.size() == 2
+
+    def major = major_minor[0]
+    def minor = major_minor[1]
+
     major*100000 + minor
   }
   return s.findAll { !disabled.contains(it) }

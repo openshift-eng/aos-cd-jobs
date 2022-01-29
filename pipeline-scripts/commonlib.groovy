@@ -537,7 +537,7 @@ def extractMajorMinorVersionNumbers(String version) {
  * https://semver.org/spec/v2.0.0.html#spec-item-9
  */
 String isPreRelease(String version) {
-    return (version =~ /^(\d+\.\d+\.\d+(-?))/)[0][1] == "-"
+    return (version =~ /^(\d+\.\d+\.\d+)(-?)/)[0][2] == "-"
 }
 
 /**

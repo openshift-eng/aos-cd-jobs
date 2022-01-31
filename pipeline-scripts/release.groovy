@@ -465,7 +465,7 @@ done
             if (check.status == 200) {
                 // If prevGA is known to the release controller, compute the changelog html
                 def response = httpRequest(
-                    url: "${rcURL}/changelog?from=4.${prevMinor}.0&to=${release_name}&format=html",
+                    url: "${rcURL}/changelog?from=${prevGA}&to=${release_name}&format=html",
                     httpMode: 'GET',
                     timeout: 180,
                 )
@@ -473,7 +473,7 @@ done
 
                 // Also collect the output in markdown for SD to consume
                 response = httpRequest(
-                    url: "${rcURL}/changelog?from=4.${prevMinor}.0&to=${release_name}",
+                    url: "${rcURL}/changelog?from=${prevGA}&to=${release_name}",
                     httpMode: 'GET',
                     timeout: 180,
                 )

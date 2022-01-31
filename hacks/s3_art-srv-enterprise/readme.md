@@ -13,6 +13,7 @@ CloudFront does not support client certificate based authentication (used by the
 
 Instead, the new infrastructure will be secured with basic auth (username & password) for authentication. This is enforced by a CloudFront function setup as a View Request hook. The View Request checks basic authentication whenever a /enterprise path is requested. See cloudfront_function_art-srv-request-basic-auth.js, but note that the username/password has been removed from the code. 
 
+In order to add new service accounts to access /enterprise, login to the AWS account -> CloudFront -> Functions -> Edit "art-srv-enterprise-request" and add a new entry to SERVICE_ACCOUNT.
 
 ### /pub directory listing
 CloudFront does not provide an Apache-style file listing for directory structures within that S3 bucket (S3 content is not even technically organized by directories). The current https://mirror.openshift.com/pub does provide listings, so it was necessary to add something novel to the CloudFront distribution.
@@ -31,9 +32,6 @@ This is critical to understand because, even if s3 content is pushed under /pub/
 Some teams that traditionally had ART publishing their clients to mirror.openshift.com have opted to host their content on Red Hat's content gateway (CGW). However, those teams still need older URLs to resolve. As such, certain directories on the new mirror.openshift.com are designed to proxy content from CGW.
 
 This was achieved by adding the CGW domain as an origin for our cloudfront distribution. This allows us to, for example, proxy a request to cloudfront for /pub/openshift-v4/clients/crc to pull content from https://developers.redhat.com/content-gateway/rest/mirror/pub/openshift-v4/clients/crc/ . This is another case where even if content is written to our s3 bucket, it will not be visible to users of cloudfront.
-
-### Generating credentials
-See gen_password.py. 
 
 ### Backup and restore
 The art-srv-enterprise bucket has S3 versioning enabled. This means that deleted files can be restored if it is done quickly. There is a lifecycle rule that will permanently delete these files after 30 days.

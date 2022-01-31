@@ -177,12 +177,12 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                     } catch(err) {
                                         echo "Error checking for INCONSISTENT_RHCOS_RPMS:\n${err}"
                                         echo "RHCOS builds inconsistent, not triggering build-sync"
-                                        continue
+                                        return
                                     }
 
                                     if ( params.DRY_RUN ) {
                                         echo "Would have triggered build-sync job"
-                                        continue
+                                        return
                                     }
 
                                     build(

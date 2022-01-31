@@ -245,8 +245,9 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             "content": {},
             "justifications": justifications,
         }
-        if errata_url:
+        if image_advisory > 0:
             data["advisory"] = image_advisory
+        if errata_url:
             data["live_url"] = errata_url
         for arch, release_info in zip(arches, release_infos):
             data["content"][arch] = {

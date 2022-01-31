@@ -100,8 +100,8 @@ ocpReleaseState = [
             "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],
         ],
         "4.10": [
-            'release': [],
-            "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],
+            'release': ['x86_64', 's390x', 'ppc64le', 'aarch64'],
+            "pre-release": [],
         ],
         "4.9": [
             'release': ['x86_64', 's390x', 'ppc64le', 'aarch64'],

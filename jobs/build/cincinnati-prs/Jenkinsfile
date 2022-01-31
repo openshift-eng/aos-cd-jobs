@@ -8,7 +8,7 @@ node {
         <hr />
         <h2>Create the PRs for Cincinnati to publish a release</h2>
         <hr />
-        <p><b>Timing</b>: The "release" job runs this once the release is accepted.</p>
+        <p><b>Timing</b>: The promote-assembly job runs this once the release is accepted.</p>
         This creates PRs to enter the new release in all the relevant Cincinnati channels <a href="https://github.com/openshift/cincinnati-graph-data/tree/master/channels" target="_blank">here</a>
         <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/cincinnati-prs/README.md">For more details see the README.</a>
     """)
@@ -67,7 +67,6 @@ node {
             disableConcurrentBuilds()
         ]
     )   // Please update README.md if modifying parameter names or semantics
-
     commonlib.checkMock()
     workdir = "${env.WORKSPACE}/workdir"
     buildlib.cleanWorkdir(workdir, true)

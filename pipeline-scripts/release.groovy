@@ -858,7 +858,7 @@ def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='
     def slack_msg = "ART has opened Cincinnati PRs for ${releaseName}:\n\n"
     if (fromReleaseTag) {
         slack_msg += "This release was promoted using nightly"
-        for (nightly : commonlib.parseList(fromReleaseTag)) {
+        for (nightly in commonlib.parseList(fromReleaseTag)) {
             slack_msg += " registry.ci.openshift.org/ocp/release:${nightly}\n"
         }
     }

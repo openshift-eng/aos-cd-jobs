@@ -284,6 +284,8 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
       that Incoming can respond back with further clarification questions if
       needed.
     4. Send an email to prodsec-openshift@redhat.com to alert them to the ticket.
+
+    https://coreos.slack.com/archives/GDBRP5YJH/p1643702960116329
     """
 
         }

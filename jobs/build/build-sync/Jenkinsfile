@@ -15,6 +15,10 @@ node {
         and updates the imagestreams on api.ci which feed into nightlies on our
         release-controllers.
 
+        build-sync runs a comprehensive set of checks validating the internal consistency
+        of the proposed imagestream, and may halt the process accordingly. It can be considered
+        the main artbiter.
+
         For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/build-sync/README.md" target="_blank">README</a>
     """)
 

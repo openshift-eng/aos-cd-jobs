@@ -8,6 +8,10 @@ for all 4.y versions, and updates the arch-specific imagestreams on api.ci
 (which feed into nightlies on our release-controllers) to point at the updated
 (arch-specific) image shasum.
 
+Before announcing a new assembly on api.ci, a comprehensive set of internal
+consistency checks is executed. Build-sync may decide not to create a new entry
+in api.ci because of this, and should be considered the ultimate artbiter.
+
 Example imagestreams:
 
 * [`4.5 x86_64`](https://api.ci.openshift.org/console/project/ocp/browse/images/4.5-art-latest/)

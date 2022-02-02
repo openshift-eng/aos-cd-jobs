@@ -9,18 +9,24 @@ description = ""
 failed = false
 
 def runFor(version, channelPrefix, linkName) {
-    b = build(
-            job: '../aos-cd-builds/build%2Fset_client_latest',
-            parameters: [
-                string(name: 'CHANNEL_OR_RELEASE', value: "${channelPrefix}-${version}"),
-                string(name: 'CLIENT_TYPE', value: 'ocp'),
-                string(name: 'LINK_NAME', value: linkName),
-                string(name: 'ARCHES', value: 'any'),
-            ],
-            propagate: false,
-        )
-    description += "${linkName} -> ${channelPrefix}-${version} - ${b.result}\n"
-    failed |= (b.result != "SUCCESS")
+    try {
+        timeout(activity: true, time: 30, unit: 'MINUTES') {
+            b = build(
+                    job: '../aos-cd-builds/build%2Fset_client_latest',
+                    parameters: [
+                        string(name: 'CHANNEL_OR_RELEASE', value: "${channelPrefix}-${version}"),
+                        string(name: 'CLIENT_TYPE', value: 'ocp'),
+                        string(name: 'LINK_NAME', value: linkName),
+                        string(name: 'ARCHES', value: 'any'),
+                    ],
+                    propagate: false,
+                )
+            description += "${linkName} -> ${channelPrefix}-${version} - ${b.result}\n"
+            failed |= (b.result != "SUCCESS")
+        }
+    } catch (err) {
+        slacklib.to('#art-release').failure("Error running set_client_latest\n${err}")
+    }
 }
 
 @NonCPS

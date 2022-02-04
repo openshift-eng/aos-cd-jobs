@@ -271,7 +271,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         justification: Optional[str] = permit.get("why")
         if not justification:
             raise ValueError("A justification is required to permit issue %s.", code)
-        self.logger.warn("Issue %s is permitted with justification: %s", err, justification)
+        self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
 
     async def check_blocker_bugs(self):

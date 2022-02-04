@@ -121,22 +121,14 @@ node {
             return
         }
 
-        // This stage is safe to run concurrently. Each build runs
-        // these steps in its own directory.
-        stage("Generate inputs") { build.buildSyncGenInputs() }
-        // Allow this job to run concurrently for different
-        // versions. That is to say, do not allow builds for the same
-        // version to run the business logic concurrently.
-        lock("mirroring-lock-OCP-${params.BUILD_VERSION}") {
-            stage("oc image mirror") { build.buildSyncMirrorImages() }
-        }
         // // An incident where a bug in oc destroyed the content of a critical imagestream ocp:is/release uncovered the fact that this vital data was not being backed up by any process.
         // DPTP will be asked to backup etcd on this cluster, but ART should also begin backing up these imagestreams during normal operations as a first line of defense.
         // In the build-sync job, prior to updating the 4.x-art-latest imagestreams, a copy of all imagestreams in the various release controller namespaces should be performed.
         stage("backup imagestreams") { build.backupAllImageStreams() }
-        lock("oc-applying-lock-OCP-${params.BUILD_VERSION}") {
-            stage("oc apply") { build.buildSyncApplyImageStreams() }
-        }
+
+        // This stage is safe to run concurrently. Each build runs
+        // these steps in its own directory.
+        stage("update nightly imagestreams") { build.buildSyncGenInputs() }
 
         // Successful buildsync, reset fail count
         writeFile file: failCountFile, text: "0"

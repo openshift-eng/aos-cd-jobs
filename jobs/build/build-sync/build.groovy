@@ -50,20 +50,21 @@ def buildSyncGenInputs() {
         excludeArchesParam += " --exclude-arch ${arch}"
     def dryRunParams = params.DRY_RUN ? '--skip-gc-tagging --moist-run' : ''
     withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
+        sh "rm -rf ${env.WORKSPACE}/gen-payload-artifacts"
         buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}"
 --data-path "${params.DOOZER_DATA_PATH}"
 --group 'openshift-${params.BUILD_VERSION}'
 release:gen-payload
---output-dir "${mirrorWorking}/gen-payload-artifacts"
+--output-dir "${env.WORKSPACE}/gen-payload-artifacts"
 --apply
 ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
 ${excludeArchesParam}
 ${dryRunParams}
 """
     }
-    artifacts.addAll(["${mirrorWorking}/gen-payload-artifacts/*"])
+    artifacts.addAll(["gen-payload-artifacts/*"])
 
 }
 

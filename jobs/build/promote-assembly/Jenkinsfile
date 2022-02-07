@@ -199,6 +199,14 @@ node {
     }
 
     stage("sync RHCOS") {
+        /*
+         * This has inappropriate logic, disabling it for now.
+         * Current behavior is to look up rhcos version of machine-os-content
+         * under some circumstances, and to put the result on mirror.
+         * Behavior should be to look up the rhcos version in 
+         * https://github.com/openshift/installer/blob/release-4.10/data/data/coreos/rhcos.json
+         * from the commit of installer, and ensure `latest-<version>` points to there.
+
         def is_prerelease = release_info.type == "candidate"
         if (release_info.type == "custom") {
             echo "Skipping RHCOS sync for a custom release."
@@ -232,6 +240,7 @@ node {
                 parameters: sync_params
             )
         }
+        */
     }
 
     stage("sign artifacts") {

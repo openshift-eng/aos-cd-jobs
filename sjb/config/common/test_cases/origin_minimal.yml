@@ -72,6 +72,23 @@ actions:
             ;;
         esac
       fi
+      pushd .
+      echo "Fixing up /etc/yum.repos.d and adding in credentials"
+      cd /etc/yum.repos.d
+      sudo tar xzvf /data/good_repos_rhui.tgz
+      set +x
+      source /data/mirror-os-cred.sh
+      set -x
+      for i in charlie oso-rhui-rhel-server-extras oso-rhui-rhel-server-releases-optional oso-rhui-rhel-server-releases oso-rhui-rhel-server-rhscl rhel-7-server-ansible-2.4-rpms rhel-7-server-ansible-2.6-rpms; do
+        set +x
+        sudo chmod a+rw ${i}.repo
+        sudo echo "username=$MIRROR_OS_USER" >> ${i}.repo
+        sudo echo "password=$MIRROR_OS_PASS" >> ${i}.repo
+        sudo chown root:root ${i}.repo
+        set -x
+      done
+      ls -l
+      popd
   - type: "script"
     title: "enable docker tested repo"
     timeout: 300

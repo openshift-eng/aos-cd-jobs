@@ -36,6 +36,12 @@ extensions:
         fi
         sudo yum install -y "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7_9"
         rpm -q "openshift-ansible${last_tag/openshift-ansible/}.git.0.${last_commit}.el7_9"
+
+        # Not sure if this ever got installed (so I installed them here)
+        # TODO: We can comment this out and try later.
+        sudo rpm -ivh /data/iptables-services-1.4.21-35.el7.x86_64.rpm
+        sudo rpm -ivh /data/dnsmasq-2.76-16.el7.x86_64.rpm
+
     - type: "script"
       title: "install Ansible plugins"
       timeout: 600

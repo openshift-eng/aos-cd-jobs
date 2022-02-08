@@ -173,12 +173,24 @@ for (( i = 0; i &lt; 10; i++ )); do
             if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.config/gcloud/gcs-publisher-credentials.json openshiftdevel:/data/credentials.json; then
                 break
             fi
-        done
-            for (( i = 0; i &lt; 10; i++ )); do
+    done
+    for (( i = 0; i &lt; 10; i++ )); do
             if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/mirror-os-cred.sh openshiftdevel:/data/mirror-os-cred.sh; then
                 break
             fi
-        done</command>
+    done
+
+    for (( i = 0; i &lt; 10; i++ )); do
+            if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/tweaks/*.rpm openshiftdevel:/data/; then
+                break
+            fi
+    done
+
+    for (( i = 0; i &lt; 10; i++ )); do
+            if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/tweaks/good_repos_rhui.tgz openshiftdevel:/data/; then
+                break
+            fi
+    done</command>
         </hudson.tasks.Shell>
         <hudson.tasks.Shell>
           <command>#!/bin/bash
@@ -289,6 +301,23 @@ if [[ &#34;\${JOB_NAME}&#34; == *update* ]]; then
       ;;
   esac
 fi
+pushd .
+echo &#34;Fixing up /etc/yum.repos.d and adding in credentials&#34;
+cd /etc/yum.repos.d
+sudo tar xzvf /data/good_repos_rhui.tgz
+set +x
+source /data/mirror-os-cred.sh
+set -x
+for i in charlie oso-rhui-rhel-server-extras oso-rhui-rhel-server-releases-optional oso-rhui-rhel-server-releases oso-rhui-rhel-server-rhscl rhel-7-server-ansible-2.4-rpms rhel-7-server-ansible-2.6-rpms; do
+  set +x
+  sudo chmod a+rw \${i}.repo
+  sudo echo &#34;username=\$MIRROR_OS_USER&#34; &gt;&gt; \${i}.repo
+  sudo echo &#34;password=\$MIRROR_OS_PASS&#34; &gt;&gt; \${i}.repo
+  sudo chown root:root \${i}.repo
+  set -x
+done
+ls -l
+popd
 SCRIPT
 chmod +x &#34;${script}&#34;
 scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config &#34;${script}&#34; openshiftdevel:&#34;${script}&#34;

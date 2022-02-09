@@ -10,6 +10,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import quote
+import yaml
 
 import aiohttp
 import click
@@ -92,12 +93,7 @@ class PromotePipeline:
                 raise ValueError("No arches specified.")
             # Get previous list
             upgrades_str: Optional[str] = group_config.get("upgrades")
-            if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
-                raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to empty string.")
-            previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
-            # Ensure all versions in previous list are valid semvers.
-            if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
-                raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
+            previous_list = self.validate_upgrades(upgrades_str)
 
             # Check for blocker bugs
             if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
@@ -273,6 +269,40 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             raise ValueError("A justification is required to permit issue %s.", code)
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
+
+    def validate_upgrades(self, upgrades_str: str, assembly_type: assembly.AssemblyTypes, build_data_path: str):
+        if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
+            raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to an empty string.")
+        previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
+        # Ensure all versions in previous list are valid semvers.
+        if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
+            raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
+
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        if minor < 1:
+            return previous_list
+
+        prev_ver = f'{major}.{minor-1}'
+        show_spec = f"openshift-{prev_ver}:releases.yml"
+        cmd = [
+            "git",
+            "show",
+            show_spec,
+        ]
+        _, content, _ = exectools.cmd_gather(cmd, stderr=None)
+        releases_config = yaml.safe_load(content)
+
+        def looks_standard_upgrade_edge(config, x):
+            rel_type = config['releases'][x]['assembly'].get('type','')
+            is_not_custom = rel_type != 'custom'
+            is_candidate = (rel_type == 'candidate') or (re.match("rc\.\d+", x) or re.match("fc\.\d+", x))
+            looks_standard = re.match(f"{major}\.{minor-1}.\d+", x)
+            return is_not_custom and (is_candidate or looks_standard)
+
+        assembly_names = [x for x in releases_config['releases'].keys() if looks_standard_upgrade_edge(releases_config, x)]
+        not_in_previous_list = [x for x in assembly_names if x not in previous_list]
+        if not_in_previous_list:
+            raise ValueError(f"`upgrades` does not contain {not_in_previous_list} edge(s) defined in {show_spec}")
 
     async def check_blocker_bugs(self):
         # Note: --assembly option should always be "stream". We are checking blocker bugs for this release branch regardless of the sweep cutoff timestamp.

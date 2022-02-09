@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import quote
 import yaml
+import subprocess
 
 import aiohttp
 import click
@@ -93,7 +94,7 @@ class PromotePipeline:
                 raise ValueError("No arches specified.")
             # Get previous list
             upgrades_str: Optional[str] = group_config.get("upgrades")
-            previous_list = self.validate_upgrades(upgrades_str)
+            previous_list = self.validate_upgrades(upgrades_str, assembly_type, self._doozer_working_dir / "ocp-build-data")
 
             # Check for blocker bugs
             if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
@@ -270,7 +271,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
 
-    def validate_upgrades(self, upgrades_str: str, assembly_type: assembly.AssemblyTypes, build_data_path: str):
+    def validate_upgrades(self, upgrades_str: str, assembly_type: assembly.AssemblyTypes, build_data_path: os.PathLike) -> List:
         if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
             raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to an empty string.")
         previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
@@ -283,14 +284,14 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             return previous_list
 
         prev_ver = f'{major}.{minor-1}'
-        show_spec = f"openshift-{prev_ver}:releases.yml"
+        show_spec = f"origin/openshift-{prev_ver}:releases.yml"
         cmd = [
             "git",
             "show",
             show_spec,
         ]
-        _, content, _ = exectools.cmd_gather(cmd, stderr=None)
-        releases_config = yaml.safe_load(content)
+        proc = subprocess.run(cmd, capture_output=True, cwd=Path(build_data_path))
+        releases_config = yaml.safe_load(proc.stdout)
 
         def looks_standard_upgrade_edge(config, x):
             rel_type = config['releases'][x]['assembly'].get('type','')
@@ -300,9 +301,15 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             return is_not_custom and (is_candidate or looks_standard)
 
         assembly_names = [x for x in releases_config['releases'].keys() if looks_standard_upgrade_edge(releases_config, x)]
+        def sort_semver(versions):
+            return sorted(versions, key=functools.cmp_to_key(semver.compare), reverse=True)
+        in_previous_list = sort_semver([x for x in assembly_names if x in previous_list])
         not_in_previous_list = [x for x in assembly_names if x not in previous_list]
-        if not_in_previous_list:
-            raise ValueError(f"`upgrades` does not contain {not_in_previous_list} edge(s) defined in {show_spec}")
+        latest_prev = in_previous_list[0]
+        greater_than_latest_prev = [x for x in not_in_previous_list if semver.compare(x, latest_prev) == 1] # if x > latest_prev
+        if greater_than_latest_prev:
+            raise ValueError(f"`upgrades` does not contain {greater_than_latest_prev} edge(s) defined in {show_spec}. These versions were found to be greater than the latest previous upgrade edge {latest_prev}")
+        return previous_list
 
     async def check_blocker_bugs(self):
         # Note: --assembly option should always be "stream". We are checking blocker bugs for this release branch regardless of the sweep cutoff timestamp.

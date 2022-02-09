@@ -1,0 +1,28 @@
+properties( [
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+] )
+
+def sortedVersions() {
+  return commonlib.ocpVersions.sort(false)
+}
+
+def runFor(version) {
+    b = build(
+        job: '../aos-cd-builds/build%2Fcheck-bugs',
+        parameters: [
+            string(name: 'BUILD_VERSION', value: version)
+        ],
+        propagate: false,
+    )
+}
+
+node() {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    for ( String version : sortedVersions() ) {
+        echo "starting job for ocpVersion: ${version}"
+        runFor(version)
+    }
+}

@@ -294,19 +294,20 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         releases_config = yaml.safe_load(proc.stdout)
 
         def looks_standard_upgrade_edge(config, x):
-            rel_type = config['releases'][x]['assembly'].get('type','')
+            rel_type = config['releases'][x]['assembly'].get('type', '')
             is_not_custom = rel_type != 'custom'
-            is_candidate = (rel_type == 'candidate') or (re.match("rc\.\d+", x) or re.match("fc\.\d+", x))
-            looks_standard = re.match(f"{major}\.{minor-1}.\d+", x)
+            is_candidate = (rel_type == 'candidate') or (re.match(r'rc\.\d+', x) or re.match(r'fc\.\d+', x))
+            looks_standard = re.match(rf'{major}\.{minor-1}.\d+', x)
             return is_not_custom and (is_candidate or looks_standard)
 
         assembly_names = [x for x in releases_config['releases'].keys() if looks_standard_upgrade_edge(releases_config, x)]
+
         def sort_semver(versions):
             return sorted(versions, key=functools.cmp_to_key(semver.compare), reverse=True)
         in_previous_list = sort_semver([x for x in assembly_names if x in previous_list])
         not_in_previous_list = [x for x in assembly_names if x not in previous_list]
         latest_prev = in_previous_list[0]
-        greater_than_latest_prev = [x for x in not_in_previous_list if semver.compare(x, latest_prev) == 1] # if x > latest_prev
+        greater_than_latest_prev = [x for x in not_in_previous_list if semver.compare(x, latest_prev) == 1]  # if x > latest_prev
         if greater_than_latest_prev:
             raise ValueError(f"`upgrades` does not contain {greater_than_latest_prev} edge(s) defined in {show_spec}. These versions were found to be greater than the latest previous upgrade edge {latest_prev}")
         return previous_list
@@ -635,7 +636,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
     async def send_image_list_email(self, release_name: str, advisory: int, archive_dir: Path):
         content = await self.get_advisory_image_list(advisory)
         subject = f"OCP {release_name} Image List"
-        return await exectools.to_thread(self._mail.send_mail, self.runtime.config["email"][f"promote_image_list_recipients"], subject, content, archive_dir=archive_dir, dry_run=self.runtime.dry_run)
+        return await exectools.to_thread(self._mail.send_mail, self.runtime.config["email"]["promote_image_list_recipients"], subject, content, archive_dir=archive_dir, dry_run=self.runtime.dry_run)
 
 
 @cli.command("promote")

@@ -95,8 +95,13 @@ class PromotePipeline:
 
             # Validate upgrade edges
             upgrades_str: Optional[str] = group_config.get("upgrades")
-            logger.info("Validating upgrade edges")
-            previous_list: List = await self.validate_upgrade_edges(upgrades_str, assembly_type, self._doozer_working_dir / "ocp-build-data")
+            logger.info("Validating upgrade edges...")
+            try:
+                previous_list: List = await self.validate_upgrade_edges(upgrades_str, assembly_type, self._doozer_working_dir / "ocp-build-data")
+            except VerificationError as err:
+                logger.warn("Error validating upgrade edges: %s", err)
+                justification = self._reraise_if_not_permitted(err, "UPGRADE_EDGES", permits)
+                justifications.append(justification)
 
             # Check for blocker bugs
             if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
@@ -136,8 +141,8 @@ class PromotePipeline:
             if assembly_type == assembly.AssemblyTypes.STANDARD:
                 if image_advisory <= 0:
                     err = VerificationError(f"No associated image advisory for {self.assembly} is defined.")
-                    self._raise_if_not_waived(err, "NO_ERRATA", permits)
-                    logger.warning("%s", err)
+                    justification = self._reraise_if_not_permitted(err, "NO_ERRATA", permits)
+                    justifications.append(justification)
                 else:
                     logger.info("Verifying associated image advisory %s...", image_advisory)
                     image_advisory_info = await self.get_advisory_info(image_advisory)
@@ -147,8 +152,8 @@ class PromotePipeline:
                         assert live_id
                         errata_url = f"https://access.redhat.com/errata/{live_id}"  # don't quote
                     except VerificationError as err:
-                        logger.warning("%s", err)
-                        justification = self._raise_if_not_waived(err, "INVALID_ERRATA_STATUS", permits)
+                        logger.warn("%s", err)
+                        justification = self._reraise_if_not_permitted(err, "INVALID_ERRATA_STATUS", permits)
                         justifications.append(justification)
 
             # Verify attached bugs
@@ -296,8 +301,8 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
 
         def looks_standard_upgrade_edge(config, x):
             rel_type = config['releases'][x]['assembly'].get('type', '')
-            is_not_custom = rel_type != 'custom'
-            is_candidate = (rel_type == 'candidate') or (re.match(r'rc\.\d+', x) or re.match(r'fc\.\d+', x))
+            is_not_custom = rel_type != assembly.AssemblyTypes.CUSTOM.value
+            is_candidate = (rel_type == assembly.AssemblyTypes.CANDIDATE.value) or (re.match(r'rc\.\d+', x) or re.match(r'fc\.\d+', x))
             looks_standard = re.match(rf'{major}\.{minor-1}.\d+', x)
             return is_not_custom and (is_candidate or looks_standard)
 
@@ -305,6 +310,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
 
         def sort_semver(versions):
             return sorted(versions, key=functools.cmp_to_key(semver.compare), reverse=True)
+
         in_previous_list = sort_semver([x for x in assembly_names if x in previous_list])
         not_in_previous_list = [x for x in assembly_names if x not in previous_list]
         latest_prev = in_previous_list[0]

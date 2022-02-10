@@ -278,7 +278,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
         # Ensure all versions in previous list are valid semvers.
         if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
-            raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
+            raise VerificationError("Previous list (`upgrades` field in group config) has an invalid semver.")
 
         major, minor = util.isolate_major_minor_in_group(self.group)
         if minor < 1:
@@ -310,7 +310,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         latest_prev = in_previous_list[0]
         greater_than_latest_prev = [x for x in not_in_previous_list if semver.compare(x, latest_prev) == 1]  # if x > latest_prev
         if greater_than_latest_prev:
-            raise ValueError(f"`upgrades` does not contain {greater_than_latest_prev} edge(s) defined in {show_spec}. These versions were found to be greater than the latest previous upgrade edge {latest_prev}")
+            raise VerificationError(f"`upgrades` does not contain {greater_than_latest_prev} edge(s) defined in {show_spec}. These versions were found to be greater than the latest previous upgrade edge {latest_prev}")
         return previous_list
 
     async def check_blocker_bugs(self):

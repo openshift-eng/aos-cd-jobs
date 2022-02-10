@@ -92,16 +92,17 @@ class PromotePipeline:
             arches = list(set(map(brew_arch_for_go_arch, arches)))
             if not arches:
                 raise ValueError("No arches specified.")
-            # Get previous list
+
+            # Validate upgrade edges
             upgrades_str: Optional[str] = group_config.get("upgrades")
-            previous_list = self.validate_upgrades(upgrades_str, assembly_type, self._doozer_working_dir / "ocp-build-data")
+            logger.info("Validating upgrade edges")
+            previous_list: List = await self.validate_upgrade_edges(upgrades_str, assembly_type, self._doozer_working_dir / "ocp-build-data")
 
             # Check for blocker bugs
             if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
                 logger.info("Blocker Bug check is skipped.")
             else:
                 logger.info("Checking for blocker bugs...")
-                # TODO: Needs an option in releases.yml to skip this check
                 try:
                     await self.check_blocker_bugs()
                 except VerificationError as err:
@@ -271,7 +272,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
 
-    def validate_upgrades(self, upgrades_str: str, assembly_type: assembly.AssemblyTypes, build_data_path: os.PathLike) -> List:
+    async def validate_upgrade_edges(self, upgrades_str: str, assembly_type: assembly.AssemblyTypes, build_data_path: os.PathLike) -> List:
         if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
             raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to an empty string.")
         previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
@@ -290,8 +291,8 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             "show",
             show_spec,
         ]
-        proc = subprocess.run(cmd, capture_output=True, cwd=Path(build_data_path))
-        releases_config = yaml.safe_load(proc.stdout)
+        _, stdout, _ = await exectools.cmd_gather_async(cmd, cwd=Path(build_data_path), stderr=None)
+        releases_config = yaml.safe_load(stdout)
 
         def looks_standard_upgrade_edge(config, x):
             rel_type = config['releases'][x]['assembly'].get('type', '')

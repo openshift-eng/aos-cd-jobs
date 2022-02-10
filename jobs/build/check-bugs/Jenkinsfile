@@ -1,5 +1,7 @@
 #!/usr/bin/env groovy
 node {
+    currentBuild.displayName = params.BUILD_VERSION
+
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib

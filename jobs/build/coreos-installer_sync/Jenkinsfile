@@ -70,7 +70,7 @@ node {
                 rm --recursive --force ./*
                 brew --quiet download-build ${params.NVR}
                 shopt -s nullglob
-                rm --force *bootinfra* *.src.rpm
+                rm --force *bootinfra* *dracut* *.src.rpm
                 tree
             """
         )

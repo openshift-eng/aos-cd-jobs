@@ -71,12 +71,16 @@ node {
 
         if (num_bugs.toInteger() > 0) {
             echo "Found blocker bugs: sending Slack notification to ${slack_channel}"
-            commonlib.slacklib.to(slack_channel).say("""
+
+            message = """
             *:warning: @release-artists - blocker bugs found for ${params.BUILD_VERSION}*
             ```
             ${blocker_bugs}
             ```
-            """)
+            """
+
+            commonlib.slacklib.to(slack_channel).say(message)
+            commonlib.slacklib.to("#forum-release").say(message)
         } else {
             echo "No bugs found, skipping Slack spam"
         }
@@ -130,14 +134,17 @@ node {
             echo "Found potential regressions: sending Slack notification to ${slack_channel}"
 
             // If regressions are found, notify Slack
-            commonlib.slacklib.to(slack_channel).say("""
+            message = """
             *:warning: @release-artists - potential regressions for ${params.BUILD_VERSION}*
             ```
             There are potential regressions to look into:
             Run this command for details:
             ${buildlib.ELLIOTT_BIN} --group openshift-${params.BUILD_VERSION} verify-bugs ${bugs}
             ```
-            """)
+            """
+
+            commonlib.slacklib.to(slack_channel).say(message)
+            commonlib.slacklib.to("#forum-release").say(message)
         }
     }
 }

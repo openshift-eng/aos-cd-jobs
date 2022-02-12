@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import quote
 import yaml
-import subprocess
 
 import aiohttp
 import click
@@ -299,20 +298,14 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         _, stdout, _ = await exectools.cmd_gather_async(cmd, cwd=Path(build_data_path), stderr=None)
         releases_config = yaml.safe_load(stdout)
 
-        def looks_standard_upgrade_edge(config, x):
-            rel_type = config['releases'][x]['assembly'].get('type', '')
-            is_not_custom = rel_type != assembly.AssemblyTypes.CUSTOM.value
-            is_candidate = (rel_type == assembly.AssemblyTypes.CANDIDATE.value) or (re.match(r'rc\.\d+', x) or re.match(r'fc\.\d+', x))
-            looks_standard = re.match(rf'{major}\.{minor-1}.\d+', x)
-            return is_not_custom and (is_candidate or looks_standard)
-
-        assembly_names = [x for x in releases_config['releases'].keys() if looks_standard_upgrade_edge(releases_config, x)]
+        assembly_names = [name for name in releases_config['releases'].keys() if util.looks_standard_upgrade_edge(releases_config, name, major, minor - 1)]
+        assembly_semvers = [util.get_valid_semver(name, major, minor - 1) for name in assembly_names]
 
         def sort_semver(versions):
             return sorted(versions, key=functools.cmp_to_key(semver.compare), reverse=True)
 
-        in_previous_list = sort_semver([x for x in assembly_names if x in previous_list])
-        not_in_previous_list = [x for x in assembly_names if x not in previous_list]
+        in_previous_list = sort_semver([x for x in assembly_semvers if x in previous_list])
+        not_in_previous_list = [x for x in assembly_semvers if x not in previous_list]
         latest_prev = in_previous_list[0]
         greater_than_latest_prev = [x for x in not_in_previous_list if semver.compare(x, latest_prev) == 1]  # if x > latest_prev
         if greater_than_latest_prev:

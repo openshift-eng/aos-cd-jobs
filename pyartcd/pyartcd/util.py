@@ -103,3 +103,21 @@ def get_release_name(assembly_type: str, group_name: str, assembly_name: str, re
     else:
         raise ValueError(f"Assembly type {assembly_type} is not supported.")
     return release_name
+
+
+def is_assembly_name_candidate(assembly_name):
+    return re.match(r'rc\.\d+', assembly_name) or re.match(r'fc\.\d+', assembly_name)
+
+
+def looks_standard_upgrade_edge(config, assembly_name, major, minor):
+    rel_type = config['releases'][assembly_name]['assembly'].get('type', '')
+    is_not_custom = rel_type != assembly.AssemblyTypes.CUSTOM.value
+    is_candidate = (rel_type == assembly.AssemblyTypes.CANDIDATE.value) or is_assembly_name_candidate(assembly_name)
+    looks_standard = re.match(rf'{major}\.{minor}.\d+', assembly_name)
+    return is_not_custom and (is_candidate or looks_standard)
+
+
+def get_valid_semver(assembly_name, major, minor):
+    if is_assembly_name_candidate(assembly_name):
+        return f'{major}.{minor}.0-{assembly_name}'
+    return assembly_name

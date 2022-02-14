@@ -83,7 +83,7 @@ node {
                         def previousReleaseVersion = "0.0.0"
                         if (previousRelease)
                             previousReleaseVersion = previousRelease.name
-                        currentBuild.displayName += "🆕 ${key}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
+                        // currentBuild.displayName += "🆕 ${key}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
                         currentBuild.description += "\n🆕 ${key}: ${previousReleaseVersion} -> ${latestReleaseVersion}"
                         release.sendPreReleaseMessage(latestRelease, releaseStream)
                         writeJSON file: "${key}.current", json: latestRelease

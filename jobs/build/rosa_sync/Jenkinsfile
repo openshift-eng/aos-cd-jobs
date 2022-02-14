@@ -60,12 +60,6 @@ pipeline {
                     commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/rosa/${params.VERSION}/")
                     commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/rosa/latest/")
                 }
-
-                sshagent(['aos-cd-test']) {
-                    sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/x86_64/clients/rosa/"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- ln --symbolic --force --no-dereference ${params.VERSION} /srv/pub/openshift-v4/x86_64/clients/rosa/latest"
-                    sh "ssh use-mirror-upload.ops.rhcloud.com -- /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/rosa -v"
-                }
             }
         }
     }

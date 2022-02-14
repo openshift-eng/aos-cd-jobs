@@ -50,9 +50,9 @@ node() {
         for ( String arch : arches ) {
             runFor(group, version, arch)
             if ( version == sortedVersions()[-1] ) {
-￼                def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-￼                runFor(group, "${major}.${minor+1}", arch)
-￼           }
+                def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+                runFor(group, "${major}.${minor+1}", arch)
+            }
         }
     }
     runFor('ci-deps', 'ci-deps', 'x86_64')

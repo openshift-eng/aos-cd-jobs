@@ -40,7 +40,7 @@ node() {
             runFor(group, version, arch)
             if ( version == sortedVersions()[-1] ) {
 ￼                (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-￼                runFor(group, "{major}.{minor+1}", arch)
+￼                runFor(group, "${major}.${minor+1}", arch)
 ￼           }
         }
     }

@@ -164,16 +164,7 @@ node {
                 // exacerbated by a 1 minute caching effect in the rpm mirroring pods in CI for repo manifest
                 // data: https://github.com/openshift/content-mirror/pull/1#discussion_r581380438 . We need to
                 // find a way to stack these files so that the caching effect does not result in 404s.
-                build(
-                    job: '/aos-cd-builds/build%2Fsync-for-ci',
-                    propagate: false,
-                    wait: false,
-                    parameters: [
-                        string(name: 'GROUP', value: "openshift-${params.BUILD_VERSION}"),
-                        string(name: 'REPOSYNC_DIR', value: "${params.BUILD_VERSION}"),
-                        string(name: 'ARCH', value: "x86_64"),
-                    ],
-                )*/
+                build wait: false, propagate: false, job: '/scheduled-builds/sync-for-ci', parameters: [string(name: 'ONLY_FOR_VERSION', value: params.BUILD_VERSION)]
 
                 stage("update dist-git") { joblib.stageUpdateDistgit() }
                 stage("build images") { joblib.stageBuildImages() }

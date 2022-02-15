@@ -43,29 +43,29 @@ def initialize() {
 // and apply those changes on the CI cluster. The verb will also mirroring
 // out images to the quay monorepos.
 def buildSyncGenInputs() {
-    echo("Generating SRC=DEST and ImageStreams for arches")
+    echo("Generating and applying imagestream updates")
+    def output_dir = "gen-payload-artifacts" // will be relative to env.WORKSPACE
+    artifacts.addAll(["${output_dir}/*", "MIRROR_working/debug.log"])
     def images = imageList ? "--images '${imageList}'" : ''
     def excludeArchesParam = ""
     for(arch in excludeArches)
         excludeArchesParam += " --exclude-arch ${arch}"
     def dryRunParams = params.DRY_RUN ? '--skip-gc-tagging --moist-run' : ''
     withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
-        sh "rm -rf ${env.WORKSPACE}/gen-payload-artifacts"
+        sh "rm -rf ${env.WORKSPACE}/${output_dir}"
         buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}"
 --data-path "${params.DOOZER_DATA_PATH}"
 --group 'openshift-${params.BUILD_VERSION}'
 release:gen-payload
---output-dir "${env.WORKSPACE}/gen-payload-artifacts"
+--output-dir "${env.WORKSPACE}/${output_dir}"
 --apply
 ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
 ${excludeArchesParam}
 ${dryRunParams}
 """
     }
-    artifacts.addAll(["gen-payload-artifacts/*"])
-
 }
 
 def backupAllImageStreams() {

@@ -2,6 +2,13 @@ buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 slacklib = commonlib.slacklib
 
+/**
+ * Note: doozer gen-payload --apply-multi-arch requires manifest-tool to assemble manifest-list release payload images.
+ * The version of manifest-tool from existing rhel7 repos was too old, so it was built and installed
+ * from souce on buildvm: https://github.com/estesp/manifest-tool/commit/89982ba85299a184a8e987c8bba1e7478f6f8b31
+ * using go version go1.15.14 .
+ */
+
 // doozer_working must be in WORKSPACE in order to have artifacts archived
 mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
 logLevel = ""

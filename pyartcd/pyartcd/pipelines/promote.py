@@ -10,7 +10,6 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import quote
-from ruamel.yaml import YAML
 
 import aiohttp
 import click
@@ -25,8 +24,6 @@ from semver import VersionInfo
 from tenacity import (RetryError, before_sleep_log, retry,
                       retry_if_exception_type, retry_if_result,
                       stop_after_attempt, wait_fixed)
-
-yaml = YAML(typ="safe")
 
 
 class PromotePipeline:
@@ -290,28 +287,14 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         if minor < 1:
             return previous_list
 
-        prev_ver = f'{major}.{minor-1}'
-        show_spec = f"origin/openshift-{prev_ver}:releases.yml"
-        cmd = [
-            "git",
-            "show",
-            show_spec,
-        ]
-        _, stdout, _ = await exectools.cmd_gather_async(cmd, cwd=Path(build_data_path), stderr=None)
-        releases_config = yaml.load(stdout)
+        prev_assembly_semvers = await util.get_all_assembly_semvers_for_release(major, minor - 1, build_data_path)
 
-        assembly_names = [name for name in releases_config['releases'].keys() if util.looks_standard_upgrade_edge(releases_config, name, major, minor - 1)]
-        assembly_semvers = [util.get_valid_semver(name, major, minor - 1) for name in assembly_names]
-
-        def sort_semver(versions):
-            return sorted(versions, key=functools.cmp_to_key(semver.compare), reverse=True)
-
-        in_previous_list = sort_semver([x for x in assembly_semvers if x in previous_list])
-        not_in_previous_list = [x for x in assembly_semvers if x not in previous_list]
+        in_previous_list = util.sorted_semver([x for x in prev_assembly_semvers if x in previous_list])
+        not_in_previous_list = [x for x in prev_assembly_semvers if x not in previous_list]
         latest_prev = in_previous_list[0]
         greater_than_latest_prev = [x for x in not_in_previous_list if semver.compare(x, latest_prev) == 1]  # if x > latest_prev
         if greater_than_latest_prev:
-            raise VerificationError(f"`upgrades` does not contain {greater_than_latest_prev} edge(s) defined in {show_spec}. These versions were found to be greater than the latest previous upgrade edge {latest_prev}")
+            raise VerificationError(f"`upgrades` does not contain {greater_than_latest_prev} edge(s) defined in {major}.{minor-1}:releases.yml. These versions were found to be greater than the latest previous upgrade edge {latest_prev}")
         return previous_list
 
     async def check_blocker_bugs(self):

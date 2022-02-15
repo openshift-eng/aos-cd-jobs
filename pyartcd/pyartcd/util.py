@@ -1,14 +1,18 @@
 import os
 import re
+import functools
+import semver
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import aiofiles
-import yaml
+from ruamel.yaml import YAML
 from doozerlib import assembly, model
 from doozerlib.util import brew_arch_for_go_arch, brew_suffix_for_arch, go_arch_for_brew_arch, go_suffix_for_arch
 
 from pyartcd import exectools
+
+yaml = YAML(typ="safe")
 
 
 def isolate_el_version_in_release(release: str) -> Optional[int]:
@@ -60,7 +64,7 @@ async def load_group_config(group: str, assembly: str, env=None) -> Dict:
     if env is None:
         env = os.environ.copy()
     _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=env)
-    group_config = yaml.safe_load(stdout)
+    group_config = yaml.load(stdout)
     if not isinstance(group_config, dict):
         raise ValueError("ocp-build-data contains invalid group config.")
     return group_config
@@ -69,7 +73,7 @@ async def load_group_config(group: str, assembly: str, env=None) -> Dict:
 async def load_releases_config(build_data_path: os.PathLike) -> Dict:
     async with aiofiles.open(Path(build_data_path) / "releases.yml", "r") as f:
         content = await f.read()
-    return yaml.safe_load(content)
+    return yaml.load(content)
 
 
 def get_assembly_type(releases_config: Dict, assembly_name: str):
@@ -121,3 +125,21 @@ def get_valid_semver(assembly_name, major, minor):
     if is_assembly_name_candidate(assembly_name):
         return f'{major}.{minor}.0-{assembly_name}'
     return assembly_name
+
+
+def sorted_semver(versions):
+    return sorted(versions, key=functools.cmp_to_key(semver.compare), reverse=True)
+
+
+async def get_all_assembly_semvers_for_release(major, minor, build_data_path):
+    show_spec = f"origin/openshift-{major}.{minor}:releases.yml"
+    cmd = [
+        "git",
+        "show",
+        show_spec,
+    ]
+    _, stdout, _ = await exectools.cmd_gather_async(cmd, cwd=Path(build_data_path), stderr=None)
+    releases_config = yaml.load(stdout)
+
+    assembly_names = [name for name in releases_config['releases'].keys() if looks_standard_upgrade_edge(releases_config, name, major, minor)]
+    return [get_valid_semver(name, major, minor) for name in assembly_names]

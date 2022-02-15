@@ -124,7 +124,15 @@ node {
                 }
 
                 stage("push to s3") {
-                    commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/")
+                    /**
+                     * Why remove_old=false
+                     * CI jobs are running constantly. If a job is in progress and gets a copy of repomd.xml that
+                     * is just about to be replaced and we clean up the rpms/tgzs the repomd.xml it is referencing,
+                     * then the job will get a 404 when it tries to pull that file.
+                     * Instead, pay the relatively minor storage costs for reposync indefinitely. ART can
+                     * clean up old directories when they are EOL.
+                     */
+                    commonlib.syncRepoToS3Mirror("${LOCAL_SYNC_DIR}/", "${S3_SYNC_DIR}/", remove_old=false)
                 }
             }
         }

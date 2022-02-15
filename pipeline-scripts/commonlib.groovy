@@ -711,7 +711,7 @@ def checkS3Path(s3_path) {
     }
 }
 
-def syncRepoToS3Mirror(local_dir, s3_path) {
+def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true) {
     try {
         checkS3Path(s3_path)
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
@@ -722,8 +722,13 @@ def syncRepoToS3Mirror(local_dir, s3_path) {
             shell(script: "aws s3 sync --no-progress --exclude '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}") // Note that s3_path has / prefix.
             // 2. On the second pass, include only the repomd.xml.
             shell(script: "aws s3 sync --no-progress --exclude '*' --include '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}")
-            // 3. Everyhing should be sync'd in a consistent way -- just delete anything old with --delete.
-            shell(script: "aws s3 sync --no-progress --delete  ${local_dir} s3://art-srv-enterprise${s3_path}")
+            if (remove_old) {
+                // For most repos, clean up the old rpms so they don't grow unbounded. Specify remove_old=false
+                // to prevent this step.
+                // Otherwise:
+                // 3. Everything should be sync'd in a consistent way -- delete anything old with --delete.
+                shell(script: "aws s3 sync --no-progress --delete  ${local_dir} s3://art-srv-enterprise${s3_path}")
+            }
         }
     } catch (e) {
         slacklib.to("#art-release").say("Failed syncing ${local_dir} repo to art-srv-enterprise S3 path ${s3_path}")

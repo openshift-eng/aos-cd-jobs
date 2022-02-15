@@ -158,7 +158,6 @@ node {
 
                 // Since plashets may have been rebuild, fire off sync for CI. TODO: Run for other arches
                 // if CI ever requires them.
-                /*
                 // Disabled because it increases 404s from mirror. sync-for-ci completely replaces content, so if
                 // yum is retrieving content while the mirror is being updated, yum can error out. This is
                 // exacerbated by a 1 minute caching effect in the rpm mirroring pods in CI for repo manifest

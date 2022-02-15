@@ -67,11 +67,9 @@ node() {
             if ( version == sortedVersions()[-1] ) {
                 def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
                 runFor(group, "${major}.${minor+1}", arch)
+                runFor('ci-deps', 'ci-deps', 'x86_64')
             }
         }
-    }
-    if (!params.ONLY_FOR_VERSION) {
-        runFor('ci-deps', 'ci-deps', 'x86_64')
     }
 }
 

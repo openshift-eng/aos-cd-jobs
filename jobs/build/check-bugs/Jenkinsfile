@@ -1,14 +1,6 @@
 #!/usr/bin/env groovy
 node {
-    currentBuild.displayName = params.BUILD_VERSION
-
-    // Check pre-release state, except for 3.11
-    if ( (params.BUILD_VERSION != "3.11") && (! is_ga(params.BUILD_VERSION)) ) {
-        error("version ${params.BUILD_VERSION} is in pre-release state: skipping job")
-    }
-
     checkout scm
-
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
 
@@ -40,6 +32,11 @@ node {
                                     'Leave blank to notify <strong>#art-release-{ocp-version}</strong>',
                         defaultValue: '',
                         trim: true,
+                    ),
+                    booleanParam(
+                        name: "NOTIFY_FORUM_RELEASE",
+                        description: "Notify #forum-release about blockers and regressions",
+                        defaultValue: false,
                     )
                 ]
             ]
@@ -48,6 +45,14 @@ node {
 
     // Check for mock build
     commonlib.checkMock()
+
+    // Set build name to OCP version
+    currentBuild.displayName = params.BUILD_VERSION
+
+    // Check pre-release state, except for 3.11
+    if ( (params.BUILD_VERSION != "3.11") && (! is_ga(params.BUILD_VERSION)) ) {
+        error("version ${params.BUILD_VERSION} is in pre-release state: skipping job")
+    }
 
     stage("check-blockers") {
         // Check Slack channel to notify
@@ -61,28 +66,33 @@ node {
                 find-bugs
                 --mode blocker
                 --report
+                --output slack
             """.stripIndent().tr("\n", " ").trim(),
             returnStdout: true
         ).trim()
-        echo "Found bugs: ${blocker_bugs}"
 
         // If bugs found are > 0, notify Slack
-        num_bugs = blocker_bugs.split('\n').findAll{ it.startsWith( 'Found' ) }[0].split(' ')[1]
-
-        if (num_bugs.toInteger() > 0) {
-            echo "Found blocker bugs: sending Slack notification to ${slack_channel}"
+        if (blocker_bugs == "") {
+            echo "No bugs found"
+        } else {
+            num_bugs = sh(
+                script: """
+                    echo "${blocker_bugs}" | wc -l
+                """,
+                returnStdout: true
+            )
+            echo "Found ${num_bugs} bugs: sending Slack notification to ${slack_channel}"
+            echo "${blocker_bugs}"
 
             message = """
             *:warning: @release-artists - blocker bugs found for ${params.BUILD_VERSION}*
-            ```
             ${blocker_bugs}
-            ```
             """
 
             commonlib.slacklib.to(slack_channel).say(message)
-            commonlib.slacklib.to("#forum-release").say(message)
-        } else {
-            echo "No bugs found, skipping Slack spam"
+            if (params.NOTIFY_FORUM_RELEASE) {
+                commonlib.slacklib.to("#forum-release").say(message)
+            }
         }
     }
 
@@ -144,7 +154,9 @@ node {
             """
 
             commonlib.slacklib.to(slack_channel).say(message)
-            commonlib.slacklib.to("#forum-release").say(message)
+            if (params.NOTIFY_FORUM_RELEASE) {
+                commonlib.slacklib.to("#forum-release").say(message)
+            }
         }
     }
 }
@@ -171,6 +183,5 @@ def is_ga(version) {
         script: command
     )
     
-    echo "Found ${length.trim()} nodes for ${version}: release already GA'd"
     return length.toInteger() > 0
 }

@@ -172,6 +172,5 @@ def is_ga(version) {
         script: command
     )
     
-    echo "Found ${length.trim()} nodes for ${version}: release already GA'd"
     return length.toInteger() > 0
 }

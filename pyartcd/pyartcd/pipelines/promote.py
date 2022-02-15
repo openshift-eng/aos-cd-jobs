@@ -10,7 +10,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 from urllib.parse import quote
-import yaml
+from ruamel.yaml import YAML
 
 import aiohttp
 import click
@@ -25,6 +25,8 @@ from semver import VersionInfo
 from tenacity import (RetryError, before_sleep_log, retry,
                       retry_if_exception_type, retry_if_result,
                       stop_after_attempt, wait_fixed)
+
+yaml = YAML(typ="safe")
 
 
 class PromotePipeline:
@@ -296,7 +298,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             show_spec,
         ]
         _, stdout, _ = await exectools.cmd_gather_async(cmd, cwd=Path(build_data_path), stderr=None)
-        releases_config = yaml.safe_load(stdout)
+        releases_config = yaml.load(stdout)
 
         assembly_names = [name for name in releases_config['releases'].keys() if util.looks_standard_upgrade_edge(releases_config, name, major, minor - 1)]
         assembly_semvers = [util.get_valid_semver(name, major, minor - 1) for name in assembly_names]

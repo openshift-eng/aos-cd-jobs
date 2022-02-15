@@ -2,6 +2,17 @@ properties([
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
     disableConcurrentBuilds(),
     disableResume(),
+    [
+        $class: 'ParametersDefinitionProperty',
+        parameterDefinitions: [
+            string(
+                name: 'ONLY_FOR_VERSION',
+                description: 'Specify a single version (e.g. 4.9) to run the sync for',
+                defaultValue: "",
+                trim: true,
+            ),
+        ]
+    ],
 ])
 
 description = ""
@@ -43,7 +54,11 @@ node() {
     checkout scm
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
-    for ( String version : sortedVersions() ) {
+    def versionsToSync = sortedVersions()
+    if (params.ONLY_FOR_VERSION) {
+        versionsToSync = [params.ONLY_FOR_VERSION]
+    }
+    for ( String version : versionsToSync ) {
         group = "openshift-${version}"
         def arches = buildlib.branch_arches(group)
 
@@ -55,7 +70,9 @@ node() {
             }
         }
     }
-    runFor('ci-deps', 'ci-deps', 'x86_64')
+    if (!params.ONLY_FOR_VERSION) {
+        runFor('ci-deps', 'ci-deps', 'x86_64')
+    }
 }
 
 currentBuild.description = description.trim()

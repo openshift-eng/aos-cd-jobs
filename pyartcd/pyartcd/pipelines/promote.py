@@ -359,7 +359,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             "elliott",
             f"--group={self.group}",
             "verify-attached-bugs",
-            "--verify-flaws"
+            "--verify-flaws",
             "--"
         ]
         for advisory in advisories:

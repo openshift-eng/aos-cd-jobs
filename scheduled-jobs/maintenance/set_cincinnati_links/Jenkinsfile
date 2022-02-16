@@ -37,8 +37,8 @@ def sortedVersions() {
 
     assert major_minor.size() == 2
 
-    def major = major_minor[0]
-    def minor = major_minor[1]
+    def major = major_minor[0].toInteger()
+    def minor = major_minor[1].toInteger()
 
     major*100000 + minor
   }

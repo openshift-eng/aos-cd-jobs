@@ -166,7 +166,7 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
-        "digest": "fake:deadbeef",
+        "digest": f"fake:deadbeef",
         "references": {
             "spec": {
                 "tags": [

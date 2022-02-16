@@ -1,14 +1,6 @@
 #!/usr/bin/env groovy
 node {
-    currentBuild.displayName = params.BUILD_VERSION
-
-    // Check pre-release state, except for 3.11
-    if ( (params.BUILD_VERSION != "3.11") && (! is_ga(params.BUILD_VERSION)) ) {
-        error("version ${params.BUILD_VERSION} is in pre-release state: skipping job")
-    }
-
     checkout scm
-
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
 
@@ -40,6 +32,11 @@ node {
                                     'Leave blank to notify <strong>#art-release-{ocp-version}</strong>',
                         defaultValue: '',
                         trim: true,
+                    ),
+                    booleanParam(
+                        name: "NOTIFY_FORUM_RELEASE",
+                        description: "Notify #forum-release about blockers and regressions",
+                        defaultValue: false,
                     )
                 ]
             ]
@@ -48,6 +45,14 @@ node {
 
     // Check for mock build
     commonlib.checkMock()
+
+    // Set build name to OCP version
+    currentBuild.displayName = params.BUILD_VERSION
+
+    // Check pre-release state, except for 3.11
+    if ( (params.BUILD_VERSION != "3.11") && (! is_ga(params.BUILD_VERSION)) ) {
+        error("version ${params.BUILD_VERSION} is in pre-release state: skipping job")
+    }
 
     stage("check-blockers") {
         // Check Slack channel to notify
@@ -85,7 +90,9 @@ node {
             """
 
             commonlib.slacklib.to(slack_channel).say(message)
-            commonlib.slacklib.to("#forum-release").say(message)
+            if (params.NOTIFY_FORUM_RELEASE) {
+                commonlib.slacklib.to("#forum-release").say(message)
+            }
         }
     }
 
@@ -147,7 +154,9 @@ node {
             """
 
             commonlib.slacklib.to(slack_channel).say(message)
-            commonlib.slacklib.to("#forum-release").say(message)
+            if (params.NOTIFY_FORUM_RELEASE) {
+                commonlib.slacklib.to("#forum-release").say(message)
+            }
         }
     }
 }

@@ -4,10 +4,6 @@ properties( [
     disableResume(),
 ] )
 
-def sortedVersions() {
-  return commonlib.ocpVersions.sort(false)
-}
-
 def runFor(version) {
     b = build(
         job: '../aos-cd-builds/build%2Fcheck-bugs',
@@ -22,7 +18,7 @@ def runFor(version) {
 node() {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
-    for ( String version : sortedVersions() ) {
+    for ( String version : commonlib.ocpVersions ) {
         echo "starting job for ocpVersion: ${version}"
         runFor(version)
     }

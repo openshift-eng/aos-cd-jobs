@@ -35,7 +35,7 @@ node {
 
     commonlib.checkMock()
 
-    currentBuild.description = ""
+    currentBuild.description = "RHCOS ${params.BUILD_VERSION}\n"
     try {
         arches = params.ARCHES.split(',')
 
@@ -60,17 +60,23 @@ node {
                                 '   PHASE=`oc get $BUILDNAME -o go-template=\'{{.status.phase}}\'`\n' +
                                 '   echo Current phase: $PHASE\n' +
                                 '   if [[ "$PHASE" == "Complete" ]]; then\n' +
-                                '       break\n' +
+                                '       oc logs $BUILDNAME\n` +
+                                '       exit 0\n' +
                                 '   fi\n' +
                                 '   if [[ "$PHASE" == "Failed" ]]; then\n' +
+                                '       oc logs $BUILDNAME\n` +
                                 '       exit 1\n' +
                                 '   fi\n' +
                                 '   sleep 60\n' +
                                 'done\n' +
+                                'oc logs $BUILDNAME\n` +
                                 'echo Timed out waiting for build to complete..\n' +
                                 'exit 2\n'
                         }
+                        currentBuild.description += "${jobArch} Success\n"
                     } catch (err) {
+                        currentBuild.description += "${jobArch} Failure\n"
+                        currentBuild.result = "UNSTABLE"
                         slacklib.to(params.BUILD_VERSION).failure("Error building RHCOS for ${jobArch}", err)
                     }
                 }

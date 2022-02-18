@@ -1,0 +1,82 @@
+#!/usr/bin/env groovy
+
+node {
+    checkout scm
+    def commonlib = joblib.commonlib
+    def slacklib = commonlib.slacklib
+
+    commonlib.describeJob("ocp4", """
+        <h2>Triggers and waits for an RHCOS build to complete</h2>
+    """)
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '365',
+                    daysToKeepStr: '365')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.mockParam(),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    string(
+                        name: 'ARCHES',
+                        description: 'Comma delimited list of arches to target The RHCOS architecture to target.',
+                        defaultValue: commonlib.brewArches.join(','),
+                        trim: true,
+                    ),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    currentBuild.description = ""
+    try {
+        arches = params.ARCHES.split(',')
+
+        kubeconfigs = [
+            'x86_64': 'jenkins_serviceaccount_privileged.psi.redhat.com.kubeconfig',
+            'ppc64le': 'jenkins_serviceaccount_p8.psi.redhat.com.kubeconfig',
+            's390x': 'jenkins_serviceaccount_osbs-s390x-3.prod.engineering.redhat.com.kubeconfig',
+            'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
+        ]
+
+        lock("compose-lock-${params.BUILD_VERSION}") {
+            def archJobs = [:]
+            for (arch in arches) {
+                def jobArch = arch.trim() // make sure we use a locally scoped variable
+                archJobs["trigger-${jobArch}"] = {
+                    try {
+                        withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
+                            sh  "oc project\n" +
+                                "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
+                                'echo Triggered $BUILDNAME\n' +
+                                'for i in {1..240}; do\n' +
+                                '   PHASE=`oc get $BUILDNAME -o go-template=\'{{.status.phase}}\'`\n' +
+                                '   echo Current phase: $PHASE\n' +
+                                '   if [[ "$PHASE" == "Complete" ]]; then\n' +
+                                '       break\n' +
+                                '   fi\n' +
+                                '   if [[ "$PHASE" == "Failed" ]]; then\n' +
+                                '       exit 1\n' +
+                                '   fi\n' +
+                                '   sleep 60\n' +
+                                'done\n' +
+                                'echo Timed out waiting for build to complete..\n' +
+                                'exit 2\n'
+                        }
+                    } catch (err) {
+                        slacklib.to(params.BUILD_VERSION).failure("Error building RHCOS for ${jobArch}", err)
+                    }
+                }
+            }
+            parallel archJobs
+        }
+    } finally {
+    }
+}

@@ -2,7 +2,7 @@
 
 node {
     checkout scm
-    def commonlib = joblib.commonlib
+    def commonlib = load("pipeline-scripts/commonlib.groovy")
     def slacklib = commonlib.slacklib
 
     commonlib.describeJob("ocp4", """

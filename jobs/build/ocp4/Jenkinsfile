@@ -156,14 +156,18 @@ node {
                     }
                 }
 
-                // Since plashets may have been rebuild, fire off sync for CI. TODO: Run for other arches
-                // if CI ever requires them.
-                // Disabled because it increases 404s from mirror. sync-for-ci completely replaces content, so if
-                // yum is retrieving content while the mirror is being updated, yum can error out. This is
-                // exacerbated by a 1 minute caching effect in the rpm mirroring pods in CI for repo manifest
-                // data: https://github.com/openshift/content-mirror/pull/1#discussion_r581380438 . We need to
-                // find a way to stack these files so that the caching effect does not result in 404s.
-                build wait: false, propagate: false, job: '/scheduled-builds/sync-for-ci', parameters: [string(name: 'ONLY_FOR_VERSION', value: params.BUILD_VERSION)]
+                if ( params.ASSEMBLY == "stream" ) {
+                    // Since plashets may have been rebuilt, fire off sync for CI. This will transfer
+                    // RPMs out to mirror.openshift.com/enterprise so that they may be consumed through
+                    // CI rpm mirrors.
+                    build wait: false, propagate: false, job: '/scheduled-builds/sync-for-ci', parameters: [string(name: 'ONLY_FOR_VERSION', value: params.BUILD_VERSION)]
+
+                    // Also trigger rhcos builds for the release in order to absorb any changes from plashets or
+                    // RHEL which may have triggered our rebuild. If there are no changes to the RPMs, the build
+                    // should exit quickly. If there are changes, the hope is that by the time our images are done
+                    // building, RHCOS will be ready and build-sync will find consistent RPMs.
+                    build wait: false, propagate: false, job: '/aos-cd-builds/build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
+                }
 
                 stage("update dist-git") { joblib.stageUpdateDistgit() }
                 stage("build images") { joblib.stageBuildImages() }

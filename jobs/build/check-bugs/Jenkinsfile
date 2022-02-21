@@ -130,26 +130,28 @@ node {
         def potential_regressions = ""
         try {
             potential_regressions = commonlib.shell(
-                returnStdout: true,
                 script: """
                     ${buildlib.ELLIOTT_BIN}
                     --group openshift-${params.BUILD_VERSION}
                     verify-bugs ${bugs}
+                    > .log
                 """.stripIndent().tr("\n", " ").trim()
             ).trim()
             echo "No potential regressions found"
         } catch (err) {
-            // There seems to be no way to capture stdout of a failing command
-            // see https://issues.jenkins.io/browse/JENKINS-64882
-            echo "Found potential regressions: sending Slack notification to ${slack_channel}"
-
             // If regressions are found, notify Slack
+            echo "Found potential regressions: sending Slack notification to ${slack_channel}"
+            potential_regressions = sh(
+                script: """
+                    cat .log
+                """,
+                returnStdout: true
+            )
+
             message = """
-            *:warning: @release-artists - potential regressions for ${params.BUILD_VERSION}*
+            *:warning: Hi @release-artists, there are potential regressions to look into for ${params.BUILD_VERSION}*
             ```
-            There are potential regressions to look into:
-            Run this command for details:
-            ${buildlib.ELLIOTT_BIN} --group openshift-${params.BUILD_VERSION} verify-bugs ${bugs}
+            ${potential_regressions}
             ```
             """
 

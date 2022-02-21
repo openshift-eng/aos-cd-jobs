@@ -14,9 +14,10 @@ ENDC = '\033[0m'
 @click.option('-r', '--release', required=True, help='Release name (e.g. 4.3.13)')
 @click.option('-u', '--upgrade-url', default=None, required=False, help='URL to successful upgrade job')
 @click.option('-m', '--upgrade-minor-url', default=None, required=False, help='URL to successful upgrade-minor job')
+@click.option("--reject", type=bool, is_flag=True, default=False, help='Reject instead of accept the release')
 @click.option("--confirm", type=bool, is_flag=True, default=False,
               help="Must be specified to apply changes to server")
-def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
+def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject):
 
     """
     Sets annotations to force OpenShift release acceptance.
@@ -64,14 +65,14 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm):
             for annotations in (obj.model.image.metadata.annotations, obj.model.metadata.annotations, obj.model.tag.annotations):
                 annotations.pop('release.openshift.io/message', None)
                 annotations.pop('release.openshift.io/reason', None)
-                annotations['release.openshift.io/phase'] = 'Accepted'
+                annotations['release.openshift.io/phase'] = 'Accepted' if not reject else 'Rejected'
 
                 verify_str = annotations['release.openshift.io/verify']
                 verify = oc.Model(json.loads(verify_str))
-                verify.upgrade.state = 'Succeeded'
+                verify.upgrade.state = 'Succeeded' if not reject else 'Failed'
                 if upgrade_url:
                     verify.upgrade.url = upgrade_url
-                verify['upgrade-minor'].state = 'Succeeded'
+                verify['upgrade-minor'].state = 'Succeeded' if not reject else 'Failed'
                 if upgrade_minor_url:
                     verify['upgrade-minor'].url = upgrade_minor_url
                 annotations['release.openshift.io/verify'] = json.dumps(verify._primitive(), indent=None)

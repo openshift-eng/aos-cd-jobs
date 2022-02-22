@@ -52,26 +52,28 @@ node {
                 def jobArch = arch.trim() // make sure we use a locally scoped variable
                 archJobs["trigger-${jobArch}"] = {
                     try {
-                        withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
-                            sh  "oc project\n" +
-                                "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
-                                'echo Triggered $BUILDNAME\n' +
-                                'for i in {1..240}; do\n' +
-                                '   PHASE=`oc get $BUILDNAME -o go-template=\'{{.status.phase}}\'`\n' +
-                                '   echo Current phase: $PHASE\n' +
-                                '   if [[ "$PHASE" == "Complete" ]]; then\n' +
-                                '       oc logs $BUILDNAME\n' +
-                                '       exit 0\n' +
-                                '   fi\n' +
-                                '   if [[ "$PHASE" == "Failed" ]]; then\n' +
-                                '       oc logs $BUILDNAME\n' +
-                                '       exit 1\n' +
-                                '   fi\n' +
-                                '   sleep 60\n' +
-                                'done\n' +
-                                'oc logs $BUILDNAME\n' +
-                                'echo Timed out waiting for build to complete..\n' +
-                                'exit 2\n'
+                        lock(label: "rhcos-build-capacity-${jobArch}", quantity: 2) {
+                            withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
+                                sh  "oc project\n" +
+                                    "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
+                                    'echo Triggered $BUILDNAME\n' +
+                                    'for i in {1..240}; do\n' +
+                                    '   PHASE=`oc get $BUILDNAME -o go-template=\'{{.status.phase}}\'`\n' +
+                                    '   echo Current phase: $PHASE\n' +
+                                    '   if [[ "$PHASE" == "Complete" ]]; then\n' +
+                                    '       oc logs $BUILDNAME\n' +
+                                    '       exit 0\n' +
+                                    '   fi\n' +
+                                    '   if [[ "$PHASE" == "Failed" ]]; then\n' +
+                                    '       oc logs $BUILDNAME\n' +
+                                    '       exit 1\n' +
+                                    '   fi\n' +
+                                    '   sleep 60\n' +
+                                    'done\n' +
+                                    'oc logs $BUILDNAME\n' +
+                                    'echo Timed out waiting for build to complete..\n' +
+                                    'exit 2\n'
+                            }
                         }
                         currentBuild.description += "${jobArch} Success\n"
                     } catch (err) {

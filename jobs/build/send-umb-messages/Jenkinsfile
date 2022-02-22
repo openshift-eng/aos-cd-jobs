@@ -36,7 +36,7 @@ node {
     def stables = commonlib.ocp4Versions.collect { version -> return commonlib.goArchSuffixes.collect { "4-stable" + it + ":" + version } }
     def releaseStreams = stables.flatten() + nightlies.flatten()
     currentBuild.description = ""
-    currentBuild.displayName = ""
+    // currentBuild.displayName = ""
 
     stage("send UMB messages for new releases") {
         dir ("/mnt/nfs/home/jenkins/.cache/releases") {

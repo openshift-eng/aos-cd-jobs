@@ -31,7 +31,7 @@ node {
                         ),
                         string(
                             name: "NIGHTLIES",
-                            description: "List of nightlies for each arch, separated by comma. For custom releases you do not need a nightly for each arch.",
+                            description: "List of nightlies for each arch. For custom releases you do not need a nightly for each arch.",
                             trim: true
                         ),
                         booleanParam(
@@ -70,7 +70,7 @@ node {
         stage("gen-assembly") {
             withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
                 nightly_args = ""
-                for (nightly in params.NIGHTLIES.split(',')) {
+                for (nightly in commonlib.parseList(params.NIGHTLIES)) {
                     nightly_args += " --nightly ${nightly.trim()}"
                 }
                 cmd = "--group openshift-${BUILD_VERSION} release:gen-assembly --name ${ASSEMBLY_NAME} from-releases ${nightly_args}"

@@ -2,7 +2,8 @@
 
 node {
     checkout scm
-    def commonlib = load("pipeline-scripts/commonlib.groovy")
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
 
     commonlib.describeJob("rhcos", """
@@ -37,6 +38,8 @@ node {
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}: ${params.ARCHES}"
     currentBuild.description = "RHCOS ${params.BUILD_VERSION}\n"
     try {
+        def releaseArches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
+
         arches = params.ARCHES.split(',')
 
         kubeconfigs = [
@@ -50,6 +53,10 @@ node {
             def archJobs = [:]
             for (arch in arches) {
                 def jobArch = arch.trim() // make sure we use a locally scoped variable
+                if (!releaseArches.contains(jobArch)) {
+                    echo "Skipping ${jobArch} since ${params.BUILD_VERSION} only supports ${releaseArches}"
+                    continue
+                }
                 archJobs["trigger-${jobArch}"] = {
                     try {
                         lock(resource: "rhcos-build-capacity-${jobArch}", quantity: 2) {

@@ -34,7 +34,7 @@ node {
     )
 
     commonlib.checkMock()
-
+    currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}: ${params.ARCHES}"
     currentBuild.description = "RHCOS ${params.BUILD_VERSION}\n"
     try {
         arches = params.ARCHES.split(',')

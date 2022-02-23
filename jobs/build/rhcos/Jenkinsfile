@@ -52,7 +52,7 @@ node {
                 def jobArch = arch.trim() // make sure we use a locally scoped variable
                 archJobs["trigger-${jobArch}"] = {
                     try {
-                        lock(label: "rhcos-build-capacity-${jobArch}", quantity: 2) {
+                        lock(resource: "rhcos-build-capacity-${jobArch}", quantity: 2) {
                             withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
                                 sh  "oc project\n" +
                                     "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +

@@ -71,7 +71,7 @@ node {
                                     '       oc logs $BUILDNAME\n' +
                                     '       exit 0\n' +
                                     '   fi\n' +
-                                    '   if [[ "$PHASE" == "Failed" ]]; then\n' +
+                                    '   if [[ "$PHASE" == "Failed" || "$PHASE" == "Cancelled" || "$PHASE" == "Error" ]]; then\n' +
                                     '       oc logs $BUILDNAME\n' +
                                     '       exit 1\n' +
                                     '   fi\n' +

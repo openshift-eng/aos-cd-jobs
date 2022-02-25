@@ -61,7 +61,9 @@ node {
                     try {
                         lock(resource: "rhcos-build-capacity-${jobArch}", quantity: 2) {
                             withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
-                                sh  "oc project\n" +
+                                // the squid proxy inhibits communication to the p8 RHCOS cluster, so ensure it is in no_proxy
+                                sh  'export no_proxy=p8.psi.redhat.com,$no_proxy\n' +  
+                                    "oc project\n" +
                                     "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
                                     'echo Triggered $BUILDNAME\n' +
                                     'for i in {1..240}; do\n' +

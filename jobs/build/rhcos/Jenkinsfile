@@ -52,6 +52,7 @@ node {
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
         //lock("compose-lock-${params.BUILD_VERSION}") {
+        timestamps {
             def archJobs = [:]
             for (arch in arches) {
                 def jobArch = arch.trim() // make sure we use a locally scoped variable
@@ -95,6 +96,7 @@ node {
                 }
             }
             parallel archJobs
+        }
         //}
     } finally {
     }

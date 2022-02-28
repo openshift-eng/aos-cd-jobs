@@ -85,6 +85,13 @@ node {
             prev_hash = sh(returnStdout: true, script: "git rev-parse HEAD || echo 0").trim()
         }
 
+        withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
+            // Ensure that the base image in ocp-private (base image for private release controller / private images)
+            // is kept in sync with public. ART automation updates the public periodically, but it needs to 
+            // also keep priv in sync.
+            sh "oc image mirror registry.ci.openshift.org/ocp/${version}:base registry.ci.openshift.org/ocp-private/${version}-priv:base"
+        }
+        
         echo "Current hash: ${now_hash} "
         echo "Previous hash: ${prev_hash}"
 

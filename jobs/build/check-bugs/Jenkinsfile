@@ -136,7 +136,7 @@ node {
                     verify-bugs ${bugs}
                     > .log
                 """.stripIndent().tr("\n", " ").trim()
-            ).trim()
+            )
             echo "No potential regressions found"
         } catch (err) {
             // If regressions are found, notify Slack

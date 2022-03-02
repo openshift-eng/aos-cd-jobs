@@ -114,3 +114,6 @@ sjb/generated/*.sh
 
 # Intellij Ignores
 *.iml
+
+# Visual Studio Code stuff
+.vscode

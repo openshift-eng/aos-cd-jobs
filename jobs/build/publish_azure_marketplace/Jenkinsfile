@@ -62,18 +62,17 @@ node {
                 echo 'Using file: ${rhcosJsonURL}'
                 echo 'Using jq expression base: ${jqExpression}'
                 VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.location' -r`
-                VHD_SIG_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.signature' -r`
+                VHD_SHA=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.sha256' -r`
                 """ +
                 '''
-                VHD_SIG_FILE=`basename $VHD_SIG_URL`
-                curl --fail  $VHD_SIG_URL > $VHD_SIG_FILE`
-                echo Target signature: $VHD_SIG_FILE
-
                 VHD_GZ_FILE=`basename $VHD_GZ_URL`
-                curl --fail $VHD_GZ_URL > $VHD_GZ_FILE`
+                VHD_SHA_FILE="$VHD_GZ_FILE".sha256
+                echo $VHD_SHA > $VHD_SHA_FILE
+
+                curl --fail $VHD_GZ_URL > $VHD_GZ_FILE
                 echo Target VHD: $VHD_GZ_FILE
                 ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
-                                az storage blob upload -f $VHD_SIG_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                                az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
                                 az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
                 ''')
                 )

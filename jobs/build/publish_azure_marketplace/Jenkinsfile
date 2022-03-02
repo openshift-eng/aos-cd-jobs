@@ -46,7 +46,7 @@ node {
         slackChannel = slacklib.to(params.VERSION)
         slackChannel.task("Uploading ${params.VERSION} RHCOS VHD for Azure Marketplace") {
             def coordinateKey = 'default'
-            if (azureArtifactCoordinate.contains(params.VERSION)) {
+            if (azureArtifactCoordinate.containsKey(params.VERSION)) {
                 coordinateKey = params.VERSION
             }
             def gitRef = "release-${params.VERSION}"
@@ -60,7 +60,7 @@ node {
                 commonlib.shell(script:  """
                 pushd ${workDir}
                 echo 'Using file: ${rhcosJsonURL}'
-                echo 'Using jq expression base: ${jq}'
+                echo 'Using jq expression base: ${jqExpression}'
                 VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.location' -r`
                 VHD_SIG_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.signature' -r`
                 """ +

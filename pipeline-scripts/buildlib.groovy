@@ -1394,10 +1394,7 @@ def getChanges(yamlData) {
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory=0) {
-    if (!auto_signing_advisory) {
-        auto_signing_advisory = 54765
-    }
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory) {
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
@@ -1440,9 +1437,8 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
 
     def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"
 
-    // In the current implementation, the same signing advisory is used for every signing task.
-    // To prevent add/remove races between versions, a lock is used.
-    lock('signing-advisory') {
+    // To prevent add/remove races within the advisory, a lock is used.
+    lock("signing-advisory-${auto_signing_advisory}") {
         retry(2) {
             commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case we are retrying..
             def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=openshift-${major_minor}"

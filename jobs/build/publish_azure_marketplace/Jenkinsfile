@@ -72,10 +72,10 @@ node {
                 VHD_GZ_FILE=`basename $VHD_GZ_URL`
                 curl --fail $VHD_GZ_URL > $VHD_GZ_FILE`
                 echo Target VHD: $VHD_GZ_FILE
-                ''' + params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
+                ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
                                 az storage blob upload -f $VHD_SIG_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
                                 az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
-                '''
+                ''')
                 )
             }
         }

@@ -410,6 +410,19 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     // we expect to publish to on the use-mirror system.
     def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
+
+    if ( arch == 'x86_64' ) {
+        // oc image  extract requires an empty destination directory. So do this before extracting tools.
+        // oc adm release extract --tools does not require an empty directory.
+        def oc_mirror_extract_cmd = """
+            # If the release payload contains an oc-mirror artifact image, then extract the oc-mirror binary.
+            if oc adm release info ${quay_url}:${from_release_tag} --image-for=oc-mirror ; then
+                MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc image extract `oc adm release info ${quay_url}:${from_release_tag} --image-for=oc-mirror` --path /usr/bin/oc-mirror:${CLIENT_MIRROR_DIR}
+            fi
+        """
+        commonlib.shell(script: oc_mirror_extract_cmd)
+    }
+
     def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
                                 " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
 

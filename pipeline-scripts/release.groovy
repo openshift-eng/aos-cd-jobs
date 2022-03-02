@@ -418,6 +418,10 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
             # If the release payload contains an oc-mirror artifact image, then extract the oc-mirror binary.
             if oc adm release info ${quay_url}:${from_release_tag} --image-for=oc-mirror ; then
                 MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc image extract `oc adm release info ${quay_url}:${from_release_tag} --image-for=oc-mirror` --path /usr/bin/oc-mirror:${CLIENT_MIRROR_DIR}
+                pushd ${CLIENT_MIRROR_DIR}
+                tar zcvf oc-mirror.tar.gz oc-mirror
+                rm oc-mirror
+                popd
             fi
         """
         commonlib.shell(script: oc_mirror_extract_cmd)

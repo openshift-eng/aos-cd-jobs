@@ -56,7 +56,7 @@ node {
             def filePath = azureArtifactCoordinate[coordinateKey]['path']
             def jqExpression = azureArtifactCoordinate[coordinateKey]['jq']
             def rhcosJsonURL = "https://raw.githubusercontent.com/openshift/installer/${gitRef}/${filePath}"
-            withCredentials([string(credentialsId: 'azure_marketplace_staging_upload_key', variable: '$ACCESS_KEY')]) {
+            withCredentials([string(credentialsId: 'azure_marketplace_staging_upload_key', variable: 'ACCESS_KEY')]) {
                 commonlib.shell(script:  """
                 pushd ${workDir}
                 echo 'Using file: ${rhcosJsonURL}'

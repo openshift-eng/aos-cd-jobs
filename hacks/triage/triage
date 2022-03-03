@@ -175,7 +175,7 @@ prs() {
   echo "https://github.com/pulls?q=is%3Aopen+is%3Apr+label%3Amerge-post-promote+archived%3Afalse+"
 }
 
-buildvm() {
+jenkins() {
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
   echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/scheduled-builds/'
 }

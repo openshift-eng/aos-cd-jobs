@@ -29,7 +29,7 @@ class RebuildPipeline:
     """ Rebuilds a component for an assembly """
 
     def __init__(self, runtime: Runtime, group: str, assembly: str,
-                 type: RebuildType, dg_key: str, data_path: str, logger: Optional[logging.Logger] = None):
+                 type: RebuildType, dg_key: str, ocp_build_data_url: str, logger: Optional[logging.Logger] = None):
         if assembly == "stream":
             raise ValueError("You may not rebuild a component for 'stream' assembly.")
         if type in [RebuildType.RPM, RebuildType.IMAGE] and not dg_key:
@@ -502,7 +502,7 @@ class RebuildPipeline:
 
 
 @cli.command("rebuild")
-@click.option("--data-path", metavar='PATH', default=None,
+@click.option("--ocp-build-data-url", metavar='BUILD_DATA', default=None,
               help="Git repo or directory containing groups metadata e.g. https://github.com/openshift/ocp-build-data")
 @click.option("-g", "--group", metavar='NAME', required=True,
               help="The group of components on which to operate. e.g. openshift-4.9")
@@ -515,10 +515,10 @@ class RebuildPipeline:
               help="The name of a component to rebase & build for. e.g. openshift-enterprise-cli")
 @pass_runtime
 @click_coroutine
-async def rebuild(runtime: Runtime, data_path: str, group: str, assembly: str, type: str, component: Optional[str]):
+async def rebuild(runtime: Runtime, ocp_build_data_url: str, group: str, assembly: str, type: str, component: Optional[str]):
     if type != "rhcos" and not component:
         raise click.BadParameter(f"'--component' is required for type {type}")
     elif type == "rhcos" and component:
         raise click.BadParameter("Option '--component' cannot be used when --type == 'rhcos'")
-    pipeline = RebuildPipeline(runtime, group=group, assembly=assembly, type=RebuildType[type.upper()], dg_key=component, data_path=data_path)
+    pipeline = RebuildPipeline(runtime, group=group, assembly=assembly, type=RebuildType[type.upper()], dg_key=component, ocp_build_data_url=ocp_build_data_url)
     await pipeline.run()

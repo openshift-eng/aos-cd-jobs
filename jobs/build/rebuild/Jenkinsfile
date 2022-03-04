@@ -43,6 +43,12 @@ node {
                             defaultValue: "",
                             trim: true
                         ),
+                        string(
+                            name: 'DOOZER_DATA_PATH',
+                            description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
+                            defaultValue: "https://github.com/openshift/ocp-build-data",
+                            trim: true,
+                        ),
                         booleanParam(
                             name: 'IGNORE_LOCKS',
                             description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
@@ -91,6 +97,7 @@ node {
             }
             cmd += [
                 "rebuild",
+                "--data-path", params.DOOZER_DATA_PATH,
                 "-g", "openshift-$params.BUILD_VERSION",
                 "--assembly", params.ASSEMBLY,
                 "--type", params.TYPE

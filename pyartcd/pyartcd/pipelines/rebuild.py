@@ -29,7 +29,7 @@ class RebuildPipeline:
     """ Rebuilds a component for an assembly """
 
     def __init__(self, runtime: Runtime, group: str, assembly: str,
-                 type: RebuildType, dg_key: str, logger: Optional[logging.Logger] = None):
+                 type: RebuildType, dg_key: str, ocp_build_data_url: str, logger: Optional[logging.Logger] = None):
         if assembly == "stream":
             raise ValueError("You may not rebuild a component for 'stream' assembly.")
         if type in [RebuildType.RPM, RebuildType.IMAGE] and not dg_key:
@@ -53,7 +53,9 @@ class RebuildPipeline:
         # sets environment variables for Doozer
         self._doozer_env_vars = os.environ.copy()
         self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self.runtime.working_dir / "doozer-working")
-        ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
+
+        if not ocp_build_data_url:
+            ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
         if ocp_build_data_url:
             self._doozer_env_vars["DOOZER_DATA_PATH"] = ocp_build_data_url
 
@@ -500,6 +502,8 @@ class RebuildPipeline:
 
 
 @cli.command("rebuild")
+@click.option("--ocp-build-data-url", metavar='BUILD_DATA', default=None,
+              help="Git repo or directory containing groups metadata e.g. https://github.com/openshift/ocp-build-data")
 @click.option("-g", "--group", metavar='NAME', required=True,
               help="The group of components on which to operate. e.g. openshift-4.9")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
@@ -511,10 +515,10 @@ class RebuildPipeline:
               help="The name of a component to rebase & build for. e.g. openshift-enterprise-cli")
 @pass_runtime
 @click_coroutine
-async def rebuild(runtime: Runtime, group: str, assembly: str, type: str, component: Optional[str]):
+async def rebuild(runtime: Runtime, ocp_build_data_url: str, group: str, assembly: str, type: str, component: Optional[str]):
     if type != "rhcos" and not component:
         raise click.BadParameter(f"'--component' is required for type {type}")
     elif type == "rhcos" and component:
         raise click.BadParameter("Option '--component' cannot be used when --type == 'rhcos'")
-    pipeline = RebuildPipeline(runtime, group=group, assembly=assembly, type=RebuildType[type.upper()], dg_key=component)
+    pipeline = RebuildPipeline(runtime, group=group, assembly=assembly, type=RebuildType[type.upper()], dg_key=component, ocp_build_data_url=ocp_build_data_url)
     await pipeline.run()

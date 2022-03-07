@@ -20,11 +20,11 @@ Example imagestreams:
 
 ## Timing
 
-This will nearly always be run by the ocp4 or custom job.
+This will nearly always be run by the `ocp4` or `custom` job.
 
 A human might want to run this after hand-adjusting the current tagged images
 in brew in order to update the nightlies accordingly. Another option is to sync
-images from a past brew event in order to turn back time on the nightly.
+images from an assembly.
 
 ## Artifacts
 
@@ -36,9 +36,15 @@ for multiple arches.)
 
 ## Parameters
 
-### Standard parameters BUILD\_VERSION, DRY\_RUN, MOCK, SUPPRESS\_EMAIL
+### Standard parameters ASSEMBLY, BUILD\_VERSION, DOOZER\_DATA\_PATH, DRY\_RUN, MOCK, SUPPRESS\_EMAIL
 
 See [Standard Parameters](/jobs/README.md#standard-parameters).
+
+### TRIGGER\_NEW\_NIGHTLY
+
+Force the release controller to re-create the latest nightly for the version
+with existing images; no change will be made to payload images in the release,
+and all other parameters will be ignored.
 
 ### PUBLISH
 
@@ -69,10 +75,13 @@ Sometimes when we are turning arches on and off, it is inconvenient to require
 all the previously-built images to have all arches built (this usually requires
 a full rebuild). With this parameter we can ignore "problematic" arches.
 
-### BREW\_EVENT\_ID
+### EMERGENCY\_IGNORE\_ISSUES
 
-Look for the last images as of the given Brew event instead of latest; turn back time.
-Note that this does nothing to alter the machine-os-content (RHCOS) image in the nightly.
+Ignore the results of the consistency checks and sync out whatever we have
+anyway. Obviously, this should never be necessary; in most cases we should
+update the `releases.yml` `permits` field for the assembly instead, and for GA
+versions we should never be producing inconsistent nightlies. So use this only
+with approval from team leadership.
 
 ### ORGANIZATION
 

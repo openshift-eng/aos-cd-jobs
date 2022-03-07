@@ -64,6 +64,21 @@ It is a very good idea to get familiar with [commonlib.groovy](https://github.co
 
 ### Standard parameters
 
+#### ASSEMBLY
+
+The assembly to use with this job, if it's not the standard `stream` assembly.
+Most automated work builds for and uses the rolling `stream` assembly, meaning
+roughly "the latest content". Use this to specify when jobs should pin against
+an assembly instead, for public releases, hotfixes, or experiments.
+
+This is so standard that when provided, `buildlib.doozer` and
+`buildlib.elliott` consume it without the job having to pass it in.
+
+### DOOZER\_DATA\_PATH
+
+Fork of `ocp-build-data` to use instead of the [default](https://github.com/openshift/ocp-build-data)
+(e.g. when you have an assembly definition in your own fork).
+
 #### DRY\_RUN
 
 A common parameter, used when testing (but not standardized anywhere).

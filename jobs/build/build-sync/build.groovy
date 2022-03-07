@@ -47,8 +47,8 @@ def initialize() {
 
 // ######################################################################
 // Determine the content to update in the ART latest imagestreams
-// and apply those changes on the CI cluster. The verb will also mirroring
-// out images to the quay monorepos.
+// and apply those changes on the CI cluster. The verb will also mirror
+// out images to the quay monorepo.
 def buildSyncGenInputs() {
     echo("Generating and applying imagestream updates")
     def output_dir = "gen-payload-artifacts" // will be relative to env.WORKSPACE
@@ -72,6 +72,30 @@ ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
 ${excludeArchesParam}
 ${dryRunParams}
 """
+    }
+    if (params.PUBLISH) {
+        buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
+        for(file in findFiles(glob: "${output_dir}/updated-tags-for.*.yaml")) {
+            def meta = readYaml(file: "${file}")['metadata']
+            def namespace = meta['namespace']
+            def reponame = namespace.replace("ocp", "release")
+            def name = "${params.BUILD_VERSION}.0-${params.ASSEMBLY}"  // must be semver
+            def image = "registry.ci.openshift.org/${namespace}/${reponame}:${name}"
+            def cmd = """
+                adm release new --to-image=${image} --name ${name} --reference-mode=source
+                -n ${meta['namespace']} --from-image-stream ${meta['name']}
+            """
+
+            if ( params.DRY_RUN ) {
+                echo("Would have created the release image as follows: \noc ${cmd}")
+                continue
+            }
+            retry(3) {  // just to get past flakes
+                sleep(5)
+                buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} ${cmd}")
+            }
+            currentBuild.description += "<br>Published ${image}"
+        }
     }
 }
 

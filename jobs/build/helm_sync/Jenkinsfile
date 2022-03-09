@@ -58,8 +58,10 @@ pipeline {
         stage("Sync to mirror") {
             steps {
                 sh "tree ${params.VERSION}"
-                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/helm/${params.VERSION}/")
-                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/helm/latest/")
+                script {
+                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/helm/${params.VERSION}/")
+                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/helm/latest/")
+                }
 
                 sshagent(['aos-cd-test']) {
                     sh "scp -r ${params.VERSION} use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v4/x86_64/clients/helm/"

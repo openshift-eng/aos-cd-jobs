@@ -271,11 +271,12 @@ class PrepareReleasePipeline:
         return arch_nightlies
 
     def check_blockers(self):
+        # Note: --assembly option should always be "stream". We are checking blocker bugs for this release branch regardless of the sweep cutoff timestamp.
         cmd = [
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
-            "--assembly", self.assembly,
+            "--assembly=stream",
             "find-bugs",
             "--mode=blocker",
             "--exclude-status=ON_QA",

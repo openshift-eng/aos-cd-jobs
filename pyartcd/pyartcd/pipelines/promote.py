@@ -130,8 +130,20 @@ class PromotePipeline:
                 justification = self._reraise_if_not_permitted(err, "CVE_FLAWS", permits)
                 justifications.append(justification)
 
+            # Attempt to move all advisories to QE
+            impetus_advisories = group_config.get("advisories", {})
+            futures = []
+            for impetus, advisory in impetus_advisories.items():
+                if not advisory:
+                    continue
+                logger.info("Moving advisory %s to QE...", advisory)
+                futures.append(self.change_advisory_state(advisory, "QE"))
+            try:
+                await asyncio.gather(*futures)
+            except ChildProcessError as err:
+                logger.warn("Error changing advisory state: %s", err)
+
             # Ensure the image advisory is in QE (or later) state.
-            # TODO: We may need an option to permit all advisories states
             image_advisory = impetus_advisories.get("image", 0)
             errata_url = ""
 
@@ -273,6 +285,23 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             raise ValueError("A justification is required to permit issue %s.", code)
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
+
+    async def change_advisory_state(self, advisory: int, state: str):
+        cmd = [
+            "elliott",
+            f"--working-dir={self.elliott_working_dir}",
+            f"--group={self.group_name}",
+            "--assembly", self.assembly,
+            "change-state",
+            "-s",
+            state,
+            "-a",
+            str(advisory),
+        ]
+        if self.runtime.dry_run:
+            cmd.append("--dry-run")
+        async with self._elliott_lock:
+            await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 
     async def check_blocker_bugs(self):
         # Note: --assembly option should always be "stream". We are checking blocker bugs for this release branch regardless of the sweep cutoff timestamp.

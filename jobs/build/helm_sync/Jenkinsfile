@@ -1,7 +1,8 @@
 #!/usr/bin/env groovy
 node {
     checkout scm
-    load('pipeline-scripts/commonlib.groovy').describeJob("helm_sync", """
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib.describeJob("helm_sync", """
         --------------------------
         Sync Helm client to mirror
         --------------------------

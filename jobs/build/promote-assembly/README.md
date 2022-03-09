@@ -177,10 +177,13 @@ releases:
         why: Luke told me this can be ignored
 ```
 
-List of codes:
-- *BLOCKER_BUGS* Blocker bugs found for release.
-- *ATTACHED_BUGS* Error verifying attached bugs
-- *CVE_FLAWS* Error attaching CVE flaw bugs
+Promotion Permit codes:
+- *UPGRADE_EDGES* Permit failing Upgrade-Edges (`upgrades`) validation for a release.
+- *BLOCKER_BUGS* Permit failing Blocker-Bugs check for a release.
+- *ATTACHED_BUGS* Permit failing Verify-attached-bugs validation for release advisories.
+- *CVE_FLAWS* Permit failing Attach-CVE-flaws (bugs) to release advisories.
+- *NO_ERRATA* Permit standard assembly to not have an Image advisory.
+- *INVALID_ERRATA_STATUS* Permit standard assembly release advisories to not have LiveID or be in undesired Errata status.
 
 ## Known issues
 

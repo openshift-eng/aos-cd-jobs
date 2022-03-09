@@ -122,7 +122,7 @@ for arch in ${ARCHES}; do
       transferClientIfNeeded "${target_dir}/${RELEASE}/" "${target_dir}/${LINK_NAME}/"
 
       # On the old mirror, clients/ocp-dev-preview/pre-release linked to ../ocp/candidate. Replicate that by copying the artifacts over.
-      if [[ "$LINK_NAME" == "candidate" ]]; then
+      if [[ "$LINK_NAME" == "latest" ]]; then
         # This is where console.openshift.com points to find dev-preview artifacts
         transferClientIfNeeded "${target_dir}/${RELEASE}/" "pub/openshift-v4/${arch}/clients/ocp-dev-preview/pre-release/"
       fi

@@ -108,7 +108,7 @@ class PromotePipeline:
                 try:
                     await self.check_blocker_bugs()
                 except VerificationError as err:
-                    logger.warn("Blocker bugs found for release; do not proceed without resolving; see https://github.com/openshift-eng/art-docs/blob/master/release/4.y.z-stream.md#handling-blocker-bugs: %s", err)
+                    logger.warn("Blocker bugs found for release: %s", err)
                     justification = self._reraise_if_not_permitted(err, "BLOCKER_BUGS", permits)
                     justifications.append(justification)
                 logger.info("No blocker bugs found.")
@@ -290,7 +290,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         if not match:
             raise IOError(f"Could determine whether this release has blocker bugs. Elliott printed unexpected message: {stdout}")
         if int(match[1]) != 0:
-            raise VerificationError(f"{int(match[1])} blocker Bug(s) found for release; do not proceed without resolving. See https://github.com/openshift-eng/art-docs/blob/master/release/4.y.z-stream.md#handling-blocker-bugs. Elliott output: {stdout}")
+            raise VerificationError(f"{int(match[1])} blocker Bug(s) found for release; do not proceed without resolving. See https://art-docs.engineering.redhat.com/release/4.y.z-stream/#handling-blocker-bugs. To permit this validation error, see https://art-docs.engineering.redhat.com/jenkins/build-promote-assembly-readme/#permit-certain-validation-failures. Elliott output: {stdout}")
 
     async def attach_cve_flaws(self, advisory: int):
         # raise ChildProcessError("test")

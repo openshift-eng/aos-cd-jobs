@@ -138,8 +138,8 @@ class PromotePipeline:
             if assembly_type == assembly.AssemblyTypes.STANDARD:
                 if image_advisory <= 0:
                     err = VerificationError(f"No associated image advisory for {self.assembly} is defined.")
-                    self._raise_if_not_waived(err, "NO_ERRATA", permits)
-                    logger.warning("%s", err)
+                    justification = self._reraise_if_not_permitted(err, "NO_ERRATA", permits)
+                    justifications.append(justification)
                 else:
                     logger.info("Verifying associated image advisory %s...", image_advisory)
                     image_advisory_info = await self.get_advisory_info(image_advisory)
@@ -149,8 +149,8 @@ class PromotePipeline:
                         assert live_id
                         errata_url = f"https://access.redhat.com/errata/{live_id}"  # don't quote
                     except VerificationError as err:
-                        logger.warning("%s", err)
-                        justification = self._raise_if_not_waived(err, "INVALID_ERRATA_STATUS", permits)
+                        logger.warn("%s", err)
+                        justification = self._reraise_if_not_permitted(err, "INVALID_ERRATA_STATUS", permits)
                         justifications.append(justification)
 
             # Verify attached bugs

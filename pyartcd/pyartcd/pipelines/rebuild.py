@@ -345,7 +345,7 @@ class RebuildPipeline:
             f"baseurl = {plashet_b_url}/$basearch/os\n",
             "enabled = 1\n",
             "priority = 1\n",  # https://wiki.centos.org/PackageManagement/Yum/Priorities
-            "gpgcheck = 1\n",
+            "gpgcheck = 0\n",   # We might have include beta signed / unsigned rpms for overrides
             "gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release\n",
         ])
 

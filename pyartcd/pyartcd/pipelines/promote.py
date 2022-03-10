@@ -623,7 +623,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
     async def send_image_list_email(self, release_name: str, advisory: int, archive_dir: Path):
         content = await self.get_advisory_image_list(advisory)
         subject = f"OCP {release_name} Image List"
-        return await exectools.to_thread(self._mail.send_mail, self.runtime.config["email"][f"promote_image_list_recipients"], subject, content, archive_dir=archive_dir, dry_run=self.runtime.dry_run)
+        return await exectools.to_thread(self._mail.send_mail, self.runtime.config["email"]["promote_image_list_recipients"], subject, content, archive_dir=archive_dir, dry_run=self.runtime.dry_run)
 
 
 @cli.command("promote")

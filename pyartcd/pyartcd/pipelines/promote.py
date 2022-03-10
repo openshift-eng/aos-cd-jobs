@@ -131,7 +131,6 @@ class PromotePipeline:
                 justifications.append(justification)
 
             # Attempt to move all advisories to QE
-            impetus_advisories = group_config.get("advisories", {})
             futures = []
             for impetus, advisory in impetus_advisories.items():
                 if not advisory:
@@ -141,7 +140,7 @@ class PromotePipeline:
             try:
                 await asyncio.gather(*futures)
             except ChildProcessError as err:
-                logger.warn("Error changing advisory state: %s", err)
+                logger.warn("Error moving advisory %s to QE: %s", advisory, err)
 
             # Ensure the image advisory is in QE (or later) state.
             image_advisory = impetus_advisories.get("image", 0)
@@ -289,9 +288,6 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
     async def change_advisory_state(self, advisory: int, state: str):
         cmd = [
             "elliott",
-            f"--working-dir={self.elliott_working_dir}",
-            f"--group={self.group_name}",
-            "--assembly", self.assembly,
             "change-state",
             "-s",
             state,

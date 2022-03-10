@@ -80,7 +80,7 @@ class PromotePipeline:
         logger.info("Release name: %s", release_name)
 
         self._slack_client.bind_channel(release_name)
-        slack_response = await self._slack_client.say(f"Promoting release `{release_name}`")
+        slack_response = await self._slack_client.say(f"Promoting release `{release_name}` @release-artists")
         slack_thread = slack_response["message"]["ts"]
 
         justifications = []
@@ -185,7 +185,7 @@ class PromotePipeline:
             pullspecs = list(map(lambda r: r["image"], release_infos))
             if not tag_stable:
                 self._logger.warning("This release will not appear on release controllers. Pullspecs: %s", release_name, ", ".join(pullspecs))
-                await self._slack_client.say(f"Hi @release-artists . Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {', '.join(pullspecs)}", slack_thread)
+                await self._slack_client.say(f"Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {', '.join(pullspecs)}", slack_thread)
             else:  # Wait for release images to be accepted by the release controllers
                 self._logger.info("All release images for %s have been successfully promoted. Pullspecs: %s", release_name, ", ".join(pullspecs))
 
@@ -199,7 +199,7 @@ class PromotePipeline:
                 if not all(accepted):
                     self._logger.info("Determining upgrade tests...")
                     test_commands = self._get_upgrade_tests_commands(release_name, previous_list)
-                    message = f"""Hi @release-artists . A new release `{release_name}` is ready and needs some upgrade tests to be triggered.
+                    message = f"""A new release `{release_name}` is ready and needs some upgrade tests to be triggered.
         Please open a chat with @cluster-bot and issue each of these lines individually:
         {os.linesep.join(test_commands)}
         """
@@ -221,7 +221,7 @@ class PromotePipeline:
 
                 self._logger.info("All release images for %s have been accepted by the release controllers.", release_name)
 
-                message = f"Hi @release-artists . Release `{release_name}` has been accepted by the release controllers."
+                message = f"Release `{release_name}` has been accepted by the release controllers."
                 await self._slack_client.say(message, slack_thread)
 
                 # Send image list
@@ -240,7 +240,7 @@ class PromotePipeline:
         except Exception as err:
             self._logger.exception(err)
             error_message = f"Error promoting release {release_name}: {err}\n {traceback.format_exc()}"
-            message = f"Hi @release-artists . Promoting release {release_name} failed with: {error_message}"
+            message = f"Promoting release {release_name} failed with: {error_message}"
             await self._slack_client.say(message, slack_thread)
             raise
 

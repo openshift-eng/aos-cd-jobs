@@ -189,27 +189,35 @@ class PromotePipeline:
             else:  # Wait for release images to be accepted by the release controllers
                 self._logger.info("All release images for %s have been successfully promoted. Pullspecs: %s", release_name, ", ".join(pullspecs))
 
-                self._logger.info("Determining upgrade tests...")
-                test_commands = self._get_upgrade_tests_commands(release_name, previous_list)
-                message = f"""Hi @release-artists . A new release `{release_name}` is ready and needs some upgrade tests to be triggered.
-Please open a chat with @cluster-bot and issue each of these lines individually:
-{os.linesep.join(test_commands)}
-"""
-                await self._slack_client.say(message, slack_thread)
-
-                self._logger.info("Waiting for release images for %s to be accepted by the release controller...", release_name)
-                futures = []
+                # check if release is already accepted (in case we timeout and run the job again)
+                accepted = []
                 for arch in arches:
                     go_arch_suffix = util.go_suffix_for_arch(arch)
                     release_stream = f"4-stable{go_arch_suffix}"
-                    futures.append(self.wait_for_stable(release_name, arch, release_stream))
-                try:
-                    await asyncio.gather(*futures)
-                except RetryError as err:
-                    message = f"Timeout waiting for release to be accepted by the release controllers: {err}"
-                    self._logger.error(message)
-                    self._logger.exception(err)
-                    raise TimeoutError(message)
+                    accepted.append(await self.is_accepted(release_name, arch, release_stream))
+
+                if not all(accepted):
+                    self._logger.info("Determining upgrade tests...")
+                    test_commands = self._get_upgrade_tests_commands(release_name, previous_list)
+                    message = f"""Hi @release-artists . A new release `{release_name}` is ready and needs some upgrade tests to be triggered.
+        Please open a chat with @cluster-bot and issue each of these lines individually:
+        {os.linesep.join(test_commands)}
+        """
+                    await self._slack_client.say(message, slack_thread)
+
+                    self._logger.info("Waiting for release images for %s to be accepted by the release controller...", release_name)
+                    futures = []
+                    for arch in arches:
+                        go_arch_suffix = util.go_suffix_for_arch(arch)
+                        release_stream = f"4-stable{go_arch_suffix}"
+                        futures.append(self.wait_for_stable(release_name, arch, release_stream))
+                    try:
+                        await asyncio.gather(*futures)
+                    except RetryError as err:
+                        message = f"Timeout waiting for release to be accepted by the release controllers: {err}"
+                        self._logger.error(message)
+                        self._logger.exception(err)
+                        raise TimeoutError(message)
 
                 self._logger.info("All release images for %s have been accepted by the release controllers.", release_name)
 
@@ -557,6 +565,12 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         env = os.environ.copy()
         env["GOTRACEBACK"] = "all"
         await exectools.cmd_assert_async(cmd, env=env, stdout=sys.stderr)
+
+    async def is_accepted(self, release_name: str, arch: str, release_stream: str):
+        go_arch = util.go_arch_for_brew_arch(arch)
+        release_controller_url = f"https://{go_arch}.ocp.releases.ci.openshift.org"
+        phase = await self.get_release_phase(release_controller_url, release_stream, release_name)
+        return phase == "Accepted"
 
     async def wait_for_stable(self, release_name: str, arch: str, release_stream: str):
         go_arch = util.go_arch_for_brew_arch(arch)

@@ -1,3 +1,4 @@
+### History
 mirror.openshift.com is a host which provides public access to an array of artifacts to customers. It differs from the customer portal in that it does not require authentication to download content.
 
 The legacy infrastructure run by Service Delivery is to be [decommissioned EOY 2021](https://source.redhat.com/groups/public/openshiftplatformsre/blog/mirroropenshiftcom_end_of_life_announcement).
@@ -7,6 +8,9 @@ The current direction for replacing this infrastructure is an AWS S3 bucket behi
 CloudFront provides worldwide distribution, but it is not a drop in replacement. It did not:
 - Provide an Apache-style file listing for directory structures within that S3 bucket (S3 content is not even technically organized by directories). 
 - Provide for client certificate authentication like the legacy mirror.openshift.com/enterprise. 
+
+### AWS Account
+In order to access the AWS account, look in bitwarden. The credentials to administer the AWS account are stored in `ART OSD Cluster / mirror.openshift.com / mirror2 AWS Account` in the `Automated Release Team (ART)` collection.
 
 ### /enterprise authentication
 CloudFront does not support client certificate based authentication (used by the legacy mirror.openshift.com/enterprise). Client certificate based auth could have been preserved with a small deployment (e.g. of nginx) to proxy requests, but this introduced an unnecessary bottleneck and would have created a new operational concern for the ART team.
@@ -31,7 +35,20 @@ This is critical to understand because, even if s3 content is pushed under /pub/
 #### Proxying to Red Hat Content Gateway (CGW)
 Some teams that traditionally had ART publishing their clients to mirror.openshift.com have opted to host their content on Red Hat's content gateway (CGW). However, those teams still need older URLs to resolve. As such, certain directories on the new mirror.openshift.com are designed to proxy content from CGW.
 
-This was achieved by adding the CGW domain as an origin for our cloudfront distribution. This allows us to, for example, proxy a request to cloudfront for /pub/openshift-v4/clients/crc to pull content from https://developers.redhat.com/content-gateway/rest/mirror/pub/openshift-v4/clients/crc/ . This is another case where even if content is written to our s3 bucket, it will not be visible to users of cloudfront.
+This was achieved by adding the CGW domain as an origin for our cloudfront distribution. This allows us to, for example, proxy a request to cloudfront for /pub/openshift-v4/clients/crc to pull content from https://developers.redhat.com/content-gateway/rest/mirror/pub/openshift-v4/clients/crc/ . This is another case where even if content is written to our s3 bucket, it will not be visible to users of mirror.openshift.com.
+
+To add or update these proxy entries:
+1. Log into the ART AWS account at aws.amazon.com 
+2. Navigate to the CloudFront service.
+3. Find the running CloudFront distribution for mirror.openshift.com.
+4. Click the "Behaviors" tab.
+5. Look at the details for one of the behaviors that causes requests for a certain path to be proxied (e.g. `*/clients/crc/*`).
+6. To add a new path which proxies, create a NEW behavior. **Do not modify any existing behavior**.
+7. In the new behavior, replicate all of the settings you see in the example behavior you chose **except** `Path pattern` and potentially `Origin and origin groups` (if the path resides somewhere different on the CGW).
+8. Double check that all other settings are replicated -- inclduing caching and the "Viewer Request" function being set to `cgw-redirector`.
+9 Save your changes to the new behavior and move it to the top of the behavior list.
+10. Allow the CloudFront distribution to redeploy (5 to 10 minutes). 
+11. Test the new redirection rule directly on mirror.openshift.com. 
 
 ### Backup and restore
 The art-srv-enterprise bucket has S3 versioning enabled. This means that deleted files can be restored if it is done quickly. There is a lifecycle rule that will permanently delete these files after 30 days.

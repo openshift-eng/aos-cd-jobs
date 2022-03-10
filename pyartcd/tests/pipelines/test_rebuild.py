@@ -23,6 +23,15 @@ class TestRebuildPipeline(TestCase):
         cmd_gather_async.assert_called_once_with(["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "config:read-group", "--yaml"], env=ANY)
         self.assertEqual(actual["key"], "value")
 
+    @patch("pyartcd.exectools.cmd_gather_async")
+    def test_ocp_build_data_url(self, cmd_gather_async: Mock):
+        runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}}, dry_run=False)
+        fork_url = 'https://fork.com/ocp-build-data-fork.git'
+        pipeline = RebuildPipeline(runtime, group="openshift-4.9", assembly="art0001", type=RebuildType.RHCOS, dg_key=None, ocp_build_data_url=fork_url)
+        actual = pipeline._doozer_env_vars["DOOZER_DATA_PATH"]
+        expected = fork_url
+        self.assertEqual(actual, expected)
+
     @patch("pathlib.Path.mkdir")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("shutil.rmtree")

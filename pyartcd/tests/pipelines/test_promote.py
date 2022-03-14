@@ -124,6 +124,7 @@ class TestPromotePipeline(TestCase):
         pipeline._slack_client = AsyncMock()
         pipeline.check_blocker_bugs = AsyncMock()
         pipeline.attach_cve_flaws = AsyncMock()
+        pipeline.change_advisory_state = AsyncMock()
         pipeline.get_advisory_info = AsyncMock(return_value={
             "id": 2,
             "errata_id": 2222,
@@ -141,6 +142,7 @@ class TestPromotePipeline(TestCase):
         pipeline.check_blocker_bugs.assert_awaited_once_with()
         for advisory in [1, 2, 3, 4]:
             pipeline.attach_cve_flaws.assert_any_await(advisory)
+            pipeline.change_advisory_state.assert_any_await(advisory, "QE")
         pipeline.get_advisory_info.assert_awaited_once_with(2)
         pipeline.verify_attached_bugs.assert_awaited_once_with([1, 2, 3, 4])
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", raise_if_not_found=ANY)
@@ -166,7 +168,7 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
-        "digest": f"fake:deadbeef",
+        "digest": "fake:deadbeef",
         "references": {
             "spec": {
                 "tags": [

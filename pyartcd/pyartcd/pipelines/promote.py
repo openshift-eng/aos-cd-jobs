@@ -130,8 +130,19 @@ class PromotePipeline:
                 justification = self._reraise_if_not_permitted(err, "CVE_FLAWS", permits)
                 justifications.append(justification)
 
+            # Attempt to move all advisories to QE
+            futures = []
+            for impetus, advisory in impetus_advisories.items():
+                if not advisory:
+                    continue
+                logger.info("Moving advisory %s to QE...", advisory)
+                futures.append(self.change_advisory_state(advisory, "QE"))
+            try:
+                await asyncio.gather(*futures)
+            except ChildProcessError as err:
+                logger.warn("Error moving advisory %s to QE: %s", advisory, err)
+
             # Ensure the image advisory is in QE (or later) state.
-            # TODO: We may need an option to permit all advisories states
             image_advisory = impetus_advisories.get("image", 0)
             errata_url = ""
 
@@ -281,6 +292,20 @@ class PromotePipeline:
             raise ValueError("A justification is required to permit issue %s.", code)
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
+
+    async def change_advisory_state(self, advisory: int, state: str):
+        cmd = [
+            "elliott",
+            "change-state",
+            "-s",
+            state,
+            "-a",
+            str(advisory),
+        ]
+        if self.runtime.dry_run:
+            cmd.append("--dry-run")
+        async with self._elliott_lock:
+            await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 
     async def check_blocker_bugs(self):
         # Note: --assembly option should always be "stream". We are checking blocker bugs for this release branch regardless of the sweep cutoff timestamp.
@@ -612,7 +637,7 @@ class PromotePipeline:
     async def send_image_list_email(self, release_name: str, advisory: int, archive_dir: Path):
         content = await self.get_advisory_image_list(advisory)
         subject = f"OCP {release_name} Image List"
-        return await exectools.to_thread(self._mail.send_mail, self.runtime.config["email"][f"promote_image_list_recipients"], subject, content, archive_dir=archive_dir, dry_run=self.runtime.dry_run)
+        return await exectools.to_thread(self._mail.send_mail, self.runtime.config["email"]["promote_image_list_recipients"], subject, content, archive_dir=archive_dir, dry_run=self.runtime.dry_run)
 
 
 @cli.command("promote")

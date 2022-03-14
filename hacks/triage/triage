@@ -9,6 +9,7 @@ topics=(
   backlog
   prs
   triage_docs
+  plashets
 )
 
 browsers=(
@@ -187,6 +188,14 @@ backlog() {
 triage_docs() {
   echo 'http://saml.buildvm.openshift.eng.bos.redhat.com:3000/d/aTqExXOMz/system-stats?orgId=1&refresh=30s'
   echo 'https://source.redhat.com/groups/public/atomicopenshift/atomicopenshift_wiki/art_buildvmjenkins_security_patching_sop'
+}
+
+plashets() {
+  for r in ${releases[@]}; do
+    if [ $r == "3.11" ]; then continue; fi
+    echo "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/${r}/stream/building/x86_64/os/Packages/"
+    echo "http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/${r}-el8/stream/building/x86_64/os/Packages/"
+  done
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

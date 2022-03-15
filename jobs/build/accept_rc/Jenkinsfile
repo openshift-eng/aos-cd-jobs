@@ -22,24 +22,21 @@ node {
                 parameterDefinitions: [
                     string(
                         name: 'RELEASE_NAME',
-                        description: 'Release name (e.g 4.10.4)',
-                        trim: true
-                    ),
-                    choice(
-                        name: 'ARCH',
-                        description: 'The architecture for the release"',
-                        choices: (commonlib.goArches).join('\n'),
-                        defaultValue: 'amd64'
+                        description: 'Release name (e.g 4.10.4). Arch is amd64 by default.',
+                        trim: true,
+                        defaultValue: ""
                     ),
                     string(
                         name: 'UPGRADE_URL',
                         description: 'URL to successful upgrade job',
-                        trim: true
+                        trim: true,
+                        defaultValue: ""
                     ),
                     string(
                         name: 'UPGRADE_MINOR_URL',
                         description: 'URL to successful upgrade-minor job',
-                        trim: true
+                        trim: true,
+                        defaultValue: ""
                     ),
                     booleanParam(
                         name: 'CONFIRM',
@@ -58,11 +55,14 @@ node {
         error("You must provide a release name and atleast one upgrade test url")
     }
 
+    def upgrade_param = params.UPGRADE_URL ? "--upgrade-url ${params.UPGRADE_URL}" : ''
+    def upgrade_minor_param = params.UPGRADE_MINOR_URL ? "--upgrade-minor-url ${params.UPGRADE_MINOR_URL}" : ''
+    
     withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
         res = commonlib.shell(
             returnAll: true,
             script: """
-                hacks/release_controller/accept.py --arch ${params.ARCH} --release ${params.RELEASE_NAME} --upgrade-url ${params.UPGRADE_URL} --upgrade-minor-url ${params.UPGRADE_MINOR_URL} --confirm ${params.CONFIRM}
+                hacks/release_controller/accept.py --release ${params.RELEASE_NAME} ${upgrade_param} ${upgrade_minor_param} --confirm ${params.CONFIRM}
             """,
         )
     }

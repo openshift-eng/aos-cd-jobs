@@ -1,0 +1,71 @@
+#!/usr/bin/env groovy
+
+node {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("accept_rc", """
+        <h2>Accept a release on Release Controller by fixing upgrade tests</h2>
+    """)
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '7',
+                    daysToKeepStr: '7'
+                )
+            ),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    string(
+                        name: 'RELEASE_NAME',
+                        description: 'Release name (e.g 4.10.4)',
+                        trim: true
+                    ),
+                    choice(
+                        name: 'ARCH',
+                        description: 'The architecture for the release"',
+                        choices: (commonlib.goArches).join('\n'),
+                        defaultValue: 'amd64'
+                    ),
+                    string(
+                        name: 'UPGRADE_URL',
+                        description: 'URL to successful upgrade job',
+                        trim: true
+                    ),
+                    string(
+                        name: 'UPGRADE_MINOR_URL',
+                        description: 'URL to successful upgrade-minor job',
+                        trim: true
+                    ),
+                    booleanParam(
+                        name: 'CONFIRM',
+                        description: 'Running without this would be a [dry-run]. Must be specified to apply changes to server',
+                        defaultValue: false
+                    ),
+                    commonlib.mockParam(),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    if (!params.RELEASE_NAME || !(params.UPGRADE_URL && params.UPGRADE_MINOR_URL)) {
+        error("You must provide a release name and atleast one upgrade test url")
+    }
+
+    withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
+        res = commonlib.shell(
+            returnAll: true,
+            script: """
+                hacks/release_controller/accept.py --arch ${params.ARCH} --release ${params.RELEASE_NAME} --upgrade-url ${params.UPGRADE_URL} --upgrade-minor-url ${params.UPGRADE_MINOR_URL} --confirm ${params.CONFIRM}
+            """,
+        )
+    }
+    print(res)
+    buildlib.cleanWorkspace()
+}

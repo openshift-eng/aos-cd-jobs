@@ -3,7 +3,6 @@ import click
 import openshift as oc
 import json
 import time
-import pprint
 
 WARNING = '\033[91m'
 ENDC = '\033[0m'

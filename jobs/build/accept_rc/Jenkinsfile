@@ -54,7 +54,7 @@ node {
 
     commonlib.checkMock()
 
-    if (!params.RELEASE_NAME || !(params.UPGRADE_URL && params.UPGRADE_MINOR_URL)) {
+    if (!params.RELEASE_NAME || !(params.UPGRADE_URL || params.UPGRADE_MINOR_URL)) {
         error("You must provide a release name and atleast one upgrade test url")
     }
 

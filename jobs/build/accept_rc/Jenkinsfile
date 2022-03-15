@@ -57,12 +57,13 @@ node {
 
     def upgrade_param = params.UPGRADE_URL ? "--upgrade-url ${params.UPGRADE_URL}" : ''
     def upgrade_minor_param = params.UPGRADE_MINOR_URL ? "--upgrade-minor-url ${params.UPGRADE_MINOR_URL}" : ''
+    def confirm_param = params.CONFIRM ? "--confirm" : ''
     
     withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
         res = commonlib.shell(
             returnAll: true,
             script: """
-                hacks/release_controller/accept.py --release ${params.RELEASE_NAME} ${upgrade_param} ${upgrade_minor_param} --confirm ${params.CONFIRM}
+                hacks/release_controller/accept.py --release ${params.RELEASE_NAME} ${upgrade_param} ${upgrade_minor_param} ${confirm_param}
             """,
         )
     }

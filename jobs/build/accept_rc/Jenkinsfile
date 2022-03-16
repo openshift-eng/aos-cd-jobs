@@ -66,7 +66,7 @@ node {
                 hacks/release_controller/accept.py --release ${params.RELEASE_NAME} ${upgrade_param} ${upgrade_minor_param} ${confirm_param}
             """,
         )
-        if res.returnStatus != 0 {
+        if (res.returnStatus != 0) {
             error("Script failed. See error above")
         }
     }

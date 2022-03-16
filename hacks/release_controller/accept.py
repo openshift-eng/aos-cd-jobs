@@ -62,12 +62,15 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, allow_up
     prow_pattern = rf'{prow_host}/view/gs/{subdir}/(.*)/(\d+)'
 
     def assert_upgrade_test_state(release_name, arch, old_prowjob_url, new_prowjob_url, allow_upgrade_to_change=False):
+        prowjob_success = 'success'
+        prowjob_fail = 'failure'
+
         def get_prowjob(prowjob_url):
             if prowjob_url in prowjobs:
                 return prowjobs[prowjob_url]
             z = re.match(prow_pattern, prowjob_url)
-            if not z or len(z.groups() != 2):
-                raise ValueError(f"given url [{prowjob_url}] doesn't match pattern [{pattern}]")
+            if not z or len(z.groups()) != 2:
+                raise ValueError(f"given url [{prowjob_url}] doesn't match pattern [{prow_pattern}]")
             test_name, test_id = z.groups()
             gcs_bucket_url = f'{gcs_host}/gcs/{subdir}/{test_name}/{test_id}/prowjob.json'
             r = requests.get(gcs_bucket_url)
@@ -78,13 +81,13 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, allow_up
         # make sure existing test has failed
         old_prowjob = get_prowjob(old_prowjob_url)
         old_upgrade_to = old_prowjob.metadata.annotations["release.openshift.io/from-tag"]
-        if old_prowjob.status.state != upgrade_state_failed:
-            raise ValueError(f'existing prowjob {old_prowjob_url} test has state={old_prowjob.status.state} and not {upgrade_state_failed}')
+        if old_prowjob.status.state != prowjob_fail:
+            raise ValueError(f'existing prowjob {old_prowjob_url} test has state={old_prowjob.status.state} and not {prowjob_fail}')
 
         # make sure new test has passed
         new_prowjob = get_prowjob(new_prowjob_url)
-        if new_prowjob.status.state != upgrade_state_success:
-            raise ValueError(f'new prowjob {new_prowjob_url} test has state={new_prowjob.status.state} and not {upgrade_state_success}')
+        if new_prowjob.status.state != prowjob_success:
+            raise ValueError(f'new prowjob {new_prowjob_url} test has state={new_prowjob.status.state} and not {prowjob_success}')
 
         # make sure new test arch is same
         new_arch = new_prowjob.metadata.annotations["release.openshift.io/architecture"]

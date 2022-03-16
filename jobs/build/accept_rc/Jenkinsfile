@@ -43,6 +43,11 @@ node {
                         description: 'Running without this would be a [dry-run]. Must be specified to apply changes to server',
                         defaultValue: false
                     ),
+                    booleanParam(
+                        name: 'ALLOW_UPGRADE_TO_CHANGE',
+                        description: 'For allowing upgrade_to version change with new test. Use with caution',
+                        defaultValue: false
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -55,15 +60,19 @@ node {
         error("You must provide a release name and atleast one upgrade test url")
     }
 
+    def dry_run = params.CONFIRM ? '' : '[DRY_RUN]'
+    currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
+
     def upgrade_param = params.UPGRADE_URL ? "--upgrade-url ${params.UPGRADE_URL}" : ''
     def upgrade_minor_param = params.UPGRADE_MINOR_URL ? "--upgrade-minor-url ${params.UPGRADE_MINOR_URL}" : ''
+    def allow_upgrade_to_change_param = params.ALLOW_UPGRADE_TO_CHANGE ? "--allow-upgrade-to-change" : ''
     def confirm_param = params.CONFIRM ? "--confirm" : ''
     
     withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
         res = commonlib.shell(
             returnAll: true,
             script: """
-                hacks/release_controller/accept.py --release ${params.RELEASE_NAME} ${upgrade_param} ${upgrade_minor_param} ${confirm_param}
+                hacks/release_controller/accept.py --release ${params.RELEASE_NAME} ${upgrade_param} ${upgrade_minor_param} ${allow_upgrade_to_change_param} ${confirm_param}
             """,
         )
         if (res.returnStatus != 0) {

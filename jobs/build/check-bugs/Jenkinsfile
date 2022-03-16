@@ -133,7 +133,7 @@ node {
                 script: """
                     ${buildlib.ELLIOTT_BIN}
                     --group openshift-${params.BUILD_VERSION}
-                    verify-bugs ${bugs}
+                    verify-bugs --output slack ${bugs}
                     > .log
                 """.stripIndent().tr("\n", " ").trim()
             )
@@ -150,9 +150,7 @@ node {
 
             message = """
             *:warning: Hi @release-artists, there are potential regressions to look into for ${params.BUILD_VERSION}*
-            ```
             ${potential_regressions}
-            ```
             """
 
             commonlib.slacklib.to(slack_channel).say(message)

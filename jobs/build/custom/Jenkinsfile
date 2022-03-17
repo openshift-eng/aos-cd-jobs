@@ -67,8 +67,8 @@ node {
                         trim: true,
                     ),
                     booleanParam(
-                        name: 'COMPOSE',
-                        description: 'Build plashets/compose (always true if building RPMs or images for non-stream assembly)',
+                        name: 'UPDATE_REPOS',
+                        description: 'Build plashets (always true if building RPMs or images for non-stream assembly)',
                         defaultValue: false,
                     ),
                     string(
@@ -162,8 +162,8 @@ node {
             }
 
             stage("repo: ose 'building'") {
-                if (params.COMPOSE || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
-                    lock("compose-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
+                if (params.UPDATE_REPOS || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
+                    lock("update-repo-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
                         def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
                         echo 'Building plashet'
                         buildlib.buildBuildingPlashet(version, release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
@@ -173,12 +173,12 @@ node {
                             buildlib.buildBuildingPlashet(version, release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
 
                             if (buildlib.getAutomationState(doozerOpts) in ["scheduled", "yes", "True"]) {
-                                slacklib.to(params.BUILD_VERSION).say(params.COMPOSE ?
-                                    """ *:alert: custom build compose ran during automation freeze*
-                                        COMPOSE parameter was set to true, forcing a compose during automation freeze."""
+                                slacklib.to(params.BUILD_VERSION).say(params.UPDATE_REPOS ?
+                                    """ *:alert: custom build repositories update ran during automation freeze*
+                                        UPDATE_REPOS parameter was set to true, forcing a repo update during automation freeze."""
                                     :
-                                    """*:alert: custom build compose ran during automation freeze*
-                                        RPM rebuild(s) in the build plan forced a compose during automation freeze."""
+                                    """*:alert: custom build repositories ran during automation freeze*
+                                        RPM rebuild(s) in the build plan forced a repo update during automation freeze."""
                                 )
                             }
 

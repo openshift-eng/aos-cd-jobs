@@ -165,10 +165,14 @@ node {
                 if (params.UPDATE_REPOS || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
                     lock("update-repo-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
                         def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
-                        echo 'Building plashet'
+                        def need_ironic_repo = buildlib.doozer("${doozerOpts} -q config:read-group --default=None repos.rhel-8-server-ironic-rpms", [capture: true]).trim() != "None"
+                        echo 'Building plashets'
                         buildlib.buildBuildingPlashet(version, release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
                         buildlib.buildBuildingPlashet(version, release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
                         if ("${majorVersion}" == "4") {
+                            if (need_ironic_repo) {
+                                buildlib.buildBuildingPlashet(version, version, 8, false, auto_signing_advisory, true)  // build ironic plashet
+                            }
                             buildlib.buildBuildingPlashet(version, release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
                             buildlib.buildBuildingPlashet(version, release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
 

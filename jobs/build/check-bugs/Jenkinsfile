@@ -85,7 +85,7 @@ node {
             echo "${blocker_bugs}"
 
             message = """
-            *:warning: @release-artists - blocker bugs found for ${params.BUILD_VERSION}*
+            *:warning: Blocker bugs found for ${params.BUILD_VERSION}*
             ${blocker_bugs}
             """
 
@@ -149,7 +149,7 @@ node {
             )
 
             message = """
-            *:warning: Hi @release-artists, there are potential regressions to look into for ${params.BUILD_VERSION}*
+            *:warning: There are potential regressions to look into for ${params.BUILD_VERSION}*
             ${potential_regressions}
             """
 

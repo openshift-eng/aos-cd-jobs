@@ -261,6 +261,7 @@ node {
                 arch: arch,
                 digest: payloadDigest,
                 client_type: client_type,
+                product: "openshift",
             )
         }
     }

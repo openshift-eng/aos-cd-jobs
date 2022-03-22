@@ -35,8 +35,8 @@ def path_setup() {
 
     GOPATH = "${env.WORKSPACE}/go"
     env.GOPATH = GOPATH
-    sh "rm -rf ${GOPATH}"  // Remove any cruft
-    sh "mkdir -p ${GOPATH}"
+    sh "mkdir -p ${GOPATH}/empty_to_overwrite"
+    sh "rsync -a --delete ${GOPATH}{/empty_to_overwrite,}/"  // Remove any cruft
     echo "Initialized env.GOPATH: ${env.GOPATH}"
 }
 
@@ -1169,27 +1169,31 @@ def cleanWorkdir(workdir, synchronous=false) {
     // **WARNING** workdir should generally NOT be env.WORKSPACE; this is where the job code is checked out,
     // including supporting scripts and such. Usually you don't want to wipe that out, so use a subdirectory.
 
-    // TODO: We need to replace rm -rf with rsync --delete for
-    // improved speed: https://unix.stackexchange.com/questions/37329/efficiently-delete-large-directory-containing-thousands-of-files
-
     // NOTE: if wrapped in commonlib.shell, this would wait for the background process;
     // this is designed to run instantly and never fail, so just run it in a normal shell.
+    to_remove = "${workdir}.rm.${currentBuild.number}.${WORKDIR_COUNTER}"
+    empty = "empty.${currentBuild.number}.${WORKDIR_COUNTER}"
     sh """
-        mkdir -p ${workdir}
-        mv ${workdir} ${workdir}.rm.${currentBuild.number}.${WORKDIR_COUNTER}
-        mkdir -p ${workdir}
+        mkdir -p ${workdir}/${empty}   # create empty subdir to use as template to overwrite quickly
+        mv ${workdir} ${to_remove}     # move workdir aside to remove at leisure
+        mkdir -p ${workdir}            # create another to use immediately
     """
 
+    // use rsync --delete instead of rm -rf for improved speed:
+    // https://unix.stackexchange.com/questions/37329/efficiently-delete-large-directory-containing-thousands-of-files
+    // also, it rewrites directory permissions instead of just accepting them like rm -rf does
+
     if (synchronous) {
-        // Some jobs can make large doozer_workings faster than rm -rf can remove them.
+        // Some jobs can make large doozer_workings faster than we can remove them.
         // Those jobs should call with synchronous.
         sh """
-        sudo rm -rf ${workdir}.rm.*
+            sudo rsync -a --delete ${to_remove}{/${empty},}/
+            rmdir ${to_remove}
         """
     } else {
         sh """
             # see discussion at https://stackoverflow.com/a/37161006 re:
-            JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'sudo rm -rf ${workdir}.rm.*' &
+            JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'sudo rsync -a --delete ${to_remove}{/${empty},}/ && rmdir ${to_remove}' &
         """
     }
 

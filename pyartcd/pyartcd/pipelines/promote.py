@@ -90,21 +90,22 @@ class PromotePipeline:
             arches = list(set(map(brew_arch_for_go_arch, arches)))
             if not arches:
                 raise ValueError("No arches specified.")
-            # Get previous list
+
+            # Validate upgrade edges
             upgrades_str: Optional[str] = group_config.get("upgrades")
-            if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
-                raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to empty string.")
-            previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
-            # Ensure all versions in previous list are valid semvers.
-            if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
-                raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
+            logger.info("Validating upgrade edges...")
+            try:
+                previous_list: List = await self.validate_upgrade_edges(upgrades_str, assembly_type, self._doozer_working_dir / "ocp-build-data")
+            except VerificationError as err:
+                logger.warn("Error validating upgrade edges: %s", err)
+                justification = self._reraise_if_not_permitted(err, "UPGRADE_EDGES", permits)
+                justifications.append(justification)
 
             # Check for blocker bugs
             if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
                 logger.info("Blocker Bug check is skipped.")
             else:
                 logger.info("Checking for blocker bugs...")
-                # TODO: Needs an option in releases.yml to skip this check
                 try:
                     await self.check_blocker_bugs()
                 except VerificationError as err:
@@ -187,7 +188,7 @@ class PromotePipeline:
                 metadata["description"] = str(description)
             if errata_url:
                 metadata["url"] = errata_url
-            reference_releases = util.get_assmebly_basis(releases_config, self.assembly).get("reference_releases", {})
+            reference_releases = util.get_assembly_basis(releases_config, self.assembly).get("reference_releases", {})
             tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE]
             release_infos = await self.promote_all_arches(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)
@@ -306,6 +307,30 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             cmd.append("--dry-run")
         async with self._elliott_lock:
             await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
+
+    async def validate_upgrade_edges(self, upgrades_str: str, assembly_type: assembly.AssemblyTypes, build_data_path: os.PathLike) -> List:
+        if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
+            raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to an empty string.")
+        previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
+        # Ensure all versions in previous list are valid semvers.
+        if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
+            raise VerificationError("Previous list (`upgrades` field in group config) has an invalid semver.")
+
+        major, minor = util.isolate_major_minor_in_group(self.group)
+
+        # we do not have assembly releases before 4.6
+        if minor <= 6:
+            return previous_list
+
+        prev_assembly_semvers = await util.get_all_assembly_semvers_for_release(major, minor - 1, build_data_path)
+
+        in_previous_list = util.sorted_semver([x for x in prev_assembly_semvers if x in previous_list], reverse=True)
+        not_in_previous_list = [x for x in prev_assembly_semvers if x not in previous_list]
+        latest_prev = in_previous_list[0]
+        greater_than_latest_prev = [x for x in not_in_previous_list if semver.compare(x, latest_prev) == 1]  # if x > latest_prev
+        if greater_than_latest_prev:
+            raise VerificationError(f"`upgrades` does not contain {greater_than_latest_prev} edge(s) defined in {major}.{minor-1}:releases.yml. These versions were found to be greater than the latest previous upgrade edge {latest_prev}")
+        return previous_list
 
     async def check_blocker_bugs(self):
         # Note: --assembly option should always be "stream". We are checking blocker bugs for this release branch regardless of the sweep cutoff timestamp.

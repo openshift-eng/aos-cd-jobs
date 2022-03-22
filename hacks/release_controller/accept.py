@@ -2,9 +2,9 @@
 import click
 import openshift as oc
 import json
-import time
 import re
 import requests
+import subprocess
 
 WARNING = '\033[91m'
 ENDC = '\033[0m'
@@ -18,8 +18,10 @@ ENDC = '\033[0m'
 @click.option("--reject", type=bool, is_flag=True, default=False, help='Reject instead of accept the release')
 @click.option("--confirm", type=bool, is_flag=True, default=False,
               help="Must be specified to apply changes to server")
+@click.option("--why", default=None, required=False, help='Reason to perform this action. required with --reject')
+@click.option("--kubeconfig", default=None, required=False, help='The kubeconfig to use (default is "~/.kube/config")')
 @click.option("--allow-upgrade-to-change", type=bool, is_flag=True, default=False, help='Allow when new upgrade-to version is different from old upgrade-to')
-def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, allow_upgrade_to_change):
+def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, why, kubeconfig, allow_upgrade_to_change):
 
     """
     Sets annotations to force OpenShift release acceptance.
@@ -35,13 +37,17 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, allow_up
     \b
     Example invocation:
     $ ./accept.py -r 4.4.0-rc.3
-                  -u 'https://prow.svc.ci.openshift.org/view/...origin-installer-e2e-gcp-upgrade/575'
-                  -m 'https://prow.svc.ci.openshift.org/view/...origin-installer-e2e-gcp-upgrade/461'
+                  -u 'https://prow.ci.openshift.org/view/...origin-installer-e2e-gcp-upgrade/575'
+                  -m 'https://prow.ci.openshift.org/view/...origin-installer-e2e-gcp-upgrade/461'
                   --confirm
     """
 
     if not upgrade_minor_url and not upgrade_url:
         click.echo('One or both upgrade urls must be specified in order to accept the release')
+        exit(1)
+
+    if reject and not why:
+        click.echo('--why (a reason) is required when rejecting a release')
         exit(1)
 
     arch_suffix = ''
@@ -60,6 +66,50 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, allow_up
     gcs_host = 'https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com'
     subdir = 'origin-ci-test/logs'
     prow_pattern = rf'{prow_host}/view/gs/{subdir}/(.*)/(\d+)'
+    accept_script_name = 'release-tool.py'
+    accept_script_url = f'https://raw.githubusercontent.com/openshift/release-controller/master/hack/{accept_script_name}'
+
+    response = requests.get(accept_script_url)
+    with open(accept_script_name, 'w') as f:
+        f.write(response.text)
+
+    action = 'reject' if reject else 'accept'
+    message = f'Manually {action}ed by ART'
+
+    if reject or why:
+        reason = why
+    else:
+        reason = 'Accepting a release on the basis a successful upgrade test'
+
+    cmd = [
+        accept_script_name,
+        '--arch',
+        arch,
+        '--message',
+        message,
+        '--reason',
+        reason,
+        '--context'
+        'app.ci',
+        '--kubeconfig',
+        kubeconfig,
+        '--imagestream'
+        'release'
+    ]
+    if confirm:
+        cmd += '--execute'
+    
+    cmd.extend([
+        action,
+        release
+    ])
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, universal_newlines=True)
+    if result.returncode != 0:
+        raise IOError(
+            f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}"
+        )
+    print(result.stdout)
 
     def assert_upgrade_test_state(release_name, arch, old_prowjob_url, new_prowjob_url, allow_upgrade_to_change=False):
         prowjob_success = 'success'
@@ -115,13 +165,6 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, allow_up
         if not istag:
             raise IOError(f'Could not find {istag_qname}')
 
-        ts = int(round(time.time() * 1000))
-        backup_filename = f'release{arch_suffix}_{release}.{ts}.json'
-        if confirm:
-            with open(backup_filename, mode='w+', encoding='utf-8') as backup:
-                print(f'Creating backup file: {backup_filename}')
-                backup.write(json.dumps(istag.model._primitive(), indent=4))
-
         def make_release_accepted(obj):
             for annotations in (obj.model.image.metadata.annotations, obj.model.metadata.annotations, obj.model.tag.annotations):
                 annotations.pop('release.openshift.io/message', None)
@@ -145,9 +188,6 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, allow_up
                     verify[upgrade_minor].url = upgrade_minor_url
                     verify[upgrade_minor].state = upgrade_state_success if not reject else upgrade_state_failed
 
-                annotations['release.openshift.io/verify'] = json.dumps(verify._primitive(), indent=None)
-
-            print(json.dumps(obj.model._primitive(), indent=4))
             if confirm:
                 print('Attempting to apply this object.')
                 return True

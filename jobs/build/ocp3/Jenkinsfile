@@ -515,7 +515,7 @@ node {
                     // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
                     VC_COMMIT = commonlib.shell(
                         returnStdout: true,
-                        script: "GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
+                        script: "GIT_REF=${WEB_CONSOLE_BRANCH} scl enable go-toolset-1.15 hack/vendor-console.sh | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
                     ).trim()
 
                     if (VC_COMMIT == "") {

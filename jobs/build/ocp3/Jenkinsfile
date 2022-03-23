@@ -513,13 +513,13 @@ node {
                     // TODO: Is this necessary? If we don't specify a GIT_REF, will it just use the current branch
                     // we already setup?
                     // TODO: Easier way to get the VC_COMMIT by just using parse-rev when we checkout the desired web console branch?
-                    VC_COMMIT = sh(
+                    VC_COMMIT = commonlib.shell(
                         returnStdout: true,
-                        script: "GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
+                        script: "GIT_REF=${WEB_CONSOLE_BRANCH} scl enable go-toolset-1.15 hack/vendor-console.sh | grep 'Vendoring origin-web-console' | awk '{print \$4}'",
                     ).trim()
 
                     if (VC_COMMIT == "") {
-                        sh("GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh 2>/dev/null")
+                        commonlib.shell("GIT_REF=${WEB_CONSOLE_BRANCH} hack/vendor-console.sh")
                         error("Unable to acquire VC_COMMIT")
                     }
 

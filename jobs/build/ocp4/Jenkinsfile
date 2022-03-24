@@ -166,7 +166,7 @@ node {
                     // RHEL which may have triggered our rebuild. If there are no changes to the RPMs, the build
                     // should exit quickly. If there are changes, the hope is that by the time our images are done
                     // building, RHCOS will be ready and build-sync will find consistent RPMs.
-                    build wait: false, propagate: false, job: '/aos-cd-builds/build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
+                    build wait: false, propagate: false, job: 'build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
                 }
 
                 stage("update dist-git") { joblib.stageUpdateDistgit() }

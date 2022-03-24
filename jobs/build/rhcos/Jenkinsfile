@@ -52,6 +52,7 @@ node {
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
         //lock("compose-lock-${params.BUILD_VERSION}") {
+        lock("rhcos-lock-${params.BUILD_VERSION}") {  // wait for all to succeed or fail for this version before starting more
         timestamps {
             def archJobs = [:]
             for (arch in arches) {
@@ -62,7 +63,7 @@ node {
                 }
                 archJobs["trigger-${jobArch}"] = {
                     try {
-                        lock(resource: "rhcos-build-capacity-${jobArch}", quantity: 2) {
+                        lock(resource: "rhcos-build-capacity-${jobArch}", quantity: 2) { // cluster capacity limited per arch
                             withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
                                 // the squid proxy inhibits communication to the p8 RHCOS cluster, so ensure it is in no_proxy
                                 sh  'export no_proxy=p8.psi.redhat.com,$no_proxy\n' +  
@@ -97,7 +98,7 @@ node {
             }
             parallel archJobs
         }
-        //}
+        }
     } finally {
     }
 }

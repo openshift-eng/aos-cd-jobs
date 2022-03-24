@@ -4,22 +4,14 @@ properties( [
     disableResume(),
 ] )
 
-def runFor(version) {
+node() {
+    checkout scm
+
     b = build(
         job: '../aos-cd-builds/build%2Fcheck-bugs',
         parameters: [
-            string(name: 'BUILD_VERSION', value: version),
-            booleanParam(name: 'NOTIFY_FORUM_RELEASE', value: true)
+            booleanParam(name: 'NOTIFY_FORUM_RELEASE', value: false)
         ],
-        propagate: false,
+        propagate: false
     )
-}
-
-node() {
-    checkout scm
-    commonlib = load("pipeline-scripts/commonlib.groovy")
-    for ( String version : commonlib.ocpVersions ) {
-        echo "starting job for ocpVersion: ${version}"
-        runFor(version)
-    }
 }

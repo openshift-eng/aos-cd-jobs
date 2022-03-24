@@ -1,0 +1,15 @@
+properties( [
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+] )
+
+node() {
+    checkout scm
+
+    build(
+        job: '../aos-cd-builds/maintenance%2Fcheck-disk-usage-on-buildvm',
+        parameters: [string(name: 'THRESHOLD', value: '90'), string(name: 'SLACK_CHANNEL', value: '#art-team')],
+        propagate: false,
+    )
+}

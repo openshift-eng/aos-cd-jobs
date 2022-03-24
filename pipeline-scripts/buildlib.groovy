@@ -1444,7 +1444,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     def brewTag = "rhaos-${major_minor}-rhel-${el_major}-candidate"
     def embargoedBrewTag = "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed"
     if (for_ironic) {
-        productVersion = "OSE-8-RHEL-${el_major}-IRONIC"
+        productVersion = "OSE-IRONIC-${major_minor}-RHEL-${el_major}"
         brewTag = "rhaos-${major_minor}-ironic-rhel-${el_major}-candidate"
         embargoedBrewTag  = ""  // unlikely to exist until we begin using -gating tag
     }

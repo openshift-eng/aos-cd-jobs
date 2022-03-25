@@ -319,7 +319,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         major, minor = util.isolate_major_minor_in_group(self.group)
 
         # we do not have assembly releases before 4.6
-        if minor <= 6:
+        if (major == 4 and minor <= 6) or minor < 1:
             return previous_list
 
         prev_assembly_semvers = await util.get_all_assembly_semvers_for_release(major, minor - 1, build_data_path)

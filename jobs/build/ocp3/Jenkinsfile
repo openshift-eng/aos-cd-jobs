@@ -683,6 +683,7 @@ node {
                             images:build
                             --filter-by-os amd64
                             --push-to-defaults ${ODCS_OPT}
+                            --build-retries 3
                         """
                         // The late push of openshift-enterprise broke since assemblies are available, as
                         // the search for trhe latest build gets pinned to the brew event. Rather than

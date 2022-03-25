@@ -1,0 +1,129 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: gen-assembly
+  labels:
+    app: "artcd"
+spec:
+  description: >-
+    Generate a recommended definition for an assembly based on a set of nightlies.
+    This are no side effects from running this job. It is the responsibility of the Artist to check the results into git / releases.yml.
+  params:
+  - name: group
+    description: Group name. e.g. openshift-4.9
+  - name: assembly
+    description: The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)
+  - name: custom
+    description: Use "true" to generate an assembly definition for a custom release. Custom assemblies are not for official release. They can, for example, not have all required arches for the group.
+    default: "false"
+  - name: nightlies
+    description: List of nightlies for each arch. For custom releases you do not need a nightly for each arch.
+  - name: in_flight_prev
+    description: (Optional for custom release) This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".
+  - name: previous
+    description: '(Optional) List of OCP releases that can upgrade to the current release. Leave empty to use suggested value. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field: https://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release'
+    default: ""
+  tasks:
+  - name: gen-assembly
+    taskRef:
+      name: gen-assembly
+    params:
+    - name: group
+      value: "$(params.group)"
+    - name: assembly
+      value: "$(params.assembly)"
+    - name: nightlies
+      value: "$(params.nightlies)"
+    - name: custom
+      value: "$(params.custom)"
+    - name: in_flight_prev
+      value: "$(params.in_flight_prev)"
+    - name: previous
+      value: "$(params.previous)"
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: gen-assembly
+  labels:
+    app: "artcd"
+spec:
+  params:
+  - name: group
+    description: Group name. e.g. openshift-4.9
+  - name: assembly
+    description: The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)
+  - name: custom
+    description: Use "true" to generate an assembly definition for a custom release. Custom assemblies are not for official release. They can, for example, not have all required arches for the group.
+    default: "false"
+  - name: nightlies
+    description: List of nightlies for each arch. For custom releases you do not need a nightly for each arch.
+  - name: in_flight_prev
+    description: (Optional for custom release) This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".
+  - name: previous
+    description: '(Optional) List of OCP releases that can upgrade to the current release. Leave empty to use suggested value. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field: https://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release'
+    default: ""
+  steps:
+  - name: gen-assembly
+    image: image-registry.openshift-image-registry.svc:5000/art-cd/artcd:latest
+    script: |
+      #!/usr/bin/env python3
+      import re
+      import os
+      import subprocess
+      from pathlib import Path
+
+
+      cmd = ["doozer", "--group=$(params.group)", "--assembly=stream", "release:gen-assembly", "--name=$(params.assembly)", "from-releases"]
+
+      if "$(params.custom)" == "true":
+        cmd.append("--custom")
+      else:
+        if "$(params.in_flight_prev)" and "$(params.in_flight_prev)" != "none":
+          cmd.append("--in-flight=$(params.in_flight_prev)")
+        previous_list = [p for p in re.split(r'[\s,]', "$(params.previous)") if p]
+        if previous_list:
+          cmd.extend([f"--previous={p}" for p in previous_list])
+        else:
+          cmd.append("--auto-previous")
+
+      nightlies = [n for n in re.split(r'[\s,]', "$(params.nightlies)") if n]
+      cmd.extend([f"--nightly={n}" for n in nightlies])
+
+      subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM"], check=True, universal_newlines=True)
+      doozer_working = Path("./artcd_working/doozer_working")
+      doozer_working.mkdir(parents=True, exist_ok=True)
+      env = os.environ.copy()
+      env["DOOZER_WORKING_DIR"] = doozer_working.absolute()
+
+      print(f"Running {cmd}...")
+      subprocess.run(cmd, check=True, universal_newlines=True, env=env)
+    env:
+    # https://github.com/tektoncd/pipeline/issues/2013
+    - name: HOME
+      value: /root
+    volumeMounts:
+    - name: doozer-config
+      mountPath: /root/.config/doozer/
+    - name: kerberos-keytab
+      mountPath: /etc/kerberos-keytab
+    - name: kerberos-config
+      mountPath: /etc/krb5.conf.d/krb5-redhat.conf
+      subPath: krb5-redhat.conf
+    - name: registry-cred
+      mountPath: /root/.docker/config.json
+      subPath: .dockerconfigjson
+  volumes:
+  - name: doozer-config
+    configMap:
+      name: doozer-config
+  - name: kerberos-config
+    configMap:
+      name: kerberos-config
+  - name: kerberos-keytab
+    secret:
+      secretName: jenkins-buildvm-keytab
+  - name: registry-cred
+    secret:
+      secretName: registry-cred

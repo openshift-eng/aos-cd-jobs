@@ -10,18 +10,17 @@ spec:
     description: Group name. e.g. openshift-4.9
   - name: assembly
     description: The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)
-    default: "stream"
-  - name: release_name
-    description: |-
-      A unique identifier for the release. The release name should never change.
-      In case of bumping a release with the same content, use ‘override_release_name’.
-  - name: release_date
-    description: Expected release date
-  - name: nightlies
-    description: Proposed nightlies for testing and promotion, separated by commas
+  - name: date
+    description: Expected release date (e.g. 2022-Mar-25)
   - name: package_owner
     description: (Optional) Must be an individual email address; may be anyone who wants random advisory spam
     default: "lmeyer@redhat.com"
+  - name: name
+    description: (Optional) When prepare a release from a stream assembly, use this field to specify the release name.
+    default: ""
+  - name: nightlies
+    description: (Optional) When prepare a release from a stream assembly, use this field to specify proposed nightlies for testing and promotion.
+    default: ""
   - name: dry_run
     description: If "true", just exercise the steps without actually preparing a release
     default: "false"
@@ -34,10 +33,10 @@ spec:
         value: "$(params.group)"
       - name: assembly
         value: "$(params.assembly)"
-      - name: release_name
-        value: "$(params.release_name)"
-      - name: release_date
-        value: "$(params.release_date)"
+      - name: name
+        value: "$(params.name)"
+      - name: date
+        value: "$(params.date)"
       - name: nightlies
         value: "$(params.nightlies)"
       - name: package_owner

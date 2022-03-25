@@ -683,6 +683,7 @@ node {
                             images:build
                             --filter-by-os amd64
                             --push-to-defaults ${ODCS_OPT}
+                            --build-retries 3
                         """
                     }
                     catch (err) {

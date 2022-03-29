@@ -226,7 +226,7 @@ class CheckBugsPipeline:
               help='Slack channel to be notified for failures')
 @click.option('--version', required=True, multiple=True,
               help='OCP version to check for blockers e.g. 4.7')
-@click.option('--pre_release', required=True,
+@click.option('--pre_release', required=False, multiple=True,
               help='OCP versions still in pre-release state')
 @pass_runtime
 @click_coroutine

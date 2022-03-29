@@ -75,8 +75,6 @@ node {
 
     commonlib.checkMock()
 
-
-
     try {
         currentBuild.displayName = "#${currentBuild.number} - ${CHANNEL_OR_RELEASE} (arches: ${ARCHES})"
 

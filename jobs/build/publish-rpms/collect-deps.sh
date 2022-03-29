@@ -61,4 +61,4 @@ yumdownloader -c rhel-7.conf --resolve --destdir="${TARGET_DIR}"\
 
 rm -rf cache  # clean cache file when it completes
 echo "${TARGET_DIR} contains the files to mirror"
-echo "Make sure to run createrepo on the mirror and /usr/local/bin/push.pub.sh"
+echo "Make sure to run createrepo on the mirror and sync it out"

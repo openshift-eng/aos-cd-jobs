@@ -67,7 +67,7 @@ node {
                     ),
                     string(
                         name: 'SYNC_LIST',
-                        description: 'Instead of figuring out items to sync from meta.json, use this input file.\nMust be a URL reachable from buildvm, contents must be reachable from use-mirror-upload',
+                        description: 'Instead of figuring out items to sync from meta.json, use this input file.\nMust be a URL reachable from buildvm',
                         defaultValue: "",
                         trim: true,
                     ),

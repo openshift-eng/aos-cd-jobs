@@ -119,11 +119,13 @@ class CheckBugsPipeline:
         ]
         self.logger.info(f'Executing command: {" ".join(cmd)}')
 
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        out, _ = process.communicate()
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
         errcode = process.returncode
         if errcode:
-            self.logger.error(f'Command {cmd} returned {errcode}!!!')
+            self.logger.error(f'Command {cmd} returned {errcode}: see output below')
+            self.logger.info(err)
+            return None
 
         out = out.decode().strip().splitlines()
         if not out:
@@ -154,11 +156,14 @@ class CheckBugsPipeline:
             '--mode=sweep'
         ]
         self.logger.info(f'Executing command: {" ".join(cmd)}')
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        out, _ = process.communicate()
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
         errcode = process.returncode
         if errcode:
-            self.logger.error(f'Command {cmd} returned {errcode}!!!')
+            self.logger.error(f'Command {cmd} returned {errcode}: see output below')
+            self.logger.info(err)
+            return None
 
         # First line in elliott stdout is something like "Searching for bugs..."
         # Next line (if present) goes like this: "Found N bugs (M ignored):"
@@ -180,7 +185,7 @@ class CheckBugsPipeline:
         self.logger.info(f'Executing command: {" ".join(cmd)}')
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         out, _ = process.communicate()
-        
+
         # If process returned 0, no regressions were found
         if not process.returncode:
             self.logger.info('No regressions found for version %s', version)

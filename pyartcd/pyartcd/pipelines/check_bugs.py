@@ -123,7 +123,7 @@ class CheckBugsPipeline:
         out, err = process.communicate()
         errcode = process.returncode
         if errcode:
-            self.logger.error(f'Command {cmd} returned {errcode}: see output below')
+            self.logger.error(f'Command {cmd} failed with {errcode}: see output below')
             self.logger.info(err)
             return None
 
@@ -161,7 +161,7 @@ class CheckBugsPipeline:
         out, err = process.communicate()
         errcode = process.returncode
         if errcode:
-            self.logger.error(f'Command {cmd} returned {errcode}: see output below')
+            self.logger.error(f'Command {cmd} failed with {errcode}: see output below')
             self.logger.info(err)
             return None
 

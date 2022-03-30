@@ -94,29 +94,48 @@ node {
     )  // Please update README.md if modifying parameter names or semantics
 
     commonlib.checkMock()
+    buildlib.cleanWorkdir("${env.WORKSPACE}/MIRROR_working")
     echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
-    build.initialize()
 
-    stage("Version dumps") {
-        buildlib.doozer "--version"
-        echo "${buildlib.DOOZER_BIN}"
-        sh "oc version -o yaml"
+    currentBuild.displayName = "${params.BUILD_VERSION} - ${ASSEMBLY}"
+    if (params.DRY_RUN) {
+        currentBuild.displayName += " [DRY_RUN]"
+    }
+    def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
+    if ( params.EXCLUDE_ARCHES ) {
+        excludeArches = commonlib.parseList(params.EXCLUDE_ARCHES)
+        currentBuild.description += " [EXCLUDE ${excludeArches.join(', ')}]"
+        if ( !arches.containsAll(excludeArches) )
+            error("Trying to exclude arch ${excludeArches} not present in known arches ${arches}")
+        arches.removeAll(excludeArches)
+    }
+    currentBuild.description += "Arches: ${arches.join(', ')}"
+
+    imageList = commonlib.cleanCommaList(params.IMAGES)
+    if ( imageList ) {
+        echo("Only syncing specified images: ${imageList}")
+        currentBuild.description += "<br>Images: ${imageList}"
+        currentBuild.displayName += " [${imageList.split(',').size()} Image(s)]"
     }
 
     failCountFile = "${BUILD_VERSION}-assembly.${ASSEMBLY}.count"
-    currentBuild.displayName = "${BUILD_VERSION} - ${ASSEMBLY}"
+
 
     try {
-
         if (params.TRIGGER_NEW_NIGHTLY && params.ASSEMBLY == "stream" ) {
             if (params.DRY_RUN) {
                 echo "Would have triggered new release cut in release controller."
             } else {
-                echo "Triggering release controller to cut new release using previously synced builds..."
-                buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} -n ocp tag registry.access.redhat.com/ubi8 ${params.BUILD_VERSION}-art-latest:trigger-release-controller")
-                echo "Sleeping so that release controller has time to react..."
-                sleep(10)
-                buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} -n ocp tag ${params.BUILD_VERSION}-art-latest:trigger-release-controller -d")
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config", "./config/artcd.toml",
+                    "imagestreams", "trigger",
+                    "--version", params.BUILD_VERSION,
+                ]
+                echo "Will run ${cmd}"
+                commonlib.shell(script: cmd.join(' '))
             }
             return
         }
@@ -124,11 +143,62 @@ node {
         // // An incident where a bug in oc destroyed the content of a critical imagestream ocp:is/release uncovered the fact that this vital data was not being backed up by any process.
         // DPTP will be asked to backup etcd on this cluster, but ART should also begin backing up these imagestreams during normal operations as a first line of defense.
         // In the build-sync job, prior to updating the 4.x-art-latest imagestreams, a copy of all imagestreams in the various release controller namespaces should be performed.
-        stage("backup imagestreams") { build.backupAllImageStreams() }
+        stage("backup imagestreams") {
+          if (params.DRY_RUN) {
+              echo "Would have triggered new release cut in release controller."
+          } else {
+              def cmd = [
+                  "artcd",
+                  "-v",
+                  "--working-dir=.",
+                  "--config", "./config/artcd.toml",
+                  "imagesstreams",
+                  "backup",
+              ]
+              echo "Will run ${cmd}"
+              commonlib.shell(script: cmd.join(' '))
+          }
+        }
 
         // This stage is safe to run concurrently. Each build runs
         // these steps in its own directory.
-        stage("update nightly imagestreams") { build.buildSyncGenInputs() }
+        stage("update nightly imagestreams") {
+          echo("Generating and applying imagestream updates")
+          def cmd = [
+              "artcd",
+              "-v",
+              "--working-dir=.",
+              "--config", "./config/artcd.toml",
+              "imagesstreams",
+              "update",
+              "--doozer_data_path", params.DOOZER_DATA_PATH,
+              "--build_version", params.BUILD_VERSION,
+              "--assembly", params.ASSEMBLY,
+              "--working_dir", "${env.WORKSPACE}/MIRROR_working",
+          ]
+          if (imageList) {
+            cmd += f"--imagelist ${imageList}"
+          }
+          if (params.EXCLUDE_ARCHES) {
+            for(arch in excludeArches) {
+              cmd += f"--exclude-arch ${arch}"
+            }
+          }
+          if (params.DRY_RUN) {
+            cmd += "--dry-run"
+          }
+          if (params.EMERGENCY_IGNORE_ISSUES) {
+            cmd += "--emergency_ignore_issues"
+          }
+          if (params.PUBLISH) {
+            cmd += "--publish"
+          }
+          if (params.DEBUG) {
+            cmd += "--debug"
+          }
+          echo "Will run ${cmd}"
+          commonlib.shell(script: cmd.join(' '))
+        }
 
         // Successful buildsync, reset fail count
         writeFile file: failCountFile, text: "0"
@@ -168,6 +238,6 @@ There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
     } finally {
         commonlib.safeArchiveArtifacts(build.artifacts)
         sh "rm -rf ${env.WORKSPACE}/doozer_working"  // do not use cleanWorkspace as this will remove failure count
-        sh "rm -rf ${mirrorWorking}"
+        sh "rm -rf ${env.WORKSPACE}/MIRROR_working"
     }
 }

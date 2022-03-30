@@ -27,6 +27,8 @@ class TestCheckBugsPipeline(unittest.TestCase):
     @patch("pyartcd.pipelines.check_bugs.CheckBugsPipeline.initialize_slack_client", return_value=None)
     @patch("pyartcd.pipelines.check_bugs.CheckBugsPipeline._slack_report", return_value=None)
     def test_find_blockers(self, *args):
+        # A bogus bug has been created for 4.5:
+        # https://bugzilla.redhat.com/show_bug.cgi?id=2069763
         runtime = AsyncMock()
         runtime.logger = LOGGER
         pipeline = CheckBugsPipeline(runtime, '#test', ['4.5'], ['4.6'])

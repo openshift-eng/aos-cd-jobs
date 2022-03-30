@@ -3,7 +3,7 @@
 node {
 
     checkout scm
-    def build = load("build.groovy")
+    def build = load("pipeline-scripts/buildlib.groovy")
     def buildlib = build.buildlib
     def commonlib = build.commonlib
     def slacklib = commonlib.slacklib

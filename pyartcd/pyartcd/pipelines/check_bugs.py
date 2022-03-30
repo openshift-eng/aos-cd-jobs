@@ -145,6 +145,8 @@ class CheckBugsPipeline:
                 'Version %s is in pre-release state: skipping regression checks for %s',
                 get_next_version(version), version
             )
+            return None
+
         self.logger.info(f'Checking possible regressions for Openshift {version}')
 
         # Find bugs

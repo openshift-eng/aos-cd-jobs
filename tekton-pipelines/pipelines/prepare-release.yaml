@@ -14,7 +14,7 @@ spec:
     description: Expected release date (e.g. 2022-Mar-25)
   - name: package_owner
     description: (Optional) Must be an individual email address; may be anyone who wants random advisory spam
-    default: "lmeyer@redhat.com"
+    default: ""
   - name: name
     description: (Optional) When prepare a release from a stream assembly, use this field to specify the release name.
     default: ""

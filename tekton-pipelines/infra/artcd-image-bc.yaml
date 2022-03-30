@@ -1,5 +1,5 @@
 kind: "BuildConfig"
-apiVersion: "v1"
+apiVersion: "build.openshift.io/v1"
 metadata:
   name: "artcd-image"
   labels:
@@ -9,11 +9,11 @@ spec:
   strategy:
     dockerStrategy:
       forcePull: true
-      dockerfilePath: tekton-pipelines/images/artcd/Dockerfile
+      dockerfilePath: tekton-pipelines/images/artcd/Containerfile
   source:
-      git:
-        uri: "https://github.com/openshift/aos-cd-jobs.git"
-        ref: "master"
+    git:
+      uri: "https://github.com/openshift/aos-cd-jobs.git"
+      ref: "master"
   output:
     to:
       kind: "ImageStreamTag"

@@ -1,0 +1,55 @@
+FROM registry.access.redhat.com/ubi8/ubi:8.5 AS builder
+
+# Install build dependencies
+WORKDIR /usr/local/src
+USER root
+RUN dnf -y module enable python36 \
+  && dnf -y install python3 python3-wheel python3-devel gcc krb5-devel wget tar gzip \
+  && python3 -m pip install "pip >= 21"
+
+# Download oc
+ARG OC_VERSION=latest
+RUN wget -O openshift-client-linux-"$OC_VERSION".tar.gz https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/"$OC_VERSION"/openshift-client-linux.tar.gz \
+  && tar -xzvf openshift-client-linux-"$OC_VERSION".tar.gz oc kubectl
+
+# Build pyartcd, elliott, and doozer
+COPY art-tools .
+COPY pyartcd pyartcd
+RUN python3 -m pip wheel --wheel-dir /usr/local/src/wheels --use-deprecated=legacy-resolver \
+  ./elliott ./doozer ./pyartcd
+
+
+FROM registry.access.redhat.com/ubi8/ubi:8.5
+LABEL name="openshift-art/art-cd" \
+  maintainer="OpenShift Team Automated Release Tooling <aos-team-art@redhat.com>"
+
+# Trust Red Hat IT Root CA
+RUN curl -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt --fail -L \
+         https://password.corp.redhat.com/RH-IT-Root-CA.crt \
+ && update-ca-trust extract
+
+# Install runtime dependencies
+COPY ./tekton-pipelines/images/artcd/files/ /
+RUN \
+  # Configure Python environment
+  dnf -y module enable python36 && dnf -y install python3 \
+  && python3 -m pip install "pip >= 21" \
+  # Other tools
+  && dnf -y install git brewkoji rhpkg krb5-workstation \
+  # Clean up
+  && dnf clean all
+
+# Install oc
+COPY --from=builder /usr/local/src/oc /usr/local/src/kubectl /usr/local/bin/
+
+# Install pyartcd, elliott, doozer
+COPY --from=builder /usr/local/src/wheels /usr/local/src/wheels
+RUN python3 -m pip install --ignore-installed --no-index --find-links=/usr/local/src/wheels pyartcd rh-elliott rh-doozer \
+  && rm /usr/local/src/wheels/*.whl \
+  # Make python-certifi trust system CA certificates
+  && python3 -m pip --no-cache-dir install certifi && ln -sf /etc/pki/tls/cert.pem /usr/local/lib/python3.6/site-packages/certifi/cacert.pem
+
+# Set up user
+RUN useradd -m -d /home/dev -u 1000 dev
+USER 1000
+WORKDIR /home/dev

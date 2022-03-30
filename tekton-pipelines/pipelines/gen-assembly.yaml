@@ -60,7 +60,7 @@ spec:
   - name: nightlies
     description: List of nightlies for each arch. For custom releases you do not need a nightly for each arch.
   - name: in_flight_prev
-    description: (Optional for custom release) This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".
+    description: This is the in-flight release version of previous minor version of OCP. If there is no in-flight release, use "none".
   - name: previous
     description: '(Optional) List of OCP releases that can upgrade to the current release. Leave empty to use suggested value. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field: https://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release'
     default: ""
@@ -76,7 +76,6 @@ spec:
 
 
       cmd = ["doozer", "--group=$(params.group)", "--assembly=stream", "release:gen-assembly", "--name=$(params.assembly)", "from-releases"]
-
       if "$(params.custom)" == "true":
         cmd.append("--custom")
       else:
@@ -87,32 +86,28 @@ spec:
           cmd.extend([f"--previous={p}" for p in previous_list])
         else:
           cmd.append("--auto-previous")
-
       nightlies = [n for n in re.split(r'[\s,]', "$(params.nightlies)") if n]
       cmd.extend([f"--nightly={n}" for n in nightlies])
 
       subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM"], check=True, universal_newlines=True)
-      doozer_working = Path("./artcd_working/doozer_working")
-      doozer_working.mkdir(parents=True, exist_ok=True)
-      env = os.environ.copy()
-      env["DOOZER_WORKING_DIR"] = doozer_working.absolute()
 
       print(f"Running {cmd}...")
+      env=os.environ.copy()
       subprocess.run(cmd, check=True, universal_newlines=True, env=env)
     env:
     # https://github.com/tektoncd/pipeline/issues/2013
     - name: HOME
-      value: /root
+      value: /home/dev
     volumeMounts:
     - name: doozer-config
-      mountPath: /root/.config/doozer/
+      mountPath: /home/dev/.config/doozer/
     - name: kerberos-keytab
       mountPath: /etc/kerberos-keytab
     - name: kerberos-config
       mountPath: /etc/krb5.conf.d/krb5-redhat.conf
       subPath: krb5-redhat.conf
     - name: registry-cred
-      mountPath: /root/.docker/config.json
+      mountPath: /home/dev/.docker/config.json
       subPath: .dockerconfigjson
   volumes:
   - name: doozer-config

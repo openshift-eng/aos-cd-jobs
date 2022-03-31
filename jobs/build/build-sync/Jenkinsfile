@@ -196,6 +196,7 @@ node {
           if (params.DEBUG) {
             cmd += "--debug"
           }
+          buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
           echo "Will run ${cmd}"
           commonlib.shell(script: cmd.join(' '))
         }

@@ -9,9 +9,6 @@ node() {
 
     b = build(
         job: '../aos-cd-builds/build%2Fcheck-bugs',
-        parameters: [
-            booleanParam(name: 'NOTIFY_FORUM_RELEASE', value: false)
-        ],
         propagate: false
     )
 }

@@ -62,14 +62,3 @@ pkg_tar x86_64
 pkg_tar macosx
 mkdir "${OUTDIR}/windows"
 zip --quiet --junk-path - windows/oc.exe > "${OUTDIR}/windows/oc.zip"
-rsync \
-    -av --delete-after --progress --no-g --omit-dir-times --chmod=Dug=rwX \
-    -e "ssh -l jenkins_aos_cd_bot" \
-    "${OUTDIR}" \
-    use-mirror-upload.ops.rhcloud.com:/srv/pub/openshift-v3/clients/
-ssh -l jenkins_aos_cd_bot \
-    use-mirror-upload.ops.rhcloud.com << EOF
-        timeout 15m /usr/local/bin/push.pub.sh openshift-v3/clients -v \
-        || timeout 5m /usr/local/bin/push.pub.sh openshift-v3/clients -v \
-        || timeout 5m /usr/local/bin/push.pub.sh openshift-v3/clients -v
-EOF

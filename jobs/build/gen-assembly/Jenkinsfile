@@ -5,7 +5,8 @@ node {
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
 
-        commonlib.describeJob("gen-assembly", """
+        commonlib.describeJob("⛔❌⛔ gen-assembly (deprecated) ⛔❌⛔ ", """
+            <b>Deprecated. Use <a href="https://console-openshift-console.apps.ocp4.prod.psi.redhat.com/k8s/ns/art-cd/tekton.dev~v1beta1~Pipeline/gen-assembly">Tekton job gen-assembly</a> instead</b>
             <h2>Generate a recommended definition for an assembly based on a set of nightlies</h2>
             This are no side effects from running this job. It is the responsibility of the Artist
             to check the results into git / releases.yml.
@@ -58,44 +59,7 @@ node {
         )
 
         commonlib.checkMock()
-        stage("initialize") {
-            buildlib.initialize()
-            buildlib.registry_quay_dev_login()
-            currentBuild.displayName += " - ${BUILD_VERSION} - ${ASSEMBLY_NAME}"
-            if (!params.IN_FLIGHT_PREV) {
-                error('IN_FLIGHT_PREV is required. If there is no in-flight release, use "none".')
-            }
-        }
 
-        stage("gen-assembly") {
-            withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
-                nightly_args = ""
-                for (nightly in commonlib.parseList(params.NIGHTLIES)) {
-                    nightly_args += " --nightly ${nightly.trim()}"
-                }
-                cmd = "--group openshift-${BUILD_VERSION} release:gen-assembly --name ${ASSEMBLY_NAME} from-releases ${nightly_args}"
-                if (params.CUSTOM) {
-                    cmd += ' --custom'
-                    if ((params.IN_FLIGHT_PREV && params.IN_FLIGHT_PREV != 'none') || params.PREVIOUS) {
-                        error("Specifying IN_FLIGHT_PREV or PREVIOUS for a custom release is not allowed.")
-                    }
-                }
-                else {
-                    if (params.IN_FLIGHT_PREV && params.IN_FLIGHT_PREV != 'none') {
-                        cmd += " --in-flight ${IN_FLIGHT_PREV}"
-                    }
-                    if (params.PREVIOUS) {
-                        for (previous in params.PREVIOUS.split(',')) {
-                            cmd += " --previous ${previous.trim()}"
-                        }
-                    } else {
-                        cmd += ' --auto-previous'
-                    }
-                }
-                buildlib.doozer(cmd)
-            }
-        }
-
-        buildlib.cleanWorkspace()
+        error("This job has been deprecated. Please use the Tekton version instead.")
     }
 }

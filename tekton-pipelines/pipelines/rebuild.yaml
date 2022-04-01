@@ -1,0 +1,150 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: rebuild
+  labels:
+    app: "artcd"
+spec:
+  description: >-
+    Rebuild an image, rpm, or RHCOS for an assembly.
+    This job is used to rebuild an existing image/rpm/RHCOS with minimum changes.
+  params:
+  - name: group
+    description: Group name. e.g. openshift-4.9
+  - name: assembly
+    description: Assembly name (e.g. 4.9.1)
+  - name: type
+    description: Component type (one of [image, rpm, rhcos])
+  - name: distgit_key
+    description: (Optional) The name of a component to rebase & build for. e.g. openshift-enterprise-cli; leave this empty when rebuilding rhcos"
+    default: ""
+  - name: build_data_url
+    description: (Optional) ocp-build-data fork to use (e.g. assembly definition in your own fork)
+    default: ""
+  - name: dry_run
+    description: If "true", just exercise the steps without building anything
+    default: "false"
+  tasks:
+  - name: rebuild
+    taskRef:
+      name: rebuild
+    params:
+    - name: group
+      value: "$(params.group)"
+    - name: assembly
+      value: "$(params.assembly)"
+    - name: type
+      value: "$(params.type)"
+    - name: distgit_key
+      value: "$(params.distgit_key)"
+    - name: build_data_url
+      value: "$(params.build_data_url)"
+    - name: dry_run
+      value: "$(params.dry_run)"
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: rebuild
+  labels:
+    app: "artcd"
+spec:
+  params:
+  - name: group
+    description: Group name. e.g. openshift-4.9
+  - name: assembly
+    description: Assembly name (e.g. 4.9.1)
+  - name: type
+    description: Component type (one of [image, rpm, rhcos])
+  - name: distgit_key
+    description: (Optional) The name of a component to rebase & build for. e.g. openshift-enterprise-cli; leave this empty when rebuilding rhcos"
+    default: ""
+  - name: build_data_url
+    description: (Optional) ocp-build-data fork to use (e.g. assembly definition in your own fork)
+    default: ""
+  - name: dry_run
+    description: If "true", just exercise the steps without building anything
+    default: "false"
+  steps:
+  - name: rebuild
+    image: image-registry.openshift-image-registry.svc:5000/art-cd/artcd:latest
+    script: |
+      #!/usr/bin/env python3
+      import logging
+      import subprocess
+
+      subprocess.run(["kinit", "-f", "-k", "-t", "/etc/kerberos-keytab/jenkins-buildvm-keytab", "ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM"], check=True, universal_newlines=True)
+
+      cmd = [
+        "artcd",
+        "-v",
+        "--config=/etc/artcd/artcd.toml",
+      ]
+      if "$(params.dry_run)" == "true":
+        cmd.append("--dry-run")
+      cmd.extend([
+        "rebuild",
+        "--group", "$(params.group)",
+        "--assembly", "$(params.assembly)",
+        "--type", "$(params.type)",
+      ])
+      if "$(params.distgit_key)":
+        cmd.append("--component=$(params.distgit_key)")
+      if "$(params.build_data_url)":
+        cmd.append("--ocp-build-data-url=$(params.build_data_url)")
+
+      print(f"Running {cmd}...")
+      subprocess.run(cmd, check=True, universal_newlines=True)
+    env:
+    # https://github.com/tektoncd/pipeline/issues/2013
+    - name: HOME
+      value: /home/dev
+    volumeMounts:
+    - name: artcd-config
+      mountPath: /etc/artcd/
+    - name: elliott-config
+      mountPath: /home/dev/.config/elliott/
+    - name: doozer-config
+      mountPath: /home/dev/.config/doozer/
+    - name: ssh-config
+      mountPath: /tekton/home/.ssh/known_hosts
+      subPath: known_hosts
+      readOnly: false
+    - name: git-config
+      mountPath: /home/dev/.gitconfig
+      subPath: .gitconfig
+      readOnly: false
+    - name: kerberos-config
+      mountPath: /etc/krb5.conf.d/krb5-redhat.conf
+      subPath: krb5-redhat.conf
+    - name: ssh-auth
+      mountPath: /tekton/home/.ssh/id_rsa
+      subPath: id_rsa
+    - name: kerberos-keytab
+      mountPath: /etc/kerberos-keytab
+  volumes:
+  - name: artcd-config
+    configMap:
+      name: artcd-config
+  - name: elliott-config
+    configMap:
+      name: elliott-config
+  - name: doozer-config
+    configMap:
+      name: doozer-config
+  - name: ssh-config
+    configMap:
+      name: ssh-config
+  - name: git-config
+    configMap:
+      name: git-config
+  - name: kerberos-config
+    configMap:
+      name: kerberos-config
+  - name: ssh-auth
+    secret:
+      secretName: artbot-ssh-auth
+  - name: kerberos-keytab
+    secret:
+      secretName: jenkins-buildvm-keytab

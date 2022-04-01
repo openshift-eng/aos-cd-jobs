@@ -24,14 +24,9 @@ node {
                         name: "SLACK_CHANNEL",
                         description: 'Slack channel to be notified in case of failures. ' +
                                     'Example: #art-automation-debug ' +
-                                    'Leave blank to notify <strong>#team-art</strong>',
-                        defaultValue: '#team-art',
+                                    'Leave blank to notify <strong>#forum-release</strong>',
+                        defaultValue: '#forum-release',
                         trim: true,
-                    ),
-                    booleanParam(
-                        name: "NOTIFY_FORUM_RELEASE",
-                        description: "Notify #forum-release about blockers and regressions",
-                        defaultValue: false,
                     )
                 ]
             ]

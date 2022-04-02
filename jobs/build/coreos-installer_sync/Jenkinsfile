@@ -45,18 +45,15 @@ node {
                 ),
                 choice(
                     name: 'ENV',
-                    description: 'Which environment to sign in',
+                    description: 'Which environment to sign in\nFor coreos-install is prod',
                     choices: [
-                        "stage",
                         "prod",
                     ].join("\n"),
                 ),
                 choice(
                     name: 'KEY_NAME',
-                    description: 'Which key to sign with\nIf ENV==stage everything becomes "test"\nFor prod we currently use "redhatrelease2"',
+                    description: 'Which key to sign with\nFor prod we currently use "redhatrelease2"',
                     choices: [
-                        "test",
-                        "beta2",
                         "redhatrelease2",
                     ].join("\n"),
                 ),
@@ -126,19 +123,18 @@ node {
         if (params.DRY_RUN) {
             echo "Would have signed artifacts"
             return
-        } else {
-            release.signArtifacts(
-                name: params.VERSION,
-                signature_name: "signature-1",
-                dry_run: params.DRY_RUN,
-                env: params.ENV,
-                key_name: params.KEY_NAME,
-                arch: "x86_64",
-                digest: "",
-                client_type: "",
-                product: "coreos-installer",
-            )
         }
+        release.signArtifacts(
+            name: params.VERSION,
+            signature_name: "signature-1",
+            dry_run: params.DRY_RUN,
+            env: params.ENV,
+            key_name: params.KEY_NAME,
+            arch: "x86_64",
+            digest: "",
+            client_type: "",
+            product: "coreos-installer",
+        )
     }
 
     buildlib.cleanWorkspace()

@@ -44,7 +44,7 @@ TOPIC = 'VirtualTopic.eng.art.artifact.sign'
 MESSAGE_DIGESTS = {
     'openshift': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/clients/{release_stage}/{release_name}/sha256sum.txt',
     'rhcos': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/dependencies/rhcos/{release_name_xy}/{release_name}/sha256sum.txt',
-    'coreos-installer': 'https://mirror.openshift.com/pub/openshift-v4/{arch}}/clients/coreos-installer/{release_name}/sha256sum.txt'
+    'coreos-installer': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/clients/coreos-installer/{release_name}/sha256sum.txt'
 }
 DEFAULT_CA_CHAIN = "/etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt"
 

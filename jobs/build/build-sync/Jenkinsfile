@@ -148,7 +148,7 @@ node {
             if (failCount % 2 == 0) {  // spam ourselves a little more often than forum-release
                 slacklib.to(params.BUILD_VERSION).failure(msg)
             }
-            if (assembly == "stream" && (failCount % 5 == 0)) {  // let forum-release know why no new builds
+            if (assembly == "stream" && (failCount % 5 == 0) && (failCount < 50)) {  // let forum-release know why no new builds
                 slacklib.to("#forum-release").failure(msg)
             }
         }

@@ -145,6 +145,23 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                     }
                                 }
 
+                                def rhcosInconsistent = true
+                                try {
+                                    stdout = buildlib.doozer(
+                                        """
+                                        --working-dir ${doozer_working}
+                                        --group 'openshift-${version}'
+                                        inspect:stream INCONSISTENT_RHCOS_RPMS
+                                        --strict
+                                        """, [capture: true]
+                                    )
+                                    echo stdout
+                                    rhcosInconsistent = false
+                                } catch(err) {
+                                    echo "INCONSISTENT_RHCOS_RPMS:\n${err}"
+                                    rhcosInconsistent = true
+                                }
+
                                 def changed = buildlib.getChanges(yamlData)
                                 if ( changed.rpms || changed.images ) {
                                     echo "Detected source changes: ${changed}"
@@ -163,21 +180,10 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                         currentBuild.description += "<br>triggered build: ${version}"
                                     }
 
-                                } else if (rhcosChanged) {
-                                    echo "Checking rhcos builds for consistency"
-                                    try {
-                                        stdout = buildlib.doozer(
-                                            """
-                                            --working-dir ${doozer_working}
-                                            --group 'openshift-${version}'
-                                            inspect:stream INCONSISTENT_RHCOS_RPMS
-                                            --strict
-                                            """, [capture: true]
-                                        )
-                                        echo stdout
-                                    } catch(err) {
-                                        echo "INCONSISTENT_RHCOS_RPMS:\n${err}"
-                                        echo "RHCOS builds inconsistent, not triggering build-sync."
+                                } else if (rhcosInconsistent) {
+                                    if (params.DRY_RUN) {
+                                        echo "Would have triggered RHCOS build"
+                                    } else {
                                         // inconsistency probably means partial failure and we would like to retry.
                                         // but don't kick off more if already in progress.
                                         lock(resource: "rhcos-lock-${version}", skipIfLocked: true) {
@@ -192,7 +198,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                         }
                                         return
                                     }
-
+                                } else if (!rhcosInconsistent && rhcosChanged) {
                                     if ( params.DRY_RUN ) {
                                         echo "Would have triggered build-sync job"
                                         return

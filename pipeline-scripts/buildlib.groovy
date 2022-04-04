@@ -1391,8 +1391,9 @@ def getChanges(yamlData) {
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory) {
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory, for_ironic=false) {
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
+    if (for_ironic) baseDir += "ironic"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
     if (include_embargoed) {
@@ -1406,7 +1407,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
 
     /**
      * plashet will build one or more yum repos for us -- one for each
-     * architecture enabled for the a release. For each arch, a yum repo
+     * architecture enabled for the release. For each arch, a yum repo
      * {baseDir}/{plashetName}/{arch}/os will be created.
      * plashet will examine RPM packages currently tagged in the rhel-7 candidate
      * and build the yum repos. plashet allows each arch to have different signing
@@ -1433,6 +1434,13 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     }
 
     def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"
+    def brewTag = "rhaos-${major_minor}-rhel-${el_major}-candidate"
+    def embargoedBrewTag = "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed"
+    if (for_ironic) {
+        productVersion = "OSE-IRONIC-${major_minor}-RHEL-${el_major}"
+        brewTag = "rhaos-${major_minor}-ironic-rhel-${el_major}-candidate"
+        embargoedBrewTag  = ""  // unlikely to exist until we begin using -gating tag
+    }
 
     // To prevent add/remove races within the advisory, a lock is used.
     lock("signing-advisory-${auto_signing_advisory}") {
@@ -1449,8 +1457,8 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     "from-tags", // plashet mode of operation => build from brew tags
                     include_embargoed? "--include-embargoed" : "",
                     "--inherit",
-                    "--brew-tag rhaos-${major_minor}-rhel-${el_major}-candidate ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
-                    "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed",
+                    "--brew-tag ${brewTag} ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
+                    "${embargoedBrewTag}",
                     (major == 3) ? "--inherit" :  "", // For OCP3.11, we depend on tag inheritance to populate the OSE repo
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
@@ -1489,9 +1497,9 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     // 'building' in this rcm-guest directory. Before creating 'building', let's get the
     // repo over there.
     def destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${major_minor}"
-    if (el_major >= 8) {
-        destBaseDir += "-el${el_major}"
-    }
+    if (for_ironic) destBaseDir += "-el${el_major}-ironic"
+    else if (el_major >= 8) destBaseDir += "-el${el_major}"
+
     def assembly = params.ASSEMBLY ?: "stream"
     destBaseDir += "/${assembly}"
     // Just in case this is the first time we have built this release, create the landing place on rcm-guest.

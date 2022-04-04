@@ -48,6 +48,12 @@ node {
                         defaultValue: "stream",
                         trim: true,
                     ),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift/ocp-build-data",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: 'FORCE_BUILD',
                         description: 'Build regardless of whether source has changed',

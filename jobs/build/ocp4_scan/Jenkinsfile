@@ -171,6 +171,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                             --working-dir ${doozer_working}
                                             --group 'openshift-${version}'
                                             inspect:stream INCONSISTENT_RHCOS_RPMS
+                                            --strict
                                             """, [capture: true]
                                         )
                                         echo stdout

@@ -17,6 +17,9 @@ halp() {
 	
 	nightlies 4.9 latest|-l|--latest
 	  Show the latest nightlies
+	
+	nightlies stdout|-s|--stdout
+	  Print links to stdout rather than opening in browser
 	EOHALP
 }
 
@@ -24,6 +27,10 @@ main() {
   parse_args "$@"
   urls=( $(build_urls) )
 
+  ((stdout)) && {
+    printf "%s\n" "${urls[@]}"
+    return
+  }
   open-urls
 }
 
@@ -40,6 +47,7 @@ source "${script%/*}/open-urls"
 parse_args() {
   version=""
   latest=0
+  stdout=0
 
   for arg in "$@"; do
     case "$arg" in
@@ -49,6 +57,9 @@ parse_args() {
         ;;
       latest|l|-l|--latest)
         latest=1
+        ;;
+      stdout|-s|--stdout)
+        stdout=1
         ;;
       firefox|chrome|chromium|brave|qutebrowser)
         browser="$arg"

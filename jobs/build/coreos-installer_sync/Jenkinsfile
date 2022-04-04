@@ -99,20 +99,6 @@ node {
 
         commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/${params.VERSION}/")
         commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/latest/")
-
-        sshagent(['aos-cd-test']) {
-            commonlib.shell(
-                script: """
-                    set -euxo pipefail
-                    cd ${workdir}
-                    ssh ${mirror} mkdir -p ${dir}
-                    scp -r ${params.VERSION} ${mirror}:${dir}/${params.VERSION}
-                    ssh ${mirror} ln --symbolic --force --no-dereference ${params.VERSION} ${dir}/latest
-                    ssh ${mirror} tree ${dir}
-                    ssh ${mirror} /usr/local/bin/push.pub.sh openshift-v4/x86_64/clients/coreos-installer -v
-                """
-            )
-        }
     }
 
     buildlib.cleanWorkspace()

@@ -86,25 +86,23 @@ node {
             error("CLIENT_TYPE ${params.CLIENT_TYPE} is unknown.")
         }
 
-        sshagent(['aos-cd-test']) {
-            stage("sync ocp clients") {
-                // must be able to access remote registry to extract image contents
-                buildlib.registry_quay_dev_login()
-                timeout(time: 60, unit: 'MINUTES') {
-                    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                        withEnv(["DRY_RUN=${params.DRY_RUN? '1' : ''}"]){
-                            commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
-                        }
+        stage("sync ocp clients") {
+            // must be able to access remote registry to extract image contents
+            buildlib.registry_quay_dev_login()
+            timeout(time: 60, unit: 'MINUTES') {
+                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    withEnv(["DRY_RUN=${params.DRY_RUN? '1' : ''}"]){
+                        commonlib.shell "./publish-clients-from-payload.sh ${env.WORKSPACE} ${params.RELEASE_NAME} ${params.CLIENT_TYPE} '${pull_spec}'"
                     }
                 }
-                if (!params.DRY_RUN) {
-                    slacklib.to(ocpVersion).say("""
-                    *:white_check_mark: oc_sync successful*
-                    https://mirror.openshift.com/pub/openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.RELEASE_NAME}/
+            }
+            if (!params.DRY_RUN) {
+                slacklib.to(ocpVersion).say("""
+                *:white_check_mark: oc_sync successful*
+                https://mirror.openshift.com/pub/openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.RELEASE_NAME}/
 
-                    buildvm job: ${commonlib.buildURL('console')}
-                    """)
-                }
+                buildvm job: ${commonlib.buildURL('console')}
+                """)
             }
         }
     } catch (err) {

@@ -85,84 +85,80 @@ node {
     commonlib.checkMock()
 
     try {
-        sshagent(['aos-cd-test']) {
+        def from_release_tag = params.FROM_RELEASE_TAG.trim()
 
-            def from_release_tag = params.FROM_RELEASE_TAG.trim()
+        if ( from_release_tag == "" ) {
+            // If no name was specified, interrogate the stream
+            def releaseStream = "${params.BUILD_VERSION}.0-0.nightly${commonlib.goSuffixForArch(params.ARCH)}"
+            // There are different release controllers for OCP - one for each architecture.
+            RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
 
-            if ( from_release_tag == "" ) {
-                // If no name was specified, interrogate the stream
-                def releaseStream = "${params.BUILD_VERSION}.0-0.nightly${commonlib.goSuffixForArch(params.ARCH)}"
-                // There are different release controllers for OCP - one for each architecture.
-                RELEASE_CONTROLLER_URL = commonlib.getReleaseControllerURL(releaseStream)
+            // Search for the latest version in this X.Y, but less than X.Y+1
+            def queryEndpoint = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${releaseStream}/latest"
+            from_release_tag = commonlib.shell(
+                returnStdout: true,
+                script: "curl -L --fail -s -X GET -G ${queryEndpoint} | jq '.name' -r"
+            ).trim()
+            echo "Detected latest release in ${params.BUILD_VERSION}: ${from_release_tag}"
+        }
 
-                // Search for the latest version in this X.Y, but less than X.Y+1
-                def queryEndpoint = "${RELEASE_CONTROLLER_URL}/api/v1/releasestream/${releaseStream}/latest"
-                from_release_tag = commonlib.shell(
-                    returnStdout: true,
-                    script: "curl -L --fail -s -X GET -G ${queryEndpoint} | jq '.name' -r"
-                ).trim()
-                echo "Detected latest release in ${params.BUILD_VERSION}: ${from_release_tag}"
+        currentBuild.displayName = "#${currentBuild.number} - ${from_release_tag}"
+        if (params.DRY_RUN) { currentBuild.displayName += " [dry run]"}
+        if (!params.MIRROR) { currentBuild.displayName += " [no mirror]"}
+
+        if (!from_release_tag.startsWith(params.BUILD_VERSION)) {
+            error("The source release tag ${from_release_tag} does not start with the ${params.BUILD_VERSION}")
+        }
+
+        def (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
+        if (priv) {
+            error("The source release tag ${from_release_tag} is an embargoed nightly. It shouldn't be pre-released.")
+        }
+
+        def dest_release_tag = from_release_tag
+        if ( params.NEW_NAME_OVERRIDE.trim() != "" ) {
+            dest_release_tag = params.NEW_NAME_OVERRIDE.trim()
+        }
+
+        stage("versions") { release.stageVersions() }
+
+        buildlib.registry_quay_dev_login()
+
+        def CLIENT_TYPE = "ocp-dev-preview"
+
+        stage("validation") {
+            release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE, false, params.FROM_RELEASE_TAG, arch)
+        }
+
+        stage("build payload") {
+            release.stageGenPayload(quay_url, dest_release_tag, dest_release_tag, from_release_tag, "", "", "")
+        }
+
+        stage("mirror tools") {
+            if ( params.MIRROR ) {
+                release.stagePublishClient(quay_url, dest_release_tag, dest_release_tag, arch, CLIENT_TYPE)
             }
+        }
 
-            currentBuild.displayName = "#${currentBuild.number} - ${from_release_tag}"
-            if (params.DRY_RUN) { currentBuild.displayName += " [dry run]"}
-            if (!params.MIRROR) { currentBuild.displayName += " [no mirror]"}
-
-            if (!from_release_tag.startsWith(params.BUILD_VERSION)) {
-                error("The source release tag ${from_release_tag} does not start with the ${params.BUILD_VERSION}")
+        stage("sign") {
+            if ( params.MIRROR ) {
+                release.signArtifacts(
+                    name: dest_release_tag,
+                    signature_name: "signature-1",
+                    dry_run: params.DRY_RUN,
+                    env: "prod",
+                    key_name: "beta2",
+                    arch: arch,
+                    digest: payloadDigest,
+                    client_type: 'ocp-dev-preview',
+                )
             }
+        }
 
-            def (arch, priv) = release.getReleaseTagArchPriv(from_release_tag)
-            if (priv) {
-                error("The source release tag ${from_release_tag} is an embargoed nightly. It shouldn't be pre-released.")
+        stage("set client latest") {
+            if ( params.MIRROR && params.SET_CLIENT_LATEST ) {
+                release.stageSetClientLatest(dest_release_tag, arch, CLIENT_TYPE)
             }
-
-            def dest_release_tag = from_release_tag
-            if ( params.NEW_NAME_OVERRIDE.trim() != "" ) {
-                dest_release_tag = params.NEW_NAME_OVERRIDE.trim()
-            }
-
-            stage("versions") { release.stageVersions() }
-
-            buildlib.registry_quay_dev_login()
-
-            def CLIENT_TYPE = "ocp-dev-preview"
-
-            stage("validation") {
-                release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE, false, params.FROM_RELEASE_TAG, arch)
-            }
-
-            stage("build payload") {
-                release.stageGenPayload(quay_url, dest_release_tag, dest_release_tag, from_release_tag, "", "", "")
-            }
-
-            stage("mirror tools") {
-                if ( params.MIRROR ) {
-                    release.stagePublishClient(quay_url, dest_release_tag, dest_release_tag, arch, CLIENT_TYPE)
-                }
-            }
-
-            stage("sign") {
-                if ( params.MIRROR ) {
-                    release.signArtifacts(
-                        name: dest_release_tag,
-                        signature_name: "signature-1",
-                        dry_run: params.DRY_RUN,
-                        env: "prod",
-                        key_name: "beta2",
-                        arch: arch,
-                        digest: payloadDigest,
-                        client_type: 'ocp-dev-preview',
-                    )
-                }
-            }
-
-            stage("set client latest") {
-                if ( params.MIRROR && params.SET_CLIENT_LATEST ) {
-                    release.stageSetClientLatest(dest_release_tag, arch, CLIENT_TYPE)
-                }
-            }
-
         }
     } catch (err) {
         commonlib.email(

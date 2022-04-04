@@ -188,9 +188,7 @@ node {
             retry(3) {
                 echo "Mirroring client binaries for $arch"
                 if (!params.DRY_RUN) {
-                    sshagent(['aos-cd-test']) {
-                        release.stagePublishClient(quay_url, dest_release_tag, release_info.name, arch, client_type)
-                    }
+                    release.stagePublishClient(quay_url, dest_release_tag, release_info.name, arch, client_type)
                 } else {
                     echo "[DRY RUN] Would have sync'd client binaries for ${quay_url}:${dest_release_tag} to mirror ${arch}/clients/${client_type}/${release_info.name}."
                 }

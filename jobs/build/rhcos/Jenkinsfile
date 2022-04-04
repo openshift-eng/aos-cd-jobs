@@ -92,7 +92,6 @@ node {
                     } catch (err) {
                         currentBuild.description += "${jobArch} Failure\n"
                         currentBuild.result = "UNSTABLE"
-                        slacklib.to(params.BUILD_VERSION).failure("Error building RHCOS for ${jobArch}", err)
                     }
                 }
             }

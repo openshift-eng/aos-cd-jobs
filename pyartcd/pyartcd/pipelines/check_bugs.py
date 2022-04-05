@@ -1,10 +1,6 @@
-import os
 import asyncio
-import logging
 import subprocess
-from subprocess import PIPE
 import concurrent
-from typing import Type
 
 import click
 import aiohttp

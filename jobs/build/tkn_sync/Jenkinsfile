@@ -32,9 +32,10 @@ pipeline {
                     if (!params.TKN_VERSION) {
                         error 'TKN_VERSION must be specified'
                     }
-                    target_version = params.TKN_VERSION.split("-")[0]
-                    target_dir = "/srv/pub/openshift-v4/x86_64/clients/pipeline/${target_version}"
-                    s3_target_dir = "/pub/openshift-v4/x86_64/clients/pipeline/${target_version}"
+                    version = params.TKN_VERSION
+                    short_version = params.TKN_VERSION.split("-")[0]
+                    source_dir = "/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${version}/staging/"
+                    latest_dir = "latest"
                 }
             }
         }
@@ -42,9 +43,21 @@ pipeline {
         stage('Sync to mirror') {
             steps {
                 script {
-                    sh "tree /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/staging ; cat /mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/staging/sha256sum.txt"
-                    commonlib.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/staging/", "${s3_target_dir}/" )
-                    commonlib.syncDirToS3Mirror("/mnt/redhat/staging-cds/developer/openshift-pipelines-client/${params.TKN_VERSION}/staging/", "/pub/openshift-v4/x86_64/clients/pipeline/latest/" )
+                    s3_target_dir = "/pub/openshift-v4/x86_64/clients/pipeline/${short_version}/"
+                    s3_latest_dir = "/pub/openshift-v4/x86_64/clients/pipeline/latest/"
+                    commonlib.shell("""
+                        set -euxo pipefail
+                        tree ${source_dir}
+                        cat ${source_dir}/sha256sum.txt
+                        rm -rf ${latest_dir}
+                        cp -a ${source_dir} ${latest_dir}
+                        # make names that are not version specific
+                        for file in ${latest_dir}/*-${short_version}*; do
+                            cp -a "\${file}" "\${file/-${short_version}/}"
+                        done
+                    """)
+                    commonlib.syncDirToS3Mirror(source_dir, s3_target_dir)
+                    commonlib.syncDirToS3Mirror(latest_dir, s3_latest_dir)
                 }
             }
         }

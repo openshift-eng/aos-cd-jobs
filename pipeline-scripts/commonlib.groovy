@@ -462,7 +462,9 @@ def shell(arg) {
         writeFile file: "${filebase}.cmd.txt", text: script  // save cmd as context for archives
         // note that archival requires the location relative to workspace
         def relFilebase = filebase.minus("${env.WORKSPACE}/")
-        safeArchiveArtifacts(["${relFilebase}.*"])
+        dir(env.WORKSPACE) {  // always archive from workspace context since we wrote it there
+            safeArchiveArtifacts(["${relFilebase}.*"])
+        }
     }
 
     try {

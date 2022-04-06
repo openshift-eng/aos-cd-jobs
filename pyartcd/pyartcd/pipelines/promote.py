@@ -211,8 +211,8 @@ class PromotePipeline:
                     self._logger.info("Determining upgrade tests...")
                     test_commands = self._get_upgrade_tests_commands(release_name, previous_list)
                     message = f"""A new release `{release_name}` is ready and needs some upgrade tests to be triggered.
-        Please open a chat with @cluster-bot and issue each of these lines individually:
-        {os.linesep.join(test_commands)}
+Please open a chat with @cluster-bot and issue each of these lines individually:
+{os.linesep.join(test_commands)}
         """
                     await self._slack_client.say(message, slack_thread)
 

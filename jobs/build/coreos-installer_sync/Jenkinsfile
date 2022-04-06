@@ -135,6 +135,10 @@ node {
             client_type: "",
             product: "coreos-installer",
         )
+
+        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/${params.VERSION}/")
+        commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/latest/")
+
     }
 
     buildlib.cleanWorkspace()

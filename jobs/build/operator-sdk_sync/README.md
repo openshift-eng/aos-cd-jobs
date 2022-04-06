@@ -32,13 +32,4 @@ Usually, you'll only want to do that on the highest 4.x version.
 
 ## Known issues
 
-### Job reports as 'SUCCESS' but sync to one of the mirrors failed
-
-    [BEGIN] /usr/local/bin/push.pub.sh openshift-v4/ppc64le/clients/operator-sdk -v 2021-02-09 08:02:07
-    [1] 08:37:07 [SUCCESS] mirror_sync@use-mirror2.ops.rhcloud.com
-    [2] 08:37:07 [SUCCESS] mirror_sync@use-mirror1.ops.rhcloud.com
-    [3] 08:37:08 [FAILURE] mirror_sync@use-mirror7.ops.rhcloud.com Exited with error code 12
-    Statuses: [0, 0, 12]
-
-Try again, otherwise open a ticket to OHSS.
-Example: <https://issues.redhat.com/browse/OHSS-2099>.
+None

@@ -13,7 +13,7 @@ version = [
     minor: 0,       // Y in X.Y, e.g. 0
 ]
 doozerWorking = "${env.WORKSPACE}/doozer_working" // must be in WORKSPACE to archive artifacts
-doozerOpts = "--working-dir ${doozerWorking}"
+doozerOpts = "--working-dir ${doozerWorking} --data-path ${params.DOOZER_DATA_PATH}"
 allImagebuildfailed = false
 
 // this plan is to be initialized but then adjusted for incremental builds
@@ -280,7 +280,8 @@ def stageBuildCompose() {
         return
     }
 
-    def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
+    def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} -q config:read-group --default=0 signing_advisory", [capture: true]).trim())
+    def need_ironic_repo = buildlib.doozer("${doozerOpts} -q config:read-group --default=None repos.rhel-8-server-ironic-rpm", [capture: true]).trim() != "None"
 
     buildlib.buildBuildingPlashet(version.full, version.release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
     buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
@@ -288,6 +289,10 @@ def stageBuildCompose() {
     def plashet = buildlib.buildBuildingPlashet(version.full, version.release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
     rpmMirror.plashetDirName = plashet.plashetDirName
     rpmMirror.localPlashetPath = plashet.localPlashetPath
+
+    if (need_ironic_repo) {
+        buildlib.buildBuildingPlashet(version.full, version.release, 8, false, auto_signing_advisory, true)  // build ironic plashet
+    }
 }
 
 def stageUpdateDistgit() {

@@ -48,6 +48,12 @@ node {
                         defaultValue: "stream",
                         trim: true,
                     ),
+                    string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+                        defaultValue: "https://github.com/openshift/ocp-build-data",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: 'FORCE_BUILD',
                         description: 'Build regardless of whether source has changed',
@@ -166,7 +172,7 @@ node {
                     // RHEL which may have triggered our rebuild. If there are no changes to the RPMs, the build
                     // should exit quickly. If there are changes, the hope is that by the time our images are done
                     // building, RHCOS will be ready and build-sync will find consistent RPMs.
-                    build wait: false, propagate: false, job: '/aos-cd-builds/build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
+                    build wait: false, propagate: false, job: 'build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
                 }
 
                 stage("update dist-git") { joblib.stageUpdateDistgit() }

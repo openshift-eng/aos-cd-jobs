@@ -5,7 +5,7 @@ metadata:
 data:
   settings.yaml: |
     # Persistent working directory to use
-    working_dir:
+    working_dir: /workspace/elliott-working
 
     #Git URL or File Path to build data
     data_path: https://github.com/openshift/ocp-build-data.git

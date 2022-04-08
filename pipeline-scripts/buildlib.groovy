@@ -1327,41 +1327,6 @@ def assertBuildPermitted(doozerOpts) {
 }
 
 /**
- * Run elliott find-builds and attach to given advisory.
- * It looks for builds twice (rhel-7 and rhel-8) for OCP 4.y
- * Side-effect: Advisory states are changed to "NEW FILES" in order to attach builds.
- *
- * @param String[] kinds: List of build kinds you want to find (e.g. ["rpm", "image"])
- * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
- */
-def attachBuildsToAdvisory(kinds, buildVersion) {
-    def groupOpt = "-g openshift-${buildVersion}"
-
-    try {
-        if ("rpm" in kinds) {
-            elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory rpm")
-            elliott("${groupOpt} find-builds -k rpm --use-default-advisory rpm")
-        }
-        if ("image" in kinds) {
-            elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory image")
-            if (commonlib.extractMajorMinorVersionNumbers(buildVersion)[0] < 4) {
-                // for 3.11 everything goes in the same advisory
-                elliott("${groupOpt} find-builds -k image --use-default-advisory image")
-            } else {
-                // for 4.y, payload goes in "images", non-payload goes in "extras"
-                elliott("${groupOpt} find-builds -k image --payload --use-default-advisory image")
-                elliott("${groupOpt} change-state -s NEW_FILES --use-default-advisory extras")
-                elliott("${groupOpt} find-builds -k image --non-payload --use-default-advisory extras")
-            }
-        }
-    } catch (err) {
-        currentBuild.description += "ERROR: ${err}"
-        error("elliott find-builds failed: ${err}")
-    }
-}
-
-
-/**
  * Scans data outputted by config:scan-sources yaml and records changed
  * elements in the object it returns which has a .rpms list and an .images list.
  * The lists are empty if no change was detected.

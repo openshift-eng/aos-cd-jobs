@@ -178,6 +178,7 @@ releases:
 ```
 
 Promotion Permit codes:
+- *UPGRADE_EDGES* Permit failing Upgrade-Edges (`upgrades`) validation for a release.
 - *BLOCKER_BUGS* Permit failing Blocker-Bugs check for a release.
 - *ATTACHED_BUGS* Permit failing Verify-attached-bugs validation for release advisories.
 - *CVE_FLAWS* Permit failing Attach-CVE-flaws (bugs) to release advisories.

@@ -5,6 +5,8 @@ from unittest import TestCase
 from mock import AsyncMock, MagicMock, patch
 from mock.mock import ANY
 from pyartcd.pipelines.promote import PromotePipeline
+from pyartcd.exceptions import VerificationError
+from doozerlib import assembly
 
 
 class TestPromotePipeline(TestCase):
@@ -272,3 +274,17 @@ class TestPromotePipeline(TestCase):
         asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release))
         expected_cmd = ['oc', 'adm', 'release', 'new', '-n', 'ocp-arm64', '--name=4.10.99', '--to-image=example.com/foo/release:4.10.99-aarch64', '--reference-mode=source', '--from-image-stream=4.10-art-assembly-4.10.99-arm64', '--previous=4.10.98,4.10.97,4.9.99', '--metadata', '{"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}']
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
+
+    @patch("pyartcd.pipelines.promote.exectools.cmd_assert_async", return_value=0)
+    @patch("pyartcd.pipelines.promote.util.get_all_assembly_semvers_for_release", return_value=["4.9.99", "4.9.100"])
+    def test_validate_upgrade_edges(self, cmd_assert_async: AsyncMock, get_all_assembly_semvers_for_release: AsyncMock):
+        runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
+                            working_dir=Path("/path/to/working"), dry_run=False)
+        assembly_name = "4.10.99"
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly=assembly_name, release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])
+
+        assembly_type = assembly.AssemblyTypes.STANDARD
+        upgrades_str = "4.10.98,4.10.97,4.9.99"
+
+        with self.assertRaisesRegex(VerificationError, "does not contain ['4.9.100']"):
+            asyncio.get_event_loop().run_until_complete(pipeline.validate_upgrade_edges(upgrades_str, assembly_type, "path"))

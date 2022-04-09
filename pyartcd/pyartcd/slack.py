@@ -10,6 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 class SlackClient:
     """ A SlackClient allows pipelines to send Slack messages.
     """
+
     DEFAULT_CHANNEL = "#art-release"
 
     def __init__(self, token: str, job_name: Optional[str], job_run_name: Optional[str], job_run_url: Optional[str], dry_run: bool = False) -> None:

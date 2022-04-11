@@ -20,16 +20,18 @@ failed = false
 
 def runFor(group, dir, arch="x86_64") {
     echo "Triggering reposync for ${group}-${arch}"
-    b = build(
-        job: '/aos-cd-builds/build%2Fsync-for-ci', propagate: false,
-        parameters: [
-            string(name: 'GROUP', value: group ),
-            string(name: 'REPOSYNC_DIR', value: dir),
-            string(name: 'ARCH', value: arch),
-        ],
-    )
-
-    description += "${group}-${arch} - ${b.result}\n"
+    description += "${group}-${arch}"
+    timeout(activity: true, time: 30, unit: 'MINUTES') {
+        b = build(
+            job: '/aos-cd-builds/build%2Fsync-for-ci', propagate: false,
+            parameters: [
+                string(name: 'GROUP', value: group ),
+                string(name: 'REPOSYNC_DIR', value: dir),
+                string(name: 'ARCH', value: arch),
+            ],
+        )
+    }
+    description += " - ${b.result}\n"
     failed |= (b.result != "SUCCESS")
 }
 

@@ -43,20 +43,6 @@ node {
                     defaultValue: "",
                     trim: true,
                 ),
-                choice(
-                    name: 'ENV',
-                    description: 'Which environment to sign in\nFor coreos-install is prod',
-                    choices: [
-                        "prod",
-                    ].join("\n"),
-                ),
-                choice(
-                    name: 'KEY_NAME',
-                    description: 'Which key to sign with\nFor prod we currently use "redhatrelease2"',
-                    choices: [
-                        "redhatrelease2",
-                    ].join("\n"),
-                ),
                 commonlib.dryrunParam(),
                 commonlib.mockParam(),
             ],
@@ -128,8 +114,8 @@ node {
             name: params.VERSION,
             signature_name: "signature-1",
             dry_run: params.DRY_RUN,
-            env: params.ENV,
-            key_name: params.KEY_NAME,
+            env: "prod",
+            key_name: "redhatrelease2",
             arch: "x86_64",
             digest: "",
             client_type: "",

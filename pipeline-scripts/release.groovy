@@ -407,7 +407,7 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     sh "rm -rf ${BASE_TO_MIRROR_DIR}"
 
     // From the newly built release, extract the client tools into the workspace following the directory structure
-    // we expect to publish to on the use-mirror system.
+    // we expect to publish to mirror
     def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 

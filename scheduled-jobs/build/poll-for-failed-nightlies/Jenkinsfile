@@ -104,26 +104,6 @@ node() {
                     // The N latest nightlies have been rejected.
                     echo "The last ${THRESHOLD} nightlies for ${stream_name} have been rejected: ${stream_results}"
                     currentBuild.result = "UNSTABLE"
-                    notificationFile = "${stream_name}.last_notification"
-                    lastNotification = 0
-                    if (fileExists(notificationFile)) {
-                        numStr = readFile(file: notificationFile).trim()
-                        if (numStr?.isLong()) {
-                            lastNotification = numStr.toLong()
-                        }
-                    }
-                    HOURS = 4
-                    if ( System.currentTimeMillis() - lastNotification > 1000 * 60 * 60 * HOURS ) {
-                        // has it been longer than X hours since the last notification?
-                        echo "Notification will occur!"
-                        writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
-                        currentBuild.description += "\nNotifying for ${stream_name}"
-                        commonlib.slacklib.to(stream_name).failure("@release-artists - Detected latest ${rejects} nightlies have been rejected in ${stream_name}")
-                        commonlib.slacklib.to('#forum-release').say("@patch-manager - ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}")
-                        commonlib.slacklib.to('#forum-release-oversight').say("ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}")
-                    } else {
-                        echo "Skipping notification since it has not been more than ${HOURS} hours since the last notification: ${System.currentTimeMillis()} - ${lastNotification}"
-                    }
                 } else {
                     echo "The last ${THRESHOLD} nightlies didn't all fail for ${stream_name} have been rejected: ${stream_results}"
                 }

@@ -139,17 +139,3 @@ if [ "${DRY_RUN:-0}" -ne 0 ]; then
 fi
 
 aws s3 sync --no-progress --delete  ${OUTDIR}/ s3://art-srv-enterprise${S3_MIRROR_DIR}/
-
-retry() {
-  local count exit_code
-  count=0
-  until "$@"; do
-    exit_code="$?"
-    count=$((count + 1))
-    if [[ $count -lt 4 ]]; then
-      sleep 5
-    else
-      return "$exit_code"
-    fi
-  done
-}

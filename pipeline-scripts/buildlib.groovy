@@ -35,8 +35,8 @@ def path_setup() {
 
     GOPATH = "${env.WORKSPACE}/go"
     env.GOPATH = GOPATH
-    sh "rm -rf ${GOPATH}"  // Remove any cruft
-    sh "mkdir -p ${GOPATH}"
+    sh "mkdir -p ${GOPATH}/empty_to_overwrite"
+    sh "rsync -a --delete ${GOPATH}{/empty_to_overwrite,}/"  // Remove any cruft
     echo "Initialized env.GOPATH: ${env.GOPATH}"
 }
 
@@ -593,13 +593,6 @@ def invoke_on_rcm_guest(git_script_filename, Object... args ) {
     return sh(
             returnStdout: true,
             script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
-    ).trim()
-}
-
-def invoke_on_use_mirror(git_script_filename, Object... args ) {
-    return sh(
-            returnStdout: true,
-            script: "ssh use-mirror-upload.ops.rhcloud.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/use-mirror/${git_script_filename}",
     ).trim()
 }
 
@@ -1169,27 +1162,31 @@ def cleanWorkdir(workdir, synchronous=false) {
     // **WARNING** workdir should generally NOT be env.WORKSPACE; this is where the job code is checked out,
     // including supporting scripts and such. Usually you don't want to wipe that out, so use a subdirectory.
 
-    // TODO: We need to replace rm -rf with rsync --delete for
-    // improved speed: https://unix.stackexchange.com/questions/37329/efficiently-delete-large-directory-containing-thousands-of-files
-
     // NOTE: if wrapped in commonlib.shell, this would wait for the background process;
     // this is designed to run instantly and never fail, so just run it in a normal shell.
+    to_remove = "${workdir}.rm.${currentBuild.number}.${WORKDIR_COUNTER}"
+    empty = "empty.${currentBuild.number}.${WORKDIR_COUNTER}"
     sh """
-        mkdir -p ${workdir}
-        mv ${workdir} ${workdir}.rm.${currentBuild.number}.${WORKDIR_COUNTER}
-        mkdir -p ${workdir}
+        mkdir -p ${workdir}/${empty}   # create empty subdir to use as template to overwrite quickly
+        mv ${workdir} ${to_remove}     # move workdir aside to remove at leisure
+        mkdir -p ${workdir}            # create another to use immediately
     """
 
+    // use rsync --delete instead of rm -rf for improved speed:
+    // https://unix.stackexchange.com/questions/37329/efficiently-delete-large-directory-containing-thousands-of-files
+    // also, it rewrites directory permissions instead of just accepting them like rm -rf does
+
     if (synchronous) {
-        // Some jobs can make large doozer_workings faster than rm -rf can remove them.
+        // Some jobs can make large doozer_workings faster than we can remove them.
         // Those jobs should call with synchronous.
         sh """
-        sudo rm -rf ${workdir}.rm.*
+            sudo rsync -a --delete ${to_remove}{/${empty},}/
+            rmdir ${to_remove}
         """
     } else {
         sh """
             # see discussion at https://stackoverflow.com/a/37161006 re:
-            JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'sudo rm -rf ${workdir}.rm.*' &
+            JENKINS_NODE_COOKIE=dontKill BUILD_ID=dontKill nohup bash -c 'sudo rsync -a --delete ${to_remove}{/${empty},}/ && rmdir ${to_remove}' &
         """
     }
 
@@ -1394,8 +1391,9 @@ def getChanges(yamlData) {
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory) {
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory, for_ironic=false) {
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
+    if (for_ironic) baseDir += "ironic"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
     if (include_embargoed) {
@@ -1409,7 +1407,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
 
     /**
      * plashet will build one or more yum repos for us -- one for each
-     * architecture enabled for the a release. For each arch, a yum repo
+     * architecture enabled for the release. For each arch, a yum repo
      * {baseDir}/{plashetName}/{arch}/os will be created.
      * plashet will examine RPM packages currently tagged in the rhel-7 candidate
      * and build the yum repos. plashet allows each arch to have different signing
@@ -1436,6 +1434,13 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     }
 
     def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"
+    def brewTag = "rhaos-${major_minor}-rhel-${el_major}-candidate"
+    def embargoedBrewTag = "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed"
+    if (for_ironic) {
+        productVersion = "OSE-IRONIC-${major_minor}-RHEL-${el_major}"
+        brewTag = "rhaos-${major_minor}-ironic-rhel-${el_major}-candidate"
+        embargoedBrewTag  = ""  // unlikely to exist until we begin using -gating tag
+    }
 
     // To prevent add/remove races within the advisory, a lock is used.
     lock("signing-advisory-${auto_signing_advisory}") {
@@ -1452,8 +1457,8 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     "from-tags", // plashet mode of operation => build from brew tags
                     include_embargoed? "--include-embargoed" : "",
                     "--inherit",
-                    "--brew-tag rhaos-${major_minor}-rhel-${el_major}-candidate ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
-                    "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed",
+                    "--brew-tag ${brewTag} ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
+                    "${embargoedBrewTag}",
                     (major == 3) ? "--inherit" :  "", // For OCP3.11, we depend on tag inheritance to populate the OSE repo
                     auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
                     "--signing-advisory-mode clean",
@@ -1492,9 +1497,9 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     // 'building' in this rcm-guest directory. Before creating 'building', let's get the
     // repo over there.
     def destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${major_minor}"
-    if (el_major >= 8) {
-        destBaseDir += "-el${el_major}"
-    }
+    if (for_ironic) destBaseDir += "-el${el_major}-ironic"
+    else if (el_major >= 8) destBaseDir += "-el${el_major}"
+
     def assembly = params.ASSEMBLY ?: "stream"
     destBaseDir += "/${assembly}"
     // Just in case this is the first time we have built this release, create the landing place on rcm-guest.

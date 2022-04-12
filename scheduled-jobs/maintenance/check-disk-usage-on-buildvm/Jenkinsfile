@@ -7,8 +7,9 @@ properties( [
 node() {
     checkout scm
 
-    b = build(
-        job: '../aos-cd-builds/build%2Fcheck-bugs',
-        propagate: false
+    build(
+        job: '../maintenance/maintenance%2Fcheck-disk-usage-on-buildvm',
+        parameters: [string(name: 'THRESHOLD', value: '90'), string(name: 'SLACK_CHANNEL', value: '#art-team')],
+        propagate: false,
     )
 }

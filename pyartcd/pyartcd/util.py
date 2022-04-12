@@ -2,13 +2,15 @@ import os
 import re
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+import logging
 
 import aiofiles
 import yaml
-from doozerlib import assembly, model
-from doozerlib.util import brew_arch_for_go_arch, brew_suffix_for_arch, go_arch_for_brew_arch, go_suffix_for_arch
 
+from doozerlib import assembly, model
 from pyartcd import exectools
+
+logger = logging.getLogger(__name__)
 
 
 def isolate_el_version_in_release(release: str) -> Optional[int]:
@@ -103,3 +105,20 @@ def get_release_name(assembly_type: str, group_name: str, assembly_name: str, re
     else:
         raise ValueError(f"Assembly type {assembly_type} is not supported.")
     return release_name
+
+
+async def kinit():
+    logger.info('Initializing ocp-build kerberos credentials')
+
+    # The '-f' ensures that the ticket is forwarded to remote hosts
+    # when using SSH. This is required for when we build signed
+    # puddles.
+    cmd = [
+        'kinit',
+        '-f',
+        '-k',
+        '-t',
+        '/home/jenkins/ocp-build_buildvm.openshift.eng.bos.redhat.com_IPA.REDHAT.COM.keytab',
+        'ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM'
+    ]
+    await exectools.cmd_assert_async(cmd)

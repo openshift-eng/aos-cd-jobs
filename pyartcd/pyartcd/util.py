@@ -68,10 +68,13 @@ async def load_group_config(group: str, assembly: str, env=None) -> Dict:
     return group_config
 
 
-async def load_releases_config(build_data_path: os.PathLike) -> Dict:
-    async with aiofiles.open(Path(build_data_path) / "releases.yml", "r") as f:
-        content = await f.read()
-    return yaml.safe_load(content)
+async def load_releases_config(build_data_path: os.PathLike) -> Optional[Dict]:
+    try:
+        async with aiofiles.open(Path(build_data_path) / "releases.yml", "r") as f:
+            content = await f.read()
+        return yaml.safe_load(content)
+    except FileNotFoundError:
+        return None
 
 
 def get_assembly_type(releases_config: Dict, assembly_name: str):

@@ -7,11 +7,13 @@ import subprocess
 from io import StringIO
 from pathlib import Path
 from subprocess import PIPE, CalledProcessError
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import aiofiles
 import click
 import jinja2
+import semver
+from doozerlib.assembly import AssemblyTypes
 from elliottlib.assembly import assembly_group_config
 from elliottlib.errata import get_bug_ids
 from elliottlib.model import Model
@@ -22,6 +24,8 @@ from pyartcd.jira import JIRAClient
 from pyartcd.mail import MailService
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
+from pyartcd.util import (get_assembly_basis, get_assembly_type,
+                          get_release_name, go_suffix_for_arch)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -103,25 +107,23 @@ class PrepareReleasePipeline:
 
         release_config = None
         group_config = await self.load_group_config()
+        releases_config = await self.load_releases_config()
+        assembly_type = get_assembly_type(releases_config, self.assembly)
 
-        if self.assembly != "stream":
-            releases_config = await self.load_releases_config()
+        if assembly_type == AssemblyTypes.STREAM:
+            if self.release_version[0] >= 4:
+                raise ValueError("Preparing a release from a stream assembly for OCP4+ is no longer supported.")
+        else:
             release_config = releases_config.get("releases", {}).get(self.assembly, {})
+            self.release_name = get_release_name(assembly_type, self.group_name, self.assembly, 0 if assembly_type == AssemblyTypes.CUSTOM else None)
+            self.release_version = semver.VersionInfo.parse(self.release_name).to_tuple()
             if not release_config:
-                raise ValueError(f"Assembly {self.assembly} is not defined in releases.yml for group {self.group_name}.")
+                raise ValueError(f"Assembly {self.assembly} is not explicitly defined in releases.yml for group {self.group_name}.")
             group_config = assembly_group_config(Model(releases_config), self.assembly, Model(group_config)).primitive()
-            asssembly_type = release_config.get("assembly", {}).get("type", "standard")
-            if asssembly_type == "standard":
-                self.release_name = self.assembly
-                self.release_version = tuple(map(int, self.release_name.split(".", 2)))
-            elif asssembly_type == "custom":
-                self.release_name = f"{self.release_version[0]}.{self.release_version[1]}.0-assembly.{self.assembly}"
-            elif asssembly_type == "candidate":
-                self.release_name = f"{self.release_version[0]}.{self.release_version[1]}.0-{self.assembly}"
-            nightlies = release_config.get("assembly", {}).get("basis", {}).get("reference_releases", {}).values()
+            nightlies = get_assembly_basis(releases_config, self.assembly).get("reference_releases", {}).values()
             self.candidate_nightlies = self.parse_nighties(nightlies)
 
-        if release_config and asssembly_type != "standard":
+        if release_config and assembly_type != AssemblyTypes.STANDARD:
             _LOGGER.warning("No need to check Blocker Bugs for assembly %s", self.assembly)
         else:
             _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
@@ -132,27 +134,37 @@ class PrepareReleasePipeline:
         if self.default_advisories:
             advisories = group_config.get("advisories", {})
         else:
-            _LOGGER.info("Creating advisories for release %s...", self.release_name)
             if release_config:
                 advisories = group_config.get("advisories", {}).copy()
 
             if self.release_version[2] == 0:  # GA release
                 if advisories.get("rpm", 0) <= 0:
                     advisories["rpm"] = self.create_advisory("RHEA", "rpm", "ga")
+                else:
+                    _LOGGER.info("Reusing existing rpm advisory %s", advisories["rpm"])
                 if advisories.get("image", 0) <= 0:
                     advisories["image"] = self.create_advisory("RHEA", "image", "ga")
+                else:
+                    _LOGGER.info("Reusing existing image advisory %s", advisories["image"])
             else:  # z-stream release
                 if advisories.get("rpm", 0) <= 0:
                     advisories["rpm"] = self.create_advisory("RHBA", "rpm", "standard")
+                else:
+                    _LOGGER.info("Reusing existing rpm advisory %s", advisories["rpm"])
                 if advisories.get("image", 0) <= 0:
                     advisories["image"] = self.create_advisory("RHBA", "image", "standard")
+                else:
+                    _LOGGER.info("Reusing existing image advisory %s", advisories["image"])
             if self.release_version[0] > 3:
                 if advisories.get("extras", 0) <= 0:
                     advisories["extras"] = self.create_advisory("RHBA", "image", "extras")
+                else:
+                    _LOGGER.info("Reusing existing extras advisory %s", advisories["extras"])
                 if advisories.get("metadata", 0) <= 0:
                     advisories["metadata"] = self.create_advisory("RHBA", "image", "metadata")
+                else:
+                    _LOGGER.info("Reusing existing metadata advisory %s", advisories["metadata"])
 
-        _LOGGER.info("Ensuring JIRA ticket for release %s...", self.release_name)
         jira_issue_key = group_config.get("release_jira")
         jira_template_vars = {
             "release_name": self.release_name,
@@ -232,11 +244,14 @@ class PrepareReleasePipeline:
             except CalledProcessError as ex:
                 _LOGGER.warning(f"Unable to move {kind} advisory {advisory} to QE: {ex}")
 
-    async def load_releases_config(self) -> Dict:
+    async def load_releases_config(self) -> Optional[None]:
         repo = self.working_dir / "ocp-build-data-push"
         if not repo.exists():
             await self.clone_build_data(repo)
-        async with aiofiles.open(repo / "releases.yml", "r") as f:
+        path = repo / "releases.yml"
+        if not path.exists():
+            return None
+        async with aiofiles.open(path, "r") as f:
             content = await f.read()
         yaml = YAML(typ="safe")
         return yaml.load(content)
@@ -251,7 +266,7 @@ class PrepareReleasePipeline:
         return yaml.load(content)
 
     @classmethod
-    def parse_nighties(cls, nighty_tags: List[str]) -> Dict[str, str]:
+    def parse_nighties(cls, nighty_tags: Iterable[str]) -> Dict[str, str]:
         arch_nightlies = {}
         for nightly in nighty_tags:
             if "s390x" in nightly:
@@ -264,8 +279,7 @@ class PrepareReleasePipeline:
                 arch = "x86_64"
             if ":" not in nightly:
                 # prepend pullspec URL to nightly name
-                # TODO: proper translation facility between brew and go arch nomenclature
-                arch_suffix = "" if arch == "x86_64" else "-arm64" if arch == "aarch64" else "-" + arch
+                arch_suffix = go_suffix_for_arch(arch)
                 nightly = f"registry.ci.openshift.org/ocp{arch_suffix}/release{arch_suffix}:{nightly}"
             arch_nightlies[arch] = nightly
         return arch_nightlies
@@ -297,6 +311,7 @@ class PrepareReleasePipeline:
             _LOGGER.info(f"{int(match[1])} Blocker Bugs found! Make sure to resolve these blocker bugs before proceeding to promote the release.")
 
     def create_advisory(self, type: str, kind: str, impetus: str) -> int:
+        _LOGGER.info("Creating advisory with type %s, kind %s, and impetus %s...", type, kind, impetus)
         create_cmd = [
             "elliott",
             f"--working-dir={self.elliott_working_dir}",

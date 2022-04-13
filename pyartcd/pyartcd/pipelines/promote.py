@@ -187,7 +187,7 @@ class PromotePipeline:
                 metadata["description"] = str(description)
             if errata_url:
                 metadata["url"] = errata_url
-            reference_releases = util.get_assmebly_basis(releases_config, self.assembly).get("reference_releases", {})
+            reference_releases = util.get_assembly_basis(releases_config, self.assembly).get("reference_releases", {})
             tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE]
             release_infos = await self.promote_all_arches(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)

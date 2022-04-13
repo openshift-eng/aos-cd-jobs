@@ -78,7 +78,7 @@ def get_assembly_type(releases_config: Dict, assembly_name: str):
     return assembly.assembly_type(model.Model(releases_config), assembly_name)
 
 
-def get_assmebly_basis(releases_config: Dict, assembly_name: str):
+def get_assembly_basis(releases_config: Dict, assembly_name: str):
     return assembly.assembly_basis(model.Model(releases_config), assembly_name)
 
 

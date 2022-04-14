@@ -69,7 +69,7 @@ class TestCheckBugsPipeline(unittest.TestCase):
         pipeline.versions.append('4.11')
         asyncio.get_event_loop().run_until_complete(pipeline._check_applicable_versions())
         self.assertNotIn('4.11', pipeline.applicable_versions)
-        
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -108,9 +108,7 @@ class CheckBugsPipeline:
             ELLIOTT_BIN,
             f'--group=openshift-{version}',
             f'--working-dir={version}-working',
-            'find-bugs',
-            '--mode=blocker',
-            '--report',
+            'find-bugs:blocker',
             '--output=slack'
         ]
         self.logger.info(f'Executing command: {" ".join(cmd)}')
@@ -211,9 +209,9 @@ class CheckBugsPipeline:
         message = ':red-siren: *There are some issues to look into:*'
         for k in report.keys():
             message += f'\n:warning:*{k}*'
-            for l in report[k]:
-                message += f'\n{l}'
-    
+            for i in report[k]:
+                message += f'\n{i}'
+
         self.logger.info('Sending notification to Slack')
         self.logger.debug(message)
         await self.slack_client.say(message)

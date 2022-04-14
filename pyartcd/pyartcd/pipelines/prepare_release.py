@@ -292,10 +292,8 @@ class PrepareReleasePipeline:
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
             "--assembly=stream",
-            "find-bugs",
-            "--mode=blocker",
+            "find-bugs:blocker",
             "--exclude-status=ON_QA",
-            "--report"
         ]
         if self.runtime.dry_run:
             _LOGGER.warning("[DRY RUN] Would have run %s", cmd)

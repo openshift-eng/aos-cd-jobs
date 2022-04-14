@@ -147,7 +147,7 @@ name = plashet-rebuild-overrides
 baseurl = https://example.com/plashets/4.9-el8/art0001/fake-overrides/$basearch/os
 enabled = 1
 priority = 1
-gpgcheck = 1
+gpgcheck = 0
 gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
         """.strip()
         self.assertEqual(out_file.getvalue().strip(), expected)

@@ -14,6 +14,7 @@ import click
 import jinja2
 import semver
 from doozerlib.assembly import AssemblyTypes
+from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
 from elliottlib.errata import get_bug_ids
 from elliottlib.model import Model
@@ -25,7 +26,7 @@ from pyartcd.mail import MailService
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
-                          get_release_name, go_suffix_for_arch)
+                          get_release_name)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 

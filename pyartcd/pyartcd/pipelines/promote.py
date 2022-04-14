@@ -15,7 +15,7 @@ import aiohttp
 import click
 import semver
 from doozerlib import assembly
-from doozerlib.util import brew_arch_for_go_arch, brew_suffix_for_arch
+from doozerlib.util import brew_arch_for_go_arch, brew_suffix_for_arch, go_suffix_for_arch, go_arch_for_brew_arch
 from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
@@ -203,7 +203,7 @@ class PromotePipeline:
                 # check if release is already accepted (in case we timeout and run the job again)
                 accepted = []
                 for arch in arches:
-                    go_arch_suffix = util.go_suffix_for_arch(arch)
+                    go_arch_suffix = go_suffix_for_arch(arch)
                     release_stream = f"4-stable{go_arch_suffix}"
                     accepted.append(await self.is_accepted(release_name, arch, release_stream))
 
@@ -219,7 +219,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
                     self._logger.info("Waiting for release images for %s to be accepted by the release controller...", release_name)
                     futures = []
                     for arch in arches:
-                        go_arch_suffix = util.go_suffix_for_arch(arch)
+                        go_arch_suffix = go_suffix_for_arch(arch)
                         release_stream = f"4-stable{go_arch_suffix}"
                         futures.append(self.wait_for_stable(release_name, arch, release_stream))
                     try:
@@ -412,7 +412,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         return release_infos
 
     async def promote_arch(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], reference_release: Optional[str], tag_stable: bool):
-        brew_arch = util.brew_arch_for_go_arch(arch)  # ensure we are using Brew arches (e.g. aarch64) instead of golang arches (e.g. arm64).
+        brew_arch = brew_arch_for_go_arch(arch)  # ensure we are using Brew arches (e.g. aarch64) instead of golang arches (e.g. arm64).
         dest_image_tag = f"{release_name}-{brew_arch}"
         dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
         self._logger.info("Checking if release image %s for %s (%s) already exists...", release_name, arch, dest_image_pullspec)
@@ -450,14 +450,14 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
                     dest_image_info["references"]["metadata"] = {"annotations": {"release.openshift.io/from-release": reference_release}}
                 else:
                     major, minor = util.isolate_major_minor_in_group(self.group)
-                    go_arch_suffix = util.go_suffix_for_arch(arch, is_private=False)
+                    go_arch_suffix = go_suffix_for_arch(arch, is_private=False)
                     dest_image_info["references"]["metadata"] = {"annotations": {"release.openshift.io/from-image-stream": f"fake{go_arch_suffix}/{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"}}
 
         if not tag_stable:
             self._logger.info("Release image %s will not appear on the release controller.", dest_image_pullspec)
             return dest_image_info
 
-        go_arch_suffix = util.go_suffix_for_arch(arch)
+        go_arch_suffix = go_suffix_for_arch(arch)
         namespace = f"ocp{go_arch_suffix}"
         image_stream_tag = f"release{go_arch_suffix}:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
@@ -526,7 +526,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         return test_commands
 
     async def build_release_image(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], dest_image_pullspec: str, reference_release: Optional[str]):
-        go_arch_suffix = util.go_suffix_for_arch(arch, is_private=False)
+        go_arch_suffix = go_suffix_for_arch(arch, is_private=False)
         cmd = [
             "oc",
             "adm",
@@ -592,13 +592,13 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
         await exectools.cmd_assert_async(cmd, env=env, stdout=sys.stderr)
 
     async def is_accepted(self, release_name: str, arch: str, release_stream: str):
-        go_arch = util.go_arch_for_brew_arch(arch)
+        go_arch = go_arch_for_brew_arch(arch)
         release_controller_url = f"https://{go_arch}.ocp.releases.ci.openshift.org"
         phase = await self.get_release_phase(release_controller_url, release_stream, release_name)
         return phase == "Accepted"
 
     async def wait_for_stable(self, release_name: str, arch: str, release_stream: str):
-        go_arch = util.go_arch_for_brew_arch(arch)
+        go_arch = go_arch_for_brew_arch(arch)
         release_controller_url = f"https://{go_arch}.ocp.releases.ci.openshift.org"
         if self.runtime.dry_run:
             actual_phase = await self.get_release_phase(release_controller_url, release_stream, release_name)

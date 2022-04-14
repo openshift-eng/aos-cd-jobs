@@ -84,9 +84,6 @@ class SweepBugsPipeline:
             cmd.extend([
                 'find-bugs',
                 '--mode=sweep',
-                '--status=MODIFIED',
-                '--status=ON_QA',
-                '--status=VERIFIED',
                 '--into-default-advisories',
             ])
         else:

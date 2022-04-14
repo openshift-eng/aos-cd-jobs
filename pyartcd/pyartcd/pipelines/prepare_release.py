@@ -434,7 +434,6 @@ class PrepareReleasePipeline:
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def sweep_bugs(
         self,
-        statuses: List[str] = ["MODIFIED", "ON_QA", "VERIFIED"],
         advisory: Optional[int] = None,
         check_builds: bool = False,
     ):
@@ -448,8 +447,6 @@ class PrepareReleasePipeline:
         ]
         if check_builds:
             cmd.append("--check-builds")
-        for status in statuses:
-            cmd.append("--status=" + status)
         if advisory:
             cmd.append(f"--add={advisory}")
         else:

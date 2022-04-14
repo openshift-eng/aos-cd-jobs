@@ -209,9 +209,9 @@ class CheckBugsPipeline:
         message = ':red-siren: *There are some issues to look into:*'
         for k in report.keys():
             message += f'\n:warning:*{k}*'
-            for l in report[k]:
-                message += f'\n{l}'
-    
+            for i in report[k]:
+                message += f'\n{i}'
+
         self.logger.info('Sending notification to Slack')
         self.logger.debug(message)
         await self.slack_client.say(message)

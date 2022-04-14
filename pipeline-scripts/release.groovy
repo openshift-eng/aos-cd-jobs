@@ -350,7 +350,7 @@ def Map stageWaitForStable(String releaseStream, String releaseName) {
 def stageCheckBlockerBug(group){
     blocker_bugs = commonlib.shell(
         returnStdout: true,
-        script: "${buildlib.ELLIOTT_BIN} -g ${group} find-bugs --mode blocker --report"
+        script: "${buildlib.ELLIOTT_BIN} -g ${group} find-bugs:blocker"
     ).trim()
 
     echo blocker_bugs

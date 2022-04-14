@@ -108,9 +108,7 @@ class CheckBugsPipeline:
             ELLIOTT_BIN,
             f'--group=openshift-{version}',
             f'--working-dir={version}-working',
-            'find-bugs',
-            '--mode=blocker',
-            '--report',
+            'find-bugs:blocker',
             '--output=slack'
         ]
         self.logger.info(f'Executing command: {" ".join(cmd)}')

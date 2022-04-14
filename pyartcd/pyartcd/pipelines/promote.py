@@ -313,9 +313,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             "elliott",
             f"--group={self.group}",
             "--assembly=stream",
-            "find-bugs",
-            "--mode=blocker",
-            "--report"
+            "find-bugs:blocker",
         ]
         async with self._elliott_lock:
             _, stdout, _ = await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars, stderr=None)

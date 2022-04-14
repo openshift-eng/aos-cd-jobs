@@ -77,14 +77,13 @@ class SweepBugsPipeline:
         cmd = [
             ELLIOTT_BIN,
             f'--group=openshift-{self.version}',
-            'find-bugs',
         ]
 
         if self.attach_bugs:
             self.logger.info('Attaching MODIFIED, ON_QA, and VERIFIED bugs to default advisories')
             cmd.extend([
+                'find-bugs',
                 '--mode=sweep',
-                '--cve-trackers',
                 '--status=MODIFIED',
                 '--status=ON_QA',
                 '--status=VERIFIED',
@@ -93,8 +92,7 @@ class SweepBugsPipeline:
         else:
             self.logger.info('Changing MODIFIED bugs to ON_QA')
             cmd.extend([
-                '--cve-trackers',
-                '--mode=qe'
+                'find-bugs:qe'
             ])
 
         if self.runtime.dry_run:

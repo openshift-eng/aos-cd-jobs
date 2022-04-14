@@ -435,7 +435,6 @@ class PrepareReleasePipeline:
     def sweep_bugs(
         self,
         statuses: List[str] = ["MODIFIED", "ON_QA", "VERIFIED"],
-        include_cve: bool = True,
         advisory: Optional[int] = None,
         check_builds: bool = False,
     ):
@@ -447,8 +446,6 @@ class PrepareReleasePipeline:
             "find-bugs",
             "--mode=sweep",
         ]
-        if include_cve:
-            cmd.append("--cve-trackers")
         if check_builds:
             cmd.append("--check-builds")
         for status in statuses:

@@ -1,0 +1,116 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: poll-for-prs
+  labels:
+    app: "artcd"
+spec:
+  description: >-
+    Run unit tests for pyartcd.
+  params:
+  - name: git_repo
+    description: Git repository URL.
+    default: https://github.com/openshift/aos-cd-jobs.git
+  - name: dry_run
+    description: If "true", just cache the current status of PRs without triggering any jobs.
+    default: "false"
+  tasks:
+  - name: poll-for-prs
+    taskRef:
+      name: poll-for-prs
+    params:
+    - name: git_repo
+      value: "$(params.git_repo)"
+    - name: dry_run
+      value: "$(params.dry_run)"
+    workspaces:
+    - name: source
+      workspace: source
+  workspaces:
+    - name: source
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: poll-for-prs
+  labels:
+    app: "artcd"
+spec:
+  params:
+  - name: git_repo
+    description: Git repository URL.
+    default: https://github.com/openshift/aos-cd-jobs.git
+  - name: dry_run
+    description: If "true", just cache the current status of PRs without triggering any jobs.
+    default: "false"
+  steps:
+  - name: poll-for-prs
+    image: image-registry.openshift-image-registry.svc:5000/art-cd-stage/art-tools-tester:latest
+    script: |
+      #!/usr/bin/env python3
+      import os
+      import subprocess
+      import json
+
+      os.chdir("$(workspaces.source.path)")
+      env=os.environ.copy()
+
+      cmd = """#!/bin/bash
+      git init aos-cd-jobs
+      git -C aos-cd-jobs remote add origin https://github.com/master/aos-cd-jobs.git
+      git -C aos-cd-jobs fetch --depth 1 origin master
+      git -C aos-cd-jobs checkout FETCH_HEAD
+      git -C aos-cd-jobs submodule update --init
+      pip3 install -e ./aos-cd-jobs/pyartcd -e ./aos-cd-jobs/art-tools/elliott -e ./aos-cd-jobs/art-tools/doozer
+      """
+      print(f"Running {cmd}...")
+      subprocess.run(cmd, check=True, shell=True, universal_newlines=True, env=os.environ.copy())
+
+      cmd = [
+          "artcd",
+          "-v",
+          "--config=/etc/artcd/artcd.toml",
+      ]
+      if "$(params.dry_run)" == "true":
+          cmd.append("--dry-run")
+      cmd.extend([
+          "poll-for-prs",
+          "--git-repo", "$(params.git_repo)",
+      ])
+
+      print(f"Running {cmd}...")
+      result = subprocess.run(cmd, check=True, universal_newlines=True, env=os.environ.copy(), stdout=subprocess.PIPE)
+
+      if "$(params.dry_run)" == "true":
+        exit(0)
+
+      for ref, change in json.loads(result.stdout).items():
+        print(f"Triggering job for {ref}:")
+        cmd = ["tkn", "pipeline", "start", "pyartcd-unittest", "-w", "name=source,emptyDir=", "--use-param-defaults", "-p", "git_repo=$(params.git_repo)", "-p", f"git_ref={ref}", "-p", "comment=true"]
+        subprocess.run(cmd, check=True, universal_newlines=True, env=os.environ.copy())
+
+
+    env:
+    # https://github.com/tektoncd/pipeline/issues/2013
+    - name: HOME
+      value: /home/dev
+    volumeMounts:
+    - name: artcd-config
+      mountPath: /etc/artcd/
+    - name: git-config
+      mountPath: /home/dev/.gitconfig
+      subPath: .gitconfig
+      readOnly: false
+
+  workspaces:
+  - name: source
+    description: The folder where we write the message to
+    mountPath: /workspaces/source
+  volumes:
+  - name: artcd-config
+    configMap:
+      name: artcd-config
+  - name: git-config
+    configMap:
+      name: git-config

@@ -1,0 +1,54 @@
+FROM registry.access.redhat.com/ubi8/ubi:8.5 AS builder
+
+# Install build dependencies
+WORKDIR /usr/local/src
+USER root
+RUN dnf -y module enable python36 \
+  && dnf -y install python3 python3-wheel python3-devel gcc krb5-devel wget tar gzip \
+  && python3 -m pip install "pip >= 21"
+
+# Download oc
+ARG OC_VERSION=latest
+RUN wget -O openshift-client-linux-"$OC_VERSION".tar.gz https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/"$OC_VERSION"/openshift-client-linux.tar.gz \
+  && tar -xzvf openshift-client-linux-"$OC_VERSION".tar.gz oc kubectl
+
+# Download Tekton CLI
+ARG TKN_VERSION=0.23.1
+RUN wget -O "tkn-linux-amd64-${TKN_VERSION}.tar.gz" "https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/pipeline/${TKN_VERSION}/tkn-linux-amd64-${TKN_VERSION}.tar.gz" \
+  && tar -xzvf "tkn-linux-amd64-${TKN_VERSION}.tar.gz" tkn
+
+# Build pyartcd, elliott, and doozer
+COPY art-tools .
+COPY pyartcd pyartcd
+RUN python3 -m pip wheel --wheel-dir /usr/local/src/wheels --use-deprecated=legacy-resolver \
+  ./elliott ./doozer ./pyartcd
+
+
+FROM registry.access.redhat.com/ubi8/ubi:8.5
+LABEL name="openshift-art/art-tools-tester" \
+  maintainer="OpenShift Team Automated Release Tooling <aos-team-art@redhat.com>"
+
+# Install runtime dependencies
+
+RUN \
+  # Configure Python environment
+  dnf -y module enable python36 && dnf -y install python3 \
+  && python3 -m pip install "pip >= 21" \
+  # Other tools
+  && dnf -y install git krb5-workstation \
+  # Clean up
+  && dnf clean all
+
+# Install binaries
+COPY --from=builder /usr/local/src/oc /usr/local/src/kubectl /usr/local/src/tkn /usr/local/bin/
+
+# Install pyartcd, elliott, doozer
+COPY --from=builder /usr/local/src/wheels /usr/local/src/wheels
+RUN python3 -m pip install --ignore-installed --no-index --find-links=/usr/local/src/wheels pyartcd rh-elliott rh-doozer \
+  && rm /usr/local/src/wheels/*.whl
+
+# Set up user
+RUN useradd -m -d /home/dev -u 1000 dev
+USER 1000
+WORKDIR /home/dev
+ENV PATH="/home/dev/.local/bin:${PATH}"

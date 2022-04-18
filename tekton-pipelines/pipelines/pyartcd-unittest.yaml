@@ -1,0 +1,166 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pyartcd-unittest
+  labels:
+    app: "artcd"
+spec:
+  description: >-
+    Run unit tests for pyartcd.
+  params:
+  - name: git_repo
+    description: Git repository URL.
+    default: https://github.com/openshift/aos-cd-jobs.git
+  - name: git_ref
+    description: Git commit hash, branch, or tag to test against.
+    default: master
+  - name: comment
+    description: If "true", make a comment on the specified GitHub PR.
+    default: "false"
+  - name: github_repo
+    description: The GitHub repo for making a comment on PR.
+    default: openshift/aos-cd-jobs
+  - name: github_pr
+    description: The PR number for making a comment.
+    default: "0"
+  - name: dry_run
+    description: If "true", just exercise the steps without actually preparing a release
+    default: "false"
+  tasks:
+  - name: pyartcd-unittest
+    taskRef:
+      name: pyartcd-unittest
+    params:
+    - name: git_repo
+      value: "$(params.git_repo)"
+    - name: git_ref
+      value: "$(params.git_ref)"
+    - name: comment
+      value: "$(params.comment)"
+    - name: github_repo
+      value: "$(params.github_repo)"
+    - name: github_pr
+      value: "$(params.github_pr)"
+    - name: dry_run
+      value: "$(params.dry_run)"
+    workspaces:
+    - name: source
+      workspace: source
+  workspaces:
+    - name: source
+
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: pyartcd-unittest
+  labels:
+    app: "artcd"
+spec:
+  params:
+  - name: git_repo
+    description: Git repository URL.
+    default: https://github.com/openshift/aos-cd-jobs.git
+  - name: git_ref
+    description: Git commit hash, branch, or tag to test against.
+    default: master
+  - name: comment
+    description: If "true", make a comment on the specified GitHub PR.
+    default: "false"
+  - name: github_repo
+    description: The GitHub repo for making a comment on PR.
+    default: openshift/aos-cd-jobs
+  - name: github_pr
+    description: The PR number for making a comment.
+    default: "0"
+  - name: dry_run
+    description: If "true", just exercise the steps without actually preparing a release
+    default: "false"
+  steps:
+  - name: pyartcd-unittest
+    image: image-registry.openshift-image-registry.svc:5000/art-cd-stage/art-tools-tester:latest
+    script: |
+      #!/usr/bin/env python3
+      import os
+      import subprocess
+
+      os.chdir("$(workspaces.source.path)")
+      env=os.environ.copy()
+
+      cmd = """#!/bin/bash
+      git init aos-cd-jobs
+      git -C aos-cd-jobs remote add origin "$(params.git_repo)"
+      git -C aos-cd-jobs fetch --depth 1 origin "$(params.git_ref)"
+      git -C aos-cd-jobs checkout FETCH_HEAD
+      git -C aos-cd-jobs submodule update --init
+      pip3 install -r ./aos-cd-jobs/pyartcd/requirements-dev.txt -e ./aos-cd-jobs/pyartcd -e ./aos-cd-jobs/art-tools/elliott -e ./aos-cd-jobs/art-tools/doozer
+      """
+      print(f"Running {cmd}...")
+      subprocess.run(cmd, check=True, shell=True, universal_newlines=True, env=os.environ.copy())
+
+      cmd = [
+          "artcd",
+          "-v",
+          "--config=/etc/artcd/artcd.toml",
+      ]
+      if "$(params.dry_run)" == "true":
+          cmd.append("--dry-run")
+      cmd.extend([
+          "pyartcd-unittest",
+          "--git-repo", "$(params.git_repo)",
+          "--git-ref", "$(params.git_ref)",
+      ])
+      if "$(params.comment)" == "true":
+          cmd.extend(["--comment", "--github-repo=$(params.github_repo)", "--github-pr=$(params.github_pr)"])
+
+      print(f"Running {cmd}...")
+      subprocess.run(cmd, check=True, universal_newlines=True, env=os.environ.copy())
+
+    env:
+    # https://github.com/tektoncd/pipeline/issues/2013
+    - name: HOME
+      value: /home/dev
+    - name: GITHUB_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: github-token
+          key: token
+    volumeMounts:
+    - name: artcd-config
+      mountPath: /etc/artcd/
+    - name: elliott-config
+      mountPath: /home/dev/.config/elliott/
+    - name: doozer-config
+      mountPath: /home/dev/.config/doozer/
+    - name: ssh-config
+      mountPath: /tekton/home/.ssh/known_hosts
+      subPath: known_hosts
+      readOnly: false
+    - name: git-config
+      mountPath: /home/dev/.gitconfig
+      subPath: .gitconfig
+      readOnly: false
+
+  workspaces:
+  - name: source
+    description: The folder where we write the message to
+    mountPath: /workspaces/source
+  volumes:
+  - name: artcd-config
+    configMap:
+      name: artcd-config
+  - name: elliott-config
+    configMap:
+      name: elliott-config
+  - name: doozer-config
+    configMap:
+      name: doozer-config
+  - name: ssh-config
+    configMap:
+      name: ssh-config
+  - name: git-config
+    configMap:
+      name: git-config
+  - name: github-token
+    secret:
+      secretName: github-token

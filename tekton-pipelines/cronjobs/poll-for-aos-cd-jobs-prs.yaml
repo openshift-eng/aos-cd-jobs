@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: poll-for-aos-cd-jobs-prs
+spec:
+  schedule: "*/5 * * * *"  # At every 5th minute
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: poll-for-aos-cd-jobs-prs
+            image: image-registry.openshift-image-registry.svc:5000/art-cd-stage/art-tools-tester:latest
+            imagePullPolicy: Always
+            command:
+            - /bin/sh
+            - -c
+            - tkn pipeline start poll-for-prs --showlog --use-param-defaults -p git_repo=https://github.com/openshift/aos-cd-jobs.git -p dry_run=false -w name=source,claimName=poll-for-prs-state
+          restartPolicy: Never
+          serviceAccountName: pipeline

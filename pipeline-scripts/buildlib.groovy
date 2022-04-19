@@ -127,6 +127,13 @@ def setup_venv() {
     commonlib.shell(script: "pip install -q -e art-tools/doozer/")
     commonlib.shell(script: "pip install -q -e art-tools/elliott/")
     commonlib.shell(script: "pip install -e pyartcd/")
+
+    out = sh(
+        script: 'pip freeze | grep "doozer\\|elliott"',
+        returnStdout: true
+    )
+    echo "Installed pyartcd:"
+    echo "${out}"
 }
 
 def doozer(cmd, opts=[:]){

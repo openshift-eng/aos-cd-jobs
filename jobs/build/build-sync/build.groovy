@@ -58,9 +58,7 @@ def buildSyncGenInputs() {
     for(arch in excludeArches)
         excludeArchesParam += " --exclude-arch ${arch}"
     def dryRunParams = params.DRY_RUN ? '--skip-gc-tagging --moist-run' : ''
-    withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
-        sh "rm -rf ${env.WORKSPACE}/${output_dir}"
-        buildlib.doozer """
+    def doozer_cmd = """
 ${images}
 --working-dir "${mirrorWorking}"
 --data-path "${params.DOOZER_DATA_PATH}"
@@ -72,6 +70,9 @@ ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
 ${excludeArchesParam}
 ${dryRunParams}
 """
+    withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
+        sh "rm -rf ${env.WORKSPACE}/${output_dir}"
+        buildlib.doozer(doozer_cmd, [timeout: 60])
     }
     if (params.PUBLISH) {
         buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")

@@ -137,12 +137,17 @@ def setup_venv() {
 }
 
 def doozer(cmd, opts=[:]){
+    def invoke = [
+        returnStdout: opts.capture ?: false,
+        alwaysArchive: opts.capture ?: false,
+        script: "doozer --assembly=${params.ASSEMBLY ?: 'stream'} ${cleanWhitespace(cmd)}"
+    ]
+    if (opts.timeout) {
+      invoke << [timeout: opts.timeout]
+    }
     withCredentials([usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
         withEnv(['DOOZER_DB_NAME=art_dash']) {
-            return commonlib.shell(
-                returnStdout: opts.capture ?: false,
-                alwaysArchive: opts.capture ?: false,
-                script: "doozer --assembly=${params.ASSEMBLY ?: 'stream'} ${cleanWhitespace(cmd)}")
+            return commonlib.shell(invoke)
         }
     }
 }

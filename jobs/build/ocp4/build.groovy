@@ -168,7 +168,7 @@ def planBuilds() {
             ${includeExclude "rpms", buildPlan.rpmsIncluded, buildPlan.rpmsExcluded}
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
             config:scan-sources --yaml
-            """, [capture: true]
+            """, [capture: true, timeout: 60]
         )
 		echo "scan-sources output:\n${yamlStr}\n\n"
 
@@ -274,7 +274,7 @@ def stageBuildRpms() {
         --release '${version.release}'
         """
 
-    buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
+    buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd, [timeout: 150])
 }
 
 /**
@@ -319,7 +319,7 @@ def stageUpdateDistgit() {
         echo "${buildlib.DOOZER_BIN} ${cmd}"
         return
     }
-    buildlib.doozer(cmd)
+    buildlib.doozer(cmd, [timeout: 120])
     // TODO: if rebase fails for required images, notify image owners, and still notify on other reconciliations
     buildlib.notify_dockerfile_reconciliations(doozerWorking, version.stream)
     // TODO: if a non-required rebase fails, notify ART and the image owners
@@ -365,10 +365,10 @@ def stageBuildImages() {
             // if more than one version is undergoing mass rebuilds,
             // serialize them to prevent flooding the queue
             lock("mass-rebuild-serializer") {
-                buildlib.doozer(cmd)
+                buildlib.doozer(cmd, [timeout: 960])
             }
         } else {
-            buildlib.doozer(cmd)
+            buildlib.doozer(cmd, [timeout: 960])
         }
     }
     catch (err) {

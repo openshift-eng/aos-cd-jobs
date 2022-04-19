@@ -281,7 +281,7 @@ def stageBuildCompose() {
     }
 
     def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} -q config:read-group --default=0 signing_advisory", [capture: true]).trim())
-    def need_ironic_repo = buildlib.doozer("${doozerOpts} -q config:read-group --default=None repos.rhel-8-server-ironic-rpm", [capture: true]).trim() != "None"
+    def need_ironic_repo = buildlib.doozer("${doozerOpts} -q config:read-group --default=None repos.rhel-8-server-ironic-rpms", [capture: true]).trim() != "None"
 
     buildlib.buildBuildingPlashet(version.full, version.release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
     buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet

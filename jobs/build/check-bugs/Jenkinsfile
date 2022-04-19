@@ -36,9 +36,6 @@ node {
     // Check for mock build
     commonlib.checkMock()
 
-    // Install pyartcd
-    commonlib.shell(script: "pip install --no-cache-dir --upgrade -e ./pyartcd")
-
     // Check bugs
     stage('check-bugs') {
         sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"

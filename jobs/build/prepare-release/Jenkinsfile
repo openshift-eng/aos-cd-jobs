@@ -87,8 +87,6 @@ node {
                 }
                 currentBuild.displayName += " - $params.VERSION - $params.ASSEMBLY"
             }
-
-            commonlib.shell(script: "pip install -e ./pyartcd")
         }
         stage ("Notify release channel") {
             if (params.DRY_RUN) {

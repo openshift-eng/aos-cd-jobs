@@ -73,7 +73,6 @@ node {
                 currentBuild.displayName += " - [DRY RUN]"
             }
             currentBuild.displayName += " - $params.ASSEMBLY - $params.TYPE - ${params.DISTGIT_KEY?: '(N/A)'}"
-            commonlib.shell(script: "pip install -e ./pyartcd")
         }
         stage ("Notify release channel") {
             if (params.DRY_RUN) {

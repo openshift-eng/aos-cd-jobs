@@ -63,9 +63,6 @@ node {
     // Check for mock build
     commonlib.checkMock()
 
-    // Install pyartcd
-    commonlib.shell(script: "pip install --upgrade -e ./pyartcd")
-
     // Init
     echo "Initializing bug sweep for ${params.BUILD_VERSION}. Sync: #${currentBuild.number}"
     currentBuild.displayName = "${params.BUILD_VERSION}"

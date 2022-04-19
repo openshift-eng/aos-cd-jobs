@@ -119,18 +119,21 @@ def setup_venv() {
     env.VIRTUAL_ENV = "${VIRTUAL_ENV}"
     env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/elliott:${env.WORKSPACE}/art-tools/doozer:${env.PATH}"
 
-    try {
-        commonlib.shell(script: "pip install --upgrade pip")
-        if (params.DOOZER_COMMIT) {
-            where = DOOZER_COMMIT.split('@')
-            commonlib.shell(script: "rm -rf art-tools/doozer ; cd art-tools; git clone git://github.com/${where[0]}/doozer.git; cd doozer; git checkout ${where[1]}")
-        }
-        commonlib.shell(script: "pip install -q -r art-tools/doozer/requirements.txt")
-        commonlib.shell(script: "pip install -q -r art-tools/elliott/requirements.txt")
-    } catch (Exception ex) {
-        print(ex)
+    commonlib.shell(script: "pip install --upgrade pip")
+    if (params.DOOZER_COMMIT) {
+        where = DOOZER_COMMIT.split('@')
+        commonlib.shell(script: "rm -rf art-tools/doozer ; cd art-tools; git clone git://github.com/${where[0]}/doozer.git; cd doozer; git checkout ${where[1]}")
     }
+    commonlib.shell(script: "pip install -q -e art-tools/doozer/")
+    commonlib.shell(script: "pip install -q -e art-tools/elliott/")
+    commonlib.shell(script: "pip install -e pyartcd/")
 
+    out = sh(
+        script: 'pip freeze | grep "doozer\\|elliott"',
+        returnStdout: true
+    )
+    echo "Installed pyartcd:"
+    echo "${out}"
 }
 
 def doozer(cmd, opts=[:]){

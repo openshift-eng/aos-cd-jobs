@@ -102,8 +102,8 @@ node {
 
         /* Handle exit code, defined as:
             0 = SUCCESS
-            1 = BUILD_NOT_PERMITTED
-            2 = RUNTIME_ERROR
+            1 = RUNTIME_ERROR
+            2 = BUILD_NOT_PERMITTED
             3 = DRY_RUN
         */
         if (exitCode == 0) {
@@ -118,15 +118,15 @@ node {
             }
         }
         if (exitCode == 1) {
+            currentBuild.result = 'FAILURE'
+            currentBuild.displayName += ' - runtime error'
+            echo('Runtime errors were raised during the build. Check the logs for details')
+        }
+        if (exitCode == 2) {
             currentBuild.displayName += ' - automation frozen'
             currentBuild.result = 'UNSTABLE'
             currentBuild.description = 'Builds not permitted'
             echo('This build did not run as it is not permitted according to current group.yml')
-        }
-        if (exitCode == 2) {
-            currentBuild.result = 'FAILURE'
-            currentBuild.displayName += ' - runtime error'
-            echo('Runtime errors were raised during the build. Check the logs for details')
         }
         if (exitCode == 3) {
             currentBuild.displayName += " - dry run"

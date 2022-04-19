@@ -97,7 +97,7 @@ node {
         echo "Running command: ${cmd}"
 
         // Execute script
-        exitCode = sh(script: cmd.join(' '), returnStatus: true)
+        exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
         echo("command ${cmd} returned with status ${exitCode}")
 
         /* Handle exit code, defined as:

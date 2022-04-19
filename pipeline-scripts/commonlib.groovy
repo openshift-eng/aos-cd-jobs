@@ -411,6 +411,7 @@ def getNextShellCounter() {
  * @param alwaysArchive true will always archive shell artifacts; default is to do so only on failure
  * @param returnAll true causes to return map with stderr, stdout, combined, and returnStatus
  * otherwise params are same as sh() step
+ * @param timeout Timeout in minutes for shell command. If unspecified, 30 minutes.
  * @return same as sh() command, unless returnAll set
  * @throws error (unless returnAll or returnStatus set) with useful message (and archives)
  */
@@ -423,7 +424,7 @@ def shell(arg) {
     def returnAll = arg.remove("returnAll")
     def script = arg.script  // keep a copy of original script
     def truncScript = (script.size() <= 75) ? script : script[0..35] + "..." + script[-36..-1]
-
+    def timeout =  arg.timeout ? arg.timeout : 30
 
     def threadShellIndex = getNextShellCounter()
     def shellBase = "${env.WORKSPACE}"
@@ -456,14 +457,16 @@ def shell(arg) {
         }               |& tee ${filebase}.combo.txt # and then capture both (though maybe out of order)
     """
 
-    // run it, capture rc, and don't error
-    def rc = sh(arg + [returnStatus: true])
-    if (rc || alwaysArchive) {
-        writeFile file: "${filebase}.cmd.txt", text: script  // save cmd as context for archives
-        // note that archival requires the location relative to workspace
-        def relFilebase = filebase.minus("${env.WORKSPACE}/")
-        dir(env.WORKSPACE) {  // always archive from workspace context since we wrote it there
-            safeArchiveArtifacts(["${relFilebase}.*"])
+    timeout(unit: 'MINUTES', time: timeout) {
+        // run it, capture rc, and don't error
+        def rc = sh(arg + [returnStatus: true])
+        if (rc || alwaysArchive) {
+            writeFile file: "${filebase}.cmd.txt", text: script  // save cmd as context for archives
+            // note that archival requires the location relative to workspace
+            def relFilebase = filebase.minus("${env.WORKSPACE}/")
+            dir(env.WORKSPACE) {  // always archive from workspace context since we wrote it there
+                safeArchiveArtifacts(["${relFilebase}.*"])
+            }
         }
     }
 

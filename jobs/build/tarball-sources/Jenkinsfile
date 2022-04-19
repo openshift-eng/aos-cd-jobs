@@ -64,7 +64,6 @@ node {
 
     commonlib.checkMock()
     buildlib.initialize()
-    commonlib.shell(script: "pip install -e ./pyartcd")
 
     try {
         sshagent(['openshift-bot']) {

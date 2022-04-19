@@ -440,8 +440,7 @@ class PrepareReleasePipeline:
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
             "--assembly", self.assembly,
-            "find-bugs",
-            "--mode=sweep",
+            "find-bugs:sweep",
         ]
         if check_builds:
             cmd.append("--check-builds")

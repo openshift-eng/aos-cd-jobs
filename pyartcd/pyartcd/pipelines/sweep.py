@@ -112,7 +112,7 @@ class SweepBugsPipeline:
         ]
         self.logger.info('Executing command: %s', cmd)
         _, out, _ = await cmd_gather_async(cmd)
-        return out.strip() == 'False'
+        return out.strip() in ['False', 'no']
 
 
 @cli.command('sweep-bugs')

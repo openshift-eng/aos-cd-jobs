@@ -82,8 +82,7 @@ class SweepBugsPipeline:
         if self.attach_bugs:
             self.logger.info('Attaching MODIFIED, ON_QA, and VERIFIED bugs to default advisories')
             cmd.extend([
-                'find-bugs',
-                '--mode=sweep',
+                'find-bugs:sweep',
                 '--into-default-advisories',
             ])
         else:

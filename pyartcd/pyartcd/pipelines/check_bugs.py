@@ -148,8 +148,7 @@ class CheckBugsPipeline:
             ELLIOTT_BIN,
             f'--group=openshift-{version}',
             f'--working-dir={version}-working',
-            'find-bugs',
-            '--mode=sweep'
+            'find-bugs:sweep'
         ]
         self.logger.info(f'Executing command: {" ".join(cmd)}')
 

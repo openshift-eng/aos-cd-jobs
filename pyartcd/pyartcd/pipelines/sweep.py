@@ -17,8 +17,8 @@ ONE_MINUTE = 1000
 
 class StatusCode(Enum):
     SUCCESS = 0,
-    BUILD_NOT_PERMITTED = 1,
-    RUNTIME_ERROR = 2,
+    RUNTIME_ERROR = 1,
+    BUILD_NOT_PERMITTED = 2,
     DRY_RUN = 3
 
 

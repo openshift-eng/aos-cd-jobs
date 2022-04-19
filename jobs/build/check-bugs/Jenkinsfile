@@ -37,7 +37,7 @@ node {
     commonlib.checkMock()
 
     // Install pyartcd
-    commonlib.shell(script: "pip install --no-cache-dir --upgrade -e ./pyartcd")
+    commonlib.shell(script: "pip install -e ./pyartcd")
 
     // Check bugs
     stage('check-bugs') {

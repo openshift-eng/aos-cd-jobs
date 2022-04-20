@@ -41,7 +41,7 @@ node {
     withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
         commonlib.shell(
             script: """
-                set -e
+                set -eo pipefail
                 ./collect-deps.sh ${version}
                 createrepo_c ${version}-beta -v
                 aws s3 sync --no-progress --delete ${version}-beta/ s3://art-srv-enterprise/pub/${path}/

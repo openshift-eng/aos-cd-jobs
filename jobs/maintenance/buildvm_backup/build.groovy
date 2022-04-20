@@ -100,6 +100,7 @@ def stageRunBackup() {
     scpRes = commonlib.shell(
             returnAll: true,
             script: """
+              set -eo pipefail
               ssh -l root ${backupPlan.destHost} mkdir -p ${backupPlan.backupPath}
               scp ${tarballPath} root@${backupPlan.destHost}:${tarballPath}
             """

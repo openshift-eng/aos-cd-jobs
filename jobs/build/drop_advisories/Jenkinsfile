@@ -46,8 +46,7 @@ node {
     advisory_list = commonlib.parseList(params.ADVISORIES)
 
     for(adv in advisory_list) {
-        res = commonlib.shell(
-            returnAll: true,
+        commonlib.shell(
             script: """
               ${buildlib.ELLIOTT_BIN} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
               ${buildlib.ELLIOTT_BIN} remove-bugs --advisory ${adv} --all
@@ -55,7 +54,6 @@ node {
               ${buildlib.ELLIOTT_BIN} advisory-drop ${adv}
             """,
         )
-        print(res)
     }
 
     buildlib.cleanWorkspace()

@@ -42,14 +42,14 @@ node {
     if (!params.ADVISORIES) {
         error("You must provide one or more advisories.")
     }
-    
+
     advisory_list = commonlib.parseList(params.ADVISORIES)
-    
+
     for(adv in advisory_list) {
         res = commonlib.shell(
             returnAll: true,
             script: """
-              ${buildlib.ELLIOTT_BIN} repair-bugs --advisory ${adv} --all --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
+              ${buildlib.ELLIOTT_BIN} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
               ${buildlib.ELLIOTT_BIN} remove-bugs --advisory ${adv} --all
               ${buildlib.ELLIOTT_BIN} change-state --state NEW_FILES --advisory ${adv}
               ${buildlib.ELLIOTT_BIN} advisory-drop ${adv}

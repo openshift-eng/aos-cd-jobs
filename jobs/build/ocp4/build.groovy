@@ -18,6 +18,7 @@ allImagebuildfailed = false
 
 // this plan is to be initialized but then adjusted for incremental builds
 buildPlan = [
+    activeImageCount: 1, // number of images active in this version
     dryRun: false, // report build plan without performing it
     forceBuild: false, // build regardless of whether source has changed
     buildRpms: false,
@@ -52,6 +53,12 @@ def initialize() {
     if (params.ASSEMBLY != 'stream' && buildlib.doozer("${doozerOpts} config:read-group --default=False assemblies.enabled", [capture: true]).trim() != 'True') {
         error("ASSEMBLY cannot be set to '${params.ASSEMBLY}' because assemblies are not enabled in ocp-build-data.")
     }
+
+    buildPlan.activeImageCount = (
+        buildlib.doozer("${doozerOpts} images:list", [capture: true])
+        .trim().split("\n")[-1]  // last line e.g. "219 images"
+        .split(" ")[0].toInteger()
+    )
 
     version.branch = buildlib.getGroupBranch(doozerOpts)
     version << determineBuildVersion(version.stream, version.branch)
@@ -340,11 +347,29 @@ def stageBuildImages() {
             images:build
             --repo-type ${signing_mode}
             """
+
+        def includedCount = commonlib.parseList(buildPlan.imagesIncluded).size()
+        def excludedCount = commonlib.parseList(buildPlan.imagesExcluded).size()
+        def massRebuild = (
+            includedCount && buildPlan.activeImageCount < includedCount * 2 ||  // includes more than half
+            excludedCount && buildPlan.activeImageCount > excludedCount * 2 ||  // excludes less than half
+            !(includedCount || excludedCount)  // rebuilding everything
+        )
+        if (massRebuild) currentBuild.description += "Mass image rebuild (more than half) - invoking serializing semaphore<br/>"
+
         if(buildPlan.dryRun) {
             echo "${buildlib.DOOZER_BIN} ${cmd}"
             return
         }
-        buildlib.doozer(cmd)
+        if (massRebuild) {
+            // if more than one version is undergoing mass rebuilds,
+            // serialize them to prevent flooding the queue
+            lock("mass-rebuild-serializer") {
+                buildlib.doozer(cmd)
+            }
+        } else {
+            buildlib.doozer(cmd)
+        }
     }
     catch (err) {
         recordLog = buildlib.parse_record_log(doozerWorking)

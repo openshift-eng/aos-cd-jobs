@@ -257,7 +257,7 @@ if "test" in job_config:
 if action != None:
     debug("[INFO] Marking this as a {} job for the {} repo".format(action, target_repo))
 
-DEFAULT_DESCRIPTION = "<div style=\"font-size: 32px; line-height: 1.5em; background-color: yellow; padding: 5px;\">" + \
+DEFAULT_DESCRIPTION = "<div style=\"font-size: 32px; line-height: 1.5em; background-color: red; padding: 5px;\">*** THIS SERVER WILL BE SHUTDOWN AUGUST 2022 ***</div><div style=\"font-size: 16px; line-height: 1.5em; background-color: yellow; padding: 5px;\">" + \
                       "*** THIS SERVER WILL BE SHUTDOWN AUGUST 2022 ***" + \
                       "WARNING: THIS IS AN AUTO-GENERATED JOB DEFINITION. " + \
                       "CHANGES MADE USING THE ONLINE EDITOR WILL NOT BE HONORED. " + \

@@ -67,7 +67,7 @@ def build_bundles(String[] only, String[] exclude, String[] operator_nvrs) {
         cmd += " --dry-run"
     cmd += " -- "
     cmd += operator_nvrs.join(' ')
-    buildlib.doozer("${doozer_opts} ${cmd}")
+    buildlib.doozer("${doozer_opts} ${cmd}", [timeout: 60])
     def record_log = buildlib.parse_record_log(doozer_working)
     def records = record_log.get('build_olm_bundle', [])
     def bundle_nvrs = []

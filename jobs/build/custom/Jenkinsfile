@@ -215,9 +215,9 @@ node {
                 command += "--repo-type ${repo_type} "
                 command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
                 if (params.IGNORE_LOCKS) {
-                     buildlib.doozer command
+                     buildlib.doozer(command, [timeout: 120])
                 } else {
-                    lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
+                    lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer(command, [timeout: 120]) }
                 }
             }
 
@@ -226,7 +226,7 @@ node {
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
                 command = "${base_command} images:build --push-to-defaults ${params.SCRATCH ? '--scratch' : ''}"
                 try {
-                    buildlib.doozer command
+                    buildlib.doozer(command, [timeout: 720])
                 } catch (err) {
                     def record_log = buildlib.parse_record_log(doozer_working)
                     def failed_map = buildlib.get_failed_builds(record_log, true)

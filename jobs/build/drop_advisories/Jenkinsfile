@@ -20,6 +20,7 @@ node {
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
+                    commonlib.ocpVersionParam('VERSION', '4'),
                     string(
                         name: 'ADVISORIES',
                         description: 'One or more advisories to drop, comma separated',
@@ -46,12 +47,13 @@ node {
     advisory_list = commonlib.parseList(params.ADVISORIES)
 
     for(adv in advisory_list) {
+        def elliott = "${buildlib.ELLIOTT_BIN} --group=openshift-${params.VERSION}"
         commonlib.shell(
             script: """
-              ${buildlib.ELLIOTT_BIN} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
-              ${buildlib.ELLIOTT_BIN} remove-bugs --advisory ${adv} --all
-              ${buildlib.ELLIOTT_BIN} change-state --state NEW_FILES --advisory ${adv}
-              ${buildlib.ELLIOTT_BIN} advisory-drop ${adv}
+              ${elliott} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
+              ${elliott} remove-bugs --advisory ${adv} --all
+              ${elliott} change-state --state NEW_FILES --advisory ${adv}
+              ${elliott} advisory-drop ${adv}
             """,
         )
     }

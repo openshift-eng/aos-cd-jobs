@@ -51,7 +51,7 @@ node {
     resp = readJSON(text: resp_string)
     
     if (resp.containsKey('error')) {
-        error("IIB reported error")
+        error("IIB reported error. Failures can indicate a kerbconfig issues: https://docs.engineering.redhat.com/display/EXD/How+to%3A+Authenticate+with+IIB.")
     }
     
     job_id = resp['id']

@@ -129,7 +129,7 @@ def setup_venv() {
     commonlib.shell(script: "pip install -e pyartcd/")
 
     out = sh(
-        script: 'pip freeze | grep "doozer\\|elliott"',
+        script: 'pip list | grep "doozer\\|elliott"',
         returnStdout: true
     )
     echo "Installed pyartcd:"

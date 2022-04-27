@@ -41,6 +41,11 @@ spec:
       value: "$(params.build_data_url)"
     - name: dry_run
       value: "$(params.dry_run)"
+    workspaces:
+    - name: brew_share
+      workspace: brew_share
+  workspaces:
+    - name: brew_share
 
 ---
 apiVersion: tekton.dev/v1beta1
@@ -148,3 +153,8 @@ spec:
   - name: kerberos-keytab
     secret:
       secretName: jenkins-buildvm-keytab
+  workspaces:
+  - name: brew_share
+    description: /mnt/brew NFS share
+    mountPath: /mnt/brew
+    readOnly: true

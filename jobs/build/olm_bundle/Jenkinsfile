@@ -42,6 +42,12 @@ pipeline {
             trim: true,
         )
         string(
+            name: 'DOOZER_DATA_PATH',
+            description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
+            defaultValue: "https://github.com/openshift/ocp-build-data",
+            trim: true,
+        )
+        string(
             name: 'OPERATOR_NVRS',
             description: '(Optional) List **only** the operator NVRs you want to build bundles for, everything else gets ignored. The operators should not be mode:disabled/wip in ocp-build-data',
             defaultValue: "",
@@ -147,7 +153,7 @@ pipeline {
             steps {
                 script {
                     lock("olm_bundle-${params.BUILD_VERSION}") {
-                        bundle_nvrs = olm_bundles.build_bundles(only, exclude, operator_nvrs)
+                        bundle_nvrs = olm_bundles.build_bundles(only, exclude, operator_nvrs, params.DOOZER_DATA_PATH)
                     }
                     echo "Successfully built:\n${bundle_nvrs.join('\n')}"
                 }

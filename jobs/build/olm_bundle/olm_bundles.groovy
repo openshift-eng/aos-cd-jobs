@@ -54,8 +54,9 @@ def get_builds_from_advisory(advisory) {
  * :param operator_nvrs: only build bundles for given <operator_nvrs>
  * Return a list of built <bundle_nvrs>
  */
-def build_bundles(String[] only, String[] exclude, String[] operator_nvrs) {
+def build_bundles(String[] only, String[] exclude, String[] operator_nvrs, String data_path) {
     def cmd = ""
+    cmd += "--data-path=${data_path}"
     if (only)
         cmd += " --images=${only.join(',')}"
     if (exclude)

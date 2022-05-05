@@ -463,6 +463,7 @@ def stageSyncImages() {
         "aos-team-art@redhat.com",
         params.ASSEMBLY,
         operator_nvrs,
+        params.DOOZER_DATA_PATH
     )
 }
 

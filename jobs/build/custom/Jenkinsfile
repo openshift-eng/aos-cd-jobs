@@ -260,6 +260,7 @@ node {
                         "aos-team-art@redhat.com", // "reply to"
                         params.ASSEMBLY,
                         operator_nvrs,
+                        doozer_data_path
                     )
                 }
             }

@@ -671,7 +671,7 @@ def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs =
     }
 }
 
-def sync_images(major, minor, mail_list, assembly, operator_nvrs = null) {
+def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_data_path) {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
     // stream is updated with the new tags and pullspecs.
@@ -689,6 +689,7 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null) {
         results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
             param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
             param('String', 'ASSEMBLY', assembly),
+            param('String', 'DOOZER_DATA_PATH', doozer_data_path),
             param('Boolean', 'DRY_RUN', params.DRY_RUN),
         ])
     }, "olm-bundle": {
@@ -696,6 +697,7 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null) {
             results.add build(job: 'build%2Folm_bundle', propagate: false, parameters: [
                 param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
                 param('String', 'ASSEMBLY', assembly),
+                param('String', 'DOOZER_DATA_PATH', doozer_data_path),
                 param('String', 'OPERATOR_NVRS', operator_nvrs != null ? operator_nvrs.join(",") : ""),
                 param('Boolean', 'DRY_RUN', params.DRY_RUN),
             ])

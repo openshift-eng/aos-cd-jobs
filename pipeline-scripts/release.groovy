@@ -728,6 +728,55 @@ def signArtifacts(Map signingParams) {
 }
 
 /**
+ * Opens a PR to define a new release against the ocp-build-data GitHub repository.
+ * @param releaseName The name of the release (e.g. "4.3.6")
+ * @param ghorg For testing purposes, you can call this method specifying a personal github org/account.
+ *        The openshift-bot must be a contributor in your fork of ocp-build-data.
+ * @param newReleaseRawContent The YAML snippet defining a new release, to be appended to the file `releases.yml`.
+ */
+def openReleasePR(releaseName, ghorg='openshift', newReleaseRawContent) {
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(releaseName)
+    if ( major != 4 ) {
+        error("Unable to open PRs for unknown major minor: ${major}.${minor}")
+    }
+
+    sshagent(["openshift-bot"]) {
+        def sourceBranch = "add-release-${releaseName}"
+        def targetBranch = "openshift-${major}.${minor}"
+        def commitMessage = "Add release ${releaseName}"
+
+        sh "rm -rf ocp-build-data"
+        sh "git clone --single-branch --branch ${targetBranch} git@github.com:${ghorg}/ocp-build-data.git"
+
+        dir('ocp-build-data') {
+            sh "git branch -f ${sourceBranch} origin/${targetBranch}"
+            sh "git checkout ${sourceBranch}"
+
+            def releasesYaml = readYaml(file: 'releases.yml')
+            def newReleaseYaml = readYaml(text: newReleaseRawContent)
+
+            releasesYaml.releases = newReleaseYaml.releases + releasesYaml.releases
+            sh "rm releases.yml"
+            writeYaml(file: 'releases.yml', data: releasesYaml)
+
+            sh "git add releases.yml"
+            sh "git diff --staged"
+            sh "git commit -m \"${commitMessage}\""
+
+            withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'access_token')]) {
+                sh """
+                git push -u origin ${sourceBranch}
+                GITHUB_TOKEN=${access_token} hub pull-request \
+                    -b ${ghorg}:${targetBranch} \
+                    -h ${ghorg}:${sourceBranch} \
+                    --message "${commitMessage}"
+                """
+            }
+        }
+    }
+}
+
+/**
  * Opens a series of PRs against the cincinnati-graph-data GitHub repository.
  *    Specifically, a PR for the version-agnostic candidate channel.
  * @param releaseName The name of the release (e.g. "4.3.6")

@@ -2,7 +2,8 @@
 node {
     wrap([$class: "BuildUser"]) {
         checkout scm
-        def buildlib = load("pipeline-scripts/buildlib.groovy")
+        def release = load("pipeline-scripts/release.groovy")
+        def buildlib = release.buildlib
         def commonlib = buildlib.commonlib
 
         commonlib.describeJob("gen-assembly", """
@@ -51,6 +52,17 @@ node {
                             defaultValue: "",
                             trim: true,
                         ),
+                        booleanParam(
+                            name: 'CREATE_RELEASES_PR',
+                            description: 'Automatically create a PR against ocp-build-data, populating the file `releases.yml`.',
+                            defaultValue: true,
+                        ),
+                        string(
+                            name: 'GITHUB_ORG',
+                            description: 'The github org containing ocp-build-data fork to open PRs against (use for testing)',
+                            defaultValue: "openshift",
+                            trim: true,
+                        ),
                         commonlib.mockParam(),
                     ]
                 ],
@@ -92,7 +104,10 @@ node {
                         cmd += ' --auto-previous'
                     }
                 }
-                buildlib.doozer(cmd)
+                def content = buildlib.doozer(cmd, [capture: true])
+                if (params.CREATE_RELEASES_PR) {
+                    release.openReleasePR(params.ASSEMBLY_NAME, params.GITHUB_ORG, content)
+                }
             }
         }
 

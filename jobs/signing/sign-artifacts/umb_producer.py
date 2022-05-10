@@ -43,7 +43,8 @@ TOPIC = 'VirtualTopic.eng.art.artifact.sign'
 # hard-coded into the URL path.
 MESSAGE_DIGESTS = {
     'openshift': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/clients/{release_stage}/{release_name}/sha256sum.txt',
-    'rhcos': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/dependencies/rhcos/{release_name_xy}/{release_name}/sha256sum.txt'
+    'rhcos': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/dependencies/rhcos/{release_name_xy}/{release_name}/sha256sum.txt',
+    'coreos-installer': 'https://mirror.openshift.com/pub/openshift-v4/{arch}/clients/coreos-installer/{release_name}/sha256sum.txt'
 }
 DEFAULT_CA_CHAIN = "/etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt"
 
@@ -292,6 +293,10 @@ tools, as well as RHCOS bare-betal message digests.
         artifact_url = MESSAGE_DIGESTS[product].format(
             arch=arch,
             release_name_xy='.'.join(release_parts[:2]),
+            release_name=release_name)
+    elif product == 'coreos-installer':
+        artifact_url = MESSAGE_DIGESTS[product].format(
+            arch=arch,
             release_name=release_name)
 
     artifact = get_digest_base64(artifact_url)

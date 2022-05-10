@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 node {
     checkout scm
+    def release = load("pipeline-scripts/release.groovy")
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
 
@@ -83,10 +84,13 @@ node {
         )
     }
 
-    stage("Sync to mirror") {
-        def mirror = "use-mirror-upload.ops.rhcloud.com"
-        def dir = "/srv/pub/openshift-v4/x86_64/clients/coreos-installer"
+    stage("calculate shasum") {
+        commonlib.shell(
+            script: "cd ${workdir} && sha256sum * > sha256sum.txt",
+        )
+    }
 
+    stage("Sync to mirror") {
         if (params.DRY_RUN) {
             commonlib.shell(
                 script: [
@@ -94,11 +98,33 @@ node {
                     "tree ${workdir}/${params.VERSION}",
                 ].join('\n')
             )
+        } else {
+            sh "tree ${workdir} && cat ${workdir}/sha256sum.txt"
+            commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/${params.VERSION}/")
+            commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/latest/")
+        }
+    }
+
+    stage("sign artifacts") {
+        if (params.DRY_RUN) {
+            echo "Would have signed artifacts"
             return
         }
+        release.signArtifacts(
+            name: params.VERSION,
+            signature_name: "signature-1",
+            dry_run: params.DRY_RUN,
+            env: "prod",
+            key_name: "redhatrelease2",
+            arch: "x86_64",
+            digest: "",
+            client_type: "",
+            product: "coreos-installer",
+        )
 
         commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/${params.VERSION}/")
         commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/latest/")
+
     }
 
     buildlib.cleanWorkspace()

@@ -58,6 +58,7 @@ node {
                             "openshift",
                             "rhcos",
                             "rhacs",
+                            "coreos-installer",
                         ].join("\n"),
                     ),
                     choice(
@@ -216,6 +217,19 @@ node {
                                 )
                             }
                         }
+                    } else if ( params.PRODUCT == 'coreos-installer' ) {
+                        def coreosSha256SignParams = buildlib.cleanWhitespace("""
+                                    ${baseUmbParams} --product coreos-installer ${noop} --arch ${params.ARCH}
+                                    --request-id 'coreos-installer-message-digest-${timestamp}${requestIdSuffix}'
+                                """)
+                        echo "Submitting coreos-install sha256 message-digest signature request"
+                        retry(3) {
+                            timeout(time: umb_timeout, unit: 'MINUTES') {
+                                commonlib.shell(
+                                    script: "../umb_producer.py message-digest ${coreosSha256SignParams}"
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -363,7 +377,13 @@ node {
                                 sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rh-acs/"
                             }
                         }
-
+                    } else if ( params.PRODUCT == 'coreos-installer' ) {
+                        sshagent(["openshift-bot"]) {
+                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/${params.NAME}/"
+                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/latest/"
+                            }
+                        }
                     }
                 } finally {
                     echo "Archiving artifacts in jenkins:"

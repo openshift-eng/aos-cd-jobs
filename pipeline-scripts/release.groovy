@@ -723,6 +723,7 @@ def signArtifacts(Map signingParams) {
             string(name: "KEY_NAME", value: signingParams.key_name),
             string(name: "ARCH", value: signingParams.arch),
             string(name: "DIGEST", value: signingParams.digest),
+            string(name: "PRODUCT", value: signingParams.product),
         ]
     )
 }

@@ -388,13 +388,11 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             return
         cmd = [
             "elliott",
+            f"--assembly={self.assembly}",
             f"--group={self.group}",
             "verify-attached-bugs",
-            "--verify-flaws",
-            "--"
+            "--verify-flaws"
         ]
-        for advisory in advisories:
-            cmd.append(f"{advisory}")
         async with self._elliott_lock:
             await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 

@@ -74,6 +74,12 @@ class ClonerefsAction(Action):
     done
 
     for (( i = 0; i < 10; i++ )); do
+            if scp -r -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/.docker openshiftdevel:; then
+                break
+            fi
+    done
+
+    for (( i = 0; i < 10; i++ )); do
             if scp -F ${WORKSPACE}/.config/origin-ci-tool/inventory/.ssh_config /var/lib/jenkins/tweaks/*.rpm openshiftdevel:/data/; then
                 break
             fi

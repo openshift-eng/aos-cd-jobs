@@ -388,6 +388,7 @@ Please open a chat with @cluster-bot and issue each of these lines individually:
             return
         cmd = [
             "elliott",
+            f"--assembly={self.assembly}",
             f"--group={self.group}",
             "verify-attached-bugs",
             "--verify-flaws",

@@ -50,6 +50,7 @@ def proxy_setup() {
         'bos.redhat.com',
         'github.com',
         'registry.redhat.io',
+        'api.openshift.com',
         'quay.io',
         'cdn.quay.io',
         'cdn01.quay.io',

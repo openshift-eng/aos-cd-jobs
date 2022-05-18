@@ -41,9 +41,25 @@ def path_setup() {
 }
 
 def proxy_setup() {
+    def no_proxy = [
+        'localhost',
+        '127.0.0.1',
+        'openshiftapps.com',
+        'engineering.redhat.com',
+        'devel.redhat.com',
+        'bos.redhat.com',
+        'github.com',
+        'registry.redhat.io',
+        'quay.io',
+        'cdn.quay.io',
+        'cdn01.quay.io',
+        'cdn02.quay.io',
+        'cdn03.quay.io'
+    ]
+        
     env.https_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
     env.http_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
-    env.no_proxy="localhost,127.0.0.1,openshiftapps.com,engineering.redhat.com,devel.redhat.com,bos.redhat.com,github.com"
+    env.no_proxy = no_proxy.join(',')
 }
 
 def kinit() {

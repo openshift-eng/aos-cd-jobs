@@ -41,6 +41,11 @@ def path_setup() {
 }
 
 def proxy_setup() {
+    // Take load balancer from https://source.redhat.com/departments/it/digitalsolutionsdelivery/it-infrastructure/uis/uis_wiki/squid_proxy
+    proxy = "http://proxy.util.phx1.redhat.com:8080"
+    // proxy = "http://proxy.util.phx2.redhat.com:8080"
+    // proxy = "http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
+
     def no_proxy = [
         'localhost',
         '127.0.0.1',
@@ -57,8 +62,8 @@ def proxy_setup() {
         'cdn03.quay.io'
     ]
         
-    env.https_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
-    env.http_proxy="http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
+    env.https_proxy = proxy
+    env.http_proxy = proxy
     env.no_proxy = no_proxy.join(',')
 }
 

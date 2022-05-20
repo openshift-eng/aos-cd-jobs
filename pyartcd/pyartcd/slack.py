@@ -55,3 +55,19 @@ class SlackClient:
                                                        username=self.as_user, link_names=True, attachments=attachments,
                                                        icon_emoji=self.icon_emoji, reply_broadcast=False)
         return response.data
+
+    async def post_image(self, message: str, file: str):
+        attachments = []
+        if self.job_run_url:
+            attachments.append({
+                "title": f"Job: {self.job_name} <{self.job_run_url}|{self.job_run_name}>",
+                "color": "#439FE0",
+            })
+        if self.dry_run:
+            _LOGGER.warning("[DRY RUN] Would have sent slack message to %s: %s %s", self.channel, message, attachments)
+            return {"message": {"ts": "fake"}}
+        response = await self._client.files_upload(
+            file=file,
+            initial_comment=message,
+            channels=self.channel)
+        return response.data

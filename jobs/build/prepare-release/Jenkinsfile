@@ -127,9 +127,11 @@ node {
                     }
                 }
                 sshagent(["openshift-bot"]) {
-                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                        echo "Will run ${cmd}"
-                        commonlib.shell(script: cmd.join(' '))
+                    withEnv(["USEJIRA=True"]) {
+                        withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                            echo "Will run ${cmd}"
+                            commonlib.shell(script: cmd.join(' '))
+                        }
                     }
                 }
             }

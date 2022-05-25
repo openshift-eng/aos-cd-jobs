@@ -94,7 +94,9 @@ node {
         echo "Running command: ${cmd}"
 
         // Execute script
-        exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+        withEnv(["USEJIRA=True"]) {
+            exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+        }
         echo("command ${cmd} returned with status ${exitCode}")
 
         /* Handle exit code, defined as:

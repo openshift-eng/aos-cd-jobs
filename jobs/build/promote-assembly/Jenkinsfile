@@ -159,7 +159,7 @@ node {
             cmd << "--arch=${arch}"
         }
         echo "Will run ${cmd}"
-        withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
+        withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}","USEJIRA=True"]) {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
@@ -201,7 +201,7 @@ node {
          * This has inappropriate logic, disabling it for now.
          * Current behavior is to look up rhcos version of machine-os-content
          * under some circumstances, and to put the result on mirror.
-         * Behavior should be to look up the rhcos version in 
+         * Behavior should be to look up the rhcos version in
          * https://github.com/openshift/installer/blob/release-4.10/data/data/coreos/rhcos.json
          * from the commit of installer, and ensure `latest-<version>` points to there.
 

@@ -100,11 +100,13 @@ node {
                 // To work on real repos, buildlib operations must run with the permissions of openshift-bot
 
                 stage("sync repos to local") {
-                    base_args = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
-                    // Specify -a ${ARCH} to allow repos to be constructed for the arch even if
-                    // if it is not enabled in group.yml.
-                    command = "${base_args} -a ${ARCH} beta:reposync --output ${LOCAL_SYNC_DIR}/ --cachedir ${LOCAL_CACHE_DIR}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
-                    buildlib.doozer command
+                    withEnv(["https_proxy="]) {
+                        base_args = "--working-dir ${DOOZER_WORKING} --group ${GROUP}"
+                        // Specify -a ${ARCH} to allow repos to be constructed for the arch even if
+                        // if it is not enabled in group.yml.
+                        command = "${base_args} -a ${ARCH} beta:reposync --output ${LOCAL_SYNC_DIR}/ --cachedir ${LOCAL_CACHE_DIR}/ --repo-type ${REPO_TYPE} --arch ${ARCH}"
+                        buildlib.doozer command
+                    }
 
                     /**
                      * A bug in doozer once caused only noarch RPMs to be synced to the mirrors. Prevent this

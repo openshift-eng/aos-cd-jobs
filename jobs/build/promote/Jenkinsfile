@@ -593,13 +593,13 @@ ${reason}"""
                         testLines << "test upgrade ${from_release} ${release_name} ${mode}"
                         testIndex++
                     }
-                    currentBuild.description += "\n@cluster-bot requests:\n${testLines.join('\n')}\n"
+                    currentBuild.description += "\n@Cluster Bot requests:\n${testLines.join('\n')}\n"
                     if (params.DRY_RUN) {
                         echo "DRY_RUN: Not slacking release-artists to run these:\n${testLines.join('\n')}"
                         return
                     }
                     slackChannel.say("Hi @release-artists . A new release is ready and needs some upgrade tests to be triggered. "
-                        + "Please open a chat with @cluster-bot and issue each of these lines individually:\n${testLines.join('\n')}")
+                        + "Please open a chat with @Cluster Bot and issue each of these lines individually:\n${testLines.join('\n')}")
                 } catch(ex) {
                     echo "slack notification failed: ${ex}"
                 }
@@ -667,7 +667,7 @@ ${reason}"""
                     return
                 }
                 commonlib.retryAbort("Waiting for stable ${release_name}", taskThread,
-                                        "Release ${release_name} is not currently Accepted by release controller. Issue cluster-bot requests for each upgrade test. "
+                                        "Release ${release_name} is not currently Accepted by release controller. Issue @Cluster Bot requests for each upgrade test. "
                                          + "RETRY when the release is finally Accepted.")  {
                     release_obj = release.stageWaitForStable(RELEASE_STREAM_NAME, release_name)
                  }

@@ -19,20 +19,20 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 ######################################################################
 URLS = {
     'dev': (
-        'amqps://umb-broker03.dev1.ext.devlab.redhat.com:5671',
-        'amqps://umb-broker04.dev1.ext.devlab.redhat.com:5671',
+        'amqps://umb-broker03.dev.api.redhat.com:5671',
+        'amqps://umb-broker04.dev.api.redhat.com:5671',
     ),
     'qa': (
-        'amqps://umb-broker03.web.qa.ext.phx1.redhat.com:5671',
-        'amqps://umb-broker04.web.qa.ext.phx1.redhat.com:5671',
+        'amqps://umb-broker03.qa.api.redhat.com:5671',
+        'amqps://umb-broker04.qa.api.redhat.com:5671',
     ),
     'stage': (
-        'amqps://umb-broker03.web.stage.ext.phx2.redhat.com:5671',
-        'amqps://umb-broker04.web.stage.ext.phx2.redhat.com:5671',
+        'amqps://umb-broker03.stage.api.redhat.com:5671',
+        'amqps://umb-broker04.stage.api.redhat.com:5671',
     ),
     'prod': (
-        'amqps://umb-broker03.web.prod.ext.phx2.redhat.com:5671',
-        'amqps://umb-broker04.web.prod.ext.phx2.redhat.com:5671',
+        'amqps://umb-broker03.api.redhat.com:5671',
+        'amqps://umb-broker04.api.redhat.com:5671',
     ),
 
 }

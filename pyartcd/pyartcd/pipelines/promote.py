@@ -119,7 +119,7 @@ class PromotePipeline:
             for impetus, advisory in impetus_advisories.items():
                 if not advisory:
                     continue
-                if advisory < 0:  # placeholder advisory id is still in group config?
+                if advisory < 0 and assembly_type != assembly.AssemblyTypes.CANDIDATE:  # placeholder advisory id is still in group config?
                     raise ValueError("Found invalid %s advisory %s", impetus, advisory)
                 logger.info("Attaching CVE flaws for %s advisory %s...", impetus, advisory)
                 futures.append(self.attach_cve_flaws(advisory))

@@ -5,7 +5,7 @@ slacklib = commonlib.slacklib
 /**
  * Note: doozer gen-payload --apply-multi-arch requires manifest-tool to assemble manifest-list release payload images.
  * The version of manifest-tool from existing rhel7 repos was too old, so it was built and installed
- * from souce on buildvm: https://github.com/estesp/manifest-tool/commit/89982ba85299a184a8e987c8bba1e7478f6f8b31
+ * from source on buildvm: https://github.com/estesp/manifest-tool/commit/89982ba85299a184a8e987c8bba1e7478f6f8b31
  * using go version go1.15.14 .
  */
 
@@ -55,9 +55,18 @@ def buildSyncGenInputs() {
     artifacts.addAll(["${output_dir}/*", "MIRROR_working/debug.log"])
     def images = imageList ? "--images '${imageList}'" : ''
     def excludeArchesParam = ""
-    for(arch in excludeArches)
+    def multiArchApply = ""
+
+    if (params.SYNC_FOR_MULTI_ARCH_PAYLOAD) {
+        multiArchApply = "--apply-multi-arch"
+    }
+
+    for (arch in excludeArches) {
         excludeArchesParam += " --exclude-arch ${arch}"
+    }
+
     def dryRunParams = params.DRY_RUN ? '--skip-gc-tagging --moist-run' : ''
+
     withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
         sh "rm -rf ${env.WORKSPACE}/${output_dir}"
         buildlib.doozer """
@@ -69,6 +78,7 @@ release:gen-payload
 --output-dir "${env.WORKSPACE}/${output_dir}"
 --apply
 ${params.EMERGENCY_IGNORE_ISSUES?'--emergency-ignore-issues':''}
+${multiArchApply}
 ${excludeArchesParam}
 ${dryRunParams}
 """

@@ -84,6 +84,11 @@ node {
                                             trim: true,
                                     ),
                                     booleanParam(
+                                            name        : 'SYNC_FOR_MULTI_ARCH_PAYLOAD',
+                                            description : 'Whether to create a payload for heterogeneous / multi-arch release payload ',
+                                            defaultValue: false,
+                                    ),
+                                    booleanParam(
                                             name        : 'EMERGENCY_IGNORE_ISSUES',
                                             description : 'Ignore all issues with constructing payload. Do not use without approval.',
                                             defaultValue: false,

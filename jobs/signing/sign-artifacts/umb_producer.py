@@ -19,8 +19,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 ######################################################################
 URLS = {
     'dev': (
-        'amqps://umb-broker03.dev1.ext.devlab.redhat.com:5671',
-        'amqps://umb-broker04.dev1.ext.devlab.redhat.com:5671',
+        'amqps://messaging-devops-broker03.dev1.ext.devlab.redhat.com:5671',
+        'amqps://messaging-devops-broker04.dev1.ext.devlab.redhat.com:5671',
     ),
     'qa': (
         'amqps://umb-broker03.web.qa.ext.phx1.redhat.com:5671',

@@ -67,7 +67,7 @@ def buildSyncGenInputs() {
 
     def dryRunParams = params.DRY_RUN ? '--skip-gc-tagging --moist-run' : ''
 
-    withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
+    withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}", "https_proxy=", "http_proxy="]) {
         sh "rm -rf ${env.WORKSPACE}/${output_dir}"
         buildlib.doozer """
 ${images}

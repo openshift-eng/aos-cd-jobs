@@ -53,6 +53,7 @@ node {
                     $class: 'BooleanParameterDefinition',
                     defaultValue: false
                 ],
+                commonlib.doozerParam(),
                 commonlib.dryrunParam(),
                 commonlib.mockParam(),
             ],

@@ -5,8 +5,8 @@ slacklib = commonlib.slacklib
 /**
  * Note: doozer gen-payload --apply-multi-arch requires manifest-tool to assemble manifest-list release payload images.
  * The version of manifest-tool from existing rhel7 repos was too old, so it was built and installed
- * from source on buildvm: https://github.com/estesp/manifest-tool/commit/89982ba85299a184a8e987c8bba1e7478f6f8b31
- * using go version go1.15.14 .
+ * from source on buildvm: https://github.com/estesp/manifest-tool/commit/ab59f071d40bc0bc98805adf9028e8caddc567c6
+ * using go version go1.16.13 .
  */
 
 // doozer_working must be in WORKSPACE in order to have artifacts archived
@@ -58,7 +58,12 @@ def buildSyncGenInputs() {
     def multiArchApply = ""
 
     if (params.SYNC_FOR_MULTI_ARCH_PAYLOAD) {
-        multiArchApply = "--apply-multi-arch"
+        (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
+        if ( major > 4 || (major == 4 && minor >= 11) ) {
+            multiArchApply = "--apply-multi-arch"
+        } else {
+            echo "Skipping multi-arch payload assembly for release < 4.11"
+        }
     }
 
     for (arch in excludeArches) {

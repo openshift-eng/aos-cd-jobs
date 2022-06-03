@@ -96,8 +96,8 @@ def goSuffixForArch(String arch) {
  */
 ocpReleaseState = [
         "4.11": [
-            'release': ['x86_64', 's390x', 'ppc64le', 'aarch64'],
-            "pre-release": [],
+            'release': [],
+            "pre-release": [ 'x86_64', 's390x', 'ppc64le', 'aarch64' ],
         ],
         "4.10": [
             'release': ['x86_64', 's390x', 'ppc64le', 'aarch64'],

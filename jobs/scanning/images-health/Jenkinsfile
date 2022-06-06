@@ -8,6 +8,7 @@ node() {
     properties(
         [
             disableConcurrentBuilds(),
+            quietPeriod(540),
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [

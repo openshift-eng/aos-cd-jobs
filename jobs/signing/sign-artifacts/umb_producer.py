@@ -224,7 +224,7 @@ def art_consumer_callback(msg, data):
     if body['msg']['request_id'] != data["request_id"]:
         print("Expecting request_id {}, but got {}".format(data['request_id'], body['msg']['request_id']))
         if (datetime.utcnow() - datetime.utcfromtimestamp(body["timestamp"])) >= timedelta(hours=2):
-            print(f"Pop stale message {data['request_id']} off the bus.")
+            print("Pop stale message {} off the bus.".format(data['request_id']))
             return None, True
         return None, False  # this received message doesn't match our request id; ignore it and continue receiving messages
     if body['msg']['signing_status'] != 'success':

@@ -84,8 +84,8 @@ node {
                                             trim: true,
                                     ),
                                     booleanParam(
-                                            name        : 'SYNC_FOR_MULTI_ARCH_PAYLOAD',
-                                            description : 'Whether to create a payload for heterogeneous / multi-arch release payload ',
+                                            name        : 'SKIP_MULTI_ARCH_PAYLOAD',
+                                            description : 'If group/assembly has multi_arch.enabled, you can bypass --apply-multi-arch and the generation of a heterogeneous release payload by setting this to true',
                                             defaultValue: false,
                                     ),
                                     booleanParam(

@@ -57,13 +57,10 @@ def buildSyncGenInputs() {
     def excludeArchesParam = ""
     def multiArchApply = ""
 
-    if (params.SYNC_FOR_MULTI_ARCH_PAYLOAD) {
-        (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
-        if ( major > 4 || (major == 4 && minor >= 11) ) {
-            multiArchApply = "--apply-multi-arch"
-        } else {
-            echo "Skipping multi-arch payload assembly for release < 4.11"
-        }
+    if (!params.SKIP_MULTI_ARCH_PAYLOAD) {
+        // group/assemblies that don't have multi_arch.enabled=true will be skipped
+        // by doozer code, so this is safe to pass in to any release.
+        multiArchApply = "--apply-multi-arch"
     }
 
     for (arch in excludeArches) {

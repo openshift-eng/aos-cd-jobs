@@ -39,6 +39,7 @@ arches=(
   ppc64le
   s390x
   arm64
+  multi
 )
 
 script="$(readlink "$0" || echo "$0")"
@@ -107,12 +108,11 @@ build_link() {
 
 build_urls() {
   for arch in "${arches[@]}"; do
-    if [[ -n "$version" && "$arch" == arm64 ]]; then
+    if [[ -n "$version" ]]; then
       major="${version%.*}"
       minor="${version#*.}"
-      if (( major == 4 && minor < 9 )); then
-        continue
-      fi
+      [[ "$arch" == arm64 ]] && (( major == 4 && minor < 9  )) && continue
+      [[ "$arch" == multi ]] && (( major == 4 && minor < 11 )) && continue
     fi
     build_link ${stream:-}
   done

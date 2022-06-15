@@ -417,8 +417,11 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
         def go_subarch = commonlib.goArchForBrewArch(subarch)
         sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 
-        def arch_digest = commonlib.shell("""
-        oc image info ${quay_url}:${from_release_tag} 2>&1 | grep ${subarch} | tr -s ' ' | cut -d ' ' -f 3
+        // oc image info ona manifest list returns a non-zero error. Use || true to swallow the error and
+        // the grep to see if we should error or not based on the output.
+        def arch_digest = commonlib.shell(script: """
+        set +o pipefail
+        oc image info ${quay_url}:${from_release_tag} 2>&1 | grep ${subarch} | tr -s ' ' | cut -d ' ' -f 3 || true | grep sha256
         """, returnStdout: true)
         def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
                                     " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}@${arch_digest}"

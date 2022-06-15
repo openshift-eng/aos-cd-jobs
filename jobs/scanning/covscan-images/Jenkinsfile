@@ -134,20 +134,22 @@ enabled_metadata=1
                     }
 
 
-                    RESULTS_ARCHIVE_DIR = '/mnt/nfs/coverity/results'
-                    buildlib.doozer """${doozerOpts}
-                                ${params.IMAGES_FIELD=='IGNORE'?'':((params.IMAGES_FIELD=='INCLUDE'?'-i ':'-x ') + images)}
-                                images:covscan
-                                --local-repo-rhel-7 covscan-rhel-7_repos/covscan
-                                --local-repo-rhel-7 covscan-rhel-7_repos/covscan-testing
-                                --local-repo-rhel-8 covscan-rhel-8_repos/covscan
-                                --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
-                                --result-archive ${RESULTS_ARCHIVE_DIR}
-                                --repo-type unsigned
-                                ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
-                                ${params.IGNORE_WAIVED?'--ignore-waived':''}
-                                ${params.FORCE_ANALYSIS?'--force-analysis':''}
-                    """
+                    withEnv(["https_proxy="]) {
+                        RESULTS_ARCHIVE_DIR = '/mnt/nfs/coverity/results'
+                        buildlib.doozer """${doozerOpts}
+                                    ${params.IMAGES_FIELD=='IGNORE'?'':((params.IMAGES_FIELD=='INCLUDE'?'-i ':'-x ') + images)}
+                                    images:covscan
+                                    --local-repo-rhel-7 covscan-rhel-7_repos/covscan
+                                    --local-repo-rhel-7 covscan-rhel-7_repos/covscan-testing
+                                    --local-repo-rhel-8 covscan-rhel-8_repos/covscan
+                                    --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
+                                    --result-archive ${RESULTS_ARCHIVE_DIR}
+                                    --repo-type unsigned
+                                    ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
+                                    ${params.IGNORE_WAIVED?'--ignore-waived':''}
+                                    ${params.FORCE_ANALYSIS?'--force-analysis':''}
+                        """
+                    }
                 }
             }
 

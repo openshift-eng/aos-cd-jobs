@@ -406,7 +406,7 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
     def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
     sh "rm -rf ${BASE_TO_MIRROR_DIR}"
 
-    for subarch in commonlib.brewArchForGoArch {
+    for ( subarch in commonlib.brewArchForGoArch ) {
         if ( subarch == "multi" ) {
             continue
         }

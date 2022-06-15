@@ -19,10 +19,10 @@ ocpVersions = ocp4Versions + ocp3Versions
 
 // some of our systems refer to golang's chosen architecture nomenclature;
 // most use brew's nomenclature or similar. translate.
-brewArches = ["x86_64", "s390x", "ppc64le", "aarch64"]
-brewArchSuffixes = ["", "-s390x", "-ppc64le", "-aarch64"]
-goArches = ["amd64", "s390x", "ppc64le", "arm64"]
-goArchSuffixes = ["", "-s390x", "-ppc64le", "-arm64"]
+brewArches = ["x86_64", "s390x", "ppc64le", "aarch64", "multi"]
+brewArchSuffixes = ["", "-s390x", "-ppc64le", "-aarch64", "-multi"]
+goArches = ["amd64", "s390x", "ppc64le", "arm64", "multi"]
+goArchSuffixes = ["", "-s390x", "-ppc64le", "-arm64", "-multi"]
 def goArchForBrewArch(String brewArch) {
     if (brewArch in goArches) return brewArch  // allow to already be a go arch, just keep same
     if (brewArch in brewArches)

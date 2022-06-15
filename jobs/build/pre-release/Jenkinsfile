@@ -127,16 +127,31 @@ node {
         def CLIENT_TYPE = "ocp-dev-preview"
 
         stage("validation") {
-            release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE, false, params.FROM_RELEASE_TAG, arch)
+            if (params.ARCH != "multi") {
+                release.stageValidation(quay_url, dest_release_tag, -1, params.PERMIT_PAYLOAD_OVERWRITE, false, params.FROM_RELEASE_TAG, arch)
+            }
         }
 
         stage("build payload") {
-            release.stageGenPayload(quay_url, dest_release_tag, dest_release_tag, from_release_tag, "", "", "")
+            if (params.ARCH != "multi") {
+                release.stageGenPayload(quay_url, dest_release_tag, dest_release_tag, from_release_tag, "", "", "")
+            } else {
+                // The payload is already present in quay. We just need to sign it. Find the digest for the
+                // manifest list.
+                payloadDigest = commonlib.shell(script: """
+                oc image info quay.io/openshift-release-dev/ocp-release:${dest_release_tag} --filter-by-os=amd64 | grep "Manifest List:" | cut -d ' ' -f 3
+                """, returnStdout: true)
+
+            }
         }
 
         stage("mirror tools") {
             if ( params.MIRROR ) {
-                release.stagePublishClient(quay_url, dest_release_tag, dest_release_tag, arch, CLIENT_TYPE)
+                if (params.ARCH != "multi") {
+                    release.stagePublishClient(quay_url, dest_release_tag, dest_release_tag, arch, CLIENT_TYPE)
+                } else {
+                    release.stagePublishMultiClient(quay_url, dest_release_tag, dest_release_tag, CLIENT_TYPE)
+                }
             }
         }
 
@@ -157,6 +172,10 @@ node {
         }
 
         stage("set client latest") {
+            if ( params.ARCH == "multi" ) {
+                // skipping this for now
+                return
+            }
             if ( params.MIRROR && params.SET_CLIENT_LATEST ) {
                 release.stageSetClientLatest(dest_release_tag, arch, CLIENT_TYPE)
             }

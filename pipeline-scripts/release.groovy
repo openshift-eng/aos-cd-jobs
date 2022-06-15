@@ -399,6 +399,75 @@ def stageGetReleaseInfo(quay_url, release_tag){
     return res.stdout.trim()
 }
 
+def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_type) {
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(release_name)
+
+    // Anything under this directory will be sync'd to the mirror
+    def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
+    sh "rm -rf ${BASE_TO_MIRROR_DIR}"
+
+    for subarch in commonlib.brewArchForGoArch {
+        if ( subarch == "multi" ) {
+            continue
+        }
+
+        // From the newly built release, extract the client tools into the workspace following the directory structure
+        // we expect to publish to mirror
+        def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/multi/clients/${client_type}/${release_name}/${subarch}"
+        def go_subarch = commonlib.goArchForBrewArch(subarch)
+        sh "mkdir -p ${CLIENT_MIRROR_DIR}"
+
+        def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --filter-by-os=${go_subarch} --tools --command-os='*' -n ocp " +
+                                    " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
+
+        commonlib.shell(script: tools_extract_cmd)
+        commonlib.shell("cd ${CLIENT_MIRROR_DIR}\n" + '''
+    # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
+    # So whatever we extract, remove the version specific info and make a symlink with that name.
+    for f in *.tar.gz *.bz *.zip *.tgz ; do
+
+        # Is this already a link?
+        if [[ -L "$f" ]]; then
+            continue
+        fi
+
+        # example file names:
+        #  - openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+        #  - openshift-client-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+        #  - openshift-install-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+        #  - openshift-client-linux-4.1.9.tar.gz
+        #  - openshift-install-mac-4.3.0-0.nightly-s390x-2020-01-06-081137.tar.gz
+        #  ...
+        # So, match, and store in a group, any character up to the point we find -DIGIT. Ignore everything else
+        # until we match (and store in a group) one of the valid file extensions.
+        if [[ "$f" =~ ^([^-]+)((-[^0-9][^-]+)+)-[0-9].*(tar.gz|tgz|bz|zip)$ ]]; then
+            # Create a symlink like openshift-client-linux.tgz => openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+            ln -sfn "$f" "${BASH_REMATCH[1]}${BASH_REMATCH[2]}.${BASH_REMATCH[4]}"
+        fi
+    done
+        ''')
+
+        sh "tree $CLIENT_MIRROR_DIR"
+        sh "cat $CLIENT_MIRROR_DIR/sha256sum.txt"
+
+        mirror_cmd = "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
+        if ( ! params.DRY_RUN ) {
+            // Publish the clients to our S3 bucket.
+            try {
+                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    commonlib.shell(script: mirror_cmd)
+                }
+            } catch (ex) {
+                slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")
+            }
+
+        } else {
+            echo "Not mirroring; would have run: ${mirror_cmd}"
+        }
+
+    }
+}
+
 def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(release_name)
 

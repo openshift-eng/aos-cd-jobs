@@ -66,8 +66,8 @@ def build_bundles(String[] only, String[] exclude, String[] operator_nvrs, Strin
         cmd += " --force"
     if (params.DRY_RUN)
         cmd += " --dry-run"
-    cmd += " -- "
-    cmd += operator_nvrs.join(' ')
+    if (operator_nvrs)
+        cmd += " -- ${operator_nvrs.join(' ')}"
     buildlib.doozer("${doozer_opts} ${cmd}")
     def record_log = buildlib.parse_record_log(doozer_working)
     def records = record_log.get('build_olm_bundle', [])

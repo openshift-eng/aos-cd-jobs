@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 import base64
+from datetime import datetime, timedelta
 import json
 import logging
 import ssl
@@ -222,6 +223,9 @@ def art_consumer_callback(msg, data):
     print(json.dumps(body, indent=4))
     if body['msg']['request_id'] != data["request_id"]:
         print("Expecting request_id {}, but got {}".format(data['request_id'], body['msg']['request_id']))
+        if (datetime.utcnow() - datetime.utcfromtimestamp(body["timestamp"])) >= timedelta(hours=2):
+            print("Pop stale message {} off the bus.".format(data['request_id']))
+            return None, True
         return None, False  # this received message doesn't match our request id; ignore it and continue receiving messages
     if body['msg']['signing_status'] != 'success':
         return IOError("ERROR: robosignatory failed to sign artifact"), True

@@ -101,24 +101,24 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
                         prefix = "covscan-rhel-${rhel_version}"
                         repo_fn = "${prefix}.repo"
                         writeFile(file: repo_fn, text: """
-    [covscan]
-    name=Copr repo for covscan
-    baseurl=http://coprbe.devel.redhat.com/repos/kdudka/covscan/epel-${rhel_version}-x86_64/
-    skip_if_unavailable=True
-    gpgcheck=0
-    gpgkey=http://coprbe.devel.redhat.com/repos/kdudka/covscan/pubkey.gpg
-    enabled=1
-    enabled_metadata=1
+[covscan]
+name=Copr repo for covscan
+baseurl=http://coprbe.devel.redhat.com/repos/kdudka/covscan/epel-${rhel_version}-x86_64/
+skip_if_unavailable=True
+gpgcheck=0
+gpgkey=http://coprbe.devel.redhat.com/repos/kdudka/covscan/pubkey.gpg
+enabled=1
+enabled_metadata=1
 
-    [covscan-testing]
-    name=Copr repo for covscan-testing
-    baseurl=http://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/epel-${rhel_version}-x86_64/
-    skip_if_unavailable=True
-    gpgcheck=0
-    gpgkey=http://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/pubkey.gpg
-    enabled=0
-    enabled_metadata=1
-    """)
+[covscan-testing]
+name=Copr repo for covscan-testing
+baseurl=http://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/epel-${rhel_version}-x86_64/
+skip_if_unavailable=True
+gpgcheck=0
+gpgkey=http://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/pubkey.gpg
+enabled=0
+enabled_metadata=1
+""")
 
                         lock('buildvm2-yum') { // Don't use yum while a job like reposync is
                             // download the repo contents and create local repositories

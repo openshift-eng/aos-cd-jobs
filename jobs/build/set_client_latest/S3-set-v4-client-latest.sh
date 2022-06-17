@@ -42,7 +42,7 @@ fi
 # Run the links logic for each architecture passed in.
 MODE="${ARCHES}"
 if [[ "${MODE}" == "all" || "${MODE}" == "any" ]]; then
-    ARCHES="x86_64 s390x ppc64le 	aarch64"
+    ARCHES="x86_64 s390x ppc64le aarch64 multi"
 fi
 
 function transferClientIfNeeded() {

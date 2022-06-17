@@ -172,10 +172,6 @@ node {
         }
 
         stage("set client latest") {
-            if ( params.ARCH == "multi" ) {
-                // skipping this for now
-                return
-            }
             if ( params.MIRROR && params.SET_CLIENT_LATEST ) {
                 release.stageSetClientLatest(dest_release_tag, arch, CLIENT_TYPE)
             }

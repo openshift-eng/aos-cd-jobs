@@ -76,7 +76,7 @@ pelc::bulk_import_package_nvrs() {
 	pelc::build_import_json "${product_release}" "${brew_tag}" > ${data}
 
 	curl "${PELC_ENDPOINT}/packages/import/" --insecure \
-		--header "Authorization: Token $(auth_token)"   \
+		--header "Authorization: Token ${auth_token}"   \
 		--header "Content-Type: application/json"       \
 		--request POST --data @${data}
 }

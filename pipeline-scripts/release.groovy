@@ -455,7 +455,9 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
     // Create a master sha256sum.txt including the sha256sum.txt files from all subarches
     // This is the file we will sign -- trust is transitive to the subarches
     commonlib.shell(script: """
-    sha256sum ${RELEASE_MIRROR_DIR}/*/sha256sum.txt > ${RELEASE_MIRROR_DIR}/sha256sum.txt
+    # change directories so that entries in sha256sum entries are relative subarch dirs and not absolute
+    cd ${RELEASE_MIRROR_DIR}
+    sha256sum */sha256sum.txt > ${RELEASE_MIRROR_DIR}/sha256sum.txt
     """)
 
     def mirror_cmd = "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"

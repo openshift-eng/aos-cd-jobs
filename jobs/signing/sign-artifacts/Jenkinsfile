@@ -126,9 +126,11 @@ node {
 
         wrap([$class: 'BuildUser']) {
             def buildUserId = (env.BUILD_USER_ID == null) ? "automated-process" : env.BUILD_USER_ID
-	    if ( buildUserId == "automated-process" ) {
-		echo("Automated sign request started: manually setting signing requestor")
-	    }
+
+            if ( buildUserId == "automated-process" ) {
+                echo("Automated sign request started: manually setting signing requestor")
+            }
+
             echo("Submitting${noop} signing requests as user: ${buildUserId}")
 
             dir(workDir) {

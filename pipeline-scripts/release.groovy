@@ -404,6 +404,7 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
 
     // Anything under this directory will be sync'd to the mirror
     def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
+    def RELEASE_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/multi/clients/${client_type}/${release_name}"
     sh "rm -rf ${BASE_TO_MIRROR_DIR}"
 
     for (subarch in commonlib.goArches) {
@@ -413,7 +414,7 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
 
         // From the newly built release, extract the client tools into the workspace following the directory structure
         // we expect to publish to mirror
-        def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/multi/clients/${client_type}/${release_name}/${subarch}"
+        def CLIENT_MIRROR_DIR="${RELEASE_MIRROR_DIR}/${subarch}"
         def go_subarch = commonlib.goArchForBrewArch(subarch)
         sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 
@@ -449,23 +450,30 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
 
         sh "tree $CLIENT_MIRROR_DIR"
         sh "cat $CLIENT_MIRROR_DIR/sha256sum.txt"
+    }
 
-        mirror_cmd = "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
-        if ( ! params.DRY_RUN ) {
-            // Publish the clients to our S3 bucket.
-            try {
-                withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    commonlib.shell(script: mirror_cmd)
-                }
-            } catch (ex) {
-                slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")
+    // Create a master sha256sum.txt including the sha256sum.txt files from all subarches
+    // This is the file we will sign -- trust is transitive to the subarches
+    commonlib.shell(script: """
+    sha256sum ${RELEASE_MIRROR_DIR}/*/sha256sum.txt > ${RELEASE_MIRROR_DIR}/sha256sum.txt
+    """)
+
+    def mirror_cmd = "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
+    if ( ! params.DRY_RUN ) {
+        // Publish the clients to our S3 bucket.
+        try {
+            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                commonlib.shell(script: mirror_cmd)
             }
-
-        } else {
-            echo "Not mirroring; would have run: ${mirror_cmd}"
+        } catch (ex) {
+            slacklib.to("#art-release").say("Failed syncing OCP clients to S3 in ${currentBuild.displayName} (${env.JOB_URL})")
         }
 
+    } else {
+        echo "Not mirroring; would have run: ${mirror_cmd}"
     }
+
+
 }
 
 def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_type) {

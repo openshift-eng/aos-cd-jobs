@@ -15,6 +15,7 @@ import groovy.json.JsonOutput
     "4.11.0-0.nightly-s390x": this.&startPreReleaseJob,
     "4.11.0-0.nightly-ppc64le": this.&startPreReleaseJob,
     "4.11.0-0.nightly-arm64": this.&startPreReleaseJob,
+    "4.11.0-0.nightly-multi": this.&startPreReleaseJob,
 ]
 
 def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRelease) {

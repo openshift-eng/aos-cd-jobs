@@ -1556,7 +1556,7 @@ def get_releases_config(String group) {
     error("Unable to get releases config: HTTP Error ${r.status}")
 }
 
-this.setup_venv()
 this.proxy_setup()
+this.setup_venv()
 
 return this

@@ -70,7 +70,7 @@ halp() {
 
 	Usage:
 	  $0 firefox rhcos bz
-	
+
 	For more information about the RedHat Openshift ART Triage manager role, visit
 	https://mojo.redhat.com/docs/DOC-1207451
 	EOF
@@ -176,8 +176,8 @@ prs() {
 }
 
 jenkins() {
-  echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
-  echo 'https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/scheduled-builds/'
+  echo 'https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/view/OCP4%20Build%20Dashboard/'
+  echo 'https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/scheduled-builds/'
 }
 
 backlog() {
@@ -185,7 +185,7 @@ backlog() {
 }
 
 triage_docs() {
-  echo 'http://saml.buildvm.openshift.eng.bos.redhat.com:3000/d/aTqExXOMz/system-stats?orgId=1&refresh=30s'
+  echo 'http://saml.buildvm.hosts.prod.psi.bos.redhat.com:3000/d/aTqExXOMz/system-stats?orgId=1&refresh=30s'
   echo 'https://source.redhat.com/groups/public/atomicopenshift/atomicopenshift_wiki/art_buildvmjenkins_security_patching_sop'
 }
 

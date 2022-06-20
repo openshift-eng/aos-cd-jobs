@@ -9,6 +9,6 @@ The second mode is attach the latest bugs and builds to the release advisories.
 To do that, set `SWEEP_BUILDS` and `ATTACH_BUGS` to true.
 
 
-[ocp4]: https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Focp4/
-[ocp3]: https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Focp3/
-[custom]: https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fcustom/
+[ocp4]: https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Focp4/
+[ocp3]: https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Focp3/
+[custom]: https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fcustom/

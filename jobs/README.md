@@ -1,23 +1,23 @@
 # Jenkins pipeline definitions under `jobs/`
 
-NOTE: The [jenkins server](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/)
+NOTE: The [jenkins server](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/)
 is internal and locked down so only ART team members can access it.
 
 Jobs under the `jobs/build/` directory are indexed in a multibranch pipeline in the
-[`aos-cd-builds`](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/) folder.
+[`aos-cd-builds`](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/) folder.
 
 https://mojo.redhat.com/docs/DOC-1206910 explains how to access, develop, and use these.
 
 ## Deployment
 
-[Jenkins](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/)
+[Jenkins](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/)
 indexes Jenkinsfiles in the branches of this repository.  The branches are
 automatically generated from the Jenkinsfiles that live under the `jobs/`
 directory on the `master` branch. The job responsible for generating, updating
 and removing the branches can be found in the [`Jenkinsfile`](Jenkinsfile) at
 the root directory. The branch update job is configured to be executed
 when the master branch gets a new commit, but can be manually triggered in
-[jenkins](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/update-branches/job/master/).
+[jenkins](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/update-branches/job/master/).
 
 The scripts used by the job described above are [`pruner.py`](aos_cd_jobs/pruner.py), which removes branches for jobs that no
 longer exist, and [`updater.py`](aos_cd_jobs/updater.py), which creates/updates branches for existing jobs. A "job" is any
@@ -114,7 +114,7 @@ or if it is true (to pick up changes).
 
 Standard parameter to prevent email being sent during testing, but still create
 email texts and archive them in the job run.  It defaults to sending email when
-deployed under [aos-cd-builds](https://saml.buildvm.openshift.eng.bos.redhat.com:8888/job/aos-cd-builds/)
+deployed under [aos-cd-builds](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/)
 and defaults to suppressing it anywhere else.
 
 Standardized in [`commonlib.suppressEmailParam()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L173)

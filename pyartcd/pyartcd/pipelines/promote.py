@@ -15,13 +15,14 @@ import aiohttp
 import click
 import semver
 from doozerlib import assembly
-from doozerlib.util import brew_arch_for_go_arch, brew_suffix_for_arch, go_suffix_for_arch, go_arch_for_brew_arch
+from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
+                            go_arch_for_brew_arch, go_suffix_for_arch)
 from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.runtime import Runtime
 from semver import VersionInfo
-from tenacity import (RetryError, before_sleep_log, retry,
+from tenacity import (RetryCallState, RetryError, retry,
                       retry_if_exception_type, retry_if_result,
                       stop_after_attempt, wait_fixed)
 
@@ -600,11 +601,25 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             actual_phase = await self.get_release_phase(release_controller_url, release_stream, release_name)
             self._logger.warning("[DRY RUN] Release %s for %s has phase %s. Assume accepted.", release_name, arch, actual_phase)
             return
+
+        def _my_before_sleep(retry_state: RetryCallState):
+            if retry_state.outcome.failed:
+                err = retry_state.outcome.exception()
+                self._logger.warning(
+                    'Error communicating with %s release controller. Will check again in %s seconds. %s: %s',
+                    arch, retry_state.next_action.sleep, type(err).__name__, err,
+                )
+            else:
+                self._logger.log(
+                    logging.INFO if retry_state.attempt_number < 1 else logging.WARNING,
+                    'Release payload for "%s" arch is the "%s" phase. Will check again in %s seconds.',
+                    arch, retry_state.outcome.result(), retry_state.next_action.sleep
+                )
         return await retry(
             stop=(stop_after_attempt(36)),  # wait for 5m * 36 = 180m = 3 hours
             wait=wait_fixed(300),  # wait for 5 minutes between retries
             retry=(retry_if_result(lambda phase: phase != "Accepted") | retry_if_exception_type()),
-            before_sleep=before_sleep_log(self._logger, logging.WARNING),
+            before_sleep=_my_before_sleep,
         )(self.get_release_phase)(release_controller_url, release_stream, release_name)
 
     @staticmethod

@@ -38,6 +38,7 @@ def path_setup() {
     sh "mkdir -p ${GOPATH}/empty_to_overwrite"
     sh "rsync -a --delete ${GOPATH}{/empty_to_overwrite,}/"  // Remove any cruft
     echo "Initialized env.GOPATH: ${env.GOPATH}"
+    env.PATH = "${env.PATH}:${env.HOME}/.local/bin"
 }
 
 def proxy_setup() {

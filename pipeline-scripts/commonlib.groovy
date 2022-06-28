@@ -241,6 +241,15 @@ def ocpVersionParam(name='MINOR_VERSION', majorVersion='all', extraOpts=[]) {
     ]
 }
 
+def jiraModeParam() {
+    return [
+        name: 'JIRA_MODE',
+        description: 'Run with jira as additional bug tracker - usejira or onlyjira',
+        $class: 'hudson.model.ChoiceParameterDefinition',
+        choices: ['', 'USEJIRA', 'ONLYJIRA'],
+    ]
+}
+
 def suppressEmailParam() {
     return [
         name: 'SUPPRESS_EMAIL',

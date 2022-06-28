@@ -148,6 +148,7 @@ enabled_metadata=1
                                     ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
                                     ${params.IGNORE_WAIVED?'--ignore-waived':''}
                                     ${params.FORCE_ANALYSIS?'--force-analysis':''}
+                                    "--https-proxy=${env.https_proxy}"
                         """
                     }
                 }

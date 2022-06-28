@@ -86,7 +86,7 @@ node {
 
     stage("calculate shasum") {
         commonlib.shell(
-            script: "cd ${workdir} && sha256sum * > sha256sum.txt",
+            script: "cd ${workdir} && find . -type f -exec sha256sum {} \; > sha256sum.txt",
         )
     }
 

@@ -2,7 +2,7 @@
 node {
     checkout scm
     def release = load("pipeline-scripts/release.groovy")
-    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def buildlib = release.buildlib
     def commonlib = buildlib.commonlib
 
     commonlib.describeJob("coreos-installer_sync", """

@@ -176,7 +176,7 @@ class PrepareReleasePipeline:
             "advisories": advisories,
             "candidate_nightlies": self.candidate_nightlies,
         }
-        if jira_issue_key:
+        if jira_issue_key and jira_issue_key != "ART-0":
             _LOGGER.info("Reusing existing release JIRA %s", jira_issue_key)
             jira_issue = self._jira_client.get_issue(jira_issue_key)
             subtasks = [self._jira_client.get_issue(subtask.key) for subtask in jira_issue.fields.subtasks]

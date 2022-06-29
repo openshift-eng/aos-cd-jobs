@@ -17,6 +17,12 @@ class JIRAClient:
     def get_issue(self, key) -> Issue:
         return self._client.issue(key)
 
+    def add_comment(self, key, comment):
+        self._client.add_comment(key, comment, visibility={'type': 'group', 'value': 'Red Hat Employee'})
+
+    def close_task(self, key):
+        self._client.transition_issue(key, 'Closed')
+
     @classmethod
     def _copy_issue_fields(cls, fields: Dict[str, Any]):
         new_fields = {

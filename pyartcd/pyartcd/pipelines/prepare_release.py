@@ -186,13 +186,6 @@ class PrepareReleasePipeline:
             jira_issues = self.create_release_jira(jira_template_vars)
             jira_issue = jira_issues[0] if jira_issues else None
             jira_issue_key = jira_issue.key if jira_issue else None
-            subtask = self._jira_client.get_issue(jira_issue.fields.subtasks[1].key)
-            self._jira_client.add_comment(
-                    subtask,
-                    "prepare release job : {}".format(os.environ.get("BUILD_URL")),
-                    visibility={'type': 'group', 'value': 'Red Hat Employee'}
-            )
-            self._jira_client.transition_issue(subtask, 'Closed')
 
         _LOGGER.info("Updating ocp-build-data...")
         build_data_changed = await self.update_build_data(advisories, jira_issue_key)

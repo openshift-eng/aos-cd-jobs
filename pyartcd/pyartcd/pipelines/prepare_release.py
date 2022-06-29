@@ -181,11 +181,29 @@ class PrepareReleasePipeline:
             jira_issue = self._jira_client.get_issue(jira_issue_key)
             subtasks = [self._jira_client.get_issue(subtask.key) for subtask in jira_issue.fields.subtasks]
             self.update_release_jira(jira_issue, subtasks, jira_template_vars)
+            _LOGGER.info("Updating prepare release subtask")
+            parent_jira = self._jira_client.get_issue(jira_issue_key)
+            subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[1].key)
+            self._jira_client.add_comment(
+                    subtask,
+                    "prepare release job : {}".format(os.environ.get("BUILD_URL"))
+            )
+            self._jira_client.close_task(subtask)
         else:
             _LOGGER.info("Creating a release JIRA...")
             jira_issues = self.create_release_jira(jira_template_vars)
             jira_issue = jira_issues[0] if jira_issues else None
             jira_issue_key = jira_issue.key if jira_issue else None
+            _LOGGER.info("Updating prepare release subtask")
+            if jira_issue_key:
+                parent_jira = self._jira_client.get_issue(jira_issue_key)
+                subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[1].key)
+                self._jira_client.add_comment(
+                    subtask,
+                    "prepare release job : {}".format(os.environ.get("BUILD_URL"))
+                )
+                self._jira_client.close_task(subtask)
+
 
         _LOGGER.info("Updating ocp-build-data...")
         build_data_changed = await self.update_build_data(advisories, jira_issue_key)

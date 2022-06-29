@@ -85,7 +85,7 @@ context_settings = dict(help_option_names=['-h', '--help'])
 requestor = click.option("--requestor", required=True, metavar="USERID",
                          help="The user who requested the signature")
 product = click.option("--product", required=True,
-                       type=click.Choice(["openshift", "rhcos"]),
+                       type=click.Choice(["openshift", "rhcos", "coreos-installer"]),
                        help="Which product this signature is for")
 request_id = click.option("--request-id", required=True, metavar="BUILDURL",
                           help="Unique build job identifier for this signing request, "

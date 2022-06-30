@@ -163,29 +163,17 @@ node {
 
             stage("repo: ose 'building'") {
                 if (params.UPDATE_REPOS || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
-                    lock("update-repo-lock-${params.BUILD_VERSION}") {  // note: respect puddle lock regardless of IGNORE_LOCKS
-                        def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
-                        def need_ironic_repo = buildlib.doozer("${doozerOpts} -q config:read-group --default=None repos.rhel-8-server-ironic-rpms", [capture: true]).trim() != "None"
-                        echo 'Building plashets'
-                        buildlib.buildBuildingPlashet(version, release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
-                        buildlib.buildBuildingPlashet(version, release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
-                        if ("${majorVersion}" == "4") {
-                            if (need_ironic_repo) {
-                                buildlib.buildBuildingPlashet(version, version, 8, false, auto_signing_advisory, true)  // build ironic plashet
-                            }
-                            buildlib.buildBuildingPlashet(version, release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
-                            buildlib.buildBuildingPlashet(version, release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
+                    lock("update-repo-lock-${params.BUILD_VERSION}") {  // note: respect repo lock regardless of IGNORE_LOCKS
 
-                            if (buildlib.getAutomationState(doozerOpts) in ["scheduled", "yes", "True"]) {
-                                slacklib.to(params.BUILD_VERSION).say(params.UPDATE_REPOS ?
-                                    """ *:alert: custom build repositories update ran during automation freeze*
-                                        UPDATE_REPOS parameter was set to true, forcing a repo update during automation freeze."""
-                                    :
-                                    """*:alert: custom build repositories ran during automation freeze*
-                                        RPM rebuild(s) in the build plan forced a repo update during automation freeze."""
-                                )
-                            }
-
+                        buildlib.build_plashets(doozerOpts, version, release)
+                        if ("${majorVersion}" == "4" && buildlib.getAutomationState(doozerOpts) in ["scheduled", "yes", "True"]) {
+                            slacklib.to(params.BUILD_VERSION).say(params.UPDATE_REPOS ?
+                                """ *:alert: custom build repositories update ran during automation freeze*
+                                    UPDATE_REPOS parameter was set to true, forcing a repo update during automation freeze."""
+                                :
+                                """*:alert: custom build repositories ran during automation freeze*
+                                    RPM rebuild(s) in the build plan forced a repo update during automation freeze."""
+                            )
                         }
                     }
                 }

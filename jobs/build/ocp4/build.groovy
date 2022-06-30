@@ -33,6 +33,7 @@ rpmMirror = [       // how to mirror RPM compose
     composeName: "", // The name of the yum repo directory created.
     localComposePath: "",  // will be populated with full path to yum repo created on buildvm
     url: "", // url to directory where new repo can be found after mirroring
+    plashetDirName: "NONE",  // subdirectory of that URL which may vary
 ]
 
 /**
@@ -282,23 +283,11 @@ def stageBuildRpms() {
  * Based on commonlib.ocpReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
  */
 def stageBuildCompose() {
-    if(buildPlan.dryRun) {
-        echo "Running in dry-run mode -- will not run plashet."
-        return
-    }
-
-    def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} -q config:read-group --default=0 signing_advisory", [capture: true]).trim())
-    def need_ironic_repo = buildlib.doozer("${doozerOpts} -q config:read-group --default=None repos.rhel-8-server-ironic-rpms", [capture: true]).trim() != "None"
-
-    buildlib.buildBuildingPlashet(version.full, version.release, 8, true, auto_signing_advisory)  // build el8 embargoed plashet
-    buildlib.buildBuildingPlashet(version.full, version.release, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
-    buildlib.buildBuildingPlashet(version.full, version.release, 8, false, auto_signing_advisory)  // build el8 unembargoed plashet
-    def plashet = buildlib.buildBuildingPlashet(version.full, version.release, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
-    rpmMirror.plashetDirName = plashet.plashetDirName
-    rpmMirror.localPlashetPath = plashet.localPlashetPath
-
-    if (need_ironic_repo) {
-        buildlib.buildBuildingPlashet(version.full, version.release, 8, false, auto_signing_advisory, true)  // build ironic plashet
+    def mirrorPlashet = buildlib.build_plashets(doozerOpts, version.full, version.release, buildPlan.dryRun)['rhel-server-ose-rpms']
+    if(mirrorPlashet) {
+        // public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
+        rpmMirror.plashetDirName = mirrorPlashet.plashetDirName
+        rpmMirror.localPlashetPath = mirrorPlashet.localPlashetPath
     }
 }
 

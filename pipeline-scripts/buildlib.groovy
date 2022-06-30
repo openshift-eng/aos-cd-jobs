@@ -1541,6 +1541,31 @@ def get_owners(doozerOpts, images, rpms=[]) {
     return yamlData
 }
 
+def build_plashets(doozerOpts, version, release, dryRun = false) {
+    def auto_signing_advisory = Integer.parseInt(doozer("${doozerOpts} -q config:read-group --default=0 signing_advisory", [capture: true]).trim())
+    def group_repos = readJSON text: doozer("${doozerOpts} -q config:read-group --default=None repos", [capture: true]).trim()
+    def plashets_built = [:]
+
+    for (rhel_major in [7, 8, 9]) {  // TODO: should have a central list of these by version
+        for (ironic in [true, false]) {
+            for (priv in [true, false]) {
+                rhel_major_part = rhel_major == 7 ? "" : "-${rhel_major}"
+                // NOTE: this implies a rigid naming scheme for our plashets in group.yml
+                repo_name = "rhel${rhel_major_part}-server-${ironic ? 'ironic' : 'ose'}-rpms${priv ? '-embargoed' : ''}"
+                if (repo_name.toString() in group_repos) {
+                    if (dryRun) {
+                        echo "dry run: would have built plashet for ${repo_name}"
+                        continue
+                    }
+                    echo "building plashet for repo ${repo_name}"
+                    plashets_built[repo_name] = buildBuildingPlashet(version, release, rhel_major, priv, auto_signing_advisory, ironic)
+                }
+            }
+        }
+    }
+    return plashets_built
+}
+
 def get_releases_config(String group) {
     // FIXME: This method doesn't handle assembly inheritance.
     def r = httpRequest(

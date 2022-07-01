@@ -98,7 +98,7 @@ release_name_opt = click.option("--release-name", required=True, metavar="SEMVER
 arch_opt = click.option("--arch", required=True, metavar="ARCHITECTURE",
                    type=click.Choice(['x86_64', 'ppc64le', 's390x', 'aarch64', 'multi']),
                    help="Which architecture this release was built for")
-client_type = click.option("--client-type", required=True, metavar="VAL",
+client_type = click.option("--client-type", metavar="VAL", default='ocp',
                    type=click.Choice(['ocp', 'ocp-dev-preview']),
                    help="What type of client needs to be signed")
 client_cert = click.option("--client-cert", required=True, metavar="CERT-PATH",

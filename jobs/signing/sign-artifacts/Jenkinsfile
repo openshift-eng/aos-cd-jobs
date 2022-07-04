@@ -119,7 +119,7 @@ node {
 
         def digest = commonlib.sanitizeInvisible(params.DIGEST).trim()
         def digestParam = digest ? "--digest ${digest}" : ""
-        if ( !(digest ==~ /sha256:[0-9a-f]{64}/) ) {
+        if ( digest && !(digest ==~ /sha256:[0-9a-f]{64}/) ) {
             currentBuild.description = "bad digest"
             error("The digest does not look like 'sha256:hex64'")
         }

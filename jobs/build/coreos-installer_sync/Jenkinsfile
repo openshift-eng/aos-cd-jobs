@@ -86,7 +86,7 @@ node {
 
     stage("calculate shasum") {
         commonlib.shell(
-            script: "cd ${workdir} && find . -type f -exec sha256sum {} + > sha256sum.txt",
+            script: "cd ${workdir}/${params.VERSION} && sha256sum * > sha256sum.txt",
         )
     }
 
@@ -99,7 +99,7 @@ node {
                 ].join('\n')
             )
         } else {
-            sh "tree ${workdir} && cat ${workdir}/sha256sum.txt"
+            sh "tree ${workdir}/${params.VERSION} && cat ${workdir}/${params.VERSION}/sha256sum.txt"
             commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/${params.VERSION}/")
             commonlib.syncDirToS3Mirror("${workdir}/${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/coreos-installer/latest/")
         }

@@ -16,6 +16,10 @@ import groovy.json.JsonOutput
     "4.12.0-0.nightly-ppc64le": this.&startPreReleaseJob,
     "4.12.0-0.nightly-arm64": this.&startPreReleaseJob,
     "4.12.0-0.nightly-multi": this.&startPreReleaseJob,
+    // 4.11 is not going to be released as a fc/rc named release, so
+    // continue to publish as dev-preview until all 4.11 heterogeneous
+    // users are using named releases.
+    "4.11.0-0.nightly-multi": this.&startPreReleaseJob,
 ]
 
 def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRelease) {

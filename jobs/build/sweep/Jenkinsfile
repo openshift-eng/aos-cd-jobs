@@ -46,7 +46,7 @@ node {
                           'If <b>off</b>: Set MODIFIED bugs to ON_QA. Do not change advisories',
                         ].join('\n')
                     ),
-                    commonlib.jiraModeParam(default='USEJIRA'),
+                    commonlib.jiraModeParam('USEJIRA'),
                     string(
                         name: "SLACK_CHANNEL",
                         description: 'Slack channel to be notified in case of failures. ' +

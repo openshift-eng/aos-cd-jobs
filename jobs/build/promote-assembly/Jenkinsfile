@@ -77,6 +77,7 @@ node {
                         description: '(Standard Release) Always sync RHCOS images to mirrors.',
                         defaultValue: false,
                     ),
+                    commonlib.jiraModeParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -99,7 +100,7 @@ node {
     // TODO: Move commonlib.ocpReleaseState to ocp-build-data or somewhere.
     def arches = params.ARCHES? commonlib.parseList(params.ARCHES) : commonlib.ocpReleaseState["${major}.${minor}"]?.release
     if (!arches) {
-        error("Could determine which architectures to release. Make sure they are specified in `commonlib.ocpReleaseState`.")
+        error("Could not determine which architectures to release. Make sure they are specified in `commonlib.ocpReleaseState`.")
     }
     def release_offset = params.RELEASE_OFFSET? Integer.parseInt(params.RELEASE_OFFSET) : null
     def skipAttachedBugCheck = false
@@ -159,7 +160,11 @@ node {
             cmd << "--arch=${arch}"
         }
         echo "Will run ${cmd}"
-        withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
+        def env = ["KUBECONFIG=${buildlib.ciKubeconfig}"]
+        if (params.JIRA_MODE) {
+            env << "${params.JIRA_MODE}=True"
+        }
+        withEnv(env) {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"

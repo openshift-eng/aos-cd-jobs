@@ -242,17 +242,18 @@ def ocpVersionParam(name='MINOR_VERSION', majorVersion='all', extraOpts=[]) {
 }
 
 def jiraModeParam(default='') {
+    def choices = [default]
+    if (!('USEJIRA' in choices)) {
+        choices << 'USEJIRA'
+    }
+    if (!('ONLYJIRA' in choices)) {
+        choices << 'ONLYJIRA'
+    }
     return [
         name: 'JIRA_MODE',
         description: 'Run with jira as additional bug tracker - usejira or onlyjira',
         $class: 'hudson.model.ChoiceParameterDefinition',
-        choices: [default],
-        if (!('USEJIRA' in choices)) {
-            choices << 'USEJIRA'
-        }
-        if (!('ONLYJIRA' in choices)) {
-            choices << 'ONLYJIRA'
-        }
+        choices: choices
     ]
 }
 

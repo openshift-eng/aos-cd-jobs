@@ -46,6 +46,7 @@ node {
                           'If <b>off</b>: Set MODIFIED bugs to ON_QA. Do not change advisories',
                         ].join('\n')
                     ),
+                    commonlib.jiraModeParam('USEJIRA'),
                     string(
                         name: "SLACK_CHANNEL",
                         description: 'Slack channel to be notified in case of failures. ' +
@@ -94,7 +95,13 @@ node {
         echo "Running command: ${cmd}"
 
         // Execute script
-        exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+        def env = []
+        if (params.JIRA_MODE) {
+            env << "${params.JIRA_MODE}=True"
+        }
+        withEnv(env) {
+            exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+        }
         echo("command ${cmd} returned with status ${exitCode}")
 
         /* Handle exit code, defined as:

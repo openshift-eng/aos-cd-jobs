@@ -55,6 +55,7 @@ node {
                             defaultValue: "lmeyer@redhat.com",
                             trim: true
                         ),
+                        commonlib.jiraModeParam(),
                         booleanParam(
                             name: "DEFAULT_ADVISORIES",
                             description: "Do not create advisories/jira; pick them up from ocp-build-data; Do not specify for a non-stream assembly (advisories should be in releases.yml)",
@@ -126,10 +127,16 @@ node {
                         cmd << "--nightly" << nightly.trim()
                     }
                 }
-                sshagent(["openshift-bot"]) {
-                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                        echo "Will run ${cmd}"
-                        commonlib.shell(script: cmd.join(' '))
+                def env = []
+                if (params.JIRA_MODE) {
+                    env << "${params.JIRA_MODE}=True"
+                }
+                withEnv(env) {
+                    sshagent(["openshift-bot"]) {
+                        withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                            echo "Will run ${cmd}"
+                            commonlib.shell(script: cmd.join(' '))
+                        }
                     }
                 }
             }

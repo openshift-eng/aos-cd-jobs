@@ -20,6 +20,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.mockParam(),
+                    commonlib.jiraModeParam(),
                     string(
                         name: "SLACK_CHANNEL",
                         description: 'Slack channel to be notified in case of failures. ' +
@@ -58,7 +59,11 @@ node {
             }
         }
 
-        withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}"]) {
+        def env = ["KUBECONFIG=${buildlib.ciKubeconfig}"]
+        if (params.JIRA_MODE) {
+            env << "${params.JIRA_MODE}=True"
+        }
+        withEnv(env) {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo out

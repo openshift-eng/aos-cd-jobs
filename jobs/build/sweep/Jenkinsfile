@@ -100,7 +100,9 @@ node {
             env << "${params.JIRA_MODE}=True"
         }
         withEnv(env) {
-            exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+            withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+            }
         }
         echo("command ${cmd} returned with status ${exitCode}")
 

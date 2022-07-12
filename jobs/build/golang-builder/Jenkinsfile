@@ -36,8 +36,8 @@ node {
                 ),
                 choice(
                     name: 'RHEL_VERSION',
-                    description: 'for which RHEL version (7 or 8)',
-                    choices: ['8', '7'].join('\n'),
+                    description: 'for which RHEL version (7/8/9)',
+                    choices: ['9', '8', '7'].join('\n'),
                 ),
                 commonlib.suppressEmailParam(),
                 string(

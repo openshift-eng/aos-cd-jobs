@@ -97,7 +97,7 @@ def get_release_name(assembly_type: str, group_name: str, assembly_name: str, re
         if release_offset is None:
             raise ValueError("release_offset is required for a CUSTOM release.")
         release_name = f"{major}.{minor}.{release_offset}-assembly.{assembly_name}"
-    elif assembly_type == assembly.AssemblyTypes.CANDIDATE:
+    elif assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]:
         if release_offset is not None:
             raise ValueError("release_offset can't be set for a CANDIDATE release.")
         release_name = f"{major}.{minor}.0-{assembly_name}"

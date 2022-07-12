@@ -101,7 +101,7 @@ class PromotePipeline:
                 raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
 
             # Check for blocker bugs
-            if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
+            if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
                 logger.info("Blocker Bug check is skipped.")
             else:
                 logger.info("Checking for blocker bugs...")
@@ -189,13 +189,13 @@ class PromotePipeline:
             if errata_url:
                 metadata["url"] = errata_url
             reference_releases = util.get_assembly_basis(releases_config, self.assembly).get("reference_releases", {})
-            tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE]
-            release_infos = await self.promote_all_arches(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
+            tag_release_controller = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]
+            release_infos = await self.promote_all_arches(release_name, arches, previous_list, metadata, reference_releases, tag_release_controller)
             self._logger.info("All release images for %s have been promoted.", release_name)
 
             # Wait for release controllers
             pullspecs = list(map(lambda r: r["image"], release_infos))
-            if not tag_stable:
+            if not tag_release_controller:
                 self._logger.warning("This release will not appear on release controllers. Pullspecs: %s", release_name, ", ".join(pullspecs))
                 await self._slack_client.say(f"Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {', '.join(pullspecs)}", slack_thread)
             else:  # Wait for release images to be accepted by the release controllers
@@ -203,9 +203,10 @@ class PromotePipeline:
 
                 # check if release is already accepted (in case we timeout and run the job again)
                 accepted = []
+                tag_channel = '4-dev-preview' if assembly_type == assembly.AssemblyTypes.PREVIEW else 'release'
                 for arch in arches:
                     go_arch_suffix = go_suffix_for_arch(arch)
-                    release_stream = f"4-stable{go_arch_suffix}"
+                    release_stream = f"{tag_channel}{go_arch_suffix}"
                     accepted.append(await self.is_accepted(release_name, arch, release_stream))
 
                 if not all(accepted):
@@ -221,7 +222,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
                     futures = []
                     for arch in arches:
                         go_arch_suffix = go_suffix_for_arch(arch)
-                        release_stream = f"4-stable{go_arch_suffix}"
+                        release_stream = f"{tag_channel}{go_arch_suffix}"
                         futures.append(self.wait_for_stable(release_name, arch, release_stream))
                     try:
                         await asyncio.gather(*futures)
@@ -397,10 +398,10 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         async with self._elliott_lock:
             await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 
-    async def promote_all_arches(self, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
+    async def promote_all_arches(self, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_release_controller: bool):
         futures = []
         for arch in arches:
-            futures.append(self.promote_arch(release_name, arch, previous_list, metadata, reference_releases.get(arch), tag_stable))
+            futures.append(self.promote_arch(release_name, arch, previous_list, metadata, reference_releases.get(arch), tag_release_controller))
         try:
             release_infos = await asyncio.gather(*futures)
         except ChildProcessError as err:
@@ -408,7 +409,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             raise
         return release_infos
 
-    async def promote_arch(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], reference_release: Optional[str], tag_stable: bool):
+    async def promote_arch(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], reference_release: Optional[str], tag_release_controller: bool):
         brew_arch = brew_arch_for_go_arch(arch)  # ensure we are using Brew arches (e.g. aarch64) instead of golang arches (e.g. arm64).
         dest_image_tag = f"{release_name}-{brew_arch}"
         dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
@@ -450,13 +451,14 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
                     go_arch_suffix = go_suffix_for_arch(arch, is_private=False)
                     dest_image_info["references"]["metadata"] = {"annotations": {"release.openshift.io/from-image-stream": f"fake{go_arch_suffix}/{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"}}
 
-        if not tag_stable:
+        if not tag_release_controller:
             self._logger.info("Release image %s will not appear on the release controller.", dest_image_pullspec)
             return dest_image_info
 
         go_arch_suffix = go_suffix_for_arch(arch)
         namespace = f"ocp{go_arch_suffix}"
-        image_stream_tag = f"release{go_arch_suffix}:{release_name}"
+        image_stream_name = '4-dev-preview' if self.runtime.assembly_type == assembly.AssemblyTypes.PREVIEW else 'release'
+        image_stream_tag = f"{image_stream_name}{go_arch_suffix}:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
         self._logger.info("Checking if ImageStreamTag %s exists...", namespace_image_stream_tag)
         ist = await self.get_image_stream_tag(namespace, image_stream_tag)

@@ -16,7 +16,7 @@ import semver
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
-from elliottlib.errata import get_bug_ids
+from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory
 from elliottlib.model import Model
 from jira.resources import Issue
 from pyartcd import exectools
@@ -233,7 +233,8 @@ class PrepareReleasePipeline:
         _LOGGER.info("Adding placeholder bugs...")
         for kind, advisory in advisories.items():
             bug_ids = get_bug_ids(advisory)
-            if not bug_ids:  # Only create placeholder bug if the advisory has no attached bugs
+            jira_ids = get_jira_issue_from_advisory(advisory)
+            if not bug_ids and not jira_ids:  # Only create placeholder bug if the advisory has no attached bugs
                 _LOGGER.info("Create placeholder bug for %s advisory %s...", kind, advisory)
                 self.create_and_attach_placeholder_bug(kind, advisory)
 

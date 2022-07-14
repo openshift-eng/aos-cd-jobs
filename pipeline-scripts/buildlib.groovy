@@ -42,9 +42,8 @@ def path_setup() {
 
 def proxy_setup() {
     // Take load balancer from https://source.redhat.com/departments/it/digitalsolutionsdelivery/it-infrastructure/uis/uis_wiki/squid_proxy
-    // proxy = "http://proxy.util.phx1.redhat.com:8080"
-    // proxy = "http://proxy.util.phx2.redhat.com:8080"
-    proxy = "http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
+    // proxy = "http://proxy.squi-001.prod.iad2.dc.redhat.com:3128"
+    proxy = "http://proxy01.util.rdu2.redhat.com:3128"
 
     def no_proxy = [
         'localhost',

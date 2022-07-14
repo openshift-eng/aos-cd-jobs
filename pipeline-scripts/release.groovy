@@ -547,7 +547,7 @@ done
             outputDest = "${CLIENT_MIRROR_DIR}/changelog.html"
             outputDestMd = "${CLIENT_MIRROR_DIR}/changelog.md"
 
-            // If the previous minor is not yet GA, look for the latest fc/rc. If the previous minor is GA, this should
+            // If the previous minor is not yet GA, look for the latest fc/rc/ec. If the previous minor is GA, this should
             // always return 4.m.0.
             prevGA = commonlib.shell(returnStdout: true, script:"curl -s -X GET -G https://amd64.ocp.releases.ci.openshift.org/api/v1/releasestream/4-stable/latest --data-urlencode 'in=>4.${prevMinor}.0-0 <4.${prevMinor}.1' | jq -r .name").trim()
 
@@ -583,11 +583,8 @@ done
         }
     }
 
-    if (major == 4 && minor < 6) {
-        echo "Will not extract opm for releases prior to 4.6."
-    } else {
-        withEnv(["OUTDIR=$CLIENT_MIRROR_DIR", "PULL_SPEC=${quay_url}:${from_release_tag}", "ARCH=$arch", "VERSION=$release_name"]){
-            commonlib.shell('''
+    withEnv(["OUTDIR=$CLIENT_MIRROR_DIR", "PULL_SPEC=${quay_url}:${from_release_tag}", "ARCH=$arch", "VERSION=$release_name"]){
+        commonlib.shell('''
 function extract_opm() {
     OUTDIR=$1
     mkdir -p "${OUTDIR}"
@@ -624,8 +621,7 @@ function extract_opm() {
     popd
 }
 extract_opm "$OUTDIR"
-            ''')
-        }
+        ''')
     }
 
     sh "tree $CLIENT_MIRROR_DIR"

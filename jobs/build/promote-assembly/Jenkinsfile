@@ -178,8 +178,8 @@ node {
     def justifications =release_info.justifications ?: []
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
     def client_type = 'ocp'
-    if ((release_info.type == "candidate" && !release_info.assembly.startsWith('rc.')) || release_info.type == "custom") {
-        // Feature candidates and custom releases use client_type ocp-dev-preview and beta2 signing key.
+    if ((release_info.type == "candidate" && !release_info.assembly.startsWith('rc.')) || release_info.type in ["custom", "preview"]) {
+        // Feature candidates and custom releases and .next "preview" releases use client_type ocp-dev-preview and beta2 signing key.
         client_type = 'ocp-dev-preview'
     }
     stage("mirror binaries") {
@@ -290,8 +290,8 @@ node {
     }
 
     stage("channel prs") {
-        if (release_info.type == "custom") {
-            echo "Skipping PR creation for custom (hotfix) release."
+        if (release_info.type in ["custom", "preview"]) {
+            echo "Skipping PR creation for custom (hotfix) and 'preview' release."
             return
         }
         if (params.SKIP_CINCINNATI_PR_CREATION) {

@@ -19,5 +19,5 @@ promote_image_list_recipients = ["openshift-ccs@redhat.com"]
 [jira]
 url = "https://issues.redhat.com"
 [jira.templates]
-ocp4 = "OCPPLAN-4756"
-ocp3 = "OCPPLAN-1373"
+ocp4 = "ART-4223"
+ocp3 = "ART-4234"

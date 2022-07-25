@@ -1,0 +1,14 @@
+properties( [
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '100', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+] )
+
+node() {
+    checkout scm
+
+    b = build(
+        job: '../aos-cd-builds/build%2Fcheck-rhcos',
+        propagate: false
+    )
+}

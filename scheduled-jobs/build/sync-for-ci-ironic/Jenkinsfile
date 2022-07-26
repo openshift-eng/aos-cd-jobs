@@ -25,13 +25,15 @@ node() {
         for ( String arch : arches ) {
             plashet_arch_args += "--arch ${arch} unsigned "
         }
+        // for 4.12+ ironic is based on rhel 9 tag
+        rhel_version = version.split("\\.")[1].toInteger() >= 12 ? 9 : 8
 
         /**
          * Build a plashet in a local directory under the WORKSPACE ${baseDir}/${plashetDirName} .
          * The plashets are unsigned as this is just for testing by Ironic's CI systems.
          */
-        prevalidation_tag_name = "rhaos-${version}-rhel-8-ironic-prevalidation"
-        embargoed_tag_name = "rhaos-${version}-rhel-8-embargoed"
+        prevalidation_tag_name = "rhaos-${version}-rhel-${rhel_version}-ironic-prevalidation"
+        embargoed_tag_name = "rhaos-${version}-rhel-${rhel_version}-embargoed"
         plashetDirName = prevalidation_tag_name
         commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run
         def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=${openshift_group}"

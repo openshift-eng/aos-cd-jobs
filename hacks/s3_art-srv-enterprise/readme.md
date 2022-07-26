@@ -12,12 +12,25 @@ CloudFront provides worldwide distribution, but it is not a drop in replacement.
 ### AWS Account
 In order to access the AWS account, look in bitwarden. The credentials to administer the AWS account are stored in `ART OSD Cluster / mirror.openshift.com / mirror2 AWS Account` in the `Automated Release Team (ART)` collection.
 
-### /enterprise authentication
+### /enterprise and /pockets authentication
 CloudFront does not support client certificate based authentication (used by the legacy mirror.openshift.com/enterprise). Client certificate based auth could have been preserved with a small deployment (e.g. of nginx) to proxy requests, but this introduced an unnecessary bottleneck and would have created a new operational concern for the ART team.
 
 Instead, the new infrastructure will be secured with basic auth (username & password) for authentication. This is enforced by a CloudFront function setup as a View Request hook. The View Request checks basic authentication whenever a /enterprise path is requested. See cloudfront_function_art-srv-request-basic-auth.js, but note that the username/password has been removed from the code. 
 
-In order to add new service accounts to access /enterprise, login to the AWS account -> CloudFront -> Functions -> Edit "art-srv-enterprise-request" and add a new entry to SERVICE_ACCOUNT.
+In order to add new service accounts to access /enterprise, login to the AWS account -> CloudFront -> Functions -> Edit "art-srv-enterprise-request". For general access to /enterprise, add a new entry to ENTERPRISE_SERVICE_ACCOUNT. 
+
+There is also the concept of /pockets where a particular set of artifacts needs to delivered privately. For these, add service accounts to POCKET_SERVICE_ACCOUNTS. The usernames here should take the form "<pocket_name>+<service_account_id>". If a URL  is requested with `/pockets/<pocket_name>/` as the prefix, the pocket_name will be extracted from the service account name
+and compared with the URL path to test whether access should be granted. Of course, the password associated with the username will also be verified.
+
+#### CloudFront function auth testing
+You can test CloudFront functions directly in the AWS console without deploying them to production.
+
+If you want to test the behavior of the "someusername" and "somepassword", then capture the output of:
+```shell
+echo -n somepassword | base64
+```
+
+Be certain to include `-n`, or a newline will be included in the base64 output. In the CloudFront Function "Test" tab, add a new header with Header set to "authorization" and Value set to "Basic <base64_output>"
 
 ### /pub directory listing
 CloudFront does not provide an Apache-style file listing for directory structures within that S3 bucket (S3 content is not even technically organized by directories). The current https://mirror.openshift.com/pub does provide listings, so it was necessary to add something novel to the CloudFront distribution.

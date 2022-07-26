@@ -97,11 +97,28 @@ function handler(event) {
         var password = authVal.substring(authVal.indexOf(':')+1);
         
         var found = false;
-        
-        if (username in SERVICE_ACCOUNTS && SERVICE_ACCOUNTS[username] == password) {
-            found = true;
+
+        // libra is an ancient area of the old mirrors. It was sync'd over to S3 in order to not
+        // break any old Service Delivery functionality. It is not kept up to date.
+        if (uri.startsWith('/enterprise/') || uri.startsWith('/libra/') ) {
+            if (username in ENTERPRISE_SERVICE_ACCOUNTS && ENTERPRISE_SERVICE_ACCOUNTS[username] == password) {
+                found = true;
+            }
         }
-        
+
+        if (uri.startsWith('/pockets/')) {
+            if (username.indexOf('+') > 0) {
+                // The username for channels should be '<pocketName>+<anonymized user id>' . Extract the channel name.
+                var pocketName = username.split('+')[0]
+                if (uri.startsWith('/pockets/' + pocketName + '/')) {
+                    // The username and URL subpath agree. Now see if there is a valid password.
+                    if (username in POCKET_SERVICE_ACCOUNTS && POCKET_SERVICE_ACCOUNTS[username] == password) {
+                        found = true;
+                    }
+                }
+            }
+        }
+
         if (!found) {
             return unauthorized;
         }

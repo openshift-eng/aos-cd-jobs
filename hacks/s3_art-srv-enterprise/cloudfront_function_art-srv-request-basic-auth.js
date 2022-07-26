@@ -98,7 +98,9 @@ function handler(event) {
         
         var found = false;
 
-        if (uri.startsWith('/enterprise/')) {
+        // libra is an ancient area of the old mirrors. It was sync'd over to S3 in order to not
+        // break any old Service Delivery functionality. It is not kept up to date.
+        if (uri.startsWith('/enterprise/') || uri.startsWith('/libra/') ) {
             if (username in ENTERPRISE_SERVICE_ACCOUNTS && ENTERPRISE_SERVICE_ACCOUNTS[username] == password) {
                 found = true;
             }

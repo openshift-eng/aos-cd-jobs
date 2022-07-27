@@ -33,6 +33,8 @@ node() {
          * The plashets are unsigned as this is just for testing by Ironic's CI systems.
          */
         prevalidation_tag_name = "rhaos-${version}-rhel-${rhel_version}-ironic-prevalidation"
+            if version >= 4.12:
+                prevalidation_tag_name = "rhaos-${version}-ironic-rhel-${rhel_version}-prevalidation"
         embargoed_tag_name = "rhaos-${version}-rhel-${rhel_version}-embargoed"
         plashetDirName = prevalidation_tag_name
         commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case anything is left from the last run

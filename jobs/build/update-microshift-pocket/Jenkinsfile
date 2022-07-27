@@ -63,7 +63,7 @@ node {
         """
     )
 
-    buildlib.doozer("--working-dir ${DOOZER_WORKING} --assembly ${params.ASSEMBLY} --group openshift-${version} config:plashet --base-dir ${ORG_PLASHET_DIR} --name repos --repo-subdir os -i microshift --arch x864_64 unsigned --arch s390x unsigned --arch ppc64le unsigned --arch aarch64 unsigned from-tags -t rhaos-${version}-rhel-${params.RHEL_TARGET}-candidate NOT_APPLICABLE")
+    buildlib.doozer("--working-dir ${DOOZER_WORKING} --assembly ${params.ASSEMBLY} --group openshift-${version} config:plashet --base-dir ${ORG_PLASHET_DIR} --name repos --repo-subdir os -i microshift --arch x86_64 unsigned --arch s390x unsigned --arch ppc64le unsigned --arch aarch64 unsigned from-tags -t rhaos-${version}-rhel-${params.RHEL_TARGET}-candidate NOT_APPLICABLE")
 
     sh(
         """

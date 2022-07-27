@@ -26,6 +26,12 @@ node {
                         description: 'OCP release version',
                         trim: true,
                     ),
+                    string(
+                        name: 'ASSEMBLY',
+                        description: 'Which assembly contains the microshift to sync.',
+                        defaultValue: "stream",
+                        trim: true,
+                    ),
                     choice(
                         name: 'RHEL_TARGET',
                         description: 'Target RHEL version. Required even if NVRA is specified.',
@@ -43,7 +49,7 @@ node {
 
     version = params.BUILD_VERSION
     currentBuild.displayName = "$version"
-    mirror_path = "/pockets/microshift/${version}-el${params.RHEL_TARGET}"
+    mirror_path = "/pockets/microshift/${version}-el${params.RHEL_TARGET}/${params.ASSEMBLY}"
     AWS_S3_SYNC_OPTS='--no-progress'
 
     ORG_PLASHET_DIR = "microshift-plashet"
@@ -57,7 +63,7 @@ node {
         """
     )
 
-    buildlib.doozer("--working-dir ${DOOZER_WORKING} --group openshift-${version} config:plashet --base-dir ${ORG_PLASHET_DIR} --name repos --repo-subdir os -i microshift --arch x864_64 unsigned --arch s390x unsigned --arch ppc64le unsigned --arch aarch64 unsigned from-tags -t rhaos-${version}-rhel-${params.RHEL_TARGET}-candidate NOT_APPLICABLE")
+    buildlib.doozer("--working-dir ${DOOZER_WORKING} --assembly ${params.ASSEMBLY} --group openshift-${version} config:plashet --base-dir ${ORG_PLASHET_DIR} --name repos --repo-subdir os -i microshift --arch x864_64 unsigned --arch s390x unsigned --arch ppc64le unsigned --arch aarch64 unsigned from-tags -t rhaos-${version}-rhel-${params.RHEL_TARGET}-candidate NOT_APPLICABLE")
 
     sh(
         """

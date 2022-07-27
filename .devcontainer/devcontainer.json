@@ -33,10 +33,10 @@
 	// Uncomment the next line if you want to publish any ports.
 	// "appPort": [],
 	// Uncomment the next line to run commands after the container is created - for example installing git.
-	"postCreateCommand": "sudo chown -R dev: /workspaces/ && pip3 install --user -r ./pyartcd/requirements-dev.txt -e ./pyartcd",
+	"postCreateCommand": "sudo chown -R dev: /workspaces",
 	// Add the IDs of extensions you want installed when the container is created in the array below.
 	"extensions": [
-		"ms-python.vscode-pylance",
+		"ms-python.python",
 		"eamodio.gitlens"
 	]
 }

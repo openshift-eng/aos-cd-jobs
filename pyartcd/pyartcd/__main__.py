@@ -7,3 +7,6 @@ from pyartcd.pipelines import (prepare_release, promote, rebuild,
 
 def main(args: Optional[Sequence[str]] = None):
     cli()
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,4 @@
-FROM fedora:34
+FROM fedora:36
 
 # Trust the Red Hat IT Root CA and set up rcm-tools repo
 RUN curl -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt --fail -L \
@@ -10,10 +10,10 @@ RUN curl -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt --fail -L \
 RUN dnf install -y \
     # runtime dependencies
     krb5-workstation git tig rsync koji skopeo podman rpmdevtools \
-    python3 python3-certifi python3-rpm python3-kobo-rpmlib  \
+    python3 python3-certifi awscli manifest-tool \
     # development dependencies
-    gcc krb5-devel \
-    python3-devel python3-pip python3-wheel \
+    gcc gcc-c++ krb5-devel \
+    python3-devel python3-pip python3-wheel python3-autopep8 python3-flake8 \
     # other tools for development and troubleshooting
     bash-completion vim tmux procps-ng psmisc wget net-tools iproute socat \
     # install rcm-tools
@@ -26,8 +26,8 @@ RUN dnf install -y \
   && python -m pip install awscli
 
 
-ARG OC_VERSION=latest
-RUN wget -O /tmp/openshift-client-linux-"$OC_VERSION".tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/"$OC_VERSION"/openshift-client-linux.tar.gz \
+ARG OC_VERSION=latest-4.12
+RUN wget -O /tmp/openshift-client-linux-"$OC_VERSION".tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp-dev-preview/"$OC_VERSION"/openshift-client-linux.tar.gz \
   && tar -C /usr/local/bin -xzf  /tmp/openshift-client-linux-"$OC_VERSION".tar.gz oc kubectl \
   && rm /tmp/openshift-client-linux-"$OC_VERSION".tar.gz
 
@@ -46,13 +46,6 @@ RUN groupadd --gid "$USER_GID" "$USERNAME" \
     && chmod 0755 /home/"$USERNAME" \
     && echo "$USERNAME" ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/"$USERNAME" \
     && chmod 0440 /etc/sudoers.d/"$USERNAME"
-
-# Preinstall dependencies
-COPY ./ /tmp/aos-cd-jobs/
-RUN chown "$USERNAME" -R /tmp/aos-cd-jobs \
- && pushd /tmp/aos-cd-jobs/pyartcd \
- && sudo -u "$USERNAME" pip3 install --user -r ./requirements.txt -r ./requirements-dev.txt ./ \
- && popd && rm -rf /tmp/aos-cd-jobs
 
 USER "$USER_UID"
 WORKDIR /workspaces/aos-cd-jobs

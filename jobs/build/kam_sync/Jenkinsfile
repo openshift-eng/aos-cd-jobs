@@ -55,8 +55,10 @@ pipeline {
         stage("Sync to mirror") {
             steps {
                 sh "tree ${params.VERSION}"
-                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/kam/${params.VERSION}/")
-                commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/kam/latest/")
+                script {
+                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/kam/${params.VERSION}/")
+                    commonlib.syncDirToS3Mirror("${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/kam/latest/")
+                }
             }
         }
     }

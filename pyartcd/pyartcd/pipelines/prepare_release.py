@@ -130,6 +130,19 @@ class PrepareReleasePipeline:
             _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
             self.check_blockers()
 
+        release_date = group_config.get("release_date")
+        if not (release_date or self.release_date):
+            raise ValueError(
+                "release_date missing in assembly definition"
+            )
+        if release_date:
+            if self.release_date and self.release_date != release_date:
+                raise ValueError(
+                    f"Given release_date {self.release_date} is different from the one in assembly definition {release_date}. If you want to update the release_date, update it in the assembly definition"
+                )
+            _LOGGER.info("Using release date from assembly definition %s", release_date)
+            self.release_date = release_date
+
         advisories = {}
 
         if self.default_advisories:
@@ -165,19 +178,6 @@ class PrepareReleasePipeline:
                     advisories["metadata"] = self.create_advisory("RHBA", "image", "metadata")
                 else:
                     _LOGGER.info("Reusing existing metadata advisory %s", advisories["metadata"])
-
-        release_date = group_config.get("release_date")
-        if not (release_date or self.release_date):
-            raise ValueError(
-                "release_date missing in assembly definition"
-            )
-        if release_date:
-            if self.release_date and self.release_date != release_date:
-                raise ValueError(
-                    f"Given release_date {self.release_date} is different from the one in assembly definition {release_date}. If you want to update the release_date, update it in the assembly definition"
-                )
-            _LOGGER.info("Using release date from assembly definition %s", release_date)
-            self.release_date = release_date
 
         jira_issue_key = group_config.get("release_jira")
         jira_template_vars = {
@@ -219,7 +219,10 @@ class PrepareReleasePipeline:
 
 
         _LOGGER.info("Updating ocp-build-data...")
-        build_data_changed = await self.update_build_data(advisories, jira_issue_key, self.release_date)
+        build_data_changed = await self.update_build_data(advisories, jira_issue_key)
+
+        _LOGGER.info("Try and update advisory release date in case it changed...")
+        self.update_advisory_release_date()
 
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():
@@ -341,6 +344,27 @@ class PrepareReleasePipeline:
         if match and int(match[1]) != 0:
             _LOGGER.info(f"{int(match[1])} Blocker Bugs found! Make sure to resolve these blocker bugs before proceeding to promote the release.")
 
+    def update_advisory_release_date(self):
+        # This command tries to update all advisories
+        # in the assembly definition. NOOP if date is unchanged
+        cmd = [
+            "elliott",
+            f"--working-dir={self.elliott_working_dir}",
+            f"--group={self.group_name}",
+            "--assembly", self.assembly,
+            "advisory-commons",
+            "--field", "publish_date",
+            "--new", self.release_date,
+        ]
+        if not self.dry_run:
+            cmd.append("--yes")
+        _LOGGER.info("Running command: %s", cmd)
+        result = subprocess.run(cmd, check=False, stdout=PIPE, stderr=PIPE, universal_newlines=True, cwd=self.working_dir)
+        if result.returncode != 0:
+            raise IOError(
+                f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}"
+            )
+
     def create_advisory(self, type: str, kind: str, impetus: str) -> int:
         _LOGGER.info("Creating advisory with type %s, kind %s, and impetus %s...", type, kind, impetus)
         create_cmd = [
@@ -389,8 +413,8 @@ class PrepareReleasePipeline:
         _LOGGER.info("Running command: %s", cmd)
         await exectools.cmd_assert_async(cmd)
 
-    async def update_build_data(self, advisories: Dict[str, int], jira_issue_key: Optional[str], release_date:Optional[str]):
-        if not (advisories or jira_issue_key or release_date):
+    async def update_build_data(self, advisories: Dict[str, int], jira_issue_key: Optional[str]):
+        if not (advisories or jira_issue_key or self.release_date):
             return False
         repo = self.working_dir / "ocp-build-data-push"
         if not repo.exists():
@@ -419,7 +443,7 @@ class PrepareReleasePipeline:
             releases_config = yaml.load(old)
             group_config = releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("group", {})
             group_config["advisories"] = advisories
-            group_config["release_date"] = release_date
+            group_config["release_date"] = self.release_date
             group_config["release_jira"] = jira_issue_key
             out = StringIO()
             yaml.dump(releases_config, out)

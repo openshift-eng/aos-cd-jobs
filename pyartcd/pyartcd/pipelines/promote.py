@@ -203,7 +203,7 @@ class PromotePipeline:
 
                 # check if release is already accepted (in case we timeout and run the job again)
                 accepted = []
-                tag_channel = '4-dev-preview' if assembly_type == assembly.AssemblyTypes.PREVIEW else 'release'
+                tag_channel = '4-dev-preview' if assembly_type == assembly.AssemblyTypes.PREVIEW else '4-stable'
                 for arch in arches:
                     go_arch_suffix = go_suffix_for_arch(arch)
                     release_stream = f"{tag_channel}{go_arch_suffix}"

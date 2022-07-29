@@ -38,6 +38,12 @@ node {
                         trim: true,
                     ),
                     string(
+                        name: 'DOOZER_DATA_PATH',
+                        description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
+                        defaultValue: "https://github.com/openshift/ocp-build-data",
+                        trim: true,
+                    ),
+                    string(
                         name: 'ARCHES',
                         description: '(Optional) A comma separated list of architectures for the release. Leave empty to promote all arches.',
                         trim: true,

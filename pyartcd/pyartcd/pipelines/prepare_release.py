@@ -166,6 +166,19 @@ class PrepareReleasePipeline:
                 else:
                     _LOGGER.info("Reusing existing metadata advisory %s", advisories["metadata"])
 
+        release_date = group_config.get("release_date")
+        if not (release_date or self.release_date):
+            raise ValueError(
+                "release_date missing in assembly definition"
+            )
+        if release_date:
+            if self.release_date and self.release_date != release_date:
+                raise ValueError(
+                    f"Given release_date {self.release_date} is different from the one in assembly definition {release_date}. If you want to update the release_date, update it in the assembly definition"
+                )
+            _LOGGER.info("Using release date from assembly definition %s", release_date)
+            self.release_date = release_date
+
         jira_issue_key = group_config.get("release_jira")
         jira_template_vars = {
             "release_name": self.release_name,
@@ -206,7 +219,7 @@ class PrepareReleasePipeline:
 
 
         _LOGGER.info("Updating ocp-build-data...")
-        build_data_changed = await self.update_build_data(advisories, jira_issue_key)
+        build_data_changed = await self.update_build_data(advisories, jira_issue_key, self.release_date)
 
         _LOGGER.info("Sweep builds into the the advisories...")
         for kind, advisory in advisories.items():
@@ -376,8 +389,8 @@ class PrepareReleasePipeline:
         _LOGGER.info("Running command: %s", cmd)
         await exectools.cmd_assert_async(cmd)
 
-    async def update_build_data(self, advisories: Dict[str, int], jira_issue_key: Optional[str]):
-        if not advisories and not jira_issue_key:
+    async def update_build_data(self, advisories: Dict[str, int], jira_issue_key: Optional[str], release_date:Optional[str]):
+        if not (advisories or jira_issue_key or release_date):
             return False
         repo = self.working_dir / "ocp-build-data-push"
         if not repo.exists():
@@ -406,6 +419,7 @@ class PrepareReleasePipeline:
             releases_config = yaml.load(old)
             group_config = releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("group", {})
             group_config["advisories"] = advisories
+            group_config["release_date"] = release_date
             group_config["release_jira"] = jira_issue_key
             out = StringIO()
             yaml.dump(releases_config, out)
@@ -696,8 +710,8 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
               help="The name of an assembly to rebase & build for. e.g. 4.9.1")
 @click.option("--name", metavar="RELEASE_NAME",
               help="release name (e.g. 4.6.42)")
-@click.option("--date", metavar="YYYY-MMM-DD", required=True,
-              help="Expected release date (e.g. 2020-11-25)")
+@click.option("--date", metavar="YYYY-Mon-DD", required=False,
+              help="Expected release date (e.g. 2020-Nov-25)")
 @click.option("--package-owner", metavar='EMAIL',
               help="Advisory package owner; Must be an individual email address; May be anyone who wants random advisory spam")
 @click.option("--nightly", "nightlies", metavar="TAG", multiple=True,
@@ -706,7 +720,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
               help="don't create advisories/jira; pick them up from ocp-build-data")
 @pass_runtime
 @click_coroutine
-async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
+async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: Optional[str],
                   package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool):
     # parse environment variables for credentials
     jira_token = os.environ.get("JIRA_TOKEN")

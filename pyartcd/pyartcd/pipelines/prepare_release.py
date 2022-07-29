@@ -198,8 +198,8 @@ class PrepareReleasePipeline:
             parent_jira = self._jira_client.get_issue(jira_issue_key)
             subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[1].key)
             self._jira_client.add_comment(
-                    subtask,
-                    "prepare release job : {}".format(os.environ.get("BUILD_URL"))
+                subtask,
+                f"prepare release job: {os.environ.get('BUILD_URL')}"
             )
             self._jira_client.close_task(subtask)
         else:
@@ -216,7 +216,6 @@ class PrepareReleasePipeline:
                     "prepare release job : {}".format(os.environ.get("BUILD_URL"))
                 )
                 self._jira_client.close_task(subtask)
-
 
         _LOGGER.info("Updating ocp-build-data...")
         build_data_changed = await self.update_build_data(advisories, jira_issue_key)
@@ -745,7 +744,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 @pass_runtime
 @click_coroutine
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: Optional[str],
-                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool):
+                          package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool):
     # parse environment variables for credentials
     jira_token = os.environ.get("JIRA_TOKEN")
     if not jira_token:

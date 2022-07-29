@@ -48,7 +48,6 @@ class CheckRhcosPipeline:
         for arch, answer in zip(ARCHES, answers):
             self.result[arch] = answer
 
-
     async def get_data_for_arch(self, arch):
         jenkins = Jenkins(RHCOS_URLS[arch])
         print(f"Checking {arch}")

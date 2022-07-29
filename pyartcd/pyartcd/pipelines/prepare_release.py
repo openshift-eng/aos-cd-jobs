@@ -744,7 +744,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
               help="don't create advisories/jira; pick them up from ocp-build-data")
 @pass_runtime
 @click_coroutine
-async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: Optional[str],
+async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: Optional[str],
                   package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool):
     # parse environment variables for credentials
     jira_token = os.environ.get("JIRA_TOKEN")

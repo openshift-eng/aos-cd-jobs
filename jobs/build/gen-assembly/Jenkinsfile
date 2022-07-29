@@ -46,6 +46,12 @@ node {
                             trim: true,
                         ),
                         string(
+                            name: "DATE",
+                            description: "Intended release date. Format: YYYY-Mon-dd (example: 2050-Jan-01)",
+                            defaultValue: "${dateFormat.format(date)}",
+                            trim: true
+                        ),
+                        string(
                             name: 'PREVIOUS',
                             description: '[Optional] Leave empty to use suggested previous. Otherwise, follow item #6 "PREVIOUS" of the following doc for instructions on how to fill this field:\nhttps://mojo.redhat.com/docs/DOC-1201843#jive_content_id_Completing_a_4yz_release',
                             defaultValue: "",
@@ -90,6 +96,9 @@ node {
                         }
                     } else {
                         cmd += ' --auto-previous'
+                    }
+                    if (params.DATE) {
+                        cmd += " --date ${DATE}"
                     }
                 }
                 buildlib.doozer(cmd)

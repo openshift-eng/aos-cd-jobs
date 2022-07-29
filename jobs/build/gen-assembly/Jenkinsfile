@@ -85,8 +85,10 @@ node {
                         cmd += " --in-flight ${IN_FLIGHT_PREV}"
                     }
                     if (params.PREVIOUS) {
-                        for (previous in params.PREVIOUS.split(',')) {
-                            cmd += " --previous ${previous.trim()}"
+                        if (params.PREVIOUS != 'none') {
+                            for (previous in params.PREVIOUS.split(',')) {
+                                cmd += " --previous ${previous.trim()}"
+                            }
                         }
                     } else {
                         cmd += ' --auto-previous'

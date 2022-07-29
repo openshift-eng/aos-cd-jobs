@@ -130,18 +130,20 @@ class PrepareReleasePipeline:
             _LOGGER.info("Checking Blocker Bugs for release %s...", self.release_name)
             self.check_blockers()
 
-        release_date = group_config.get("release_date")
-        if not (release_date or self.release_date):
+        assembly_rel_date = group_config.get("release_date")
+        valid_assembly_date = (assembly_rel_date and assembly_rel_date != "YYYY-Mon-DD")
+        if not (valid_assembly_date or self.release_date):
             raise ValueError(
                 "release_date missing in assembly definition"
             )
-        if release_date:
-            if self.release_date and self.release_date != release_date:
+        if valid_assembly_date:
+            if self.release_date and self.release_date != assembly_rel_date:
                 raise ValueError(
-                    f"Given release_date {self.release_date} is different from the one in assembly definition {release_date}. If you want to update the release_date, update it in the assembly definition"
+                    f"Given release_date {self.release_date} is different from the one in assembly definition "
+                    f"{assembly_rel_date}. If you want to update the release_date, update it in the assembly definition"
                 )
-            _LOGGER.info("Using release date from assembly definition %s", release_date)
-            self.release_date = release_date
+            _LOGGER.info("Using release date from assembly definition %s", assembly_rel_date)
+            self.release_date = assembly_rel_date
 
         advisories = {}
 

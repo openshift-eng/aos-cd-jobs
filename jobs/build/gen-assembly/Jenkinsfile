@@ -30,6 +30,12 @@ node {
                             trim: true
                         ),
                         string(
+                            name: 'DOOZER_DATA_PATH',
+                            description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
+                            defaultValue: "https://github.com/openshift/ocp-build-data",
+                            trim: true,
+                        ),
+                        string(
                             name: "NIGHTLIES",
                             description: "List of nightlies for each arch. For custom releases you do not need a nightly for each arch.",
                             trim: true
@@ -85,8 +91,10 @@ node {
                         cmd += " --in-flight ${IN_FLIGHT_PREV}"
                     }
                     if (params.PREVIOUS) {
-                        for (previous in params.PREVIOUS.split(',')) {
-                            cmd += " --previous ${previous.trim()}"
+                        if (params.PREVIOUS != 'none') {
+                            for (previous in params.PREVIOUS.split(',')) {
+                                cmd += " --previous ${previous.trim()}"
+                            }
                         }
                     } else {
                         cmd += ' --auto-previous'

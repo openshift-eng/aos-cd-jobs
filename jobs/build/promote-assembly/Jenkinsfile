@@ -53,6 +53,11 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
+                        name: 'SKIP_MIRROR_BINARIES',
+                        description: 'Do not mirror binaries. Useful in case of reruns on subsequent failure',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
                         name: 'SKIP_CINCINNATI_PR_CREATION',
                         description: 'DO NOT USE without team lead approval. This is an unusual option.',
                         defaultValue: false,

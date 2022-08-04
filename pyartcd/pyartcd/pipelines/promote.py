@@ -865,7 +865,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         env = os.environ.copy()
         rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
         if rc != 0:
-            if "not found: manifest unknown" in stderr or "was deleted or has expired" in stderr:
+            if "manifest unknown" in stderr or "was deleted or has expired" in stderr:
                 # image doesn't exist
                 if raise_if_not_found:
                     raise IOError(f"Image {pullspec} is not found.")

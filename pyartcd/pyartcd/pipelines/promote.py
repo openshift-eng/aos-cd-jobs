@@ -617,7 +617,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
                 )
         return await retry(
             stop=(stop_after_attempt(72)),  # wait for 10m * 72 = 720m = 12 hours
-            wait=wait_fixed(300),  # wait for 10 minutes between retries
+            wait=wait_fixed(600),  # wait for 10 minutes between retries
             retry=(retry_if_result(lambda phase: phase != "Accepted") | retry_if_exception_type()),
             before_sleep=_my_before_sleep,
         )(self.get_release_phase)(release_controller_url, release_stream, release_name)

@@ -74,33 +74,24 @@ node {
         }
 
         stage("gen-assembly") {
+            sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+            def cmd = [
+                            "artcd",
+                            "-v",
+                            "--working-dir=./artcd_working",
+                            "--config=./config/artcd.toml",
+                            "gen-assembly",
+                            "--nightlies='${params.NIGHTLIES}'",
+                            "--in-flight-prev=${params.IN_FLIGHT_PREV}",
+                            "--build-version=${BUILD_VERSION}",
+                            "--assembly-name=${params.ASSEMBLY_NAME}"
+                            ]
+
             withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
-                nightly_args = ""
-                for (nightly in commonlib.parseList(params.NIGHTLIES)) {
-                    nightly_args += " --nightly ${nightly.trim()}"
+                withCredentials([string(credentialsId: 'openshift-art-build-bot_github_api_token', variable: 'GITHUB_TOKEN'), string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
+                            def out = sh(script: cmd.join(' '), returnStdout: true).trim()
+                            currentBuild.description = "${out}"
                 }
-                cmd = "--group openshift-${BUILD_VERSION} release:gen-assembly --name ${ASSEMBLY_NAME} from-releases ${nightly_args}"
-                if (params.CUSTOM) {
-                    cmd += ' --custom'
-                    if ((params.IN_FLIGHT_PREV && params.IN_FLIGHT_PREV != 'none') || params.PREVIOUS) {
-                        error("Specifying IN_FLIGHT_PREV or PREVIOUS for a custom release is not allowed.")
-                    }
-                }
-                else {
-                    if (params.IN_FLIGHT_PREV && params.IN_FLIGHT_PREV != 'none') {
-                        cmd += " --in-flight ${IN_FLIGHT_PREV}"
-                    }
-                    if (params.PREVIOUS) {
-                        if (params.PREVIOUS != 'none') {
-                            for (previous in params.PREVIOUS.split(',')) {
-                                cmd += " --previous ${previous.trim()}"
-                            }
-                        }
-                    } else {
-                        cmd += ' --auto-previous'
-                    }
-                }
-                buildlib.doozer(cmd)
             }
         }
 

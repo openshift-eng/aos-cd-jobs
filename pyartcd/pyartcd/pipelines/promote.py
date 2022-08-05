@@ -457,7 +457,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
 
         go_arch_suffix = go_suffix_for_arch(arch)
         namespace = f"ocp{go_arch_suffix}"
-        image_stream_name = '4-dev-preview' if self.runtime.assembly_type == assembly.AssemblyTypes.PREVIEW else 'release'
+        image_stream_name = '4-dev-preview' if assembly_type == assembly.AssemblyTypes.PREVIEW else 'release'
         image_stream_tag = f"{image_stream_name}{go_arch_suffix}:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
         self._logger.info("Checking if ImageStreamTag %s exists...", namespace_image_stream_tag)

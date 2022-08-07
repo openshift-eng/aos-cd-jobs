@@ -35,7 +35,7 @@ class SlackClient:
         if channel_or_release.startswith("#"):
             self.channel = channel_or_release
             return
-        match = re.compile(r"(\d+)\.(\d+)").match(channel_or_release)
+        match = re.compile(r"(\d+)\.(\d+)").search(channel_or_release)
         if match:
             self.channel = f"#art-release-{match[1]}-{match[2]}"
         else:
@@ -45,7 +45,7 @@ class SlackClient:
         attachments = []
         if self.job_run_url:
             attachments.append({
-                "title": f"Job: {self.job_name} <{self.job_run_url}|{self.job_run_name}>",
+                "title": f"Job: {self.job_name} <{self.job_run_url}/consoleFull|{self.job_run_name}>",
                 "color": "#439FE0",
             })
         if self.dry_run:

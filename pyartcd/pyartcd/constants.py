@@ -6,3 +6,5 @@ TARBALL_SOURCES_REMOTE_HOST = "ocp-build@rcm-guest.app.eng.bos.redhat.com"
 TARBALL_SOURCES_REMOTE_BASE_DIR = "/mnt/rcm-guest/ocp-client-handoff"
 
 RELEASE_IMAGE_REPO = "quay.io/openshift-release-dev/ocp-release"
+
+GIT_AUTHOR = "AOS Automation Release Team <noreply@redhat.com>"

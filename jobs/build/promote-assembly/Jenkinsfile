@@ -180,6 +180,12 @@ node {
         if (params.MULTI_ONLY) {
             cmd << "--multi-only"
         }
+        if (major == 4 && minor <= 11) {
+            // Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue (#incident-cincinnati-sha-mismatch-for-multi-images).
+            // This is also required for 4.11 to prevent the heterogeneous payload from getting into Cincinnati channels
+            // because 4.11 heterogeneous is tech preview.
+            cmd << "--use-multi-hack"
+        }
         for (arch in arches) {
             cmd << "--arch=${arch}"
         }

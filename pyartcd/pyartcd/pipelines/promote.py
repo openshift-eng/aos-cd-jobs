@@ -38,7 +38,7 @@ class PromotePipeline:
                  arches: Iterable[str], skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
                  skip_image_list: bool = False, permit_overwrite: bool = False,
-                 no_multi: bool = False, multi_only: bool = False) -> None:
+                 no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
@@ -56,6 +56,7 @@ class PromotePipeline:
             raise ValueError("Option multi_only can't be used with no_multi")
         self.no_multi = no_multi
         self.multi_only = multi_only
+        self.use_multi_hack = use_multi_hack
         self._multi_enabled = False
 
         self._logger = self.runtime.logger
@@ -584,14 +585,17 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         if dest_image_digest:  # already promoted
             self._logger.warning("Multi/heterogeneous payload %s already exists; digest: %s", dest_image_pullspec, dest_image_digest)
             dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
-        # Change the release name temporarily
-        # to workaround the cincinnati issue discussed in #incident-cincinnati-sha-mismatch-for-multi-images
-        # e.g.
-        #   "4.11.0-rc.6" => "4.11.0-multi-rc.6"
-        #   "4.11.0" => "4.11.0-multi"
-        parsed_version = VersionInfo.parse(release_name)
-        parsed_version = parsed_version.replace(prerelease=f"multi-{parsed_version.prerelease}" if parsed_version.prerelease else "multi")
-        release_name = str(parsed_version)
+
+        if self.use_multi_hack:
+            # Add '-multi' to heterogeneous payload name.
+            # This is to workaround a cincinnati issue discussed in #incident-cincinnati-sha-mismatch-for-multi-images
+            # and prevent the heterogeneous payload from getting into Cincinnati channels.
+            # e.g.
+            #   "4.11.0-rc.6" => "4.11.0-multi-rc.6"
+            #   "4.11.0" => "4.11.0-multi"
+            parsed_version = VersionInfo.parse(release_name)
+            parsed_version = parsed_version.replace(prerelease=f"multi-{parsed_version.prerelease}" if parsed_version.prerelease else "multi")
+            release_name = str(parsed_version)
 
         if not dest_image_digest or self.permit_overwrite:
             if dest_image_digest:
@@ -994,13 +998,14 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
 @click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
+@click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
 async def promote(runtime: Runtime, group: str, assembly: str, release_offset: Optional[int],
                   arches: Tuple[str, ...], skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
-                  permit_overwrite: bool, no_multi: bool, multi_only: bool):
+                  permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly, release_offset, arches,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
-                               skip_image_list, permit_overwrite, no_multi, multi_only)
+                               skip_image_list, permit_overwrite, no_multi, multi_only, use_multi_hack)
     await pipeline.run()

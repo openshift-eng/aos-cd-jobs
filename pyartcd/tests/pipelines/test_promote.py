@@ -437,8 +437,8 @@ class TestPromotePipeline(TestCase):
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
         dest_metadata = metadata.copy()
         dest_metadata["release.openshift.io/architecture"] = "multi"
-        build_release_image.assert_any_await("4.10.99", "aarch64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
-        build_release_image.assert_any_await("4.10.99", "x86_64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99", "aarch64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99", "x86_64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
         dest_manifest_list = {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi', 'manifests': [{'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64', 'platform': {'os': 'linux', 'architecture': 'amd64'}}, {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64', 'platform': {'os': 'linux', 'architecture': 'arm64'}}]}
         push_manifest_list.assert_awaited_once_with("4.10.99", dest_manifest_list)
         tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", "ocp-multi/release-multi:4.10.99")
@@ -511,8 +511,8 @@ class TestPromotePipeline(TestCase):
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
         dest_metadata = metadata.copy()
         dest_metadata["release.openshift.io/architecture"] = "multi"
-        build_release_image.assert_any_await("4.10.99", "aarch64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
-        build_release_image.assert_any_await("4.10.99", "x86_64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99", "aarch64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99", "x86_64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
         dest_manifest_list = {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi', 'manifests': [{'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64', 'platform': {'os': 'linux', 'architecture': 'amd64'}}, {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64', 'platform': {'os': 'linux', 'architecture': 'arm64'}}]}
         push_manifest_list.assert_awaited_once_with("4.10.99", dest_manifest_list)
         tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", "ocp-multi/release-multi:4.10.99")

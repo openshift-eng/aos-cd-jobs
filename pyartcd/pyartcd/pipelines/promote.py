@@ -596,6 +596,8 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             parsed_version = VersionInfo.parse(release_name)
             parsed_version = parsed_version.replace(prerelease=f"multi-{parsed_version.prerelease}" if parsed_version.prerelease else "multi")
             release_name = str(parsed_version)
+            # No previous list is required until we get rid of the "having `-multi` string in the release name" workaround
+            previous_list = []
 
         if not dest_image_digest or self.permit_overwrite:
             if dest_image_digest:
@@ -643,8 +645,6 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
                 # Add task to build arch-specific heterogeneous payload
                 metadata = metadata.copy() if metadata else {}
                 metadata['release.openshift.io/architecture'] = 'multi'
-                # No previous list is required until we get rid of the "having `-multi` string in the release name" workaround
-                previous_list = []
                 build_tasks.append(self.build_release_image(release_name, brew_arch, previous_list, metadata, arch_payload_dest, arch_payload_source, None, keep_manifest_list=True))
 
             # Build and push all arch-specific heterogeneous payloads

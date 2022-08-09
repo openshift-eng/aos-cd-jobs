@@ -97,9 +97,21 @@ pipeline {
             description: 'Just show what would happen, without actually executing the steps',
             defaultValue: false,
         )
+        booleanParam(
+            name: 'MOCK',
+            description: 'Pick up changed job parameters and then exit',
+            defaultValue: false,
+        )
     }
 
     stages {
+        stage('Check mock') {
+            steps {
+                script {
+                    olm_bundles.commonlib.checkMock()
+                }
+            }
+        }
         stage('Set build info') {
             steps {
                 script {

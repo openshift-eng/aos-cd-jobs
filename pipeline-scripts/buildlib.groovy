@@ -61,7 +61,7 @@ def proxy_setup() {
         'cdn02.quay.io',
         'cdn03.quay.io'
     ]
-        
+
     env.https_proxy = proxy
     env.http_proxy = proxy
     env.no_proxy = no_proxy.join(',')
@@ -126,7 +126,7 @@ def cleanWhitespace(cmd) {
     )
 }
 
-def setup_venv() {
+def setup_venv(use_python38=false) {
     // Preparing venv for ART tools (doozer and elliott)
     // The following commands will run automatically every time one of our jobs
     // loads buildlib (ideally, once per pipeline)
@@ -135,7 +135,11 @@ def setup_venv() {
     DOOZER_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/doozer/doozer"
     ELLIOTT_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/elliott/elliott"
 
-    commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
+    if (use_python38) {
+        commonlib.shell(script: "scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
+    } else {
+        commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
+    }
 
     env.VIRTUAL_ENV = "${VIRTUAL_ENV}"
     env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/elliott:${env.WORKSPACE}/art-tools/doozer:${env.PATH}"
@@ -1581,6 +1585,6 @@ def get_releases_config(String group) {
 }
 
 this.proxy_setup()
-this.setup_venv()
+this.setup_venv(true)
 
 return this

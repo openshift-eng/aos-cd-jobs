@@ -120,7 +120,7 @@ node {
                 echo "Triggering release controller to cut new release using previously synced builds..."
                 buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} -n ocp tag registry.access.redhat.com/ubi8 ${params.BUILD_VERSION}-art-latest:trigger-release-controller")
                 echo "Sleeping so that release controller has time to react..."
-                sleep(10)
+                sleep(60)
                 buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} -n ocp tag ${params.BUILD_VERSION}-art-latest:trigger-release-controller -d")
             }
             return

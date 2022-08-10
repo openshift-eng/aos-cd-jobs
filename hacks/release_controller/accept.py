@@ -3,18 +3,14 @@ import click
 import os
 import sys
 import openshift as oc
-import json
 import re
 import requests
 import subprocess
 
-WARNING = '\033[91m'
-ENDC = '\033[0m'
-
 
 @click.command()
 @click.option('-a', '--arch', default='amd64', help='Release architecture', type=click.Choice(['amd64',
-'arm64','s390x','ppc64le']))
+              'arm64','s390x','ppc64le']))
 @click.option('-r', '--release', required=True, help='Release name (e.g. 4.3.13)')
 @click.option('-u', '--upgrade-url', default=None, required=False, help='URL to successful upgrade job')
 @click.option('-m', '--upgrade-minor-url', default=None, required=False, help='URL to successful upgrade-minor job')
@@ -22,7 +18,8 @@ ENDC = '\033[0m'
 @click.option("--confirm", type=bool, is_flag=True, default=False,
               help="Must be specified to apply changes to server")
 @click.option("--why", default=None, required=False, help='Reason to perform this action. required with --reject')
-@click.option("--allow-upgrade-to-change", type=bool, is_flag=True, default=False, help='Allow when new upgrade-to version is different from old upgrade-to')
+@click.option("--allow-upgrade-to-change", type=bool, is_flag=True, default=False,
+              help='Allow when new upgrade-to version is different from old upgrade-to')
 def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, why, allow_upgrade_to_change):
 
     """
@@ -45,17 +42,14 @@ def run(arch, release, upgrade_url, upgrade_minor_url, confirm, reject, why, all
     """
 
     if not upgrade_minor_url and not upgrade_url:
-        click.echo('One or both upgrade urls must be specified in order to accept the release')
-        sys.exit(1)
+        raise click.BadParameter('One or both upgrade urls must be specified in order to accept the release')
 
     if reject and not why:
-        click.echo('--why (a reason) is required when rejecting a release')
-        sys.exit(1)
+        raise click.BadParameter('--why (a reason) is required when rejecting a release')
 
     kubeconfig = os.getenv('KUBECONFIG')
     if not kubeconfig:
-        click.echo('cannot find KUBECONFIG env')
-        sys.exit(1)
+        raise ValueError('cannot find KUBECONFIG env')
 
     release_phase_rejected = 'Rejected'
     upgrade_state_failed = 'Failed'

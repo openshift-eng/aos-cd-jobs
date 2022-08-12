@@ -62,7 +62,7 @@ function transferClientIfNeeded() {
         # rclone sync will check md5 sums on non-multipart files and file sizes on multi-part files. If 'check'
         # detects either, just copy (don't sync as it will try to be smart and not copy files with the same name & size).
         rclone copy "${S3_SRC}" "${S3_DEST}"  # Copy over all files, regardless of the difference detected
-        rclone sync -c "${S3_SRC}" "${S3_DEST}"  # Run sync to delete any files that should no longer be present. 
+        rclone sync -c "${S3_SRC}" "${S3_DEST}"  # Run sync to delete any files that should no longer be present.
         # CloudFront will cache files of the same name (e.g. sha256sum.txt), so we need to explicitly invalidate
         aws cloudfront create-invalidation --distribution-id E3RAW1IMLSZJW3 --paths "/${S3_DEST_PATH}*"
     fi
@@ -77,6 +77,11 @@ for arch in ${ARCHES}; do
             x86_64) qarch="amd64" ;;
             aarch64) qarch="arm64" ;;
         esac
+        if [[ "$arch" == "multi" && "${USE_CHANNEL}" == "fast-4.11" && "${LINK_NAME}" == "latest" ]]; then
+            # 4.11 multi releases have "-multi" in their names, which are not in Cincinnati graph.
+            # query amd64 arch instead.
+            qarch=amd64
+        fi
         CHANNEL_RELEASES=$(curl -sH "Accept:application/json" "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" | jq '.nodes[].version' -r)
         if [[ -z "$CHANNEL_RELEASES" ]]; then
             echo "No versions currently detected in ${USE_CHANNEL} for arch ${qarch} ; No ${LINK_NAME} will be set"
@@ -94,6 +99,17 @@ for arch in ${ARCHES}; do
             continue
         fi
 
+        if [[ "$arch" == "multi" && "${USE_CHANNEL}" == "fast-4.11" && "${LINK_NAME}" == "latest" ]]; then
+            # Because we use the amd64 graph data, we need to check if multi client binaries are already published to mirror.
+            qrelease=$(RELEASE=$RELEASE python3 -c 'import os; from semver import VersionInfo; parsed_version = VersionInfo.parse(os.environ["RELEASE"]); parsed_version=parsed_version.replace(prerelease=f"multi-{parsed_version.prerelease}" if parsed_version.prerelease else "multi"); print(parsed_version)')
+            rc=0
+            curl --fail -o /dev/null "https://mirror.openshift.com/pub/openshift-v4/multi/clients/ocp/$qrelease/sha256sum.txt.gpg" || rc=$?
+            if [[ $rc != 0 ]]; then
+                echo "${RELEASE} for multi arch is latest in ${USE_CHANNEL}, but client binaries are not published; ignoring"
+                continue
+            fi
+            RELEASE=$qrelease
+        fi
     fi
 
     target_path="${arch}/clients/${CLIENT_TYPE}"

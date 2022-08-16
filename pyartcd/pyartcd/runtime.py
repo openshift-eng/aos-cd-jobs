@@ -37,7 +37,7 @@ class Runtime:
     def new_slack_client(self, token: Optional[str] = None):
         if not token:
             token = os.environ.get("SLACK_BOT_TOKEN")
-            if not token:
+            if not token and not self.dry_run:
                 raise ValueError("SLACK_BOT_TOKEN environment variable is not set")
         return SlackClient(token, dry_run=self.dry_run,
                            job_name=self.get_job_name(),

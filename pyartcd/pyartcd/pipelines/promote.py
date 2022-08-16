@@ -21,27 +21,43 @@ from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.runtime import Runtime
+from ruamel.yaml import YAML
 from semver import VersionInfo
 from tenacity import (RetryCallState, RetryError, retry,
                       retry_if_exception_type, retry_if_result,
                       stop_after_attempt, wait_fixed)
+
+yaml = YAML(typ="safe")
+yaml.default_flow_style = False
 
 
 class PromotePipeline:
     DEST_RELEASE_IMAGE_REPO = constants.RELEASE_IMAGE_REPO
 
     def __init__(self, runtime: Runtime, group: str, assembly: str, release_offset: Optional[int],
-                 arches: Iterable[str], skip_blocker_bug_check: bool = False, skip_attached_bug_check: bool = False,
-                 skip_image_list: bool = False, permit_overwrite: bool = False) -> None:
+                 arches: Iterable[str], skip_blocker_bug_check: bool = False,
+                 skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
+                 skip_image_list: bool = False, permit_overwrite: bool = False,
+                 no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
         self.release_offset = release_offset
         self.arches = list(arches)
+        if "multi" in self.arches:
+            raise ValueError("`multi` is not a real architecture. Set multi_arch.enable to true to enable heterogenous payload support.")
         self.skip_blocker_bug_check = skip_blocker_bug_check
         self.skip_attached_bug_check = skip_attached_bug_check
+        self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
         self.permit_overwrite = permit_overwrite
+
+        if multi_only and no_multi:
+            raise ValueError("Option multi_only can't be used with no_multi")
+        self.no_multi = no_multi
+        self.multi_only = multi_only
+        self.use_multi_hack = use_multi_hack
+        self._multi_enabled = False
 
         self._logger = self.runtime.logger
         self._slack_client = self.runtime.new_slack_client()
@@ -86,6 +102,9 @@ class PromotePipeline:
 
         justifications = []
         try:
+            self._multi_enabled = group_config.get("multi_arch", {}).get("enabled", False)
+            if self.multi_only and not self._multi_enabled:
+                raise ValueError("Can't promote a multi payload: multi_arch.enabled is not set in group config")
             # Get arches
             arches = self.arches or group_config.get("arches", [])
             arches = list(set(map(brew_arch_for_go_arch, arches)))
@@ -99,6 +118,8 @@ class PromotePipeline:
             # Ensure all versions in previous list are valid semvers.
             if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
                 raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
+
+            impetus_advisories = group_config.get("advisories", {})
 
             # Check for blocker bugs
             if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
@@ -114,32 +135,38 @@ class PromotePipeline:
                     justifications.append(justification)
                 logger.info("No blocker bugs found.")
 
-            # If there are CVEs, convert RHBAs to RHSAs and attach CVE flaw bugs
-            impetus_advisories = group_config.get("advisories", {})
-            futures = []
-            for impetus, advisory in impetus_advisories.items():
-                if not advisory:
-                    continue
-                if advisory < 0 and assembly_type != assembly.AssemblyTypes.CANDIDATE:  # placeholder advisory id is still in group config?
-                    raise ValueError("Found invalid %s advisory %s", impetus, advisory)
-                logger.info("Attaching CVE flaws for %s advisory %s...", impetus, advisory)
-                futures.append(self.attach_cve_flaws(advisory))
-            try:
-                await asyncio.gather(*futures)
-            except ChildProcessError as err:
-                logger.warn("Error attaching CVE flaw bugs: %s", err)
-                justification = self._reraise_if_not_permitted(err, "CVE_FLAWS", permits)
-                justifications.append(justification)
+            if not self.skip_attach_cve_flaws:
+                # If there are CVEs, convert RHBAs to RHSAs and attach CVE flaw bugs
+                tasks = []
+                for impetus, advisory in impetus_advisories.items():
+                    if not advisory:
+                        continue
+                    if advisory < 0 and assembly_type != assembly.AssemblyTypes.CANDIDATE:  # placeholder advisory id is still in group config?
+                        raise ValueError("Found invalid %s advisory %s", impetus, advisory)
+                    logger.info("Attaching CVE flaws for %s advisory %s...", impetus, advisory)
+                    tasks.append(self.attach_cve_flaws(advisory))
+                try:
+                    await asyncio.gather(*tasks)
+                except ChildProcessError as err:
+                    logger.warn("Error attaching CVE flaw bugs: %s", err)
+                    justification = self._reraise_if_not_permitted(err, "CVE_FLAWS", permits)
+                    justifications.append(justification)
+            else:
+                self._logger.warning("Attaching CVE flaws is skipped.")
 
             # Attempt to move all advisories to QE
-            futures = []
+
+            tasks = []
             for impetus, advisory in impetus_advisories.items():
                 if not advisory:
                     continue
                 logger.info("Moving advisory %s to QE...", advisory)
-                futures.append(self.change_advisory_state(advisory, "QE"))
+                if not self.runtime.dry_run:
+                    tasks.append(self.change_advisory_state(advisory, "QE"))
+                else:
+                    logger.warning("[DRY RUN] Would have moved advisory %s to QE", advisory)
             try:
-                await asyncio.gather(*futures)
+                await asyncio.gather(*tasks)
             except ChildProcessError as err:
                 logger.warn("Error moving advisory %s to QE: %s", advisory, err)
 
@@ -180,7 +207,6 @@ class PromotePipeline:
                         justifications.append(justification)
 
             # Promote release images
-            futures = []
             metadata = {}
             description = group_config.get("description")
             if description:
@@ -190,23 +216,28 @@ class PromotePipeline:
                 metadata["url"] = errata_url
             reference_releases = util.get_assembly_basis(releases_config, self.assembly).get("reference_releases", {})
             tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE]
-            release_infos = await self.promote_all_arches(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
+            release_infos = await self.promote(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)
 
-            # Wait for release controllers
-            pullspecs = list(map(lambda r: r["image"], release_infos))
+            # Wait for payloads to be accepted by release controllers
+            pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}
+            pullspecs_repr = ", ".join(f"{arch}: {pullspecs[arch]}" for arch in sorted(pullspecs.keys()))
             if not tag_stable:
-                self._logger.warning("This release will not appear on release controllers. Pullspecs: %s", release_name, ", ".join(pullspecs))
-                await self._slack_client.say(f"Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {', '.join(pullspecs)}", slack_thread)
+                self._logger.warning("Release %s will not appear on release controllers. Pullspecs: %s", release_name, pullspecs_repr)
+                await self._slack_client.say(f"Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {pullspecs_repr}", slack_thread)
             else:  # Wait for release images to be accepted by the release controllers
-                self._logger.info("All release images for %s have been successfully promoted. Pullspecs: %s", release_name, ", ".join(pullspecs))
+                self._logger.info("All release images for %s have been successfully promoted. Pullspecs: %s", release_name, pullspecs_repr)
 
                 # check if release is already accepted (in case we timeout and run the job again)
-                accepted = []
-                for arch in arches:
+                tasks = []
+                for arch, release_info in release_infos.items():
                     go_arch_suffix = go_suffix_for_arch(arch)
                     release_stream = f"4-stable{go_arch_suffix}"
-                    accepted.append(await self.is_accepted(release_name, arch, release_stream))
+                    actual_release_name = release_info["metadata"]["version"]
+                    # Currently the multi payload uses a different release name to workaround a cincinnati issue.
+                    # Use the release name in release_info instead.
+                    tasks.append(self.is_accepted(actual_release_name, arch, release_stream))
+                accepted = await asyncio.gather(*tasks)
 
                 if not all(accepted):
                     self._logger.info("Determining upgrade tests...")
@@ -218,13 +249,16 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
                     await self._slack_client.say(message, slack_thread)
 
                     self._logger.info("Waiting for release images for %s to be accepted by the release controller...", release_name)
-                    futures = []
-                    for arch in arches:
+                    tasks = []
+                    for arch, release_info in release_infos.items():
                         go_arch_suffix = go_suffix_for_arch(arch)
                         release_stream = f"4-stable{go_arch_suffix}"
-                        futures.append(self.wait_for_stable(release_name, arch, release_stream))
+                        actual_release_name = release_info["metadata"]["version"]
+                        # Currently the multi payload uses a different release name to workaround a cincinnati issue.
+                        # Use the release name in release_info instead.
+                        tasks.append(self.wait_for_stable(actual_release_name, arch, release_stream))
                     try:
-                        await asyncio.gather(*futures)
+                        await asyncio.gather(*tasks)
                     except RetryError as err:
                         message = f"Timeout waiting for release to be accepted by the release controllers: {err}"
                         self._logger.error(message)
@@ -269,10 +303,11 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             data["advisory"] = image_advisory
         if errata_url:
             data["live_url"] = errata_url
-        for arch, release_info in zip(arches, release_infos):
+        for arch, release_info in release_infos.items():
             data["content"][arch] = {
                 "pullspec": release_info["image"],
                 "digest": release_info["digest"],
+                "metadata": {k: release_info["metadata"][k] for k in release_info["metadata"].keys() & {'version', 'previous'}},
             }
             from_release = release_info.get("references", {}).get("metadata", {}).get("annotations", {}).get("release.openshift.io/from-release")
             if from_release:
@@ -397,18 +432,63 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         async with self._elliott_lock:
             await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 
-    async def promote_all_arches(self, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
-        futures = []
-        for arch in arches:
-            futures.append(self.promote_arch(release_name, arch, previous_list, metadata, reference_releases.get(arch), tag_stable))
+    async def promote(self, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
+        """ Promote all release payloads
+        :param release_name: Release name. e.g. 4.11.0-rc.6
+        :param arches: List of architecture names. e.g. ["x86_64", "s390x"]. Don't use "multi" in this parameter.
+        :param previous_list: Previous list.
+        :param metadata: Payload metadata
+        :param reference_releases: A dict of reference release payloads to promote. Keys are architecture names, values are payload pullspecs
+        :param tag_stable: Whether to tag the promoted payload to "4-stable[-$arch]" release stream.
+        :return: A dict. Keys are architecture name or "multi", values are release_info dicts.
+        """
+        tasks = OrderedDict()
+        if not self.no_multi and self._multi_enabled:
+            tasks["heterogeneous"] = self._promote_heterogeneous_payload(release_name, arches, previous_list, metadata, tag_stable)
+        else:
+            self._logger.warning("Multi/heterogeneous payload is disabled.")
+        if not self.multi_only:
+            tasks["homogeneous"] = self._promote_homogeneous_payloads(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
+        else:
+            self._logger.warning("Arch-specific homogeneous release payloads will not be promoted because --multi-only is set.")
         try:
-            release_infos = await asyncio.gather(*futures)
+            results = dict(zip(tasks.keys(), await asyncio.gather(*tasks.values())))
         except ChildProcessError as err:
             self._logger.error("Error promoting release images: %s\n%s", str(err), traceback.format_exc())
             raise
-        return release_infos
+        return_value = {}
+        if "homogeneous" in results:
+            return_value.update(results["homogeneous"])
+        if "heterogeneous" in results:
+            return_value["multi"] = results["heterogeneous"]
+        return return_value
 
-    async def promote_arch(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], reference_release: Optional[str], tag_stable: bool):
+    async def _promote_homogeneous_payloads(self, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
+        """ Promote homogeneous payloads for specified architectures
+        :param release_name: Release name. e.g. 4.11.0-rc.6
+        :param arches: List of architecture names. e.g. ["x86_64", "s390x"].
+        :param previous_list: Previous list.
+        :param metadata: Payload metadata
+        :param reference_releases: A dict of reference release payloads to promote. Keys are architecture names, values are payload pullspecs
+        :param tag_stable: Whether to tag the promoted payload to "4-stable[-$arch]" release stream.
+        :return: A dict. Keys are architecture name, values are release_info dicts.
+        """
+        tasks = []
+        for arch in arches:
+            tasks.append(self._promote_arch(release_name, arch, previous_list, metadata, reference_releases.get(arch), tag_stable))
+        release_infos = await asyncio.gather(*tasks)
+        return dict(zip(arches, release_infos))
+
+    async def _promote_arch(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], reference_release: Optional[str], tag_stable: bool):
+        """ Promote an arch-specific homogeneous payload
+        :param arch: Architecture name.
+        :param previous_list: Previous list.
+        :param metadata: Payload metadata
+        :param reference_releases: A dict of reference release payloads to promote. Keys are architecture names, values are payload pullspecs
+        :param tag_stable: Whether to tag the promoted payload to "4-stable[-$arch]" release stream.
+        :return: A dict. Keys are architecture name, values are release_info dicts.
+        """
+        go_arch_suffix = go_suffix_for_arch(arch, is_private=False)
         brew_arch = brew_arch_for_go_arch(arch)  # ensure we are using Brew arches (e.g. aarch64) instead of golang arches (e.g. arm64).
         dest_image_tag = f"{release_name}-{brew_arch}"
         dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
@@ -422,7 +502,14 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             if dest_image_info:
                 self._logger.warning("The existing release image %s will be overwritten!", dest_image_pullspec)
             self._logger.info("Building arch-specific release image %s for %s (%s)...", release_name, arch, dest_image_pullspec)
-            await self.build_release_image(release_name, brew_arch, previous_list, metadata, dest_image_pullspec, reference_release)
+            reference_pullspec = None
+            source_image_stream = None
+            if reference_release:
+                reference_pullspec = f"registry.ci.openshift.org/ocp{go_arch_suffix}/release{go_arch_suffix}:{reference_release}"
+            else:
+                major, minor = util.isolate_major_minor_in_group(self.group)
+                source_image_stream = f"{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"
+            await self.build_release_image(release_name, brew_arch, previous_list, metadata, dest_image_pullspec, reference_pullspec, source_image_stream, keep_manifest_list=False)
             self._logger.info("Release image for %s %s has been built and pushed to %s", release_name, arch, dest_image_pullspec)
             self._logger.info("Getting release image information for %s...", dest_image_pullspec)
             if not self.runtime.dry_run:
@@ -432,6 +519,10 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
                 dest_image_info = {
                     "image": f"example.com/fake-release:{release_name}{brew_suffix_for_arch(arch)}",
                     "digest": f"fake:deadbeef{brew_suffix_for_arch(arch)}",
+                    "metadata": {
+                        "version": release_name,
+                        "previous": previous_list,
+                    },
                     "references": {
                         "spec": {
                             "tags": [
@@ -477,6 +568,142 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         self._logger.info("Release image %s has been tagged into %s.", dest_image_pullspec, namespace_image_stream_tag)
         return dest_image_info
 
+    async def _promote_heterogeneous_payload(self, release_name: str, include_arches: List[str], previous_list: List[str], metadata: Optional[Dict], tag_stable: bool):
+        """ Promote heterogeneous payload.
+        The heterogeneous payload itself is a manifest list, which include references to arch-specific heterogeneous payloads.
+        :param release_name: Release name. e.g. 4.11.0-rc.6
+        :param include_arches: List of architecture names.
+        :param previous_list: Previous list.
+        :param metadata: Payload metadata
+        :param tag_stable: Whether to tag the promoted payload to "4-stable[-$arch]" release stream.
+        :return: A dict. Keys are architecture name, values are release_info dicts.
+        """
+        dest_image_tag = f"{release_name}-multi"
+        dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
+        self._logger.info("Checking if multi/heterogeneous payload %s exists...", dest_image_pullspec)
+        dest_image_digest = await self.get_image_digest(dest_image_pullspec)
+        if dest_image_digest:  # already promoted
+            self._logger.warning("Multi/heterogeneous payload %s already exists; digest: %s", dest_image_pullspec, dest_image_digest)
+            dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
+
+        if self.use_multi_hack:
+            # Add '-multi' to heterogeneous payload name.
+            # This is to workaround a cincinnati issue discussed in #incident-cincinnati-sha-mismatch-for-multi-images
+            # and prevent the heterogeneous payload from getting into Cincinnati channels.
+            # e.g.
+            #   "4.11.0-rc.6" => "4.11.0-multi-rc.6"
+            #   "4.11.0" => "4.11.0-multi"
+            parsed_version = VersionInfo.parse(release_name)
+            parsed_version = parsed_version.replace(prerelease=f"multi-{parsed_version.prerelease}" if parsed_version.prerelease else "multi")
+            release_name = str(parsed_version)
+            # No previous list is required until we get rid of the "having `-multi` string in the release name" workaround
+            previous_list = []
+
+        if not dest_image_digest or self.permit_overwrite:
+            if dest_image_digest:
+                self._logger.warning("The existing payload %s will be overwritten!", dest_image_pullspec)
+            major, minor = util.isolate_major_minor_in_group(self.group)
+            # The imagestream for the assembly in ocp-multi contains a single tag.
+            # That single istag points to a top-level manifest-list on quay.io.
+            # Each entry in the manifest-list is an arch-specific heterogeneous payload.
+            # We need to fetch that manifest-list and recreate all arch-specific heterogeneous payloads first,
+            # then recreate the top-level manifest-list.
+            multi_is_name = f"{major}.{minor}-art-assembly-{self.assembly}-multi"
+            multi_is = await self.get_image_stream("ocp-multi", multi_is_name)
+            if not multi_is:
+                raise ValueError(f"Image stream {multi_is_name} is not found. Did you run build-sync?")
+            if len(multi_is["spec"]["tags"]) != 1:
+                raise ValueError(f"Image stream {multi_is_name} should only contain a single tag; Found {len(multi_is['spec']['tags'])} tags")
+            multi_ist = multi_is["spec"]["tags"][0]
+            source_manifest_list = await self.get_image_info(multi_ist["from"]["name"], raise_if_not_found=True)
+            if source_manifest_list["mediaType"] != "application/vnd.docker.distribution.manifest.list.v2+json":
+                raise ValueError(f'Pullspec {multi_ist["from"]["name"]} doesn\'t point to a valid manifest list.')
+            source_repo = multi_ist["from"]["name"].rsplit(':', 1)[0].rsplit('@', 1)[0]  # quay.io/openshift-release-dev/ocp-release@sha256:deadbeef -> quay.io/openshift-release-dev/ocp-release
+            # dest_manifest_list is the final top-level manifest-list
+            dest_manifest_list = {
+                "image": dest_image_pullspec,
+                "manifests": []
+            }
+            build_tasks = []
+            for manifest in source_manifest_list["manifests"]:
+                os = manifest["platform"]["os"]
+                arch = manifest["platform"]["architecture"]
+                brew_arch = brew_arch_for_go_arch(arch)
+                if os != "linux" or brew_arch not in include_arches:
+                    self._logger.warning(f"Skipping {os}/{arch} in manifest_list {source_manifest_list}")
+                    continue
+                arch_payload_source = f"{source_repo}@{manifest['digest']}"
+                arch_payload_dest = f"{dest_image_pullspec}-{brew_arch}"
+                # Add an entry to the top-level manifest list
+                dest_manifest_list["manifests"].append({
+                    'image': arch_payload_dest,
+                    'platform': {
+                        'os': 'linux',
+                        'architecture': arch
+                    }
+                })
+                # Add task to build arch-specific heterogeneous payload
+                metadata = metadata.copy() if metadata else {}
+                metadata['release.openshift.io/architecture'] = 'multi'
+                build_tasks.append(self.build_release_image(release_name, brew_arch, previous_list, metadata, arch_payload_dest, arch_payload_source, None, keep_manifest_list=True))
+
+            # Build and push all arch-specific heterogeneous payloads
+            self._logger.info("Building arch-specific heterogeneous payloads for %s...", include_arches)
+            await asyncio.gather(*build_tasks)
+
+            # Push the top level manifest list
+            self._logger.info("Pushing manifest list...")
+            await self.push_manifest_list(release_name, dest_manifest_list)
+            self._logger.info("Heterogeneous release payload for %s has been built. Manifest list pullspec is %s", release_name, dest_image_pullspec)
+            self._logger.info("Getting release image information for %s...", dest_image_pullspec)
+            dest_image_digest = await self.get_image_digest(dest_image_pullspec, raise_if_not_found=True) if not self.runtime.dry_run else "fake:deadbeef-multi"
+
+        dest_image_info = dest_manifest_list.copy()
+        dest_image_info["image"] = dest_image_pullspec
+        dest_image_info["digest"] = dest_image_digest
+        dest_image_info["metadata"] = {
+            "version": release_name,
+        }
+        if not tag_stable:
+            self._logger.info("Release image %s will not appear on the release controller.", dest_image_pullspec)
+            return dest_image_info
+
+        # Check if the heterogeneous release payload is already tagged into the image stream.
+        namespace = f"ocp-multi"
+        image_stream_tag = f"release-multi:{release_name}"
+        namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
+        self._logger.info("Checking if ImageStreamTag %s exists...", namespace_image_stream_tag)
+        ist = await self.get_image_stream_tag(namespace, image_stream_tag)
+        if ist:
+            ist_pullspec = ist["tag"]["from"]["name"]
+            if ist_pullspec == dest_image_pullspec:
+                self._logger.info("ImageStreamTag %s already exists and points to %s.", namespace_image_stream_tag, dest_image_pullspec)
+                return dest_image_info
+            message = f"ImageStreamTag {namespace_image_stream_tag} already exists, but it points to {ist_pullspec} instead of {dest_image_pullspec}"
+            if not self.permit_overwrite:
+                raise ValueError(message)
+            self._logger.warning(message)
+        else:
+            self._logger.info("ImageStreamTag %s doesn't exist.", namespace_image_stream_tag)
+
+        self._logger.info("Tagging release image %s into %s...", dest_image_pullspec, namespace_image_stream_tag)
+        await self.tag_release(dest_image_pullspec, namespace_image_stream_tag)
+        self._logger.info("Release image %s has been tagged into %s.", dest_image_pullspec, namespace_image_stream_tag)
+        return dest_image_info
+
+    async def push_manifest_list(self, release_name: str, dest_manifest_list: Dict):
+        dest_manifest_list_path = self._working_dir / f"{release_name}.manifest-list.yaml"
+        with dest_manifest_list_path.open("w") as ml:
+            yaml.dump(dest_manifest_list, ml)
+        cmd = [
+            "manifest-tool", "push", "from-spec", "--", f"{dest_manifest_list_path}"
+        ]
+        if self.runtime.dry_run:
+            self._logger.warning("[DRY RUN] Would have run %s", cmd)
+            return
+        env = os.environ.copy()
+        await exectools.cmd_assert_async(cmd, env=env, stdout=sys.stderr)
+
     @staticmethod
     async def get_release_image_info(pullspec: str, raise_if_not_found: bool = False):
         cmd = ["oc", "adm", "release", "info", "-o", "json", "--", pullspec]
@@ -484,7 +711,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         env["GOTRACEBACK"] = "all"
         rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
         if rc != 0:
-            if "not found: manifest unknown" in stderr:
+            if "not found: manifest unknown" in stderr or "was deleted or has expired" in stderr:
                 # release image doesn't exist
                 if raise_if_not_found:
                     raise IOError(f"Image {pullspec} is not found.")
@@ -522,7 +749,10 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             test_commands.append(f"test upgrade {edge} {release_name} {platform}")
         return test_commands
 
-    async def build_release_image(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], dest_image_pullspec: str, reference_release: Optional[str]):
+    async def build_release_image(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict],
+                                  dest_image_pullspec: str, source_image_pullspec: Optional[str], source_image_stream: Optional[str], keep_manifest_list: bool):
+        if bool(source_image_pullspec) + bool(source_image_stream) != 1:
+            raise ValueError("Specify one of source_image_pullspec or source_image_stream")
         go_arch_suffix = go_suffix_for_arch(arch, is_private=False)
         cmd = [
             "oc",
@@ -536,12 +766,12 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         ]
         if self.runtime.dry_run:
             cmd.append("--dry-run")
-        if reference_release:
-            cmd.append(f"--from-release=registry.ci.openshift.org/ocp{go_arch_suffix}/release{go_arch_suffix}:{reference_release}")
-        else:
-            major, minor = util.isolate_major_minor_in_group(self.group)
-            src_image_stream = f"{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"
-            cmd.extend(["--reference-mode=source", f"--from-image-stream={src_image_stream}"])
+        if source_image_pullspec:
+            cmd.append(f"--from-release={source_image_pullspec}")
+        if source_image_stream:
+            cmd.extend(["--reference-mode=source", f"--from-image-stream={source_image_stream}"])
+        if keep_manifest_list:
+            cmd.append("--keep-manifest-list")
 
         if previous_list:
             cmd.append(f"--previous={','.join(previous_list)}")
@@ -550,9 +780,105 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             cmd.append(json.dumps(metadata))
         env = os.environ.copy()
         env["GOTRACEBACK"] = "all"
+        self._logger.info("Running %s", " ".join(cmd))
         await exectools.cmd_assert_async(cmd, env=env, stdout=sys.stderr)
+        pass
 
-    async def get_image_stream_tag(self, namespace: str, image_stream_tag: str):
+    @staticmethod
+    async def get_image_stream(namespace: str, image_stream: str):
+        cmd = [
+            "oc",
+            "-n",
+            namespace,
+            "get",
+            "imagestream",
+            "-o",
+            "json",
+            "--ignore-not-found",
+            "--",
+            image_stream,
+        ]
+        env = os.environ.copy()
+        env["GOTRACEBACK"] = "all"
+        _, stdout, _ = await exectools.cmd_gather_async(cmd, env=env, stderr=None)
+        stdout = stdout.strip()
+        if not stdout:  # Not found
+            return None
+        return json.loads(stdout)
+
+    @staticmethod
+    async def get_image_info(pullspec: str, raise_if_not_found: bool = False):
+        # Get image manifest/manifest-list.
+        # We use skopeo instead of `oc image info` because oc doesn't support json/yaml output for a manifest list.
+        if "://" not in pullspec:
+            pullspec = f"docker://{pullspec}"
+        # skopeo on buildvm is too old. Use a containerized version instead.
+        cmd = [
+            "podman",
+            "run",
+            "--rm",
+            "--privileged",
+            "quay.io/containers/skopeo:v1.8"
+        ]
+        if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
+            cmd = ["skopeo"]
+        cmd.extend([
+            "inspect",
+            "--no-tags",
+            "--raw",
+            "--",
+            pullspec,
+        ])
+        env = os.environ.copy()
+        rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
+        if rc != 0:
+            if "not found: manifest unknown" in stderr or "was deleted or has expired" in stderr:
+                # image doesn't exist
+                if raise_if_not_found:
+                    raise IOError(f"Image {pullspec} is not found.")
+                return None
+            raise ChildProcessError(f"Error running {cmd}: exit_code={rc}, stdout={stdout}, stderr={stderr}")
+        info = json.loads(stdout)
+        if not isinstance(info, dict):
+            raise ValueError(f"Invalid image info: {info}")
+        return info
+
+    @staticmethod
+    async def get_image_digest(pullspec: str, raise_if_not_found: bool = False):
+        # Get image digest
+        # We use skopeo instead of `oc image info` because oc doesn't support json/yaml output for a manifest list.
+        if "://" not in pullspec:
+            pullspec = f"docker://{pullspec}"
+        # skopeo on buildvm is too old. Use a containerized version instead.
+        cmd = [
+            "podman",
+            "run",
+            "--rm",
+            "--privileged",
+            "quay.io/containers/skopeo:v1.8"
+        ]
+        if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
+            cmd = ["skopeo"]
+        cmd.extend([
+            "inspect",
+            "--no-tags",
+            "--format={{.Digest}}",
+            "--",
+            pullspec,
+        ])
+        env = os.environ.copy()
+        rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
+        if rc != 0:
+            if "manifest unknown" in stderr or "was deleted or has expired" in stderr:
+                # image doesn't exist
+                if raise_if_not_found:
+                    raise IOError(f"Image {pullspec} is not found.")
+                return None
+            raise ChildProcessError(f"Error running {cmd}: exit_code={rc}, stdout={stdout}, stderr={stderr}")
+        return stdout.strip()
+
+    @staticmethod
+    async def get_image_stream_tag(namespace: str, image_stream_tag: str):
         cmd = [
             "oc",
             "-n",
@@ -612,7 +938,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             else:
                 self._logger.log(
                     logging.INFO if retry_state.attempt_number < 1 else logging.WARNING,
-                    'Release payload for "%s" arch is the "%s" phase. Will check again in %s seconds.',
+                    'Release payload for "%s" arch is in the "%s" phase. Will check again in %s seconds.',
                     arch, retry_state.outcome.result(), retry_state.next_action.sleep
                 )
         return await retry(
@@ -664,15 +990,22 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
               help="Skip blocker bug check. Note block bugs are never checked for CUSTOM and CANDIDATE releases.")
 @click.option("--skip-attached-bug-check", is_flag=True,
               help="Skip attached bug check. Note attached bugs are never checked for CUSTOM and CANDIDATE releases.")
+@click.option("--skip-attach-cve-flaws", is_flag=True,
+              help="Skip attaching CVE flaws.")
 @click.option("--skip-image-list", is_flag=True,
               help="Do not gather an advisory image list for docs.")
 @click.option("--permit-overwrite", is_flag=True,
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
+@click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
+@click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
+@click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
 async def promote(runtime: Runtime, group: str, assembly: str, release_offset: Optional[int],
-                  arches: Tuple[str, ...], skip_blocker_bug_check: bool, skip_attached_bug_check: bool, skip_image_list: bool, permit_overwrite: bool):
+                  arches: Tuple[str, ...], skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
+                  skip_attach_cve_flaws: bool, skip_image_list: bool,
+                  permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly, release_offset, arches,
-                               skip_blocker_bug_check, skip_attached_bug_check, skip_image_list,
-                               permit_overwrite)
+                               skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
+                               skip_image_list, permit_overwrite, no_multi, multi_only, use_multi_hack)
     await pipeline.run()

@@ -48,6 +48,16 @@ node {
                         trim: true,
                     ),
                     booleanParam(
+                        name: 'NO_MULTI',
+                        description: 'Do not promote a multi-arch/heterogeneous payload.',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'MULTI_ONLY',
+                        description: 'Do not promote arch-specific homogenous payloads.',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
                         name: 'PERMIT_PAYLOAD_OVERWRITE',
                         description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
                         defaultValue: false,
@@ -70,6 +80,11 @@ node {
                     booleanParam(
                         name: 'SKIP_IMAGE_LIST',
                         description: '(Standard Release) Do not gather an advisory image list for docs.',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'SKIP_ATTACH_CVE_FLAWS',
+                        description: 'Do not attach CVE flaws bugs',
                         defaultValue: false,
                     ),
                     booleanParam(
@@ -158,8 +173,23 @@ node {
         if (params.SKIP_IMAGE_LIST) {
             cmd << "--skip-image-list"
         }
+        if (params.SKIP_ATTACH_CVE_FLAWS) {
+            cmd << "--skip-attach-cve-flaws"
+        }
         if (params.PERMIT_PAYLOAD_OVERWRITE) {
             cmd << "--permit-overwrite"
+        }
+        if (params.NO_MULTI) {
+            cmd << "--no-multi"
+        }
+        if (params.MULTI_ONLY) {
+            cmd << "--multi-only"
+        }
+        if (major == 4 && minor <= 11) {
+            // Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue (#incident-cincinnati-sha-mismatch-for-multi-images).
+            // This is also required for 4.11 to prevent the heterogeneous payload from getting into Cincinnati channels
+            // because 4.11 heterogeneous is tech preview.
+            cmd << "--use-multi-hack"
         }
         for (arch in arches) {
             cmd << "--arch=${arch}"
@@ -192,16 +222,20 @@ node {
             echo "Skip mirroring binaries."
             return
         }
-        for (arch in arches) {
-            arch = commonlib.brewArchForGoArch(arch)
+        release_info.content.each { arch, info ->
+            echo "Mirroring client binaries for $arch"
             def dest_release_tag = release.destReleaseTag(release_info.name, arch)
-            retry(3) {
-                echo "Mirroring client binaries for $arch"
-                if (!params.DRY_RUN) {
-                    release.stagePublishClient(quay_url, dest_release_tag, release_info.name, arch, client_type)
+            // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
+            // Using the real per-arch release name in $info instead of the one defined by release artists.
+            def release_name = info.metadata.version
+            if (!params.DRY_RUN) {
+                if (arch != "multi") {
+                    release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, client_type)
                 } else {
-                    echo "[DRY RUN] Would have sync'd client binaries for ${quay_url}:${dest_release_tag} to mirror ${arch}/clients/${client_type}/${release_info.name}."
+                    release.stagePublishMultiClient(quay_url, dest_release_tag, release_name, client_type)
                 }
+            } else {
+                echo "[DRY RUN] Would have sync'd client binaries for ${quay_url}:${dest_release_tag} to mirror ${arch}/clients/${client_type}/${release_name}."
             }
         }
     }
@@ -211,7 +245,7 @@ node {
          * This has inappropriate logic, disabling it for now.
          * Current behavior is to look up rhcos version of machine-os-content
          * under some circumstances, and to put the result on mirror.
-         * Behavior should be to look up the rhcos version in 
+         * Behavior should be to look up the rhcos version in
          * https://github.com/openshift/installer/blob/release-4.10/data/data/coreos/rhcos.json
          * from the commit of installer, and ensure `latest-<version>` points to there.
 
@@ -256,12 +290,14 @@ node {
             echo "Signing artifacts is skipped."
             return
         }
-        for (arch in arches) {
-            arch = commonlib.brewArchForGoArch(arch)
+        release_info.content.each { arch, info ->
             def payloadDigest = release_info.content[arch].digest
+            // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
+            // Using the real per-arch release name in $info instead of the one defined by release artists.
+            def release_name = info.metadata.version
             echo "Signing $arch"
             release.signArtifacts(
-                name: release_info.name,
+                name: release_name,
                 signature_name: "signature-1",
                 dry_run: params.DRY_RUN,
                 env: "prod",
@@ -288,9 +324,11 @@ node {
             return
         }
 
-        for (arch in arches) {
-            arch = commonlib.brewArchForGoArch(arch)
-            release.sendReleaseCompleteMessage(["name": release_info.name], release_info.advisory ?: 0, release_info.live_url, arch)
+        release_info.content.each { arch, info ->
+            // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
+            // Using the real per-arch release name in $info instead of the one defined by release artists.
+            def release_name = info.metadata.version
+            release.sendReleaseCompleteMessage(["name": release_name], release_info.advisory ?: 0, release_info.live_url, arch)
         }
     }
 

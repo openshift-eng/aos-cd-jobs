@@ -46,6 +46,9 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
         "digest": f"fake:deadbeef-{pullspec}",
+        "metadata": {
+            "version": "4.10.99-assembly.art0001",
+        },
         "references": {
             "spec": {
                 "tags": [
@@ -71,8 +74,8 @@ class TestPromotePipeline(TestCase):
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-assembly.art0001-x86_64", raise_if_not_found=ANY)
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-assembly.art0001-s390x", raise_if_not_found=ANY)
-        build_release_image.assert_any_await("4.10.99-assembly.art0001", "x86_64", [], {}, "quay.io/openshift-release-dev/ocp-release:4.10.99-assembly.art0001-x86_64", None)
-        build_release_image.assert_any_await("4.10.99-assembly.art0001", "s390x", [], {}, "quay.io/openshift-release-dev/ocp-release:4.10.99-assembly.art0001-s390x", None)
+        build_release_image.assert_any_await("4.10.99-assembly.art0001", "x86_64", [], {}, "quay.io/openshift-release-dev/ocp-release:4.10.99-assembly.art0001-x86_64", None, '4.10-art-assembly-art0001', keep_manifest_list=False)
+        build_release_image.assert_any_await("4.10.99-assembly.art0001", "s390x", [], {}, "quay.io/openshift-release-dev/ocp-release:4.10.99-assembly.art0001-s390x", None, '4.10-art-assembly-art0001-s390x', keep_manifest_list=False)
         pipeline._slack_client.bind_channel.assert_called_once_with("4.10.99-assembly.art0001")
 
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={
@@ -92,6 +95,9 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
         "digest": f"fake:deadbeef-{pullspec}",
+        "metadata": {
+            "version": "4.10.99",
+        },
         "references": {
             "spec": {
                 "tags": [
@@ -147,10 +153,10 @@ class TestPromotePipeline(TestCase):
         pipeline.verify_attached_bugs.assert_awaited_once_with([1, 2, 3, 4])
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", raise_if_not_found=ANY)
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-s390x", raise_if_not_found=ANY)
-        build_release_image.assert_any_await("4.10.99", "x86_64", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", "nightly-x86_64")
-        build_release_image.assert_any_await("4.10.99", "s390x", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-s390x", "nightly-s390x")
-        build_release_image.assert_any_await("4.10.99", "ppc64le", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-ppc64le", "nightly-ppc64le")
-        build_release_image.assert_any_await("4.10.99", "aarch64", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64", "nightly-aarch64")
+        build_release_image.assert_any_await("4.10.99", "x86_64", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", "registry.ci.openshift.org/ocp/release:nightly-x86_64", None, keep_manifest_list=False)
+        build_release_image.assert_any_await("4.10.99", "s390x", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-s390x", "registry.ci.openshift.org/ocp-s390x/release-s390x:nightly-s390x", None, keep_manifest_list=False)
+        build_release_image.assert_any_await("4.10.99", "ppc64le", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-ppc64le", "registry.ci.openshift.org/ocp-ppc64le/release-ppc64le:nightly-ppc64le", None, keep_manifest_list=False)
+        build_release_image.assert_any_await("4.10.99", "aarch64", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64", "registry.ci.openshift.org/ocp-arm64/release-arm64:nightly-aarch64", None, keep_manifest_list=False)
         pipeline._slack_client.bind_channel.assert_called_once_with("4.10.99")
         pipeline.get_image_stream_tag.assert_any_await("ocp", "release:4.10.99")
         pipeline.tag_release.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", "ocp/release:4.10.99")
@@ -169,6 +175,9 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
         "digest": "fake:deadbeef",
+        "metadata": {
+            "version": "4.10.99",
+        },
         "references": {
             "spec": {
                 "tags": [
@@ -189,9 +198,9 @@ class TestPromotePipeline(TestCase):
 
         # test x86_64
         reference_release = "whatever-x86_64"
-        actual = asyncio.get_event_loop().run_until_complete(pipeline.promote_arch(release_name="4.10.99", arch="x86_64", previous_list=previous_list, metadata=metadata, reference_release=reference_release, tag_stable=True))
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_arch(release_name="4.10.99", arch="x86_64", previous_list=previous_list, metadata=metadata, reference_release=reference_release, tag_stable=True))
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64")
-        build_release_image.assert_awaited_once_with("4.10.99", "x86_64", previous_list, metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", reference_release)
+        build_release_image.assert_awaited_once_with("4.10.99", "x86_64", previous_list, metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", f'registry.ci.openshift.org/ocp/release:{reference_release}', None, keep_manifest_list=False)
         get_image_stream_tag.assert_awaited_once_with("ocp", "release:4.10.99")
         tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", "ocp/release:4.10.99")
         self.assertEqual(actual["image"], "quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64")
@@ -202,9 +211,9 @@ class TestPromotePipeline(TestCase):
         build_release_image.reset_mock()
         get_image_stream_tag.reset_mock()
         tag_release.reset_mock()
-        actual = asyncio.get_event_loop().run_until_complete(pipeline.promote_arch(release_name="4.10.99", arch="aarch64", previous_list=previous_list, metadata=metadata, reference_release=reference_release, tag_stable=True))
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_arch(release_name="4.10.99", arch="aarch64", previous_list=previous_list, metadata=metadata, reference_release=reference_release, tag_stable=True))
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64")
-        build_release_image.assert_awaited_once_with("4.10.99", "aarch64", previous_list, metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64", reference_release)
+        build_release_image.assert_awaited_once_with("4.10.99", "aarch64", previous_list, metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64", f'registry.ci.openshift.org/ocp-arm64/release-arm64:{reference_release}', None, keep_manifest_list=False)
         get_image_stream_tag.assert_awaited_once_with("ocp-arm64", "release-arm64:4.10.99")
         tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64", "ocp-arm64/release-arm64:4.10.99")
         self.assertEqual(actual["image"], "quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64")
@@ -221,9 +230,9 @@ class TestPromotePipeline(TestCase):
         get_image_stream_tag.reset_mock()
         tag_release.reset_mock()
         with self.assertRaisesRegex(ValueError, "already exists, but it has a different digest"):
-            asyncio.get_event_loop().run_until_complete(pipeline.promote_arch(release_name="4.10.99", arch="aarch64", previous_list=previous_list, metadata=metadata, reference_release=reference_release, tag_stable=True))
+            asyncio.get_event_loop().run_until_complete(pipeline._promote_arch(release_name="4.10.99", arch="aarch64", previous_list=previous_list, metadata=metadata, reference_release=reference_release, tag_stable=True))
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64")
-        build_release_image.assert_awaited_once_with("4.10.99", "aarch64", previous_list, metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64", reference_release)
+        build_release_image.assert_awaited_once_with("4.10.99", "aarch64", previous_list, metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-aarch64", f'registry.ci.openshift.org/ocp-arm64/release-arm64:{reference_release}', None, keep_manifest_list=False)
         get_image_stream_tag.assert_awaited_once_with("ocp-arm64", "release-arm64:4.10.99")
         tag_release.assert_not_awaited()
 
@@ -236,18 +245,26 @@ class TestPromotePipeline(TestCase):
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
         # test x86_64
-        reference_release = "whatever-x86_64"
+        reference_release = "registry.ci.openshift.org/ocp/release:whatever-x86_64"
         dest_pullspec = "example.com/foo/release:4.10.99-x86_64"
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release))
-        expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-x86_64", "--from-release=registry.ci.openshift.org/ocp/release:whatever-x86_64", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
+        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=False))
+        expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-x86_64", f"--from-release={reference_release}", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
         # test aarch64
-        reference_release = "whatever-aarch64"
+        reference_release = "registry.ci.openshift.org/ocp-arm64/release-arm64:whatever-aarch64"
         dest_pullspec = "example.com/foo/release:4.10.99-aarch64"
         cmd_assert_async.reset_mock()
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release))
-        expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp-arm64", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-aarch64", "--from-release=registry.ci.openshift.org/ocp-arm64/release-arm64:whatever-aarch64", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
+        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=False))
+        expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp-arm64", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-aarch64", f"--from-release={reference_release}", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
+        cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
+
+        # test multi-aarch64
+        reference_release = "registry.ci.openshift.org/ocp-arm64/release-arm64:whatever-multi-aarch64"
+        dest_pullspec = "example.com/foo/release:4.10.99-multi-aarch64"
+        cmd_assert_async.reset_mock()
+        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=True))
+        expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp-arm64", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-multi-aarch64", f"--from-release={reference_release}", "--keep-manifest-list", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
     @patch("pyartcd.pipelines.promote.exectools.cmd_assert_async", return_value=0)
@@ -261,14 +278,470 @@ class TestPromotePipeline(TestCase):
         # test x86_64
         reference_release = None
         dest_pullspec = "example.com/foo/release:4.10.99-x86_64"
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release))
+        from_image_stream = "4.10-art-assembly-4.10.99"
+        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release, from_image_stream, keep_manifest_list=False))
         expected_cmd = ['oc', 'adm', 'release', 'new', '-n', 'ocp', '--name=4.10.99', '--to-image=example.com/foo/release:4.10.99-x86_64', '--reference-mode=source', '--from-image-stream=4.10-art-assembly-4.10.99', '--previous=4.10.98,4.10.97,4.9.99', '--metadata', '{"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}']
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
         # test aarch64
         reference_release = None
         dest_pullspec = "example.com/foo/release:4.10.99-aarch64"
+        from_image_stream = "4.10-art-assembly-4.10.99-arm64"
         cmd_assert_async.reset_mock()
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release))
+        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, from_image_stream, keep_manifest_list=False))
         expected_cmd = ['oc', 'adm', 'release', 'new', '-n', 'ocp-arm64', '--name=4.10.99', '--to-image=example.com/foo/release:4.10.99-aarch64', '--reference-mode=source', '--from-image-stream=4.10-art-assembly-4.10.99-arm64', '--previous=4.10.98,4.10.97,4.9.99', '--metadata', '{"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}']
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
+
+    @patch("pyartcd.pipelines.promote.PromotePipeline.tag_release", return_value=None)
+    @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream_tag", return_value={
+        "tag": {
+            "from": {
+                "name": "quay.io/openshift-release-dev/ocp-release:4.10.99-multi",
+            }
+        }
+    })
+    @patch("pyartcd.pipelines.promote.PromotePipeline.push_manifest_list", return_value=None)
+    @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
+    @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream", return_value={
+        "spec": {
+            "tags": [
+                {"name": "4.10.99-0.art-assembly-4.10.99-multi-2022-07-26-210300",
+                 "from": {"name": "example.com/ocp-release@fake:deadbeef-source-manifest-list"}}
+            ]
+        }
+    })
+    @patch('pyartcd.pipelines.promote.PromotePipeline.get_image_info', side_effect=lambda pullspec, raise_if_not_found=False: {
+        ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): {
+            "schemaVersion": 2,
+            "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+            "manifests": [
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-amd64",
+                    "platform": {
+                        "architecture": "amd64",
+                        "os": "linux"
+                    }
+                },
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-ppc64le",
+                    "platform": {
+                        "architecture": "ppc64le",
+                        "os": "linux"
+                    }
+                },
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-s390x",
+                    "platform": {
+                        "architecture": "s390x",
+                        "os": "linux"
+                    }
+                },
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-aarch64",
+                    "platform": {
+                        "architecture": "arm64",
+                        "os": "linux"
+                    }
+                }
+            ]
+        },
+    }[pullspec, raise_if_not_found])
+    @patch('pyartcd.pipelines.promote.PromotePipeline.get_image_digest', return_value='fake:deadbeef-toplevel-manifest-list')
+    def test_promote_heterogeneous_payload(self, get_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
+                                           build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
+        runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
+                            working_dir=Path("/path/to/working"), dry_run=False)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])
+        previous_list = ["4.10.98", "4.10.97", "4.9.99"]
+        metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
+
+        # test: heterogeneous payload already exists
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(release_name="4.10.99", include_arches=["x86_64", "aarch64"], previous_list=previous_list, metadata=metadata, tag_stable=True))
+        get_image_digest.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_image_info.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
+        build_release_image.assert_not_called()
+        tag_release.assert_not_called()
+
+        # test: promote a GA heterogeneous payload
+        get_image_digest.reset_mock()
+        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
+        }[pullspec, raise_if_not_found]
+        get_image_info.reset_mock()
+        get_image_info.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): None,
+            ('example.com/ocp-release@fake:deadbeef-source-manifest-list', True): {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+                "manifests": [
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-amd64",
+                        "platform": {
+                            "architecture": "amd64",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-ppc64le",
+                        "platform": {
+                            "architecture": "ppc64le",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-s390x",
+                        "platform": {
+                            "architecture": "s390x",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-arm64",
+                        "platform": {
+                            "architecture": "arm64",
+                            "os": "linux"
+                        }
+                    }
+                ]
+            }
+        }[pullspec, raise_if_not_found]
+        get_image_stream.reset_mock()
+        get_image_stream_tag.reset_mock()
+        get_image_stream_tag.return_value = None
+        build_release_image.reset_mock()
+        push_manifest_list.reset_mock()
+        tag_release.reset_mock()
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(release_name="4.10.99", include_arches=["x86_64", "aarch64"], previous_list=previous_list, metadata=metadata, tag_stable=True))
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
+        get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
+        get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
+        dest_metadata = metadata.copy()
+        dest_metadata["release.openshift.io/architecture"] = "multi"
+        build_release_image.assert_any_await("4.10.99", "aarch64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99", "x86_64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
+        dest_manifest_list = {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi', 'manifests': [{'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64', 'platform': {'os': 'linux', 'architecture': 'amd64'}}, {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64', 'platform': {'os': 'linux', 'architecture': 'arm64'}}]}
+        push_manifest_list.assert_awaited_once_with("4.10.99", dest_manifest_list)
+        tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", "ocp-multi/release-multi:4.10.99")
+        self.assertEqual(actual["image"], "quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        self.assertEqual(actual["digest"], "fake:deadbeef-dest-multi")
+
+        # test: promote GA heterogeneous payload
+        get_image_digest.reset_mock()
+        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
+        }[pullspec, raise_if_not_found]
+        get_image_info.reset_mock()
+        get_image_info.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): None,
+            ('example.com/ocp-release@fake:deadbeef-source-manifest-list', True): {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+                "manifests": [
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-amd64",
+                        "platform": {
+                            "architecture": "amd64",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-ppc64le",
+                        "platform": {
+                            "architecture": "ppc64le",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-s390x",
+                        "platform": {
+                            "architecture": "s390x",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-arm64",
+                        "platform": {
+                            "architecture": "arm64",
+                            "os": "linux"
+                        }
+                    }
+                ]
+            }
+        }[pullspec, raise_if_not_found]
+        get_image_stream.reset_mock()
+        get_image_stream_tag.reset_mock()
+        get_image_stream_tag.return_value = None
+        build_release_image.reset_mock()
+        push_manifest_list.reset_mock()
+        tag_release.reset_mock()
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(release_name="4.10.99", include_arches=["x86_64", "aarch64"], previous_list=previous_list, metadata=metadata, tag_stable=True))
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
+        get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
+        get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
+        dest_metadata = metadata.copy()
+        dest_metadata["release.openshift.io/architecture"] = "multi"
+        build_release_image.assert_any_await("4.10.99", "aarch64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99", "x86_64", previous_list, dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
+        dest_manifest_list = {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi', 'manifests': [{'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64', 'platform': {'os': 'linux', 'architecture': 'amd64'}}, {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64', 'platform': {'os': 'linux', 'architecture': 'arm64'}}]}
+        push_manifest_list.assert_awaited_once_with("4.10.99", dest_manifest_list)
+        tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", "ocp-multi/release-multi:4.10.99")
+        self.assertEqual(actual["image"], "quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        self.assertEqual(actual["digest"], "fake:deadbeef-dest-multi")
+
+    @patch("pyartcd.pipelines.promote.PromotePipeline.tag_release", return_value=None)
+    @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream_tag", return_value={
+        "tag": {
+            "from": {
+                "name": "quay.io/openshift-release-dev/ocp-release:4.10.99-multi",
+            }
+        }
+    })
+    @patch("pyartcd.pipelines.promote.PromotePipeline.push_manifest_list", return_value=None)
+    @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
+    @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream", return_value={
+        "spec": {
+            "tags": [
+                {"name": "4.10.99-0.art-assembly-4.10.99-multi-2022-07-26-210300",
+                 "from": {"name": "example.com/ocp-release@fake:deadbeef-source-manifest-list"}}
+            ]
+        }
+    })
+    @patch('pyartcd.pipelines.promote.PromotePipeline.get_image_info', side_effect=lambda pullspec, raise_if_not_found=False: {
+        ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): {
+            "schemaVersion": 2,
+            "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+            "manifests": [
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-amd64",
+                    "platform": {
+                        "architecture": "amd64",
+                        "os": "linux"
+                    }
+                },
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-ppc64le",
+                    "platform": {
+                        "architecture": "ppc64le",
+                        "os": "linux"
+                    }
+                },
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-s390x",
+                    "platform": {
+                        "architecture": "s390x",
+                        "os": "linux"
+                    }
+                },
+                {
+                    "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                    "size": 1583,
+                    "digest": "fake:deadbeef-dest-multi-aarch64",
+                    "platform": {
+                        "architecture": "arm64",
+                        "os": "linux"
+                    }
+                }
+            ]
+        },
+    }[pullspec, raise_if_not_found])
+    @patch('pyartcd.pipelines.promote.PromotePipeline.get_image_digest', return_value='fake:deadbeef-toplevel-manifest-list')
+    def test_promote_heterogeneous_payload_with_multi_hack(self, get_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
+                                                           build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
+        runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
+                            working_dir=Path("/path/to/working"), dry_run=False)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"], use_multi_hack=True)
+        previous_list = ["4.10.98", "4.10.97", "4.9.99"]
+        metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
+
+        # test: heterogeneous payload already exists
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(release_name="4.10.99", include_arches=["x86_64", "aarch64"], previous_list=previous_list, metadata=metadata, tag_stable=True))
+        get_image_digest.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_image_info.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99-multi")
+        build_release_image.assert_not_called()
+        tag_release.assert_not_called()
+
+        # test: promote a GA heterogeneous payload
+        get_image_digest.reset_mock()
+        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
+        }[pullspec, raise_if_not_found]
+        get_image_info.reset_mock()
+        get_image_info.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): None,
+            ('example.com/ocp-release@fake:deadbeef-source-manifest-list', True): {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+                "manifests": [
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-amd64",
+                        "platform": {
+                            "architecture": "amd64",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-ppc64le",
+                        "platform": {
+                            "architecture": "ppc64le",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-s390x",
+                        "platform": {
+                            "architecture": "s390x",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-arm64",
+                        "platform": {
+                            "architecture": "arm64",
+                            "os": "linux"
+                        }
+                    }
+                ]
+            }
+        }[pullspec, raise_if_not_found]
+        get_image_stream.reset_mock()
+        get_image_stream_tag.reset_mock()
+        get_image_stream_tag.return_value = None
+        build_release_image.reset_mock()
+        push_manifest_list.reset_mock()
+        tag_release.reset_mock()
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(release_name="4.10.99", include_arches=["x86_64", "aarch64"], previous_list=previous_list, metadata=metadata, tag_stable=True))
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
+        get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
+        get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99-multi")
+        dest_metadata = metadata.copy()
+        dest_metadata["release.openshift.io/architecture"] = "multi"
+        build_release_image.assert_any_await("4.10.99-multi", "aarch64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99-multi", "x86_64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
+        dest_manifest_list = {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi', 'manifests': [{'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64', 'platform': {'os': 'linux', 'architecture': 'amd64'}}, {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64', 'platform': {'os': 'linux', 'architecture': 'arm64'}}]}
+        push_manifest_list.assert_awaited_once_with("4.10.99-multi", dest_manifest_list)
+        tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", "ocp-multi/release-multi:4.10.99-multi")
+        self.assertEqual(actual["image"], "quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        self.assertEqual(actual["digest"], "fake:deadbeef-dest-multi")
+
+        # test: promote GA heterogeneous payload
+        get_image_digest.reset_mock()
+        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
+        }[pullspec, raise_if_not_found]
+        get_image_info.reset_mock()
+        get_image_info.side_effect = lambda pullspec, raise_if_not_found=False: {
+            ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): None,
+            ('example.com/ocp-release@fake:deadbeef-source-manifest-list', True): {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+                "manifests": [
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-amd64",
+                        "platform": {
+                            "architecture": "amd64",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-ppc64le",
+                        "platform": {
+                            "architecture": "ppc64le",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-s390x",
+                        "platform": {
+                            "architecture": "s390x",
+                            "os": "linux"
+                        }
+                    },
+                    {
+                        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+                        "size": 1583,
+                        "digest": "fake:deadbeef-source-multi-arm64",
+                        "platform": {
+                            "architecture": "arm64",
+                            "os": "linux"
+                        }
+                    }
+                ]
+            }
+        }[pullspec, raise_if_not_found]
+        get_image_stream.reset_mock()
+        get_image_stream_tag.reset_mock()
+        get_image_stream_tag.return_value = None
+        build_release_image.reset_mock()
+        push_manifest_list.reset_mock()
+        tag_release.reset_mock()
+        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(release_name="4.10.99", include_arches=["x86_64", "aarch64"], previous_list=previous_list, metadata=metadata, tag_stable=True))
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
+        get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
+        get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99-multi")
+        dest_metadata = metadata.copy()
+        dest_metadata["release.openshift.io/architecture"] = "multi"
+        build_release_image.assert_any_await("4.10.99-multi", "aarch64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64", 'example.com/ocp-release@fake:deadbeef-source-multi-arm64', None, keep_manifest_list=True)
+        build_release_image.assert_any_await("4.10.99-multi", "x86_64", [], dest_metadata, "quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64", 'example.com/ocp-release@fake:deadbeef-source-multi-amd64', None, keep_manifest_list=True)
+        dest_manifest_list = {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi', 'manifests': [{'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-x86_64', 'platform': {'os': 'linux', 'architecture': 'amd64'}}, {'image': 'quay.io/openshift-release-dev/ocp-release:4.10.99-multi-aarch64', 'platform': {'os': 'linux', 'architecture': 'arm64'}}]}
+        push_manifest_list.assert_awaited_once_with("4.10.99-multi", dest_manifest_list)
+        tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", "ocp-multi/release-multi:4.10.99-multi")
+        self.assertEqual(actual["image"], "quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        self.assertEqual(actual["digest"], "fake:deadbeef-dest-multi")

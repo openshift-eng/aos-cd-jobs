@@ -166,7 +166,7 @@ node {
                             # Touch a file that indicates we have signed for this specific tag; used by rhacs-sigstore scheduled job
                             touch staging/rh-acs/${params.REPO}/${VERSION}
                             cp -a \${fn} staging/rh-acs/${params.REPO}
-                            aws s3 sync --no-progress staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
+                            aws s3 sync --no-progress --exact-timestamps staging/ s3://art-srv-enterprise/pub/rhacs/signatures/
                             """
                         }
                     }

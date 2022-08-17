@@ -45,7 +45,7 @@ node {
     version = params.BUILD_VERSION
     currentBuild.displayName = "$version"
     path = "openshift-v4/x86_64/dependencies/rpms"
-    AWS_S3_SYNC_OPTS='--no-progress --delete'
+    AWS_S3_SYNC_OPTS='--no-progress --delete --exact-timestamps'
     if (params.DRY_RUN) {
         currentBuild.displayName += " - [DRY RUN]"
         AWS_S3_SYNC_OPTS += " --dryrun"

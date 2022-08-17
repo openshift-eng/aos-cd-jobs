@@ -31,8 +31,8 @@ node() {
             commonlib.shell(
                 script: """
                     set -e
-                    aws s3 sync --no-progress --delete ${LOCAL_SYNC_DIR}/assets/ s3://art-srv-enterprise/pub/rhacs/assets/
-                    aws s3 sync --no-progress --delete ${LOCAL_SYNC_DIR}/charts/ s3://art-srv-enterprise/pub/rhacs/charts/
+                    aws s3 sync --no-progress --exact-timestamps --delete ${LOCAL_SYNC_DIR}/assets/ s3://art-srv-enterprise/pub/rhacs/assets/
+                    aws s3 sync --no-progress --exact-timestamps --delete ${LOCAL_SYNC_DIR}/charts/ s3://art-srv-enterprise/pub/rhacs/charts/
                 """
             )
         }

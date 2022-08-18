@@ -508,7 +508,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             # We need to fetch that manifest-list and recreate all arch-specific heterogeneous payloads first,
             # then recreate the top-level manifest-list.
             is_name = f"{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"
-            multi_is = await self.get_image_stream("ocp{go_arch_suffix}", is_name)
+            multi_is = await self.get_image_stream(f"ocp{go_arch_suffix}", is_name)
             if not multi_is:
                 raise ValueError(f"Image stream {is_name} is not found. Did you run build-sync?")
             self._logger.info("Building arch-specific release image %s for %s (%s)...", release_name, arch, dest_image_pullspec)

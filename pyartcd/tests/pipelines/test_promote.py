@@ -64,7 +64,8 @@ class TestPromotePipeline(TestCase):
         "releases": {"art0001": {"assembly": {"type": "custom"}}}
     })
     @patch("pyartcd.pipelines.promote.util.load_group_config", return_value={})
-    def test_run_with_custom_assembly(self, load_group_config: AsyncMock, load_releases_config: AsyncMock, get_release_image_info: AsyncMock,
+    @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream")
+    def test_run_with_custom_assembly(self, get_image_stream: AsyncMock, load_group_config: AsyncMock, load_releases_config: AsyncMock, get_release_image_info: AsyncMock,
                                       build_release_image: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}}, working_dir=Path("/path/to/working"), dry_run=False)
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", release_offset=99, arches=["x86_64", "s390x"])
@@ -122,7 +123,8 @@ class TestPromotePipeline(TestCase):
         "advisories": {"rpm": 1, "image": 2, "extras": 3, "metadata": 4},
         "description": "whatever",
     })
-    def test_run_with_standard_assembly(self, load_group_config: AsyncMock, load_releases_config: AsyncMock,
+    @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream")
+    def test_run_with_standard_assembly(self, get_image_stream: AsyncMock, load_group_config: AsyncMock, load_releases_config: AsyncMock,
                                         get_release_image_info: AsyncMock, build_release_image: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
@@ -189,7 +191,8 @@ class TestPromotePipeline(TestCase):
             }
         }
     } if raise_if_not_found else None)
-    def test_promote_arch(self, get_release_image_info: AsyncMock, build_release_image: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
+    @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream")
+    def test_promote_arch(self, get_image_stream: AsyncMock, get_release_image_info: AsyncMock, build_release_image: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])

@@ -501,6 +501,16 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         if not dest_image_info or self.permit_overwrite:
             if dest_image_info:
                 self._logger.warning("The existing release image %s will be overwritten!", dest_image_pullspec)
+            major, minor = util.isolate_major_minor_in_group(self.group)
+            # The imagestream for the assembly in ocp-multi contains a single tag.
+            # That single istag points to a top-level manifest-list on quay.io.
+            # Each entry in the manifest-list is an arch-specific heterogeneous payload.
+            # We need to fetch that manifest-list and recreate all arch-specific heterogeneous payloads first,
+            # then recreate the top-level manifest-list.
+            is_name = f"{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"
+            multi_is = await self.get_image_stream("ocp{go_arch_suffix}", is_name)
+            if not multi_is:
+                raise ValueError(f"Image stream {is_name} is not found. Did you run build-sync?")
             self._logger.info("Building arch-specific release image %s for %s (%s)...", release_name, arch, dest_image_pullspec)
             reference_pullspec = None
             source_image_stream = None
@@ -545,7 +555,6 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             self._logger.info("Release image %s will not appear on the release controller.", dest_image_pullspec)
             return dest_image_info
 
-        go_arch_suffix = go_suffix_for_arch(arch)
         namespace = f"ocp{go_arch_suffix}"
         image_stream_tag = f"release{go_arch_suffix}:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"

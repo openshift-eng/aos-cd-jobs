@@ -319,11 +319,11 @@ node {
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                                 def mirrorReleasePath = (params.ENV == 'stage') ? 'test' : 'release'
-                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift/${mirrorReleasePath}/"
                                 if (mirrorReleasePath == 'release') {
-                                    sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
+                                    sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/"
 
-                                    sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
+                                    sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/"
                                 }
                             }
                         }
@@ -359,7 +359,7 @@ node {
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                                 def mirrorReleasePath = "openshift-v4/${params.ARCH}/clients/${params.CLIENT_TYPE}/${params.NAME}"
-                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
                             }
                         }
                     } else if ( params.PRODUCT == 'rhcos') {
@@ -368,21 +368,21 @@ node {
                                 def name_parts = params.NAME.split('\\.')
                                 def nameXY = "${name_parts[0]}.${name_parts[1]}"
                                 def mirrorReleasePath = "openshift-v4/${params.ARCH}/dependencies/rhcos/${nameXY}/${params.NAME}"
-                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
                             }
                         }
                     } else if ( params.PRODUCT == 'rhacs' ) {
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rhacs/"
-                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rh-acs/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rhacs/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rh-acs/"
                             }
                         }
                     } else if ( params.PRODUCT == 'coreos-installer' ) {
                         sshagent(["openshift-bot"]) {
                             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/${params.NAME}/"
-                                sh "aws s3 sync --no-progress --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/latest/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/${params.NAME}/"
+                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/openshift-v4/${params.ARCH}/clients/coreos-installer/latest/"
                             }
                         }
                     }

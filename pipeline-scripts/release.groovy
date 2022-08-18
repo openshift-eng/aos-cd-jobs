@@ -460,7 +460,7 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
     sha256sum */sha256sum.txt > ${RELEASE_MIRROR_DIR}/sha256sum.txt
     """)
 
-    def mirror_cmd = "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
+    def mirror_cmd = "aws s3 sync --no-progress --exact-timestamps ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
     if ( ! params.DRY_RUN ) {
         // Publish the clients to our S3 bucket.
         try {
@@ -631,7 +631,7 @@ extract_opm "$OUTDIR"
     sh "tree $CLIENT_MIRROR_DIR"
     sh "cat $CLIENT_MIRROR_DIR/sha256sum.txt"
 
-    mirror_cmd = "aws s3 sync --no-progress ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
+    mirror_cmd = "aws s3 sync --no-progress --exact-timestamps ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
     if ( ! params.DRY_RUN ) {
         // Publish the clients to our S3 bucket.
         try {

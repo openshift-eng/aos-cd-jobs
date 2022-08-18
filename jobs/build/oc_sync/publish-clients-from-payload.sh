@@ -138,4 +138,4 @@ if [ "${DRY_RUN:-0}" -ne 0 ]; then
     exit 0
 fi
 
-aws s3 sync --no-progress --delete  ${OUTDIR}/ s3://art-srv-enterprise${S3_MIRROR_DIR}/
+aws s3 sync --no-progress --delete --exact-timestamps ${OUTDIR}/ s3://art-srv-enterprise${S3_MIRROR_DIR}/

@@ -67,4 +67,4 @@ pkg_tar macosx
 mkdir "${OUTDIR}/windows"
 zip --quiet --junk-path - windows/oc.exe > "${OUTDIR}/windows/oc.zip"
 
-aws s3 sync --no-progress --quiet --delete ${OUTDIR}/ s3://art-srv-enterprise/pub/openshift-v3/clients/${VERSION}/
+aws s3 sync --no-progress --quiet --delete --exact-timestamps ${OUTDIR}/ s3://art-srv-enterprise/pub/openshift-v3/clients/${VERSION}/

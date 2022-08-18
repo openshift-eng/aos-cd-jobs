@@ -502,14 +502,10 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             if dest_image_info:
                 self._logger.warning("The existing release image %s will be overwritten!", dest_image_pullspec)
             major, minor = util.isolate_major_minor_in_group(self.group)
-            # The imagestream for the assembly in ocp-multi contains a single tag.
-            # That single istag points to a top-level manifest-list on quay.io.
-            # Each entry in the manifest-list is an arch-specific heterogeneous payload.
-            # We need to fetch that manifest-list and recreate all arch-specific heterogeneous payloads first,
-            # then recreate the top-level manifest-list.
+            # Ensure build-sync has been run for this assembly
             is_name = f"{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"
-            multi_is = await self.get_image_stream(f"ocp{go_arch_suffix}", is_name)
-            if not multi_is:
+            imagestream = await self.get_image_stream(f"ocp{go_arch_suffix}", is_name)
+            if not imagestream:
                 raise ValueError(f"Image stream {is_name} is not found. Did you run build-sync?")
             self._logger.info("Building arch-specific release image %s for %s (%s)...", release_name, arch, dest_image_pullspec)
             reference_pullspec = None
@@ -517,8 +513,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
             if reference_release:
                 reference_pullspec = f"registry.ci.openshift.org/ocp{go_arch_suffix}/release{go_arch_suffix}:{reference_release}"
             else:
-                major, minor = util.isolate_major_minor_in_group(self.group)
-                source_image_stream = f"{major}.{minor}-art-assembly-{self.assembly}{go_arch_suffix}"
+                source_image_stream = is_name
             await self.build_release_image(release_name, brew_arch, previous_list, metadata, dest_image_pullspec, reference_pullspec, source_image_stream, keep_manifest_list=False)
             self._logger.info("Release image for %s %s has been built and pushed to %s", release_name, arch, dest_image_pullspec)
             self._logger.info("Getting release image information for %s...", dest_image_pullspec)

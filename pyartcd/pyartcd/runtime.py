@@ -35,7 +35,7 @@ class Runtime:
         return JIRAClient.from_url(self.config["jira"]["url"], token_auth=jira_token)
 
     def new_slack_client(self, token: Optional[str] = None):
-        if not token:
+        if not token and not self.dry_run:
             token = os.environ.get("SLACK_BOT_TOKEN")
             if not token and not self.dry_run:
                 raise ValueError("SLACK_BOT_TOKEN environment variable is not set")
@@ -57,4 +57,4 @@ class Runtime:
         url = os.environ.get("BUILD_URL")
         if not url:
             return None
-        return f"{url}console"
+        return f"{url.rstrip('/')}"

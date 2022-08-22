@@ -50,7 +50,7 @@ pipeline {
                         tree ${source_dir}
                         cat ${source_dir}/sha256sum.txt
                         rm -rf ${latest_dir}
-                        cp -a ${source_dir} ${latest_dir}
+                        cp -aL ${source_dir} ${latest_dir}
                     """)
                     commonlib.syncDirToS3Mirror(source_dir, s3_target_dir)
                     commonlib.syncDirToS3Mirror(latest_dir, s3_latest_dir)

@@ -213,7 +213,7 @@ node {
     def justifications =release_info.justifications ?: []
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
     def client_type = 'ocp'
-    if ((release_info.type == "candidate" && !release_info.assembly.startsWith('rc.')) || release_info.type == "custom") {
+    if ((release_info.type == "candidate" && !release_info.assembly.startsWith('rc.')) || release_info.type == "custom" || release_info.type == "preview") {
         // Feature candidates and custom releases use client_type ocp-dev-preview and beta2 signing key.
         client_type = 'ocp-dev-preview'
     }
@@ -333,8 +333,8 @@ node {
     }
 
     stage("channel prs") {
-        if (release_info.type == "custom") {
-            echo "Skipping PR creation for custom (hotfix) release."
+        if (release_info.type == "custom" || release_info.type == "preview") {
+            echo "Skipping PR creation for custom (hotfix) or preview release."
             return
         }
         if (params.SKIP_CINCINNATI_PR_CREATION) {
@@ -367,9 +367,15 @@ node {
     }
 
     stage("validate RHSAs") {
+        if (release_info.type == "custom" || release_info.type == "preview") {
+            echo "Skipping RHSA check for custom (hotfix) or preview release."
+            return
+        }
+
         if (params.DRY_RUN) {
             return
         }
+
         def advisory_map = release.getAdvisories("openshift-${params.VERSION}")?: [:]
         advisory_map.each { k, v ->
             if (v <= 0) {
@@ -393,19 +399,9 @@ node {
             }
         }
     }
-    stage("Send mail") {
-        dry_subject = ""
-        if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}
-        def pullspecs = release_info.content.findAll{ k, v -> v.pullspec }.collect {k, v -> v.pullspec }
-        commonlib.email(
-            to: "${params.MAIL_LIST_SUCCESS}",
-            replyTo: "aos-team-art@redhat.com",
-            from: "aos-art-automation@redhat.com",
-            subject: "${dry_subject}Success building release payload: ${release_info.name}",
-            body: """
-Jenkins Job: ${env.BUILD_URL}
-PullSpecs: ${pullspecs.join(",")}
-        """);
+
+    stage("clean") {
         buildlib.cleanWorkspace()
     }
+
 }

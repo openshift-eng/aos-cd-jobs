@@ -51,10 +51,6 @@ pipeline {
                         cat ${source_dir}/sha256sum.txt
                         rm -rf ${latest_dir}
                         cp -a ${source_dir} ${latest_dir}
-                        # make names that are not version specific
-                        for file in ${latest_dir}/*-${short_version}*; do
-                            cp -a "\${file}" "\${file/-${short_version}/}"
-                        done
                     """)
                     commonlib.syncDirToS3Mirror(source_dir, s3_target_dir)
                     commonlib.syncDirToS3Mirror(latest_dir, s3_latest_dir)

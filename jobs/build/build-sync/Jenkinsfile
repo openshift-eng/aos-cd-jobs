@@ -56,6 +56,12 @@ node {
                                         defaultValue: "https://github.com/openshift/ocp-build-data",
                                         trim: true,
                                     ),
+                                    string(
+                                        name: 'DOOZER_DATA_GITREF',
+                                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                                        defaultValue: "",
+                                        trim: true,
+                                    ),
                                     booleanParam(
                                             name        : 'DEBUG',
                                             description : 'Run "oc" commands with greater logging',

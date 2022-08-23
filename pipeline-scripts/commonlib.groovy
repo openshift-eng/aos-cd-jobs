@@ -12,7 +12,6 @@ ocp4Versions = [
     "4.10",
     "4.9",
     "4.8",
-    "4.7",
     "4.6",
 ]
 
@@ -113,10 +112,6 @@ ocpReleaseState = [
             "pre-release": [],
         ],
         "4.8": [
-            'release': [ 'x86_64', 's390x', 'ppc64le' ],
-            "pre-release": [ 'aarch64' ],
-        ],
-        "4.7": [
             'release': [ 'x86_64', 's390x', 'ppc64le' ],
             "pre-release": [ 'aarch64' ],
         ],

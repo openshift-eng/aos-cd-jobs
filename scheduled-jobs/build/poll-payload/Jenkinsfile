@@ -12,6 +12,11 @@ import groovy.json.JsonOutput
 // A map of release stream names to be polled and and actions to be taken
 @Field final ACTIONS = [
     // as part of 4.next we will manually publish only sprintly dev-previews
+    "4-dev-preview": this.&setDevPreviewLatest,
+    "4-dev-preview-s390x": this.&setDevPreviewLatest,
+    "4-dev-preview-ppc64le": this.&setDevPreviewLatest,
+    "4-dev-preview-arm64": this.&setDevPreviewLatest,
+
     // "4.12.0-0.nightly": this.&startPreReleaseJob,
     // "4.12.0-0.nightly-s390x": this.&startPreReleaseJob,
     // "4.12.0-0.nightly-ppc64le": this.&startPreReleaseJob,
@@ -22,6 +27,12 @@ import groovy.json.JsonOutput
     // users are using named releases.
     "4.11.0-0.nightly-multi": this.&startPreReleaseJob,
 ]
+
+def setDevPreviewLatest(String releaseStream, Map latestRelease, Map previousRelease) {
+    def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
+    def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
+    release.stageSetClientLatest(latestRelease.name, arch, "ocp-dev-preview")
+}
 
 def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRelease) {
     def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)

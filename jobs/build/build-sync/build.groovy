@@ -69,9 +69,9 @@ def buildSyncGenInputs() {
 
     def dryRunParams = params.DRY_RUN ? '--skip-gc-tagging --moist-run' : ''
 
-    def groupParam = 'openshift-${params.BUILD_VERSION}'
+    def groupParam = "openshift-${params.BUILD_VERSION}"
     if (params.DOOZER_DATA_GITREF) {
-        groupParam += '@${params.DOOZER_DATA_GITREF}'
+        groupParam += "@${params.DOOZER_DATA_GITREF}"
     }
 
     withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}", "https_proxy=", "http_proxy="]) {

@@ -64,7 +64,7 @@ node {
             env << "${params.JIRA_MODE}=True"
         }
         withEnv(env) {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
+            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo out
 

@@ -804,7 +804,7 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         ]
         env = os.environ.copy()
         env["GOTRACEBACK"] = "all"
-        _, stdout, _ = await exectools.cmd_gather_async(cmd, env=env, stderr=None)
+        _, stdout, _ = await exectools.cmd_gather_async(cmd, env=env)
         stdout = stdout.strip()
         if not stdout:  # Not found
             return None

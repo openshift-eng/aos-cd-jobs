@@ -131,6 +131,8 @@ def setup_venv(use_python38=false) {
     // The following commands will run automatically every time one of our jobs
     // loads buildlib (ideally, once per pipeline)
     VIRTUAL_ENV = "${env.WORKSPACE}/art-venv"
+    commonlib.shell(script: "rm -rf ${VIRTUAL_ENV}")
+
     // Used by tools that don't use buildlib.doozer() / .elliott()
     DOOZER_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/doozer/doozer"
     ELLIOTT_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/elliott/elliott"

@@ -48,12 +48,6 @@ node {
             's390x': 'jenkins_serviceaccount_osbs-s390x-3.prod.engineering.redhat.com.kubeconfig',
             'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
         ]
-        resourceLimits = [
-            'x86_64': 6,
-            'ppc64le': 2,
-            's390x': 4,
-            'aarch64': 4,
-        ]
 
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
@@ -69,10 +63,10 @@ node {
                 }
                 archJobs["trigger-${jobArch}"] = {
                     try {
-                        lock(resource: "rhcos-build-capacity-${jobArch}", quantity: resourceLimits[jobArch]) { // cluster capacity limited per arch
+                        lock(label: "rhcos-build-capacity-${jobArch}", quantity: 1) { // cluster capacity limited per arch
                             withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
                                 // the squid proxy inhibits communication to the p8 RHCOS cluster, so ensure it is in no_proxy
-                                sh  'export no_proxy=p8.psi.redhat.com,$no_proxy\n' +  
+                                sh  'export no_proxy=p8.psi.redhat.com,$no_proxy\n' +
                                     "oc project\n" +
                                     "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
                                     'echo Triggered $BUILDNAME\n' +

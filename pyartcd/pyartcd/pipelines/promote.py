@@ -240,14 +240,6 @@ class PromotePipeline:
                 accepted = await asyncio.gather(*tasks)
 
                 if not all(accepted):
-                    self._logger.info("Determining upgrade tests...")
-                    test_commands = self._get_upgrade_tests_commands(release_name, previous_list)
-                    message = f"""A new release `{release_name}` is ready and needs some upgrade tests to be triggered.
-Please open a chat with @cluster_bot and issue each of these lines individually:
-{os.linesep.join(test_commands)}
-        """
-                    await self._slack_client.say(message, slack_thread)
-
                     self._logger.info("Waiting for release images for %s to be accepted by the release controller...", release_name)
                     tasks = []
                     for arch, release_info in release_infos.items():
@@ -725,33 +717,6 @@ Please open a chat with @cluster_bot and issue each of these lines individually:
         if not isinstance(info, dict):
             raise ValueError(f"Invalid release info: {info}")
         return info
-
-    @staticmethod
-    def _get_upgrade_tests_commands(release_name: str, previous_list: List[str]):
-        previous_list = sorted(previous_list, key=functools.cmp_to_key(semver.compare), reverse=True)
-        versions_by_minor: OrderedDict = OrderedDict()
-        for version_str in previous_list:
-            version = VersionInfo.parse(version_str)
-            minor_version = f"{version.major}.{version.minor}"
-            versions_by_minor.setdefault(minor_version, []).append(str(version))
-
-        test_edges = []
-        for _, versions in versions_by_minor.items():
-            if len(versions) <= 15:
-                test_edges.extend(versions)
-                continue
-            test_edges.extend(versions[:5])  # add first 5
-            # 5 equally distributed between versions[5:-5]
-            step = (len(versions) - 10) // 5
-            test_edges.extend(versions[5:-5][step::step])
-            test_edges.extend(versions[-5:])  # add last 5
-
-        test_commands = []
-        platforms = ['aws', 'gcp', 'azure']
-        for edge in test_edges:
-            platform = platforms[len(test_commands) % len(platforms)]
-            test_commands.append(f"test upgrade {edge} {release_name} {platform}")
-        return test_commands
 
     async def build_release_image(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict],
                                   dest_image_pullspec: str, source_image_pullspec: Optional[str], source_image_stream: Optional[str], keep_manifest_list: bool):

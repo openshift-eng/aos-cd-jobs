@@ -17,7 +17,7 @@ rhcos_allowlist = [ "gcp", "initramfs", "iso", "kernel", "metal", "openstack", "
 def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     buildlib.cleanWorkdir(rhcosWorking)
 
-    // Example URL paths (visit https://releases-rhcos-art.cloud.privileged.psi.redhat.com/ to view yourself):
+    // Example URL paths (visit https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/ to view yourself):
     // 4.1 with x86 arch:       releases/rhcos-4.1/410.81.20200213.0/meta.json  (we do not plan to release a new 4.1 bootimage ever)
     // 4.1 with non-x86 arch:   N/A
 

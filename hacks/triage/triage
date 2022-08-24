@@ -33,7 +33,7 @@ gh_repos=(
 )
 
 rhcos_consoles=(
-  'https://privileged.psi.redhat.com/console/project/rhcos-art/browse/pods'
+  'https://console-openshift-console.apps.ocp-virt.prod.psi.redhat.com/k8s/ns/rhcos-art/pods'
   'https://p8.psi.redhat.com:8443/console/project/rhcos/browse/pipelines'
   'https://osbs-s390x-3.prod.engineering.redhat.com:8443/console/project/rhcos/browse/pipelines'
   'https://osbs-aarch64-1.engineering.redhat.com:8443/console/project/rhcos/'
@@ -159,7 +159,7 @@ rhcos() {
     major="${r%.*}"
     minor="${r#*.}"
     (( major < 4 )) && continue
-    echo "https://jenkins-rhcos-art.cloud.privileged.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
+    echo "https://jenkins-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
     echo "https://jenkins-rhcos.cloud.s390x.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
     echo "https://jenkins-rhcos.cloud.p8.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
     (( minor < 9 )) && continue

@@ -241,6 +241,7 @@ class PromotePipeline:
 
                 if not all(accepted):
                     self._logger.info("Waiting for release images for %s to be accepted by the release controller...", release_name)
+                    await _slack_client.say(f"Release {release_name} has been tagged on release controller, but is not accepted yet. Waiting.", slack_thread)
                     tasks = []
                     for arch, release_info in release_infos.items():
                         go_arch_suffix = go_suffix_for_arch(arch)

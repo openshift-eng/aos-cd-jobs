@@ -26,7 +26,7 @@ ARCHES = [
 ]
 
 RHCOS_URLS = {
-    'amd64': 'https://jenkins-rhcos-art.cloud.privileged.psi.redhat.com',
+    'amd64': 'https://jenkins-rhcos-art.apps.ocp-virt.prod.psi.redhat.com',
     's390x': 'https://jenkins-rhcos.cloud.s390x.psi.redhat.com',
     'ppc64le': 'https://jenkins-rhcos.cloud.p8.psi.redhat.com',
     'arm64': 'https://jenkins-rhcos.cloud.arm.psi.redhat.com'

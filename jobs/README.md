@@ -79,6 +79,11 @@ This is so standard that when provided, `buildlib.doozer` and
 Fork of `ocp-build-data` to use instead of the [default](https://github.com/openshift/ocp-build-data)
 (e.g. when you have an assembly definition in your own fork).
 
+### DOOZER\_DATA\_GITREF
+
+Doozer data path Git [branch / tag / sha] to use instead of the default group branch ("openshift-4.Y") 
+(e.g. when you have an assembly definition in a different branch).
+
 #### DRY\_RUN
 
 A common parameter, used when testing (but not standardized anywhere).

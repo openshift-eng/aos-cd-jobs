@@ -69,13 +69,18 @@ def buildSyncGenInputs() {
 
     def dryRunParams = params.DRY_RUN ? '--skip-gc-tagging --moist-run' : ''
 
+    def groupParam = "openshift-${params.BUILD_VERSION}"
+    if (params.DOOZER_DATA_GITREF) {
+        groupParam += "@${params.DOOZER_DATA_GITREF}"
+    }
+
     withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}", "https_proxy=", "http_proxy="]) {
         sh "rm -rf ${env.WORKSPACE}/${output_dir}"
         buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}"
 --data-path "${params.DOOZER_DATA_PATH}"
---group 'openshift-${params.BUILD_VERSION}'
+--group ${groupParam}
 release:gen-payload
 --output-dir "${env.WORKSPACE}/${output_dir}"
 --apply

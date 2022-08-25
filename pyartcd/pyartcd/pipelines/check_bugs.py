@@ -12,22 +12,6 @@ BASE_URL = 'https://api.openshift.com/api/upgrades_info/v1/graph?arch=amd64&chan
 ELLIOTT_BIN = 'elliott'
 
 
-async def is_ga(version: str, session):
-    # 3.11 is an exception, no need to query Openshift API
-    if version == '3.11':
-        return True
-
-    url = f'{BASE_URL}-{version}'
-
-    # A release is considered GA'd if nodes are found
-    async with session.get(url, headers={'Accept': 'application/json'}) as response:
-        assert response.status == 200
-        response.raise_for_status()
-        response_body = await response.json()
-        nodes = response_body['nodes']
-        return len(nodes) > 0
-
-
 def get_next_version(version: str) -> str:
     major, minor = version.split('.')[:2]
     return '.'.join([major, str(int(minor) + 1)])
@@ -90,7 +74,7 @@ class CheckBugsPipeline:
         async with aiohttp.ClientSession() as session:
             tasks = []
             for v in self.versions:
-                tasks.append(asyncio.ensure_future(is_ga(v, session)))
+                tasks.append(asyncio.ensure_future(self.is_ga(v, session)))
             responses = await asyncio.gather(*tasks)
             ga_info = dict(zip(self.versions, responses))
 
@@ -100,6 +84,24 @@ class CheckBugsPipeline:
             self.logger.info(f'Found applicable versions: {" ".join(self.applicable_versions)}')
         else:
             self.logger.warning('No applicable versions found')
+
+    async def is_ga(self, version: str, session):
+        # 3.11 is an exception, no need to query Openshift API
+        if version == '3.11':
+            return True
+
+        url = f'{BASE_URL}-{version}'
+
+        # A release is considered GA'd if nodes are found
+        async with session.get(url, headers={'Accept': 'application/json'}) as response:
+            if response.status != 200:
+                self.logger.error('Received status %s for URL %s', response.status, url)
+                raise RuntimeError
+
+            response.raise_for_status()
+            response_body = await response.json()
+            nodes = response_body['nodes']
+            return len(nodes) > 0
 
     def _find_blockers(self, version: str):
         self.logger.info(f'Checking blocker bugs for Openshift {version}')

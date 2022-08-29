@@ -175,7 +175,7 @@ downloadImages
 genSha256
 
 if [ $TEST -eq 1 -o $NOMIRROR -eq 1 ]; then
-  echo Would have copied out:
+  echo Would have copied out to ${BASEDIR}/${RHCOS_MIRROR_PREFIX}/${VERSION}/:
   ls
   exit 0
 fi

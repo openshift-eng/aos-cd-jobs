@@ -673,7 +673,7 @@ def getReleaseTagArchPriv(from_release_tag) {
         priv = true
     } else if (!nameComponents[2].isNumber()) {
         arch = commonlib.brewArchForGoArch(nameComponents[2])
-        priv = nameComponents[3] == "priv"
+        if (nameComponents.length > 3 && nameComponents[3] == "priv") priv = true
     }
     return [arch, priv]
 }

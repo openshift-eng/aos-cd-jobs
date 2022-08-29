@@ -9,16 +9,18 @@ node {
     def slacklib = commonlib.slacklib
     commonlib.describeJob("rhcos_sync", """
         <h2>Sync the RHCOS boot images to mirror</h2>
-        http://mirror.openshift.com/pub/openshift-v4/<arch>/dependencies/rhcos/
-        Publishes RHCOS boot images for a particular release so that customers
-        can base their OCP 4 installs on them.
-
+        <ul><li>http://mirror.openshift.com/pub/openshift-v4/<arch>/dependencies/rhcos/</li></ul>
+        <p>
+        Publishes RHCOS boot images for a particular release (according to the
+        installer image manifest) so that customers can base their OCP 4
+        installs on them.
+        </p><p>
         Timing: This is only ever run by humans, usually when a new minor
         version / arch is released. It may also be used when there is a
         boot-time bug requiring updated boot images in a version already
         released.
-
-        See <a href="https://mojo.redhat.com/docs/DOC-1216700#jive_content_id_Publish_RHCOS_bootimages" target="_blank">the docs</a>
+        See <a href="https://art-docs.engineering.redhat.com/release/4.y-ga/#publish-rhcos-bootimages" target="_blank">the docs</a>
+        </p>
     """)
 
 
@@ -38,14 +40,14 @@ node {
                 parameterDefinitions: [
                     string(
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Release Image to get RHCOS buildID from ex - 4.8.2-x86_64 or 4.8.0-0.nightly-2021-07-21-150743',
+                        description: 'Release Image to get RHCOS buildID from ex - 4.10.42-x86_64 or 4.12.0-ec.2-s390x',
                         defaultValue: "",
                         trim: true,
                     ),
                     commonlib.ocpVersionParam('OCP_VERSION', '4', ['auto']),
                     string(
                         name: 'OVERRIDE_BUILD',
-                        description: 'ID of the RHCOS build to sync. e.g.: 42.80.20190828.2. This overrides FROM_RELEASE_TAG.',
+                        description: 'ID of the RHCOS build to sync. e.g.: 42.80.20190828.2. This overrides what would be inferred from FROM_RELEASE_TAG and requires explicit specifications below too.',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -119,11 +121,18 @@ node {
         }
 
         tag = params.FROM_RELEASE_TAG
-        if (params.OVERRIDE_NAME != "") {
+        image = "quay.io/openshift-release-dev/ocp-release:${tag}"
+        if (tag.contains("/"))
+            // assume instead of a tag it's a pullspec e.g. to registry.ci
+            image = tag
+
+        if (params.OVERRIDE_NAME != "")
             name = params.OVERRIDE_NAME
-        } else {
-            name = tag
-        }
+        else
+            name = commonlib.shell(
+                returnStdout: true,
+                script: "oc adm release info -o template --template '{{ .metadata.version }}' ${image}"
+            )
 
         (major, minor) = commonlib.extractMajorMinorVersionNumbers(tag)
         ocpVersion = "$major.$minor"
@@ -131,7 +140,12 @@ node {
         (arch, priv) = releaselib.getReleaseTagArchPriv(tag)
         suffix = releaselib.getArchPrivSuffix(arch, priv)
 
-        cmd = "oc image info -o json \$(oc adm release info --image-for machine-os-content registry.ci.openshift.org/ocp$suffix/release$suffix:$tag) | jq -r .config.config.Labels.version"
+        cmd = """
+            tmp=\$(mktemp -d /tmp/tmp.XXXXXX)
+            oc image extract --path /manifests/:\$tmp \$(oc adm release info --image-for installer ${image})
+            cat \$tmp/coreos-bootimages.yaml | yq -r .data.stream | jq -r .architectures.${arch}.artifacts.qemu.release
+            rm -rf \$tmp
+        """
         rhcosBuild =  commonlib.shell(
             returnStdout: true,
             script: cmd

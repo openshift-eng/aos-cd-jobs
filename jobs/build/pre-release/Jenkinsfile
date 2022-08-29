@@ -139,7 +139,7 @@ node {
                 // The payload is already present in quay. We just need to sign it. Find the digest for the
                 // manifest list.
                 payloadDigest = commonlib.shell(script: """
-                oc image info quay.io/openshift-release-dev/ocp-release:${dest_release_tag} --filter-by-os=amd64 | grep "Manifest List:" | cut -d ' ' -f 3
+                oc image info quay.io/openshift-release-dev/ocp-release-nightly:${dest_release_tag} --filter-by-os=amd64 | grep "Manifest List:" | cut -d ' ' -f 3
                 """, returnStdout: true)
 
             }

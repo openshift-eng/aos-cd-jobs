@@ -69,7 +69,6 @@ function transferClientIfNeeded() {
 }
 
 for arch in ${ARCHES}; do
-
     if [[ ! -z "$USE_CHANNEL" ]]; then
         qarch="${arch}"
         # Graph uses go arch names; translate from brew arch names
@@ -82,7 +81,11 @@ for arch in ${ARCHES}; do
             # query amd64 arch instead.
             qarch=amd64
         fi
-        CHANNEL_RELEASES=$(curl -sH "Accept:application/json" "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" | jq '.nodes[].version' -r)
+        CHANNEL_RELEASES=$(
+            curl -sH "Accept:application/json" "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" |
+              jq '.nodes[].version' -r |
+              grep -vFx 4.11.2
+        )
         if [[ -z "$CHANNEL_RELEASES" ]]; then
             echo "No versions currently detected in ${USE_CHANNEL} for arch ${qarch} ; No ${LINK_NAME} will be set"
             if [[ "${MODE}" == "all" ]]; then

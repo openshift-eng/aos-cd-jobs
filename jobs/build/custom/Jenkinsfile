@@ -61,6 +61,12 @@ node {
                         trim: true,
                     ),
                     string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
                         name: 'RPMS',
                         description: 'List of RPM distgits to build. Empty for all. Enter "NONE" to not build any.',
                         defaultValue: "NONE",
@@ -121,7 +127,11 @@ node {
 
     def doozer_data_path = params.DOOZER_DATA_PATH
     def (majorVersion, minorVersion) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
-    def doozerOpts = "--working-dir ${doozer_working} --data-path ${doozer_data_path} --group 'openshift-${params.BUILD_VERSION}' "
+    def groupParam = "openshift-${params.BUILD_VERSION}"
+    if (params.DOOZER_DATA_GITREF) {
+        groupParam += "@${params.DOOZER_DATA_GITREF}"
+    }
+    def doozerOpts = "--working-dir ${doozer_working} --data-path ${doozer_data_path} --group '${groupParam}' "
     def version = params.BUILD_VERSION
     def release = "?"
     if (params.IMAGE_MODE != "nothing") {

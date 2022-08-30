@@ -150,7 +150,7 @@ node {
                 if (params.ARCH != "multi") {
                     release.stagePublishClient(quay_url, dest_release_tag, dest_release_tag, arch, CLIENT_TYPE)
                 } else {
-                    release.stagePublishMultiClient("quay.io/openshift-release-dev/ocp-release", dest_release_tag, dest_release_tag, CLIENT_TYPE)
+                    release.stagePublishMultiClient("quay.io/openshift-release-dev/ocp-release-nightly", dest_release_tag, dest_release_tag, CLIENT_TYPE)
                 }
             }
         }

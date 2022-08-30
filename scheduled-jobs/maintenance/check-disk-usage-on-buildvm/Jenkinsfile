@@ -9,7 +9,7 @@ node() {
 
     build(
         job: '../maintenance/maintenance%2Fcheck-disk-usage-on-buildvm',
-        parameters: [string(name: 'THRESHOLD', value: '90'), string(name: 'SLACK_CHANNEL', value: '#art-team')],
+        parameters: [string(name: 'THRESHOLD', value: '90'), string(name: 'SLACK_CHANNEL', value: '#team-art')],
         propagate: false,
     )
 }

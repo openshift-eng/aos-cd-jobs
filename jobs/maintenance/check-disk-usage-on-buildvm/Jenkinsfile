@@ -42,7 +42,8 @@ notify ART team if it does.
 
     partitions_to_check = [
         "/dev/mapper/rhel_buildvm-root",
-        "/dev/mapper/workspace-workspace"
+        "/dev/mapper/workspace-workspace",
+        "infinibox01-bos-nfs.prod.psi.bos.redhat.com:/buildvm-openshift",
     ]
 
     warnings = []

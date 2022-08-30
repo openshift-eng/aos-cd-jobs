@@ -84,7 +84,7 @@ for arch in ${ARCHES}; do
         CHANNEL_RELEASES=$(
             curl -sH "Accept:application/json" "https://api.openshift.com/api/upgrades_info/v1/graph?channel=${USE_CHANNEL}&arch=${qarch}" |
               jq '.nodes[].version' -r |
-              grep -vFx 4.11.2
+              { grep -vFx 4.11.2 || true; }
         )
         if [[ -z "$CHANNEL_RELEASES" ]]; then
             echo "No versions currently detected in ${USE_CHANNEL} for arch ${qarch} ; No ${LINK_NAME} will be set"

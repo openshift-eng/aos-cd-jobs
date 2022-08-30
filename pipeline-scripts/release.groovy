@@ -649,32 +649,31 @@ extract_opm "$OUTDIR"
 }
 
 /**
- * Derive an architecture name and private release flag from a CI release tag.
+ * Derive an architecture name and private flag from a release registry repo tag.
  * e.g.
  *   4.1.0-0.nightly-2019-11-08-213727 will return [x86_64, false]
  *   4.1.0-0.nightly-priv-2019-11-08-213727 will return [x86_64, true]
  *   4.1.0-0.nightly-s390x-2019-11-08-213727 will return [s390x, false]
  *   4.1.0-0.nightly-s390x-priv-2019-11-08-213727 will return [s390x, true]
  *   4.9.0-0.nightly-arm64-priv-2021-06-08-213727 will return [aarch64, true]
+ *   Should also work for stable tags like:
+ *   4.10.42-x86_64       returns [x86_64, false]
+ *   4.12.0-ec.2-aarch64  returns [aarch64, false]
+ *   And even release names (should be no repo tags like this) like:
+ *   4.10.42              returns [params.ARCH || x86_64, false]
+ *   4.12.0-ec.2          returns [params.ARCH || x86_64, false]
  */
 def getReleaseTagArchPriv(from_release_tag) {
-    // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
     def nameComponents = from_release_tag.split('-')
+    // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
 
-    if (nameComponents.length < 3) {
-        // Caller provided something like '4.6.0-rc.4' or 4.6.5.
-        // Arch cannot be ascertained.
-        return [params.ARCH, false]
-    }
-
-    def arch = "x86_64"
-    def priv = false
-    if (nameComponents[2] == "priv") {
-        priv = true
-    } else if (!nameComponents[2].isNumber()) {
-        arch = commonlib.brewArchForGoArch(nameComponents[2])
-        if (nameComponents.length > 3 && nameComponents[3] == "priv") priv = true
-    }
+    def priv = "priv" in nameComponents
+    def arch = params.ARCH || "auto"
+    for (arch_cmp in commonlib.goArches + commonlib.brewArches)
+        if (arch_cmp in nameComponents)
+            arch = commonlib.brewArchForGoArch(arch_cmp)
+    if (arch == "auto" || !arch)
+        arch = "x86_64"  // original default before arches were specified
     return [arch, priv]
 }
 

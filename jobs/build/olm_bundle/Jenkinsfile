@@ -1,7 +1,9 @@
 node('covscan') {
     checkout scm
-    olm_bundles = load('olm_bundles.groovy')
-    olm_bundles.commonlib.describeJob("olm_bundle", """
+    buildlib = load('pipeline-scripts/buildlib.groovy')
+    commonlib = buildlib.commonlib
+    slacklib = commonlib.slacklib
+    commonlib.describeJob("olm_bundle", """
         <h2>Create bundle images for OLM operators</h2>
         <b>Timing</b>: Run by the ocp4 or custom jobs after new builds.
         Should only need humans to run if something breaks.
@@ -29,7 +31,7 @@ pipeline {
     parameters {
         choice(
             name: 'BUILD_VERSION',
-            choices: olm_bundles.commonlib.ocpVersions,
+            choices: commonlib.ocpVersions,
             description: 'OCP Version',
         )
         string(
@@ -91,25 +93,21 @@ pipeline {
         stage('Check mock') {
             steps {
                 script {
-                    olm_bundles.commonlib.checkMock()
+                    commonlib.checkMock()
                 }
             }
         }
         stage('Set build info') {
             steps {
                 script {
-                    operator_nvrs = olm_bundles.commonlib.parseList(params.OPERATOR_NVRS)
-                    only = olm_bundles.commonlib.parseList(params.ONLY)
-                    exclude = olm_bundles.commonlib.parseList(params.EXCLUDE)
+                    operator_nvrs = commonlib.parseList(params.OPERATOR_NVRS)
+                    only = commonlib.parseList(params.ONLY)
+                    exclude = commonlib.parseList(params.EXCLUDE)
                     currentBuild.displayName += " (${params.BUILD_VERSION})"
 
                     if (params.ASSEMBLY && params.ASSEMBLY != "stream") {
                         currentBuild.displayName += " - assembly ${params.ASSEMBLY}"
                     }
-                    if (operator_nvrs && (only || exclude)) {
-                        error("Cannot use OPERATOR_NVRS with ONLY or EXCLUDE.")
-                    }
-                    olm_bundles.buildlib.initialize(false, false)  // ensure kinit
                 }
             }
         }
@@ -117,7 +115,33 @@ pipeline {
             steps {
                 script {
                     lock("olm_bundle-${params.BUILD_VERSION}") {
-                        bundle_nvrs = olm_bundles.build_bundles(only, exclude, operator_nvrs, params.DOOZER_DATA_PATH)
+                        def cmd = ""
+                        cmd += "--data-path=${params.DOOZER_DATA_PATH}"
+                        if (only)
+                            cmd += " --images=${only.join(',')}"
+                        if (exclude)
+                            cmd += " --exclude=${exclude.join(',')}"
+                        cmd += " olm-bundle:rebase-and-build"
+                        if (params.FORCE_BUILD)
+                            cmd += " --force"
+                        if (params.DRY_RUN)
+                            cmd += " --dry-run"
+                        cmd += " -- "
+                        cmd += operator_nvrs.join(' ')
+
+                        def doozer_working = "${WORKSPACE}/doozer_working"
+                        def doozer_opts = "--working-dir ${doozer_working} -g openshift-${params.BUILD_VERSION}"
+
+                        buildlib.doozer("${doozer_opts} ${cmd}")
+                        def record_log = buildlib.parse_record_log(doozer_working)
+                        def records = record_log.get('build_olm_bundle', [])
+                        def bundle_nvrs = []
+                        for (record in records) {
+                            if (record['status'] != '0') {
+                                throw new Exception("record.log includes unexpected build_olm_bundle record with error message: ${record['message']}")
+                            }
+                            bundle_nvrs << record["bundle_nvr"]
+                        }
                     }
                     echo "Successfully built:\n${bundle_nvrs.join('\n')}"
                 }
@@ -127,7 +151,11 @@ pipeline {
     post {
         always {
             script {
-                olm_bundles.archiveDoozerArtifacts()
+                commonlib.safeArchiveArtifacts([
+                    "doozer_working/*.log",
+                    "doozer_working/*.yaml",
+                    "doozer_working/brew-logs/**",
+                ])
             }
         }
         failure {
@@ -135,9 +163,9 @@ pipeline {
                 if (params.DRY_RUN) {
                     return
                 }
-                olm_bundles.slacklib.to(params.BUILD_VERSION).say("""
+                slacklib.to(params.BUILD_VERSION).say("""
                 *:heavy_exclamation_mark: olm_bundle failed*
-                buildvm job: ${olm_bundles.commonlib.buildURL('console')}
+                buildvm job: ${commonlib.buildURL('console')}
                 """)
             }
         }

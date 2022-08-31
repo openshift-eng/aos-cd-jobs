@@ -17,7 +17,7 @@ node {
     for(int i = 0; i < 1000; i++) { // don't run forever so that logs is not infinite
         try {
             echo "Wait for incoming message"
-            def messageContent = waitForCIMessage checks: [], overrides: [topic: 'Consumer.rh-jenkins-ci-plugin.397637dc-0cc8-4c35-bde8-b841024dc6d1.VirtualTopic.eng.ci.redhat-container-image.index.built'], providerName: 'Red Hat UMB', selector: ''
+            def messageContent = waitForCIMessage checks: [], overrides: [topic: 'Consumer.openshift-art-bot.397637dc-0cc8-4c35-bde8-b841024dc6d1.VirtualTopic.eng.ci.redhat-container-image.index.built'], providerName: 'Red Hat UMB', selector: ''
             msgObj = readJSON text: messageContent
             // Example: https://datagrepper.engineering.redhat.com/id?id=ID:jenkins-1-qnt2m-32829-1599730867657-210799:1:1:1:1&is_raw=true&size=extra-large
             name = msgObj['artifact']['nvr']

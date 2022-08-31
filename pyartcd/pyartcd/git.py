@@ -12,6 +12,7 @@ from pyartcd import StrOrBytesPath, exectools
 
 LOGGER = getLogger(__name__)
 
+
 class GitRepository:
     def __init__(self, directory: StrOrBytesPath, dry_run: bool = False) -> None:
         self._directory = Path(directory)

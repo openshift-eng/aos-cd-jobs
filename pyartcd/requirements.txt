@@ -5,12 +5,11 @@ contextvars
 ghapi
 jenkinsapi
 Jinja2
-jira ~= 3.1.1
-toml
+jira ~= 3.2.0  # Pin 3.2.0 until https://github.com/pycontribs/jira/issues/1486 is resolved.toml
 rh-elliott
 rh-doozer
 ruamel.yaml
-semver ~= 2.13.0
-slack_sdk ~= 3.13.0
+semver >= 2.13.0
+slack_sdk >= 3.13.0
 tenacity
 aiohttp_retry

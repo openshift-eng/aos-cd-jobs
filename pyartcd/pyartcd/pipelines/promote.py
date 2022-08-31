@@ -13,6 +13,7 @@ from urllib.parse import quote
 
 import aiohttp
 import click
+from pyartcd.cincinnati import CincinnatiAPI
 import semver
 from doozerlib import assembly
 from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
@@ -36,7 +37,7 @@ class PromotePipeline:
     DEST_RELEASE_IMAGE_REPO = constants.RELEASE_IMAGE_REPO
 
     def __init__(self, runtime: Runtime, group: str, assembly: str, release_offset: Optional[int],
-                 arches: Iterable[str], skip_blocker_bug_check: bool = False,
+                 skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
                  skip_image_list: bool = False, permit_overwrite: bool = False,
                  no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
@@ -44,9 +45,6 @@ class PromotePipeline:
         self.group = group
         self.assembly = assembly
         self.release_offset = release_offset
-        self.arches = list(arches)
-        if "multi" in self.arches:
-            raise ValueError("`multi` is not a real architecture. Set multi_arch.enable to true to enable heterogenous payload support.")
         self.skip_blocker_bug_check = skip_blocker_bug_check
         self.skip_attached_bug_check = skip_attached_bug_check
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
@@ -108,10 +106,10 @@ class PromotePipeline:
             if self.multi_only and not self._multi_enabled:
                 raise ValueError("Can't promote a multi payload: multi_arch.enabled is not set in group config")
             # Get arches
-            arches = self.arches or group_config.get("arches", [])
+            arches = group_config.get("arches", [])
             arches = list(set(map(brew_arch_for_go_arch, arches)))
             if not arches:
-                raise ValueError("No arches specified.")
+                raise ValueError("No arches specified in group config.")
             # Get previous list
             upgrades_str: Optional[str] = group_config.get("upgrades")
             if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
@@ -195,18 +193,28 @@ class PromotePipeline:
                         justifications.append(justification)
 
             # Verify attached bugs
-            advisories = list(filter(lambda ad: ad > 0, impetus_advisories.values()))
-            if advisories:
-                if self.skip_attached_bug_check:
-                    logger.info("Skip checking attached bugs.")
+            if self.skip_attached_bug_check:
+                logger.info("Skip checking attached bugs.")
+            else:
+                major, minor = util.isolate_major_minor_in_group(self.group)
+                next_minor = f"{major}.{minor + 1}"
+                logger.info("Checking if %s is GA'd...", next_minor)
+                cincinnati = CincinnatiAPI()
+                graph_data = await cincinnati.get_graph(channel=f"fast-{next_minor}")
+                no_verify_blocking_bugs = False
+                if not graph_data.get("nodes"):
+                    logger.info("%s is not GA'd. Blocking Bug check will be skipped.", next_minor)
+                    no_verify_blocking_bugs = True
                 else:
-                    logger.info("Verifying attached bugs...")
-                    try:
-                        await self.verify_attached_bugs(advisories)
-                    except ChildProcessError as err:
-                        logger.warn("Error verifying attached bugs: %s", err)
-                        justification = self._reraise_if_not_permitted(err, "ATTACHED_BUGS", permits)
-                        justifications.append(justification)
+                    logger.info("%s is GA'd. Blocking Bug check will be enforced.", next_minor)
+                logger.info("Verifying attached bugs...")
+                advisories = list(filter(lambda ad: ad > 0, impetus_advisories.values()))
+                try:
+                    await self.verify_attached_bugs(advisories, no_verify_blocking_bugs=no_verify_blocking_bugs)
+                except ChildProcessError as err:
+                    logger.warn("Error verifying attached bugs: %s", err)
+                    justification = self._reraise_if_not_permitted(err, "ATTACHED_BUGS", permits)
+                    justifications.append(justification)
 
             # Promote release images
             metadata = {}
@@ -425,7 +433,7 @@ class PromotePipeline:
         if issues:
             raise VerificationError(f"Advisory {advisory_info['id']} has the following issues:\n" + '\n'.join(issues))
 
-    async def verify_attached_bugs(self, advisories: Iterable[int]):
+    async def verify_attached_bugs(self, advisories: Iterable[int], no_verify_blocking_bugs: bool):
         advisories = list(advisories)
         if not advisories:
             self._logger.warning("No advisories to verify.")
@@ -437,6 +445,8 @@ class PromotePipeline:
             "verify-attached-bugs",
             "--verify-flaws"
         ]
+        if no_verify_blocking_bugs:
+            cmd.append("--no-verify-blocking-bugs")
         async with self._elliott_lock:
             await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 
@@ -681,7 +691,7 @@ class PromotePipeline:
             return dest_image_info
 
         # Check if the heterogeneous release payload is already tagged into the image stream.
-        namespace = f"ocp-multi"
+        namespace = "ocp-multi"
         image_stream_tag = f"release-multi:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
         self._logger.info("Checking if ImageStreamTag %s exists...", namespace_image_stream_tag)
@@ -971,8 +981,6 @@ class PromotePipeline:
               help="The name of an assembly. e.g. 4.9.1")
 @click.option("--release-offset", "-r", metavar="OFFSET", type=int,
               help="Use this option if assembly type is custom. If offset is X for 4.9, release name will become 4.9.X-assembly.ASSEMBLY_NAME.")
-@click.option("--arch", "arches", metavar="ARCH", multiple=True,
-              help="[Multiple] Only promote given arch-specific release image. If not specified, this job will promote all architectures defined in group config.")
 @click.option("--skip-blocker-bug-check", is_flag=True,
               help="Skip blocker bug check. Note block bugs are never checked for CUSTOM and CANDIDATE releases.")
 @click.option("--skip-attached-bug-check", is_flag=True,
@@ -989,10 +997,10 @@ class PromotePipeline:
 @pass_runtime
 @click_coroutine
 async def promote(runtime: Runtime, group: str, assembly: str, release_offset: Optional[int],
-                  arches: Tuple[str, ...], skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
+                  skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
-    pipeline = PromotePipeline(runtime, group, assembly, release_offset, arches,
+    pipeline = PromotePipeline(runtime, group, assembly, release_offset,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
                                skip_image_list, permit_overwrite, no_multi, multi_only, use_multi_hack)
     await pipeline.run()

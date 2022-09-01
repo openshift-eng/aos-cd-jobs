@@ -788,6 +788,8 @@ class PromotePipeline:
             "run",
             "--rm",
             "--privileged",
+            "-v",
+            f"{os.path.expanduser('~/.docker/config.json')}:/tmp/auth.json:ro",
             "quay.io/containers/skopeo:v1.8"
         ]
         if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":

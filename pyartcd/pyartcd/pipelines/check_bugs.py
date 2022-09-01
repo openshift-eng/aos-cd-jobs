@@ -170,7 +170,7 @@ class CheckBugsPipeline:
         out = out.decode().strip().splitlines()
         if len(out) < 2:
             return None
-        bugs = out[-1].split(':')[1].split(', ')
+        bugs = [b.strip() for b in out[-1].split(':')[1].split(', ')]
 
         # Verify bugs
         cmd = [

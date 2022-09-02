@@ -9,10 +9,10 @@ from pyartcd.pipelines.promote import PromotePipeline
 
 class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={})
-    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value={})
+    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     def test_run_without_explicit_assembly_definition(self, load_group_config: AsyncMock, load_releases_config: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}}, working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         with self.assertRaisesRegex(ValueError, "must be explictly defined"):
             asyncio.get_event_loop().run_until_complete(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
@@ -21,10 +21,10 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={
         "releases": {"stream": {"assembly": {"type": "stream"}}}
     })
-    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value={})
+    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     def test_run_with_stream_assembly(self, load_group_config: AsyncMock, load_releases_config: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}}, working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="stream", release_offset=None, arches=["x86_64", "s390x"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="stream", release_offset=None)
         with self.assertRaisesRegex(ValueError, "not supported"):
             asyncio.get_event_loop().run_until_complete(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "stream", env=ANY)
@@ -33,10 +33,10 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={
         "releases": {"art0001": {"assembly": {"type": "custom"}}}
     })
-    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value={})
+    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     def test_run_with_custom_assembly_and_missing_release_offset(self, load_group_config: AsyncMock, load_releases_config: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}}, working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", release_offset=None, arches=["x86_64", "s390x"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", release_offset=None)
         with self.assertRaisesRegex(ValueError, "release_offset is required"):
             asyncio.get_event_loop().run_until_complete(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "art0001", env=ANY)
@@ -63,12 +63,12 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={
         "releases": {"art0001": {"assembly": {"type": "custom"}}}
     })
-    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value={})
+    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream")
     def test_run_with_custom_assembly(self, get_image_stream: AsyncMock, load_group_config: AsyncMock, load_releases_config: AsyncMock, get_release_image_info: AsyncMock,
                                       build_release_image: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}}, working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", release_offset=99, arches=["x86_64", "s390x"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", release_offset=99)
         pipeline._slack_client = AsyncMock()
         asyncio.get_event_loop().run_until_complete(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "art0001", env=ANY)
@@ -82,10 +82,10 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={
         "releases": {"4.10.99": {"assembly": {"type": "standard"}}}
     })
-    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value={})
+    @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     def test_run_with_standard_assembly_without_upgrade_edges(self, load_group_config: AsyncMock, load_releases_config: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}}, working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         pipeline._slack_client = AsyncMock()
         with self.assertRaisesRegex(ValueError, "missing the required `upgrades` field"):
             asyncio.get_event_loop().run_until_complete(pipeline.run())
@@ -122,13 +122,14 @@ class TestPromotePipeline(TestCase):
         "upgrades": "4.10.98,4.9.99",
         "advisories": {"rpm": 1, "image": 2, "extras": 3, "metadata": 4},
         "description": "whatever",
+        "arches": ["x86_64", "s390x", "ppc64le", "aarch64"],
     })
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream")
     def test_run_with_standard_assembly(self, get_image_stream: AsyncMock, load_group_config: AsyncMock, load_releases_config: AsyncMock,
                                         get_release_image_info: AsyncMock, build_release_image: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         pipeline._slack_client = AsyncMock()
         pipeline.check_blocker_bugs = AsyncMock()
         pipeline.attach_cve_flaws = AsyncMock()
@@ -144,6 +145,7 @@ class TestPromotePipeline(TestCase):
         pipeline.tag_release = AsyncMock(return_value=None)
         pipeline.wait_for_stable = AsyncMock(return_value=None)
         pipeline.send_image_list_email = AsyncMock()
+        pipeline.is_accepted = AsyncMock(return_value=False)
         asyncio.get_event_loop().run_until_complete(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
@@ -152,7 +154,7 @@ class TestPromotePipeline(TestCase):
             pipeline.attach_cve_flaws.assert_any_await(advisory)
             pipeline.change_advisory_state.assert_any_await(advisory, "QE")
         pipeline.get_advisory_info.assert_awaited_once_with(2)
-        pipeline.verify_attached_bugs.assert_awaited_once_with([1, 2, 3, 4])
+        pipeline.verify_attached_bugs.assert_awaited_once_with([1, 2, 3, 4], no_verify_blocking_bugs=False)
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", raise_if_not_found=ANY)
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-s390x", raise_if_not_found=ANY)
         build_release_image.assert_any_await("4.10.99", "x86_64", ["4.10.98", "4.9.99"], {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}, "quay.io/openshift-release-dev/ocp-release:4.10.99-x86_64", "registry.ci.openshift.org/ocp/release:nightly-x86_64", None, keep_manifest_list=False)
@@ -195,7 +197,7 @@ class TestPromotePipeline(TestCase):
     def test_promote_arch(self, get_image_stream: AsyncMock, get_release_image_info: AsyncMock, build_release_image: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -243,7 +245,7 @@ class TestPromotePipeline(TestCase):
     def test_build_release_image_from_reference_release(self, cmd_assert_async: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -274,7 +276,7 @@ class TestPromotePipeline(TestCase):
     def test_build_release_image_from_image_stream(self, cmd_assert_async: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -362,7 +364,7 @@ class TestPromotePipeline(TestCase):
                                            build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"])
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -589,7 +591,7 @@ class TestPromotePipeline(TestCase):
                                                            build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, arches=["x86_64", "s390x", "ppc64le", "aarch64"], use_multi_hack=True)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, use_multi_hack=True)
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 

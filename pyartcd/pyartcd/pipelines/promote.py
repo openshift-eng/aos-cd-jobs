@@ -196,16 +196,21 @@ class PromotePipeline:
             if self.skip_attached_bug_check:
                 logger.info("Skip checking attached bugs.")
             else:
-                major, minor = util.isolate_major_minor_in_group(self.group)
-                next_minor = f"{major}.{minor + 1}"
-                logger.info("Checking if %s is GA'd...", next_minor)
-                graph_data = await CincinnatiAPI().get_graph(channel=f"fast-{next_minor}")
+                # FIXME: We used to skip blocking bug check for the latest minor version,
+                # because there were a lot of ON_QA bugs in the upcoming GA version blocking us
+                # from preparing z-stream releases for the latest minor version.
+                # Per https://coreos.slack.com/archives/GDBRP5YJH/p1662036090856369?thread_ts=1662024464.786929&cid=GDBRP5YJH,
+                # we would like to try not skipping it by commenting out the following lines and see what will happen.
+                # major, minor = util.isolate_major_minor_in_group(self.group)
+                # next_minor = f"{major}.{minor + 1}"
+                # logger.info("Checking if %s is GA'd...", next_minor)
+                # graph_data = await CincinnatiAPI().get_graph(channel=f"fast-{next_minor}")
                 no_verify_blocking_bugs = False
-                if not graph_data.get("nodes"):
-                    logger.info("%s is not GA'd. Blocking Bug check will be skipped.", next_minor)
-                    no_verify_blocking_bugs = True
-                else:
-                    logger.info("%s is GA'd. Blocking Bug check will be enforced.", next_minor)
+                # if not graph_data.get("nodes"):
+                #     logger.info("%s is not GA'd. Blocking Bug check will be skipped.", next_minor)
+                #     no_verify_blocking_bugs = True
+                # else:
+                #     logger.info("%s is GA'd. Blocking Bug check will be enforced.", next_minor)
                 logger.info("Verifying attached bugs...")
                 advisories = list(filter(lambda ad: ad > 0, impetus_advisories.values()))
                 try:

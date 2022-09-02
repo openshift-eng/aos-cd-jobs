@@ -13,9 +13,7 @@ class CincinnatiAPI:
 
     async def get_graph(self, channel: str, arch: Optional[str] = None):
         url = f"{self._server}/api/upgrades_info/v1/graph"
-        params = {
-            "channel": channel
-        }
+        params = dict(channel=channel)
         if arch:
             params["arch"] = arch
         async with self._client.get(url, headers={'Accept': 'application/json'}, params=params) as response:

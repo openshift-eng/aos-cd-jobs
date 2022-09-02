@@ -199,8 +199,7 @@ class PromotePipeline:
                 major, minor = util.isolate_major_minor_in_group(self.group)
                 next_minor = f"{major}.{minor + 1}"
                 logger.info("Checking if %s is GA'd...", next_minor)
-                cincinnati = CincinnatiAPI()
-                graph_data = await cincinnati.get_graph(channel=f"fast-{next_minor}")
+                graph_data = await CincinnatiAPI().get_graph(channel=f"fast-{next_minor}")
                 no_verify_blocking_bugs = False
                 if not graph_data.get("nodes"):
                     logger.info("%s is not GA'd. Blocking Bug check will be skipped.", next_minor)

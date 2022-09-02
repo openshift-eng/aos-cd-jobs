@@ -48,14 +48,16 @@ node {
 
     for(adv in advisory_list) {
         def elliott = "${buildlib.ELLIOTT_BIN} --group=openshift-${params.VERSION}"
-        commonlib.shell(
-            script: """
-              ${elliott} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
-              ${elliott} remove-bugs --advisory ${adv} --all
-              ${elliott} change-state --state NEW_FILES --advisory ${adv}
-              ${elliott} advisory-drop ${adv}
-            """,
-        )
+        withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+            commonlib.shell(
+                script: """
+                ${elliott} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
+                ${elliott} remove-bugs --advisory ${adv} --all
+                ${elliott} change-state --state NEW_FILES --advisory ${adv}
+                ${elliott} advisory-drop ${adv}
+                """,
+            )
+        }
     }
 
     buildlib.cleanWorkspace()

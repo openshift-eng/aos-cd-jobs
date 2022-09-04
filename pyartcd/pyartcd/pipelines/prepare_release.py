@@ -188,6 +188,7 @@ class PrepareReleasePipeline:
                     subtask,
                     "prepare release job : {}".format(os.environ.get("BUILD_URL"))
             )
+            self._jira_client.assign_to_me(subtask)
             self._jira_client.close_task(subtask)
         else:
             _LOGGER.info("Creating a release JIRA...")
@@ -202,6 +203,7 @@ class PrepareReleasePipeline:
                     subtask,
                     "prepare release job : {}".format(os.environ.get("BUILD_URL"))
                 )
+                self._jira_client.assign_to_me(subtask)
                 self._jira_client.close_task(subtask)
 
 

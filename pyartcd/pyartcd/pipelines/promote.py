@@ -221,19 +221,6 @@ class PromotePipeline:
             release_infos = await self.promote(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)
 
-            # update jira promote task status
-            _LOGGER.info("Updating promote release subtask")
-            jira_issue_key = group_config.get("release_jira")
-            if jira_issue_key:
-                parent_jira = self._jira_client.get_issue(jira_issue_key)
-                subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[3].key)
-                self._jira_client.add_comment(
-                    subtask,
-                    "promote release job : {}".format(os.environ.get("BUILD_URL"))
-                )
-                self._jira_client.assign_to_me(subtask)
-                self._jira_client.close_task(subtask)
-
             # Wait for payloads to be accepted by release controllers
             pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}
             pullspecs_repr = ", ".join(f"{arch}: {pullspecs[arch]}" for arch in sorted(pullspecs.keys()))
@@ -290,6 +277,19 @@ class PromotePipeline:
                     mail_dir = self._working_dir / "email"
                     await self.send_image_list_email(release_name, image_advisory, mail_dir)
                     self._logger.info("Advisory image list sent.")
+
+                # update jira promote task status
+                _LOGGER.info("Updating promote release subtask")
+                jira_issue_key = group_config.get("release_jira")
+                if jira_issue_key:
+                    parent_jira = self._jira_client.get_issue(jira_issue_key)
+                    subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[3].key)
+                    self._jira_client.add_comment(
+                        subtask,
+                        "promote release job : {}".format(os.environ.get("BUILD_URL"))
+                    )
+                    self._jira_client.assign_to_me(subtask)
+                    self._jira_client.close_task(subtask)
 
         except Exception as err:
             self._logger.exception(err)

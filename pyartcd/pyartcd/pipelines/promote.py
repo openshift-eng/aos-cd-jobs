@@ -21,6 +21,7 @@ from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.runtime import Runtime
+from pyartcd.jira import JIRAClient
 from ruamel.yaml import YAML
 from semver import VersionInfo
 from tenacity import (RetryCallState, RetryError, retry,
@@ -73,6 +74,7 @@ class PromotePipeline:
         self._elliott_env_vars["ELLIOTT_WORKING_DIR"] = str(self._elliott_working_dir)
         self._elliott_lock = asyncio.Lock()
         self._ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
+        self._jira_client = JIRAClient.from_url(self.runtime.config["jira"]["url"], token_auth=os.environ.get("JIRA_TOKEN"))
         if self._ocp_build_data_url:
             self._elliott_env_vars["ELLIOTT_DATA_PATH"] = self._ocp_build_data_url
             self._doozer_env_vars["DOOZER_DATA_PATH"] = self._ocp_build_data_url
@@ -275,6 +277,19 @@ class PromotePipeline:
                     mail_dir = self._working_dir / "email"
                     await self.send_image_list_email(release_name, image_advisory, mail_dir)
                     self._logger.info("Advisory image list sent.")
+
+                # update jira promote task status
+                _LOGGER.info("Updating promote release subtask")
+                jira_issue_key = group_config.get("release_jira")
+                if jira_issue_key:
+                    parent_jira = self._jira_client.get_issue(jira_issue_key)
+                    subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[3].key)
+                    self._jira_client.add_comment(
+                        subtask,
+                        "promote release job : {}".format(os.environ.get("BUILD_URL"))
+                    )
+                    self._jira_client.assign_to_me(subtask)
+                    self._jira_client.close_task(subtask)
 
         except Exception as err:
             self._logger.exception(err)

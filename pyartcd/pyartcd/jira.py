@@ -20,6 +20,9 @@ class JIRAClient:
     def add_comment(self, key, comment):
         self._client.add_comment(key, comment, visibility={'type': 'group', 'value': 'Red Hat Employee'})
 
+    def assign_to_me(self, key):
+        self._client.assign_issue(key, 'openshift-art-jira-bot')
+
     def close_task(self, key):
         self._client.transition_issue(key, 'Closed')
 

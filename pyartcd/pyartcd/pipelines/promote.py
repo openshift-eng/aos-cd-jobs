@@ -279,7 +279,7 @@ class PromotePipeline:
                     self._logger.info("Advisory image list sent.")
 
                 # update jira promote task status
-                _LOGGER.info("Updating promote release subtask")
+                self._LOGGER.info("Updating promote release subtask")
                 jira_issue_key = group_config.get("release_jira")
                 if jira_issue_key:
                     parent_jira = self._jira_client.get_issue(jira_issue_key)

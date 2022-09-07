@@ -118,6 +118,7 @@ class CheckBugsPipeline:
         self.logger.info(f'Executing command: {" ".join(cmd)}')
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(out.decode())
         out, err = process.communicate()
         errcode = process.returncode
         if errcode:
@@ -160,6 +161,7 @@ class CheckBugsPipeline:
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
+        print(out.decode())
         errcode = process.returncode
         if errcode:
             self.logger.error(f'Command {cmd} failed with {errcode}: see output below')

@@ -46,7 +46,6 @@ node {
                           'If <b>off</b>: Set MODIFIED bugs to ON_QA. Do not change advisories',
                         ].join('\n')
                     ),
-                    commonlib.jiraModeParam('USEJIRA'),
                     string(
                         name: "SLACK_CHANNEL",
                         description: 'Slack channel to be notified in case of failures. ' +
@@ -95,14 +94,8 @@ node {
         echo "Running command: ${cmd}"
 
         // Execute script
-        def env = []
-        if (params.JIRA_MODE) {
-            env << "${params.JIRA_MODE}=True"
-        }
-        withEnv(env) {
-            withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
-            }
+        withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+            exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
         }
         echo("command ${cmd} returned with status ${exitCode}")
 

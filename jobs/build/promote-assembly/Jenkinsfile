@@ -97,7 +97,6 @@ node {
                         description: '(Standard Release) Always sync RHCOS images to mirrors.',
                         defaultValue: false,
                     ),
-                    commonlib.jiraModeParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
                         description: 'Success Mailing List',
@@ -196,9 +195,6 @@ node {
         }
         echo "Will run ${cmd}"
         def env = ["KUBECONFIG=${buildlib.ciKubeconfig}"]
-        if (params.JIRA_MODE) {
-            env << "${params.JIRA_MODE}=True"
-        }
         withEnv(env) {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()

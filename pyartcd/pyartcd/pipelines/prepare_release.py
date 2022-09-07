@@ -232,6 +232,10 @@ class PrepareReleasePipeline:
         _LOGGER.info("Sweep bugs into the the advisories...")
         self.sweep_bugs(check_builds=True)
 
+        _LOGGER.info("Processing attached Security Trackers")
+        for _, advisory in advisories.items():
+            self.attach_cve_flaws(advisory)
+
         _LOGGER.info("Adding placeholder bugs...")
         for kind, advisory in advisories.items():
             bug_ids = get_bug_ids(advisory)
@@ -469,6 +473,20 @@ class PrepareReleasePipeline:
             cmd.append(f"--add={advisory}")
         else:
             cmd.append("--into-default-advisories")
+        if self.dry_run:
+            cmd.append("--dry-run")
+        _LOGGER.info("Running command: %s", cmd)
+        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
+    def attach_cve_flaws(self, advisory: int):
+        cmd = [
+            "elliott",
+            f"--working-dir={self.elliott_working_dir}",
+            f"--group={self.group_name}",
+            "attach-cve-flaws",
+            f"--advisory={advisory}",
+        ]
         if self.dry_run:
             cmd.append("--dry-run")
         _LOGGER.info("Running command: %s", cmd)

@@ -1,7 +1,9 @@
 node('covscan') {
     checkout scm
-    olm_bundles = load('olm_bundles.groovy')
-    olm_bundles.commonlib.describeJob("olm_bundle", """
+    buildlib = load('pipeline-scripts/buildlib.groovy')
+    commonlib = buildlib.commonlib
+    slacklib = commonlib.slacklib
+    commonlib.describeJob("olm_bundle", """
         <h2>Create bundle images for OLM operators</h2>
         <b>Timing</b>: Run by the ocp4 or custom jobs after new builds.
         Should only need humans to run if something breaks.
@@ -10,9 +12,6 @@ node('covscan') {
         metadata images in that it contains an operator manifest with a CSV.
         However it only represents a single version of that operator, and only
         ever needs to be built once; there is no need to rebuild for release.
-
-        If an extras advisory is provided, bundle images are attached to that advisory.
-        Eventually all of this will simply run as part of the release cycle.
     """)
     bundle_nvrs = []
 }
@@ -32,7 +31,7 @@ pipeline {
     parameters {
         choice(
             name: 'BUILD_VERSION',
-            choices: olm_bundles.commonlib.ocpVersions,
+            choices: commonlib.ocpVersions,
             description: 'OCP Version',
         )
         string(
@@ -73,20 +72,6 @@ pipeline {
             defaultValue: '',
             trim: true,
         )
-        string(
-            name: 'EXTRAS_ADVISORY',
-            description: '(Optional) Fetch OLM Operators NVRs from advisory.\n' +
-                         'Leave empty to fetch NVRs from "brew latest-build".',
-            defaultValue: '',
-            trim: true,
-        )
-        string(
-            name: 'METADATA_ADVISORY',
-            description: '(Optional) Attach built bundles to given advisory.\n' +
-                         'Bundles won\'t be attached to any advisory if empty.',
-            defaultValue: '',
-            trim: true,
-        )
         booleanParam(
             name: 'FORCE_BUILD',
             description: 'Rebuild bundle containers, even if they already exist for given operator NVRs',
@@ -97,54 +82,31 @@ pipeline {
             description: 'Just show what would happen, without actually executing the steps',
             defaultValue: false,
         )
+        booleanParam(
+            name: 'MOCK',
+            description: 'Pick up changed job parameters and then exit',
+            defaultValue: false,
+        )
     }
 
     stages {
+        stage('Check mock') {
+            steps {
+                script {
+                    commonlib.checkMock()
+                }
+            }
+        }
         stage('Set build info') {
             steps {
                 script {
-                    operator_nvrs = olm_bundles.commonlib.parseList(params.OPERATOR_NVRS)
-                    only = olm_bundles.commonlib.parseList(params.ONLY)
-                    exclude = olm_bundles.commonlib.parseList(params.EXCLUDE)
+                    operator_nvrs = commonlib.parseList(params.OPERATOR_NVRS)
+                    only = commonlib.parseList(params.ONLY)
+                    exclude = commonlib.parseList(params.EXCLUDE)
                     currentBuild.displayName += " (${params.BUILD_VERSION})"
 
                     if (params.ASSEMBLY && params.ASSEMBLY != "stream") {
                         currentBuild.displayName += " - assembly ${params.ASSEMBLY}"
-                        if (params.EXTRAS_ADVISORY || params.METADATA_ADVISORY) {
-                            error("Cannot use EXTRAS_ADVISORY or METADATA_ADVISORY when building for non-stream assembly.")
-                        }
-                    } else {
-                        currentBuild.displayName  += " ${params.EXTRAS_ADVISORY ?: ''}"
-                    }
-                    if (operator_nvrs && (only || exclude)) {
-                        error("Cannot use OPERATOR_NVRS with ONLY or EXCLUDE.")
-                    }
-                    if (operator_nvrs && params.EXTRAS_ADVISORY) {
-                        error("Cannot use OPERATOR_NVRS with EXTRAS_ADVISORY.")
-                    }
-                    olm_bundles.buildlib.initialize(false, false)  // ensure kinit
-                }
-            }
-        }
-        stage('Make sure advisories belong to a single group') {
-            when {
-                expression { ! params.EXTRAS_ADVISORY.isEmpty() }
-            }
-            steps {
-                script {
-                    olm_bundles.validate_advisories(params.EXTRAS_ADVISORY, params.METADATA_ADVISORY, params.BUILD_VERSION)
-                }
-            }
-        }
-        stage('Get advisory builds') {
-            when {
-                expression { ! params.EXTRAS_ADVISORY.isEmpty() }
-            }
-            steps {
-                script {
-                    operator_packages = (only ?: olm_bundles.get_olm_operators()) - exclude
-                    operator_nvrs = olm_bundles.get_builds_from_advisory(params.EXTRAS_ADVISORY).findAll {
-                        nvr -> operator_packages.any { nvr.startsWith(it) }
                     }
                 }
             }
@@ -153,52 +115,47 @@ pipeline {
             steps {
                 script {
                     lock("olm_bundle-${params.BUILD_VERSION}") {
-                        bundle_nvrs = olm_bundles.build_bundles(only, exclude, operator_nvrs, params.DOOZER_DATA_PATH)
+                        def cmd = ""
+                        cmd += "--data-path=${params.DOOZER_DATA_PATH}"
+                        if (only)
+                            cmd += " --images=${only.join(',')}"
+                        if (exclude)
+                            cmd += " --exclude=${exclude.join(',')}"
+                        cmd += " olm-bundle:rebase-and-build"
+                        if (params.FORCE_BUILD)
+                            cmd += " --force"
+                        if (params.DRY_RUN)
+                            cmd += " --dry-run"
+                        cmd += " -- "
+                        cmd += operator_nvrs.join(' ')
+
+                        def doozer_working = "${WORKSPACE}/doozer_working"
+                        def doozer_opts = "--working-dir ${doozer_working} -g openshift-${params.BUILD_VERSION}"
+
+                        buildlib.doozer("${doozer_opts} ${cmd}")
+                        def record_log = buildlib.parse_record_log(doozer_working)
+                        def records = record_log.get('build_olm_bundle', [])
+                        def bundle_nvrs = []
+                        for (record in records) {
+                            if (record['status'] != '0') {
+                                throw new Exception("record.log includes unexpected build_olm_bundle record with error message: ${record['message']}")
+                            }
+                            bundle_nvrs << record["bundle_nvr"]
+                        }
                     }
                     echo "Successfully built:\n${bundle_nvrs.join('\n')}"
                 }
             }
         }
-        stage('Attach bundles to advisory') {
-            when {
-                expression { bundle_nvrs && ! params.METADATA_ADVISORY.isEmpty() }
-            }
-            steps {
-                script {
-                    echo "Attaching bundles to advisory ${params.METADATA_ADVISORY}..."
-                    if (params.DRY_RUN) {
-                        echo "[DRY RUN] Would have attached ${bundle_nvrs} to advisory ${params.METADATA_ADVISORY}."
-                        return
-                    }
-                    lock("olm_bundle-${params.BUILD_VERSION}") {
-                        olm_bundles.attach_bundles_to_advisory(bundle_nvrs, params.METADATA_ADVISORY)
-                    }
-                }
-            }
-        }
-        stage('Slack notification to release channel') {
-            when {
-                expression { !params.DRY_RUN && bundle_nvrs && ! params.METADATA_ADVISORY.isEmpty() }
-            }
-            steps {
-                script {
-                    olm_bundles.slacklib.to(params.BUILD_VERSION).say("""
-                    *:white_check_mark: olm_bundle*
-The following builds were attached to advisory ${params.METADATA_ADVISORY}:
-                    ```
-                    ${bundle_nvrs.join('\n')}
-                    ```
-buildvm job: ${olm_bundles.commonlib.buildURL('console')}
-                    """)
-                }
-            }
-        }
-
     }
     post {
         always {
             script {
-                olm_bundles.archiveDoozerArtifacts()
+                commonlib.safeArchiveArtifacts([
+                    "doozer_working/*.log",
+                    "doozer_working/*.yaml",
+                    "doozer_working/brew-logs/**",
+                ])
             }
         }
         failure {
@@ -206,9 +163,9 @@ buildvm job: ${olm_bundles.commonlib.buildURL('console')}
                 if (params.DRY_RUN) {
                     return
                 }
-                olm_bundles.slacklib.to(params.BUILD_VERSION).say("""
+                slacklib.to(params.BUILD_VERSION).say("""
                 *:heavy_exclamation_mark: olm_bundle failed*
-                buildvm job: ${olm_bundles.commonlib.buildURL('console')}
+                buildvm job: ${commonlib.buildURL('console')}
                 """)
             }
         }

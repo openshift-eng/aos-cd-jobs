@@ -128,7 +128,8 @@ node {
     def doozer_data_path = params.DOOZER_DATA_PATH
     def (majorVersion, minorVersion) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
     def groupParam = "openshift-${params.BUILD_VERSION}"
-    if (params.DOOZER_DATA_GITREF) {
+    def doozer_data_gitref = params.DOOZER_DATA_GITREF
+    if (doozer_data_gitref) {
         groupParam += "@${params.DOOZER_DATA_GITREF}"
     }
     def doozerOpts = "--working-dir ${doozer_working} --data-path ${doozer_data_path} --group '${groupParam}' "
@@ -258,7 +259,8 @@ node {
                         "aos-team-art@redhat.com", // "reply to"
                         params.ASSEMBLY,
                         operator_nvrs,
-                        doozer_data_path
+                        doozer_data_path,
+                        doozer_data_gitref
                     )
                 }
             }

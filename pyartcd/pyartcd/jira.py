@@ -26,6 +26,9 @@ class JIRAClient:
     def close_task(self, key):
         self._client.transition_issue(key, 'Closed')
 
+    def start_task(self, key):
+        self._client.transition_issue(key, 'In Progress')
+
     @classmethod
     def _copy_issue_fields(cls, fields: Dict[str, Any]):
         new_fields = {

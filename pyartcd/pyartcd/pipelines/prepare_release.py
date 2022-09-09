@@ -190,6 +190,7 @@ class PrepareReleasePipeline:
             )
             self._jira_client.assign_to_me(subtask)
             self._jira_client.close_task(subtask)
+            self._jira_client.start_task(parent_jira)
         else:
             _LOGGER.info("Creating a release JIRA...")
             jira_issues = self.create_release_jira(jira_template_vars)
@@ -205,7 +206,7 @@ class PrepareReleasePipeline:
                 )
                 self._jira_client.assign_to_me(subtask)
                 self._jira_client.close_task(subtask)
-
+                self._jira_client.start_task(parent_jira)
 
         _LOGGER.info("Updating ocp-build-data...")
         build_data_changed = await self.update_build_data(advisories, jira_issue_key)

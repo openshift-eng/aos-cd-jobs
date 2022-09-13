@@ -698,7 +698,7 @@ def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs =
     }
 }
 
-def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_data_path) {
+def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_data_path, doozer_data_gitref = "") {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
     // stream is updated with the new tags and pullspecs.
@@ -725,6 +725,7 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_
                 param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
                 param('String', 'ASSEMBLY', assembly),
                 param('String', 'DOOZER_DATA_PATH', doozer_data_path),
+                param('String', 'DOOZER_DATA_GITREF', doozer_data_gitref),
                 param('String', 'OPERATOR_NVRS', operator_nvrs != null ? operator_nvrs.join(",") : ""),
                 param('Boolean', 'DRY_RUN', params.DRY_RUN),
             ])

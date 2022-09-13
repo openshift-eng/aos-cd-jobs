@@ -47,6 +47,12 @@ pipeline {
             trim: true,
         )
         string(
+            name: 'DOOZER_DATA_GITREF',
+            description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+            defaultValue: "",
+            trim: true,
+        )
+        string(
             name: 'OPERATOR_NVRS',
             description: '(Optional) List **only** the operator NVRs you want to build bundles for, everything else gets ignored. The operators should not be mode:disabled/wip in ocp-build-data',
             defaultValue: "",
@@ -130,7 +136,11 @@ pipeline {
                         cmd += operator_nvrs.join(' ')
 
                         def doozer_working = "${WORKSPACE}/doozer_working"
-                        def doozer_opts = "--working-dir ${doozer_working} -g openshift-${params.BUILD_VERSION}"
+                        def groupParam = "openshift-${params.BUILD_VERSION}"
+                        if (doozer_data_gitref) {
+                            groupParam += "@${params.DOOZER_DATA_GITREF}"
+                        }
+                        def doozer_opts = "--working-dir ${doozer_working} -g '${groupParam}'"
 
                         buildlib.doozer("${doozer_opts} ${cmd}")
                         def record_log = buildlib.parse_record_log(doozer_working)

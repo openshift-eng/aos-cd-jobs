@@ -85,7 +85,6 @@ class CheckBugsPipeline:
         else:
             self.logger.warning('No applicable versions found')
 
-
     async def is_ga(self, version: str, session):
         # 3.11 is an exception, no need to query Openshift API
         if version == '3.11':

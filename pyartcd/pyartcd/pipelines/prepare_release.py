@@ -185,8 +185,8 @@ class PrepareReleasePipeline:
             parent_jira = self._jira_client.get_issue(jira_issue_key)
             subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[1].key)
             self._jira_client.add_comment(
-                    subtask,
-                    "prepare release job : {}".format(os.environ.get("BUILD_URL"))
+                subtask,
+                "prepare release job : {}".format(os.environ.get("BUILD_URL"))
             )
             self._jira_client.assign_to_me(subtask)
             self._jira_client.close_task(subtask)

@@ -38,11 +38,6 @@ node {
                         trim: true,
                     ),
                     string(
-                        name: 'ARCHES',
-                        description: '(Optional) A comma separated list of architectures for the release. Leave empty to promote all arches.',
-                        trim: true,
-                    ),
-                    string(
                         name: 'RELEASE_OFFSET',
                         description: 'Integer. Required for a custom release. Do not specify for a standard or candidate release. If offset is X for 4.9, the release name will be 4.9.X-assembly.ASSEMBLY_NAME',
                         trim: true,
@@ -83,6 +78,11 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
+                        name: 'SKIP_ATTACHED_BUG_CHECK',
+                        description: 'Skip attached bug check',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
                         name: 'SKIP_ATTACH_CVE_FLAWS',
                         description: 'Do not attach CVE flaws bugs',
                         defaultValue: false,
@@ -116,19 +116,9 @@ node {
 
     commonlib.checkMock()
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
-    // TODO: Move commonlib.ocpReleaseState to ocp-build-data or somewhere.
-    def arches = params.ARCHES? commonlib.parseList(params.ARCHES) : commonlib.ocpReleaseState["${major}.${minor}"]?.release
-    if (!arches) {
-        error("Could not determine which architectures to release. Make sure they are specified in `commonlib.ocpReleaseState`.")
-    }
     def release_offset = params.RELEASE_OFFSET? Integer.parseInt(params.RELEASE_OFFSET) : null
-    def skipAttachedBugCheck = false
+    def skipAttachedBugCheck = params.SKIP_ATTACHED_BUG_CHECK
     def next_minor = "${major}.${minor + 1}"
-    if (!(commonlib.ocpReleaseState[next_minor] && commonlib.ocpReleaseState[next_minor]["release"])) {
-        // If next_minor is not released yet, don't check attatched bugs.
-        // TODO: CVE flaw check should be exempted after https://github.com/openshift/elliott/pull/239 is merged.
-        skipAttachedBugCheck = true
-    }
     if (params.DRY_RUN) {
         currentBuild.displayName += " (dry-run)"
         currentBuild.description += " [DRY RUN]"
@@ -189,9 +179,6 @@ node {
             // This is also required for 4.11 to prevent the heterogeneous payload from getting into Cincinnati channels
             // because 4.11 heterogeneous is tech preview.
             cmd << "--use-multi-hack"
-        }
-        for (arch in arches) {
-            cmd << "--arch=${arch}"
         }
         echo "Will run ${cmd}"
         def env = ["KUBECONFIG=${buildlib.ciKubeconfig}"]

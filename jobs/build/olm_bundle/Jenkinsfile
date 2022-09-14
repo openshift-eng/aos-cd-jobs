@@ -84,6 +84,11 @@ pipeline {
             defaultValue: false,
         )
         booleanParam(
+            name: 'CLEAN_WORKSPACE',
+            description: 'Clean doozer workspace before job running, this will clean record.log and distgit repo cache',
+            defaultValue: false,
+        )
+        booleanParam(
             name: 'DRY_RUN',
             description: 'Just show what would happen, without actually executing the steps',
             defaultValue: false,
@@ -136,6 +141,9 @@ pipeline {
                         cmd += operator_nvrs.join(' ')
 
                         def doozer_working = "${WORKSPACE}/doozer_working"
+                        if (params.CLEAN_WORKSPACE) {
+                            sh "rm -rf ${doozer_working}"
+                        }
                         def groupParam = "openshift-${params.BUILD_VERSION}"
                         if (doozer_data_gitref) {
                             groupParam += "@${params.DOOZER_DATA_GITREF}"
@@ -164,7 +172,6 @@ pipeline {
                 commonlib.safeArchiveArtifacts([
                     "doozer_working/*.log",
                     "doozer_working/*.yaml",
-                    "doozer_working/brew-logs/**",
                 ])
             }
         }

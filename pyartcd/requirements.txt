@@ -13,3 +13,4 @@ semver >= 2.13.0
 slack_sdk >= 3.13.0
 tenacity
 aiohttp_retry
+toml

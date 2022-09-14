@@ -172,6 +172,7 @@ pipeline {
                 commonlib.safeArchiveArtifacts([
                     "doozer_working/*.log",
                     "doozer_working/*.yaml",
+                    "doozer_working/brew-logs/**",
                 ])
             }
         }

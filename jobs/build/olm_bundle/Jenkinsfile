@@ -120,7 +120,7 @@ pipeline {
         stage('Build bundles') {
             steps {
                 script {
-                    buildlib.initialize()
+                    buildlib.cleanWorkspace()
                     lock("olm_bundle-${params.BUILD_VERSION}") {
                         def cmd = ""
                         cmd += "--data-path=${params.DOOZER_DATA_PATH}"

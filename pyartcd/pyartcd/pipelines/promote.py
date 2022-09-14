@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import json
 import logging
 import os
@@ -8,13 +7,12 @@ import sys
 import traceback
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional
 from urllib.parse import quote
 
 import aiohttp
 import click
-from pyartcd.cincinnati import CincinnatiAPI
-import semver
+# from pyartcd.cincinnati import CincinnatiAPI
 from doozerlib import assembly
 from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
                             go_arch_for_brew_arch, go_suffix_for_arch)
@@ -112,7 +110,7 @@ class PromotePipeline:
                 raise ValueError("No arches specified in group config.")
             # Get previous list
             upgrades_str: Optional[str] = group_config.get("upgrades")
-            if upgrades_str is None and assembly_type != assembly.AssemblyTypes.CUSTOM:
+            if upgrades_str is None and assembly_type not in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
                 raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to empty string.")
             previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
             # Ensure all versions in previous list are valid semvers.
@@ -122,7 +120,7 @@ class PromotePipeline:
             impetus_advisories = group_config.get("advisories", {})
 
             # Check for blocker bugs
-            if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM]:
+            if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
                 logger.info("Blocker Bug check is skipped.")
             else:
                 logger.info("Checking for blocker bugs...")
@@ -229,8 +227,8 @@ class PromotePipeline:
             if errata_url:
                 metadata["url"] = errata_url
             reference_releases = util.get_assembly_basis(releases_config, self.assembly).get("reference_releases", {})
-            tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE]
-            release_infos = await self.promote(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
+            tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]
+            release_infos = await self.promote(assembly_type, release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)
 
             # Wait for payloads to be accepted by release controllers
@@ -245,11 +243,10 @@ class PromotePipeline:
                 # check if release is already accepted (in case we timeout and run the job again)
                 tasks = []
                 for arch, release_info in release_infos.items():
-                    go_arch_suffix = go_suffix_for_arch(arch)
-                    release_stream = f"4-stable{go_arch_suffix}"
-                    actual_release_name = release_info["metadata"]["version"]
+                    release_stream = self._get_release_stream_name(assembly_type, arch)
                     # Currently the multi payload uses a different release name to workaround a cincinnati issue.
                     # Use the release name in release_info instead.
+                    actual_release_name = release_info["metadata"]["version"]
                     tasks.append(self.is_accepted(actual_release_name, arch, release_stream))
                 accepted = await asyncio.gather(*tasks)
 
@@ -258,11 +255,10 @@ class PromotePipeline:
                     await self._slack_client.say(f"Release {release_name} has been tagged on release controller, but is not accepted yet. Waiting.", slack_thread)
                     tasks = []
                     for arch, release_info in release_infos.items():
-                        go_arch_suffix = go_suffix_for_arch(arch)
-                        release_stream = f"4-stable{go_arch_suffix}"
-                        actual_release_name = release_info["metadata"]["version"]
+                        release_stream = self._get_release_stream_name(assembly_type, arch)
                         # Currently the multi payload uses a different release name to workaround a cincinnati issue.
                         # Use the release name in release_info instead.
+                        actual_release_name = release_info["metadata"]["version"]
                         tasks.append(self.wait_for_stable(actual_release_name, arch, release_stream))
                     try:
                         await asyncio.gather(*tasks)
@@ -338,6 +334,16 @@ class PromotePipeline:
                 data["content"][arch]["rhcos_version"] = rhcos_version
 
         json.dump(data, sys.stdout)
+
+    @staticmethod
+    def _get_release_stream_name(assembly_type: assembly.AssemblyTypes, arch: str):
+        go_arch_suffix = go_suffix_for_arch(arch)
+        return f'4-dev-preview{go_arch_suffix}' if assembly_type == assembly.AssemblyTypes.PREVIEW else f'4-stable{go_arch_suffix}'
+
+    @staticmethod
+    def _get_image_stream_name(assembly_type: assembly.AssemblyTypes, arch: str):
+        go_arch_suffix = go_suffix_for_arch(arch)
+        return f'4-dev-preview{go_arch_suffix}' if assembly_type == assembly.AssemblyTypes.PREVIEW else f'release{go_arch_suffix}'
 
     def _reraise_if_not_permitted(self, err: VerificationError, code: str, permits: Iterable[Dict]):
         permit = next(filter(lambda waiver: waiver["code"] == code, permits), None)
@@ -454,8 +460,9 @@ class PromotePipeline:
         async with self._elliott_lock:
             await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 
-    async def promote(self, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
+    async def promote(self, assembly_type: assembly.AssemblyTypes, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
         """ Promote all release payloads
+        :param assembly_type: Assembly type
         :param release_name: Release name. e.g. 4.11.0-rc.6
         :param arches: List of architecture names. e.g. ["x86_64", "s390x"]. Don't use "multi" in this parameter.
         :param previous_list: Previous list.
@@ -466,11 +473,11 @@ class PromotePipeline:
         """
         tasks = OrderedDict()
         if not self.no_multi and self._multi_enabled:
-            tasks["heterogeneous"] = self._promote_heterogeneous_payload(release_name, arches, previous_list, metadata, tag_stable)
+            tasks["heterogeneous"] = self._promote_heterogeneous_payload(assembly_type, release_name, arches, previous_list, metadata, tag_stable)
         else:
             self._logger.warning("Multi/heterogeneous payload is disabled.")
         if not self.multi_only:
-            tasks["homogeneous"] = self._promote_homogeneous_payloads(release_name, arches, previous_list, metadata, reference_releases, tag_stable)
+            tasks["homogeneous"] = self._promote_homogeneous_payloads(assembly_type, release_name, arches, previous_list, metadata, reference_releases, tag_stable)
         else:
             self._logger.warning("Arch-specific homogeneous release payloads will not be promoted because --multi-only is set.")
         try:
@@ -485,8 +492,9 @@ class PromotePipeline:
             return_value["multi"] = results["heterogeneous"]
         return return_value
 
-    async def _promote_homogeneous_payloads(self, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
+    async def _promote_homogeneous_payloads(self, assembly_type: assembly.AssemblyTypes, release_name: str, arches: List[str], previous_list: List[str], metadata: Optional[Dict], reference_releases: Dict[str, str], tag_stable: bool):
         """ Promote homogeneous payloads for specified architectures
+        :param assembly_type: Assembly type
         :param release_name: Release name. e.g. 4.11.0-rc.6
         :param arches: List of architecture names. e.g. ["x86_64", "s390x"].
         :param previous_list: Previous list.
@@ -497,12 +505,14 @@ class PromotePipeline:
         """
         tasks = []
         for arch in arches:
-            tasks.append(self._promote_arch(release_name, arch, previous_list, metadata, reference_releases.get(arch), tag_stable))
+            tasks.append(self._promote_arch(assembly_type, release_name, arch, previous_list, metadata, reference_releases.get(arch), tag_stable))
         release_infos = await asyncio.gather(*tasks)
         return dict(zip(arches, release_infos))
 
-    async def _promote_arch(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], reference_release: Optional[str], tag_stable: bool):
+    async def _promote_arch(self, assembly_type: assembly.AssemblyTypes, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict], reference_release: Optional[str], tag_stable: bool):
         """ Promote an arch-specific homogeneous payload
+        :param assembly_type: Assembly type
+        :param release_name: Release name. e.g. 4.11.0-rc.6
         :param arch: Architecture name.
         :param previous_list: Previous list.
         :param metadata: Payload metadata
@@ -573,7 +583,8 @@ class PromotePipeline:
             return dest_image_info
 
         namespace = f"ocp{go_arch_suffix}"
-        image_stream_tag = f"release{go_arch_suffix}:{release_name}"
+        image_stream_name = self._get_image_stream_name(assembly_type, arch)
+        image_stream_tag = f"{image_stream_name}:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
         self._logger.info("Checking if ImageStreamTag %s exists...", namespace_image_stream_tag)
         ist = await self.get_image_stream_tag(namespace, image_stream_tag)
@@ -594,9 +605,10 @@ class PromotePipeline:
         self._logger.info("Release image %s has been tagged into %s.", dest_image_pullspec, namespace_image_stream_tag)
         return dest_image_info
 
-    async def _promote_heterogeneous_payload(self, release_name: str, include_arches: List[str], previous_list: List[str], metadata: Optional[Dict], tag_stable: bool):
+    async def _promote_heterogeneous_payload(self, assembly_type: assembly.AssemblyTypes, release_name: str, include_arches: List[str], previous_list: List[str], metadata: Optional[Dict], tag_stable: bool):
         """ Promote heterogeneous payload.
         The heterogeneous payload itself is a manifest list, which include references to arch-specific heterogeneous payloads.
+        :param assembly_type: Assembly type
         :param release_name: Release name. e.g. 4.11.0-rc.6
         :param include_arches: List of architecture names.
         :param previous_list: Previous list.
@@ -696,7 +708,8 @@ class PromotePipeline:
 
         # Check if the heterogeneous release payload is already tagged into the image stream.
         namespace = "ocp-multi"
-        image_stream_tag = f"release-multi:{release_name}"
+        image_stream_name = self._get_image_stream_name(assembly_type, arch)
+        image_stream_tag = f"{image_stream_name}:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
         self._logger.info("Checking if ImageStreamTag %s exists...", namespace_image_stream_tag)
         ist = await self.get_image_stream_tag(namespace, image_stream_tag)

@@ -708,7 +708,7 @@ class PromotePipeline:
 
         # Check if the heterogeneous release payload is already tagged into the image stream.
         namespace = "ocp-multi"
-        image_stream_name = self._get_image_stream_name(assembly_type, arch)
+        image_stream_name = self._get_image_stream_name(assembly_type, "multi")
         image_stream_tag = f"{image_stream_name}:{release_name}"
         namespace_image_stream_tag = f"{namespace}/{image_stream_tag}"
         self._logger.info("Checking if ImageStreamTag %s exists...", namespace_image_stream_tag)

@@ -233,10 +233,6 @@ class PrepareReleasePipeline:
         _LOGGER.info("Sweep bugs into the the advisories...")
         self.sweep_bugs(check_builds=True)
 
-        _LOGGER.info("Processing attached Security Trackers")
-        for _, advisory in advisories.items():
-            self.attach_cve_flaws(advisory)
-
         _LOGGER.info("Adding placeholder bugs...")
         for kind, advisory in advisories.items():
             bug_ids = get_bug_ids(advisory)
@@ -244,6 +240,10 @@ class PrepareReleasePipeline:
             if not bug_ids and not jira_ids:  # Only create placeholder bug if the advisory has no attached bugs
                 _LOGGER.info("Create placeholder bug for %s advisory %s...", kind, advisory)
                 self.create_and_attach_placeholder_bug(kind, advisory)
+
+        _LOGGER.info("Processing attached Security Trackers")
+        for _, advisory in advisories.items():
+            self.attach_cve_flaws(advisory)
 
         # Verify the swept builds match the nightlies
         if self.release_version[0] < 4:

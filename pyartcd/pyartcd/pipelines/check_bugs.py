@@ -1,6 +1,7 @@
 import asyncio
 import subprocess
 import concurrent
+import json
 
 import click
 import aiohttp
@@ -151,7 +152,9 @@ class CheckBugsPipeline:
             ELLIOTT_BIN,
             f'--group=openshift-{version}',
             f'--working-dir={version}-working',
-            'find-bugs:sweep'
+            'find-bugs:sweep',
+            '--report',
+            '--output=json'
         ]
         self.logger.info(f'Executing command: {" ".join(cmd)}')
 
@@ -163,13 +166,7 @@ class CheckBugsPipeline:
             self.logger.info(err)
             return None
 
-        # First line in elliott stdout is something like "Searching for bugs..."
-        # Next line (if present) goes like this: "Found N bugs (M ignored):"
-        # Following is a list of bugs that we need to process
-        out = out.decode().strip().splitlines()
-        if len(out) < 2:
-            return None
-        bugs = [b.strip() for b in out[-1].split(':')[1].split(', ')]
+        bugs = [str(bug['id']) for bug in json.loads(out)]
 
         # Verify bugs
         cmd = [

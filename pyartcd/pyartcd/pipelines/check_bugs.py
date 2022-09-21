@@ -155,7 +155,6 @@ class CheckBugsPipeline:
             '--assembly=stream',
             f'--working-dir={version}-working',
             'verify-bugs',
-            '--stream',
             '--output=slack'
         ]
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

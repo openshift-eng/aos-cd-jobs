@@ -197,7 +197,7 @@ node {
     def quay_url = "quay.io/openshift-release-dev/ocp-release"
     def client_type = 'ocp'
     if ((release_info.type == "candidate" && !release_info.assembly.startsWith('rc.')) || release_info.type == "custom" || release_info.type == "preview") {
-        // Feature candidates and custom releases use client_type ocp-dev-preview and beta2 signing key.
+        // Feature candidates and custom releases and .next "preview" releases use client_type ocp-dev-preview and beta2 signing key.
         client_type = 'ocp-dev-preview'
     }
     stage("mirror binaries") {

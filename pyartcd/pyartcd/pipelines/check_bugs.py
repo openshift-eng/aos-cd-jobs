@@ -119,6 +119,7 @@ class CheckBugsPipeline:
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
+        self.logger.info(out.decode())
         errcode = process.returncode
         if errcode:
             self.logger.error(f'Command {cmd} failed with {errcode}: see output below')
@@ -147,40 +148,19 @@ class CheckBugsPipeline:
 
         self.logger.info(f'Checking possible regressions for Openshift {version}')
 
-        # Find bugs
-        cmd = [
-            ELLIOTT_BIN,
-            f'--group=openshift-{version}',
-            f'--working-dir={version}-working',
-            'find-bugs:sweep',
-            '--report',
-            '--output=json'
-        ]
-        self.logger.info(f'Executing command: {" ".join(cmd)}')
-
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = process.communicate()
-        errcode = process.returncode
-        if errcode:
-            self.logger.error(f'Command {cmd} failed with {errcode}: see output below')
-            self.logger.info(err)
-            return None
-
-        bugs = [str(bug['id']) for bug in json.loads(out)]
-
         # Verify bugs
         cmd = [
             ELLIOTT_BIN,
             f'--group=openshift-{version}',
+            '--assembly=stream',
             f'--working-dir={version}-working',
             'verify-bugs',
             '--output=slack'
         ]
-        cmd.extend(bugs)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
         self.logger.info(f'Executing command: {" ".join(cmd)}')
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-        out, _ = process.communicate()
-
+        self.logger.info(err.decode())
         # If process returned 0, no regressions were found
         if not process.returncode:
             self.logger.info('No regressions found for version %s', version)

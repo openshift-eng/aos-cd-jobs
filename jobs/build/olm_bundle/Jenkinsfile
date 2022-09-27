@@ -136,6 +136,7 @@ pipeline {
                         cmd += operator_nvrs.join(' ')
 
                         def doozer_working = "${WORKSPACE}/doozer_working"
+                        buildlib.cleanWorkdir(doozer_working)
                         def groupParam = "openshift-${params.BUILD_VERSION}"
                         if (doozer_data_gitref) {
                             groupParam += "@${params.DOOZER_DATA_GITREF}"
@@ -166,7 +167,6 @@ pipeline {
                     "doozer_working/*.yaml",
                     "doozer_working/brew-logs/**",
                 ])
-                buildlib.cleanWorkspace()
             }
         }
         failure {

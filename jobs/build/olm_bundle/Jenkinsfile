@@ -120,7 +120,6 @@ pipeline {
         stage('Build bundles') {
             steps {
                 script {
-                    buildlib.cleanWorkspace()
                     lock("olm_bundle-${params.BUILD_VERSION}") {
                         def cmd = ""
                         cmd += "--data-path=${params.DOOZER_DATA_PATH}"
@@ -137,6 +136,7 @@ pipeline {
                         cmd += operator_nvrs.join(' ')
 
                         def doozer_working = "${WORKSPACE}/doozer_working"
+                        buildlib.cleanWorkdir(doozer_working)
                         def groupParam = "openshift-${params.BUILD_VERSION}"
                         if (doozer_data_gitref) {
                             groupParam += "@${params.DOOZER_DATA_GITREF}"

@@ -710,12 +710,16 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_
     def results = []
 
     parallel "build-sync": {
-        results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
-            param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
-            param('String', 'ASSEMBLY', assembly),
-            param('String', 'DOOZER_DATA_PATH', doozer_data_path),
-            param('Boolean', 'DRY_RUN', params.DRY_RUN),
-        ])
+        if (assembly == "test") {
+            echo "Skipping build-sync job for test assembly"
+        } else {
+            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
+                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
+                param('String', 'ASSEMBLY', assembly),
+                param('String', 'DOOZER_DATA_PATH', doozer_data_path),
+                param('Boolean', 'DRY_RUN', params.DRY_RUN),
+            ])
+        }
     }, "olm-bundle": {
         if (operator_nvrs != []) {  // If operator_nvrs is given but empty, we will not build bundles.
             results.add build(job: 'build%2Folm_bundle', propagate: false, parameters: [
@@ -726,6 +730,8 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_
                 param('String', 'OPERATOR_NVRS', operator_nvrs != null ? operator_nvrs.join(",") : ""),
                 param('Boolean', 'DRY_RUN', params.DRY_RUN),
             ])
+        } else {
+            echo "No operators nvrs, will not build bundles"
         }
     }
     if ( results.any { it.result != 'SUCCESS' } ) {

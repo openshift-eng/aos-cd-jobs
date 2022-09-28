@@ -151,10 +151,7 @@ def setup_venv(use_python38=false) {
         where = DOOZER_COMMIT.split('@')
         commonlib.shell(script: "rm -rf art-tools/doozer ; cd art-tools; git clone https://github.com/${where[0]}/doozer.git; cd doozer; git checkout ${where[1]}")
     }
-    commonlib.shell(script: "pip install -q -e art-tools/doozer/")
-    commonlib.shell(script: "pip install -q -e art-tools/elliott/")
-    commonlib.shell(script: "pip install -e pyartcd/")
-
+    commonlib.shell(script: "pip install -e art-tools/elliott/ -e art-tools/doozer/ -e pyartcd/")
     out = sh(
         script: 'pip list | grep "doozer\\|elliott"',
         returnStdout: true

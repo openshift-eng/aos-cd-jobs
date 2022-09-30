@@ -156,21 +156,23 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
             result = api.pulls.update(pull_number=pull_number, title=title, body=body)
         return result
 
+    def update_repos(self, image_config, dg_key, name, old, new):
+        if new == old:
+            self._logger.info("[%s]%s unchanged", dg_key, name)
+        else:
+            self._logger.info("[%s]Updating %s from %s to %s...", dg_key, name, old, new)
+            if new:
+                image_config[name] = sorted(new)
+            else:
+                del image_config[name]
+        return image_config
+
     async def _resolve_content_set_failures(self, build_data_repo: Path, sanity_test_optional_checks: Dict):
         warnings = []
         for nvr, r in sanity_test_optional_checks.items():
             dg_key = r["dg_key"]
             image_config = self.get_image_config(build_data_repo, dg_key)
 
-            def _update_repos(name, old, new):
-                if new == old:
-                    self._logger.info("[%s]%s unchanged", dg_key, name)
-                    return
-                self._logger.info("[%s]Updating %s from %s to %s...", dg_key, name, old, new)
-                if new:
-                    image_config[name] = sorted(new_enabled_repos)
-                else:
-                    del image_config[name]
             for check_name, check_result in r.get("diagnostic_report", {}).items():
                 if check_name not in r["failed_checks"]:
                     continue
@@ -188,29 +190,29 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
                             repos = action.get("value", [])
                             enabled_repos = set(image_config.get("enabled_repos", []))
                             new_enabled_repos = enabled_repos - set(repos)
-                            _update_repos("enabled_repos", enabled_repos, new_enabled_repos)
+                            image_config = self.update_repos("enabled_repos", image_config, dg_key, enabled_repos, new_enabled_repos)
 
                             non_shipping_repos = set(image_config.get("non_shipping_repos", []))
                             new_non_shipping_repos = non_shipping_repos - set(repos)
-                            _update_repos("non_shipping_repos", non_shipping_repos, new_non_shipping_repos)
+                            image_config = self.update_repos("non_shipping_repos", image_config, dg_key, non_shipping_repos, new_non_shipping_repos)
                         elif action_name == "add_non_shipping_repos":
                             repos = action.get("value", [])
                             enabled_repos = set(image_config.get("enabled_repos", []))
                             new_enabled_repos = enabled_repos | set(repos)
-                            _update_repos("enabled_repos", enabled_repos, new_enabled_repos)
+                            image_config = self.update_repos("enabled_repos", image_config, dg_key, enabled_repos, new_enabled_repos)
 
                             non_shipping_repos = set(image_config.get("non_shipping_repos", []))
                             new_non_shipping_repos = non_shipping_repos | set(repos)
-                            _update_repos("non_shipping_repos", non_shipping_repos, new_non_shipping_repos)
+                            image_config = self.update_repos("non_shipping_repos", image_config, dg_key, non_shipping_repos, new_non_shipping_repos)
                         elif action_name == "add_repos":
                             repos = action.get("value", [])
                             enabled_repos = set(image_config.get("enabled_repos", []))
                             new_enabled_repos = enabled_repos | set(repos)
-                            _update_repos("enabled_repos", enabled_repos, new_enabled_repos)
+                            image_config = self.update_repos("enabled_repos", image_config, dg_key, enabled_repos, new_enabled_repos)
 
                             non_shipping_repos = set(image_config.get("non_shipping_repos", []))
                             new_non_shipping_repos = non_shipping_repos - set(repos)
-                            _update_repos("non_shipping_repos", non_shipping_repos, new_non_shipping_repos)
+                            image_config = self.update_repos("non_shipping_repos", image_config, dg_key, non_shipping_repos, new_non_shipping_repos)
                         elif action_name == "see_parent_builds":
                             builds = action.get("value", [])
                             for b in builds:

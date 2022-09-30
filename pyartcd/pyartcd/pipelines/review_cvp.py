@@ -156,7 +156,7 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
             result = api.pulls.update(pull_number=pull_number, title=title, body=body)
         return result
 
-    def update_repos(self, image_config, dg_key, name, old, new):
+    def update_repos(self, name, image_config, dg_key, old, new):
         if new == old:
             self._logger.info("[%s]%s unchanged", dg_key, name)
         else:

@@ -168,7 +168,7 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
                     return
                 self._logger.info("[%s]Updating %s from %s to %s...", dg_key, name, old, new)
                 if new:
-                    image_config[name] = sorted(new_enabled_repos)
+                    image_config[name] = sorted(new)
                 else:
                     del image_config[name]
             for check_name, check_result in r.get("diagnostic_report", {}).items():

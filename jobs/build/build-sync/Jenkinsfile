@@ -23,86 +23,91 @@ node {
     """)
 
     // Please update README.md if modifying parameter names or semantics
-    properties(
-            [
-                    disableResume(),
-                    buildDiscarder(
-                            logRotator(
-                                    artifactDaysToKeepStr: '60',
-                                    daysToKeepStr: '60',
-                            )
-                    ),
-                    [
-                            $class              : 'ParametersDefinitionProperty',
-                            parameterDefinitions: [
-                                    commonlib.suppressEmailParam(),
-                                    commonlib.mockParam(),
-                                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                                    commonlib.doozerParam(),
-                                    string(
-                                        name: 'ASSEMBLY',
-                                        description: 'The name of an assembly to sync.',
-                                        defaultValue: "stream",
-                                        trim: true,
-                                    ),
-                                    booleanParam(
-                                            name        : 'PUBLISH',
-                                            description : 'Publish release image(s) directly to registry.ci for testing',
-                                            defaultValue: false,
-                                    ),
-                                    string(
-                                        name: 'DOOZER_DATA_PATH',
-                                        description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
-                                        defaultValue: "https://github.com/openshift/ocp-build-data",
-                                        trim: true,
-                                    ),
-                                    string(
-                                        name: 'DOOZER_DATA_GITREF',
-                                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
-                                        defaultValue: "",
-                                        trim: true,
-                                    ),
-                                    booleanParam(
-                                            name        : 'DEBUG',
-                                            description : 'Run "oc" commands with greater logging',
-                                            defaultValue: false,
-                                    ),
-                                    booleanParam(
-                                            name        : 'DRY_RUN',
-                                            description : 'Run "oc" commands with the dry-run option set to true',
-                                            defaultValue: false,
-                                    ),
-                                    booleanParam(
-                                            name        : 'TRIGGER_NEW_NIGHTLY',
-                                            description : 'Forces the release controller to re-run with existing images; no change will be made to payload images in the release. All other parameters will be ignored.',
-                                            defaultValue: false,
-                                    ),
-                                    string(
-                                            name        : 'IMAGES',
-                                            description : '(Optional) Limited list of images to sync, for testing purposes',
-                                            defaultValue: "",
-                                            trim: true,
-                                    ),
-                                    string(
-                                            name        : 'EXCLUDE_ARCHES',
-                                            description : '(Optional) List of problem arch(es) NOT to sync (aarch64, ppc64le, s390x, x86_64)',
-                                            defaultValue: "",
-                                            trim: true,
-                                    ),
-                                    booleanParam(
-                                            name        : 'SKIP_MULTI_ARCH_PAYLOAD',
-                                            description : 'If group/assembly has multi_arch.enabled, you can bypass --apply-multi-arch and the generation of a heterogeneous release payload by setting this to true',
-                                            defaultValue: false,
-                                    ),
-                                    booleanParam(
-                                            name        : 'EMERGENCY_IGNORE_ISSUES',
-                                            description : 'Ignore all issues with constructing payload. Do not use without approval.',
-                                            defaultValue: false,
-                                    ),
-                            ],
-                    ]
-            ]
-    )  // Please update README.md if modifying parameter names or semantics
+    properties([
+        disableResume(),
+        buildDiscarder(
+          logRotator(
+              artifactDaysToKeepStr: '60',
+              daysToKeepStr: '60',
+          )
+        ),
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.suppressEmailParam(),
+                commonlib.mockParam(),
+                commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                commonlib.doozerParam(),
+                string(
+                    name: 'ASSEMBLY',
+                    description: 'The name of an assembly to sync.',
+                    defaultValue: "stream",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'PUBLISH',
+                    description : 'Publish release image(s) directly to registry.ci for testing',
+                    defaultValue: false,
+                ),
+                string(
+                    name: 'DOOZER_DATA_PATH',
+                    description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
+                    defaultValue: "https://github.com/openshift/ocp-build-data",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'EMERGENCY_IGNORE_ISSUES',
+                    description : ['Ignore all issues with constructing payload. ',
+                                   'In gen-payload, viable will be true whatever is the case, ',
+                                   'making internal consistencies in the nightlies possible.<br/>',
+                                   '<b/>Do not use without approval.</b>'].join(' '),
+                    defaultValue: false,
+                ),
+                booleanParam(
+                    name        : 'RETRIGGER_CURRENT_NIGHTLY',
+                    description : ['Forces the release controller to re-run with existing images, ',
+                                   'by marking the current ImageStream as new again for Release Controller. ',
+                                   'No change will be made to payload images in the release.',
+                                   '<br/><b/>Purpose:</b> To run tests again on an already existing nightly. ',
+                                   'All other parameters will be ignored.'].join(' '),
+                    defaultValue: false,
+                ),
+                string(
+                    name: 'DOOZER_DATA_GITREF',
+                    description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'DEBUG',
+                    description : 'Run "oc" commands with greater logging',
+                    defaultValue: false,
+                ),
+                booleanParam(
+                    name        : 'DRY_RUN',
+                    description : 'Run "oc" commands with the dry-run option set to true',
+                    defaultValue: false,
+                ),
+                string(
+                    name        : 'IMAGES',
+                    description : '(Optional) Limited list of images to sync, for testing purposes',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                string(
+                    name        : 'EXCLUDE_ARCHES',
+                    description : '(Optional) List of problem arch(es) NOT to sync (aarch64, ppc64le, s390x, x86_64)',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name        : 'SKIP_MULTI_ARCH_PAYLOAD',
+                    description : 'If group/assembly has multi_arch.enabled, you can bypass --apply-multi-arch and the generation of a heterogeneous release payload by setting this to true',
+                    defaultValue: false,
+                ),
+            ],
+        ]
+    ])  // Please update README.md if modifying parameter names or semantics
 
     commonlib.checkMock()
     echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
@@ -119,7 +124,10 @@ node {
 
     try {
 
-        if (params.TRIGGER_NEW_NIGHTLY && params.ASSEMBLY == "stream" ) {
+        if (params.RETRIGGER_CURRENT_NIGHTLY) {
+            if (params.ASSEMBLY != "stream") {
+                error "Cannot use with assembly other than stream. Exiting."
+            }
             if (params.DRY_RUN) {
                 echo "Would have triggered new release cut in release controller."
             } else {

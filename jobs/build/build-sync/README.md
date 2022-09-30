@@ -40,7 +40,7 @@ for multiple arches.)
 
 See [Standard Parameters](/jobs/README.md#standard-parameters).
 
-### TRIGGER\_NEW\_NIGHTLY
+### RETRIGGER\_CURRENT\_NIGHTLY
 
 Force the release controller to re-create the latest nightly for the version
 with existing images; no change will be made to payload images in the release,

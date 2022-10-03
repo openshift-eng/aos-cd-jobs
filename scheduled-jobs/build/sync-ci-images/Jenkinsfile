@@ -53,6 +53,12 @@ node {
                     $class: 'BooleanParameterDefinition',
                     defaultValue: false
                 ],
+                [
+                    name: 'UPDATE_IMAGES_ONLY_WHEN_MISSING',
+                    description: 'By default, if an image exists, this job does not update it (i.e. doozer runs with --only-if-missing). It would normally be updated by the ocp4 job when the API server successfully builds.',
+                    $class: 'BooleanParameterDefinition',
+                    defaultValue: true
+                ],                
                 commonlib.doozerParam(),
                 commonlib.dryrunParam(),
                 commonlib.mockParam(),
@@ -108,7 +114,11 @@ node {
                         sh "rm -rf ${doozerWorking}"
                         buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply")
                         sh "oc registry login"
-                        buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams mirror --only-if-missing")
+                        mirror_args = ""
+                        if ( params.UPDATE_IMAGES_ONLY_WHEN_MISSING ) {
+                            mirror_args += "--only-if-missing "
+                        }
+                        buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams mirror ${mirror_args}")
                         buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams start-builds")
 
                         if (!params.SKIP_WAITS) {

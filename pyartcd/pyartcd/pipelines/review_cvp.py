@@ -84,7 +84,7 @@ class ReviewCVPPipeline:
                     result = await self._create_or_update_pull_request(owner="openshift", repo="ocp-build-data", base=self.group, head=pr_head, title=title, body=body)
                     pr_html_url = result.html_url
                     messages.append("")
-                    messages.append(f"A PR has been created/updated to fix common CVP content_set_check failures: {pr_html_url}")
+                    messages.append(f"A PR has been created/updated to fix common CVP content_set_check failures: {pr_html_url}, @release-artists")
                     self._logger.info(messages[-1])
 
         if not failed and not failed_optional:
@@ -108,7 +108,7 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
         self._logger.info(messages[-1])
 
         self._slack_client.bind_channel(self.group)
-        slack_response = await self._slack_client.say(f"Review of CVP test results required for {self.group}. @release-artists")
+        slack_response = await self._slack_client.say(f"Review of CVP test results required for {self.group}")
         slack_thread = slack_response["message"]["ts"]
         await self._slack_client.say("\n".join(messages), thread_ts=slack_thread)
 

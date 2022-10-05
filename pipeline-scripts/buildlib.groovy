@@ -81,7 +81,7 @@ def kinit() {
         retry(3) {
             sh "if ! kinit -f -k -t ${keytab} ${account}; then sleep 3; false; fi"
         }
-    catch (e) {
+    } catch (e) {
         echo "Failed to renew kerberos ticket. Assuming the ticket has been renewed recently enough"
         echo "${e}"
     }

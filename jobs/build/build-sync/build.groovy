@@ -90,6 +90,49 @@ ${excludeArchesParam}
 ${dryRunParams}
 """
     }
+
+    if (params.ASSEMBLY == "stream" && !params.DOOZER_DATA_GITREF) {
+        slackChannel = slacklib.to(params.VERSION)
+        slackChannel.task("Synchronizing ART CoreOS with CI for ${params.VERSION}") {
+            buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
+            def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
+            // Starting with 4.12, ART is responsible for populating the CI imagestream (-n ocp is/4.12) with
+            // references to the latest machine-os-content, rhel-coreos-8, rhel-coreos-8-extensions (and
+            // potentially more with rhel9). If this is failing, it must be treated as a priority since
+            // CI will begin falling being nightly CoreOS content.
+            if ( major > 4 || minor >= 12 ) {
+                def arches = buildlib.branch_arches(groupParam)
+                // Gather a list of tags to mirror to the CI imagestream. This will include rhel-coreos-* to pick up
+                // any future RHCOS RHEL versions (e.g. rhel-coreos-9).
+                def tags = commonlib.shell(
+                    script: """
+                    oc --kubeconfig ${buildlib.ciKubeconfig} get -n ocp is/${params.BUILD_VERSION}-art-latest -o=json | jq .spec.tags[].name -r | grep -e machine-os-content -e rhel-coreos-
+                    """,
+                    returnStdout: true
+                )
+                tags_to_transfer = tags.trim().split()
+                for ( String archSuffix : commonlib.brewArchSuffixes ) {
+                    for (String tag : tags_to_transfer) {
+                        // isolate the pullspec trom the ART imagestream tag (e.g. quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:c1c7dde05f31052823289373400f8549e118f473d08aebf81e81235bd7cd5e80)
+                        def tag_pullspec = commonlib.shell(
+                            script: """
+                            oc --kubeconfig ${buildlib.ciKubeconfig} -n ocp${archSuffix} get istag/${params.BUILD_VERSION}-art-latest${archSuffix}:${tag} -o=json | jq .tag.from.name -r
+                            """,
+                            returnStdout: true
+                        ).trim()
+                        // tag the pull spec into the CI imagestream (is/4.x) with the same tag name.
+                        commonlib.shell(
+                            script: """
+                            oc --kubeconfig ${buildlib.ciKubeconfig} -n ocp${archSuffix} tag ${tag_pullspec} ${params.BUILD_VERSION}:${tag}
+                            """,
+                            returnStdout: true
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     if (params.PUBLISH) {
         buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
         for(file in findFiles(glob: "${output_dir}/updated-tags-for.*.yaml")) {

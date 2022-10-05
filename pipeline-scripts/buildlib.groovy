@@ -75,7 +75,16 @@ def kinit() {
     // The '-f' ensures that the ticket is forwarded to remote hosts
     // when using SSH. This is required for when we build signed
     // puddles.
-    sh "kinit -f -k -t /home/jenkins/ocp-build_buildvm.openshift.eng.bos.redhat.com_IPA.REDHAT.COM.keytab ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM"
+    keytab = '/home/jenkins/ocp-build_buildvm.openshift.eng.bos.redhat.com_IPA.REDHAT.COM.keytab'
+    account = 'ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM'
+    try {
+        retry(3) {
+            sh "if ! kinit -f -k -t ${keytab} ${account}; then sleep 3; false; fi"
+        }
+    catch (e) {
+        echo "Failed to renew kerberos ticket. Assuming the ticket has been renewed recently enough"
+        echo "${e}"
+    }
 }
 
 def registry_login() {

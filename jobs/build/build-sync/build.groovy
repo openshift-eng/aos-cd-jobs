@@ -111,6 +111,9 @@ ${dryRunParams}
                 )
                 tags_to_transfer = tags.trim().split()
                 for ( String archSuffix : commonlib.goArchSuffixes ) {
+                    if ( archSuffix.contains("multi") ) {
+                        continue
+                    }
                     for (String tag : tags_to_transfer) {
                         // isolate the pullspec trom the ART imagestream tag (e.g. quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:c1c7dde05f31052823289373400f8549e118f473d08aebf81e81235bd7cd5e80)
                         def tag_pullspec = commonlib.shell(

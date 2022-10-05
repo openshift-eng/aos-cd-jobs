@@ -92,8 +92,7 @@ ${dryRunParams}
     }
 
     if (params.ASSEMBLY == "stream" && !params.DOOZER_DATA_GITREF) {
-        slackChannel = slacklib.to(params.VERSION)
-        slackChannel.task("Synchronizing ART CoreOS with CI for ${params.VERSION}") {
+        try {
             buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
             def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
             // Starting with 4.12, ART is responsible for populating the CI imagestream (-n ocp is/4.12) with
@@ -111,7 +110,7 @@ ${dryRunParams}
                     returnStdout: true
                 )
                 tags_to_transfer = tags.trim().split()
-                for ( String archSuffix : commonlib.brewArchSuffixes ) {
+                for ( String archSuffix : commonlib.goArchSuffixes ) {
                     for (String tag : tags_to_transfer) {
                         // isolate the pullspec trom the ART imagestream tag (e.g. quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:c1c7dde05f31052823289373400f8549e118f473d08aebf81e81235bd7cd5e80)
                         def tag_pullspec = commonlib.shell(
@@ -130,6 +129,9 @@ ${dryRunParams}
                     }
                 }
             }
+        } catch (goal_ex) {
+            slackChannel = slacklib.to(params.BUILD_VERSION)
+            slackChannel.failure( "Unable to mirror CoreOS images to CI for ${params.BUILD_VERSION}", goal_ex )
         }
     }
 

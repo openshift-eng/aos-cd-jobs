@@ -658,15 +658,17 @@ node {
             }
 
             stage("update dist-git") {
-                buildlib.doozer """
-                    ${doozerOpts}
-                    --source ose ${OSE_DIR}
-                    ${ODCS_FLAG}
-                    images:rebase --version v${NEW_VERSION}
-                    --release ${NEW_DOCKERFILE_RELEASE}
-                    --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
-                """
-                buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
+                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                    buildlib.doozer """
+                        ${doozerOpts}
+                        --source ose ${OSE_DIR}
+                        ${ODCS_FLAG}
+                        images:rebase --version v${NEW_VERSION}
+                        --release ${NEW_DOCKERFILE_RELEASE}
+                        --message 'Updating Dockerfile version and release v${NEW_VERSION}-${NEW_DOCKERFILE_RELEASE}' --push
+                    """
+                    buildlib.notify_dockerfile_reconciliations(DOOZER_WORKING, params.BUILD_VERSION)
+                }
             }
 
             stage("build images") {

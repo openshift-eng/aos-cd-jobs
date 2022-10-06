@@ -106,11 +106,13 @@ node {
                 cmd << params.DISTGIT_KEY
             }
             sshagent(["openshift-bot"]) {
-                echo "Will run ${cmd}"
-                if (params.IGNORE_LOCKS) {
-                     commonlib.shell(script: cmd.join(' '))
-                } else {
-                    lock("github-activity-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
+                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                    echo "Will run ${cmd}"
+                    if (params.IGNORE_LOCKS) {
+                        commonlib.shell(script: cmd.join(' '))
+                    } else {
+                        lock("github-activity-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
+                    }
                 }
             }
         }

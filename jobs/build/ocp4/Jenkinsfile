@@ -175,7 +175,11 @@ node {
                     build wait: false, propagate: false, job: 'build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
                 }
 
-                stage("update dist-git") { joblib.stageUpdateDistgit() }
+                stage("update dist-git") {
+                    withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                        joblib.stageUpdateDistgit()
+                    }
+                }
                 stage("build images") { joblib.stageBuildImages() }
             }
             stage("sync images") {

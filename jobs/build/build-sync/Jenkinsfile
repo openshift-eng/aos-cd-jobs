@@ -162,6 +162,22 @@ node {
         }
         writeFile file: failCountFile, text: "${failCount}"
 
+        if (failCount > 1) {
+            msg = "Pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
+            if (failCount % 2 == 0) {  // spam ourselves a little more often than forum-release
+                slacklib.to(params.BUILD_VERSION).failure(msg)
+            }
+            if (assembly == "stream" && (failCount % 5 == 0) && (failCount < 50)) {
+                if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
+                    // For development releases, notify TRT
+                    slacklib.to("#forum-release-oversight").failure(msg)
+                } else {
+                    // For GA releases, let forum-release know why no new builds
+                    slacklib.to("#forum-release").failure(msg)
+                }
+            }
+        }
+
         currentBuild.displayName += " [FAILURE]"
         commonlib.email(
                 to: "aos-art-automation+failed-build-sync@redhat.com",

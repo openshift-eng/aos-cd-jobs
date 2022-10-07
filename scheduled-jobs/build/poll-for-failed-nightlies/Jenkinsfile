@@ -104,6 +104,34 @@ node() {
                     // The N latest nightlies have been rejected.
                     echo "The last ${THRESHOLD} nightlies for ${stream_name} have been rejected: ${stream_results}"
                     currentBuild.result = "UNSTABLE"
+                    notificationFile = "${stream_name}.last_notification"
+                    lastNotification = 0
+                    if (fileExists(notificationFile)) {
+                        numStr = readFile(file: notificationFile).trim()
+                        if (numStr?.isLong()) {
+                            lastNotification = numStr.toLong()
+                        }
+                    }
+                    HOURS = 4
+                    if ( System.currentTimeMillis() - lastNotification > 1000 * 60 * 60 * HOURS ) {
+                        // has it been longer than X hours since the last notification?
+                        echo "Notification will occur!"
+                        writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
+                        currentBuild.description += "\nNotifying for ${stream_name}"
+
+                        // Send out notifications
+                        msg = "ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}"
+                        commonlib.slacklib.to(stream_name).failure(msg)
+                        if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
+                            // For development releases, notify TRT
+                            commonlib.slacklib.to('#forum-release-oversight').say(msg)
+                        } else {
+                            // For GA releases, let forum-release know why no new builds
+                            commonlib.slacklib.to('#forum-release').say(msg)
+                        }
+                    } else {
+                        echo "Skipping notification since it has not been more than ${HOURS} hours since the last notification: ${System.currentTimeMillis()} - ${lastNotification}"
+                    }
                 } else {
                     echo "The last ${THRESHOLD} nightlies didn't all fail for ${stream_name} have been rejected: ${stream_results}"
                 }

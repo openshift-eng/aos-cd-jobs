@@ -11,7 +11,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import click
 import yaml
 from doozerlib.assembly import AssemblyTypes
-from pyartcd import constants, exectools
+from pyartcd import exectools
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
@@ -24,6 +24,8 @@ PlashetBuildResult = namedtuple("PlashetBuildResult", ("repo_name", "local_dir",
 
 class BuildMicroShiftPipeline:
     """ Rebase and build MicroShift for an assembly """
+
+    SUPPORTED_ASSEMBLY_TYPES = {AssemblyTypes.STANDARD, AssemblyTypes.CANDIDATE, AssemblyTypes.PREVIEW}
 
     def __init__(self, runtime: Runtime, group: str, assembly: str,
                  ocp_build_data_url: str, logger: Optional[logging.Logger] = None):
@@ -57,7 +59,7 @@ class BuildMicroShiftPipeline:
             await load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
             releases_config = await load_releases_config(Path(self._doozer_env_vars["DOOZER_WORKING_DIR"], "ocp-build-data"))
             assembly_type = get_assembly_type(releases_config, self.assembly)
-            if assembly_type not in [AssemblyTypes.STANDARD, AssemblyTypes.CANDIDATE, AssemblyTypes.PREVIEW]:
+            if assembly_type not in self.SUPPORTED_ASSEMBLY_TYPES:
                 raise ValueError(f"Building MicroShift for assembly type {assembly_type.value} is not currently supported.")
             release_name = get_release_name(assembly_type, self.group, self.assembly, None)
 
@@ -86,6 +88,11 @@ class BuildMicroShiftPipeline:
 
     @staticmethod
     def generate_microshift_version_release(ocp_version: str, timestamp: Optional[str] = None):
+        """ Generate version and release strings for microshift rpm.
+        Example version-releases:
+        - 4.12.42-202210011234
+        - 4.13.0~rc.4-202210011234
+        """
         if not timestamp:
             timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
         release_version = VersionInfo.parse(ocp_version)
@@ -122,6 +129,18 @@ class BuildMicroShiftPipeline:
             return record_log["build_rpm"][-1]["nvrs"].split(",")
 
     def _generate_example_schema(self, nvrs: List[str]) -> Dict:
+        """ Generate an example assembly definition to pin the specified NVRs.
+        Example:
+            releases:
+                4.11.7:
+                    assembly:
+                    members:
+                        rpms:
+                        - distgit_key: microshift
+                        metadata:
+                            is:
+                            el8: microshift-4.11.7-202209300751.p0.g7ebffc3.assembly.4.11.7.el8
+        """
         is_entry = {}
         member_type = "rpms"
         dg_key = "microshift"

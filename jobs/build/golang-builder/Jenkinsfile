@@ -88,23 +88,25 @@ pipeline {
         }
         stage('build') {
             steps {
-                script {
-                    lock("golang-builder-lock-${env._GOLANG_MAJOR_MINOR}-el${params.RHEL_VERSION}") {
-                        echo "Rebasing..."
-                        def opts = "${env._DOOZER_OPTS} images:rebase --version v${params.GOLANG_VERSION}"
-                        release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}.el${params.RHEL_VERSION}"
-                        currentBuild.displayName += "-${release}"
-                        opts += " --release ${release}  -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
-                        if (!params.DRY_RUN)
-                            opts += " --push"
-                        buildlib.doozer(opts)
-                        echo "Building..."
-                        opts = "${env._DOOZER_OPTS} images:build --repo-type unsigned --push-to-defaults"
-                        if (params.DRY_RUN)
-                            opts += " --dry-run"
-                        if (params.SCRATCH)
-                            opts += " --scratch"
-                        buildlib.doozer(opts)
+                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                    script {
+                        lock("golang-builder-lock-${env._GOLANG_MAJOR_MINOR}-el${params.RHEL_VERSION}") {
+                            echo "Rebasing..."
+                            def opts = "${env._DOOZER_OPTS} images:rebase --version v${params.GOLANG_VERSION}"
+                            release = params.RELEASE ?: "${new Date().format("yyyyMMddHHmm")}.el${params.RHEL_VERSION}"
+                            currentBuild.displayName += "-${release}"
+                            opts += " --release ${release}  -m 'bumping to ${params.GOLANG_VERSION}-${release}'"
+                            if (!params.DRY_RUN)
+                                opts += " --push"
+                            buildlib.doozer(opts)
+                            echo "Building..."
+                            opts = "${env._DOOZER_OPTS} images:build --repo-type unsigned --push-to-defaults"
+                            if (params.DRY_RUN)
+                                opts += " --dry-run"
+                            if (params.SCRATCH)
+                                opts += " --scratch"
+                            buildlib.doozer(opts)
+                        }
                     }
                 }
             }

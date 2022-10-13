@@ -59,41 +59,43 @@ node {
             }
             currentBuild.displayName += " - $params.ASSEMBLY"
         }
+        try {
+            stage("build") {
+                buildlib.cleanWorkdir("./artcd_working")
+                sh "mkdir -p ./artcd_working"
+                def cmd = [
+                    "artcd",
+                    "-vv",
+                    "--working-dir=./artcd_working",
+                    "--config", "./config/artcd.toml",
+                ]
 
-        stage("rebuild") {
-            buildlib.cleanWorkdir("./artcd_working")
-            sh "mkdir -p ./artcd_working"
-            def cmd = [
-                "artcd",
-                "-vv",
-                "--working-dir=./artcd_working",
-                "--config", "./config/artcd.toml",
-            ]
-
-            if (params.DRY_RUN) {
-                cmd << "--dry-run"
-            }
-            cmd += [
-                "build-microshift",
-                "--ocp-build-data-url", params.OCP_BUILD_DATA_URL,
-                "-g", "openshift-$params.BUILD_VERSION",
-                "--assembly", params.ASSEMBLY,
-            ]
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
-                echo "Will run ${cmd}"
-                if (params.IGNORE_LOCKS) {
-                     commonlib.shell(script: cmd.join(' '))
-                } else {
-                    lock("build-microshift-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "build-microshift",
+                    "--ocp-build-data-url", params.OCP_BUILD_DATA_URL,
+                    "-g", "openshift-$params.BUILD_VERSION",
+                    "--assembly", params.ASSEMBLY,
+                ]
+                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
+                    echo "Will run ${cmd}"
+                    if (params.IGNORE_LOCKS) {
+                        commonlib.shell(script: cmd.join(' '))
+                    } else {
+                        lock("build-microshift-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
+                    }
                 }
             }
-        }
-        stage("save artifacts") {
-            commonlib.safeArchiveArtifacts([
-                "artcd_working/email/**",
-                "artcd_working/**/*.json",
-                "artcd_working/**/*.log",
-            ])
+        } finally {
+            stage("save artifacts") {
+                commonlib.safeArchiveArtifacts([
+                    "artcd_working/email/**",
+                    "artcd_working/**/*.json",
+                    "artcd_working/**/*.log",
+                ])
+            }
         }
     }
 }

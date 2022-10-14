@@ -112,7 +112,7 @@ node() {
                             lastNotification = numStr.toLong()
                         }
                     }
-                    HOURS = 4
+                    HOURS = 12
                     if ( System.currentTimeMillis() - lastNotification > 1000 * 60 * 60 * HOURS ) {
                         // has it been longer than X hours since the last notification?
                         echo "Notification will occur!"

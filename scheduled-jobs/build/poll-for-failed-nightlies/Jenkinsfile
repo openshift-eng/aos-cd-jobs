@@ -123,8 +123,8 @@ node() {
                         msg = "ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}"
                         commonlib.slacklib.to(stream_name).failure(msg)
                         if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
-                            // For development releases, notify TRT
-                            commonlib.slacklib.to('#forum-release-oversight').say(msg)
+                            // For development releases, notify TRT and release artists
+                            commonlib.slacklib.to('#forum-release-oversight').say("@release-artists ${msg}")
                         } else {
                             // For GA releases, let forum-release know why no new builds
                             commonlib.slacklib.to('#forum-release').say(msg)

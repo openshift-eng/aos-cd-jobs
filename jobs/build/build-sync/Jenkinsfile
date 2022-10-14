@@ -169,8 +169,8 @@ node {
             }
             if (assembly == "stream" && (failCount % 5 == 0) && (failCount < 50)) {
                 if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
-                    // For development releases, notify TRT
-                    slacklib.to("#forum-release-oversight").failure(msg)
+                    // For development releases, notify TRT and release artists
+                    slacklib.to("#forum-release-oversight").failure("@release-artists ${msg}")
                 } else {
                     // For GA releases, let forum-release know why no new builds
                     slacklib.to("#forum-release").failure(msg)

@@ -79,7 +79,7 @@ node {
                     "-g", "openshift-$params.BUILD_VERSION",
                     "--assembly", params.ASSEMBLY,
                 ]
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
+                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                     echo "Will run ${cmd}"
                     if (params.IGNORE_LOCKS) {
                         commonlib.shell(script: cmd.join(' '))

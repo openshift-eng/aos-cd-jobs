@@ -1,25 +1,29 @@
 import logging
 import os
 import re
-import shutil
+import traceback
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
-import traceback
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import click
 import yaml
 from doozerlib.assembly import AssemblyTypes
+from ghapi.all import GhApi
 from pyartcd import exectools
 from pyartcd.cli import cli, click_coroutine, pass_runtime
+from pyartcd.git import GitRepository
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_type, get_release_name,
-                          isolate_el_version_in_release, load_group_config, load_releases_config)
+                          isolate_el_version_in_release, load_group_config,
+                          load_releases_config)
 from semver import VersionInfo
+from ruamel.yaml import YAML
 
-PlashetBuildResult = namedtuple("PlashetBuildResult", ("repo_name", "local_dir", "remote_url"))
+
+yaml = YAML(typ="rt")
 
 
 class BuildMicroShiftPipeline:
@@ -34,6 +38,7 @@ class BuildMicroShiftPipeline:
         self.assembly = assembly
         self._logger = logger or runtime.logger
         self._slack_client = self.runtime.new_slack_client()
+        self._working_dir = self.runtime.working_dir.absolute()
 
         # determines OCP version
         match = re.fullmatch(r"openshift-(\d+).(\d+)", group)
@@ -43,7 +48,7 @@ class BuildMicroShiftPipeline:
 
         # sets environment variables for Doozer
         self._doozer_env_vars = os.environ.copy()
-        self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self.runtime.working_dir / "doozer-working")
+        self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self._working_dir / "doozer-working")
 
         if not ocp_build_data_url:
             ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
@@ -67,19 +72,14 @@ class BuildMicroShiftPipeline:
             version, release = self.generate_microshift_version_release(release_name)
             nvrs = await self._rebase_and_build_rpm(version, release)
 
-            # https://mirror.openshift.com/pockets/microshift/4.10-el8/stream/x86_64/os/
-
-            # Prints example schema
-            click.secho("Build completes. Please update the assembly schema in releases.yaml to pin the following NVR(s) to the assembly:\n", fg="green")
-            for nvr in nvrs:
-                click.secho(f"\t{nvr}", fg="green")
-            example_schema = yaml.safe_dump(self._generate_example_schema(nvrs))
-            click.secho(f"\nExample schema:\n\n{example_schema}", fg="green")
+            # Create a PR to pin microshift build
+            pr = await self._create_or_update_pull_request(nvrs)
 
             # Sends a slack message
-            # TODO: We might want this job to auto create a PR to ocp-build-data.
-            await self._slack_client.say(f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built.", slack_thread)
-            await self._slack_client.say(f"Please create a PR to pin the build:\n```\n{example_schema}\n```", slack_thread)
+            message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
+            if pr:
+                message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
+            await self._slack_client.say(message, slack_thread)
         except Exception as err:
             error_message = f"Error building microshift: {err}\n {traceback.format_exc()}"
             self._logger.error(error_message)
@@ -128,8 +128,8 @@ class BuildMicroShiftPipeline:
             record_log = parse_record_log(file)
             return record_log["build_rpm"][-1]["nvrs"].split(",")
 
-    def _generate_example_schema(self, nvrs: List[str]) -> Dict:
-        """ Generate an example assembly definition to pin the specified NVRs.
+    def _pin_nvrs(self, nvrs: List[str], releases_config) -> Dict:
+        """ Update releases.yml to pin the specified NVRs.
         Example:
             releases:
                 4.11.7:
@@ -139,34 +139,68 @@ class BuildMicroShiftPipeline:
                         - distgit_key: microshift
                         metadata:
                             is:
-                            el8: microshift-4.11.7-202209300751.p0.g7ebffc3.assembly.4.11.7.el8
+                                el8: microshift-4.11.7-202209300751.p0.g7ebffc3.assembly.4.11.7.el8
         """
         is_entry = {}
-        member_type = "rpms"
         dg_key = "microshift"
         for nvr in nvrs:
             el_version = isolate_el_version_in_release(nvr)
             assert el_version is not None
             is_entry[f"el{el_version}"] = nvr
-        schema = {
-            "releases": {
-                self.assembly: {
-                    "assembly": {
-                        "members": {
-                            member_type: [
-                                {
-                                    "distgit_key": dg_key,
-                                    "metadata": {
-                                        "is": is_entry
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        }
-        return schema
+
+        rpms_entry = releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("members", {}).setdefault("rpms", [])
+        microshift_entry = next(filter(lambda rpm: rpm.get("distgit_key") == dg_key, rpms_entry), None)
+        if microshift_entry is None:
+            microshift_entry = {"distgit_key": dg_key}
+            rpms_entry.append(microshift_entry)
+        microshift_entry.setdefault("metadata", {})["is"] = is_entry
+        return microshift_entry
+
+    async def _create_or_update_pull_request(self, nvrs: List[str]):
+        self._logger.info("Creating ocp-build-data PR...")
+        # Clone ocp-build-data
+        build_data_path = self._working_dir / "ocp-build-data-push"
+        build_data = GitRepository(build_data_path, dry_run=self.runtime.dry_run)
+        ocp_build_data_repo_push_url = self.runtime.config["build_config"]["ocp_build_data_repo_push_url"]
+        await build_data.setup(ocp_build_data_repo_push_url)
+        branch = f"auto-pin-microshift-{self.group}-{self.assembly}"
+        await build_data.fetch_switch_branch(branch, self.group)
+        # Make changes
+        releases_yaml_path = build_data_path / "releases.yml"
+        releases_yaml = yaml.load(releases_yaml_path)
+        self._pin_nvrs(nvrs, releases_yaml)
+        yaml.dump(releases_yaml, releases_yaml_path)
+        # Create a PR
+        title = f"Pin microshift build for {self.group} {self.assembly}"
+        body = f"Created by job run {self.runtime.get_job_run_url()}"
+        match = re.search(r"github\.com[:/](.+)/(.+)(?:.git)?", ocp_build_data_repo_push_url)
+        if not match:
+            raise ValueError(f"Couldn't create a pull request: {ocp_build_data_repo_push_url} is not a valid github repo")
+        head = f"{match[1]}:{branch}"
+        base = self.group
+        if self.runtime.dry_run:
+            self._logger.warning("[DRY RUN] Would have created pull-request with head '%s', base '%s' title '%s', body '%s'", head, base, title, body)
+            d = {"html_url": "https://github.example.com/foo/bar/pull/1234", "number": 1234}
+            result = namedtuple('pull_request', d.keys())(*d.values())
+            return result
+        pushed = await build_data.commit_push(f"{title}\n{body}")
+        result = None
+        if pushed:
+            github_token = os.environ.get('GITHUB_TOKEN')
+            if not github_token:
+                raise ValueError("GITHUB_TOKEN environment variable is required to create a pull request")
+            owner = "openshift"
+            repo = "ocp-build-data"
+            api = GhApi(owner=owner, repo=repo, token=github_token)
+            existing_prs = api.pulls.list(state="open", base=base, head=head)
+            if not existing_prs.items:
+                result = api.pulls.create(head=head, base=base, title=title, body=body, maintainer_can_modify=True)
+            else:
+                pull_number = existing_prs.items[0].number
+                result = api.pulls.update(pull_number=pull_number, title=title, body=body)
+        else:
+            self._logger.warning("PR is not created: Nothing to commit.")
+        return result
 
 
 @cli.command("build-microshift")

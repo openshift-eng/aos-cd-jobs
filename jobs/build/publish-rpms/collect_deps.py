@@ -17,6 +17,7 @@ PACKAGES = [
     "openshift-hyperkube",
     "openshift-clients-redistributable",
     "slirp4netns",
+    "conmon-rs",
 ]
 
 YUM_CONF_TEMPLATES = {

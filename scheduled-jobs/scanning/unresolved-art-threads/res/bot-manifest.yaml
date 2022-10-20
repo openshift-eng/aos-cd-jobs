@@ -1,0 +1,41 @@
+display_information:
+  name: art-insight
+features:
+  bot_user:
+    display_name: art-insight
+    always_online: false
+oauth_config:
+  scopes:
+    user:
+      - channels:read
+      - search:read
+      - pins:read
+      - pins:write
+    bot:
+      - channels:history
+      - emoji:read
+      - reactions:write
+      - reactions:read
+      - bookmarks:write
+      - channels:read
+      - chat:write
+      - chat:write.public
+      - groups:history
+      - groups:read
+      - groups:write
+      - im:history
+      - im:write
+      - im:read
+      - mpim:history
+      - mpim:read
+      - mpim:write
+      - chat:write.customize
+      - bookmarks:read
+      - incoming-webhook
+      - metadata.message:read
+      - pins:write
+      - pins:read
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

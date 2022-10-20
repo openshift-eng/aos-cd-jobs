@@ -1,0 +1,26 @@
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+node() {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    slacklib = commonlib.slacklib
+
+    try {
+        withCredentials([
+                            string(credentialsId: "art-insights-bot-slack-api-token", variable: "SLACK_API_TOKEN"),
+                            string(credentialsId: "art-insights-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
+                            string(credentialsId: "art-insights-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
+                        ]) {
+            commonlib.shell(script: "scl enable rh-python38 -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
+        }
+    } catch (e) {
+        slacklib.to('#team-art').say("Error while checking unresolved threads: ${env.BUILD_URL}")
+        throw(e)
+    }
+
+}
+

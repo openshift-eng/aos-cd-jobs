@@ -376,10 +376,6 @@ def stageBuildImages() {
             for (i = 0; i < failed_images.size(); i++) {
                 failed_messages += "${failed_images[i]}:${failed_map[failed_images[i]]['task_url']}\n"
             }
-            commonlib.slacklib.to(params.BUILD_VERSION).say("""
-                *:warning: All of ${r.total} image builds failed in ocp4 job*
-${failed_messages}
-            """)
         }
         if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
             echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"

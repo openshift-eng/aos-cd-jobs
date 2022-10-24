@@ -119,7 +119,7 @@ node {
             }
             cmd += [
                 "gen-assembly",
-                "--ocp-build-data-url", params.DOOZER_DATA_PATH,
+                "--data-path", params.DOOZER_DATA_PATH,
                 "-g", "openshift-$params.BUILD_VERSION",
                 "--assembly", params.ASSEMBLY_NAME,
             ]

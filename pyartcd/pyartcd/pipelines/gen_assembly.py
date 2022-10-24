@@ -4,7 +4,7 @@ import re
 import traceback
 from collections import namedtuple
 from io import StringIO
-from typing import Callable, Iterable, Optional, OrderedDict, Tuple
+from typing import Iterable, Optional, OrderedDict, Tuple
 
 import click
 import yaml
@@ -16,6 +16,21 @@ from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 
 yaml = YAML(typ="rt")
+
+
+def _merge(a, b):
+    """ Merges two, potentially deep, objects into a new one and returns the result.
+    'a' is layered over 'b' and is dominant when necessary. The output is 'c'.
+    """
+    if not isinstance(a, dict) or not isinstance(b, dict):
+        return a
+    c: OrderedDict = b.copy()
+    for k, v in a.items():
+        c[k] = _merge(v, b.get(k))
+        if k not in b:
+            # move new entry to the beginning
+            c.move_to_end(k, last=False)
+    return c
 
 
 class GenAssemblyPipeline:
@@ -41,6 +56,10 @@ class GenAssemblyPipeline:
         self._slack_client = self.runtime.new_slack_client()
         self._working_dir = self.runtime.working_dir.absolute()
 
+        self._github_token = os.environ.get('GITHUB_TOKEN')
+        if not self._github_token and not self.runtime.dry_run:
+            raise ValueError("GITHUB_TOKEN environment variable is required to create a pull request.")
+
         # determines OCP version
         match = re.fullmatch(r"openshift-(\d+).(\d+)", group)
         if not match:
@@ -61,8 +80,11 @@ class GenAssemblyPipeline:
         slack_response = await self._slack_client.say(f":construction: Generating assembly definition {self.assembly} :construction:")
         slack_thread = slack_response["message"]["ts"]
         try:
-            if self.arches and self.custom:
+            if self.arches and not self.custom:
                 raise ValueError("Customizing arches can only be used with custom assemblies.")
+
+            if self.custom and (self.auto_previous or self.previous_list or self.in_flight):
+                raise ValueError("Specifying previous list for a custom release is not allowed.")
 
             self._logger.info("Getting nightlies from Release Controllers...")
             candidate_nightlies = await self._get_nightlies()
@@ -73,17 +95,7 @@ class GenAssemblyPipeline:
             self._logger.info("Generated assembly definition:\n%s", out.getvalue())
 
             # Create a PR
-            def _merge(a, b):
-                if not isinstance(a, dict) or not isinstance(b, dict):
-                    return a
-                c: OrderedDict = b.copy()
-                for k, v in a.items():
-                    c[k] = _merge(v, b.get(k))
-                    if k not in b:
-                        # move new entry to the beginning
-                        c.move_to_end(k, last=False)
-                return c
-            pr = await self._create_or_update_pull_request(lambda releases_yaml: _merge(assembly_definition, releases_yaml))
+            pr = await self._create_or_update_pull_request(assembly_definition)
 
             # Sends a slack message
             message = f"Hi @release-artists , please review assembly definition for {self.assembly}: {pr.html_url}"
@@ -149,9 +161,9 @@ class GenAssemblyPipeline:
         _, out, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=self._doozer_env_vars)
         return yaml.load(out)
 
-    async def _create_or_update_pull_request(self, fn: Callable[[OrderedDict], OrderedDict]):
+    async def _create_or_update_pull_request(self, assembly_definition: OrderedDict):
         """ Create or update pull request for ocp-build-data
-        :param fn: a callback function that makes changes to releases.yml
+        :param assembly_definition: the assembly definition to be added to releases.yml
         """
         self._logger.info("Creating ocp-build-data PR...")
         # Clone ocp-build-data
@@ -165,7 +177,7 @@ class GenAssemblyPipeline:
         releases_yaml_path = build_data_path / "releases.yml"
         releases_yaml = yaml.load(releases_yaml_path) if releases_yaml_path.exists() else {}
         # Make changes
-        releases_yaml = fn(releases_yaml)
+        releases_yaml = _merge(assembly_definition, releases_yaml)
         yaml.dump(releases_yaml, releases_yaml_path)
         # Create a PR
         title = f"Add assembly {self.assembly}"
@@ -183,12 +195,9 @@ class GenAssemblyPipeline:
         pushed = await build_data.commit_push(f"{title}\n{body}")
         result = None
         if pushed:
-            github_token = os.environ.get('GITHUB_TOKEN')
-            if not github_token:
-                raise ValueError("GITHUB_TOKEN environment variable is required to create a pull request")
             owner = "openshift"
             repo = "ocp-build-data"
-            api = GhApi(owner=owner, repo=repo, token=github_token)
+            api = GhApi(owner=owner, repo=repo, token=self._github_token)
             existing_prs = api.pulls.list(state="open", base=base, head=head)
             if not existing_prs.items:
                 result = api.pulls.create(head=head, base=base, title=title, body=body, maintainer_can_modify=True)
@@ -201,7 +210,7 @@ class GenAssemblyPipeline:
 
 
 @cli.command("gen-assembly")
-@click.option("--ocp-build-data-url", metavar='BUILD_DATA', default=None,
+@click.option("--data-path", metavar='BUILD_DATA', default=None,
               help="Git repo or directory containing groups metadata e.g. https://github.com/openshift/ocp-build-data")
 @click.option("-g", "--group", metavar='NAME', required=True,
               help="The group of components on which to operate. e.g. openshift-4.9")
@@ -224,10 +233,10 @@ class GenAssemblyPipeline:
 @click.option('--auto-previous', 'auto_previous', is_flag=True, help='If specified, previous list is calculated from Cincinnati graph')
 @pass_runtime
 @click_coroutine
-async def gen_assembly(runtime: Runtime, ocp_build_data_url: str, group: str, assembly: str, nightlies: Tuple[str, ...],
+async def gen_assembly(runtime: Runtime, data_path: str, group: str, assembly: str, nightlies: Tuple[str, ...],
                        allow_pending: bool, allow_rejected: bool, allow_inconsistency: bool, custom: bool, arches: Tuple[str, ...], in_flight: Optional[str],
                        previous_list: Tuple[str, ...], auto_previous: bool):
-    pipeline = GenAssemblyPipeline(runtime=runtime, group=group, assembly=assembly, ocp_build_data_url=ocp_build_data_url,
+    pipeline = GenAssemblyPipeline(runtime=runtime, group=group, assembly=assembly, ocp_build_data_url=data_path,
                                    nightlies=nightlies, allow_pending=allow_pending, allow_rejected=allow_rejected, allow_inconsistency=allow_inconsistency,
                                    arches=arches, custom=custom, in_flight=in_flight, previous_list=previous_list, auto_previous=auto_previous)
     await pipeline.run()

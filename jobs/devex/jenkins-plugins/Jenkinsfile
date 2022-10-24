@@ -17,6 +17,8 @@ properties(
                             'rhaos-4.10-rhel-8',
                             'rhaos-4.9-rhel-8',
                             'rhaos-4.8-rhel-8',
+                            'rhaos-4.7-rhel-8',
+                            'rhaos-4.6-rhel-8',
                         ].join('\n'),
                     defaultValue: 'rhaos-4.10-rhel-8'
                 ],

@@ -137,13 +137,11 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
         yaml.dump(content, path)
 
     async def _create_or_update_pull_request(self, owner: str, repo: str, base: str, head: str, title: str, body: str):
-        title = f"Automated CVP fix for {self.group}"
-        body = f"Job run: {self.runtime.get_job_run_url()}"
         if self.runtime.dry_run:
             self._logger.warning("[DRY RUN] Would have created pull-request with head '%s', base '%s' title '%s', body '%s'", head, base, title, body)
             d = {"html_url": "https://github.example.com/foo/bar/pull/1234", "number": 1234}
             result = namedtuple('pull_request', d.keys())(*d.values())
-            return
+            return result
         github_token = os.environ.get('GITHUB_TOKEN')
         if not github_token:
             raise ValueError("GITHUB_TOKEN environment variable is required to create a pull request")

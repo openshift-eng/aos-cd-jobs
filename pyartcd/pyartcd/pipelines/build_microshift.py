@@ -151,7 +151,7 @@ class BuildMicroShiftPipeline:
         rpms_entry = releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("members", {}).setdefault("rpms", [])
         microshift_entry = next(filter(lambda rpm: rpm.get("distgit_key") == dg_key, rpms_entry), None)
         if microshift_entry is None:
-            microshift_entry = {"distgit_key": dg_key}
+            microshift_entry = {"distgit_key": dg_key, "why": "Pin microshift to assembly"}
             rpms_entry.append(microshift_entry)
         microshift_entry.setdefault("metadata", {})["is"] = is_entry
         return microshift_entry

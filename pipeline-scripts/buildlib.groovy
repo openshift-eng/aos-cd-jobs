@@ -695,7 +695,7 @@ def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs =
             return
         }
         commonlib.email(
-            replyTo: 'aos-art-team@redhat.com',
+            replyTo: 'aos-team-art@redhat.com',
             to: 'aos-art-automation+failed-sweep@redhat.com',
             from: 'aos-art-automation@redhat.com',
             subject: "Problem sweeping after ${currentBuild.displayName}",

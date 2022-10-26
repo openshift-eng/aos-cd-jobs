@@ -281,6 +281,7 @@ class PrepareReleasePipeline:
         async with aiofiles.open(path, "r") as f:
             content = await f.read()
         yaml = YAML(typ="safe")
+        yaml.preserve_quotes = True
         return yaml.load(content)
 
     async def load_group_config(self) -> Dict:
@@ -290,6 +291,7 @@ class PrepareReleasePipeline:
         async with aiofiles.open(repo / "group.yml", "r") as f:
             content = await f.read()
         yaml = YAML(typ="safe")
+        yaml.preserve_quotes = True
         return yaml.load(content)
 
     @classmethod

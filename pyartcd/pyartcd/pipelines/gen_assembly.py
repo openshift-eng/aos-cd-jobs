@@ -7,7 +7,6 @@ from io import StringIO
 from typing import Iterable, Optional, OrderedDict, Tuple
 
 import click
-import yaml
 from ghapi.all import GhApi
 from pyartcd import exectools
 from pyartcd.cli import cli, click_coroutine, pass_runtime
@@ -16,6 +15,7 @@ from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 
 yaml = YAML(typ="rt")
+yaml.preserve_quotes = True
 
 
 def _merge(a, b):

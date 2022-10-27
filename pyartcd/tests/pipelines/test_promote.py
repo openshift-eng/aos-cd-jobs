@@ -77,7 +77,7 @@ class TestPromotePipeline(TestCase):
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
 
     @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
-    @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
+    @patch("pyartcd.pipelines.promote.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
         "digest": f"fake:deadbeef-{pullspec}",
         "metadata": {
@@ -149,7 +149,7 @@ class TestPromotePipeline(TestCase):
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
 
     @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
-    @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
+    @patch("pyartcd.pipelines.promote.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
         "digest": f"fake:deadbeef-{pullspec}",
         "metadata": {
@@ -242,7 +242,7 @@ class TestPromotePipeline(TestCase):
     @patch("pyartcd.pipelines.promote.PromotePipeline.tag_release", return_value=None)
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream_tag", return_value=None)
     @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
-    @patch("pyartcd.pipelines.promote.PromotePipeline.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
+    @patch("pyartcd.pipelines.promote.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
         "image": pullspec,
         "digest": "fake:deadbeef",
         "metadata": {

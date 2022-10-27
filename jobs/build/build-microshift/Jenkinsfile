@@ -27,7 +27,24 @@ node {
                         string(
                             name: "ASSEMBLY",
                             description: "The name of an assembly to rebase & build for. e.g. 4.9.1",
+                            defaultValue: "test",
                             trim: true
+                        ),
+                        string(
+                            name: 'RELEASE_PAYLOADS',
+                            description: '(Optional) List of release payloads to rebase against; can be nightly names or full pullspecs',
+                            defaultValue: "",
+                            trim: true,
+                        ),
+                        booleanParam(
+                            name: "UPDATE_POCKET",
+                            description: "Update pocket on mirror; ",
+                            defaultValue: false
+                        ),
+                        booleanParam(
+                            name: "NO_REBASE",
+                            description: "(For testing only) Do not rebase microshift code; build the current source we have in the upstream repo",
+                            defaultValue: false
                         ),
                         string(
                             name: 'OCP_BUILD_DATA_URL',
@@ -79,6 +96,14 @@ node {
                     "-g", "openshift-$params.BUILD_VERSION",
                     "--assembly", params.ASSEMBLY,
                 ]
+                if (params.RELEASE_PAYLOADS) {
+                    for (nightly in commonlib.parseList(params.RELEASE_PAYLOADS)) {
+                        cmd << "--payload" << nightly.trim()
+                    }
+                }
+                if (params.NO_REBASE) {
+                    cmd << "--no-rebase"
+                }
                 withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                     echo "Will run ${cmd}"
                     if (params.IGNORE_LOCKS) {
@@ -87,6 +112,24 @@ node {
                         lock("build-microshift-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
                     }
                 }
+            }
+            stage("Update pocket") {
+                if (!params.UPDATE_POCKET || params.DRY_RUN) {
+                    echo "No need to update the pocket."
+                    return
+                }
+                // TODO: For assembly with a basis event, we need to pin the microshift build to the assembly before updating the pocket.
+                // Auto-merge the PR before running update-microshift-pocket?
+                build(
+                    job: "build%2Fupdate-microshift-pocket",
+                    propagate: true,
+                    parameters: [
+                        string(name: 'BUILD_VERSION', value: params.BUILD_VERSION),
+                        string(name: 'ASSEMBLY', value: params.ASSEMBLY),
+                        // Hardcode RHEL version 8 until we start building for RHEL 9.
+                        string(name: 'RHEL_TARGET', value: '8'),
+                    ]
+                )
             }
         } finally {
             stage("save artifacts") {

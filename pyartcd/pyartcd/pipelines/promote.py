@@ -19,8 +19,9 @@ from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
 from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
-from pyartcd.runtime import Runtime
 from pyartcd.jira import JIRAClient
+from pyartcd.oc import get_release_image_info
+from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 from semver import VersionInfo
 from tenacity import (RetryCallState, RetryError, retry,
@@ -525,7 +526,7 @@ class PromotePipeline:
         dest_image_tag = f"{release_name}-{brew_arch}"
         dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
         self._logger.info("Checking if release image %s for %s (%s) already exists...", release_name, arch, dest_image_pullspec)
-        dest_image_info = await self.get_release_image_info(dest_image_pullspec)
+        dest_image_info = await get_release_image_info(dest_image_pullspec)
         if dest_image_info:  # this arch-specific release image is already promoted
             self._logger.warning("Release image %s for %s (%s) already exists", release_name, arch, dest_image_info["image"])
             # TODO: Check if the existing release image matches the assembly definition.
@@ -550,7 +551,7 @@ class PromotePipeline:
             self._logger.info("Release image for %s %s has been built and pushed to %s", release_name, arch, dest_image_pullspec)
             self._logger.info("Getting release image information for %s...", dest_image_pullspec)
             if not self.runtime.dry_run:
-                dest_image_info = await self.get_release_image_info(dest_image_pullspec, raise_if_not_found=True)
+                dest_image_info = await get_release_image_info(dest_image_pullspec, raise_if_not_found=True)
             else:
                 # populate fake data for dry run
                 dest_image_info = {
@@ -742,24 +743,6 @@ class PromotePipeline:
             return
         env = os.environ.copy()
         await exectools.cmd_assert_async(cmd, env=env, stdout=sys.stderr)
-
-    @staticmethod
-    async def get_release_image_info(pullspec: str, raise_if_not_found: bool = False):
-        cmd = ["oc", "adm", "release", "info", "-o", "json", "--", pullspec]
-        env = os.environ.copy()
-        env["GOTRACEBACK"] = "all"
-        rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
-        if rc != 0:
-            if "not found: manifest unknown" in stderr or "was deleted or has expired" in stderr:
-                # release image doesn't exist
-                if raise_if_not_found:
-                    raise IOError(f"Image {pullspec} is not found.")
-                return None
-            raise ChildProcessError(f"Error running {cmd}: exit_code={rc}, stdout={stdout}, stderr={stderr}")
-        info = json.loads(stdout)
-        if not isinstance(info, dict):
-            raise ValueError(f"Invalid release info: {info}")
-        return info
 
     async def build_release_image(self, release_name: str, arch: str, previous_list: List[str], metadata: Optional[Dict],
                                   dest_image_pullspec: str, source_image_pullspec: Optional[str], source_image_stream: Optional[str], keep_manifest_list: bool):

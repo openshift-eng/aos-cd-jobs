@@ -149,8 +149,10 @@ node {
                 cmd << "--in-flight=${params.IN_FLIGHT_PREV}"
             }
             if (params.PREVIOUS) {
-                for (previous in params.PREVIOUS.split("[,\\s]+")) {
-                    cmd << "--previous" << previous.trim()
+                if (params.PREVIOUS != 'none') {
+                    for (previous in params.PREVIOUS.split("[,\\s]+")) {
+                        cmd << "--previous" << previous.trim()
+                    }
                 }
             } else {
                 cmd << "--auto-previous"

@@ -769,5 +769,22 @@ def syncDirToS3Mirror(local_dir, s3_path, include_only='', timeout_minutes=60) {
     }
 }
 
+def listS3Mirror(s3_path, timeout_minutes=2) {
+    def extra_args = ""
+    def res = null
+    def cmd = "aws s3 ls ${extra_args} s3://art-srv-enterprise${s3_path}"
+    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
+            res = shell(script: cmd, returnAll: true)
+        }
+    }
+    if (res.returnStatus == 0) {  // prefix exists
+        return res.stdout
+    }
+    if (res.returnStatus == 1) {  // prefix doesn't exist
+        return null
+    }
+    error("Error running $cmd: Process exited with code ${res.returnStatus} and stderr ${res.stderr}")
+}
 
 return this

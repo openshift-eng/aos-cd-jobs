@@ -79,6 +79,7 @@ class BuildMicroShiftPipeline:
             message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
+                message += "\nTo publish the build to the pocket, run update-microshift-pocket job after the PR is merged."
             await self._slack_client.say(message, slack_thread)
         except Exception as err:
             error_message = f"Error building microshift: {err}\n {traceback.format_exc()}"

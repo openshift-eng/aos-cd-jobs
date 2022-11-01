@@ -12,20 +12,20 @@ import groovy.json.JsonOutput
 // A map of release stream names to be polled and and actions to be taken
 @Field final ACTIONS = [
     // as part of 4.next we will manually publish only sprintly dev-previews
-    "4-dev-preview": this.&setDevPreviewLatest,
-    "4-dev-preview-s390x": this.&setDevPreviewLatest,
-    "4-dev-preview-ppc64le": this.&setDevPreviewLatest,
-    "4-dev-preview-arm64": this.&setDevPreviewLatest,
+    "4-dev-preview": [this.&setDevPreviewLatest],
+    "4-dev-preview-s390x": [this.&setDevPreviewLatest],
+    "4-dev-preview-ppc64le": [this.&setDevPreviewLatest],
+    "4-dev-preview-arm64": [this.&setDevPreviewLatest],
 
-    // "4.12.0-0.nightly": this.&startPreReleaseJob,
+    "4.12.0-0.nightly":  [this.&publishRPMs],
     // "4.12.0-0.nightly-s390x": this.&startPreReleaseJob,
     // "4.12.0-0.nightly-ppc64le": this.&startPreReleaseJob,
     // "4.12.0-0.nightly-arm64": this.&startPreReleaseJob,
-    "4.12.0-0.nightly-multi": this.&startPreReleaseJob,
+    "4.12.0-0.nightly-multi": [this.&startPreReleaseJob],
     // 4.11 is not going to be released as a fc/rc named release, so
     // continue to publish as dev-preview until all 4.11 heterogeneous
     // users are using named releases.
-    "4.11.0-0.nightly-multi": this.&startPreReleaseJob,
+    "4.11.0-0.nightly-multi": [this.&startPreReleaseJob],
 ]
 
 def setDevPreviewLatest(String releaseStream, Map latestRelease, Map previousRelease) {
@@ -49,15 +49,13 @@ def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRele
     )
 }
 
-def publishRPMs(String releaseStream, Map latestRelease) {
-    if (commonlib.extractArchFromReleaseName(latestRelease.name) == "x86_64") {
-        build(
-            job: '/aos-cd-builds/build%2Fpublish-rpms',
-            parameters: [
-                string(name: 'BUILD_VERSION', value: commonlib.extractMajorMinorVersion(releaseStream)),
-            ],
-        )
-    }
+def publishRPMs(String releaseStream, Map latestRelease, Map previousRelease) {
+    build(
+        job: '/aos-cd-builds/build%2Fpublish-rpms',
+        parameters: [
+            string(name: 'BUILD_VERSION', value: commonlib.extractMajorMinorVersion(releaseStream)),
+        ],
+    )
 }
 
 /**
@@ -120,7 +118,6 @@ node() {
                 description += " [no change]\n"
                 continue
             }
-            publishRPMs(releaseStream, latestRelease)
             actionArguments[releaseStream] = [releaseStream, latestRelease, previousRelease]
             saveToReleaseCache(latestRelease, "${releaseStream}.json")
         } catch (Exception ex) {
@@ -138,7 +135,15 @@ node() {
             stage(releaseStream) {
                 try {
                     echo "Invoking action for $releaseStream"
-                    ACTIONS[releaseStream](args[0], args[1], args[2])
+                    def action = ACTIONS[releaseStream]
+                    if (action instanceof List) {
+                        // If action is a list, invoke all functions one by one
+                        for (fn in action) {
+                            fn(args[0], args[1], args[2])
+                        }
+                    } else {
+                        action(args[0], args[1], args[2])
+                    }
                 } catch (Exception ex) {
                     echo "Error invoking action for $releaseStream: $ex"
                     currentBuild.result = "UNSTABLE"

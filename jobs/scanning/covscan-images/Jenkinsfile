@@ -97,10 +97,11 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
 
                     // To make installing covscan reasonably quick for scanner images, make a local copy of covscan repos.
                     // doozer can use these with the --local-repo arg to images:covscan.
-                    for ( rhel_version in ['7', '8'] ) {
-                        prefix = "covscan-rhel-${rhel_version}"
-                        repo_fn = "${prefix}.repo"
-                        writeFile(file: repo_fn, text: """
+                    withEnv(["https_proxy=", "http_proxy=", "no_proxy="]) {
+                        for ( rhel_version in ['7', '8'] ) {
+                            prefix = "covscan-rhel-${rhel_version}"
+                            repo_fn = "${prefix}.repo"
+                            writeFile(file: repo_fn, text: """
 [covscan]
 name=Copr repo for covscan
 baseurl=http://coprbe.devel.redhat.com/repos/kdudka/covscan/epel-${rhel_version}-x86_64/
@@ -120,21 +121,18 @@ enabled=0
 enabled_metadata=1
 """)
 
-                        lock('buildvm2-yum') { // Don't use yum while a job like reposync is
-                            // download the repo contents and create local repositories
-                            if ( params.REBUILD_REPOS ) {
-                                sh "rm -rf ${prefix}_repos /var/tmp/yum-covscan"
-                                sh "sudo yum clean metadata"
+                            lock('buildvm2-yum') { // Don't use yum while a job like reposync is
+                                // download the repo contents and create local repositories
+                                if ( params.REBUILD_REPOS ) {
+                                    sh "rm -rf ${prefix}_repos /var/tmp/yum-covscan"
+                                    sh "sudo yum clean metadata"
+                                }
+                                sh "reposync --cachedir=/var/tmp/yum-covscan -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -r covscan -r covscan-testing"
+                                sh "createrepo_c ${prefix}_repos/covscan"
+                                sh "createrepo_c ${prefix}_repos/covscan-testing"
                             }
-                            sh "reposync --cachedir=/var/tmp/yum-covscan -c ${repo_fn} -a x86_64 -d -p ${prefix}_repos -n -r covscan -r covscan-testing"
-                            sh "createrepo_c ${prefix}_repos/covscan"
-                            sh "createrepo_c ${prefix}_repos/covscan-testing"
                         }
 
-                    }
-
-
-                    withEnv(["https_proxy="]) {
                         RESULTS_ARCHIVE_DIR = '/mnt/nfs/coverity/results'
                         buildlib.doozer """${doozerOpts}
                                     ${params.IMAGES_FIELD=='IGNORE'?'':((params.IMAGES_FIELD=='INCLUDE'?'-i ':'-x ') + images)}

@@ -76,7 +76,6 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
         )
 
         commonlib.checkMock()
-
         GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
         // doozer_working must be in WORKSPACE in order to have artifacts archived
@@ -89,12 +88,9 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
         def images = commonlib.cleanCommaList(params.IMAGES)
 
         timestamps {
-
             slackChannel = slacklib.to(BUILD_VERSION)
-
             stage('scan') {
                 sshagent(['openshift-bot']) {
-
                     // To make installing covscan reasonably quick for scanner images, make a local copy of covscan repos.
                     // doozer can use these with the --local-repo arg to images:covscan.
                     withEnv(["https_proxy=", "http_proxy=", "no_proxy="]) {
@@ -132,23 +128,22 @@ enabled_metadata=1
                                 sh "createrepo_c ${prefix}_repos/covscan-testing"
                             }
                         }
-
-                        RESULTS_ARCHIVE_DIR = '/mnt/nfs/coverity/results'
-                        buildlib.doozer """${doozerOpts}
-                                    ${params.IMAGES_FIELD=='IGNORE'?'':((params.IMAGES_FIELD=='INCLUDE'?'-i ':'-x ') + images)}
-                                    images:covscan
-                                    --local-repo-rhel-7 covscan-rhel-7_repos/covscan
-                                    --local-repo-rhel-7 covscan-rhel-7_repos/covscan-testing
-                                    --local-repo-rhel-8 covscan-rhel-8_repos/covscan
-                                    --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
-                                    --result-archive ${RESULTS_ARCHIVE_DIR}
-                                    --repo-type unsigned
-                                    ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
-                                    ${params.IGNORE_WAIVED?'--ignore-waived':''}
-                                    ${params.FORCE_ANALYSIS?'--force-analysis':''}
-                                    "--https-proxy=${env.https_proxy}"
-                        """
                     }
+                    RESULTS_ARCHIVE_DIR = '/mnt/nfs/coverity/results'
+                    buildlib.doozer """${doozerOpts}
+                        ${params.IMAGES_FIELD=='IGNORE'?'':((params.IMAGES_FIELD=='INCLUDE'?'-i ':'-x ') + images)}
+                        images:covscan
+                        --local-repo-rhel-7 covscan-rhel-7_repos/covscan
+                        --local-repo-rhel-7 covscan-rhel-7_repos/covscan-testing
+                        --local-repo-rhel-8 covscan-rhel-8_repos/covscan
+                        --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
+                        --result-archive ${RESULTS_ARCHIVE_DIR}
+                        --repo-type unsigned
+                        ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
+                        ${params.IGNORE_WAIVED?'--ignore-waived':''}
+                        ${params.FORCE_ANALYSIS?'--force-analysis':''}
+                        "--https-proxy=${env.https_proxy}"
+                    """
                 }
             }
 

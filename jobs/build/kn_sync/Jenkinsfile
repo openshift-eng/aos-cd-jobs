@@ -76,7 +76,7 @@ pipeline {
 def downloadRecursive(path, destination, skip_arm64) {
     skip_param = ""
     if (skip_arm64) {
-        skip_param = ",*arm64.tar.gz,*\?*"
+        skip_param = ",*arm64.tar.gz"
     }
-    sh "wget --recursive --no-parent --reject 'index.html*${skip_param}' --no-directories --directory-prefix ${destination} ${path}"
+    sh "wget --recursive --no-parent --reject 'index.html*${skip_param},*\\?*' --no-directories --directory-prefix ${destination} ${path} || exit 0"
 }  

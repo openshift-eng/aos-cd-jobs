@@ -38,7 +38,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                         string(
                             name: 'VERSIONS',
                             description: '<a href="https://github.com/openshift/aos-cd-jobs/tree/master/jobs#list-parameters">List</a> of versions to scan.',
-                            defaultValue: commonlib.ocp4Versions.join(','),
+                            defaultValue: "",
                             trim: true,
                         ),
                         commonlib.suppressEmailParam(),

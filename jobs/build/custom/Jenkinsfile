@@ -51,7 +51,7 @@ node {
                     string(
                         name: 'ASSEMBLY',
                         description: 'The name of an assembly to rebase & build for. If assemblies are not enabled in group.yml, this parameter will be ignored',
-                        defaultValue: "stream",
+                        defaultValue: "test",
                         trim: true,
                     ),
                     string(

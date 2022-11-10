@@ -1564,6 +1564,58 @@ def build_plashets(doozerOpts, version, release, dryRun = false) {
     def group_repos = readJSON text: doozer("${doozerOpts} -q config:read-group --default=None repos", [capture: true]).trim()
     def plashets_built = [:]
 
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+    if (major > 4 || major == 4 && minor >= 12) {  // Create plashet repos on ocp-artifacts
+        def revision = release
+        if (revision.endsWith(".p?"))
+            revision = revision.substring(0, revision.length() - 3)  // remove .p? suffix
+        def working_dir = "$PWD/plashet-working"
+        cleanWorkdir(working_dir)
+        sh "mkdir -p $working_dir"
+        def assembly = params.ASSEMBLY ?: "stream"
+        def cmd = [
+            "python3",
+            "./hacks/plashet/build-plashet.py",
+            "--working-dir=$working_dir",
+            "--group=openshift-$version",
+            "--assembly=$assembly",
+            "--revision=$revision",
+            "--signing-advisory=$auto_signing_advisory"
+        ]
+        if (commonlib.ocpReleaseState[version]["release"]) {
+            cmd << "--auto-sign"
+        }
+        for (String release_arch : commonlib.ocpReleaseState[version]['release']) {
+            cmd << "--arch=$release_arch"
+        }
+        for (String pre_release_arch : commonlib.ocpReleaseState[version]['pre-release']) {
+            cmd << "--arch=$pre_release_arch"
+        }
+        if (dryRun) {
+            cmd << "--dry-run"
+        }
+        commonlib.shell(cmd.join(' '))
+
+        // Populate plashets_built
+        for (rhel_major in [7, 8, 9]) {  // TODO: should have a central list of these by version
+            for (ironic in [true, false]) {
+                for (priv in [true, false]) {
+                    rhel_major_part = rhel_major == 7 ? "" : "-${rhel_major}"
+                    // NOTE: this implies a rigid naming scheme for our plashets in group.yml
+                    repo_name = "rhel${rhel_major_part}-server-${ironic ? 'ironic' : 'ose'}-rpms${priv ? '-embargoed' : ''}"
+                    plashets_built[repo_name] = [
+                        'plashetDirName': revision, // what to name the mirrored repo directory
+                        'localPlashetPath': "$working_dir/plashets/$version/$assembly/${ironic ? 'ironic-' : ''}el${rhel_major}${priv ? '-embargoed' : ''}/${revision.substring(0, 4)}-${revision.substring(4, 6)}/$revision", // where to find source for mirroring
+                    ]
+                }
+            }
+        }
+        echo "plashets_built: $plashets_built"
+        // Continue to build and sync plashet repos out to rcm-guest until RHCOS starts consuming content from ocp-artifacts.
+        // return plashets_built
+        plashets_built = [:]
+    }
+
     for (rhel_major in [7, 8, 9]) {  // TODO: should have a central list of these by version
         for (ironic in [true, false]) {
             for (priv in [true, false]) {

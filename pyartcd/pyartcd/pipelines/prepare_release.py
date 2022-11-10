@@ -26,7 +26,7 @@ from pyartcd.mail import MailService
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
-                          get_release_name)
+                          get_release_name_for_assembly)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -116,7 +116,7 @@ class PrepareReleasePipeline:
                 raise ValueError("Preparing a release from a stream assembly for OCP4+ is no longer supported.")
         else:
             release_config = releases_config.get("releases", {}).get(self.assembly, {})
-            self.release_name = get_release_name(assembly_type, self.group_name, self.assembly, 0 if assembly_type == AssemblyTypes.CUSTOM else None)
+            self.release_name = get_release_name_for_assembly(self.group_name, releases_config, self.assembly)
             self.release_version = semver.VersionInfo.parse(self.release_name).to_tuple()
             if not release_config:
                 raise ValueError(f"Assembly {self.assembly} is not explicitly defined in releases.yml for group {self.group_name}.")

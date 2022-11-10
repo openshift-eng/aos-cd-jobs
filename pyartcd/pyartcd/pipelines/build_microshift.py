@@ -19,7 +19,7 @@ from pyartcd import constants
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
-                          get_release_name, isolate_el_version_in_release,
+                          isolate_el_version_in_release,
                           load_group_config, load_releases_config)
 from ruamel.yaml import YAML
 from semver import VersionInfo
@@ -90,7 +90,7 @@ class BuildMicroShiftPipeline:
                 # rebase against named releases
                 if self.payloads:
                     raise ValueError(f"Specifying payloads for assembly type {assembly_type.value} is not allowed.")
-                release_name = get_release_name(assembly_type, self.group, self.assembly, None)
+                release_name = util.get_release_name_for_assembly(self.group, releases_config, self.assembly)
 
             # Rebases and builds microshift
             if assembly_type is not assembly_type.STREAM:

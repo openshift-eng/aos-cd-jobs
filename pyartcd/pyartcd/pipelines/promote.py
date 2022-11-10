@@ -35,7 +35,7 @@ yaml.default_flow_style = False
 class PromotePipeline:
     DEST_RELEASE_IMAGE_REPO = constants.RELEASE_IMAGE_REPO
 
-    def __init__(self, runtime: Runtime, group: str, assembly: str, release_offset: Optional[int],
+    def __init__(self, runtime: Runtime, group: str, assembly: str,
                  skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
                  skip_image_list: bool = False, permit_overwrite: bool = False,
@@ -43,7 +43,6 @@ class PromotePipeline:
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
-        self.release_offset = release_offset
         self.skip_blocker_bug_check = skip_blocker_bug_check
         self.skip_attached_bug_check = skip_attached_bug_check
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
@@ -89,7 +88,7 @@ class PromotePipeline:
 
         # Get release name
         assembly_type = util.get_assembly_type(releases_config, self.assembly)
-        release_name = util.get_release_name(assembly_type, self.group, self.assembly, self.release_offset)
+        release_name = util.get_release_name_for_assembly(self.group, releases_config, self.assembly)
         # Ensure release name is valid
         if not VersionInfo.isvalid(release_name):
             raise ValueError(f"Release name `{release_name}` is not a valid semver.")
@@ -979,8 +978,6 @@ class PromotePipeline:
               help="The group of components on which to operate. e.g. openshift-4.9")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
               help="The name of an assembly. e.g. 4.9.1")
-@click.option("--release-offset", "-r", metavar="OFFSET", type=int,
-              help="Use this option if assembly type is custom. If offset is X for 4.9, release name will become 4.9.X-assembly.ASSEMBLY_NAME.")
 @click.option("--skip-blocker-bug-check", is_flag=True,
               help="Skip blocker bug check. Note block bugs are never checked for CUSTOM and CANDIDATE releases.")
 @click.option("--skip-attached-bug-check", is_flag=True,
@@ -996,11 +993,11 @@ class PromotePipeline:
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
-async def promote(runtime: Runtime, group: str, assembly: str, release_offset: Optional[int],
+async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
-    pipeline = PromotePipeline(runtime, group, assembly, release_offset,
+    pipeline = PromotePipeline(runtime, group, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
                                skip_image_list, permit_overwrite, no_multi, multi_only, use_multi_hack)
     await pipeline.run()

@@ -51,13 +51,13 @@ class TestCheckBugsPipeline(unittest.TestCase):
 
         # All OCP versions defined above are applicable
         pipeline = CheckBugsPipeline(runtime, '#test', versions, [])
-        asyncio.get_event_loop().run_until_complete(pipeline._check_applicable_versions())
+        asyncio.run(pipeline._check_applicable_versions())
         pipeline.applicable_versions.sort()
         self.assertEqual(versions, pipeline.applicable_versions)
 
         # Add 4.11, currently (Mar 30, 2022) not in GA
         pipeline.versions.append('4.11')
-        asyncio.get_event_loop().run_until_complete(pipeline._check_applicable_versions())
+        asyncio.run(pipeline._check_applicable_versions())
         self.assertNotIn('4.11', pipeline.applicable_versions)
 
 

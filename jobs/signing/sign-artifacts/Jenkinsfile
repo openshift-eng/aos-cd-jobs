@@ -174,6 +174,62 @@ node {
                             }
                         }
 
+                        if ( params.ARCH == "multi" ) {
+                            // Heterogeneous release payloads are manifest lists. When podman is verifying a signature
+                            // it verifies the signature of an individual manifest -- not the manifest list. So
+                            // we need to create signatures for each arch's manifest.
+                            // This job will be invoked with ARCH=multi where the digest is a manifest list
+                            // AND with the the digest is an underlying manifest.
+                            // If this job is invoked with a digest for a manifest list, queue up this job
+                            // again for each manifest within it.
+
+                            oc_info_cmd = "oc image info quay.io/openshift-release-dev/ocp-release@${digest}"
+                            // First, detect whether this is a manifest list. oc returns an error if run
+                            // against a manifest list, so do no throw an exception on non-zero return code.
+                            // Stderr is also used for manifest list metadata, so redirect it to stdout
+                            res = commonlib.shell(script: oc_info_cmd + ' 2>&1', returnAll: true)
+
+                            // application/vnd.docker.distribution.manifest indicates this is a single manifest
+                            // and not a manifest list, so use that to determine if this is
+                            if ( !res.stdout.contains('application/vnd.docker.distribution.manifest') ) {
+                                // This is a manifest list OR there was an actual error (e.g. can't read image)
+                                // from oc. A manifest list output should look like:
+                                /*
+                                  OS            DIGEST
+                                  linux/amd64   sha256:58f91f37954a23aa049ff139349dfd6ac96f2cd4d35b5a0642a3f64763f04190
+                                  linux/ppc64le sha256:de6360f6d38dc72abd04e0fbd3d687be612bad364569825a20076033ac9b8f0f
+                                  linux/s390x   sha256:077964cc30e91b79bf1df398c6f3da0bb9746677369dc836fcb4e511f6249138
+                                  linux/arm64   sha256:34b9a0c61ed38f2876b3010a12ab92d2b4abe4dd711e67f79ac522ade9abaa94
+
+                                */
+                                if ( res.stdout.contains('DIGEST') ) {
+                                    for ( def oc_info_line : res.stdout.trim().split() ) {
+                                        if ( oc_info_line.contains('sha256:') ) {
+                                            def sha_digest = 'sha256:' + oc_info_line.split(':')[1].trim()
+                                            build(
+                                                    job: '/signing-jobs/signing%2Fsign-artifacts',
+                                                    propagate: true,
+                                                    parameters: [
+                                                        string(name: 'ARCH', value: params.ARCH),
+                                                        string(name: 'NAME', value: params.NAME),
+                                                        string(name: 'SIGNATURE_NAME', value: params.SIGNATURE_NAME),
+                                                        string(name: 'CLIENT_TYPE', value: params.CLIENT_TYPE),
+                                                        string(name: 'PRODUCT', value: params.PRODUCT),
+                                                        string(name: 'ENV', value: params.ENV),
+                                                        string(name: 'KEY_NAME', value: params.KEY_NAME),
+                                                        string(name: 'DIGEST', value: sha_digest),
+                                                        booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
+                                                        booleanParam(name: 'MOCK', value: params.MOCK)
+                                                    ]
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    error("Error reading image metadata with oc: ${res.stdout}")
+                                }
+                            }
+                        }
+
                         // ######################################################################
 
                         def openshiftSha256SignParams = buildlib.cleanWhitespace("""

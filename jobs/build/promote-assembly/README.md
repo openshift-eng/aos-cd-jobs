@@ -67,11 +67,6 @@ This specifies the name of the assembly. The assembly must be explicitly defined
 Leave this to empty to promote all supported architectures.
 Otherwise, specify a list of architectures (separated by comma) to promote (e.g. x86_64,aarch64).
 
-### RELEASE\_OFFSET
-
-This parameter is required to promote a custom release. If offset is X for 4.9, the release name will be 4.9.X-assembly.ASSEMBLY_NAME.
-
-
 ### PERMIT\_PAYLOAD\_OVERWRITE
 
 **DO NOT USE** without discussing with your team or pillar lead for approval.

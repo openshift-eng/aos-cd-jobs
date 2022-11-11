@@ -37,11 +37,6 @@ node {
                         defaultValue: "stream",
                         trim: true,
                     ),
-                    string(
-                        name: 'RELEASE_OFFSET',
-                        description: 'Integer. Required for a custom release. Do not specify for a standard or candidate release. If offset is X for 4.9, the release name will be 4.9.X-assembly.ASSEMBLY_NAME',
-                        trim: true,
-                    ),
                     booleanParam(
                         name: 'NO_MULTI',
                         description: 'Do not promote a multi-arch/heterogeneous payload.',
@@ -121,7 +116,6 @@ node {
 
     commonlib.checkMock()
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.VERSION)
-    def release_offset = params.RELEASE_OFFSET? Integer.parseInt(params.RELEASE_OFFSET) : null
     def skipAttachedBugCheck = params.SKIP_ATTACHED_BUG_CHECK
     def next_minor = "${major}.${minor + 1}"
     if (params.DRY_RUN) {
@@ -158,9 +152,6 @@ node {
             "--group=openshift-${params.VERSION}",
             "--assembly=${params.ASSEMBLY}",
         ]
-        if (release_offset != null) {
-            cmd << "--release-offset=${release_offset}"
-        }
         if (skipAttachedBugCheck) {
             cmd << "--skip-attached-bug-check"
         }

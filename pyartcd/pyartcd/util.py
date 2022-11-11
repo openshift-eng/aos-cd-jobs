@@ -7,7 +7,7 @@ import logging
 import aiofiles
 import yaml
 
-from doozerlib import assembly, model
+from doozerlib import assembly, model, util as doozerutil
 from pyartcd import exectools
 
 logger = logging.getLogger(__name__)
@@ -89,25 +89,8 @@ def get_assembly_promotion_permits(releases_config: Dict, assembly_name: str):
     return assembly._assembly_config_struct(model.Model(releases_config), assembly_name, 'promotion_permits', [])
 
 
-def get_release_name(assembly_type: str, group_name: str, assembly_name: str, release_offset: Optional[int]):
-    major, minor = isolate_major_minor_in_group(group_name)
-    if major is None or minor is None:
-        raise ValueError(f"Invalid group name: {group_name}")
-    if assembly_type == assembly.AssemblyTypes.CUSTOM:
-        if release_offset is None:
-            raise ValueError("release_offset is required for a CUSTOM release.")
-        release_name = f"{major}.{minor}.{release_offset}-assembly.{assembly_name}"
-    elif assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]:
-        if release_offset is not None:
-            raise ValueError(f"release_offset can't be set for a {assembly_type.value} release.")
-        release_name = f"{major}.{minor}.0-{assembly_name}"
-    elif assembly_type == assembly.AssemblyTypes.STANDARD:
-        if release_offset is not None:
-            raise ValueError("release_offset can't be set for a STANDARD release.")
-        release_name = f"{assembly_name}"
-    else:
-        raise ValueError(f"Assembly type {assembly_type} is not supported.")
-    return release_name
+def get_release_name_for_assembly(group_name: str, releases_config: Dict, assembly_name: str):
+    return doozerutil.get_release_name_for_assembly(group_name, model.Model(releases_config), assembly_name)
 
 
 async def kinit():

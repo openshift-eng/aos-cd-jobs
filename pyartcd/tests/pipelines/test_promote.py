@@ -26,7 +26,7 @@ class TestPromotePipeline(TestCase):
         )
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         with self.assertRaisesRegex(ValueError, "must be explictly defined"):
-            asyncio.get_event_loop().run_until_complete(pipeline.run())
+            asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
 
@@ -49,12 +49,12 @@ class TestPromotePipeline(TestCase):
         )
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="stream", release_offset=None)
         with self.assertRaisesRegex(ValueError, "not supported"):
-            asyncio.get_event_loop().run_until_complete(pipeline.run())
+            asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "stream", env=ANY)
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
 
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={
-        "releases": {"art0001": {"assembly": {"type": "custom"}}}
+        "releases": {"art0001": {"assembly": {"type": "custom", "basis": {}}}}
     })
     @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     def test_run_with_custom_assembly_and_missing_release_offset(self, load_group_config: AsyncMock, load_releases_config: AsyncMock):
@@ -68,11 +68,12 @@ class TestPromotePipeline(TestCase):
                 }
             },
             working_dir=Path("/path/to/working"),
-            dry_run=False
+            dry_run=False,
+            new_slack_client=MagicMock(return_value=AsyncMock())
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", release_offset=None)
-        with self.assertRaisesRegex(ValueError, "release_offset is required"):
-            asyncio.get_event_loop().run_until_complete(pipeline.run())
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001")
+        with self.assertRaisesRegex(ValueError, "patch_version is not set"):
+            asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "art0001", env=ANY)
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
 
@@ -95,7 +96,7 @@ class TestPromotePipeline(TestCase):
         }
     } if raise_if_not_found else None)
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={
-        "releases": {"art0001": {"assembly": {"type": "custom"}}}
+        "releases": {"art0001": {"assembly": {"type": "custom", "basis": {"patch_version": 99}}}}
     })
     @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream")
@@ -113,9 +114,9 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", release_offset=99)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001")
         pipeline._slack_client = AsyncMock()
-        asyncio.get_event_loop().run_until_complete(pipeline.run())
+        asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "art0001", env=ANY)
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
         get_release_image_info.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-assembly.art0001-x86_64", raise_if_not_found=ANY)
@@ -144,7 +145,7 @@ class TestPromotePipeline(TestCase):
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         pipeline._slack_client = AsyncMock()
         with self.assertRaisesRegex(ValueError, "missing the required `upgrades` field"):
-            asyncio.get_event_loop().run_until_complete(pipeline.run())
+            asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
 
@@ -212,7 +213,7 @@ class TestPromotePipeline(TestCase):
         pipeline.wait_for_stable = AsyncMock(return_value=None)
         pipeline.send_image_list_email = AsyncMock()
         pipeline.is_accepted = AsyncMock(return_value=False)
-        asyncio.get_event_loop().run_until_complete(pipeline.run())
+        asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
         pipeline.check_blocker_bugs.assert_awaited_once_with()
@@ -279,7 +280,7 @@ class TestPromotePipeline(TestCase):
 
         # test x86_64
         reference_release = "whatever-x86_64"
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_arch(
+        actual = asyncio.run(pipeline._promote_arch(
             release_name="4.10.99",
             arch="x86_64",
             previous_list=previous_list,
@@ -300,7 +301,7 @@ class TestPromotePipeline(TestCase):
         build_release_image.reset_mock()
         get_image_stream_tag.reset_mock()
         tag_release.reset_mock()
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_arch(
+        actual = asyncio.run(pipeline._promote_arch(
             release_name="4.10.99",
             arch="aarch64",
             previous_list=previous_list,
@@ -327,7 +328,7 @@ class TestPromotePipeline(TestCase):
         get_image_stream_tag.reset_mock()
         tag_release.reset_mock()
         with self.assertRaisesRegex(ValueError, "already exists, but it has a different digest"):
-            asyncio.get_event_loop().run_until_complete(pipeline._promote_arch(
+            asyncio.run(pipeline._promote_arch(
                 release_name="4.10.99",
                 arch="aarch64",
                 previous_list=previous_list,
@@ -362,7 +363,7 @@ class TestPromotePipeline(TestCase):
         # test x86_64
         reference_release = "registry.ci.openshift.org/ocp/release:whatever-x86_64"
         dest_pullspec = "example.com/foo/release:4.10.99-x86_64"
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=False))
+        asyncio.run(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=False))
         expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-x86_64", f"--from-release={reference_release}", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
@@ -370,7 +371,7 @@ class TestPromotePipeline(TestCase):
         reference_release = "registry.ci.openshift.org/ocp-arm64/release-arm64:whatever-aarch64"
         dest_pullspec = "example.com/foo/release:4.10.99-aarch64"
         cmd_assert_async.reset_mock()
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=False))
+        asyncio.run(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=False))
         expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp-arm64", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-aarch64", f"--from-release={reference_release}", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
@@ -378,7 +379,7 @@ class TestPromotePipeline(TestCase):
         reference_release = "registry.ci.openshift.org/ocp-arm64/release-arm64:whatever-multi-aarch64"
         dest_pullspec = "example.com/foo/release:4.10.99-multi-aarch64"
         cmd_assert_async.reset_mock()
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=True))
+        asyncio.run(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, None, keep_manifest_list=True))
         expected_cmd = ["oc", "adm", "release", "new", "-n", "ocp-arm64", "--name=4.10.99", "--to-image=example.com/foo/release:4.10.99-multi-aarch64", f"--from-release={reference_release}", "--keep-manifest-list", "--previous=4.10.98,4.10.97,4.9.99", "--metadata", "{\"description\": \"whatever\", \"url\": \"https://access.redhat.com/errata/RHBA-2099:2222\"}"]
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
@@ -394,7 +395,7 @@ class TestPromotePipeline(TestCase):
         reference_release = None
         dest_pullspec = "example.com/foo/release:4.10.99-x86_64"
         from_image_stream = "4.10-art-assembly-4.10.99"
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release, from_image_stream, keep_manifest_list=False))
+        asyncio.run(pipeline.build_release_image("4.10.99", "x86_64", previous_list, metadata, dest_pullspec, reference_release, from_image_stream, keep_manifest_list=False))
         expected_cmd = ['oc', 'adm', 'release', 'new', '-n', 'ocp', '--name=4.10.99', '--to-image=example.com/foo/release:4.10.99-x86_64', '--reference-mode=source', '--from-image-stream=4.10-art-assembly-4.10.99', '--previous=4.10.98,4.10.97,4.9.99', '--metadata', '{"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}']
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
@@ -403,7 +404,7 @@ class TestPromotePipeline(TestCase):
         dest_pullspec = "example.com/foo/release:4.10.99-aarch64"
         from_image_stream = "4.10-art-assembly-4.10.99-arm64"
         cmd_assert_async.reset_mock()
-        asyncio.get_event_loop().run_until_complete(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, from_image_stream, keep_manifest_list=False))
+        asyncio.run(pipeline.build_release_image("4.10.99", "aarch64", previous_list, metadata, dest_pullspec, reference_release, from_image_stream, keep_manifest_list=False))
         expected_cmd = ['oc', 'adm', 'release', 'new', '-n', 'ocp-arm64', '--name=4.10.99', '--to-image=example.com/foo/release:4.10.99-aarch64', '--reference-mode=source', '--from-image-stream=4.10-art-assembly-4.10.99-arm64', '--previous=4.10.98,4.10.97,4.9.99', '--metadata', '{"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}']
         cmd_assert_async.assert_awaited_once_with(expected_cmd, env=ANY, stdout=ANY)
 
@@ -489,7 +490,7 @@ class TestPromotePipeline(TestCase):
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
         # test: heterogeneous payload already exists
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(
+        actual = asyncio.run(pipeline._promote_heterogeneous_payload(
             release_name="4.10.99",
             include_arches=["x86_64", "aarch64"],
             previous_list=previous_list,
@@ -561,7 +562,7 @@ class TestPromotePipeline(TestCase):
         build_release_image.reset_mock()
         push_manifest_list.reset_mock()
         tag_release.reset_mock()
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(
+        actual = asyncio.run(pipeline._promote_heterogeneous_payload(
             release_name="4.10.99",
             include_arches=["x86_64", "aarch64"],
             previous_list=previous_list,
@@ -642,7 +643,7 @@ class TestPromotePipeline(TestCase):
         build_release_image.reset_mock()
         push_manifest_list.reset_mock()
         tag_release.reset_mock()
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(
+        actual = asyncio.run(pipeline._promote_heterogeneous_payload(
             release_name="4.10.99",
             include_arches=["x86_64", "aarch64"],
             previous_list=previous_list,
@@ -747,7 +748,7 @@ class TestPromotePipeline(TestCase):
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
         # test: heterogeneous payload already exists
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(
+        actual = asyncio.run(pipeline._promote_heterogeneous_payload(
             release_name="4.10.99",
             include_arches=["x86_64", "aarch64"],
             previous_list=previous_list,
@@ -819,7 +820,7 @@ class TestPromotePipeline(TestCase):
         build_release_image.reset_mock()
         push_manifest_list.reset_mock()
         tag_release.reset_mock()
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(
+        actual = asyncio.run(pipeline._promote_heterogeneous_payload(
             release_name="4.10.99",
             include_arches=["x86_64", "aarch64"],
             previous_list=previous_list,
@@ -900,7 +901,7 @@ class TestPromotePipeline(TestCase):
         build_release_image.reset_mock()
         push_manifest_list.reset_mock()
         tag_release.reset_mock()
-        actual = asyncio.get_event_loop().run_until_complete(pipeline._promote_heterogeneous_payload(
+        actual = asyncio.run(pipeline._promote_heterogeneous_payload(
             release_name="4.10.99",
             include_arches=["x86_64", "aarch64"],
             previous_list=previous_list,

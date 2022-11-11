@@ -1,5 +1,6 @@
 import asyncio
 from collections import OrderedDict
+import os
 from pathlib import Path
 from unittest import TestCase
 from mock import AsyncMock, MagicMock, patch
@@ -85,7 +86,6 @@ releases:
         runtime = MagicMock(dry_run=False, config={"build_config": {
             "ocp_build_data_repo_push_url": "git@github.com:someone/ocp-build-data.git",
         }})
-        runtime.new_slack_client.return_value = AsyncMock()
         pipeline = GenAssemblyPipeline(runtime, "openshift-4.12", "4.12.99", "https://example.com/ocp-build-data.git",
                                        nightlies=(), allow_pending=False, allow_rejected=False, allow_inconsistency=False, custom=False,
                                        arches=(), in_flight=None, previous_list=(), auto_previous=True)
@@ -110,20 +110,19 @@ releases:
         actual = asyncio.run(pipeline._create_or_update_pull_request(fn))
         self.assertEqual(actual.number, 1234)
         GitRepository.return_value.setup.assert_awaited_once_with("git@github.com:someone/ocp-build-data.git")
-        GitRepository.return_value.fetch_switch_branch('auto-gen-assembly-openshift-4.12-4.12.99', 'openshift-4.12')
+        GitRepository.return_value.fetch_switch_branch.assert_awaited_once_with('auto-gen-assembly-openshift-4.12-4.12.99', 'openshift-4.12')
         yaml.load.assert_called_once_with(pipeline._working_dir / 'ocp-build-data-push/releases.yml')
-        yaml.dump.assert_called_once_with(fn.return_value, pipeline._working_dir / "ocp-build-data-push/releases.yml")
         GitRepository.return_value.commit_push.assert_awaited_once_with(ANY)
         api.pulls.create.assert_called_once_with(head='someone:auto-gen-assembly-openshift-4.12-4.12.99', base='openshift-4.12', title='Add assembly 4.12.99', body=ANY, maintainer_can_modify=True)
 
-    @patch("pyartcd.pipelines.gen_assembly.GenAssemblyPipeline._create_or_update_pull_request", autospec=True)
+    @patch.dict(os.environ, {"GITHUB_TOKEN": "irrelevant"}, clear=True)
+    @patch("pyartcd.pipelines.gen_assembly.GenAssemblyPipeline._create_or_update_pull_request", autospec=True, return_value=MagicMock(html_url="https://github.example.com/foo/bar/pull/1234", number=1234))
     @patch("pyartcd.pipelines.gen_assembly.GenAssemblyPipeline._gen_assembly_from_releases", autospec=True)
     @patch("pyartcd.pipelines.gen_assembly.GenAssemblyPipeline._get_nightlies", autospec=True)
     def test_run(self, get_nightlies: AsyncMock, _gen_assembly_from_releases: AsyncMock, _create_or_update_pull_request: AsyncMock):
         runtime = MagicMock(dry_run=False, config={"build_config": {
             "ocp_build_data_repo_push_url": "git@github.com:someone/ocp-build-data.git",
         }})
-        runtime.new_slack_client.return_value = AsyncMock()
         pipeline = GenAssemblyPipeline(runtime, "openshift-4.12", "4.12.99", "https://example.com/ocp-build-data.git",
                                        nightlies=(), allow_pending=False, allow_rejected=False, allow_inconsistency=False, custom=False,
                                        arches=(), in_flight=None, previous_list=(), auto_previous=True)
@@ -132,16 +131,6 @@ releases:
         _gen_assembly_from_releases.return_value = OrderedDict([
             ("releases", OrderedDict([("4.12.99", OrderedDict())])),
         ])
-
-        def _create_or_update_pull_request_impl(owner, fn):
-            fn(OrderedDict([
-                ("releases", OrderedDict([
-                    ("4.12.2", OrderedDict()),
-                    ("4.12.1", OrderedDict()),
-                ]))
-            ]))
-            return MagicMock(html_url="https://github.example.com/foo/bar/pull/1234", number=1234)
-        _create_or_update_pull_request.side_effect = _create_or_update_pull_request_impl
         asyncio.run(pipeline.run())
         get_nightlies.assert_awaited_once_with(pipeline)
         _gen_assembly_from_releases.assert_awaited_once_with(pipeline, ['nightly1', 'nightly2', 'nightly3', 'nightly4'])

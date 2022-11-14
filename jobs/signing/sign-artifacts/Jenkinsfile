@@ -462,6 +462,7 @@ node {
 
     stage('log sync'){
         buildArtifactPath = env.WORKSPACE.replaceFirst('/working/', '/builds/')
+        buildArtifactPath.split('@')[0]   // When multiple jobs are running, workspaces have a @### suffix, so trim it off it it exists
         echo "Artifact path (source to sync): ${buildArtifactPath}"
         // Find tool configuration for 'rclone' in bitwarden under
         // "ART S3 Signing Job Logs Bucket"

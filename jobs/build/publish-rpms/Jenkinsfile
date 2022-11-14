@@ -30,6 +30,17 @@ node {
                         description: 'Target release version',
                         trim: true,
                     ),
+                    choice(
+                        name: 'ARCH',
+                        description: 'architecture being synced',
+                        choices: commonlib.brewArches.join('\n'),
+                    ),
+                    string(
+                        name: 'EL_VERSION',
+                        description: 'RHEL Version for which to synchronize RPMs',
+                        defaultValue: '8'
+                        trim: true,
+                    ),
                     booleanParam(
                         name: "DRY_RUN",
                         description: "Take no action, just echo what the job would have done.",
@@ -44,7 +55,7 @@ node {
 
     version = params.BUILD_VERSION
     currentBuild.displayName = "$version"
-    path = "openshift-v4/x86_64/dependencies/rpms"
+    path = "openshift-v4/${params.ARCH}/dependencies/rpms"
     AWS_S3_SYNC_OPTS='--no-progress --delete --exact-timestamps'
     if (params.DRY_RUN) {
         currentBuild.displayName += " - [DRY RUN]"
@@ -54,7 +65,7 @@ node {
         commonlib.shell(
             script: """
                 set -e
-                python3 ./collect_deps.py --base-dir output ${version}
+                python3 ./collect_deps.py --base-dir output ${version} --arch ${params.ARCH} --el ${params.EL_VERSION}
                 aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el8-beta s3://art-srv-enterprise/pub/${path}/${version}-el8-beta/
                 aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-beta/ s3://art-srv-enterprise/pub/${path}/${version}-beta/
                 rm -r output

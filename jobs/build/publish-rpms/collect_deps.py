@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import asyncio
 import logging
@@ -35,25 +37,25 @@ skip_missing_names_on_install=0
 
 [rhel-server-7-optional-rpms]
 name = rhel-server-7-optional-rpms
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/optional/os/
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/optional/os/
 gpgcheck = 0
 enabled = 1
 
 [rhel-server-7-extras-rpms]
 name = rhel-server-7-extras-rpms
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/extras/os/
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/extras/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-7-rpms]
 name = rhel-server-7-rpms
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/$basearch/os/
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-7-ose-{OCP_VERSION}-rpms]
 name = rhel-server-7-ose-{OCP_VERSION}-rpms
-baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}/building/$basearch/os
+baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}/building/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 """,
@@ -71,19 +73,19 @@ skip_missing_names_on_install=0
 
 [rhel-server-8-baseos]
 name = rhel-server-8-baseos
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/$basearch/baseos/os
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/{ARCH}/baseos/os
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-8-appstream]
 name = rhel-server-8-appstream
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/$basearch/appstream/os/
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/{ARCH}/appstream/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-8-ose-{OCP_VERSION}-rpms]
 name = rhel-server-8-ose-{OCP_VERSION}-rpms
-baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}-el8/stream/building/$basearch/os
+baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}-el8/stream/building/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 module_hotfixes=1
@@ -93,7 +95,7 @@ module_hotfixes=1
 LOGGER = logging.getLogger(__name__)
 
 
-async def download_rpms(ocp_version: str, rhel_major: int, output_dir: os.PathLike):
+async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir: os.PathLike):
     yum_conf_tmpl = YUM_CONF_TEMPLATES.get(rhel_major)
     if not yum_conf_tmpl:
         raise ValueError(f"Unsupported RHEL version '{rhel_major}'")
@@ -105,7 +107,7 @@ async def download_rpms(ocp_version: str, rhel_major: int, output_dir: os.PathLi
         cache_dir = working_dir / "cache"
 
         yum_conf = yum_conf_tmpl.format(yum_conf_tmpl, OCP_VERSION=quote(
-            ocp_version), CACHE_DIR=cache_dir).strip()
+            ocp_version), ARCH=arch, CACHE_DIR=cache_dir).strip()
         with open(yum_conf_filename, "w") as f:
             f.write(yum_conf)
         cmd = [
@@ -117,6 +119,7 @@ async def download_rpms(ocp_version: str, rhel_major: int, output_dir: os.PathLi
             "--downloadonly",
             f"--installroot={Path(install_root_dir).absolute()}",
             f"--destdir={output_dir}",
+            f"--arch={arch}",
             "--",
         ] + PACKAGES
         LOGGER.info("Running command %s", cmd)
@@ -135,15 +138,14 @@ async def create_repo(directory: str):
         raise ChildProcessError(f"Process {cmd} exited with status {rc}")
 
 
-async def collect(ocp_version: str, rhel_major: int, base_dir: Optional[str]):
+async def collect(ocp_version: str, arch: str, rhel_major: int, base_dir: Optional[str]):
     version_suffix = f"-el{rhel_major}" if rhel_major != 7 else ""
     base_dir = Path(base_dir or ".")
     output_dir = Path(base_dir, f"{ocp_version}{version_suffix}-beta")
     LOGGER.info(
         f"Downloading rpms to {output_dir} for OCP {ocp_version} - RHEL {rhel_major}...")
-    await download_rpms(ocp_version, rhel_major, output_dir)
-    LOGGER.info(
-        f"Creating repo {output_dir} for OCP {ocp_version} - RHEL {rhel_major}...")
+    await download_rpms(ocp_version, arch, rhel_major, output_dir)
+    LOGGER.info(f"Creating repo {output_dir} for {arch} OCP {ocp_version} - RHEL {rhel_major}...")
     await create_repo(output_dir)
 
 
@@ -152,13 +154,19 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-dir", required=False,
                         help="Write repos to specified directory")
+    parser.add_argument("--arch", required=False,
+                        default='x86_64',
+                        help="Write repos to specified directory")
+    parser.add_argument("--el", required=False,
+                        default='8',
+                        help="The RHEL version from which to publish RPMs")
     parser.add_argument("ocp_version", help="OCP version. e.g. 4.11")
     args = parser.parse_args()
 
-    tasks = []
-    for rhel_version in (8, 7):
-        tasks.append(collect(args.ocp_version,
-                             rhel_version, base_dir=args.base_dir))
+    tasks = list()
+    tasks.append(collect(args.ocp_version,
+                         args.arch,
+                         int(args.el), base_dir=args.base_dir))
     await asyncio.gather(*tasks)
 
 

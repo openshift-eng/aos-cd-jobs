@@ -183,7 +183,12 @@ node {
                             // If this job is invoked with a digest for a manifest list, queue up this job
                             // again for each manifest within it.
 
-                            oc_info_cmd = "oc image info quay.io/openshift-release-dev/ocp-release@${digest}"
+                            quay_repo = 'ocp-release'
+                            if (params.CLIENT_TYPE == 'ocp-dev-preview') {
+                                quay_repo = 'ocp-release-nightly'
+                            }
+
+                            oc_info_cmd = "oc image info quay.io/openshift-release-dev/${quay_repo}@${digest}"
                             // First, detect whether this is a manifest list. oc returns an error if run
                             // against a manifest list, so do no throw an exception on non-zero return code.
                             // Stderr is also used for manifest list metadata, so redirect it to stdout

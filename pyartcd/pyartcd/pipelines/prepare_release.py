@@ -45,6 +45,7 @@ class PrepareReleasePipeline:
         package_owner: str,
         jira_token: str,
         default_advisories: bool = False,
+        allbuilds: bool = False,
     ) -> None:
         _LOGGER.info("Initializing and verifying parameters...")
         self.runtime = runtime
@@ -84,6 +85,7 @@ class PrepareReleasePipeline:
         self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
         self.working_dir = self.runtime.working_dir.absolute()
         self.default_advisories = default_advisories
+        self.allbuilds = allbuilds
         self.dry_run = self.runtime.dry_run
         self.elliott_working_dir = self.working_dir / "elliott-working"
         self.doozer_working_dir = self.working_dir / "doozer-working"
@@ -511,6 +513,8 @@ class PrepareReleasePipeline:
             cmd.append("--payload")
         if only_non_payload:
             cmd.append("--non-payload")
+        if self.allbuilds:
+            cmd.append("--allbuilds")
         if not self.dry_run:
             cmd.append(f"--attach={advisory}")
         _LOGGER.info("Running command: %s", cmd)
@@ -727,10 +731,12 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
               help="[MULTIPLE] Candidate nightly")
 @click.option("--default-advisories", is_flag=True,
               help="don't create advisories/jira; pick them up from ocp-build-data")
+@click.option("--allbuilds", is_flag=True, required=False,
+              help="Do not filter our shipped builds, attach all builds to advisory")
 @pass_runtime
 @click_coroutine
 async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
-                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool):
+                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, allbuilds: bool):
     # parse environment variables for credentials
     jira_token = os.environ.get("JIRA_TOKEN")
     if not jira_token:
@@ -746,5 +752,6 @@ async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[st
         package_owner=package_owner,
         jira_token=jira_token,
         default_advisories=default_advisories,
+        allbuilds=allbuilds,
     )
     await pipeline.run()

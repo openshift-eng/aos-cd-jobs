@@ -40,6 +40,11 @@ node {
                             "9",
                         ].join("\n"),
                     ),
+                    booleanParam(
+                        name: 'SET_LATEST',
+                        description: 'Set the latest link to point to this version',
+                        defaultValue: true,
+                    ),
                     commonlib.mockParam(),
                 ]
             ],
@@ -50,6 +55,7 @@ node {
     version = params.BUILD_VERSION
     currentBuild.displayName = "$version"
     mirror_path = "/pockets/microshift/${version}-el${params.RHEL_TARGET}/${params.ASSEMBLY}"
+    latest_path = "/pockets/microshift/${version}-el${params.RHEL_TARGET}/latest"
     AWS_S3_SYNC_OPTS='--no-progress'
 
     ORG_PLASHET_DIR = "microshift-plashet"
@@ -115,6 +121,9 @@ node {
 
     withEnv(["https_proxy="]) {
         commonlib.syncRepoToS3Mirror("${STAGING_PLASHET_DIR}/repos/", mirror_path)
+        if (params.SET_LATEST) {
+            commonlib.syncRepoToS3Mirror("${STAGING_PLASHET_DIR}/repos/", latest_path)
+        }
     }
     buildlib.cleanWorkspace()
 }

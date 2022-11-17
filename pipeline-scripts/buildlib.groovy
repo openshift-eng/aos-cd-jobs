@@ -1565,11 +1565,13 @@ def build_plashets(doozerOpts, version, release, dryRun = false) {
     def plashets_built = [:]
 
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-    if (major > 4 || major == 4 && minor >= 12) {  // Create plashet repos on ocp-artifacts
+
+    // Create plashet repos on ocp-artifacts
+    if (major >= 4) {
         def revision = release
         if (revision.endsWith(".p?"))
             revision = revision.substring(0, revision.length() - 3)  // remove .p? suffix
-        def working_dir = "$PWD/plashet-working"
+        def working_dir = "${env.WORKSPACE}/plashet-working"
         cleanWorkdir(working_dir)
         sh "mkdir -p $working_dir"
         def assembly = params.ASSEMBLY ?: "stream"
@@ -1611,11 +1613,14 @@ def build_plashets(doozerOpts, version, release, dryRun = false) {
             }
         }
         echo "plashets_built: $plashets_built"
+        if (major > 4 || major == 4 && minor >= 12) { // 4.12+ already fully migrated; no need to create repos on rcm-guest.
+            return plashets_built
+        }
         // Continue to build and sync plashet repos out to rcm-guest until RHCOS starts consuming content from ocp-artifacts.
-        // return plashets_built
         plashets_built = [:]
     }
 
+    // produce plashet repos on rcm-guest
     for (rhel_major in [7, 8, 9]) {  // TODO: should have a central list of these by version
         for (ironic in [true, false]) {
             for (priv in [true, false]) {

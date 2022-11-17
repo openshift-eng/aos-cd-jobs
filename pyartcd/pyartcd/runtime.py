@@ -15,11 +15,21 @@ class Runtime:
         self.config = config
         self.working_dir = working_dir
         self.dry_run = dry_run
-        self.logger = logging.getLogger("pyartcd")
+        self.logger = self.init_logger()
 
         # checks working_dir
         if not self.working_dir.is_dir():
             raise IOError(f"Working directory {self.working_dir.absolute()} doesn't exist.")
+
+    @staticmethod
+    def init_logger():
+        logging.getLogger().removeHandler(logging.getLogger().handlers[0])
+        logger = logging.getLogger('pyartcd')
+        formatter = logging.Formatter('%(asctime)s %(name)s:%(levelname)s %(message)s')
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        return logger
 
     @classmethod
     def from_config_file(cls, config_filename: Path, working_dir: Path, dry_run: bool):

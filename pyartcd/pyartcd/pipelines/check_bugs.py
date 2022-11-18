@@ -1,7 +1,6 @@
 import asyncio
 import subprocess
 import concurrent
-import json
 
 import click
 import aiohttp

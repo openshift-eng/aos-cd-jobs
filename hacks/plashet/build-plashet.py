@@ -12,9 +12,11 @@ from pathlib import Path
 import re
 import shlex
 import shutil
-from typing import Optional, Sequence, Tuple, Union
+from typing import Dict, Optional, Sequence, Tuple, Union
+from ruamel.yaml import YAML
 
 LOGGER = logging.getLogger(__name__)
+yaml = YAML(typ='safe')
 
 
 async def main():
@@ -51,54 +53,93 @@ async def main():
     signing_mode = "signed" if args.auto_sign else "unsigned"
     signing_advisory: bool = args.signing_advisory
     dry_run = args.dry_run
+
+    # PLASHET_CONFIG should be moved to ocp-build-data in the future
     PLASHET_CONFIG = {
-        "el9-embargoed": {
+        "rhel-9-server-ose-rpms-embargoed": {
+            "slug": "el9-embargoed",
             "tag": f"rhaos-{major}.{minor}-rhel-9-candidate",
             "product_version": f"OSE-{major}.{minor}-RHEL-9",
             "include_embargoed": True,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-9-embargoed"],
             "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
         },
-        "el9": {
+        "rhel-9-server-ose-rpms": {
+            "slug": "el9",
             "tag": f"rhaos-{major}.{minor}-rhel-9-candidate",
             "product_version": f"OSE-{major}.{minor}-RHEL-9",
             "include_embargoed": False,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-9-embargoed"],
             "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
         },
-        "ironic-el9": {
+        "rhel-9-server-ironic-rpms": {
+            "slug": "ironic-el9",
             "tag": f"rhaos-{major}.{minor}-ironic-rhel-9-candidate",
             "product_version": f"OSE-IRONIC-{major}.{minor}-RHEL-9",
             "include_embargoed": False,
             "embargoed_tags": [],  # unlikely to exist until we begin using -gating tag
             "include_previous_packages": [],
         },
-        "el8-embargoed": {
+        "rhel-8-server-ose-rpms-embargoed": {
+            "slug": "el8-embargoed",
             "tag": f"rhaos-{major}.{minor}-rhel-8-candidate",
             "product_version": f"OSE-{major}.{minor}-RHEL-8",
             "include_embargoed": True,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-8-embargoed"],
             "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
         },
-        "el8": {
+        "rhel-8-server-ose-rpms": {
+            "slug": "el8",
             "tag": f"rhaos-{major}.{minor}-rhel-8-candidate",
             "product_version": f"OSE-{major}.{minor}-RHEL-8",
             "include_embargoed": False,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-8-embargoed"],
             "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
         },
+        "rhel-8-server-ironic-rpms": {
+            "slug": "ironic-el8",
+            "tag": f"rhaos-{major}.{minor}-ironic-rhel-8-candidate",
+            "product_version": f"OSE-IRONIC-{major}.{minor}-RHEL-8",
+            "include_embargoed": False,
+            "embargoed_tags": [],  # unlikely to exist until we begin using -gating tag
+            "include_previous_packages": [],
+        },
+        "rhel-server-ose-rpms-embargoed": {
+            "slug": "el7-embargoed",
+            "tag": f"rhaos-{major}.{minor}-rhel-7-candidate",
+            "product_version": f"RHEL-7-OSE-{major}.{minor}",
+            "include_embargoed": True,
+            "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-7-embargoed"],
+            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+        },
+        "rhel-server-ose-rpms": {
+            "slug": "el7",
+            "tag": f"rhaos-{major}.{minor}-rhel-7-candidate",
+            "product_version": f"RHEL-7-OSE-{major}.{minor}",
+            "include_embargoed": False,
+            "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-7-embargoed"],
+            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+        },
     }
 
-    for repo_type, config in PLASHET_CONFIG.items():
+    group_config = await load_group_config(group, assembly)
+    if not group_config.get("assemblies", {}).get("enabled"):
+        assembly = "stream"
+        LOGGER.warning("Assembly name reset to 'stream' because assemblies are not enabled in ocp-build-data.")
+    all_repos = group_config.get("repos", {})
+    plashet_config = {repo: PLASHET_CONFIG[repo] for repo in PLASHET_CONFIG if repo in all_repos}
+
+    LOGGER.info("Building plashet repos: %s", ", ".join(plashet_config.keys()))
+
+    for repo_type, config in plashet_config.items():
         LOGGER.info("Building plashet repo for %s", repo_type)
-        base_dir = Path(
-            args.working_dir, f"plashets/{major}.{minor}/{assembly}/{repo_type}")
+        slug = config["slug"]
         name = f"{timestamp.year}-{timestamp.month:02}/{revision}"
         include_embargoed = config["include_embargoed"],
         embargoed_tags = config["embargoed_tags"]
         tag_pvs = ((config["tag"], config["product_version"]),)
-        print(tag_pvs)
         include_previous_packages = config["include_previous_packages"]
+        base_dir = Path(args.working_dir, f"plashets/{major}.{minor}/{assembly}/{slug}")
         # We can't safely run doozer config:plashet from-tags in parallel as this moment.
         # Build plashet repos one by one.
         local_path = await build_plashet_from_tags(group=group,
@@ -118,9 +159,26 @@ async def main():
             base_dir=base_dir, plashet_name=name)
         LOGGER.info("Symlink for %s created: %s", repo_type, symlink_path)
 
-        remote_base_dir = f"/mnt/data/pub/RHOCP/plashets/{major}.{minor}/{assembly}/{repo_type}"
+        remote_base_dir = f"/mnt/data/pub/RHOCP/plashets/{major}.{minor}/{assembly}/{slug}"
         LOGGER.info("Copying %s to remote host...", base_dir)
         await copy_to_remote(base_dir, remote_base_dir, dry_run=dry_run)
+
+
+async def load_group_config(group: str, assembly: str, env=None) -> Dict:
+    cmd = [
+        "doozer",
+        "--group", group,
+        "--assembly", assembly,
+        "config:read-group",
+        "--yaml",
+    ]
+    if env is None:
+        env = os.environ.copy()
+    _, stdout, _ = await cmd_gather_async(cmd, stderr=None, env=env)
+    group_config = yaml.load(stdout)
+    if not isinstance(group_config, dict):
+        raise ValueError("ocp-build-data contains invalid group config.")
+    return group_config
 
 
 async def build_plashet_from_tags(group: str, assembly: str, base_dir: os.PathLike, name: str, arches: Sequence[str],
@@ -244,6 +302,36 @@ async def cmd_assert_async(cmd: Union[Sequence[str], str], check: bool = True, *
         else:
             LOGGER.warning(msg)
     return proc.returncode
+
+
+async def cmd_gather_async(cmd: Union[Sequence[str], str], check: bool = True, **kwargs) -> Tuple[int, str, str]:
+    """ Runs a command asynchronously and returns rc,stdout,stderr as a tuple
+    :param cmd <string|list>: A shell command
+    :param check: If check is True and the exit code was non-zero, it raises a ChildProcessError
+    :param kwargs: Other arguments passing to asyncio.subprocess.create_subprocess_exec
+    :return: rc,stdout,stderr
+    """
+    if isinstance(cmd, str):
+        cmd_list = shlex.split(cmd)
+    else:
+        cmd_list = cmd
+    LOGGER.info("Executing:cmd_gather_async %s", cmd_list)
+    # capture stdout and stderr if they are not set in kwargs
+    if "stdout" not in kwargs:
+        kwargs["stdout"] = asyncio.subprocess.PIPE
+    if "stderr" not in kwargs:
+        kwargs["stderr"] = asyncio.subprocess.PIPE
+    proc = await asyncio.subprocess.create_subprocess_exec(cmd_list[0], *cmd_list[1:], **kwargs)
+    stdout, stderr = await proc.communicate()
+    stdout = stdout.decode() if stdout else ""
+    stderr = stderr.decode() if stderr else ""
+    if proc.returncode != 0:
+        msg = f"Process {cmd_list!r} exited with code {proc.returncode}.\nstdout>>{stdout}<<\nstderr>>{stderr}<<\n"
+        if check:
+            raise ChildProcessError(msg)
+        else:
+            LOGGER.warning(msg)
+    return proc.returncode, stdout, stderr
 
 
 if __name__ == "__main__":

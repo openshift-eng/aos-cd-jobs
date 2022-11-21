@@ -110,7 +110,7 @@ class PromotePipeline:
                 raise ValueError("No arches specified in group config.")
             # Get previous list
             upgrades_str: Optional[str] = group_config.get("upgrades")
-            if upgrades_str is None and assembly_type not in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
+            if upgrades_str is None and assembly_type not in [assembly.AssemblyTypes.CUSTOM]:
                 raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to empty string.")
             previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
             # Ensure all versions in previous list are valid semvers.

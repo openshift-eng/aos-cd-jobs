@@ -312,8 +312,8 @@ node {
     }
 
     stage("channel prs") {
-        if (release_info.type == "custom" || release_info.type == "preview") {
-            echo "Skipping PR creation for custom (hotfix) or preview release."
+        if (release_info.type == "custom") {
+            echo "Skipping PR creation for custom (hotfix) release."
             return
         }
         if (params.SKIP_CINCINNATI_PR_CREATION) {

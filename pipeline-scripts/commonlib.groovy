@@ -546,7 +546,7 @@ def extractMajorMinorVersionNumbers(String version) {
 /**
  * Given a SemVer version string x.y.z,
  * returns true if and only if the release contains a pre-release component.
- * e.g. "4.1.0-rc.9" => true
+ * e.g. "4.1.0-rc.9" => true  ,  "4.1.0-ec.0" => true
  * https://semver.org/spec/v2.0.0.html#spec-item-9
  */
 String isPreRelease(String version) {

@@ -44,7 +44,7 @@ node {
 
         kubeconfigs = [
             'x86_64': 'jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
-            'ppc64le': 'jenkins_serviceaccount_p8.psi.redhat.com.kubeconfig',
+            'ppc64le': 'jenkins_serviceaccount_ocp-ppc.stage.psi.redhat.com',
             's390x': 'jenkins_serviceaccount_osbs-s390x-3.prod.engineering.redhat.com.kubeconfig',
             'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
         ]
@@ -66,7 +66,7 @@ node {
                         lock(label: "rhcos-build-capacity-${jobArch}", quantity: 1) { // cluster capacity limited per arch
                             withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
                                 // the squid proxy inhibits communication to some RHCOS clusters, so augment no_proxy
-                                sh  'export no_proxy=p8.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy\n' +
+                                sh  'export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy\n' +
                                     "oc project\n" +
                                     "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
                                     'echo Triggered $BUILDNAME\n' +

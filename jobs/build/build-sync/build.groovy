@@ -74,9 +74,10 @@ def buildSyncGenInputs() {
         groupParam += "@${params.DOOZER_DATA_GITREF}"
     }
 
-    withEnv(["KUBECONFIG=${buildlib.ciKubeconfig}", "https_proxy=", "http_proxy="]) {
-        sh "rm -rf ${env.WORKSPACE}/${output_dir}"
-        buildlib.doozer """
+    buildlib.withAppCiAsArtPublish() {
+        withEnv(["https_proxy=", "http_proxy="]) {
+            sh "rm -rf ${env.WORKSPACE}/${output_dir}"
+            buildlib.doozer """
 ${images}
 --working-dir "${mirrorWorking}"
 --data-path "${params.DOOZER_DATA_PATH}"
@@ -89,11 +90,14 @@ ${multiArchApply}
 ${excludeArchesParam}
 ${dryRunParams}
 """
+        }
     }
 
     if (params.ASSEMBLY == "stream" && !params.DOOZER_DATA_GITREF) {
         try {
-            buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
+            buildlib.withAppCiAsArtPublish() {
+                buildlib.oc("${logLevel} registry login")
+            }
             def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
             // Starting with 4.12, ART is responsible for populating the CI imagestream (-n ocp is/4.12) with
             // references to the latest machine-os-content, rhel-coreos-8, rhel-coreos-8-extensions (and
@@ -103,12 +107,14 @@ ${dryRunParams}
                 def arches = buildlib.branch_arches(groupParam)
                 // Gather a list of tags to mirror to the CI imagestream. This will include rhel-coreos-* to pick up
                 // any future RHCOS RHEL versions (e.g. rhel-coreos-9).
-                def tags = commonlib.shell(
-                    script: """
-                    oc --kubeconfig ${buildlib.ciKubeconfig} get -n ocp is/${params.BUILD_VERSION}-art-latest -o=json | jq .spec.tags[].name -r | grep -e machine-os-content -e rhel-coreos-
-                    """,
-                    returnStdout: true
-                )
+                def tags = buildlib.withAppCiAsArtPublish() {
+                    return commonlib.shell(
+                        script: """
+                        oc get -n ocp is/${params.BUILD_VERSION}-art-latest -o=json | jq .spec.tags[].name -r | grep -e machine-os-content -e rhel-coreos-
+                        """,
+                        returnStdout: true
+                    )
+                }
                 tags_to_transfer = tags.trim().split()
                 for ( String archSuffix : commonlib.goArchSuffixes ) {
                     if ( archSuffix.contains("multi") ) {
@@ -116,19 +122,21 @@ ${dryRunParams}
                     }
                     for (String tag : tags_to_transfer) {
                         // isolate the pullspec trom the ART imagestream tag (e.g. quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:c1c7dde05f31052823289373400f8549e118f473d08aebf81e81235bd7cd5e80)
-                        def tag_pullspec = commonlib.shell(
-                            script: """
-                            oc --kubeconfig ${buildlib.ciKubeconfig} -n ocp${archSuffix} get istag/${params.BUILD_VERSION}-art-latest${archSuffix}:${tag} -o=json | jq .tag.from.name -r
-                            """,
-                            returnStdout: true
-                        ).trim()
-                        // tag the pull spec into the CI imagestream (is/4.x) with the same tag name.
-                        commonlib.shell(
-                            script: """
-                            oc --kubeconfig ${buildlib.ciKubeconfig} -n ocp${archSuffix} tag ${tag_pullspec} ${params.BUILD_VERSION}:${tag}
-                            """,
-                            returnStdout: true
-                        )
+                        buildlib.withAppCiAsArtPublish() {
+                            def tag_pullspec = commonlib.shell(
+                                script: """
+                                oc -n ocp${archSuffix} get istag/${params.BUILD_VERSION}-art-latest${archSuffix}:${tag} -o=json | jq .tag.from.name -r
+                                """,
+                                returnStdout: true
+                            ).trim()
+                            // tag the pull spec into the CI imagestream (is/4.x) with the same tag name.
+                            commonlib.shell(
+                                script: """
+                                oc -n ocp${archSuffix} tag ${tag_pullspec} ${params.BUILD_VERSION}:${tag}
+                                """,
+                                returnStdout: true
+                            )
+                        }
                     }
                 }
             }
@@ -139,7 +147,9 @@ ${dryRunParams}
     }
 
     if (params.PUBLISH) {
-        buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} registry login")
+        buildlib.withAppCiAsArtPublish() {
+            buildlib.oc("${logLevel} registry login")
+        }
         for(file in findFiles(glob: "${output_dir}/updated-tags-for.*.yaml")) {
             def meta = readYaml(file: "${file}")['metadata']
             def namespace = meta['namespace']
@@ -157,7 +167,9 @@ ${dryRunParams}
             }
             retry(3) {  // just to get past flakes
                 sleep(5)
-                buildlib.oc("${logLevel} --kubeconfig ${buildlib.ciKubeconfig} ${cmd}")
+                buildlib.withAppCiAsArtPublish() {
+                    buildlib.oc("${logLevel} ${cmd}")
+                }
             }
             currentBuild.description += "<br>Published ${image}"
         }
@@ -165,16 +177,18 @@ ${dryRunParams}
 }
 
 def backupAllImageStreams() {
-    def allNameSpaces = ["ocp", "ocp-priv", "ocp-s390x", "ocp-s390x-priv", "ocp-ppc64le", "ocp-ppc64le-priv", "ocp-arm64", "ocp-arm64-priv"]
-    for (ns in allNameSpaces) {
-        def yaml = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} get is -n ${ns} -o yaml", [capture: true])
-        writeFile file:"${ns}.backup.yaml", text: yaml
-        // Also backup the upgrade graph for the releases
-        def ug = buildlib.oc("--kubeconfig ${buildlib.ciKubeconfig} get secret/release-upgrade-graph -n ${ns} -o yaml", [capture: true])
-        writeFile file:"${ns}.release-upgrade-graph.backup.yaml", text: ug
+    buildlib.withAppCiAsArtPublish() {
+        def allNameSpaces = ["ocp", "ocp-priv", "ocp-s390x", "ocp-s390x-priv", "ocp-ppc64le", "ocp-ppc64le-priv", "ocp-arm64", "ocp-arm64-priv"]
+        for (ns in allNameSpaces) {
+            def yaml = buildlib.oc("get is -n ${ns} -o yaml", [capture: true])
+            writeFile file:"${ns}.backup.yaml", text: yaml
+            // Also backup the upgrade graph for the releases
+            def ug = buildlib.oc("get secret/release-upgrade-graph -n ${ns} -o yaml", [capture: true])
+            writeFile file:"${ns}.release-upgrade-graph.backup.yaml", text: ug
+        }
+        commonlib.shell("tar zcvf app.ci-backup.tgz *.backup.yaml && rm *.backup.yaml")
+        commonlib.safeArchiveArtifacts(["app.ci-backup.tgz"])
     }
-    commonlib.shell("tar zcvf app.ci-backup.tgz *.backup.yaml && rm *.backup.yaml")
-    commonlib.safeArchiveArtifacts(["app.ci-backup.tgz"])
 }
 
 return this

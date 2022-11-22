@@ -96,15 +96,20 @@ def get_release_name_for_assembly(group_name: str, releases_config: Dict, assemb
 async def kinit():
     logger.info('Initializing ocp-build kerberos credentials')
 
-    # The '-f' ensures that the ticket is forwarded to remote hosts
-    # when using SSH. This is required for when we build signed
-    # puddles.
-    cmd = [
-        'kinit',
-        '-f',
-        '-k',
-        '-t',
-        '/home/jenkins/exd-ocp-buildvm-bot-prod.keytab',
-        'exd-ocp-buildvm-bot-prod@IPA.REDHAT.COM'
-    ]
-    await exectools.cmd_assert_async(cmd)
+    keytab_file = os.getenv('DISTGIT_KEYTAB_FILE', None)
+    keytab_user = os.getenv('DISTGIT_KEYTAB_USER', 'exd-ocp-buildvm-bot-prod@IPA.REDHAT.COM')
+    if keytab_file:
+        # The '-f' ensures that the ticket is forwarded to remote hosts
+        # when using SSH. This is required for when we build signed
+        # puddles.
+        cmd = [
+            'kinit',
+            '-f',
+            '-k',
+            '-t',
+            keytab_file,
+            keytab_user
+        ]
+        await exectools.cmd_assert_async(cmd)
+    else:
+        logger.warning('DISTGIT_KEYTAB_FILE is not set. Using any existing kerberos credential.')

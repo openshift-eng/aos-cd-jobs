@@ -184,7 +184,7 @@ node {
                             // again for each manifest within it.
 
                             quay_repo = 'ocp-release'
-                            if (params.CLIENT_TYPE == 'ocp-dev-preview' && params.RELEASE_NAME.contains('nightly')) {
+                            if (params.CLIENT_TYPE == 'ocp-dev-preview' && params.NAME.contains('nightly')) {
                                 quay_repo = 'ocp-release-nightly'
                             }
 

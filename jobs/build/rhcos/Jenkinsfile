@@ -47,57 +47,85 @@ node {
             'ppc64le': 'jenkins_serviceaccount_ocp-ppc.stage.psi.redhat.com',
             's390x': 'jenkins_serviceaccount_osbs-s390x-3.prod.engineering.redhat.com.kubeconfig',
             'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
+            'multi': 'jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
         ]
 
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
         //lock("compose-lock-${params.BUILD_VERSION}") {
         lock(resource: "rhcos-lock-${params.BUILD_VERSION}", skipIfLocked: true) {  // wait for all to succeed or fail for this version before starting more
-        timestamps {
-            def archJobs = [:]
-            for (arch in arches) {
-                def jobArch = arch.trim() // make sure we use a locally scoped variable
-                if (!releaseArches.contains(jobArch)) {
-                    echo "Skipping ${jobArch} since ${params.BUILD_VERSION} only supports ${releaseArches}"
-                    continue
-                }
-                archJobs["trigger-${jobArch}"] = {
-                    try {
-                        lock(label: "rhcos-build-capacity-${jobArch}", quantity: 1) { // cluster capacity limited per arch
-                            withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
-                                // the squid proxy inhibits communication to some RHCOS clusters, so augment no_proxy
-                                sh  'export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy\n' +
-                                    "oc project\n" +
-                                    "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
-                                    'echo Triggered $BUILDNAME\n' +
-                                    'for i in {1..240}; do\n' +
-                                    '   PHASE=`oc get $BUILDNAME -o go-template=\'{{.status.phase}}\'`\n' +
-                                    '   echo Current phase: $PHASE\n' +
-                                    '   if [[ "$PHASE" == "Complete" ]]; then\n' +
-                                    '       oc logs $BUILDNAME\n' +
-                                    '       exit 0\n' +
-                                    '   fi\n' +
-                                    '   if [[ "$PHASE" == "Failed" || "$PHASE" == "Cancelled" || "$PHASE" == "Error" ]]; then\n' +
-                                    '       oc logs $BUILDNAME\n' +
-                                    '       exit 1\n' +
-                                    '   fi\n' +
-                                    '   sleep 60\n' +
-                                    'done\n' +
-                                    'oc logs $BUILDNAME\n' +
-                                    'echo Timed out waiting for build to complete..\n' +
-                                    'exit 2\n'
+
+        def cmd = "doozer -g openshift-${params.BUILD_VERSION} config:read-group urls.rhcos_release_base.multi"
+        def multi_builds_enabled = commonlib.shell(script: cmd, returnStatus: true)
+        def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
+        if (multi_builds_enabled == 1) { // TODO change this to == 0
+            echo "triggering multi builds"
+            jobArch = 'multi'
+            //try {
+                //lock(label: "rhcos-build-capacity-${jobArch}", quantity: 1) {
+                    withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
+                        sh  'export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy\n' +
+                            "TOKEN_SECRET=`oc get sa jenkins -o json | jq -r '.secrets[] | select(.name |" + 
+                            'contains("token"))' + "| .name'`\n" + 
+                            'TOKEN_DATA=`oc get secret $TOKEN_SECRET -o=jsonpath={.data.token} | base64 -d`\n' +
+                            'curl -H "Authorization: Bearer $TOKEN_DATA"' + " ${jenkins_url}/job/build/buildWithParameters --data STREAM=${params.BUILD_VERSION}"
+                    }
+                //}
+            //     currentBuild.description += "${jobArch} Success\n"
+            // } catch (err) {
+            //     currentBuild.description += "${jobArch} Failure\n"
+            //     currentBuild.result = "UNSTABLE"
+            // }
+        } else {
+            echo "Multi builds are not enabled. Triggering individual builds"
+
+            return
+
+            timestamps {
+                def archJobs = [:]
+                for (arch in arches) {
+                    def jobArch = arch.trim() // make sure we use a locally scoped variable
+                    if (!releaseArches.contains(jobArch)) {
+                        echo "Skipping ${jobArch} since ${params.BUILD_VERSION} only supports ${releaseArches}"
+                        continue
+                    }
+                    archJobs["trigger-${jobArch}"] = {
+                        try {
+                            lock(label: "rhcos-build-capacity-${jobArch}", quantity: 1) { // cluster capacity limited per arch
+                                withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
+                                    // the squid proxy inhibits communication to some RHCOS clusters, so augment no_proxy
+                                    sh  'export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy\n' +
+                                        "oc project\n" +
+                                        "BUILDNAME=`oc start-build -o=name buildconfig/rhcos-${params.BUILD_VERSION}`\n" +
+                                        'echo Triggered $BUILDNAME\n' +
+                                        'for i in {1..240}; do\n' +
+                                        '   PHASE=`oc get $BUILDNAME -o go-template=\'{{.status.phase}}\'`\n' +
+                                        '   echo Current phase: $PHASE\n' +
+                                        '   if [[ "$PHASE" == "Complete" ]]; then\n' +
+                                        '       oc logs $BUILDNAME\n' +
+                                        '       exit 0\n' +
+                                        '   fi\n' +
+                                        '   if [[ "$PHASE" == "Failed" || "$PHASE" == "Cancelled" || "$PHASE" == "Error" ]]; then\n' +
+                                        '       oc logs $BUILDNAME\n' +
+                                        '       exit 1\n' +
+                                        '   fi\n' +
+                                        '   sleep 60\n' +
+                                        'done\n' +
+                                        'oc logs $BUILDNAME\n' +
+                                        'echo Timed out waiting for build to complete..\n' +
+                                        'exit 2\n'
+                                }
                             }
+                            currentBuild.description += "${jobArch} Success\n"
+                        } catch (err) {
+                            currentBuild.description += "${jobArch} Failure\n"
+                            currentBuild.result = "UNSTABLE"
                         }
-                        currentBuild.description += "${jobArch} Success\n"
-                    } catch (err) {
-                        currentBuild.description += "${jobArch} Failure\n"
-                        currentBuild.result = "UNSTABLE"
                     }
                 }
+                parallel archJobs
             }
-            parallel archJobs
-        }
-        }
+        }}
     } finally {
     }
 }

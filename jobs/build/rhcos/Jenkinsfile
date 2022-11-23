@@ -35,7 +35,7 @@ node {
     )
 
     commonlib.checkMock()
-    currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}: ${params.ARCHES}"
+    currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}: "
     currentBuild.description = "RHCOS ${params.BUILD_VERSION}\n"
     try {
         def releaseArches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
@@ -55,31 +55,32 @@ node {
         //lock("compose-lock-${params.BUILD_VERSION}") {
         lock(resource: "rhcos-lock-${params.BUILD_VERSION}", skipIfLocked: true) {  // wait for all to succeed or fail for this version before starting more
 
+        // Check if urls.rhcos_release_base.multi is defined in group.yml
         def cmd = "doozer -g openshift-${params.BUILD_VERSION} config:read-group urls.rhcos_release_base.multi"
-        def multi_builds_enabled = commonlib.shell(script: cmd, returnStatus: true)
-        def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
-        if (multi_builds_enabled == 1) { // TODO change this to == 0
+        multi_builds_enabled = commonlib.shell(script: cmd, returnStatus: true)
+
+        if (multi_builds_enabled == 0) {
+            currentBuild.displayName += "multi"
             echo "triggering multi builds"
-            jobArch = 'multi'
-            //try {
-                //lock(label: "rhcos-build-capacity-${jobArch}", quantity: 1) {
-                    withCredentials([file(credentialsId: kubeconfigs[jobArch], variable: 'KUBECONFIG')]) {
-                        sh  'export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy\n' +
-                            "TOKEN_SECRET=`oc get sa jenkins -o json | jq -r '.secrets[] | select(.name |" + 
-                            'contains("token"))' + "| .name'`\n" + 
-                            'TOKEN_DATA=`oc get secret $TOKEN_SECRET -o=jsonpath={.data.token} | base64 -d`\n' +
-                            'curl -H "Authorization: Bearer $TOKEN_DATA"' + " ${jenkins_url}/job/build/buildWithParameters --data STREAM=${params.BUILD_VERSION}"
-                    }
-                //}
-            //     currentBuild.description += "${jobArch} Success\n"
-            // } catch (err) {
-            //     currentBuild.description += "${jobArch} Failure\n"
-            //     currentBuild.result = "UNSTABLE"
-            // }
+            def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
+
+            try {
+                withCredentials([file(credentialsId: kubeconfigs['multi'], variable: 'KUBECONFIG')]) {
+                    sh  '''
+                        set +x
+                        export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy
+                        TOKEN_SECRET=$(oc get sa jenkins -o json | jq -r \'.secrets[] | select(.name | contains("token")) | .name\')
+                        TOKEN_DATA=$(oc get secret $TOKEN_SECRET -o=jsonpath={.data.token} | base64 -d)
+                        curl -H "Authorization: Bearer $TOKEN_DATA"''' + " ${jenkins_url}/job/build/buildWithParameters --data STREAM=${params.BUILD_VERSION} --data EARLY_ARCH_JOBS=false"
+                }
+                currentBuild.description += "Success"
+            } catch (err) {
+                currentBuild.description += "Failure"
+                currentBuild.result = "UNSTABLE"
+            }
         } else {
             echo "Multi builds are not enabled. Triggering individual builds"
-
-            return
+            currentBuild.displayName += "${params.ARCHES}"
 
             timestamps {
                 def archJobs = [:]

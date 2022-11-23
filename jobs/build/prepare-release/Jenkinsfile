@@ -61,6 +61,11 @@ node {
                             defaultValue: false
                         ),
                         booleanParam(
+                            name: "INCLUDE_SHIPPED",
+                            description: "Do not filter our shipped builds, attach all builds to advisory.(Used at pre-GA time)",
+                            defaultValue: false
+                        ),
+                        booleanParam(
                             name: "DRY_RUN",
                             description: "Take no action, just echo what the job would have done.",
                             defaultValue: false
@@ -118,6 +123,9 @@ node {
                 }
                 if (params.DEFAULT_ADVISORIES) {
                     cmd << "--default-advisories"
+                }
+                if (params.INCLUDE_SHIPPED) {
+                    cmd << "--include_shipped"
                 }
                 if (params.PACKAGE_OWNER)
                     cmd << "--package-owner" << params.PACKAGE_OWNER

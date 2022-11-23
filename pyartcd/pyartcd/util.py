@@ -104,7 +104,7 @@ async def kinit():
         '-f',
         '-k',
         '-t',
-        '/home/jenkins/exd-ocp-buildvm-bot-prod.keytab',
-        'exd-ocp-buildvm-bot-prod@IPA.REDHAT.COM'
+        '/home/jenkins/ocp-build_buildvm.openshift.eng.bos.redhat.com_IPA.REDHAT.COM.keytab',
+        'ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM'
     ]
     await exectools.cmd_assert_async(cmd)

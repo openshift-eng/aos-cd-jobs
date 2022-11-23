@@ -17,6 +17,7 @@ from ruamel.yaml import YAML
 
 LOGGER = logging.getLogger(__name__)
 yaml = YAML(typ='safe')
+yaml.default_flow_style = False
 
 
 async def main():
@@ -40,6 +41,7 @@ async def main():
                         help="Don't actually build plashet repos")
 
     args = parser.parse_args()
+    working_dir = Path(args.working_dir)
     group: str = args.group
     group_pattern = re.compile(r"openshift-(\d+).(\d+)")
     group_match = group_pattern.fullmatch(group)
@@ -130,7 +132,7 @@ async def main():
     plashet_config = {repo: PLASHET_CONFIG[repo] for repo in PLASHET_CONFIG if repo in all_repos}
 
     LOGGER.info("Building plashet repos: %s", ", ".join(plashet_config.keys()))
-
+    plashets_built = {}  # hold the information of all built plashet repos
     for repo_type, config in plashet_config.items():
         LOGGER.info("Building plashet repo for %s", repo_type)
         slug = config["slug"]
@@ -139,7 +141,7 @@ async def main():
         embargoed_tags = config["embargoed_tags"]
         tag_pvs = ((config["tag"], config["product_version"]),)
         include_previous_packages = config["include_previous_packages"]
-        base_dir = Path(args.working_dir, f"plashets/{major}.{minor}/{assembly}/{slug}")
+        base_dir = Path(working_dir, f"plashets/{major}.{minor}/{assembly}/{slug}")
         # We can't safely run doozer config:plashet from-tags in parallel as this moment.
         # Build plashet repos one by one.
         local_path = await build_plashet_from_tags(group=group,
@@ -162,6 +164,13 @@ async def main():
         remote_base_dir = f"/mnt/data/pub/RHOCP/plashets/{major}.{minor}/{assembly}/{slug}"
         LOGGER.info("Copying %s to remote host...", base_dir)
         await copy_to_remote(base_dir, remote_base_dir, dry_run=dry_run)
+
+        plashets_built[repo_type] = {
+            'plashetDirName': revision,
+            'localPlashetPath': str(local_path),
+        }
+
+    yaml.dump(plashets_built, working_dir / "plashets_built.yaml")
 
 
 async def load_group_config(group: str, assembly: str, env=None) -> Dict:

@@ -1599,19 +1599,7 @@ def build_plashets(doozerOpts, version, release, dryRun = false) {
         commonlib.shell(cmd.join(' '))
 
         // Populate plashets_built
-        for (rhel_major in [7, 8, 9]) {  // TODO: should have a central list of these by version
-            for (ironic in [true, false]) {
-                for (priv in [true, false]) {
-                    rhel_major_part = rhel_major == 7 ? "" : "-${rhel_major}"
-                    // NOTE: this implies a rigid naming scheme for our plashets in group.yml
-                    repo_name = "rhel${rhel_major_part}-server-${ironic ? 'ironic' : 'ose'}-rpms${priv ? '-embargoed' : ''}"
-                    plashets_built[repo_name] = [
-                        'plashetDirName': revision, // what to name the mirrored repo directory
-                        'localPlashetPath': "$working_dir/plashets/$version/$assembly/${ironic ? 'ironic-' : ''}el${rhel_major}${priv ? '-embargoed' : ''}/${revision.substring(0, 4)}-${revision.substring(4, 6)}/$revision", // where to find source for mirroring
-                    ]
-                }
-            }
-        }
+        plashets_built = readYaml(file: "$working_dir/plashets_built.yaml")
         echo "plashets_built: $plashets_built"
         if (major > 4 || major == 4 && minor >= 12) { // 4.12+ already fully migrated; no need to create repos on rcm-guest.
             return plashets_built

@@ -52,8 +52,9 @@ node {
             commonlib.shell(
                 script: """
                 ${elliott} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
-                ${elliott} remove-bugs --advisory ${adv} --all
                 ${elliott} change-state --state NEW_FILES --advisory ${adv}
+                ${elliott} remove-bugs --advisory ${adv} --all
+                ${elliott} find-builds --advisory ${adv} --clean
                 ${elliott} advisory-drop ${adv}
                 """,
             )

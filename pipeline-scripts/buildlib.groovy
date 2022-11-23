@@ -75,8 +75,8 @@ def kinit() {
     // The '-f' ensures that the ticket is forwarded to remote hosts
     // when using SSH. This is required for when we build signed
     // puddles.
-    keytab = '/home/jenkins/exd-ocp-buildvm-bot-prod.keytab'
-    account = 'exd-ocp-buildvm-bot-prod@IPA.REDHAT.COM'
+    keytab = '/home/jenkins/ocp-build_buildvm.openshift.eng.bos.redhat.com_IPA.REDHAT.COM.keytab'
+    account = 'ocp-build/buildvm.openshift.eng.bos.redhat.com@IPA.REDHAT.COM'
     try {
         retry(3) {
             sh "if ! kinit -f -k -t ${keytab} ${account}; then sleep 3; false; fi"

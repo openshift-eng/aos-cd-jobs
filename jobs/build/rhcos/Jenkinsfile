@@ -47,7 +47,7 @@ node {
             'ppc64le': 'jenkins_serviceaccount_ocp-ppc.stage.psi.redhat.com',
             's390x': 'jenkins_serviceaccount_osbs-s390x-3.prod.engineering.redhat.com.kubeconfig',
             'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
-            'multi': 'jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
+            'multi': 'multi_jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
         ]
 
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,

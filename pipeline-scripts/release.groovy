@@ -10,8 +10,6 @@ buildlib = load("pipeline-scripts/buildlib.groovy")
 commonlib = buildlib.commonlib
 slacklib = commonlib.slacklib
 
-oc_cmd = "oc --kubeconfig=${buildlib.ciKubeconfig}"
-
 // dump important tool versions to console
 def stageVersions() {
     sh "oc version"
@@ -49,10 +47,12 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
     def retval = [:]
     version = commonlib.extractMajorMinorVersion(dest_release_tag)
     echo "Verifying payload does not already exist"
-    res = commonlib.shell(
+    res = buildlib.withAppCiAsArtPublish() {
+        return commonlib.shell(
             returnAll: true,
-            script: "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${dest_release_tag}"
-    )
+            script: "GOTRACEBACK=all oc --ci-kubeconfig ${KUBECONFIG} adm release info ${quay_url}:${dest_release_tag}"
+        )
+    }
 
     if(res.returnStatus == 0){
         if (skipPayloadCreation) {
@@ -191,7 +191,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
     def publicSuffix = getArchPrivSuffix(arch, false)
 
     // build oc command
-    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release new "
+    def cmd = "GOTRACEBACK=all oc adm release new "
     cmd += "-n ocp${publicSuffix} "
     if (from_release_tag) {
         cmd += "--from-release=registry.ci.openshift.org/ocp${suffix}/release${suffix}:${from_release_tag} "
@@ -219,10 +219,13 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
         cmd += "--dry-run=true "
     }
 
-    def stdout = commonlib.shell(
-        script: cmd,
-        returnStdout: true
-    )
+    stdout = buildlib.withAppCiAsArtPublish() {
+        cmd += " --kubeconfig=${KUBECONFIG}"
+        return commonlib.shell(
+            script: cmd,
+            returnStdout: true
+        )
+    }
 
     payloadDigest = parseOcpRelease(stdout)
 
@@ -230,12 +233,14 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
 }
 
 def getPayloadDigest(quay_url, release_tag) {
-    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info ${quay_url}:${release_tag} -o json"
-    def stdout = commonlib.shell(
-        script: cmd,
-        returnStdout: true
-    )
-    def payloadInfo = readJSON(text: stdout)
+    def payloadInfo = buildlib.withAppCiAsArtPublish() {
+        def cmd = "GOTRACEBACK=all oc --ci-kubeconfig ${KUBECONFIG} adm release info ${quay_url}:${release_tag} -o json"
+        def stdout = commonlib.shell(
+            script: cmd,
+            returnStdout: true
+        )
+        return readJSON(text: stdout)
+    }
     return payloadInfo['digest']
 }
 
@@ -275,16 +280,19 @@ def stageSetClientLatest(from_release_tag, arch, client_type) {
 
 def stageTagRelease(quay_url, release_name, release_tag, arch) {
     def publicSuffix = getArchPrivSuffix(arch, false)
-    def cmd = "GOTRACEBACK=all ${oc_cmd} tag ${quay_url}:${release_tag} ocp${publicSuffix}/release${publicSuffix}:${release_name}"
+    def cmd = "GOTRACEBACK=all oc tag ${quay_url}:${release_tag} ocp${publicSuffix}/release${publicSuffix}:${release_name}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
         return
     }
 
-    commonlib.shell(
-        script: cmd
-    )
+    buildlib.withAppCiAsArtPublish() {
+        cmd += " --ci-kubeconfig ${KUBECONFIG}"
+        commonlib.shell(
+            script: cmd
+        )
+    }
 }
 
 
@@ -380,17 +388,20 @@ def validateInFlightPrevVersion(in_flight_prev, major, prevMinor) {
 }
 
 def stageGetReleaseInfo(quay_url, release_tag){
-    def cmd = "GOTRACEBACK=all ${oc_cmd} adm release info --pullspecs ${quay_url}:${release_tag}"
+    def cmd = "GOTRACEBACK=all oc adm release info --pullspecs ${quay_url}:${release_tag}"
 
     if (params.DRY_RUN) {
         echo "Would have run \n ${cmd}"
         return "Dry Run - No Info"
     }
 
-    def res = commonlib.shell(
-        returnAll: true,
-        script: cmd
-    )
+    def res = buildlib.withAppCiAsArtPublish() {
+        cmd += " --ci-kubeconfig ${KUBECONFIG}"
+        return commonlib.shell(
+            returnAll: true,
+            script: cmd
+        )
+    }
 
     if (res.returnStatus != 0){
         error(res.stderr)

@@ -174,9 +174,6 @@ node {
         if (params.EMERGENCY_IGNORE_ISSUES) {
             cmd << "--emergency-ignore-issues"
         }
-        if (params.EMERGENCY_IGNORE_ISSUES) {
-            cmd << "--emergency-ignore-issues"
-        }
         if (params.RETRIGGER_CURRENT_NIGHTLY) {
             cmd << "--retrigger-current-nightly"
         }

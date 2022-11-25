@@ -758,7 +758,6 @@ def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_
                 body: "Jenkins console: ${commonlib.buildURL('console')}",
             )
         }
-        currentBuild.result = 'UNSTABLE'
     }
 }
 

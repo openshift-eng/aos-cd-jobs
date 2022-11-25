@@ -125,7 +125,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                         --working-dir ${doozer_working}
                                         --group 'openshift-${version}'
                                         config:scan-sources --yaml
-                                        --ci-kubeconfig ${buildlib.ciKubeconfig}
+                                        --ci-kubeconfig ${KUBECONFIG}
                                         """, [capture: true]
                                     )
                                 }

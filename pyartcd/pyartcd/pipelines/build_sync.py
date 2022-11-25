@@ -210,8 +210,13 @@ class BuildSyncPipeline:
             cmd.append(f'--images={self.images}')
         cmd.extend([
             f'--working-dir={mirror_working}',
-            f'--data-path={self.data_path}',
-            f'--group=openshift-{self.version}',
+            f'--data-path={self.data_path}'
+        ])
+        group_param = f'--group=openshift-{self.version}'
+        if self.doozer_data_gitref:
+            group_param += f'@{self.doozer_data_gitref}'
+        cmd.append(group_param)
+        cmd.extend([
             'release:gen-payload',
             f'--output-dir={GEN_PAYLOAD_ARTIFACTS_OUT_DIR}',
             '--apply'
@@ -283,7 +288,7 @@ class BuildSyncPipeline:
 @click.option("--retrigger-current-nightly", is_flag=True,
               help="Forces the release controller to re-run with existing images. No change will be made to payload"
                    "images in the release")
-@click.option("--doozer-data-gitref", required=False,
+@click.option("--data-gitref", required=False,
               help="(Optional) Doozer data path git [branch / tag / sha] to use")
 @click.option("--debug", is_flag=True,
               help="Run \"oc\" commands with greater logging")
@@ -297,7 +302,7 @@ class BuildSyncPipeline:
 @pass_runtime
 @click_coroutine
 async def build_sync(runtime: Runtime, version: str, assembly: str, publish: bool, data_path: str,
-                     emergency_ignore_issues: bool, retrigger_current_nightly: bool, doozer_data_gitref: str,
+                     emergency_ignore_issues: bool, retrigger_current_nightly: bool, data_gitref: str,
                      debug: bool, images: str, exclude_arches: str, skip_multiarch_payload: bool):
     pipeline = BuildSyncPipeline(
         runtime=runtime,
@@ -307,7 +312,7 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         data_path=data_path,
         emergency_ignore_issues=emergency_ignore_issues,
         retrigger_current_nightly=retrigger_current_nightly,
-        doozer_data_gitref=doozer_data_gitref,
+        doozer_data_gitref=data_gitref,
         debug=debug,
         images=images,
         exclude_arches=exclude_arches,

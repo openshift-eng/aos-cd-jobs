@@ -178,7 +178,7 @@ node {
             cmd << "--retrigger-current-nightly"
         }
         if (params.DOOZER_DATA_GITREF) {
-            cmd << "--doozer-data-gitref=${params.DOOZER_DATA_GITREF}"
+            cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
         }
         if (params.DEBUG) {
             cmd << "--debug"

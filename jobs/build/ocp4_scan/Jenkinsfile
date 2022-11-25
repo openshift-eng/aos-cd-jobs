@@ -119,14 +119,16 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
 
                                 buildlib.cleanWorkdir(doozer_working, true)
 
-                                def yamlStr = buildlib.doozer(
-                                    """
-                                    --working-dir ${doozer_working}
-                                    --group 'openshift-${version}'
-                                    config:scan-sources --yaml
-                                    --ci-kubeconfig ${buildlib.ciKubeconfig}
-                                    """, [capture: true]
-                                )
+                                def yamlStr = buildlib.withAppCiAsArtPublish() {
+                                    return buildlib.doozer(
+                                        """
+                                        --working-dir ${doozer_working}
+                                        --group 'openshift-${version}'
+                                        config:scan-sources --yaml
+                                        --ci-kubeconfig ${buildlib.ciKubeconfig}
+                                        """, [capture: true]
+                                    )
+                                }
 
                                 echo "scan-sources output for openshift-${version}:\n${yamlStr}\n\n"
 

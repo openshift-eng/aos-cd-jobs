@@ -5,9 +5,6 @@ commonlib = load("pipeline-scripts/commonlib.groovy")
 commonlib.initialize()
 slacklib = commonlib.slacklib
 
-// Kubeconfig allowing ART to interact with api.ci.openshift.org
-ciKubeconfig = "/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig"
-
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
 
@@ -27,6 +24,14 @@ def initialize(test=false, checkMock=true, regAws=false) {
 
     GITHUB_URLS = [:]
     GITHUB_BASE_PATHS = [:]
+}
+
+// Ensure that calls to "oc" within the passed in block will interact with
+// app.ci as art-publish service account.
+def withAppCiAsArtPublish(closure) {
+    withCredentials([file(credentialsId: 'art-publish.app.ci.kubeconfig', variable: 'KUBECONFIG')]) {
+        closure()
+    }
 }
 
 // Initialize $PATH and $GOPATH

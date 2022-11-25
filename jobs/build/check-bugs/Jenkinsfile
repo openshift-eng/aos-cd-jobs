@@ -58,8 +58,7 @@ node {
             }
         }
 
-        def env = ["KUBECONFIG=${buildlib.ciKubeconfig}"]
-        withEnv(env) {
+        buildlib.withAppCiAsArtPublish() {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo out

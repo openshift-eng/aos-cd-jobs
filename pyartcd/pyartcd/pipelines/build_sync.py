@@ -232,7 +232,7 @@ class BuildSyncPipeline:
         if self.publish:
             # OC registry login
             await exectools.cmd_gather_async(
-                f'oc --kubeconfig {os.environ["KUBECONFIG"]} registry login')
+                f'oc registry login', env=os.environ.copy())
 
             # Run 'oc adm release new' in parallel
             tasks = []

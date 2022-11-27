@@ -108,3 +108,28 @@ async def kinit():
         'exd-ocp-buildvm-bot-prod@IPA.REDHAT.COM'
     ]
     await exectools.cmd_assert_async(cmd)
+
+
+async def branch_arches(branch: str, ga_only: bool = False):
+    """
+    Find the supported arches for a specific release
+    :param branch: The name of the branch to get configs for. For example: 'openshift-4.12
+    :ga_only: If you only want group arches and do not care about arches_override.
+    :return: A list of the arches built for this branch
+    """
+
+    logger.info('Fetching group config for %s', branch)
+
+    # Check if arches_override has been specified. This is used in group.yaml
+    # when we temporarily want to build for CPU architectures that are not yet GA.
+    cmd = f"doozer --group={branch} config:read-group --yaml arches_override --default '[]'"
+    _, out, _ = await exectools.cmd_gather_async(cmd)
+    arches_override_list = yaml.safe_load(out)
+    if ga_only and arches_override_list:
+        return arches_override_list
+
+    # Read supported arches from group config
+    cmd = f'doozer --group={branch} config:read-group --yaml arches'
+    _, out, _ = await exectools.cmd_gather_async(cmd)
+    arches = yaml.safe_load(out)
+    return arches

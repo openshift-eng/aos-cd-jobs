@@ -3,9 +3,8 @@
 node {
 
     checkout scm
-    def build = load("build.groovy")
-    def buildlib = build.buildlib
-    def commonlib = build.commonlib
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
     commonlib.describeJob("build-sync", """
         <h2>Mirror latest 4.y images to nightlies</h2>
@@ -110,8 +109,41 @@ node {
     ])  // Please update README.md if modifying parameter names or semantics
 
     commonlib.checkMock()
-    echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
-    build.initialize()
+
+    stage("Initialize") {
+        echo("Initializing ${params.BUILD_VERSION} sync: #${currentBuild.number}")
+        currentBuild.displayName = "${BUILD_VERSION} - ${ASSEMBLY}"
+
+        // doozer_working must be in WORKSPACE in order to have artifacts archived
+        mirrorWorking = "${env.WORKSPACE}/MIRROR_working"
+        buildlib.cleanWorkdir(mirrorWorking)
+
+        if (params.DRY_RUN) {
+            currentBuild.displayName += " [DRY_RUN]"
+        }
+
+        def arches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
+        if ( params.EXCLUDE_ARCHES ) {
+            excludeArches = commonlib.parseList(params.EXCLUDE_ARCHES)
+            currentBuild.displayName += " [EXCLUDE ${excludeArches.join(', ')}]"
+            if ( !arches.containsAll(excludeArches) )
+                error("Trying to exclude arch ${excludeArches} not present in known arches ${arches}")
+            arches.removeAll(excludeArches)
+        }
+        currentBuild.description = "Arches: ${arches.join(', ')}"
+
+        if ( params.DEBUG ) {
+            logLevel = " --loglevel=5 "
+        }
+
+        imageList = commonlib.cleanCommaList(params.IMAGES)
+        if ( imageList ) {
+            echo("Only syncing specified images: ${imageList}")
+            currentBuild.description += "<br>Images: ${imageList}"
+        }
+
+        failCountFile = "${BUILD_VERSION}-assembly.${ASSEMBLY}.count"
+    }
 
     stage("Version dumps") {
         buildlib.doozer "--version"
@@ -119,82 +151,109 @@ node {
         sh "oc version -o yaml"
     }
 
-    failCountFile = "${BUILD_VERSION}-assembly.${ASSEMBLY}.count"
-    currentBuild.displayName = "${BUILD_VERSION} - ${ASSEMBLY}"
-
-    try {
-
+    stage ("build sync") {
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+        ]
+        if (params.DRY_RUN) {
+            cmd << "--dry-run"
+        }
+        cmd += [
+            "build-sync",
+            "--version=${params.BUILD_VERSION}",
+            "--assembly=${params.ASSEMBLY}"
+        ]
+        if (params.PUBLISH) {
+            cmd << "--publish"
+        }
+        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+        if (params.EMERGENCY_IGNORE_ISSUES) {
+            cmd << "--emergency-ignore-issues"
+        }
+        if (params.EMERGENCY_IGNORE_ISSUES) {
+            cmd << "--emergency-ignore-issues"
+        }
         if (params.RETRIGGER_CURRENT_NIGHTLY) {
-            if (params.ASSEMBLY != "stream") {
-                error "Cannot use with assembly other than stream. Exiting."
+            cmd << "--retrigger-current-nightly"
+        }
+        if (params.DOOZER_DATA_GITREF) {
+            cmd << "--doozer-data-gitref=${params.DOOZER_DATA_GITREF}"
+        }
+        if (params.DEBUG) {
+            cmd << "--debug"
+        }
+        if (params.IMAGES) {
+            cmd << "--images=${params.IMAGES}"
+        }
+        if (params.EXCLUDE_ARCHES) {
+            cmd << "--exclude-arches=${params.EXCLUDE_ARCHES}"
+        }
+        if (params.SKIP_MULTI_ARCH_PAYLOAD) {
+            cmd << "--skip-multiarch-payload"
+        }
+
+        // Run pipeline
+        echo "Will run ${cmd}"
+
+        try {
+            buildlib.withAppCiAsArtPublish() {
+                sh(script: cmd.join(' '), returnStdout: true)
             }
-            if (params.DRY_RUN) {
-                echo "Would have triggered new release cut in release controller."
-            } else {
-                buildlib.withAppCiAsArtPublish() {
-                    echo "Triggering release controller to cut new release using previously synced builds..."
-                    buildlib.oc("-n ocp tag registry.access.redhat.com/ubi8 ${params.BUILD_VERSION}-art-latest:trigger-release-controller")
-                    echo "Sleeping so that release controller has time to react..."
-                    sleep(60)
-                    buildlib.oc("-n ocp tag ${params.BUILD_VERSION}-art-latest:trigger-release-controller -d")
+
+            // Successful buildsync, reset fail count
+            writeFile file: failCountFile, text: "0"
+
+            if (params.PUBLISH && !params.DRY_RUN) {
+                currentBuild.description += " [PUBLISH]"
+            }
+        } catch (err) {
+            failCount = 1
+            if (fileExists(failCountFile)) {
+                failCountStr = readFile(failCountFile).trim()
+                if (failCountStr.isInteger()) {
+                    failCount = failCountStr.toInteger() + 1
                 }
             }
-            return
-        }
+            writeFile file: failCountFile, text: "${failCount}"
 
-        // // An incident where a bug in oc destroyed the content of a critical imagestream ocp:is/release uncovered the fact that this vital data was not being backed up by any process.
-        // DPTP will be asked to backup etcd on this cluster, but ART should also begin backing up these imagestreams during normal operations as a first line of defense.
-        // In the build-sync job, prior to updating the 4.x-art-latest imagestreams, a copy of all imagestreams in the various release controller namespaces should be performed.
-        stage("backup imagestreams") { build.backupAllImageStreams() }
-
-        // This stage is safe to run concurrently. Each build runs
-        // these steps in its own directory.
-        stage("update nightly imagestreams") { build.buildSyncGenInputs() }
-
-        // Successful buildsync, reset fail count
-        writeFile file: failCountFile, text: "0"
-
-    } catch (err) {
-        failCount = 1
-        if (fileExists(failCountFile)) {
-            failCountStr = readFile(failCountFile).trim()
-            if (failCountStr.isInteger()) {
-                failCount = failCountStr.toInteger() + 1
-            }
-        }
-        writeFile file: failCountFile, text: "${failCount}"
-
-        if (failCount > 1) {
-            msg = "Pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
-            if (failCount % 2 == 0) {  // spam ourselves a little more often than forum-release
-                slacklib.to(params.BUILD_VERSION).failure(msg)
-            }
-            if (assembly == "stream" && (failCount % 5 == 0) && (failCount < 50)) {
-                if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
-                    // For development releases, notify TRT and release artists
-                    slacklib.to("#forum-release-oversight").failure("@release-artists ${msg}")
-                } else {
-                    // For GA releases, let forum-release know why no new builds
-                    slacklib.to("#forum-release").failure(msg)
+            if (failCount > 1) {
+                msg = "Pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
+                if (failCount % 2 == 0) {  // spam ourselves a little more often than forum-release
+                    slacklib.to(params.BUILD_VERSION).failure(msg)
+                }
+                if (assembly == "stream" && (failCount % 5 == 0) && (failCount < 50)) {
+                    if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
+                        // For development releases, notify TRT and release artists
+                        slacklib.to("#forum-release-oversight").failure("@release-artists ${msg}")
+                    } else {
+                        // For GA releases, let forum-release know why no new builds
+                        slacklib.to("#forum-release").failure(msg)
+                    }
                 }
             }
+
+            currentBuild.displayName += " [FAILURE]"
+            commonlib.email(
+                    to: "aos-art-automation+failed-build-sync@redhat.com",
+                    from: "aos-art-automation@redhat.com",
+                    replyTo: "aos-team-art@redhat.com",
+                    subject: "Error during OCP ${params.BUILD_VERSION} build sync",
+                    body: """
+    There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
+
+        ${err}
+    """)
+            throw (err)
+        } finally {
+            artifacts = []
+            artifacts.addAll(["app.ci-backup.tgz", "gen-payload-artifacts/*", "MIRROR_working/debug.log"])
+            commonlib.safeArchiveArtifacts(artifacts)
+            sh "rm -rf ${env.WORKSPACE}/doozer_working"  // do not use cleanWorkspace as this will remove failure count
+            sh "rm -rf ${mirrorWorking}"
         }
-
-        currentBuild.displayName += " [FAILURE]"
-        commonlib.email(
-                to: "aos-art-automation+failed-build-sync@redhat.com",
-                from: "aos-art-automation@redhat.com",
-                replyTo: "aos-team-art@redhat.com",
-                subject: "Error during OCP ${params.BUILD_VERSION} build sync",
-                body: """
-There was an issue running build-sync for OCP ${params.BUILD_VERSION}:
-
-    ${err}
-""")
-        throw (err)
-    } finally {
-        commonlib.safeArchiveArtifacts(build.artifacts)
-        sh "rm -rf ${env.WORKSPACE}/doozer_working"  // do not use cleanWorkspace as this will remove failure count
-        sh "rm -rf ${mirrorWorking}"
-    }
+    } // stage build-sync
 }

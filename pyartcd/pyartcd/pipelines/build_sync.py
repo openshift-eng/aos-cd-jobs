@@ -10,13 +10,8 @@ from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd import exectools
 from pyartcd.util import branch_arches
+from doozerlib.util import go_suffix_for_arch
 
-GO_ARCH_SUFFIXES = {
-    'x86_64': '',
-    's390x': '-s390x',
-    'ppc64le': '-ppc64le',
-    'aarch64': '-arm64'
-}
 GEN_PAYLOAD_ARTIFACTS_OUT_DIR = 'gen-payload-artifacts'
 
 
@@ -182,7 +177,7 @@ class BuildSyncPipeline:
 
             tasks = []
             for arch in supported_arches:
-                arch_suffix = GO_ARCH_SUFFIXES[arch]
+                arch_suffix = go_suffix_for_arch(arch)
                 for tag in tags_to_transfer:
                     tasks.append(self._tag_into_ci_imagestream(arch_suffix, tag))
             await asyncio.gather(*tasks)

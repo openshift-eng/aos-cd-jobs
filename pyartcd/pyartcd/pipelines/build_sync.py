@@ -172,7 +172,10 @@ class BuildSyncPipeline:
             await exectools.cmd_gather_async(
                 f'oc --kubeconfig {os.environ["KUBECONFIG"]} registry login')
 
-            supported_arches = await branch_arches(f'openshift-{self.version}')
+            supported_arches = await branch_arches(
+                group=f'openshift-{self.version}',
+                assembly=self.assembly
+            )
             tags_to_transfer: list = await self._tags_to_transfer()
 
             tasks = []

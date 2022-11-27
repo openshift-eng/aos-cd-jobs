@@ -20,17 +20,17 @@ class BuildSyncPipeline:
                  emergency_ignore_issues: bool, retrigger_current_nightly: bool, doozer_data_gitref: str,
                  debug: bool, images: str, exclude_arches: str, skip_multiarch_payload: bool):
         self.runtime = runtime
-        self.version: str = version
-        self.assembly: str = assembly
-        self.publish: bool = publish
-        self.data_path: str = data_path
-        self.emergency_ignore_issues: bool = emergency_ignore_issues
-        self.retrigger_current_nightly: bool = retrigger_current_nightly
-        self.doozer_data_gitref: str = doozer_data_gitref
-        self.debug: bool = debug
-        self.images: str = images
-        self.exclude_arches: list = [] if not exclude_arches else exclude_arches.replace(',', ' ').split()
-        self.skip_multiarch_payload: bool = skip_multiarch_payload
+        self.version = version
+        self.assembly = assembly
+        self.publish = publish
+        self.data_path = data_path
+        self.emergency_ignore_issues = emergency_ignore_issues
+        self.retrigger_current_nightly = retrigger_current_nightly
+        self.doozer_data_gitref = doozer_data_gitref
+        self.debug= debug
+        self.images = images
+        self.exclude_arches = [] if not exclude_arches else exclude_arches.replace(',', ' ').split()
+        self.skip_multiarch_payload = skip_multiarch_payload
         self.logger = runtime.logger
         self.working_dir = self.runtime.working_dir
 

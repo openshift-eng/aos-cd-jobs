@@ -66,8 +66,7 @@ node {
             script: """
                 set -e
                 python3 ./collect_deps.py --base-dir output ${version} --arch ${params.ARCH} --el ${params.EL_VERSION}
-                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el8-beta s3://art-srv-enterprise/pub/${path}/${version}-el8-beta/
-                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-beta/ s3://art-srv-enterprise/pub/${path}/${version}-beta/
+                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el${params.EL_VERSION}-beta s3://art-srv-enterprise/pub/${path}/${version}-el${params.EL_VERSION}-beta/
                 rm -r output
             """
         )

@@ -21,7 +21,7 @@ def runFor(version) {
         description += "${version} - ${b.result}\n"
         failed |= (b.result != "SUCCESS")
     } catch (te) {
-        description += "${version - ERROR}\n"
+        description += "${version} - ERROR\n"
         failed = true
     }
 }

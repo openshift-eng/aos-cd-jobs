@@ -178,12 +178,10 @@ node {
         }
         echo "Will run ${cmd}"
         buildlib.withAppCiAsArtPublish() {
-            withEnv(env) {
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                    def out = sh(script: cmd.join(' '), returnStdout: true).trim()
-                    echo "artcd returns:\n$out"
-                    release_info = readJSON(text: out)
-                }
+            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                def out = sh(script: cmd.join(' '), returnStdout: true).trim()
+                echo "artcd returns:\n$out"
+                release_info = readJSON(text: out)
             }
         }
     }

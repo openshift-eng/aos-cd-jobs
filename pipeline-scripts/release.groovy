@@ -220,7 +220,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
     }
 
     stdout = buildlib.withAppCiAsArtPublish() {
-        cmd += " --kubeconfig=${KUBECONFIG}"
+        cmd += " --ci-kubeconfig ${KUBECONFIG}"
         return commonlib.shell(
             script: cmd,
             returnStdout: true

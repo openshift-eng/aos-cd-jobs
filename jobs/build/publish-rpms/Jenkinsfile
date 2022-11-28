@@ -54,7 +54,7 @@ node {
     commonlib.checkMock()
 
     version = params.BUILD_VERSION
-    currentBuild.displayName = "$version"
+    currentBuild.displayName += " $version-el${params.EL_VERSION}"
     path = "openshift-v4/${params.ARCH}/dependencies/rpms"
     AWS_S3_SYNC_OPTS='--no-progress --delete --exact-timestamps'
     if (params.DRY_RUN) {

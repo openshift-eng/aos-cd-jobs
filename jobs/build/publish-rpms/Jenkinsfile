@@ -38,8 +38,8 @@ node {
                     string(
                         name: 'EL_VERSION',
                         description: 'RHEL Version for which to synchronize RPMs',
-                        defaultValue: '8'
-                        trim: true,
+                        defaultValue: '8',
+                        trim: true
                     ),
                     booleanParam(
                         name: "DRY_RUN",

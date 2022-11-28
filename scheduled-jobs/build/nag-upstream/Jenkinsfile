@@ -8,17 +8,19 @@ description = ""
 failed = false
 
 def runFor(version) {
-    timeout(activity: true, time: 30, unit: 'MINUTES') {
-        b = build(
-            job: '../scanning/scanning%2Fimages-health',
-            parameters: [
-                string(name: 'BUILD_VERSION', value: version),
-            ],
-            propagate: false,
-        )
+    try {
+        timeout(activity: true, time: 90, unit: 'MINUTES') {
+            b = build(
+                job: '../build/build%2Fnag-upstream',
+                parameters: [
+                    string(name: 'BUILD_VERSION', value: version),
+                ],
+                propagate: false,
+            )
+        }
         description += "${version} - ${b.result}\n"
         failed |= (b.result != "SUCCESS")
-    } catch(te) {
+    } catch (te) {
         description += "${version - ERROR}\n"
         failed = true
     }

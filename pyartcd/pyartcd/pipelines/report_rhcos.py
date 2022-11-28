@@ -9,7 +9,6 @@ from subprocess import run
 
 
 VERSIONS = [
-    "4.6",
     "4.7",
     "4.8",
     "4.9",
@@ -28,7 +27,7 @@ ARCHES = [
 RHCOS_URLS = {
     'amd64': 'https://jenkins-rhcos-art.apps.ocp-virt.prod.psi.redhat.com',
     's390x': 'https://jenkins-rhcos.cloud.s390x.psi.redhat.com',
-    'ppc64le': 'https://jenkins-rhcos.cloud.p8.psi.redhat.com',
+    'ppc64le': 'https://jenkins-rhcos-art.apps.ocp-ppc.stage.psi.redhat.com',
     'arm64': 'https://jenkins-rhcos.cloud.arm.psi.redhat.com'
 }
 

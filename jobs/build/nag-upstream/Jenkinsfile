@@ -35,25 +35,30 @@ node() {
     def doozerOpts = "--working-dir ${doozer_working} --group ${group} "
 
     timestamps {
-
         releaseChannel = slacklib.to(BUILD_VERSION)
-        /* Disabling notifications in #aos-art until https://issues.redhat.com/browse/ART-3425
-         * is resolved, as it generated quite some noise
-         */
-        // aosArtChannel = slacklib.to("#aos-art")
-
         try {
-            report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
+            report = buildlib.doozer("${doozerOpts} images:streams prs list", [capture: true]).trim()
             if (report) {
-                echo "The report:\n${report}"
+                data = readYaml text: report
+                text = ""
+                data.each { email, repos ->
+                    text += "*${email} is a contact for these PRs:*\n"
+                    repos.each { _, prs ->
+                        prs.each { pr -> text += ":black_small_square:${pr.pr_url}\n" }
+                    }
+                }
+                def attachment = [
+                    color: "#f2c744",
+                    blocks: [[type: "section", text: [type: "mrkdwn", text: text]]]
+                ]
+                releaseChannel.pinAttachment(attachment)
                 if (params.SEND_TO_SLACK) {
-                    releaseChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
-                    // aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                    releaseChannel.say(":scroll: Howdy! Some alignment prs are still open for ${group}\n", [attachment])
                 }
             } else {
-                echo "There are no issues to report."
+                echo "There are no alignment prs left open."
                 if (params.SEND_TO_SLACK) {
-                    releaseChannel.say(":white_check_mark: All images are healthy for ${group}")
+                    releaseChannel.say(":scroll: All prs are merged for ${group}")
                 }
             }
         } catch (exception) {

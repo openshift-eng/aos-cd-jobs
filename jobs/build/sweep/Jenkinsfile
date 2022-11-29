@@ -93,9 +93,12 @@ node {
 
         echo "Running command: ${cmd}"
 
-        // Execute script
-        withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-            exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+        // pyartcd/pyartcd/util.py kinit uses these environment variables.
+        withCredentials([file(credentialsId: 'exd-ocp-buildvm-bot-prod.keytab', variable: 'DISTGIT_KEYTAB_FILE'), string(credentialsId: 'exd-ocp-buildvm-bot-prod.user', variable: 'DISTGIT_KEYTAB_USER')]) {
+            // Execute script
+            withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+            }
         }
         echo("command ${cmd} returned with status ${exitCode}")
 

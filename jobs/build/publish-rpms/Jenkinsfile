@@ -38,8 +38,8 @@ node {
                     string(
                         name: 'EL_VERSION',
                         description: 'RHEL Version for which to synchronize RPMs',
-                        defaultValue: '8'
-                        trim: true,
+                        defaultValue: '8',
+                        trim: true
                     ),
                     booleanParam(
                         name: "DRY_RUN",
@@ -54,7 +54,7 @@ node {
     commonlib.checkMock()
 
     version = params.BUILD_VERSION
-    currentBuild.displayName = "$version"
+    currentBuild.displayName += " $version-el${params.EL_VERSION}"
     path = "openshift-v4/${params.ARCH}/dependencies/rpms"
     AWS_S3_SYNC_OPTS='--no-progress --delete --exact-timestamps'
     if (params.DRY_RUN) {
@@ -66,8 +66,7 @@ node {
             script: """
                 set -e
                 python3 ./collect_deps.py --base-dir output ${version} --arch ${params.ARCH} --el ${params.EL_VERSION}
-                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el8-beta s3://art-srv-enterprise/pub/${path}/${version}-el8-beta/
-                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-beta/ s3://art-srv-enterprise/pub/${path}/${version}-beta/
+                aws s3 sync ${AWS_S3_SYNC_OPTS} output/${version}-el${params.EL_VERSION}-beta s3://art-srv-enterprise/pub/${path}/${version}-el${params.EL_VERSION}-beta/
                 rm -r output
             """
         )

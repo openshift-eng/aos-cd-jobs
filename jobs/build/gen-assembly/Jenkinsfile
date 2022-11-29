@@ -28,7 +28,7 @@ node {
                         commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                         string(
                             name: "ASSEMBLY_NAME",
-                            description: "The name of the proposed assembly (e.g. 4.9.12 or art1234)",
+                            description: "The name of the proposed assembly (e.g. 4.9.12, ec.0, or art1234)",
                             trim: true
                         ),
                         string(

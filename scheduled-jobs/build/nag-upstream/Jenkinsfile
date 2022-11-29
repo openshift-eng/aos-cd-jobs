@@ -11,7 +11,7 @@ def runFor(version) {
     try {
         timeout(activity: true, time: 90, unit: 'MINUTES') {
             b = build(
-                job: '../build/build%2Fnag-upstream',
+                job: '/aos-cd-builds/build%2Fnag-upstream',
                 parameters: [
                     string(name: 'BUILD_VERSION', value: version),
                 ],

@@ -113,3 +113,25 @@ async def kinit():
         await exectools.cmd_assert_async(cmd)
     else:
         logger.warning('DISTGIT_KEYTAB_FILE is not set. Using any existing kerberos credential.')
+
+
+async def branch_arches(group: str, assembly: str, ga_only: bool = False) -> list:
+    """
+    Find the supported arches for a specific release
+    :param str group: The name of the branch to get configs for. For example: 'openshift-4.12
+    :param str assembly: The name of the assembly. For example: 'stream'
+    :param bool ga_only: If you only want group arches and do not care about arches_override.
+    :return: A list of the arches built for this branch
+    """
+
+    logger.info('Fetching group config for %s', group)
+    group_config = await load_group_config(group=group, assembly=assembly)
+
+    # Check if arches_override has been specified. This is used in group.yaml
+    # when we temporarily want to build for CPU architectures that are not yet GA.
+    arches_override = group_config.get('arches_override', None)
+    if arches_override and ga_only:
+        return arches_override
+
+    # Otherwise, read supported arches from group config
+    return group_config['arches']

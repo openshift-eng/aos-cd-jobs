@@ -74,21 +74,16 @@ def proxy_setup() {
 
 def kinit() {
     echo "Initializing ocp-build kerberos credentials"
-    // Keytab for old os1 build machine
-    // sh "kinit -k -t /home/jenkins/ocp-build.keytab ocp-build/atomic-e2e-jenkins.rhev-ci-vms.eng.rdu2.redhat.com@REDHAT.COM"
-    //
-    // The '-f' ensures that the ticket is forwarded to remote hosts
-    // when using SSH. This is required for when we build signed
-    // puddles.
-    keytab = '/home/jenkins/exd-ocp-buildvm-bot-prod.keytab'
-    account = 'exd-ocp-buildvm-bot-prod@IPA.REDHAT.COM'
-    try {
-        retry(3) {
-            sh "if ! kinit -f -k -t ${keytab} ${account}; then sleep 3; false; fi"
+    // The '-f' ensures that the ticket is forwarded to remote hosts when ssh'ing.
+    withCredentials([file(credentialsId: 'exd-ocp-buildvm-bot-prod.keytab', variable: 'DISTGIT_KEYTAB_FILE'), string(credentialsId: 'exd-ocp-buildvm-bot-prod.user', variable: 'DISTGIT_KEYTAB_USER')]) {
+        try {
+            retry(3) {
+                sh 'if ! kinit -f -k -t $DISTGIT_KEYTAB_FILE $DISTGIT_KEYTAB_USER; then sleep 3; false; fi'
+            }
+        } catch (e) {
+            echo "Failed to renew kerberos ticket. Assuming the ticket has been renewed recently enough"
+            echo "${e}"
         }
-    } catch (e) {
-        echo "Failed to renew kerberos ticket. Assuming the ticket has been renewed recently enough"
-        echo "${e}"
     }
 }
 

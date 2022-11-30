@@ -10,6 +10,7 @@ from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd import exectools
 from pyartcd.util import branch_arches
+from doozerlib import exectools
 from doozerlib.util import go_suffix_for_arch
 
 GEN_PAYLOAD_ARTIFACTS_OUT_DIR = 'gen-payload-artifacts'
@@ -85,6 +86,7 @@ class BuildSyncPipeline:
         various release controller namespaces should be performed.
         """
 
+        @exectools.limit_concurrency(3)
         async def backup_namespace(ns):
             self.logger.info('Running backup for namespace %s', ns)
 

@@ -628,7 +628,7 @@ def args_to_string(Object... args) {
 def invoke_on_rcm_guest(git_script_filename, Object... args ) {
     return sh(
             returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
+            script: "ssh rcm-guest sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
     ).trim()
 }
 
@@ -1512,7 +1512,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     def assembly = params.ASSEMBLY ?: "stream"
     destBaseDir += "/${assembly}"
     // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
-    commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
+    commonlib.shell("ssh rcm-guest -- mkdir -p ${destBaseDir}")
     commonlib.shell([
             "rsync",
             "-av",  // archive mode, verbose
@@ -1524,17 +1524,17 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
             "--chmod=Dug=rwX,ugo+r",
             "--perms",
             "${r.localPlashetPath}",  // plashet we just created
-            "ocp-build@rcm-guest:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
+            "rcm-guest:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
     ].join(" "))
 
     // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
     // doozer repo files (which have static urls back to rcm-guest) will resolve.
     def symlink = include_embargoed? "building-embargoed" : "building"
-    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
+    commonlib.shell("ssh -t rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
 
     // If and only if we are building for "stream" assembly, replace the legacy symlink (e.g. puddles/RHAOS/plashets/{MAJOR}.{MINOR}-el8/building-embargoed) to stream/building-embargoed
     if (assembly == "stream") {
-        commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}/..; ln -sfn stream/${symlink} ${symlink}\" ")
+        commonlib.shell("ssh -t rcm-guest \"cd ${destBaseDir}/..; ln -sfn stream/${symlink} ${symlink}\" ")
     }
     return r
 }

@@ -56,7 +56,7 @@ node {
         lock(resource: "rhcos-lock-${params.BUILD_VERSION}", skipIfLocked: true) {  // wait for all to succeed or fail for this version before starting more
 
         // Check if urls.rhcos_release_base.multi is defined in group.yml
-        def cmd = "doozer -g openshift-${params.BUILD_VERSION} config:read-group urls.rhcos_release_base.multi"
+        def cmd = "doozer -g openshift-${params.BUILD_VERSION} config:read-group urls.rhcos_release_base.multi --default ''"
         def multi_builds_enabled = !!(commonlib.shell(script: cmd, returnStdout: true).trim())
 
         if (multi_builds_enabled) {
@@ -69,7 +69,7 @@ node {
                     sh  '''
                         set +x
                         export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy
-                        TOKEN_SECRET=$(oc get sa jenkins -o json | jq -r \'.secrets[] | select(.name | contains("token")) | .name\')
+                        TOKEN_SECRET=$(oc describe sa jenkins | grep 'Tokens:' | tr -s ' ' | cut -d ' ' -f2)
                         TOKEN_DATA=$(oc get secret $TOKEN_SECRET -o=jsonpath={.data.token} | base64 -d)
                         curl -H "Authorization: Bearer $TOKEN_DATA"''' + " ${jenkins_url}/job/build/buildWithParameters --data STREAM=${params.BUILD_VERSION} --data EARLY_ARCH_JOBS=false"
                 }

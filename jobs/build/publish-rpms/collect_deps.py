@@ -55,7 +55,7 @@ gpgcheck = 0
 
 [rhel-server-7-ose-{OCP_VERSION}-rpms]
 name = rhel-server-7-ose-{OCP_VERSION}-rpms
-baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}/building/{ARCH}/os
+baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/el7/latest/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 """,
@@ -85,7 +85,38 @@ gpgcheck = 0
 
 [rhel-server-8-ose-{OCP_VERSION}-rpms]
 name = rhel-server-8-ose-{OCP_VERSION}-rpms
-baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}-el8/stream/building/{ARCH}/os
+baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/el8/latest/{ARCH}/os
+enabled = 1
+gpgcheck = 0
+module_hotfixes=1
+""",
+    9: """[main]
+cachedir={CACHE_DIR}
+keepcache=0
+debuglevel=2
+exactarch=1
+obsoletes=1
+gpgcheck=1
+plugins=1
+installonly_limit=3
+reposdir=
+skip_missing_names_on_install=0
+
+[rhel-server-9-baseos]
+name = rhel-server-9-baseos
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel9/9/{ARCH}/baseos/os
+enabled = 1
+gpgcheck = 0
+
+[rhel-server-9-appstream]
+name = rhel-server-9-appstream
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel9/9/{ARCH}/appstream/os/
+enabled = 1
+gpgcheck = 0
+
+[rhel-server-9-ose-{OCP_VERSION}-rpms]
+name = rhel-server-9-ose-{OCP_VERSION}-rpms
+baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/el9/latest/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 module_hotfixes=1
@@ -147,7 +178,6 @@ async def collect(ocp_version: str, arch: str, rhel_major: int, base_dir: Option
     await download_rpms(ocp_version, arch, rhel_major, output_dir)
     LOGGER.info(f"Creating repo {output_dir} for {arch} OCP {ocp_version} - RHEL {rhel_major}...")
     await create_repo(output_dir)
-
 
 async def main():
     logging.basicConfig(level=logging.INFO)

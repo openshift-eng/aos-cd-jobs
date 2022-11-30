@@ -5,7 +5,7 @@ node {
     buildlib = load( "pipeline-scripts/buildlib.groovy" )
     commonlib = buildlib.commonlib
     commonlib.describeJob("publish-rpms", """
-        <h2>Publish RHEL 8 worker RPMs to mirror</h2>
+        <h2>Publish RHEL worker RPMs to mirror</h2>
         Creates a directory with RPMs satisfying RHEL worker nodes dependencies
         for a given 4.x release.
         For more information, see https://issues.redhat.com/browse/ART-1188 and https://issues.redhat.com/browse/ART-3695.

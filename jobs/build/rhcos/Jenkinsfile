@@ -57,9 +57,9 @@ node {
 
         // Check if urls.rhcos_release_base.multi is defined in group.yml
         def cmd = "doozer -g openshift-${params.BUILD_VERSION} config:read-group urls.rhcos_release_base.multi"
-        multi_builds_enabled = commonlib.shell(script: cmd, returnStatus: true)
+        def multi_builds_enabled = !!(commonlib.shell(script: cmd, returnStdout: true).trim())
 
-        if (multi_builds_enabled == 0) {
+        if (multi_builds_enabled) {
             currentBuild.displayName += "multi"
             echo "triggering multi builds"
             def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'

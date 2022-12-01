@@ -5,7 +5,6 @@ set -euo pipefail
 
 
 JENKINS_DIST_GIT="jenkins"
-USER_USERNAME="--user=ocp-build"
 SCRIPTS_DIR="$(pwd)"
 
 usage() {
@@ -30,7 +29,7 @@ setup_dist_git() {
   fi
 
   cd ${workingdir}
-  REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_USERNAME} clone "${JENKINS_DIST_GIT}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
+  REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg clone "${JENKINS_DIST_GIT}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output
   if [ -d ${JENKINS_DIST_GIT} ] ; then
     cd ${JENKINS_DIST_GIT}
     REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg switch-branch "${BRANCH}" &>${workingdir}/logs/${JENKINS_DIST_GIT}.output

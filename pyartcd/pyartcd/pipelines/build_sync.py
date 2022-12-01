@@ -85,6 +85,7 @@ class BuildSyncPipeline:
         various release controller namespaces should be performed.
         """
 
+        @exectools.limit_concurrency(500)
         async def backup_namespace(ns):
             self.logger.info('Running backup for namespace %s', ns)
 
@@ -135,6 +136,7 @@ class BuildSyncPipeline:
                             or 'rhel-coreos-' in tag['name']]
         return tags_to_transfer
 
+    @exectools.limit_concurrency(500)
     async def _tag_into_ci_imagestream(self, arch_suffix, tag):
         # isolate the pullspec trom the ART imagestream tag
         # (e.g. quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:<sha>)
@@ -243,6 +245,7 @@ class BuildSyncPipeline:
                 tasks.append(self._publish(filename))
             await asyncio.gather(*tasks)
 
+    @exectools.limit_concurrency(500)
     async def _publish(self, filename):
         with open(filename) as f:
             meta = yaml.safe_load(f.read())['metadata']

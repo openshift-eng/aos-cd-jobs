@@ -14,11 +14,6 @@ if [ "$#" -lt 3 ] ; then
   usage
 fi
 
-USER_INFO=""
-if [ "$(whoami)" == "jenkins" ]; then
-    USER_INFO="--user=ocp-build"
-fi
-
 target_jenkins_version="$1"
 rhaos_release="$2"
 hpis_dir=$(realpath "$3")
@@ -138,7 +133,7 @@ EOF
     # Build package in brew
     cd ${workingdir}
     echo "  Checking if a dist-git repo has been created ...."
-    rhpkg "${USER_INFO}" clone jenkins-plugin-${PLUGIN_NAME} > /dev/null 2>&1
+    rhpkg clone jenkins-plugin-${PLUGIN_NAME} > /dev/null 2>&1
     if [ "$?" == "0" ] ; then
         cd jenkins-plugin-${PLUGIN_NAME}
         echo "    dist-git repo has been created."
@@ -169,21 +164,21 @@ EOF
     echo "  BUILDING: jenkins-plugin-${PLUGIN_NAME}-${PLUGIN_VERSION}"
     echo
 
-    rhpkg "${USER_INFO}" import --skip-diffs ${NEW_SRPM} > /dev/null 2>&1
+    rhpkg import --skip-diffs ${NEW_SRPM} > /dev/null 2>&1
 
     if [ "$?" != "0" ]; then
         echo "Error importing srpm"
         exit 1
     fi
 
-    rhpkg "${USER_INFO}" commit -p -m "Update to ${PLUGIN_VERSION}" > /dev/null 2>&1
+    rhpkg commit -p -m "Update to ${PLUGIN_VERSION}" > /dev/null 2>&1
 
     if [ "$?" != "0" ]; then
         echo "Error committing to dist-git"
         exit 1
     fi
 
-    rhpkg "${USER_INFO}" build
+    rhpkg build
 
     if [ "$?" != "0" ]; then
         echo "Error during build"

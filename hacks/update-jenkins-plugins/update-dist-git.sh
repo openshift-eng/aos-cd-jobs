@@ -19,11 +19,6 @@ if [ "$#" -lt 3 ] ; then
   usage
 fi
 
-USER_INFO=""
-if [ "$(whoami)" == "jenkins" ]; then
-    USER_INFO="--user=ocp-build"
-fi
-
 target_jenkins_version="$1"
 jenkins_major=$(echo "${target_jenkins_version}." | cut -d . -f 1)
 repo="jenkins-${jenkins_major}-plugins"
@@ -36,7 +31,7 @@ workingdir=$(mktemp -d /tmp/jenkins-plugin-XXXXXX)
 cd ${workingdir}
 
 echo "Cloning dist-git repository ...."
-REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_INFO} clone ${repo}
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg clone ${repo}
 pushd ${repo}
 REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg switch-branch ${rhaos_branch}
 popd
@@ -131,9 +126,9 @@ git add ${repo}.spec
 
 REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg new-sources ${topdir}/SOURCES/*.hpi
 
-REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_INFO} commit -p -m "Update to ${VERSION}"
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg commit -p -m "Update to ${VERSION}"
 
-REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg ${USER_INFO} build
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt rhpkg build
 
 # cleanup
 # rm -rf "${workingdir}"

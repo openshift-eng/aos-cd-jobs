@@ -68,7 +68,7 @@ node {
                 withCredentials([file(credentialsId: kubeconfigs['multi'], variable: 'KUBECONFIG')]) {
                     sh  '''
                         set +x
-                        export no_proxy=ocp-ppc.stage.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy
+                        export no_proxy=ocp-ppc.stage.psi.redhat.com,api.s390x.psi.redhat.com,api.ocp-virt.prod.psi.redhat.com,$no_proxy
                         TOKEN_SECRET=$(oc describe sa jenkins | grep 'Tokens:' | tr -s ' ' | cut -d ' ' -f2)
                         TOKEN_DATA=$(oc get secret $TOKEN_SECRET -o=jsonpath={.data.token} | base64 -d)
                         curl -H "Authorization: Bearer $TOKEN_DATA"''' + " ${jenkins_url}/job/build/buildWithParameters --data STREAM=${params.BUILD_VERSION} --data EARLY_ARCH_JOBS=false"

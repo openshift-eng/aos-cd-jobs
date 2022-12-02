@@ -45,7 +45,7 @@ node {
         kubeconfigs = [
             'x86_64': 'jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
             'ppc64le': 'jenkins_serviceaccount_ocp-ppc.stage.psi.redhat.com',
-            's390x': 'jenkins_serviceaccount_osbs-s390x-3.prod.engineering.redhat.com.kubeconfig',
+            's390x': 'jenkins_serviceaccount_legacy_rhcos_s390x.psi.redhat.com',
             'aarch64': 'jenkins_serviceaccount_osbs-aarch64-1.engineering.redhat.com',
             'multi': 'multi_jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
         ]

@@ -15,7 +15,7 @@ def runFor(version, channelPrefix, linkName) {
                     job: '../aos-cd-builds/build%2Fset_client_latest',
                     parameters: [
                         string(name: 'CHANNEL_OR_RELEASE', value: "${channelPrefix}-${version}"),
-                        string(name: 'CLIENT_TYPE', value: 'ocp'),
+                        string(name: 'CLIENT_TYPE', value: 'auto'),
                         string(name: 'LINK_NAME', value: linkName),
                         string(name: 'ARCHES', value: 'any'),
                     ],

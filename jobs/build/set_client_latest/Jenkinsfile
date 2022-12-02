@@ -9,7 +9,7 @@ node {
         <b>Timing</b>: Run by scheduled-builds/set_cincinnati_links which runs every 10 minutes.
 
         This job looks at what has been published in the various cincinnati
-        channels and updates the symlinks accordingly under 
+        channels and updates the symlinks accordingly under
         http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp
 
         try.openshift.com directs customers to "latest" links, so they need to
@@ -37,7 +37,7 @@ node {
                     ),
                     string(
                         name: 'CLIENT_TYPE',
-                        description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview)',
+                        description: 'artifacts path of https://mirror.openshift.com (i.e. ocp, ocp-dev-preview) or auto (determining client type by the release name)',
                         defaultValue: "ocp",
                         trim: true,
                     ),
@@ -64,7 +64,7 @@ node {
                             name        : 'FORCE_UPDATE',
                             description : 'Update directories even if no change is detected',
                             defaultValue: false,
-                    ),                    
+                    ),
                     commonlib.mockParam(),
                 ]
             ],

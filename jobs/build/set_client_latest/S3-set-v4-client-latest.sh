@@ -21,7 +21,7 @@ set -x
 set -u
 
 RELEASE=$1    # e.g. 4.2.0 or 4.3.0-0.nightly-2019-11-08-080321
-CLIENT_TYPE=$2   # e.g. ocp or ocp-dev-preview
+CLIENT_TYPE=$2   # e.g. auto, ocp or ocp-dev-preview
 LINK_NAME=$3   # e.g. latest
 ARCHES="${4:-x86_64}"  # e.g. "x86_64 ppc64le s390x aarch64"  OR  "all" to detect arches automatically
 FORCE_UPDATE=${FORCE_UPDATE:-0}  # Ignore whether differences are detected and copy into place.
@@ -112,6 +112,15 @@ for arch in ${ARCHES}; do
                 continue
             fi
             RELEASE=$qrelease
+        fi
+    fi
+
+
+    if [ "$CLIENT_TYPE" == "auto" ]; then
+        if [[ "$RELEASE"  =~ "-[ef]c\.[0-9]+" ]]; then  #
+            CLIENT_TYPE="ocp-dev-preview"
+        else
+            CLIENT_TYPE="ocp"
         fi
     fi
 

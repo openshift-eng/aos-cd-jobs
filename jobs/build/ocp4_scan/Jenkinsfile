@@ -69,6 +69,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
         )
 
         buildlib.initialize()
+        buildlib.registry_quay_dev_login()
 
         versions = commonlib.parseList(params.VERSIONS)
 
@@ -92,6 +93,9 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
 
                             // this lock ensures we are not scanning during an active build
                             activityLockName = "github-activity-lock-${version}"
+                            if (params.DRY_RUN) {
+                                activityLockName += '-dryrun'
+                            }
 
                             if (!buildlib.isBuildPermitted("--group 'openshift-${version}'")) {
                                 echo "Builds are not currently permitted for ${version} -- skipping"

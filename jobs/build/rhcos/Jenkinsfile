@@ -25,9 +25,19 @@ node {
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(
                         name: 'ARCHES',
-                        description: 'Comma delimited list of arches to target The RHCOS architecture to target.',
+                        description: 'List of architectures to build for RHCOS (ignored for multi pipeline).',
                         defaultValue: commonlib.brewArches.join(','),
                         trim: true,
+                    ),
+                    booleanParam(
+                        name: 'IGNORE_EXISTING',
+                        description: '(Multi pipeline only) Create a new build even if one is already in progress.',
+                        defaultValue: false,
+                    ),
+                    booleanParam(
+                        name: 'BUILD_ALWAYS',
+                        description: '(Multi pipeline only) Force a new build even if there are no changes from the last.',
+                        defaultValue: false,
                     ),
                 ]
             ],
@@ -37,11 +47,12 @@ node {
     commonlib.checkMock()
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}: "
     currentBuild.description = "RHCOS ${params.BUILD_VERSION}\n"
+    skipBuild = true  // global variable to track if we skip the remote build
 
     try {
         def releaseArches = buildlib.branch_arches("openshift-${params.BUILD_VERSION}").toList()
 
-        arches = params.ARCHES.split(',')
+        arches = commonlib.parseList(params.ARCHES)
 
         kubeconfigs = [
             'x86_64': 'jenkins_serviceaccount_ocp-virt.prod.psi.redhat.com.kubeconfig',
@@ -55,6 +66,7 @@ node {
         // but for now, being this strict is slowing down the delivery of nightlies.
         //lock("compose-lock-${params.BUILD_VERSION}") {
         lock(resource: "rhcos-lock-${params.BUILD_VERSION}", skipIfLocked: true) {  // wait for all to succeed or fail for this version before starting more
+            skipBuild = false
 
             // Check if urls.rhcos_release_base.multi is defined in group.yml
             def cmd = "doozer -g openshift-${params.BUILD_VERSION} config:read-group urls.rhcos_release_base.multi --default ''"
@@ -64,20 +76,38 @@ node {
                 currentBuild.displayName += "multi"
                 echo "triggering multi builds"
                 def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
+                commonlib.shell(script: "pip install -e ./pyartcd && rm -rf ./artcd_working && mkdir -p ./artcd_working")
 
                 try {
                     withCredentials([file(credentialsId: kubeconfigs['multi'], variable: 'KUBECONFIG')]) {
-                        sh  '''
-                            set +x
-                            export no_proxy=api.ocp-virt.prod.psi.redhat.com,$no_proxy
-                            TOKEN_SECRET=$(oc describe sa jenkins | grep 'Tokens:' | tr -s ' ' | cut -d ' ' -f2)
-                            TOKEN_DATA=$(oc get secret $TOKEN_SECRET -o=jsonpath={.data.token} | base64 -d)
-                            curl -H "Authorization: Bearer $TOKEN_DATA"''' + " ${jenkins_url}/job/build/buildWithParameters --data STREAM=${params.BUILD_VERSION} --data EARLY_ARCH_JOBS=false"
+                        // we want to see the stderr as it runs, so will not capture with commonlib.shell;
+                        // but somehow it is buffering the stderr anyway and [lmeyer] cannot figure out why.
+                        text = sh(returnStdout: true, script: """
+                              no_proxy=api.ocp-virt.prod.psi.redhat.com,\$no_proxy \\
+                              artcd --config=./config/artcd.toml build-rhcos --version=${params.BUILD_VERSION} \\
+                                    --skippable=${!params.IGNORE_EXISTING} --build-always=${params.BUILD_ALWAYS}
+                        """)
+                        data = readJSON text: text
+                        if (data["action"] == "skip") {
+                            skipBuild = true
+                        } else {
+                            if (data["builds"].any { !(it["result"] in ["SUCCESS", null]) }) {
+                                currentBuild.result = "UNSTABLE"
+                                currentBuild.displayName += " -- Completed with failure"
+                            } else {
+                                currentBuild.displayName += " -- Completed"
+                            }
+                        }
+                        for (build in data["builds"]) {
+                            status = "${build["url"]} - ${build["result"]} '${build["description"]}'"
+                            echo status
+                            currentBuild.description += "\n<br>${status}"
+                        }
                     }
-                    currentBuild.description += "Success"
                 } catch (err) {
-                    currentBuild.description += "Failure"
-                    currentBuild.result = "UNSTABLE"
+                    currentBuild.displayName += " -- Failed"
+                    echo "Failure: ${err}"
+                    currentBuild.result = "FAILURE"
                 }
             } else {
                 echo "Multi builds are not enabled. Triggering individual builds"
@@ -128,6 +158,11 @@ node {
                     parallel archJobs
                 }
             }
+        }
+        if (skipBuild) {
+            currentBuild.displayName += " -- Skipped"
+            currentBuild.description += " -- skipped (build already in progress)"
+            currentBuild.result = "ABORTED"
         }
     } finally {
     }

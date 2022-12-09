@@ -31,21 +31,27 @@ RUN wget -O /tmp/openshift-client-linux-"$OC_VERSION".tar.gz https://mirror.open
   && tar -C /usr/local/bin -xzf  /tmp/openshift-client-linux-"$OC_VERSION".tar.gz oc kubectl \
   && rm /tmp/openshift-client-linux-"$OC_VERSION".tar.gz
 
+# make current repo contents available
+COPY . /workspaces/aos-cd-jobs
 
 # Create a non-root user - see https://aka.ms/vscode-remote/containers/non-root-user.
 ARG USERNAME=dev
 # On Linux, replace with your actual UID, GID if not the default 1000
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+ENV PATH="${PATH}:/home/${USERNAME}/.local/bin"
 
-# Create the "dev" user
+# Create the "dev" user and install python reqs
 RUN groupadd --gid "$USER_GID" "$USERNAME" \
-    && useradd --uid "$USER_UID" --gid "$USER_GID" -m "$USERNAME" \
-    && mkdir -p /workspaces/{aos-cd-jobs,aos-cd-jobs-working} \
-    && chown -R "${USER_UID}:${USER_GID}" /home/"$USERNAME" /workspaces \
-    && chmod 0755 /home/"$USERNAME" \
-    && echo "$USERNAME" ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/"$USERNAME" \
-    && chmod 0440 /etc/sudoers.d/"$USERNAME"
+ && useradd --uid "$USER_UID" --gid "$USER_GID" -m "$USERNAME" \
+ && mkdir -p /workspaces/aos-cd-jobs-working \
+ && chown -R "${USER_UID}:${USER_GID}" /home/"$USERNAME" /workspaces \
+ && chmod 0755 /home/"$USERNAME" \
+ && echo "$USERNAME" ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/"$USERNAME" \
+ && chmod 0440 /etc/sudoers.d/"$USERNAME" \
+ && cd /workspaces/aos-cd-jobs \
+ && sudo -u "$USERNAME" pip3 install --user -e ./art-tools/doozer ./art-tools/elliott ./pyartcd \
+ && sudo -u "$USERNAME" pip3 install --user -r ./pyartcd/requirements-dev.txt
 
 USER "$USER_UID"
 WORKDIR /workspaces/aos-cd-jobs

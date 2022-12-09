@@ -13,7 +13,7 @@ using Visual Studio Code. See [https://code.visualstudio.com/docs/remote/contain
 
 [Remote Development Extension Pack]: https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack
 
-# Development container use with podman
+## Development container use with podman
 
 The same Dockerfile can be used independently to provide a doozer environment container.
 A build with podman may look like:
@@ -22,3 +22,5 @@ A build with podman may look like:
     USER_UID=1234
     podman build --build-arg USERNAME=$USERNAME --build-arg USER_UID=$USER_UID \
                  -f .devcontainer/dev.Dockerfile -t local/aos-cd-jobs.
+
+:warning: Note that you must be on the RH VPN for some of the dependencies to resolve.

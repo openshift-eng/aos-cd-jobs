@@ -15,3 +15,4 @@ slack_sdk >= 3.13.0
 tenacity
 aiohttp_retry
 toml
+PyGithub >= 1.57

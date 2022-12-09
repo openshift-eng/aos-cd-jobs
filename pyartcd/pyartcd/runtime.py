@@ -8,6 +8,7 @@ import toml
 from pyartcd.jira import JIRAClient
 from pyartcd.mail import MailService
 from pyartcd.slack import SlackClient
+from github import Github
 
 
 class Runtime:
@@ -36,6 +37,12 @@ class Runtime:
         with open(config_filename, "r") as config_file:
             config_dict = toml.load(config_file)
         return Runtime(config=config_dict, working_dir=working_dir, dry_run=dry_run)
+
+    def new_github_client(self, github_token: Optional[str] = None):
+        token = github_token if github_token else os.environ.get("GITHUB_TOKEN")
+        if not token:
+            raise ValueError("GITHUB_TOKEN environment variable is not set")
+        return Github(token)
 
     def new_jira_client(self, jira_token: Optional[str] = None):
         if not jira_token:

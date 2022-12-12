@@ -8,11 +8,7 @@ slacklib = commonlib.slacklib
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
 
-def initialize(test=false, checkMock=true, regAws=false) {
-    if (checkMock) {
-        commonlib.checkMock()
-    }
-
+def initialize(test=false, regAws=false) {
     this.proxy_setup()
     this.setup_venv(true)
     this.path_setup()

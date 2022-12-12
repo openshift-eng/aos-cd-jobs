@@ -110,7 +110,7 @@ node {
             rc = 0
             try{
                 sshagent(["openshift-bot"]) {
-                    withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
+                    buildlib.withAppCiAsArtPublish() {
                         sh "rm -rf ${doozerWorking}"
                         buildlib.doozer("--working-dir ${doozerWorking} --group ${group} images:streams gen-buildconfigs -o ${group}.yaml --apply")
                         sh "oc registry login"

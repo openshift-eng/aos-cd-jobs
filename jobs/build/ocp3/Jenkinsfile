@@ -309,7 +309,8 @@ node {
     )
 
     IS_TEST_MODE = params.DRY_RUN ?: false
-    buildlib.initialize(IS_TEST_MODE, true, true)
+    commonlib.checkMock()
+    buildlib.initialize(IS_TEST_MODE, true)
 
     BUILD_VERSION_MAJOR = params.BUILD_VERSION.tokenize('.')[0].toInteger() // Store the "X" in X.Y
     BUILD_VERSION_MINOR = params.BUILD_VERSION.tokenize('.')[1].toInteger() // Store the "Y" in X.Y

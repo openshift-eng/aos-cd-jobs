@@ -117,7 +117,8 @@ node {
             ],
         ]
     )   // Please update README.md if modifying parameter names or semantics
-    buildlib.initialize(false, true, params.BUILD_VERSION == "3.11")
+    commonlib.checkMock()
+    buildlib.initialize(false, params.BUILD_VERSION == "3.11")
 
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 

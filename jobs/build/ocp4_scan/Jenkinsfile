@@ -189,21 +189,22 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                     if (params.DRY_RUN) {
                                         echo "Would have triggered RHCOS build"
                                     } else {
-                                        // inconsistency probably means partial failure and we would like to retry.
-                                        // but don't kick off more if already in progress.
                                         lock(resource: "rhcos-lock-${version}", skipIfLocked: true) {
                                             echo "triggering a ${version} RHCOS build for consistency."
                                             build(
                                                 wait: false,
                                                 propagate: false,
                                                 job: 'build%2Frhcos',
-                                                parameters: [string(name: 'BUILD_VERSION', value: version)]
+                                                parameters: [
+                                                    string(name: 'BUILD_VERSION', value: version),
+                                                    booleanParam(name: 'NEW_BUILD', value: true),
+                                                ]
                                             )
                                             currentBuild.description += "<br>triggered rhcos build: ${version}"
                                         }
                                         return
                                     }
-                                } else if (!rhcosInconsistent && rhcosChanged) {
+                                } else if (rhcosChanged) {
                                     if ( params.DRY_RUN ) {
                                         echo "Would have triggered build-sync job"
                                         return

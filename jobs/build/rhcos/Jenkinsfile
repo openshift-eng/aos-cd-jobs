@@ -25,18 +25,18 @@ node {
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(
                         name: 'ARCHES',
-                        description: 'List of architectures to build for RHCOS (ignored for multi pipeline).',
+                        description: '(Legacy pipeline only) List of architectures to build for RHCOS.',
                         defaultValue: commonlib.brewArches.join(','),
                         trim: true,
                     ),
                     booleanParam(
-                        name: 'IGNORE_EXISTING',
-                        description: '(Multi pipeline only) Create a new build even if one is already in progress.',
+                        name: 'NEW_BUILD',
+                        description: '(Multi pipeline only) Request a new build from the RHCOS pipeline even when it finds no changes from the last.',
                         defaultValue: false,
                     ),
                     booleanParam(
-                        name: 'BUILD_ALWAYS',
-                        description: '(Multi pipeline only) Force a new build even if there are no changes from the last.',
+                        name: 'IGNORE_RUNNING',
+                        description: '(Multi pipeline only) Request a build from the RHCOS pipeline even if one is already in progress (instead of aborting like usual). Still only one runs at a time. Only for use by humans, really, and you probably want NEW_BUILD with this.',
                         defaultValue: false,
                     ),
                 ]
@@ -85,7 +85,7 @@ node {
                         text = sh(returnStdout: true, script: """
                               no_proxy=api.ocp-virt.prod.psi.redhat.com,\$no_proxy \\
                               artcd --config=./config/artcd.toml build-rhcos --version=${params.BUILD_VERSION} \\
-                                    --skippable=${!params.IGNORE_EXISTING} --build-always=${params.BUILD_ALWAYS}
+                                    --ignore-running=${params.IGNORE_RUNNING} --new-build=${params.NEW_BUILD}
                         """)
                         data = readJSON text: text
                         if (data["action"] == "skip") {

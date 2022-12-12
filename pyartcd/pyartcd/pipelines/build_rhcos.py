@@ -31,10 +31,10 @@ class TimeoutHTTPAdapter(HTTPAdapter):
 
 class BuildRhcosPipeline:
     """Use the Jenkins API to query for existing builds and perhaps kick off a new one and wait for it."""
-    def __init__(self, runtime: Runtime, build_always: bool, skippable: bool, version: str):
+    def __init__(self, runtime: Runtime, new_build: bool, ignore_running: bool, version: str):
         self.runtime = runtime
-        self.build_always = build_always
-        self.skippable = skippable
+        self.new_build = new_build
+        self.ignore_running = ignore_running
         self.version = version
         self.api_token = None
 
@@ -51,7 +51,7 @@ class BuildRhcosPipeline:
         self.request_session.headers.update({"Authorization": f"Bearer {self.retrieve_auth_token()}"})
         current = self.query_existing_builds()
         result = {}
-        if current and self.skippable:
+        if current and not self.ignore_running:
             result["action"] = "skip"
             result["builds"] = [
                 dict(url=b["url"], description=b["description"], result=None)
@@ -112,7 +112,7 @@ class BuildRhcosPipeline:
         """Start a new build for the given version"""
         # determine parameters
         params = dict(STREAM=self.version, EARLY_ARCH_JOBS="false")
-        if self.build_always:
+        if self.new_build:
             params["FORCE"] = "true"
 
         # start the build
@@ -186,12 +186,12 @@ class BuildRhcosPipeline:
 @cli.command("build-rhcos")
 @click.option("--version", required=True, type=str,
               help="The version to build, e.g. '4.13'")
-@click.option("--skippable", required=False, default=True, type=bool,
-              help="Skip if there is already a build in progress")
-@click.option("--build-always", required=False, default=False, type=bool,
+@click.option("--ignore-running", required=False, default=False, type=bool,
+              help="Ignore in-progress builds instead of just exiting like usual")
+@click.option("--new-build", required=False, default=False, type=bool,
               help="Force a new build even if no changes were detected from the last build")
 @pass_runtime
-def build_rhcos(runtime: Runtime, build_always: bool, skippable: bool, version: str):
+def build_rhcos(runtime: Runtime, new_build: bool, ignore_running: bool, version: str):
     if not re.match(r'^\d+\.\d+$', version):
         raise Exception("Version must be in the format 'x.y'")
-    BuildRhcosPipeline(runtime, build_always, skippable, version).run()
+    BuildRhcosPipeline(runtime, new_build, ignore_running, version).run()

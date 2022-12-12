@@ -93,7 +93,6 @@ node {
 
         commonlib.checkMock()
         stage("initialize") {
-            buildlib.initialize()
             buildlib.registry_quay_dev_login()
             currentBuild.displayName += " - ${params.BUILD_VERSION} - ${params.ASSEMBLY_NAME}"
             if (!params.IN_FLIGHT_PREV) {

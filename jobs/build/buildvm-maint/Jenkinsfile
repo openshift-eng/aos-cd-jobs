@@ -44,7 +44,6 @@ node('openshift-build-1') {
         If you figure it out, update this or get rid of the job as appropriate.
     """)
 
-    buildlib.initialize()
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     def doozer_working = "${WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)

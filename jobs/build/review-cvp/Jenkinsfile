@@ -40,7 +40,6 @@ node {
 
         commonlib.checkMock()
         stage("initialize") {
-            buildlib.initialize()
             // buildlib.registry_quay_dev_login()
             currentBuild.displayName += " - $params.VERSION - $params.ASSEMBLY"
         }

@@ -123,9 +123,13 @@ class BuildRhcosPipeline:
 
         # wait for a related build to begin
         initial_builds = []
-        while not initial_builds:  # may take a few seconds for the build to start
-            time.sleep(1)
-            initial_builds = self.query_existing_builds()
+        for _ in range(300):
+            if initial_builds:
+                break
+            time.sleep(1)  # may take a few seconds for the build to start
+            initial_builds  = self.query_existing_builds()
+        else:  # only gets here if the for loop reaches the count
+            raise Exception("Waited too long for build to start")
 
         return initial_builds
 
@@ -146,7 +150,7 @@ class BuildRhcosPipeline:
         """Wait for all builds for this version to complete, and give status updates on stderr"""
         builds_seen: Dict[Tuple, str] = {}
         completed_builds: Dict[Tuple, Dict] = {}
-        while True:
+        for _ in range(1440):  # x 10s = about 4 hours (slower if bad/no response)
             new_builds_seen: Dict[Tuple, str] = {
                 (b["job"], b["number"]): b["description"] or "[no description yet]"
                 for b in self.query_existing_builds()
@@ -173,6 +177,8 @@ class BuildRhcosPipeline:
 
             builds_seen = new_builds_seen
             time.sleep(10)
+        else:  # only gets here if the for loop reaches the count
+            raise Exception("Waited too long for builds to complete")
 
         return list(completed_builds.values())
 

@@ -51,7 +51,6 @@ node {
 
     workdir = "${env.WORKSPACE}/coreos-installer_sync"
     commonlib.checkMock()
-    buildlib.initialize()
     buildlib.cleanWorkdir(workdir)
 
     stage("Validate params") {

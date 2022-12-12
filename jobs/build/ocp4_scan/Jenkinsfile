@@ -68,7 +68,6 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
             ]
         )
 
-        buildlib.initialize()
         buildlib.registry_quay_dev_login()
 
         versions = commonlib.parseList(params.VERSIONS)

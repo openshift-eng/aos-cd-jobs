@@ -73,7 +73,6 @@ node {
             ],
         ]
     )
-    buildlib.initialize()
 
     currentBuild.displayName = "${GROUP} - ${ARCH}"
     REPOSYNC_BASE_DIR="/mnt/workspace/reposync"

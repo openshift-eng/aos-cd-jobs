@@ -70,7 +70,6 @@ node {
 
         commonlib.checkMock()
         stage("initialize") {
-            buildlib.initialize()
             if (params.DRY_RUN) {
                 currentBuild.displayName += " - [DRY RUN]"
             }

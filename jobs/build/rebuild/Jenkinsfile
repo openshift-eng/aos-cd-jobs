@@ -67,7 +67,6 @@ node {
 
         commonlib.checkMock()
         stage("initialize") {
-            buildlib.initialize()
             buildlib.registry_quay_dev_login()
             if (params.DRY_RUN) {
                 currentBuild.displayName += " - [DRY RUN]"

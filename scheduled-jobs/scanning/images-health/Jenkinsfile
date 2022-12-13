@@ -14,6 +14,8 @@ def runFor(version) {
                 job: '../scanning/scanning%2Fimages-health',
                 parameters: [
                     string(name: 'BUILD_VERSION', value: version),
+                    booleanParam(name: 'SEND_TO_RELEASE_CHANNEL', value: true),
+                    booleanParam(name: 'SEND_TO_AOS_ART', value: true),
                 ],
                 propagate: false,
             )
@@ -28,7 +30,7 @@ def runFor(version) {
 
 @NonCPS
 def sortedVersions() {
-  return commonlib.ocpVersions.sort(false)
+    return commonlib.ocpVersions.sort(false)
 }
 
 node() {

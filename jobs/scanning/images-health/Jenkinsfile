@@ -3,7 +3,6 @@ node() {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
-    buildlib.kinit()
 
     properties(
         [
@@ -13,9 +12,14 @@ node() {
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('BUILD_VERSION'),
                     booleanParam(
-                        name: 'SEND_TO_SLACK',
+                        name: 'SEND_TO_RELEASE_CHANNEL',
                         defaultValue: true,
-                        description: "If false, output will only be sent to console"
+                        description: "If true, send output to #art-release-4-<version>"
+                    ),
+                    booleanParam(
+                        name: 'SEND_TO_AOS_ART',
+                        defaultValue: false,
+                        description: "If true, send notification to #aos-art"
                     ),
                     commonlib.mockParam(),
                 ]
@@ -33,22 +37,27 @@ node() {
 
     def group = "openshift-${params.BUILD_VERSION}"
     def doozerOpts = "--working-dir ${doozer_working} --group ${group} "
+    
+    // If automation is frozen, do not query for images health.
+    // If it is scheduled, report health (but only if triggered by a human)
+    if (! buildlib.isBuildPermitted(doozerOpts)) {
+        return
+    }
 
     timestamps {
 
         releaseChannel = slacklib.to(BUILD_VERSION)
-        /* Disabling notifications in #aos-art until https://issues.redhat.com/browse/ART-3425
-         * is resolved, as it generated quite some noise
-         */
-        // aosArtChannel = slacklib.to("#aos-art")
+        aosArtChannel = slacklib.to("#aos-art")
 
         try {
             report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
             if (report) {
                 echo "The report:\n${report}"
-                if (params.SEND_TO_SLACK) {
+                if (params.SEND_TO_RELEASE_CHANNEL) {
                     releaseChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
-                    // aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
+                }
+                if (params.SEND_TO_AOS_ART) {
+                    aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
                 }
             } else {
                 echo "There are no issues to report."

@@ -157,7 +157,7 @@ node {
                 cmd << "--auto-previous"
             }
 
-            withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
+            buildlib.withAppCiAsArtPublish() {
                 withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                     commonlib.shell(script: cmd.join(' '))
                 }

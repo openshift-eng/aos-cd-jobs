@@ -30,7 +30,7 @@ node() {
             arch_suffix = '-' + arch
         }
         releases = {}
-        withEnv(['KUBECONFIG=/home/jenkins/kubeconfigs/art-publish.app.ci.kubeconfig']) {
+        buildlib.withAppCiAsArtPublish() {
             sh("oc -n ocp${arch_suffix} get is/release${arch_suffix} --output json > release${arch_suffix}.json")
             releases = readJSON(file: "release${arch_suffix}.json")
         }

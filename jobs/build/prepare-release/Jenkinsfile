@@ -78,7 +78,6 @@ node {
 
         commonlib.checkMock()
         stage("initialize") {
-            buildlib.initialize()
             buildlib.registry_quay_dev_login()
             if (params.ASSEMBLY == "stream") {
                 def (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.NAME)

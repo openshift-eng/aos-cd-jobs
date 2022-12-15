@@ -8,19 +8,18 @@ slacklib = commonlib.slacklib
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
 
-def initialize(test=false, checkMock=true, regAws=false) {
-    if (checkMock) {
-        commonlib.checkMock()
-    }
+def initialize(test=false, regAws=false) {
+    this.proxy_setup()
+    this.setup_venv(true)
+    this.path_setup()
 
     // don't bother logging into a registry or getting a krb5 ticket for tests
     if (!test) {
+        this.kinit()
         if (regAws) {
             this.registry_login()
         }
-        this.kinit()
     }
-    this.path_setup()
 
     GITHUB_URLS = [:]
     GITHUB_BASE_PATHS = [:]
@@ -1643,7 +1642,6 @@ def get_releases_config(String group) {
     error("Unable to get releases config: HTTP Error ${r.status}")
 }
 
-this.proxy_setup()
-this.setup_venv(true)
+this.initialize()
 
 return this

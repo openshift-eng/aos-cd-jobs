@@ -117,7 +117,7 @@ for arch in ${ARCHES}; do
 
 
     if [ "$CLIENT_TYPE" == "auto" ]; then
-        if [[ "$RELEASE"  =~ "-[ef]c\.[0-9]+" ]]; then  #
+        if [[ "$RELEASE" =~ -[ef]c\.[0-9]+ ]]; then
             CLIENT_TYPE="ocp-dev-preview"
         else
             CLIENT_TYPE="ocp"

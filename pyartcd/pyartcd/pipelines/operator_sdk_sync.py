@@ -8,8 +8,7 @@ import yaml
 from errata_tool import Erratum
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
-
-_imagePath = 'registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-sdk'
+from pyartcd import constants
 
 
 class OperatorSDKPipeline:
@@ -44,23 +43,24 @@ class OperatorSDKPipeline:
         sdk_build = [i for i in et_builds[f'OSE-{self.version}-RHEL-8']
                      if re.search("openshift-enterprise-operator-sdk-container*", i)]
         if not sdk_build:
-            self._logger.info("Operator SDK build dosen't attached on extra advisory, update subtask 8 then close ...")
+            self._logger.info("No SDK build to ship, update subtask 8 then close ...")
             self._update_jira(self.parent_jira_key, 7,
-                              f"No operator_sdk build in this release's extra advisory.\noperator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+                              f"No SDK build to ship, operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
             return
 
-        build = koji.ClientSession("https://brewhub.engineering.redhat.com/brewhub").getBuild(sdk_build[0])
+        build = koji.ClientSession(constants.BREW_SERVER).getBuild(sdk_build[0])
         archlist = ["amd64", "arm64", "ppc64le", "s390x"]
         sdkVersion = self._get_sdkversion(build['extra']['image']['index']['pull'][0])
         self._logger.info(sdkVersion)
         for arch in archlist:
             self._extract_binaries(arch, sdkVersion, build['extra']['image']['index']['pull'][0])
-        self._update_jira(self.parent_jira_key, 7, f"operator_sdk_sync job : {os.environ.get('BUILD_URL')}")
+        self._update_jira(self.parent_jira_key, 7,
+                          f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
 
     def _get_sdkversion(self, build):
         output = subprocess.getoutput(f"oc image info --filter-by-os amd64 -o json {build} | jq .digest")
         shasum = re.findall("sha256:\\w*", output)[0]
-        cmd = f"oc image extract {_imagePath}@{shasum} --path /usr/local/bin/{self.sdk}:. --confirm && chmod +x {self.sdk} && ./{self.sdk} version && rm {self.sdk}"
+        cmd = f"oc image extract {constants.OPERATOR_URL}@{shasum} --path /usr/local/bin/{self.sdk}:. --confirm && chmod +x {self.sdk} && ./{self.sdk} version && rm {self.sdk}"
         self._logger.info(cmd)
         sdkvalue = subprocess.getoutput(cmd)
         sdkversion = re.findall("v\\d.*-ocp", sdkvalue)[0]
@@ -76,14 +76,14 @@ class OperatorSDKPipeline:
         tarballFilename = f"{self.sdk}-{sdkVersion}-linux-{rarch}.tar.gz"
 
         cmd = f"rm -rf ./{rarch} && mkdir ./{rarch}" + \
-              f" && oc image extract {_imagePath}@{shasum} --path /usr/local/bin/{self.sdk}:./{rarch}/ --confirm" + \
+              f" && oc image extract {constants.OPERATOR_URL}@{shasum} --path /usr/local/bin/{self.sdk}:./{rarch}/ --confirm" + \
               f" && chmod +x ./{rarch}/{self.sdk} && tar -c --preserve-order -z -v --file ./{rarch}/{tarballFilename} ./{rarch}/{self.sdk}" + \
               f" && ln -s {tarballFilename} ./{rarch}/{self.sdk}-linux-{rarch}.tar.gz && rm -f ./{rarch}/{self.sdk}"
         self._logger.info(cmd)
         subprocess.run(cmd, shell=True)
         if arch == 'amd64':
             tarballFilename = f"{self.sdk}-{sdkVersion}-darwin-{rarch}.tar.gz"
-            cmd = f"oc image extract {_imagePath}@{shasum} --path /usr/share/{self.sdk}/mac/{self.sdk}:./{rarch}/ --confirm" + \
+            cmd = f"oc image extract {constants.OPERATOR_URL}@{shasum} --path /usr/share/{self.sdk}/mac/{self.sdk}:./{rarch}/ --confirm" + \
                   f" && chmod +x ./{rarch}/{self.sdk} && tar -c --preserve-order -z -v --file ./{rarch}/{tarballFilename} ./{rarch}/{self.sdk}" + \
                   f" && ln -s {tarballFilename} ./{rarch}/{self.sdk}-darwin-{rarch}.tar.gz && rm -f ./{rarch}/{self.sdk}"
             self._logger.info(cmd)

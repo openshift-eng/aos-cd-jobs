@@ -5,9 +5,18 @@ import boto3
 import openshift as oc
 import json
 import yaml
+import datetime
 import urllib3
 import pathlib
 import subprocess
+
+# Set to "true" if an AMI is selected for garbage collection
+AMI_TAG_KEY_GARBAGE_COLLECT = 'garbage_collect'
+
+# Set to a list of release payloads which may depend on this
+# AMI. Mutually exclusive with garbage_collect. This list
+# may not be exhaustive due to tag size limitations.
+AMI_TAG_KEY_REFERENCED_BY = 'referenced_by'
 
 
 def create_recycle_bin_rule(client, res_type: str):
@@ -16,7 +25,13 @@ def create_recycle_bin_rule(client, res_type: str):
             'RetentionPeriodValue': 60,
             'RetentionPeriodUnit': 'DAYS'
         },
-        Description='string',
+        Tags=[
+            {
+                'Key': 'Name',
+                'Value': f'rhcos-preserve-{res_type}'
+            },
+        ],
+        Description=f'Help protect RHCOS {res_type} from accidental deletion',
         ResourceType=res_type,
     )
     print(f'Created new retention rule: {response["Identifier"]}')
@@ -158,11 +173,13 @@ if __name__ == '__main__':
                 cache_entry = yaml.dump({
                     payload_key: rhcos_in_use[payload_key]
                 })
-                # Write, line by line, to the cache file
+                # Write section by section to cache file in case an error interrupts the full dump
                 f.write(f'{cache_entry}\n')
 
     client = boto3.client('ec2')
     all_aws_regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
+
+    ignore_amis_younger_than = datetime.datetime.now() - datetime.timedelta(days=30)
 
     ami_analysis = dict()
     for aws_region in all_aws_regions:
@@ -170,16 +187,13 @@ if __name__ == '__main__':
         ami_analysis[aws_region] = region_ami_analysis
 
         # Ensure there are recycle bin rules setup to preserve AMI/snapshots
-        # rbin_client = boto3.client('rbin', region_name=aws_region)  # Recycle bin client
-        # snapshot_rules = rbin_client.list_rules(ResourceType='EBS_SNAPSHOT')
-        # if len(snapshot_rules['Rules']) == 0:
-        #     # Create snapshot rule for X day retention
-        #     create_recycle_bin_rule(rbin_client, 'EBS_SNAPSHOT')  # requires new privs
-        #
-        # image_rules = rbin_client.list_rules(ResourceType='EC2_IMAGE')
-        # if len(image_rules['Rules']) == 0:
-        #     # Create ec2 image rule for X day retention
-        #     create_recycle_bin_rule(rbin_client, 'EC2_IMAGE')  # requires new privs
+        rbin_client = boto3.client('rbin', region_name=aws_region)  # Recycle bin client
+        for res_type in ('EBS_SNAPSHOT', 'EC2_IMAGE'):
+            snapshot_rules = rbin_client.list_rules(ResourceType=res_type)
+            if len(snapshot_rules['Rules']) == 0:
+                # Create snapshot rule for X day retention
+                print(f'Creating recycle bin rule for {res_type} in {aws_region}')
+                create_recycle_bin_rule(rbin_client, res_type)
 
         region_client = boto3.client('ec2', region_name=aws_region)
         ec_resource = boto3.resource('ec2', region_name=aws_region)
@@ -192,8 +206,14 @@ if __name__ == '__main__':
             image_description = image.get('Description', None)
             image_creation = image['CreationDate']
             image_tags = image.get('Tags', [])
+            image_tag_keys = [tag['Key'] for tag in image_tags]
 
             print(f'  Checking AMI {image_id} ({image_name})')
+
+            if AMI_TAG_KEY_REFERENCED_BY in image_tag_keys:
+                print(f'    AMI is labeled with {AMI_TAG_KEY_REFERENCED_BY}; preserving.')
+                continue
+
             # Build up a string we are certain will contain the RHCOS version
             ami_info = f'{image_name} {image_description} {image_tags}'
             matches_payload_keys = list()
@@ -213,17 +233,38 @@ if __name__ == '__main__':
                     print(yaml.dump(payload_key_references))
                     raise
 
+                if matches_payload_keys and AMI_TAG_KEY_REFERENCED_BY not in image_tag_keys:
+                    image_resource = ec_resource.Image(image_id)
+                    image_resource.create_tags(
+                        Tags=[
+                            {
+                                'Key': AMI_TAG_KEY_REFERENCED_BY,
+                                'Value': ' '.join(matches_payload_keys)[:250]
+                            },
+                        ]
+                    )
+                    image_tag_keys.append(AMI_TAG_KEY_REFERENCED_BY)
+
+            preserve_ami = len(matches_payload_keys) > 0
+
+            creation_datetime = datetime.datetime.strptime(image_creation, "%Y-%m-%dT%H:%M:%S.%fZ")
+
+            if creation_datetime > ignore_amis_younger_than:
+                print(f'AMI {image_id} will be preserved due to recent creation')
+                preserve_ami = True
+                matches_payload_keys.append('AMI is recent')
+
             # Register pruning information for this image
             region_ami_analysis[image_id] = {
                 'name': image_name,
                 'description': image_description,
                 'creation': image_creation,
                 'tags': image_tags,
-                'preserve': len(matches_payload_keys) > 0,
+                'preserve': preserve_ami,
                 'used_by_payloads': matches_payload_keys,
             }
 
-            if not matches_payload_keys:
+            if not preserve_ami:
                 # No payload matches this RHCOS version. Find EBS snapshots to delete.
                 ebs_snapshots = list()
                 for block_device_mapping in image['BlockDeviceMappings']:
@@ -233,7 +274,19 @@ if __name__ == '__main__':
 
                 region_ami_analysis[image_id]['snapshots'] = ebs_snapshots
 
-            print(f'Adding prune for: {image_id}')
+                if AMI_TAG_KEY_GARBAGE_COLLECT not in image_tag_keys:
+                    image_resource = ec_resource.Image(image_id)
+                    image_resource.create_tags(
+                        Tags=[
+                            {
+                                'Key': AMI_TAG_KEY_GARBAGE_COLLECT,
+                                'Value': 'true'
+                            },
+                        ]
+                    )
+                    print(f'labeled {image_id} in {aws_region}')
+
+            print(f'Assessed: {image_id}')
             print(yaml.dump(region_ami_analysis[image_id]))
 
     analysis = pathlib.Path('analysis.yaml')

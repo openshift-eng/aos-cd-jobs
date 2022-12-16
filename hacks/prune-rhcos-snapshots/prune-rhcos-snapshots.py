@@ -58,24 +58,35 @@ if __name__ == '__main__':
 
     amis_in_use: Set = set()
 
-    git_depth = 0
-    while True:
-        installer_commit: Commit = f'upstream/master~{git_depth}'
-        print(f'  Processing installer commit: {installer_commit}')
-        try:
-            gitshow_process = subprocess.run(['git', '-C', str(installer_git_path), 'show', f'{installer_commit}:data/data/coreos/rhcos.json'], capture_output=True)
-            gitshow_process.check_returncode()
-        except:
-            gitshow_process = subprocess.run(['git', '-C', str(installer_git_path), 'show', f'{installer_commit}:data/data/rhcos.json'], capture_output=True)
-            if gitshow_process.returncode != 0:
-                print(f'Failed to find rhcos.json at depth {git_depth}')
-                break
+    remote_branches_cmd = subprocess.run(
+        ['git', '-C', str(installer_git_path), 'branch', '-r'],
+        capture_output=True)
+    remote_branches_cmd.check_returncode()
+    branch_names = remote_branches_cmd.stdout.decode('utf-8').split()
+    release_branches = filter(lambda branch: 'origin/release-' in branch, branch_names)
+    checked_commits = set()
 
-        # Otherwise gitshow process contains a file like https://github.com/openshift/installer/blob/01adff5d629bb403a6cf49f9d44070762ef77e93/data/data/coreos/rhcos.json
-        # or older format like https://github.com/openshift/installer/blob/bfdba2d19e3fa1105bab93aa4cce8bb7f44b4b2c/data/data/rhcos.json
-        amis_in_file = list(re.findall('ami-[a-z0-9]+', str(gitshow_process.stdout)))
-        amis_in_use.update(amis_in_file)
-        git_depth += 1
+    for release_branch in release_branches:
+        release_branch = release_branch.strip()
+        print(f'Processing branch: {release_branch}')
+
+        for rhcos_path in ('data/data/coreos/rhcos.json', 'data/data/rhcos.json'):
+            gitshow_process = subprocess.run(
+                ['git', '-C', str(installer_git_path), 'log', '--format=%H', release_branch, '--', rhcos_path],
+                capture_output=True)
+            gitshow_process.check_returncode()
+            commits_to_check = set(gitshow_process.stdout.decode('utf-8').split())
+            commits_to_check = commits_to_check.difference(checked_commits)
+
+            for installer_commit in commits_to_check:
+                installer_commit = installer_commit.strip()
+                gitshow_process = subprocess.run(['git', '-C', str(installer_git_path), 'show', f'{installer_commit}:{rhcos_path}'], capture_output=True)
+                if gitshow_process.returncode != 0:
+                    print(f'File {rhcos_path} removed in {installer_commit}')
+                    continue
+                amis_in_file = list(re.findall('ami-[a-z0-9]+', str(gitshow_process.stdout)))
+                amis_in_use.update(amis_in_file)
+                checked_commits.add(installer_commit)
 
     client = boto3.client('ec2')
     all_aws_regions = [region['RegionName'] for region in client.describe_regions()['Regions']]

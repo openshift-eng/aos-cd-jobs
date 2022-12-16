@@ -6,9 +6,9 @@ import click
 import koji
 import yaml
 from errata_tool import Erratum
+from pyartcd import constants
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
-from pyartcd import constants
 
 
 class OperatorSDKPipeline:
@@ -24,8 +24,7 @@ class OperatorSDKPipeline:
         ocp_build_data_repo = runtime.new_github_client().get_repo("openshift/ocp-build-data")
         release_file = ocp_build_data_repo.get_contents("releases.yml", ref=group)
         release_yaml = yaml.load(release_file.decoded_content, Loader=yaml.FullLoader)
-        self.extra_ad_id = release_yaml['releases'][assembly]['assembly']['group']['advisories']['extras']
-        self.parent_jira_key = release_yaml['releases'][assembly]['assembly']['group']['release_jira']
+        self.extra_ad_id, self.parent_jira_key = self.get_ad_jira_key(assembly, release_yaml)
 
     def run(self):
         advisory = Erratum(errata_id=self.extra_ad_id)
@@ -56,6 +55,15 @@ class OperatorSDKPipeline:
             self._extract_binaries(arch, sdkVersion, build['extra']['image']['index']['pull'][0])
         self._update_jira(self.parent_jira_key, 7,
                           f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+
+    def get_ad_jira_key(self, assembly, release_yaml):
+        if 'group' in release_yaml['releases'][assembly]['assembly'].keys():
+            extra_ad_id = release_yaml['releases'][assembly]['assembly']['group']['advisories']['extras']
+            parent_jira_key = release_yaml['releases'][assembly]['assembly']['group']['release_jira']
+            return extra_ad_id, parent_jira_key
+        if 'assembly' not in release_yaml['releases'][assembly]['assembly']['basis'].keys():
+            raise ValueError("Can not find jira and advisory number from assembly")
+        return self.get_ad_jira_key(release_yaml['releases'][assembly]['assembly']['basis']['assembly'], release_yaml)
 
     def _get_sdkversion(self, build):
         output = subprocess.getoutput(f"oc image info --filter-by-os amd64 -o json {build} | jq .digest")

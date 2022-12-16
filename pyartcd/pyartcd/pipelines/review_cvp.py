@@ -84,7 +84,7 @@ class ReviewCVPPipeline:
                     result = await self._create_or_update_pull_request(owner="openshift", repo="ocp-build-data", base=self.group, head=pr_head, title=title, body=body)
                     pr_html_url = result.html_url
                     messages.append("")
-                    messages.append(f"A PR has been created/updated to fix common CVP content_set_check failures: {pr_html_url}, @release-artists")
+                    messages.append(f"A PR has been created/updated to fix common CVP content_set_check failures: {pr_html_url}")
                     self._logger.info(messages[-1])
 
         if not failed and not failed_optional:

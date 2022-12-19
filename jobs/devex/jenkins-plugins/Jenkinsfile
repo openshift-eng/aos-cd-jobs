@@ -27,6 +27,12 @@ properties(
                     $class: 'hudson.model.TextParameterDefinition'
                 ],
                 [
+                    name: 'TRACKERS',
+                    description: 'Comma or space separated list of trackers this build will fix',
+                    $class: 'hudson.model.StringParameterDefinition',
+                    defaultValue: ''
+                ],
+                [
                     name: 'MAIL_LIST_SUCCESS',
                     description: 'Success Mailing List',
                     $class: 'hudson.model.StringParameterDefinition',

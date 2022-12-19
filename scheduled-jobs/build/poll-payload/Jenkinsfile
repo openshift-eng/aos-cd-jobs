@@ -19,9 +19,9 @@ import groovy.json.JsonOutput
     "4-dev-preview-arm64": [this.&setDevPreviewLatest],
 
     "4.12.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMs],
-    // "4.12.0-0.nightly-s390x": [this.&startPreReleaseJob],
-    // "4.12.0-0.nightly-ppc64le": [this.&startPreReleaseJob],
-    // "4.12.0-0.nightly-arm64": [this.&startPreReleaseJob],
+    "4.12.0-0.nightly-s390x": [this.&publishRPMs],
+    "4.12.0-0.nightly-ppc64le": [this.&publishRPMs],
+    "4.12.0-0.nightly-arm64": [this.&publishRPMs],
     "4.12.0-0.nightly-multi": [this.&startPreReleaseJob],
     // 4.11 is not going to be released as a fc/rc named release, so
     // continue to publish as dev-preview until all 4.11 heterogeneous
@@ -51,10 +51,13 @@ def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRele
 }
 
 def publishRPMs(String releaseStream, Map latestRelease, Map previousRelease) {
+    def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
+    def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
     build(
         job: '/aos-cd-builds/build%2Fpublish-rpms',
         parameters: [
-            string(name: 'BUILD_VERSION', value: commonlib.extractMajorMinorVersion(releaseStream)),
+            string(name: 'BUILD_VERSION', value: buildVersion),
+            string(name: 'ARCH', value: arch),
         ],
     )
 }

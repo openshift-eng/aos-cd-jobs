@@ -67,8 +67,7 @@ def buildTarCommand(tarballPath) {
 def stageRunBackup() {
 
     if (env.BUILD_URL.indexOf(backupPlan.srcHost) == -1) {
-        echo "This (${env.BUILD_URL}) is not the backupPlan.srcHost (${backupPlan.srcHost}); skipping"
-        return
+        error("This (${env.BUILD_URL}) is not the backupPlan.srcHost (${backupPlan.srcHost}); skipping")
     }
 
     // 52 backups a year; then backups are overwritten

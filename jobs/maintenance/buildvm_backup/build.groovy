@@ -6,8 +6,8 @@ commonlib = buildlib.commonlib
 // RPMS can periodically be synced with https://unix.stackexchange.com/a/189
 
 backupPlan = [
-    srcHost: 'buildvm.openshift.eng.bos.redhat.com',
-    destHost: 'buildvm2.openshift.eng.bos.redhat.com',
+    srcHost: 'buildvm.hosts.prod.psi.bos.redhat.com',
+    destHost: 'buildvm2.hosts.prod.psi.bos.redhat.com',
     backupPath: '/mnt/workspace/backups/buildvm', // must exist on both src and dest host
     files: [
         '/etc/sysconfig/jenkins',  // config file for jenkins server

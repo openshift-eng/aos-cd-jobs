@@ -85,7 +85,7 @@ def startBuildMicroshiftJob(String releaseStream, Map latestRelease, Map previou
         propagate: false,
         parameters: [
             string(name: 'BUILD_VERSION', value: buildVersion),
-            string(name: 'ASSEMBLY', value: "test"),
+            string(name: 'ASSEMBLY', value: "microshift"),
             string(name: 'RELEASE_PAYLOADS', value: nightlies),
             booleanParam(name: 'UPDATE_POCKET', value: false),
         ]

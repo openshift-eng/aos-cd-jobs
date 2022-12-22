@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 import os
-import re
 
 import boto3
-import openshift as oc
 import re
-import json
 import yaml
 from typing import Dict, List, Set
 import datetime
@@ -54,6 +51,14 @@ if __name__ == '__main__':
         print(f'Requires recent clone of github.com/openshift/installer in GOPATH: {str(installer_git_path)}')
         exit(1)
 
+    # Ensure that the latest commits are available
+    print('Fetching installer upstream...')
+    fetch_all_cmd = subprocess.run(
+        ['git', '-C', str(installer_git_path), 'fetch', 'upstream'],
+        capture_output=True)
+    print(fetch_all_cmd.stdout.decode('utf-8'))
+    fetch_all_cmd.check_returncode()
+
     http = urllib3.PoolManager()
 
     amis_in_use: Set = set()
@@ -63,7 +68,7 @@ if __name__ == '__main__':
         capture_output=True)
     remote_branches_cmd.check_returncode()
     branch_names = remote_branches_cmd.stdout.decode('utf-8').split()
-    release_branches = filter(lambda branch: 'origin/release-' in branch, branch_names)
+    release_branches = filter(lambda branch: 'upstream/release-' in branch, branch_names)
     checked_commits = set()
 
     for release_branch in release_branches:
@@ -97,6 +102,7 @@ if __name__ == '__main__':
     all_amis: Set[AmiId] = set()
     production_to_preserve: Set[AmiId] = set()
     young_amis_to_preserve: Set[AmiId] = set()
+    tagged_for_gc: Set[AmiId] = set()
 
     for aws_region in all_aws_regions:
         region_ami_analysis = dict()
@@ -140,14 +146,14 @@ if __name__ == '__main__':
                 preserve_ami = True
                 production_to_preserve.add(image_id)
                 image_resource = ec_resource.Image(image_id)
-                # image_resource.create_tags(
-                #     Tags=[
-                #         {
-                #             'Key': AMI_TAG_KEY_PRODUCTION,
-                #             'Value': 'true',
-                #         },
-                #     ]
-                # )
+                image_resource.create_tags(
+                    Tags=[
+                        {
+                            'Key': AMI_TAG_KEY_PRODUCTION,
+                            'Value': 'true',
+                        },
+                    ]
+                )
 
             creation_datetime = datetime.datetime.strptime(image_creation, "%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -165,7 +171,15 @@ if __name__ == '__main__':
                 'preserve': preserve_ami,
             }
 
-            if not preserve_ami:
+            if preserve_ami:
+                if AMI_TAG_KEY_GARBAGE_COLLECT in image_tag_keys:
+                    region_client.delete_tags(
+                        Resources=[image_id],
+                        Tags=[{
+                            "Key": AMI_TAG_KEY_GARBAGE_COLLECT
+                        }]
+                    )
+            else:
                 # No payload matches this RHCOS version. Find EBS snapshots to delete.
                 ebs_snapshots = list()
                 for block_device_mapping in image['BlockDeviceMappings']:
@@ -175,22 +189,24 @@ if __name__ == '__main__':
 
                 region_ami_analysis[image_id]['snapshots'] = ebs_snapshots
 
-                # if AMI_TAG_KEY_GARBAGE_COLLECT not in image_tag_keys:
-                #     image_resource = ec_resource.Image(image_id)
-                #     image_resource.create_tags(
-                #         Tags=[
-                #             {
-                #                 'Key': AMI_TAG_KEY_GARBAGE_COLLECT,
-                #                 'Value': 'true'
-                #             },
-                #         ]
-                #     )
-                #     print(f'labeled {image_id} in {aws_region}')
+                tagged_for_gc.add(image_id)
+                if AMI_TAG_KEY_GARBAGE_COLLECT not in image_tag_keys:
+                    image_resource = ec_resource.Image(image_id)
+                    image_resource.create_tags(
+                        Tags=[
+                            {
+                                'Key': AMI_TAG_KEY_GARBAGE_COLLECT,
+                                'Value': 'true'
+                            },
+                        ]
+                    )
+                    print(f'labeled {image_id} in {aws_region}')
 
             print(f'Assessed: {image_id}')
             print(yaml.dump(region_ami_analysis[image_id]))
 
     print(f'Found a total of {len(all_amis)} in account')
+    print(f'Tagged {len(tagged_for_gc)} images for garbage collection')
     print(f'Detected {len(young_amis_to_preserve)} young AMIs to preserve')
     print(f'Installer commits suggest {len(amis_in_use)} AMIs need to be preserved')
     print(f'Detected {len(production_to_preserve)} of those AMIs in the account')

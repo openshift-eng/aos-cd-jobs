@@ -11,7 +11,7 @@ node() {
 
     try {
         withCredentials([
-                            string(credentialsId: "art-bot-slack-api-token", variable: "SLACK_API_TOKEN"),
+                            string(credentialsId: "art-bot-slack-token", variable: "SLACK_API_TOKEN"),
                             string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
                             string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
                         ]) {

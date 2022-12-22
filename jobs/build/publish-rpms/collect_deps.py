@@ -127,9 +127,9 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
         # yum doesn't honor cachedir in the yum.conf. It keeps a user specific cache
         # https://unix.stackexchange.com/questions/92257/yum-user-temp-files-var-tmp-yum-fills-up-with-repo-data
         # override the location using TMPDIR
-        tmp_dir = working_dir.joinpath('tmp')
+        tmp_dir = working_dir / "tmp"
         tmp_dir.mkdir(parents=True, exist_ok=True)
-        env['TMPDIR'] = working_dir.joinpath('tmp')
+        env['TMPDIR'] = str(tmp_dir)
         process = await asyncio.subprocess.create_subprocess_exec(*cmd, env=env)
         rc = await process.wait()
         if rc != 0:

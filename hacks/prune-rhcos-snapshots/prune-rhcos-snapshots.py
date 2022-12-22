@@ -63,7 +63,7 @@ if __name__ == '__main__':
         capture_output=True)
     remote_branches_cmd.check_returncode()
     branch_names = remote_branches_cmd.stdout.decode('utf-8').split()
-    release_branches = filter(lambda branch: 'origin/release-' in branch, branch_names)
+    release_branches = filter(lambda branch: 'upstream/release-' in branch, branch_names)
     checked_commits = set()
 
     for release_branch in release_branches:

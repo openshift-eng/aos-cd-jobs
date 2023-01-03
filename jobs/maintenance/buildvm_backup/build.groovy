@@ -72,7 +72,8 @@ def stageRunBackup() {
 
     // 52 backups a year; then backups are overwritten
     def weekOfYear = new Date().format("w")
-    tarballPath = "${backupPlan.backupPath}/${backupPlan.srcHost}.week-${weekOfYear}.tgz"
+    tarballName = "${backupPlan.srcHost}.week-${weekOfYear}.tgz"
+    tarballPath = "${backupPlan.backupPath}/${tarballName}"
     def tarCmd = buildTarCommand(tarballPath)
 
     def cmds = [
@@ -87,15 +88,24 @@ def stageRunBackup() {
         return
     }
 
+    // Create tar archives
     tarRes = commonlib.shell(
             returnAll: true,
             script: cmds.join('\n')
     )
 
+    // Even if an error raised during archive creation,
+    // upload to S3 what we have... better than nothing
+    withCredentials([aws(credentialsId: 's3-art-buildvm-backup', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        commonlib.shell("aws s3 cp ${tarballPath} s3://art-buildvm-backup/archives/${tarballName}")
+    }
+
+    // Notify errors raised during tarball creation
     if (tarRes.returnStatus != 0) {
         error("Error creating local tar")
     }
 
+    // Upload tarball to buildvm2
     scpRes = commonlib.shell(
             returnAll: true,
             script: """
@@ -104,6 +114,7 @@ def stageRunBackup() {
             """
     )
 
+    // Notify errors raised during tarball upload
     if (scpRes.returnStatus != 0) {
         error("Error copying tar to destination host: ${backupPlan.destHost}")
     }

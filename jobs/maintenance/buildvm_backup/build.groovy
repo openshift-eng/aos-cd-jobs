@@ -33,7 +33,7 @@ backupPlan = [
         '/home/jenkins/go',
 
         // Jenkins war
-        '/usr/lib/jenkins',
+        '/usr/share/java',
 
         // Jenkins configuration, plugins, etc
         '/mnt/nfs/jenkins_home/*.xml',

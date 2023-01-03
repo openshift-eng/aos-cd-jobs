@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 import os
-import re
 
 import boto3
-import openshift as oc
 import re
-import json
 import yaml
 from typing import Dict, List, Set
 import datetime
@@ -140,14 +137,14 @@ if __name__ == '__main__':
                 preserve_ami = True
                 production_to_preserve.add(image_id)
                 image_resource = ec_resource.Image(image_id)
-                # image_resource.create_tags(
-                #     Tags=[
-                #         {
-                #             'Key': AMI_TAG_KEY_PRODUCTION,
-                #             'Value': 'true',
-                #         },
-                #     ]
-                # )
+                image_resource.create_tags(
+                    Tags=[
+                        {
+                            'Key': AMI_TAG_KEY_PRODUCTION,
+                            'Value': 'true',
+                        },
+                    ]
+                )
 
             creation_datetime = datetime.datetime.strptime(image_creation, "%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -175,17 +172,25 @@ if __name__ == '__main__':
 
                 region_ami_analysis[image_id]['snapshots'] = ebs_snapshots
 
-                # if AMI_TAG_KEY_GARBAGE_COLLECT not in image_tag_keys:
-                #     image_resource = ec_resource.Image(image_id)
-                #     image_resource.create_tags(
-                #         Tags=[
-                #             {
-                #                 'Key': AMI_TAG_KEY_GARBAGE_COLLECT,
-                #                 'Value': 'true'
-                #             },
-                #         ]
-                #     )
-                #     print(f'labeled {image_id} in {aws_region}')
+                if AMI_TAG_KEY_GARBAGE_COLLECT not in image_tag_keys:
+                    image_resource = ec_resource.Image(image_id)
+                    image_resource.create_tags(
+                        Tags=[
+                            {
+                                'Key': AMI_TAG_KEY_GARBAGE_COLLECT,
+                                'Value': 'true'
+                            },
+                        ]
+                    )
+                    print(f'labeled {image_id} in {aws_region}')
+            else:
+                # If an image was erroneously tagged, delete the tag.
+                if AMI_TAG_KEY_GARBAGE_COLLECT in image_tag_keys:
+                    for tag_entry in image_tags:
+                        if tag_entry['Key'] == AMI_TAG_KEY_GARBAGE_COLLECT:
+                            exit(0)  # DEBUG DEBUG DEBUG
+                            tag = ec_resource.Tag(image_id, AMI_TAG_KEY_GARBAGE_COLLECT, tag_entry['Value'])
+                            tag.delete()
 
             print(f'Assessed: {image_id}')
             print(yaml.dump(region_ami_analysis[image_id]))

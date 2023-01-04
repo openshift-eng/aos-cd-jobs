@@ -88,12 +88,27 @@ if __name__ == '__main__':
         production_count += len(production_images)
         gc_count += len(gc_images)
 
-        print(f'Planning to deregister {len(gc_images)} from {aws_region}')
+        ebs_snapshot_ids = set()
+
+        print(f'Planning to deregister {len(gc_images)} AMIs from {aws_region}')
         for image in gc_images:
             image_id = image['ImageId']
             image_resource = ec_resource.Image(image_id)
+
+            for block_device_mapping in image['BlockDeviceMappings']:
+                if 'Ebs' in block_device_mapping and 'SnapshotId' in block_device_mapping['Ebs']:
+                    snapshot_id = block_device_mapping['Ebs']['SnapshotId']
+                    # Snapshots cannot be deleted until the image(s) referencing them have been deregistered
+                    ebs_snapshot_ids.add(snapshot_id)
+
             image_resource.deregister()
             print(f'Deregistered: {image_id}')
+
+        # delete referenced snapshots
+        for snapshot_id in ebs_snapshot_ids:
+            snapshot = ec_resource.Snapshot(snapshot_id)
+            snapshot.delete()
+            print(f'Deleted snapshot: {snapshot_id}')
 
     print(f'Saved {production_count} images.')
     print(f'Deregistered {gc_count} images.')

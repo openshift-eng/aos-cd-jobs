@@ -44,26 +44,10 @@ if __name__ == '__main__':
 
     print(json.dumps(all_matches))
 
-    fallback_text = "Currently unresolved ART threads:"
+    header_text = "Currently unresolved ART threads"
+    fallback_text = header_text
 
-    message_blocks = [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": fallback_text,
-                "emoji": True
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"Attention @{RELEASE_ARTIST_HANDLE}"
-            }
-        }
-    ]
-
+    message_blocks = []
     current_epoch_time = time.time()
     for match in all_matches:
         team_id = match.get('team', '')
@@ -118,7 +102,31 @@ if __name__ == '__main__':
             },
         )
 
+    header_block = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"{header_text} ({len(message_blocks)})",
+                "emoji": True
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Attention @{RELEASE_ARTIST_HANDLE}"
+            }
+        }
+    ]
+
+    # https://api.slack.com/methods/chat.postMessage#examples
+    response = app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+                                           text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
+                                           blocks=header_block,
+                                           unfurl_links=False)
+
     app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
                                 text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
                                 blocks=message_blocks,
-                                unfurl_links=False)
+                                thread_ts=response['ts'])  # use the timestamp from the response

@@ -219,10 +219,19 @@ node {
 
             if (failCount > 1) {
                 msg = "Pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
-                if (failCount % 2 == 0) {  // spam ourselves a little more often than forum-release
+                artNotifyFrequency = 2
+                forumReleaseNotifyFrequency = 5
+                if (failCount > 10) {
+                    artNotifyFrequency = 5
+                    forumReleaseNotifyFrequency = 10
+                } else if (failCount > 50) {
+                    artNotifyFrequency = 10
+                    forumReleaseNotifyFrequency = 20
+                }
+                if (failCount % artNotifyFrequency == 0) {  // spam ourselves a little more often than forum-release
                     slacklib.to(params.BUILD_VERSION).failure(msg)
                 }
-                if (assembly == "stream" && (failCount % 5 == 0) && (failCount < 50)) {
+                if (assembly == "stream" && (failCount % forumReleaseNotifyFrequency == 0)) {
                     if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
                         // For development releases, notify TRT and release artists
                         slacklib.to("#forum-release-oversight").failure("@release-artists ${msg}")

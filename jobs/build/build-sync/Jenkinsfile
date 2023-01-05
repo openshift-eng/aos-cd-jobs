@@ -219,6 +219,7 @@ node {
 
             if (failCount > 1) {
                 msg = "Pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
+                // TODO: https://issues.redhat.com/browse/ART-5657
                 artNotifyFrequency = 2
                 forumReleaseNotifyFrequency = 5
                 if (failCount > 10) {

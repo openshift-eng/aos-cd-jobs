@@ -135,3 +135,28 @@ async def branch_arches(group: str, assembly: str, ga_only: bool = False) -> lis
 
     # Otherwise, read supported arches from group config
     return group_config['arches']
+
+
+def get_changes(yaml_data: dict) -> dict:
+    """
+    Scans data outputted by config:scan-sources yaml and records changed
+    elements in the object it returns.
+    The return dict has optional .rpms, .images and .rhcos fields,
+    that are omitted if no change was detected.
+    """
+
+    changes = {}
+
+    rpms = [rpm['name'] for rpm in yaml_data['rpms'] if rpm['changed']]
+    if rpms:
+        changes['rpms'] = rpms
+
+    images = [image['name'] for image in yaml_data['images'] if image['changed']]
+    if images:
+        changes['images'] = images
+
+    rhcos = [rhcos['name'] for rhcos in yaml_data['rhcos'] if rhcos['changed']]
+    if rhcos:
+        changes['rhcos'] = rhcos
+
+    return changes

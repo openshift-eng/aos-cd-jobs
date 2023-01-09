@@ -31,7 +31,7 @@ yaml.preserve_quotes = True
 class BuildMicroShiftPipeline:
     """ Rebase and build MicroShift for an assembly """
 
-    SUPPORTED_ASSEMBLY_TYPES = {AssemblyTypes.STANDARD, AssemblyTypes.CANDIDATE, AssemblyTypes.PREVIEW, AssemblyTypes.STREAM}
+    SUPPORTED_ASSEMBLY_TYPES = {AssemblyTypes.STANDARD, AssemblyTypes.CANDIDATE, AssemblyTypes.PREVIEW, AssemblyTypes.STREAM, AssemblyTypes.CUSTOM}
 
     def __init__(self, runtime: Runtime, group: str, assembly: str, payloads: Tuple[str, ...], no_rebase: bool,
                  ocp_build_data_url: str, logger: Optional[logging.Logger] = None):
@@ -93,7 +93,7 @@ class BuildMicroShiftPipeline:
                 release_name = util.get_release_name_for_assembly(self.group, releases_config, self.assembly)
 
             # Rebases and builds microshift
-            if assembly_type is not assembly_type.STREAM:
+            if assembly_type is not AssemblyTypes.STREAM:
                 slack_client = self.runtime.new_slack_client()
                 slack_client.bind_channel(self.group)
                 slack_response = await slack_client.say(f":construction: Build microshift for assembly {self.assembly} :construction:")
@@ -111,7 +111,8 @@ class BuildMicroShiftPipeline:
             message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
-                message += "\nTo publish the build to the pocket, run update-microshift-pocket job after the PR is merged."
+                if assembly_type is AssemblyTypes.PREVIEW:
+                    message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with UPDATE_PUB_MIRROR checked after the PR is merged."
             if slack_client:
                 await slack_client.say(message, slack_thread)
         except Exception as err:

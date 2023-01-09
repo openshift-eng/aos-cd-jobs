@@ -723,7 +723,7 @@ def checkS3Path(s3_path) {
     }
 }
 
-def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60) {
+def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, dry_run=false) {
     try {
         checkS3Path(s3_path)
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
@@ -733,15 +733,17 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60) 
                     // users of the repo will get a 404. So we run in three passes:
                     // 1. On the first pass, exclude files like repomd.xml and do not delete any old files. This ensures that we  are only adding
                     // new rpms, filelist archives, etc.
-                    shell(script: "aws s3 sync --no-progress --exact-timestamps --exclude '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}") // Note that s3_path has / prefix.
+                    def opts = '--no-progress --exact-timestamps'
+                    if (dry_run) opts += ' --dryrun'
+                    shell(script: "aws s3 sync ${opts} --exclude '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}") // Note that s3_path has / prefix.
                     // 2. On the second pass, include only the repomd.xml.
-                    shell(script: "aws s3 sync --no-progress --exact-timestamps --exclude '*' --include '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}")
+                    shell(script: "aws s3 sync ${opts} --exclude '*' --include '*/repomd.xml' ${local_dir} s3://art-srv-enterprise${s3_path}")
                     if (remove_old) {
                         // For most repos, clean up the old rpms so they don't grow unbounded. Specify remove_old=false
                         // to prevent this step.
                         // Otherwise:
                         // 3. Everything should be sync'd in a consistent way -- delete anything old with --delete.
-                        shell(script: "aws s3 sync --no-progress --exact-timestamps --delete  ${local_dir} s3://art-srv-enterprise${s3_path}")
+                        shell(script: "aws s3 sync ${opts} --delete ${local_dir} s3://art-srv-enterprise${s3_path}")
                     }
                 }
             }

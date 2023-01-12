@@ -207,6 +207,18 @@ node {
                 """)
             }
         }
+
+        // run publish_azure_marketplace when publishing RHCOS bootimages
+        stage("Publish azure marketplace") {
+            build(
+                job: 'build%2publish_azure_marketplace',
+                propagate: false,
+                wait: true,
+                parameters: [
+                    string(name: 'VERSION', value: ocpVersion),
+                ]
+            )
+        }
     } catch ( err ) {
         slacklib.to(ocpVersion).say("""
         *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*

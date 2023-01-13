@@ -143,15 +143,17 @@ pipeline {
                         }
                         def doozer_opts = "--working-dir ${doozer_working} -g '${groupParam}'"
 
-                        buildlib.doozer("${doozer_opts} ${cmd}")
-                        def record_log = buildlib.parse_record_log(doozer_working)
-                        def records = record_log.get('build_olm_bundle', [])
-                        def bundle_nvrs = []
-                        for (record in records) {
-                            if (record['status'] != '0') {
-                                throw new Exception("record.log includes unexpected build_olm_bundle record with error message: ${record['message']}")
+                        timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                            buildlib.doozer("${doozer_opts} ${cmd}")
+                            def record_log = buildlib.parse_record_log(doozer_working)
+                            def records = record_log.get('build_olm_bundle', [])
+                            def bundle_nvrs = []
+                            for (record in records) {
+                                if (record['status'] != '0') {
+                                    throw new Exception("record.log includes unexpected build_olm_bundle record with error message: ${record['message']}")
+                                }
+                                bundle_nvrs << record["bundle_nvr"]
                             }
-                            bundle_nvrs << record["bundle_nvr"]
                         }
                     }
                     echo "Successfully built:\n${bundle_nvrs.join('\n')}"

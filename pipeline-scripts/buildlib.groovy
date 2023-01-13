@@ -635,37 +635,6 @@ def param(type, name, value) {
     return [$class: type + 'ParameterValue', name: name, value: value]
 }
 
-def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail_list) {
-    if(major < 3 || (major == 3 && minor < 9))
-        return
-    final full_version = "${version}-${release}"
-    try {
-        build(job: 'build%2Faws-ami', parameters: [
-            param('String', 'OPENSHIFT_VERSION', version),
-            param('String', 'OPENSHIFT_RELEASE', release),
-            param('String', 'YUM_BASE_URL', yum_base_url),
-            param('String', 'OPENSHIFT_ANSIBLE_CHECKOUT', ansible_branch),
-            param('Boolean', 'USE_CRIO', true),
-            param(
-                'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
-                'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
-                    + full_version)])
-    } catch(err) {
-        commonlib.email(
-            to: "${mail_list},jupierce@redhat.com,openshift-cr@redhat.com",
-            from: "aos-cicd@redhat.com",
-            subject: "RESUMABLE Error during AMI build for OCP v${full_version}",
-            body: [
-                "Encountered an error: ${err}",
-                "Input URL: ${env.BUILD_URL}input",
-                "Jenkins job: ${env.BUILD_URL}"
-            ].join('\n')
-        )
-
-        // Continue on, this is not considered a fatal error
-    }
-}
-
 /**
  * Trigger sweep job.
  *

@@ -207,6 +207,21 @@ node {
                 """)
             }
         }
+
+        // run publish_azure_marketplace when publishing RHCOS bootimages for 4.10+
+        stage("Publish azure marketplace") {
+            if ( buildlib.cmp_version(ocpVersion, "4.9") == 1 ) {
+                build(
+                    job: 'build%2publish_azure_marketplace',
+                    wait: true,
+                    parameters: [
+                        string(name: 'VERSION', value: ocpVersion),
+                    ]
+                )
+            } else {
+                echo "Skipping publish azure marketplace due to ocpversion lower than 4.10."
+            }
+        }
     } catch ( err ) {
         slacklib.to(ocpVersion).say("""
         *:heavy_exclamation_mark: rhcos_sync ${mirrorPrefix} failed*

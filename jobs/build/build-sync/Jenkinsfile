@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-node {
+node('covscan') {
 
     checkout scm
     def buildlib = load("pipeline-scripts/buildlib.groovy")

@@ -167,8 +167,15 @@ class PrepareReleasePipeline:
                     advisories["metadata"] = self.create_advisory("RHBA", "image", "metadata")
                 else:
                     _LOGGER.info("Reusing existing metadata advisory %s", advisories["metadata"])
+            # microshift advisory is present since 4.12
+            if self.release_version >= (4, 12):
+                if advisories.get("microshift", 0) <= 0:
+                    advisories["microshift"] = self.create_advisory("RHBA", "rpm", "microshift")
+                else:
+                    _LOGGER.info("Reusing existing microshift advisory %s", advisories["microshift"])
 
         jira_issue_key = group_config.get("release_jira")
+        jira_issue = None
         jira_template_vars = {
             "release_name": self.release_name,
             "x": self.release_version[0],
@@ -183,50 +190,37 @@ class PrepareReleasePipeline:
             jira_issue = self._jira_client.get_issue(jira_issue_key)
             subtasks = [self._jira_client.get_issue(subtask.key) for subtask in jira_issue.fields.subtasks]
             self.update_release_jira(jira_issue, subtasks, jira_template_vars)
-            _LOGGER.info("Updating prepare release subtask")
-            parent_jira = self._jira_client.get_issue(jira_issue_key)
-            subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[1].key)
-            self._jira_client.add_comment(
-                subtask,
-                "prepare release job : {}".format(os.environ.get("BUILD_URL"))
-            )
-            self._jira_client.assign_to_me(subtask)
-            self._jira_client.close_task(subtask)
-            self._jira_client.start_task(parent_jira)
         else:
             _LOGGER.info("Creating a release JIRA...")
             jira_issues = self.create_release_jira(jira_template_vars)
             jira_issue = jira_issues[0] if jira_issues else None
             jira_issue_key = jira_issue.key if jira_issue else None
-            _LOGGER.info("Updating prepare release subtask")
-            if jira_issue_key:
-                parent_jira = self._jira_client.get_issue(jira_issue_key)
-                subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[1].key)
+
+        if jira_issue_key:
+            _LOGGER.info("Updating Jira ticket status...")
+            if not self.runtime.dry_run:
+                subtask = jira_issue.fields.subtasks[1]
                 self._jira_client.add_comment(
                     subtask,
                     "prepare release job : {}".format(os.environ.get("BUILD_URL"))
                 )
                 self._jira_client.assign_to_me(subtask)
                 self._jira_client.close_task(subtask)
-                self._jira_client.start_task(parent_jira)
+                self._jira_client.start_task(jira_issue)
+            else:
+                _LOGGER.warning("[DRY RUN ]Would have updated Jira ticket status")
 
         _LOGGER.info("Updating ocp-build-data...")
         build_data_changed = await self.update_build_data(advisories, jira_issue_key)
 
         _LOGGER.info("Sweep builds into the the advisories...")
-        for kind, advisory in advisories.items():
+        for impetus, advisory in advisories.items():
             if not advisory:
                 continue
-            if kind == "rpm":
-                self.sweep_builds("rpm", advisory)
-            elif kind == "image":
-                self.sweep_builds(
-                    "image", advisory, only_payload=self.release_version[0] >= 4
-                )
-            elif kind == "extras":
-                self.sweep_builds("image", advisory, only_non_payload=True)
-            elif kind == "metadata":
+            if impetus == "metadata":
                 await self.build_and_attach_bundles(advisory)
+                continue
+            await self.sweep_builds_async(impetus, advisory)
 
         # bugs should be swept after builds to have validation
         # for only those bugs to be attached which have corresponding brew builds
@@ -236,12 +230,12 @@ class PrepareReleasePipeline:
         self.sweep_bugs(check_builds=True)
 
         _LOGGER.info("Adding placeholder bugs...")
-        for kind, advisory in advisories.items():
+        for impetus, advisory in advisories.items():
             bug_ids = get_bug_ids(advisory)
             jira_ids = get_jira_issue_from_advisory(advisory)
             if not bug_ids and not jira_ids:  # Only create placeholder bug if the advisory has no attached bugs
-                _LOGGER.info("Create placeholder bug for %s advisory %s...", kind, advisory)
-                self.create_and_attach_placeholder_bug(kind, advisory)
+                _LOGGER.info("Create placeholder bug for %s advisory %s...", impetus, advisory)
+                self.create_and_attach_placeholder_bug(impetus, advisory)
 
         _LOGGER.info("Processing attached Security Trackers")
         for _, advisory in advisories.items():
@@ -264,14 +258,14 @@ class PrepareReleasePipeline:
             self.send_notification_email(advisories, jira_issue_link)
 
         # Move advisories to QE
-        for kind, advisory in advisories.items():
+        for impetus, advisory in advisories.items():
             try:
-                if kind == "metadata":
+                if impetus == "metadata":
                     # Verify attached operators
                     await self.verify_attached_operators(advisories["image"], advisories["extras"], advisories["metadata"])
                 self.change_advisory_state(advisory, "QE")
             except CalledProcessError as ex:
-                _LOGGER.warning(f"Unable to move {kind} advisory {advisory} to QE: {ex}")
+                _LOGGER.warning(f"Unable to move {impetus} advisory {advisory} to QE: {ex}")
 
     async def load_releases_config(self) -> Optional[None]:
         repo = self.working_dir / "ocp-build-data-push"
@@ -398,9 +392,9 @@ class PrepareReleasePipeline:
             # update advisory numbers in group.yml
             with open(repo / "group.yml", "r") as f:
                 group_config = f.read()
-            for kind, advisory in advisories.items():
+            for impetus, advisory in advisories.items():
                 new_group_config = re.sub(
-                    fr"^(\s+{kind}:)\s*[0-9]+$", fr"\1 {advisory}", group_config, count=1, flags=re.MULTILINE
+                    fr"^(\s+{impetus}:)\s*[0-9]+$", fr"\1 {advisory}", group_config, count=1, flags=re.MULTILINE
                 )
                 group_config = new_group_config
             # freeze automation
@@ -443,14 +437,14 @@ class PrepareReleasePipeline:
             _LOGGER.warn("Would have pushed changes to upstream")
         return True
 
-    def create_and_attach_placeholder_bug(self, kind: str, advisory: int):
+    def create_and_attach_placeholder_bug(self, impetus: str, advisory: int):
         cmd = [
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
             "--assembly", self.assembly,
             "create-placeholder",
-            f"--kind={kind}",
+            f"--kind={impetus}",  # --kind in this command is actually `impetus`
             f"--attach={advisory}",
         ]
         _LOGGER.info("Running command: %s", cmd)
@@ -498,27 +492,45 @@ class PrepareReleasePipeline:
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
-    def sweep_builds(
-        self, kind: str, advisory: int, only_payload=False, only_non_payload=False
-    ):
+    async def sweep_builds_async(
+        self, impetus: str, advisory: int):
+        only_payload = False
+        only_non_payload = False
+        if impetus in ["rpm", "microshift"]:
+            kind = "rpm"
+        elif impetus in ["image", "extras"]:
+            kind = "image"
+            if impetus == "image" and self.release_version[0] >= 4:
+                only_payload = True  # OCP 4+ image advisory only contains payload images
+            elif impetus == "extras":
+                only_non_payload = True
+        else:
+            raise ValueError("Specified impetus is not supported: %s", impetus)
         cmd = [
             "elliott",
             f"--working-dir={self.elliott_working_dir}",
             f"--group={self.group_name}",
             "--assembly", self.assembly,
+        ]
+        if impetus == "microshift":  # microshift rpm is set to `mode: disabled`, which needs to be explicitly included
+            cmd.append("--rpms=microshift")
+        cmd.extend([
             "find-builds",
             f"--kind={kind}",
-        ]
+        ])
         if only_payload:
             cmd.append("--payload")
         if only_non_payload:
             cmd.append("--non-payload")
         if self.include_shipped:
             cmd.append("--include-shipped")
+        if impetus == "microshift":
+            # By default, elliott sweeps every tagged rpm. We need `--member-only` to only sweep those listed in `--rpms`.
+            cmd.append("--member-only")
         if not self.dry_run:
             cmd.append(f"--attach={advisory}")
         _LOGGER.info("Running command: %s", cmd)
-        subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, cwd=self.working_dir)
 
     def change_advisory_state(self, advisory: int, state: str):
         cmd = [
@@ -699,9 +711,9 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
     def send_notification_email(self, advisories: Dict[str, int], jira_link: str):
         subject = f"OCP {self.release_name} advisories and nightlies"
         content = f"This is the current set of advisories for {self.release_name}:\n"
-        for kind, advisory in advisories.items():
+        for impetus, advisory in advisories.items():
             content += (
-                f"- {kind}: https://errata.devel.redhat.com/advisory/{advisory}\n"
+                f"- {impetus}: https://errata.devel.redhat.com/advisory/{advisory}\n"
             )
         if self.candidate_nightlies:
             content += "\nNightlies:\n"
@@ -735,11 +747,11 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
               help="Do not filter our shipped builds, attach all builds to advisory")
 @pass_runtime
 @click_coroutine
-async def rebuild(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
+async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
                   package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
     # parse environment variables for credentials
     jira_token = os.environ.get("JIRA_TOKEN")
-    if not jira_token:
+    if not runtime.dry_run and not jira_token:
         raise ValueError("JIRA_TOKEN environment variable is not set")
     # start pipeline
     pipeline = PrepareReleasePipeline(

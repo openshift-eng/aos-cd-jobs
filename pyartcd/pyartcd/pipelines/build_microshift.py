@@ -111,8 +111,10 @@ class BuildMicroShiftPipeline:
             message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
+                message += "\nTo publish the build to the pocket (if asked by QE), run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fupdate-microshift-pocket/|update-microshift-pocket> job after the PR is merged."
+                message += f"\nTo attach the build to Errata, run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fprepare-release/|prepare-release> job or `elliott --group {self.group} --assembly {self.assembly} --rpms microshift find-builds -k rpm --member-only --use-default-advisory microshift` after the PR is merged."
                 if assembly_type is AssemblyTypes.PREVIEW:
-                    message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with UPDATE_PUB_MIRROR checked after the PR is merged."
+                    message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with `UPDATE_PUB_MIRROR` checked after the PR is merged."
             if slack_client:
                 await slack_client.say(message, slack_thread)
         except Exception as err:

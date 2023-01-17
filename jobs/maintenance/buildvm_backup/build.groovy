@@ -7,7 +7,6 @@ commonlib = buildlib.commonlib
 
 backupPlan = [
     srcHost: 'buildvm.hosts.prod.psi.bos.redhat.com',
-    destHost: 'buildvm2.hosts.prod.psi.bos.redhat.com',
     backupPath: '/mnt/workspace/backups/buildvm', // must exist on both src and dest host
     files: [
         '/etc/sysconfig/jenkins',  // config file for jenkins server
@@ -104,21 +103,6 @@ def stageRunBackup() {
     if (tarRes.returnStatus != 0) {
         error("Error creating local tar")
     }
-
-    // Upload tarball to buildvm2
-    scpRes = commonlib.shell(
-            returnAll: true,
-            script: """
-              ssh -l root ${backupPlan.destHost} mkdir -p ${backupPlan.backupPath}
-              scp ${tarballPath} root@${backupPlan.destHost}:${tarballPath}
-            """
-    )
-
-    // Notify errors raised during tarball upload
-    if (scpRes.returnStatus != 0) {
-        error("Error copying tar to destination host: ${backupPlan.destHost}")
-    }
-
 }
 
 return this

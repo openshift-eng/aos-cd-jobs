@@ -195,7 +195,7 @@ class PrepareReleasePipeline:
             jira_issues = self.create_release_jira(jira_template_vars)
             jira_issue = jira_issues[0] if jira_issues else None
             jira_issue_key = jira_issue.key if jira_issue else None
-            subtasks = [self._jira_client.get_issue(subtask.key) for subtask in jira_issue.fields.subtasks] if jira_issue else []
+            subtasks = jira_issues[1:] if jira_issues else []
 
         if jira_issue_key:
             _LOGGER.info("Updating Jira ticket status...")

@@ -7,6 +7,7 @@ import click
 import yaml
 
 from pyartcd.cli import cli, pass_runtime, click_coroutine
+from pyartcd.oc import registry_login
 from pyartcd.runtime import Runtime
 from pyartcd import exectools
 from pyartcd.util import branch_arches
@@ -35,6 +36,9 @@ class BuildSyncPipeline:
         self.working_dir = self.runtime.working_dir
 
     async def run(self):
+        # Make sure we're logged into the OC registry
+        await registry_login(self.runtime)
+
         # Should we retrigger current nightly?
         if self.retrigger_current_nightly:
             await self._retrigger_current_nightly()
@@ -170,10 +174,6 @@ class BuildSyncPipeline:
             return
 
         try:
-            # OC registry login
-            await exectools.cmd_gather_async(
-                f'oc --kubeconfig {os.environ["KUBECONFIG"]} registry login')
-
             supported_arches = await branch_arches(
                 group=f'openshift-{self.version}',
                 assembly=self.assembly
@@ -235,10 +235,6 @@ class BuildSyncPipeline:
         await self._populate_ci_imagestreams()
 
         if self.publish:
-            # OC registry login
-            await exectools.cmd_gather_async(
-                f'oc registry login', env=os.environ.copy())
-
             # Run 'oc adm release new' in parallel
             tasks = []
             for filename in glob.glob(f'{GEN_PAYLOAD_ARTIFACTS_OUT_DIR}/updated-tags-for.*.yaml'):

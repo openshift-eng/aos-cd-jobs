@@ -143,7 +143,9 @@ node {
                 }
 
                 stage("build compose") {
-                    lock("compose-lock-${params.BUILD_VERSION}") {
+                    // Disabling compose lock for now. We might need to re-enable it based on
+                    // https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/rhcos/Jenkinsfile#L67
+                    // lock("compose-lock-${params.BUILD_VERSION}") {
                         /*   Complicated conditions ahead:
                          * - If build is not permitted: (automation is frozen, and a human did not trigger the build), isBuildPermitted will have stopped the build already
                          * - If automation is not frozen, go ahead
@@ -159,7 +161,7 @@ node {
                                 There were RPMs in the build plan that forced build compose during automation freeze.
                             """)
                         }
-                    }
+                    // }
                 }
 
                 if ( params.ASSEMBLY == "stream" ) {

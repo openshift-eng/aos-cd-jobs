@@ -2,10 +2,10 @@
 
 node {
     checkout scm
-    def build = load("build.groovy")
-    def releaselib = build.releaselib
-    def buildlib = build.buildlib
-    def commonlib = build.commonlib
+    def rhcoslib = load("rhcoslib.groovy")
+    def releaselib = rhcoslib.releaselib
+    def buildlib = rhcoslib.buildlib
+    def commonlib = rhcoslib.commonlib
     def slacklib = commonlib.slacklib
     commonlib.describeJob("rhcos_sync", """
         <h2>Sync the RHCOS boot images to mirror</h2>
@@ -165,16 +165,16 @@ node {
     print("RHCOS build: $rhcosBuild, arch: $arch, mirror prefix: $mirrorPrefix")
 
     echo("Initializing RHCOS-${params.MIRROR_PREFIX} sync: #${currentBuild.number}")
-    build.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
+    rhcoslib.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
 
     try {
         if ( params.SYNC_LIST == "" ) {
-            stage("Get/Generate sync list") { build.rhcosSyncPrintArtifacts() }
+            stage("Get/Generate sync list") { rhcoslib.rhcosSyncPrintArtifacts() }
         } else {
-            stage("Get/Generate sync list") { build.rhcosSyncManualInput() }
+            stage("Get/Generate sync list") { rhcoslib.rhcosSyncManualInput() }
         }
         stage("Mirror artifacts") {
-            build.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name)
+            rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name)
         }
         // stage("Gen AMI docs") { build.rhcosSyncGenDocs(rhcosBuild) }
         stage("Slack notification to release channel") {
@@ -195,10 +195,10 @@ node {
                     return
                 }
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_staging', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    build.rhcosSyncROSA()
+                    rhcoslib.rhcosSyncROSA()
                 }
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'artjenkins_rhcos_rosa_marketplace_production', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    build.rhcosSyncROSA()
+                    rhcoslib.rhcosSyncROSA()
                 }
             }
             stage("Slack notification to release channel") {
@@ -239,7 +239,7 @@ There was an issue running build-sync for OCP ${mirrorPrefix}:
 """)
         throw ( err )
     } finally {
-        commonlib.safeArchiveArtifacts(build.artifacts)
+        commonlib.safeArchiveArtifacts(rhcoslib.artifacts)
         buildlib.cleanWorkspace()
     }
 }

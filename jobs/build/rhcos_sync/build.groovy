@@ -33,6 +33,11 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     def archSuffix = commonlib.brewSuffixForArch(arch)
     def archDir = ocpVersion == "4.2" ? "" : "/${arch}"
     baseUrl = "https://art-rhcos-ci.s3.amazonaws.com/releases/rhcos-${ocpVersion}${archSuffix}/${rhcosBuild}${archDir}"
+    // Since 4.9+, rhcos meta is placed at a different location.
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(ocpVersion)
+    if (major > 4 || (major == 4 && minor >=9)) {
+        baseUrl = "https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/$ocpVersion/builds/$rhcosBuild/$arch"
+    }
     s3MirrorBaseDir = "/pub/openshift-v4/${arch}/dependencies/rhcos"
     // Actual meta.json
     metaUrl = baseUrl + "/meta.json"
@@ -78,7 +83,7 @@ def rhcosSyncMirrorArtifacts(rhcosMirrorPrefix, arch, rhcosBuild, name) {
     def invokeOpts = " --prefix ${rhcosMirrorPrefix}" +
         " --arch ${arch}" +
         " --buildid ${rhcosBuild}" +
-        " --version ${name}" 
+        " --version ${name}"
 
     if ( params.FORCE ) {
             invokeOpts += " --force"

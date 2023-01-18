@@ -117,3 +117,6 @@ sjb/generated/*.sh
 
 # Visual Studio Code stuff
 .vscode
+
+# git mergetool backup files
+*.orig

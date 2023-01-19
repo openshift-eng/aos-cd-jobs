@@ -19,14 +19,16 @@ class OperatorSDKPipeline:
         self.assembly = assembly
         self.updatelatest = updatelatest
         self.sdk = "operator-sdk"
-
+        self.group = group
+        self.extra_ad_id = ""
+        self.parent_jira_key = ""
         self._jira_client = runtime.new_jira_client()
-        ocp_build_data_repo = runtime.new_github_client().get_repo("openshift/ocp-build-data")
-        release_file = ocp_build_data_repo.get_contents("releases.yml", ref=group)
-        release_yaml = yaml.load(release_file.decoded_content, Loader=yaml.FullLoader)
-        self.extra_ad_id, self.parent_jira_key = self.get_ad_jira_key(assembly, release_yaml)
 
     def run(self):
+        release_file = self.runtime.new_github_client().get_repo(
+            "openshift/ocp-build-data").get_contents("releases.yml", ref=self.group)
+        self.extra_ad_id, self.parent_jira_key = self.get_ad_jira_key(
+            self.assembly, yaml.load(release_file.decoded_content, Loader=yaml.FullLoader))
         advisory = Erratum(errata_id=self.extra_ad_id)
         self._logger.info("Check advisory status ...")
         if advisory.errata_state in ["QE", "NEW_FILES"]:

@@ -217,6 +217,7 @@ node {
                     wait: true,
                     parameters: [
                         string(name: 'VERSION', value: ocpVersion),
+                        booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
                     ]
                 )
             } else {

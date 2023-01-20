@@ -68,7 +68,7 @@ node {
                     ),
                     string(
                         name: 'SYNC_LIST',
-                        description: 'Instead of figuring out items to sync from meta.json, use this input file.<br>Must be a URL reachable from buildvm',
+                        description: 'Instead of figuring out items to sync from meta.json, use this input file.<br>Must be a URL reachable from buildvm.<br>If name ends in ".json" then read it like meta.json, otherwise content should be line-separated filenames.',
                         defaultValue: "",
                         trim: true,
                     ),
@@ -168,10 +168,11 @@ node {
     rhcoslib.initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix)
 
     try {
-        if ( params.SYNC_LIST == "" ) {
-            stage("Get/Generate sync list") { rhcoslib.rhcosSyncPrintArtifacts() }
-        } else {
-            stage("Get/Generate sync list") { rhcoslib.rhcosSyncManualInput() }
+        stage("Get/Generate sync list") {
+            if ( params.SYNC_LIST == "" || params.SYNC_LIST.endsWith(".json") )
+                rhcoslib.rhcosSyncPrintArtifacts()
+            else
+                rhcoslib.rhcosSyncManualInput()
         }
         stage("Mirror artifacts") {
             rhcoslib.rhcosSyncMirrorArtifacts(mirrorPrefix, arch, rhcosBuild, name)
@@ -216,6 +217,7 @@ node {
                     wait: true,
                     parameters: [
                         string(name: 'VERSION', value: ocpVersion),
+                        booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
                     ]
                 )
             } else {

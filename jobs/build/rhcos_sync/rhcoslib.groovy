@@ -51,8 +51,8 @@ def initialize(ocpVersion, rhcosBuild, arch, name, mirrorPrefix) {
     }
 
     dir ( rhcosWorking ) {
-        if ( params.SYNC_LIST == "" ) {
-            sh("wget ${metaUrl}")
+        if ( params.SYNC_LIST == "" || params.SYNC_LIST.endsWith(".json") ) {
+            sh("wget ${params.SYNC_LIST ?: metaUrl} -O meta.json")
             artifacts.add("${rhcosWorking}/meta.json")
         }
 

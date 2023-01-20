@@ -1446,6 +1446,8 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     "--include-previous-for ovn", // this is a package prefix
                     "--include-previous-for haproxy", // avoid chicken and egg issues with base image & haproxy bumps
                     "--include-previous-for cri-o", // Fix regression in 4.10 CI
+                    "--include-previous-for openshift-clients",
+                    "--include-previous-for openshift",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
             ].join(' '))
         }

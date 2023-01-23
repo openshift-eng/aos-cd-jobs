@@ -1,7 +1,7 @@
 // activity == true, means that the timeout will only occur if there
 // is no log activity for the specified period.
 timeout(activity: true, time: 30, unit: 'MINUTES') {
-    node('covscan') {
+    node() {
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
         def commonlib = buildlib.commonlib
@@ -35,12 +35,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                     $class: 'ParametersDefinitionProperty',
                     parameterDefinitions: [
                         commonlib.doozerParam(),
-                        string(
-                            name: 'VERSIONS',
-                            description: '<a href="https://github.com/openshift/aos-cd-jobs/tree/master/jobs#list-parameters">List</a> of versions to scan.',
-                            defaultValue: "",
-                            trim: true,
-                        ),
+                        commonlib.ocpVersionParam('VERSION', '4'),
                         commonlib.suppressEmailParam(),
                         string(
                             name: 'MAIL_LIST_SUCCESS',
@@ -70,197 +65,105 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
 
         buildlib.registry_quay_dev_login()
 
-        versions = commonlib.parseList(params.VERSIONS)
+        def skipped = false
 
-        currentBuild.displayName = "#${currentBuild.number} Scanning versions ${params.VERSIONS}"
-        currentBuild.description = ""
+        stage("Initialize") {
+            buildlib.initialize()
 
-        if (params.DRY_RUN) {
-            currentBuild.displayName += "[DRY_RUN]"
+            currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
+            currentBuild.description = ""
+
+            if (!buildlib.isBuildPermitted("--group 'openshift-${params.VERSION}'")) {
+                error("Builds are not currently permitted for ${params.VERSION}")
+            }
+
+            // this lock ensures we are not scanning during an active build
+            activityLockName = "github-activity-lock-${params.VERSION}"
+
+            // If the user requested a specific version, they will expect it to happen, even if they need to wait.
+            wrap([$class: 'BuildUser']) {
+                if (env.BUILD_USER_EMAIL) { // null if triggered by timer
+                    timerBased = false
+                } else {
+                    timerBased = true
+                }
+            }
+            if (timerBased && !commonlib.canLock(activityLockName)) {
+                echo "Looks like there is another build ongoing for ${version} -- skipping for this run"
+                skipped = True
+            }
+
+            if (params.DRY_RUN) {
+                currentBuild.displayName += "[DRY_RUN]"
+            }
+
+            buildlib.cleanWorkdir(doozer_working, true)
         }
 
-        try {
-            successful = []
+        stage("Scan") {
+            if (skipped) {
+                currentBuild.displayName += "[SKIPPED]"
+                return
+            }
+
             sshagent(["openshift-bot"]) {
-                stage("Scan") {
-                    for(version in versions) {
-                        try {
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "ocp4-scan",
+                    "--version=${params.VERSION}"
+                ]
 
-                            if (!version.startsWith('4.')) {
-                                error("This job is only intended for 4.y releases, not '${version}'.")
-                            }
+                // Run pipeline
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                        // There is a vanishingly small race condition here, but it is not dangerous;
+                        // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).
+                        lock(activityLockName) {
+                            try {
+                                echo "Will run ${cmd}"
+                                sh(script: cmd.join(' '), returnStdout: true)
 
-                            // this lock ensures we are not scanning during an active build
-                            activityLockName = "github-activity-lock-${version}"
-                            if (params.DRY_RUN) {
-                                activityLockName += '-dryrun'
-                            }
-
-                            if (!buildlib.isBuildPermitted("--group 'openshift-${version}'")) {
-                                echo "Builds are not currently permitted for ${version} -- skipping"
-                                continue
-                            }
-
-                            wrap([$class: 'BuildUser']) {
-                                if ( env.BUILD_USER_EMAIL ) { // null if triggered by timer
-                                    timerBased = false
-                                } else {
-                                    timerBased = true
-                                }
-                            }
-
-                            // Check versions.size because if the user requested a specific version,
-                            // they will expect it to happen, even if they need to wait.
-                            if ((timerBased || versions.size() != 1) && !commonlib.canLock(activityLockName)) {
-                                echo "Looks like there is another build ongoing for ${version} -- skipping for this run"
-                                continue
-                            }
-
-                            // There is a vanishingly small race condition here, but it is not dangerous;
-                            // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).
-                            lock(activityLockName) {
-
-                                buildlib.cleanWorkdir(doozer_working, true)
-
-                                def yamlStr = buildlib.withAppCiAsArtPublish() {
-                                    return buildlib.doozer(
-                                        """
-                                        --working-dir ${doozer_working}
-                                        --group 'openshift-${version}'
-                                        config:scan-sources --yaml
-                                        --ci-kubeconfig ${KUBECONFIG}
-                                        """, [capture: true]
+                                // success email only if requested for this build
+                                if (params.MAIL_LIST_SUCCESS.trim()) {
+                                    commonlib.email(
+                                        to: "${params.MAIL_LIST_SUCCESS}",
+                                        from: "aos-art-automation@redhat.com",
+                                        replyTo: "aos-team-art@redhat.com",
+                                        subject: "Success scanning OCP versions: ${versions.join(', ')}",
+                                        body: "Success scanning OCP:\n${env.BUILD_URL}"
                                     )
                                 }
 
-                                echo "scan-sources output for openshift-${version}:\n${yamlStr}\n\n"
+                            } catch (err) {
+                                echo "Error running ${params.VERSION} scan:\n${err}"
+                                commonlib.email(
+                                    to: "${params.MAIL_LIST_FAILURE}",
+                                    from: "aos-art-automation@redhat.com",
+                                    replyTo: "aos-team-art@redhat.com",
+                                    subject: "Unexpected error during OCP scan!",
+                                    body: "Encountered an unexpected error while running OCP scan: ${err}"
+                                )
+                                throw err
 
-                                def yamlData = readYaml text: yamlStr
-
+                            } finally {
                                 sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${version}.log"
                                 sh "bzip2 ${doozer_working}/debug-${version}.log"
                                 commonlib.safeArchiveArtifacts(["doozer_working/*.bz2"])
-
-                                def rhcosChanged = false
-                                for (stream in yamlData.get('rhcos', [])) {
-                                    if (stream['changed']) {
-                                        echo "Detected at least one updated RHCOS."
-                                        rhcosChanged = true
-                                        break
-                                    }
-                                }
-
-                                def rhcosInconsistent = true
-                                try {
-                                    stdout = buildlib.doozer(
-                                        """
-                                        --working-dir ${doozer_working}
-                                        --group 'openshift-${version}'
-                                        inspect:stream INCONSISTENT_RHCOS_RPMS
-                                        --strict
-                                        """, [capture: true]
-                                    )
-                                    echo stdout
-                                    rhcosInconsistent = false
-                                } catch(err) {
-                                    echo "INCONSISTENT_RHCOS_RPMS:\n${err}"
-                                    rhcosInconsistent = true
-                                }
-
-                                def changed = buildlib.getChanges(yamlData)
-                                if ( changed.rpms || changed.images ) {
-                                    echo "Detected source changes: ${changed}"
-                                    if ( params.DRY_RUN ) {
-                                        echo "Would have triggered ocp4 job"
-                                    } else {
-                                        build(
-                                            job: 'build%2Focp4',
-                                            propagate: false,
-                                            wait: false,
-                                            parameters: [
-                                                string(name: 'BUILD_VERSION', value: version),
-                                                booleanParam(name: 'FORCE_BUILD', value: false),
-                                            ]
-                                        )
-                                        currentBuild.description += "<br>triggered build: ${version}"
-                                    }
-
-                                } else if (rhcosInconsistent) {
-                                    if (params.DRY_RUN) {
-                                        echo "Would have triggered RHCOS build"
-                                    } else {
-                                        lock(resource: "rhcos-lock-${version}", skipIfLocked: true) {
-                                            echo "triggering a ${version} RHCOS build for consistency."
-                                            build(
-                                                wait: false,
-                                                propagate: false,
-                                                job: 'build%2Frhcos',
-                                                parameters: [
-                                                    string(name: 'BUILD_VERSION', value: version),
-                                                    booleanParam(name: 'NEW_BUILD', value: true),
-                                                ]
-                                            )
-                                            currentBuild.description += "<br>triggered rhcos build: ${version}"
-                                        }
-                                        return
-                                    }
-                                } else if (rhcosChanged) {
-                                    if ( params.DRY_RUN ) {
-                                        echo "Would have triggered build-sync job"
-                                        return
-                                    }
-
-                                    build(
-                                        job: 'build%2Fbuild-sync',
-                                        propagate: false,
-                                        wait: false,
-                                        parameters: [
-                                            string(name: 'BUILD_VERSION', value: version),
-                                        ]
-                                    )
-                                    currentBuild.description += "<br>triggered build-sync: ${version}"
-                                }
+                                buildlib.cleanWorkspace()
                             }
-                        } catch (err) {
-                            currentBuild.result = "UNSTABLE"
-                            currentBuild.description += """<p style="color:#d00">failed to scan ${version}</p>"""
-                            echo "Error running ${version} scan:\n${err}"
-
-                            commonlib.email(
-                                to: "${params.MAIL_LIST_FAILURE}",
-                                from: "aos-art-automation@redhat.com",
-                                replyTo: "aos-team-art@redhat.com",
-                                subject: "Error scanning OCP v${version}",
-                                body: "Encountered an error while running OCP4 scan:\n${env.BUILD_URL}\n\n${err}"
-                            )
-                        }
-                    }
-                }
-            }
-
-            if (params.MAIL_LIST_SUCCESS.trim()) {
-                // success email only if requested for this build
-                commonlib.email(
-                    to: "${params.MAIL_LIST_SUCCESS}",
-                    from: "aos-art-automation@redhat.com",
-                    replyTo: "aos-team-art@redhat.com",
-                    subject: "Success scanning OCP versions: ${versions.join(', ')}",
-                    body: "Success scanning OCP:\n${env.BUILD_URL}"
-                )
-            }
-
-        } catch (err) {
-            commonlib.email(
-                to: "${params.MAIL_LIST_FAILURE}",
-                from: "aos-art-automation@redhat.com",
-                replyTo: "aos-team-art@redhat.com",
-                subject: "Unexpected error during OCP scan!",
-                body: "Encountered an unexpected error while running OCP scan: ${err}"
-            )
-
-            throw err
-        } finally {
-            buildlib.cleanWorkspace()
-        }
+                        } // lock
+                    } // withCredentials
+                } // withAppCiAsArtPublish
+            } // sshagent
+        } // stage
     }
 }

@@ -13,6 +13,7 @@ __pycache__/
 
 # editor backup files
 *.yml~
+*.orig
 
 # Distribution / packaging
 .Python

@@ -138,7 +138,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                         to: "${params.MAIL_LIST_SUCCESS}",
                                         from: "aos-art-automation@redhat.com",
                                         replyTo: "aos-team-art@redhat.com",
-                                        subject: "Success scanning OCP versions: ${versions.join(', ')}",
+                                        subject: "Success scanning OCP version: ${params.VERSION}",
                                         body: "Success scanning OCP:\n${env.BUILD_URL}"
                                     )
                                 }
@@ -155,8 +155,8 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                 throw err
 
                             } finally {
-                                sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${version}.log"
-                                sh "bzip2 ${doozer_working}/debug-${version}.log"
+                                sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
+                                sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
                                 commonlib.safeArchiveArtifacts(["doozer_working/*.bz2"])
                                 buildlib.cleanWorkspace()
                             }

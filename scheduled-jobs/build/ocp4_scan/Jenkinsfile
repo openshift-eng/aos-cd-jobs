@@ -15,7 +15,7 @@ node {
         def cv = "${version}" // make sure we use a locally scoped variable
 
         // Skip the build if automation is not permitted for ${version}
-        if (!buildlib.isBuildPermitted("--group 'openshift-${params.VERSION}'")) {
+        if (!buildlib.isBuildPermitted("--group 'openshift-${cv}'")) {
             continue
         }
 

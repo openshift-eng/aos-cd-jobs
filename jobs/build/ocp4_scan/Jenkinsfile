@@ -90,7 +90,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
             }
             if (timerBased && !commonlib.canLock(activityLockName)) {
                 echo "Looks like there is another build ongoing for ${params.VERSION} -- skipping for this run"
-                skipped = True
+                skipped = true
             }
 
             if (params.DRY_RUN) {

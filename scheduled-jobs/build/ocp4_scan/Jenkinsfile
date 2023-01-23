@@ -15,7 +15,7 @@ node {
         versionJobs["scan-v${version}"] = {
             try {
                 timeout(activity: true, time: 30, unit: 'MINUTES') {
-                    build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSIONS', value: "${cv}")], propagate: false
+                    build job: '../aos-cd-builds/build%2Focp4_scan', parameters: [string(name: 'VERSION', value: "${cv}")], propagate: false
                 }
             } catch (te) {
                 slacklib.to(cv).failure("Error running ocp_scan", te)

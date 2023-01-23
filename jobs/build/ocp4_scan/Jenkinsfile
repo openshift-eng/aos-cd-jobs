@@ -73,10 +73,6 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
             currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
             currentBuild.description = ""
 
-            if (!buildlib.isBuildPermitted("--group 'openshift-${params.VERSION}'")) {
-                error("Builds are not currently permitted for ${params.VERSION}")
-            }
-
             // this lock ensures we are not scanning during an active build
             activityLockName = "github-activity-lock-${params.VERSION}"
 

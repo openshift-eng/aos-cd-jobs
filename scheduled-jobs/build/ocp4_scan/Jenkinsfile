@@ -1,6 +1,7 @@
 node {
     checkout scm
-    commonlib = load("pipeline-scripts/commonlib.groovy")
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
     slacklib = commonlib.slacklib
 
     properties( [
@@ -12,6 +13,13 @@ node {
     def versionJobs = [:]
     for ( version in commonlib.ocp4Versions ) {
         def cv = "${version}" // make sure we use a locally scoped variable
+
+        // Skip the build if automation is not permitted for ${version}
+        if (!buildlib.isBuildPermitted("--group 'openshift-${params.VERSION}'")) {
+            continue
+        }
+
+        // Trigger ocp4-scan build for ${version}
         versionJobs["scan-v${version}"] = {
             try {
                 timeout(activity: true, time: 30, unit: 'MINUTES') {

@@ -20,6 +20,7 @@ class Ocp4ScanPipeline:
         self.logger = runtime.logger
         self.rhcos_changed = False
         self.rhcos_inconsistent = False
+        self.inconsistent_rhcos_rpms = None
         self.changes = {}
 
     async def run(self):
@@ -40,7 +41,7 @@ class Ocp4ScanPipeline:
 
         # Handle source changes, if any
         if self.changes.get('rpms', None) or self.changes.get('images', None):
-            self.logger.info('Detected source changes:\n%s', yaml.safe_dump(self.changes))
+            self.logger.info('Detected at least one updated RPM or image')
 
             if self.runtime.dry_run:
                 self.logger.info('Would have triggered a %s ocp4 build', self.version)
@@ -51,6 +52,8 @@ class Ocp4ScanPipeline:
             await trigger_ocp4(self.version)
 
         elif self.rhcos_inconsistent:
+            self.logger.info('Detected inconsistent RHCOS RPMs:\n%s', self.inconsistent_rhcos_rpms)
+
             if self.runtime.dry_run:
                 self.logger.info('Would have triggered a %s RHCOS build', self.version)
                 return
@@ -61,6 +64,8 @@ class Ocp4ScanPipeline:
             await trigger_rhcos(self.version, True)
 
         elif self.rhcos_changed:
+            self.logger.info('Detected at least one updated RHCOS')
+
             if self.runtime.dry_run:
                 self.logger.info('Would have triggered a %s build-sync build', self.version)
                 return
@@ -80,15 +85,18 @@ class Ocp4ScanPipeline:
               f'config:scan-sources --yaml --ci-kubeconfig {os.environ["KUBECONFIG"]}'
         _, out, err = await exectools.cmd_gather_async(cmd)
         self.logger.info('scan-sources output for openshift-%s:\n%s', self.version, out)
+
         yaml_data = yaml.safe_load(out)
         changes = util.get_changes(yaml_data)
+        if changes:
+            self.logger.info('Detected source changes:\n%s', yaml.safe_dump(self.changes))
+        else:
+            self.logger.info('No changes detected in RPMs, images or RHCOS')
 
         # Check for RHCOS changes
         if changes.get('rhcos', None):
             self.rhcos_changed = True
-            self.logger.info('Detected at least one updated RHCOS')
         else:
-            self.logger.info('No RHCOS changes detected')
             self.rhcos_changed = False
 
         self.changes = changes
@@ -105,8 +113,8 @@ class Ocp4ScanPipeline:
             self.logger.info(out)
             self.rhcos_inconsistent = False
         except ChildProcessError as e:
-            self.logger.info('INCONSISTENT_RHCOS_RPMS:\n%s', e)
             self.rhcos_inconsistent = True
+            self.inconsistent_rhcos_rpms = e
 
 
 @cli.command('ocp4-scan')

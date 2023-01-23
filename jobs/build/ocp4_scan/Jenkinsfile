@@ -68,8 +68,6 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
         def skipped = false
 
         stage("Initialize") {
-            buildlib.initialize()
-
             currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
             currentBuild.description = ""
 

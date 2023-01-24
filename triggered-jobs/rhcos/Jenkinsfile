@@ -36,10 +36,12 @@ In this context, the only <strong>BUILD_VERSION</strong> and <strong>NEW_BUILD</
 
     commonlib.checkMock()
 
-    build job: '../aos-cd-builds/build%252Frhcos/', parameters: [
+    build(
+        job: '../aos-cd-builds/build%252Frhcos/',
+        propagate: false,
+        parameters: [
             string(name: 'BUILD_VERSION', value: params.BUILD_VERSION),
             booleanParam(name: 'NEW_BUILD', value: params.NEW_BUILD)
-        ],
-        propagate: false,
-        wait: false
+        ]
+    )
 }

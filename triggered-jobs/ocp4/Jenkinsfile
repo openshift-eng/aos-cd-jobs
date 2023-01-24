@@ -31,10 +31,12 @@ In this context, the only <strong>BUILD_VERSION</strong> param is required.
 
     commonlib.checkMock()
 
-    build job: '../aos-cd-builds/build%252Focp4/', parameters: [
+    build(
+        job: '../aos-cd-builds/build%252Focp4/',
+        propagate: false,
+        parameters: [
             string(name: 'BUILD_VERSION', value: params.BUILD_VERSION),
             booleanParam(name: 'FORCE_BUILD', value: false)
-        ],
-        propagate: false,
-        wait: false
+        ]
+    )
 }

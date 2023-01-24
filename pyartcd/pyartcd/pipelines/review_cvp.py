@@ -43,6 +43,10 @@ class ReviewCVPPipeline:
         messages = []
         warnings = []
 
+        if await self._is_automation_frozen():
+            self._logger.warning(f"Automation is frozen for {self.group}. Not looking.")
+            return
+
         # Get CVP test results
         cvp_report = await self._verify_cvp()
 
@@ -227,6 +231,18 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
             self._logger.info(f"Fixed {test_name} for {dg_key}")
         return warnings
 
+    async def _is_automation_frozen(self) -> bool:
+        cmd = [
+            'doozer',
+            f'--group={self.group}',
+            'config:read-group',
+            '--default=no',
+            'freeze_automation'
+        ]
+        self._logger.info('Executing command: %s', cmd)
+        _, out, _ = await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars, stderr=None)
+        return out.strip() in ['yes', 'Yes', 'scheduled', True]
+
 
 @cli.command("review-cvp")
 @click.option("-g", "--group", metavar='NAME', required=True,
@@ -235,6 +251,6 @@ If you have any questions or encounter a CVP bug, drop a message to CVP gchat ch
               help="The name of an assembly. e.g. 4.9.1")
 @pass_runtime
 @click_coroutine
-async def reivew_cvp(runtime: Runtime, group: str, assembly: str):
+async def review_cvp(runtime: Runtime, group: str, assembly: str):
     pipeline = ReviewCVPPipeline(runtime, group, assembly)
     await pipeline.run()

@@ -65,27 +65,12 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
 
         buildlib.registry_quay_dev_login()
 
-        def skipped = false
-
         stage("Initialize") {
             currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
             currentBuild.description = ""
 
             // this lock ensures we are not scanning during an active build
             activityLockName = "github-activity-lock-${params.VERSION}"
-
-            // If the user requested a specific version, they will expect it to happen, even if they need to wait.
-            wrap([$class: 'BuildUser']) {
-                if (env.BUILD_USER_EMAIL) { // null if triggered by timer
-                    timerBased = false
-                } else {
-                    timerBased = true
-                }
-            }
-            if (timerBased && !commonlib.canLock(activityLockName)) {
-                echo "Looks like there is another build ongoing for ${params.VERSION} -- skipping for this run"
-                skipped = true
-            }
 
             if (params.DRY_RUN) {
                 currentBuild.displayName += "[DRY_RUN]"
@@ -95,11 +80,6 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
         }
 
         stage("Scan") {
-            if (skipped) {
-                currentBuild.displayName += "[SKIPPED]"
-                return
-            }
-
             sshagent(["openshift-bot"]) {
                 sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
                 cmd = [

@@ -19,6 +19,13 @@ node {
             continue
         }
 
+        // Skip the build if already locked
+        activityLockName = "github-activity-lock-${cv}"
+        if (!commonlib.canLock(activityLockName)) {
+            echo "Looks like there is another build ongoing for ${cv} -- skipping for this run"
+            continue
+        }
+
         // Trigger ocp4-scan build for ${version}
         versionJobs["scan-v${version}"] = {
             try {

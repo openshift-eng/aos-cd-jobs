@@ -9,7 +9,6 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
 from pyartcd.jenkins import trigger_ocp4, trigger_rhcos, trigger_build_sync
 
-DOOZER_WORKING = f'{os.environ["WORKSPACE"]}/doozer_working'
 
 
 class Ocp4ScanPipeline:
@@ -22,9 +21,14 @@ class Ocp4ScanPipeline:
         self.rhcos_inconsistent = False
         self.inconsistent_rhcos_rpms = None
         self.changes = {}
+        self.doozer_working = ''
 
     async def run(self):
         self.logger.info('Building: %s', self.version)
+
+        if 'WORKSPACE' in os.environ:
+            # We are running in Jenkins, and do not want to rely on .config/doozer/settings.yaml for working dir
+            self.doozer_working = f'--working-dir {os.environ["WORKSPACE"]}/doozer_working'
 
         # KUBECONFIG env var must be defined in order to scan sources
         if not os.getenv('KUBECONFIG'):
@@ -81,7 +85,7 @@ class Ocp4ScanPipeline:
         """
 
         # Run doozer scan-sources
-        cmd = f'doozer --assembly stream --working-dir={DOOZER_WORKING} --group=openshift-{self.version} ' \
+        cmd = f'doozer --assembly stream {self.doozer_working} --group=openshift-{self.version} ' \
               f'config:scan-sources --yaml --ci-kubeconfig {os.environ["KUBECONFIG"]}'
         _, out, err = await exectools.cmd_gather_async(cmd)
         self.logger.info('scan-sources output for openshift-%s:\n%s', self.version, out)
@@ -106,7 +110,7 @@ class Ocp4ScanPipeline:
         Check for RHCOS inconsistencies by calling doozer inspect:stream INCONSISTENT_RHCOS_RPMS
         """
 
-        cmd = f'doozer --assembly stream --working-dir {DOOZER_WORKING} --group openshift-{self.version} ' \
+        cmd = f'doozer --assembly stream {self.doozer_working} --group openshift-{self.version} ' \
               f'inspect:stream INCONSISTENT_RHCOS_RPMS --strict'
         try:
             _, out, _ = await exectools.cmd_gather_async(cmd)

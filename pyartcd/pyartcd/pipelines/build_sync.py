@@ -9,7 +9,7 @@ import yaml
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.oc import registry_login
 from pyartcd.runtime import Runtime
-from pyartcd import exectools
+from pyartcd import exectools, constants
 from pyartcd.util import branch_arches
 from doozerlib.util import go_suffix_for_arch
 
@@ -278,7 +278,7 @@ class BuildSyncPipeline:
               help="The name of an assembly to sync")
 @click.option("--publish", is_flag=True,
               help="Publish release image(s) directly to registry.ci for testing")
-@click.option("--data-path", required=True, default="https://github.com/openshift/ocp-build-data",
+@click.option("--data-path", required=True, default=constants.OCP_BUILD_DATA_URL,
               help="ocp-build-data fork to use (e.g. assembly definition in your own fork)")
 @click.option("--emergency-ignore-issues", is_flag=True,
               help="Ignore all issues with constructing payload. Do not use without approval.")

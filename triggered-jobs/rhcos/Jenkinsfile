@@ -35,6 +35,7 @@ In this context, the only <strong>BUILD_VERSION</strong> and <strong>NEW_BUILD</
     )
 
     commonlib.checkMock()
+    currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}"
 
     build(
         job: '../aos-cd-builds/build%252Frhcos/',

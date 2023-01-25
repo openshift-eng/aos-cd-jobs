@@ -223,7 +223,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
         weekday = datetime.datetime.today().weekday()
 
         # The build is permitted only if current day is saturday or sunday
-        if weekday in [5, 6]:
+        if weekday in [5, 6] or is_manual_build():
             return True
         return False
 

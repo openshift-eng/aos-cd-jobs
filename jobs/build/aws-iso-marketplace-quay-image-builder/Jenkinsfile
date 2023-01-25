@@ -28,23 +28,23 @@ pipeline {
             description: "A version of OpenShift in the candidate channel from which to create an AMI (e.g. 4.10.36).",
             defaultValue: "",
             trim: true,
-        ),
+        )
         string(
             name: "QUAY_IMAGE_BUILDER_COMMITISH",
             description: "A commitish to use for github.com/openshift/quay-image-builder",
             defaultValue: "master",
             trim: true,
-        ),
+        )
         booleanParam(
             name: 'BUILD_RUNNER_IMAGE',
             value: false,
             description: "The builder is run in a docker container. Select true to spend time building/rebuilding this image."
-            ),
+        )
         booleanParam(
             name: 'BUILD_TEMPLATE_AMI',
             value: false,
             description: "The template AMI construct that speeds up the creation of the final deliverable. It installs packages and configures hundreds of elements of the system so that the final image build process does not need to. It should only need to be updated if the template changes or packages are taking a long time to be updated in final AMI builds."
-            ),
+        )
         booleanParam(name: 'MOCK', value: params.MOCK)
     }
 

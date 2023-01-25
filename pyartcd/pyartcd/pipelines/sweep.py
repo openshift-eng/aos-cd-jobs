@@ -4,6 +4,7 @@ import sys
 
 import click
 
+from pyartcd import util
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.exectools import cmd_assert_async, cmd_gather_async
 from pyartcd.runtime import Runtime
@@ -44,7 +45,7 @@ class SweepBugsPipeline:
             sys.exit(StatusCode.RUNTIME_ERROR.value)
 
         # If automation is frozen, return
-        if not await self._is_build_permitted():
+        if not await util.is_build_permitted(self.version):
             self.logger.warning('Automation is frozen, current build is not permitted')
             sys.exit(StatusCode.BUILD_NOT_PERMITTED.value)
         self.logger.info('Automation not frozen, building')
@@ -95,23 +96,6 @@ class SweepBugsPipeline:
             cmd.append('--dry-run')
 
         return cmd
-
-    async def _is_build_permitted(self) -> bool:
-        """
-        This job is never run directly by humans, so it is considered
-        permitted only when freeze_automation is set to False
-        """
-
-        cmd = [
-            DOOZER_BIN,
-            f'--group=openshift-{self.version}',
-            'config:read-group',
-            '--default=no',
-            'freeze_automation'
-        ]
-        self.logger.info('Executing command: %s', cmd)
-        _, out, _ = await cmd_gather_async(cmd)
-        return out.strip() in ['False', 'no']
 
 
 @cli.command('sweep-bugs')

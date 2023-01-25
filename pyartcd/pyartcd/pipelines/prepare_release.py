@@ -19,7 +19,7 @@ from elliottlib.assembly import assembly_group_config
 from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory
 from elliottlib.model import Model
 from jira.resources import Issue
-from pyartcd import exectools
+from pyartcd import exectools, constants
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.jira import JIRAClient
 from pyartcd.mail import MailService
@@ -722,7 +722,8 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
                 content += f"- {arch}: {pullspec}\n"
         elif self.assembly != "stream":
             content += "\nThis release is NOT directly based on existing nightlies.\n"
-            content += f"Its definition is provided by the assembly found under key '{self.assembly}' in https://github.com/openshift/ocp-build-data/blob/{self.group_name}/releases.yml\n"
+            content += f"Its definition is provided by the assembly found under key '{self.assembly}' in " \
+                       f"{constants.OCP_BUILD_DATA_URL}/blob/{self.group_name}/releases.yml\n"
         content += f"\nJIRA ticket: {jira_link}\n"
         content += "\nThanks.\n"
         email_dir = self.working_dir / "email"

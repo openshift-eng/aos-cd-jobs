@@ -62,7 +62,7 @@ pipeline {
         stage("Wait for Cincy") {
             steps {
                 // Before quay-image-builder can work, the release must be present in Cincinnati.
-                major, minor = commonlib.extractMajorMinorVersionNumbers(params.CINCINNATI_OCP_VERSION)
+                (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.CINCINNATI_OCP_VERSION)
 
                 // Everything starts here, so it is our early chance to find a release.
                 channel = "candidate-${major}.${minor}"

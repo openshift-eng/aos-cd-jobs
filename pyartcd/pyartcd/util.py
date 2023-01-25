@@ -1,5 +1,6 @@
 import os
 import re
+import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import logging
@@ -8,7 +9,7 @@ import aiofiles
 import yaml
 
 from doozerlib import assembly, model, util as doozerutil
-from pyartcd import exectools
+from pyartcd import exectools, constants
 
 logger = logging.getLogger(__name__)
 
@@ -160,3 +161,71 @@ def get_changes(yaml_data: dict) -> dict:
         changes['rhcos'] = rhcos
 
     return changes
+
+
+async def get_freeze_automation(version: str, data_path: str = constants.OCP_BUILD_DATA_URL) -> str:
+    """
+    Returns freeze_automation flag for a specific group
+    """
+
+    cmd = [
+        'doozer',
+        '--assembly=stream',
+        f'--data-path={data_path}',
+        f'--group=openshift-{version}',
+        'config:read-group',
+        '--default=no',
+        'freeze_automation'
+    ]
+    _, out, _ = await exectools.cmd_gather_async(cmd)
+    return out.strip()
+
+
+def is_manual_build() -> bool:
+    """
+    Builds that are triggered manually by a Jenkins user carry a BUILD_USER_EMAIL environment variable.
+    If this var is not defined, we can infer that the build was triggered by a timer.
+
+    Be aware that Jenkins pipeline need to pass this var by enclosing the code in a wrap([$class: 'BuildUser']) {} block
+    """
+
+    return os.getenv('BUILD_USER_EMAIL') is not None
+
+
+async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_DATA_URL) -> bool:
+    """
+    Check whether the group should be built right now.
+    This depends on:
+        - group config 'freeze_automation'
+        - manual/scheduled run
+        - current day of the week
+    """
+
+    # Get 'freeze_automation' flag
+    freeze_automation = await get_freeze_automation(version, data_path)
+
+    # Check for frozen automation
+    # yaml parses unquoted "yes" as a boolean... accept either
+    if freeze_automation in ['yes', 'True']:
+        logger.info('All automation is currently disabled by freeze_automation in group.yml.')
+        return False
+
+    # Check for frozen scheduled automation
+    if freeze_automation == "scheduled" and not is_manual_build():
+        logger.info('Only manual runs are permitted according to freeze_automation in group.yml '
+                    'and this run appears to be non-manual.')
+        return False
+
+    # Check if group can run on weekends
+    if freeze_automation == 'weekdays':
+        # Get current day of the week as an integer, where Monday is 0 and Sunday is 6
+        # See http://bit.ly/3HERClP for reference
+        weekday = datetime.datetime.today().weekday()
+
+        # The build is permitted only if current day is saturday or sunday
+        if weekday in [5, 6]:
+            return True
+        return False
+
+    # Fallback to default
+    return True

@@ -13,13 +13,13 @@ node {
 pipeline {
     agent any
     options {
-        disableConcurrentBuilds(),
-        disableResume(),
+        disableConcurrentBuilds()
+        disableResume()
         buildDiscarder(
           logRotator(
             artifactDaysToKeepStr: '60',
             daysToKeepStr: '60')
-        ),
+        )
     }
 
     parameters {

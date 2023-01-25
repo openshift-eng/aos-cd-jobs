@@ -50,7 +50,7 @@ Map stageValidation(String quay_url, String dest_release_tag, int advisory = 0, 
     res = buildlib.withAppCiAsArtPublish() {
         return commonlib.shell(
             returnAll: true,
-            script: "GOTRACEBACK=all oc --ci-kubeconfig ${KUBECONFIG} adm release info ${quay_url}:${dest_release_tag}"
+            script: "GOTRACEBACK=all oc --kubeconfig ${KUBECONFIG} adm release info ${quay_url}:${dest_release_tag}"
         )
     }
 
@@ -220,7 +220,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
     }
 
     stdout = buildlib.withAppCiAsArtPublish() {
-        cmd += " --ci-kubeconfig ${KUBECONFIG}"
+        cmd += " --kubeconfig ${KUBECONFIG}"
         return commonlib.shell(
             script: cmd,
             returnStdout: true
@@ -234,7 +234,7 @@ def stageGenPayload(dest_repo, release_name, dest_release_tag, from_release_tag,
 
 def getPayloadDigest(quay_url, release_tag) {
     def payloadInfo = buildlib.withAppCiAsArtPublish() {
-        def cmd = "GOTRACEBACK=all oc --ci-kubeconfig ${KUBECONFIG} adm release info ${quay_url}:${release_tag} -o json"
+        def cmd = "GOTRACEBACK=all oc --kubeconfig ${KUBECONFIG} adm release info ${quay_url}:${release_tag} -o json"
         def stdout = commonlib.shell(
             script: cmd,
             returnStdout: true
@@ -288,7 +288,7 @@ def stageTagRelease(quay_url, release_name, release_tag, arch) {
     }
 
     buildlib.withAppCiAsArtPublish() {
-        cmd += " --ci-kubeconfig ${KUBECONFIG}"
+        cmd += " --kubeconfig ${KUBECONFIG}"
         commonlib.shell(
             script: cmd
         )
@@ -396,7 +396,7 @@ def stageGetReleaseInfo(quay_url, release_tag){
     }
 
     def res = buildlib.withAppCiAsArtPublish() {
-        cmd += " --ci-kubeconfig ${KUBECONFIG}"
+        cmd += " --kubeconfig ${KUBECONFIG}"
         return commonlib.shell(
             returnAll: true,
             script: cmd
@@ -675,7 +675,10 @@ def getReleaseTagArchPriv(from_release_tag) {
     // 4.1.0-0.nightly-s390x-2019-11-08-213727  ->   [4.1.0, 0.nightly, s390x, 2019, 11, 08, 213727]
 
     def priv = "priv" in nameComponents
-    def arch = params.ARCH || "auto"
+    def arch = "auto"
+    if ( params.ARCH ) {
+        arch = params.ARCH
+    }
     for (arch_cmp in commonlib.goArches + commonlib.brewArches)
         if (arch_cmp in nameComponents)
             arch = commonlib.brewArchForGoArch(arch_cmp)

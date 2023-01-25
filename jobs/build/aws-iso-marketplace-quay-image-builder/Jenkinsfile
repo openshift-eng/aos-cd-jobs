@@ -69,13 +69,13 @@ pipeline {
                 attempt = 0
                 retry(60) {
                     if (attempt > 0) {
-                        echo "Waiting for up to 1 hour for version {
+                        echo "Waiting for up to 1 hour for version"
                         sleep(unit: "MINUTES", time: 1)
                     }
                     // This will throw an exception if the desired version is not in Cincinnati.
                     sh("""
-                    curl -sH 'Accept:application/json' 'https://api.openshift.com/api/upgrades_info/v1/graph?channel=candidate-4.10' | jq .nodes | grep '"${params.CINCINNATI_OCP_VERSION}"'
-                    """
+                    curl -sH 'Accept:application/json' 'https://api.openshift.com/api/upgrades_info/v1/graph?channel=${channel}' | jq .nodes | grep '"${params.CINCINNATI_OCP_VERSION}"'
+                    """)
                     attempt++
                 }
             }

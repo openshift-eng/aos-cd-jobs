@@ -24,6 +24,10 @@ class Ocp4ScanPipeline:
         self.changes = {}
 
     async def run(self):
+        # Check if automation is frozen for current group
+        if not util.is_build_permitted(self.version):
+            return
+
         self.logger.info('Building: %s', self.version)
 
         # KUBECONFIG env var must be defined in order to scan sources

@@ -14,11 +14,6 @@ node {
     for ( version in commonlib.ocp4Versions ) {
         def cv = "${version}" // make sure we use a locally scoped variable
 
-        // Skip the build if automation is not permitted for ${version}
-        if (!buildlib.isBuildPermitted("--group 'openshift-${cv}'")) {
-            continue
-        }
-
         // Skip the build if already locked
         activityLockName = "github-activity-lock-${cv}"
         if (!commonlib.canLock(activityLockName)) {

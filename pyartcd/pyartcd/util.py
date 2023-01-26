@@ -163,13 +163,15 @@ def get_changes(yaml_data: dict) -> dict:
     return changes
 
 
-async def get_freeze_automation(version: str, data_path: str = constants.OCP_BUILD_DATA_URL) -> str:
+async def get_freeze_automation(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
+                                doozer_working: str = '') -> str:
     """
     Returns freeze_automation flag for a specific group
     """
 
     cmd = [
         'doozer',
+        f'--working-dir={doozer_working}' if doozer_working else '',
         '--assembly=stream',
         f'--data-path={data_path}',
         f'--group=openshift-{version}',
@@ -192,7 +194,8 @@ def is_manual_build() -> bool:
     return os.getenv('BUILD_USER_EMAIL') is not None
 
 
-async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_DATA_URL) -> bool:
+async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
+                             doozer_working: str = '') -> bool:
     """
     Check whether the group should be built right now.
     This depends on:
@@ -202,7 +205,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     """
 
     # Get 'freeze_automation' flag
-    freeze_automation = await get_freeze_automation(version, data_path)
+    freeze_automation = await get_freeze_automation(version, data_path, doozer_working)
 
     # Check for frozen automation
     # yaml parses unquoted "yes" as a boolean... accept either

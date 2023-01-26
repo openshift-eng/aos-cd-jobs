@@ -32,7 +32,7 @@ pipeline {
         string(
             name: "QUAY_IMAGE_BUILDER_COMMITISH",
             description: "A commitish to use for github.com/openshift/quay-image-builder",
-            defaultValue: "master",
+            defaultValue: "main",
             trim: true,
         )
         booleanParam(

@@ -228,6 +228,9 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
         # The build is permitted only if current day is saturday or sunday
         if weekday in [5, 6] or is_manual_build():
             return True
+
+        logger.info('Scheduled builds for %s are permitted only on weekends, '
+                    'and this does not seem to be the case', version)
         return False
 
     # Fallback to default

@@ -26,6 +26,7 @@ class Ocp4ScanPipeline:
     async def run(self):
         # Check if automation is frozen for current group
         if not await util.is_build_permitted(self.version, doozer_working=DOOZER_WORKING):
+            self.logger.info('Skipping this build as it\'s not permitted')
             return
 
         self.logger.info('Building: %s', self.version)

@@ -100,7 +100,7 @@ pipeline {
             steps {
                 script {
                     if (params.BUILD_RUNNER_IMAGE) {
-                        commonlib.shell("sudo podman build . -f runner-image.Dockerfile -t runner-image")
+                        commonlib.shell("docker build . -f runner-image.Dockerfile -t runner-image")
                     } else {
                         echo "Skipping the build or rebuild of the runner-image"
                     }
@@ -120,7 +120,7 @@ pipeline {
                                     # operators from the template.
                                     cat imageset-config.yaml | yq '.mirror.operators=[]' > generated-imageset-config-template.yaml
                                     # See https://github.com/openshift/quay-image-builder for environment variable description.
-                                    podman run --rm -v $PWD:/quay-image-builder:z -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e IMAGESET_CONFIG_TEMPLATE=/quay-image-builder/generated-imageset-config-template.yaml -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build_template.sh runner-image
+                                    docker run --rm -v $PWD:/quay-image-builder:z -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e IMAGESET_CONFIG_TEMPLATE=/quay-image-builder/generated-imageset-config-template.yaml -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build_template.sh runner-image
                                 """)
                             }
                         }
@@ -142,7 +142,7 @@ pipeline {
                                 # operators from the template.
                                 cat imageset-config.yaml | yq '.mirror.operators=[]' > generated-imageset-config-template.yaml
                                 # See https://github.com/openshift/quay-image-builder for environment variable description.
-                                podman run --rm -v $PWD:/quay-image-builder:z -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e IMAGESET_CONFIG_TEMPLATE=/quay-image-builder/generated-imageset-config-template.yaml -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build.sh runner-image
+                                docker run --rm -v $PWD:/quay-image-builder:z -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e IMAGESET_CONFIG_TEMPLATE=/quay-image-builder/generated-imageset-config-template.yaml -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build.sh runner-image
                             """)
                             // Packer, involved by build.sh, will create a machine-readable packer.log. Look
                             // for a line like:

@@ -1,6 +1,6 @@
 import os
 import re
-import datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import logging
@@ -221,16 +221,13 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
 
     # Check if group can run on weekends
     if freeze_automation == 'weekdays':
-        # Get current day of the week as an integer, where Monday is 0 and Sunday is 6
-        # See http://bit.ly/3HERClP for reference
-        weekday = datetime.datetime.today().weekday()
-
         # The build is permitted only if current day is saturday or sunday
-        if weekday in [5, 6] or is_manual_build():
+        weekday = datetime.today().strftime("%A")
+        if weekday in ['Saturday', 'Sunday'] or is_manual_build():
             return True
 
-        logger.info('Scheduled builds for %s are permitted only on weekends, '
-                    'and this does not seem to be the case', version)
+        logger.info('Scheduled builds for %s are permitted only on weekends, and today is %s',
+                    version, weekday)
         return False
 
     # Fallback to default

@@ -61,22 +61,24 @@ pipeline {
 
         stage("Wait for Cincy") {
             steps {
-                // Before quay-image-builder can work, the release must be present in Cincinnati.
-                (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.CINCINNATI_OCP_VERSION)
+                script {
+                    // Before quay-image-builder can work, the release must be present in Cincinnati.
+                    (major, minor) = commonlib.extractMajorMinorVersionNumbers(params.CINCINNATI_OCP_VERSION)
 
-                // Everything starts here, so it is our early chance to find a release.
-                channel = "candidate-${major}.${minor}"
-                attempt = 0
-                retry(60) {
-                    if (attempt > 0) {
-                        echo "Waiting for up to 1 hour for version"
-                        sleep(unit: "MINUTES", time: 1)
+                    // Everything starts here, so it is our early chance to find a release.
+                    channel = "candidate-${major}.${minor}"
+                    attempt = 0
+                    retry(60) {
+                        if (attempt > 0) {
+                            echo "Waiting for up to 1 hour for version"
+                            sleep(unit: "MINUTES", time: 1)
+                        }
+                        // This will throw an exception if the desired version is not in Cincinnati.
+                        sh("""
+                        curl -sH 'Accept:application/json' 'https://api.openshift.com/api/upgrades_info/v1/graph?channel=${channel}' | jq .nodes | grep '"${params.CINCINNATI_OCP_VERSION}"'
+                        """)
+                        attempt++
                     }
-                    // This will throw an exception if the desired version is not in Cincinnati.
-                    sh("""
-                    curl -sH 'Accept:application/json' 'https://api.openshift.com/api/upgrades_info/v1/graph?channel=${channel}' | jq .nodes | grep '"${params.CINCINNATI_OCP_VERSION}"'
-                    """)
-                    attempt++
                 }
             }
         }

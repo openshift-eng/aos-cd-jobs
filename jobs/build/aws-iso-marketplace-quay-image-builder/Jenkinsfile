@@ -152,7 +152,7 @@ pipeline {
 
                             // Share with staging account https://issues.redhat.com/browse/ART-5510
                             commonlib.shell("""
-                            aws ec2 modify-image-attribute --image-id ${ami_id} --launch-permission "Add=[{UserId=${ICMP_AWS_SHARE_ACCOUNT}}]"
+                            aws ec2 modify-image-attribute --image-id ${ami_id} --launch-permission "Add=[{UserId=${SHARE_ACCOUNT}}]"
                             """)
                         }
                     }

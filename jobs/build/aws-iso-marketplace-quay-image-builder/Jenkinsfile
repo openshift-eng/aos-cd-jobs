@@ -145,7 +145,7 @@ pipeline {
                             // Packer, involved by build.sh, will create a machine-readable packer.log. Look
                             // for a line like:
                             // 1674670955,amazon-ebs,artifact,0,id,us-east-2:ami-xxxxxxxxxxxxxxxxx
-                            ami_info = sh(returnStdout: true, script: "cat packer.log | awk -F, '$0 ~/artifact,0,id/ {print $6}'").trim() // should look like us-east-2:ami-xxxxxxxxxxxxxxxxx
+                            ami_info = sh(returnStdout: true, script: "cat packer.log | awk -F, '\$0 ~/artifact,0,id/ {print \$6}'").trim() // should look like us-east-2:ami-xxxxxxxxxxxxxxxxx
                             (region, ami_id) = ami_info.split(':')
 
                             // Share with staging account https://issues.redhat.com/browse/ART-5510

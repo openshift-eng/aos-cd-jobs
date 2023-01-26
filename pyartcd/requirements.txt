@@ -3,7 +3,7 @@ aiofiles
 click
 contextvars
 ghapi
-jenkinsapi == 0.3.11
+jenkinsapi >= 0.3.13  # https://github.com/pycontribs/jenkinsapi/issues/833
 Jinja2
 jira >= 3.4.1  # https://github.com/pycontribs/jira/issues/1486
 openshift-client

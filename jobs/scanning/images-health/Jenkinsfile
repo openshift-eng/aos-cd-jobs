@@ -54,13 +54,15 @@ node() {
     }
 
     withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-        try {
-            echo "Will run ${cmd}"
-            commonlib.shell(script: cmd.join(' '))
-        } catch (exception) {
-            slacklib.to(BUILD_VERSION).say(":alert: Image health check job failed!\n${BUILD_URL}")
-            currentBuild.result = "FAILURE"
-            throw exception  // gets us a stack trace FWIW
+        withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}"]) {
+            try {
+                echo "Will run ${cmd}"
+                commonlib.shell(script: cmd.join(' '))
+            } catch (exception) {
+                slacklib.to(BUILD_VERSION).say(":alert: Image health check job failed!\n${BUILD_URL}")
+                currentBuild.result = "FAILURE"
+                throw exception  // gets us a stack trace FWIW
+            }
         }
     }
 }

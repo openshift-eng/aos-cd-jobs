@@ -35,38 +35,30 @@ node() {
     def doozer_working = "${WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
 
-    def group = "openshift-${params.BUILD_VERSION}"
-    def doozerOpts = "--working-dir ${doozer_working} --group ${group} "
-    
-    // If automation is frozen, do not query for images health.
-    // If it is scheduled, report health (but only if triggered by a human)
-    if (! buildlib.isBuildPermitted(doozerOpts)) {
-        return
+    // Run pyartcd
+    sh "mkdir -p ./artcd_working"
+
+    def cmd = [
+        "artcd",
+        "-vv",
+        "--working-dir=./artcd_working",
+        "--config=./config/artcd.toml",
+        "images-health",
+        "--version=${params.BUILD_VERSION}"
+    ]
+    if (params.SEND_TO_RELEASE_CHANNEL) {
+        cmd << "--send-to-release-channel"
+    }
+    if (params.SEND_TO_AOS_ART) {
+        cmd << "--send-to-aos-art"
     }
 
-    timestamps {
-
-        releaseChannel = slacklib.to(BUILD_VERSION)
-        aosArtChannel = slacklib.to("#aos-art")
-
+    withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
         try {
-            report = buildlib.doozer("${doozerOpts} images:health", [capture: true]).trim()
-            if (report) {
-                echo "The report:\n${report}"
-                if (params.SEND_TO_RELEASE_CHANNEL) {
-                    releaseChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
-                }
-                if (params.SEND_TO_AOS_ART) {
-                    aosArtChannel.say(":alert: Howdy! There are some issues to look into for ${group}\n${report}")
-                }
-            } else {
-                echo "There are no issues to report."
-                if (params.SEND_TO_RELEASE_CHANNEL) {
-                    releaseChannel.say(":white_check_mark: All images are healthy for ${group}")
-                }
-            }
+            echo "Will run ${cmd}"
+            commonlib.shell(script: cmd.join(' '))
         } catch (exception) {
-            releaseChannel.say(":alert: Image health check job failed!\n${BUILD_URL}")
+            slacklib.to(BUILD_VERSION).say(":alert: Image health check job failed!\n${BUILD_URL}")
             currentBuild.result = "FAILURE"
             throw exception  // gets us a stack trace FWIW
         }

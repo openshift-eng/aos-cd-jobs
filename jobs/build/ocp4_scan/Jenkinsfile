@@ -102,38 +102,40 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                         // There is a vanishingly small race condition here, but it is not dangerous;
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).
                         lock(activityLockName) {
-                            try {
-                                echo "Will run ${cmd}"
-                                sh(script: cmd.join(' '), returnStdout: true)
+                            withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}"]) {
+                                try {
+                                    echo "Will run ${cmd}"
+                                    sh(script: cmd.join(' '), returnStdout: true)
 
-                                // success email only if requested for this build
-                                if (params.MAIL_LIST_SUCCESS.trim()) {
+                                    // success email only if requested for this build
+                                    if (params.MAIL_LIST_SUCCESS.trim()) {
+                                        commonlib.email(
+                                            to: "${params.MAIL_LIST_SUCCESS}",
+                                            from: "aos-art-automation@redhat.com",
+                                            replyTo: "aos-team-art@redhat.com",
+                                            subject: "Success scanning OCP version: ${params.VERSION}",
+                                            body: "Success scanning OCP:\n${env.BUILD_URL}"
+                                        )
+                                    }
+
+                                } catch (err) {
+                                    echo "Error running ${params.VERSION} scan:\n${err}"
                                     commonlib.email(
-                                        to: "${params.MAIL_LIST_SUCCESS}",
+                                        to: "${params.MAIL_LIST_FAILURE}",
                                         from: "aos-art-automation@redhat.com",
                                         replyTo: "aos-team-art@redhat.com",
-                                        subject: "Success scanning OCP version: ${params.VERSION}",
-                                        body: "Success scanning OCP:\n${env.BUILD_URL}"
+                                        subject: "Unexpected error during OCP scan!",
+                                        body: "Encountered an unexpected error while running OCP scan: ${err}"
                                     )
+                                    throw err
+
+                                } finally {
+                                    sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
+                                    sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
+                                    commonlib.safeArchiveArtifacts(["doozer_working/*.bz2"])
+                                    buildlib.cleanWorkspace()
                                 }
-
-                            } catch (err) {
-                                echo "Error running ${params.VERSION} scan:\n${err}"
-                                commonlib.email(
-                                    to: "${params.MAIL_LIST_FAILURE}",
-                                    from: "aos-art-automation@redhat.com",
-                                    replyTo: "aos-team-art@redhat.com",
-                                    subject: "Unexpected error during OCP scan!",
-                                    body: "Encountered an unexpected error while running OCP scan: ${err}"
-                                )
-                                throw err
-
-                            } finally {
-                                sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
-                                sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
-                                commonlib.safeArchiveArtifacts(["doozer_working/*.bz2"])
-                                buildlib.cleanWorkspace()
-                            }
+                            } // withEnv
                         } // lock
                     } // withCredentials
                 } // withAppCiAsArtPublish

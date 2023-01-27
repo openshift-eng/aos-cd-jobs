@@ -53,10 +53,15 @@ async def cmd_gather_async(cmd: Union[List[str], str], check: bool = True, **kwa
     :param kwargs: Other arguments passing to asyncio.subprocess.create_subprocess_exec
     :return: rc,stdout,stderr
     """
+
     if isinstance(cmd, str):
         cmd_list = shlex.split(cmd)
     else:
         cmd_list = cmd
+
+    # Remove any empty tokens from the command list
+    cmd_list = [token for token in cmd_list if token]
+
     logger.info("Executing:cmd_gather_async %s", cmd_list)
     # capture stdout and stderr if they are not set in kwargs
     if "stdout" not in kwargs:
@@ -87,6 +92,10 @@ async def cmd_assert_async(cmd: Union[List[str], str], check: bool = True, **kwa
         cmd_list = shlex.split(cmd)
     else:
         cmd_list = cmd
+
+    # Remove any empty tokens from the command list
+    cmd_list = [token for token in cmd_list if token]
+
     logger.info("Executing:cmd_assert_async %s", cmd_list)
     proc = await asyncio.subprocess.create_subprocess_exec(cmd_list[0], *cmd_list[1:], **kwargs)
     returncode = await proc.wait()

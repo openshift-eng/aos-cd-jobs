@@ -24,10 +24,21 @@ pipeline {
             description: 'Under which ASSEMBLY directory to place the binaries.',
             defaultValue: "",
             trim: true,
-        )
+        ),
+        string(
+            name: 'BUILD_NVR',
+            description: 'If QE request specific build, use nvr as parameter.',
+            defaultValue: "",
+            trim: true,
+        ),
         booleanParam(
             name: 'UPDATE_LATEST_SYMLINK',
             description: 'You just want to update "latest" on the highest 4.x version',
+            defaultValue: false,
+        ),
+        booleanParam(
+            name: 'USE_PRE_RELEASE',
+            description: 'Use pre-release as directory name if requested by QE',
             defaultValue: false,
         )
     }
@@ -46,6 +57,8 @@ pipeline {
                         "operator-sdk-sync",
                         "--group=openshift-${params.BUILD_VERSION}",
                         "--assembly=${params.ASSEMBLY}",
+                        "--nvr=${params.BUILD_NVR}",
+                        "--prerelease=${params.USE_PRE_RELEASE}",
                         "--updatelatest=${params.UPDATE_LATEST_SYMLINK}"
                     ]
 

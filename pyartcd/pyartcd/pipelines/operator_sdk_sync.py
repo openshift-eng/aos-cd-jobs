@@ -12,11 +12,13 @@ from pyartcd.runtime import Runtime
 
 
 class OperatorSDKPipeline:
-    def __init__(self, runtime: Runtime, group: str, assembly: str, updatelatest: bool) -> None:
+    def __init__(self, runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: str, updatelatest: bool) -> None:
         self.runtime = runtime
         self._logger = runtime.logger
         self.version = group.split("-")[1]
         self.assembly = assembly
+        self.prerelease = prerelease
+        self.nvr = nvr
         self.updatelatest = updatelatest
         self.sdk = "operator-sdk"
         self.group = group
@@ -25,31 +27,35 @@ class OperatorSDKPipeline:
         self._jira_client = runtime.new_jira_client()
 
     def run(self):
-        release_file = self.runtime.new_github_client().get_repo(
-            "openshift/ocp-build-data").get_contents("releases.yml", ref=self.group)
-        self.extra_ad_id, self.parent_jira_key = self.get_ad_jira_key(
-            self.assembly, yaml.load(release_file.decoded_content, Loader=yaml.FullLoader))
-        advisory = Erratum(errata_id=self.extra_ad_id)
-        self._logger.info("Check advisory status ...")
-        if advisory.errata_state in ["QE", "NEW_FILES"]:
-            self._logger.info("Advisory status not in REL_PREP yet ...")
-            return
-        if advisory.errata_state == "SHIPPED_LIVE":
-            self._logger.info("Advisory status already in SHIPPED_LIVE, update subtask 9 ...")
-            self._update_jira(self.parent_jira_key, 8, "Advisory status already in SHIPPED_LIVE")
-        self._logger.info("Advisory status already in post REL_PREP, update subtask 7 ...")
-        self._update_jira(self.parent_jira_key, 6, "Advisory status already in REL_PREP")
+        if self.assembly:
+            release_file = self.runtime.new_github_client().get_repo(
+                "openshift/ocp-build-data").get_contents("releases.yml", ref=self.group)
+            self.extra_ad_id, self.parent_jira_key = self.get_ad_jira_key(
+                self.assembly, yaml.load(release_file.decoded_content, Loader=yaml.FullLoader))
+            advisory = Erratum(errata_id=self.extra_ad_id)
+            self._logger.info("Check advisory status ...")
+            if advisory.errata_state in ["QE", "NEW_FILES"]:
+                self._logger.info("Advisory status not in REL_PREP yet ...")
+                return
+            if advisory.errata_state == "SHIPPED_LIVE":
+                self._logger.info("Advisory status already in SHIPPED_LIVE, update subtask 9 ...")
+                self._update_jira(self.parent_jira_key, 8, "Advisory status already in SHIPPED_LIVE")
+            self._logger.info("Advisory status already in post REL_PREP, update subtask 7 ...")
+            self._update_jira(self.parent_jira_key, 6, "Advisory status already in REL_PREP")
 
-        et_builds = advisory.errata_builds
-        sdk_build = [i for i in et_builds[f'OSE-{self.version}-RHEL-8']
-                     if re.search("openshift-enterprise-operator-sdk-container*", i)]
-        if not sdk_build:
-            self._logger.info("No SDK build to ship, update subtask 8 then close ...")
-            self._update_jira(self.parent_jira_key, 7,
-                              f"No SDK build to ship, operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+            et_builds = advisory.errata_builds
+            sdk_build = [i for i in et_builds[f'OSE-{self.version}-RHEL-8'] if re.search("openshift-enterprise-operator-sdk-container*", i)]
+            if not sdk_build:
+                self._logger.info("No SDK build to ship, update subtask 8 then close ...")
+                self._update_jira(self.parent_jira_key, 7, f"No SDK build to ship, operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+                return
+            build = koji.ClientSession(constants.BREW_SERVER).getBuild(sdk_build[0])
+        elif self.nvr:
+            build = koji.ClientSession(constants.BREW_SERVER).getBuild(self.nvr)
+        else:
+            self._logger.info("no assembly or nvr provided")
             return
 
-        build = koji.ClientSession(constants.BREW_SERVER).getBuild(sdk_build[0])
         archlist = ["amd64", "arm64", "ppc64le", "s390x"]
         sdkVersion = self._get_sdkversion(build['extra']['image']['index']['pull'][0])
         self._logger.info(sdkVersion)
@@ -103,7 +109,10 @@ class OperatorSDKPipeline:
     def _sync_mirror(self, arch):
         extra_args = "--exclude '*' --include '*.tar.gz'"
         local_dir = f"./{arch}/"
-        s3_path = f"/pub/openshift-v4/{arch}/clients/operator-sdk/{self.assembly}/"
+        if self.prerelease:
+            s3_path = f"/pub/openshift-v4/{arch}/clients/operator-sdk/pre-release/"
+        else:
+            s3_path = f"/pub/openshift-v4/{arch}/clients/operator-sdk/{self.assembly}/"
         cmd = f"aws s3 sync --no-progress --exact-timestamps {extra_args} --delete {local_dir} s3://art-srv-enterprise{s3_path}"
         self._logger.info(cmd)
         subprocess.run(cmd, shell=True)
@@ -126,10 +135,14 @@ class OperatorSDKPipeline:
               help="The group of components on which to operate. e.g. openshift-4.9")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
               help="The name of an assembly. e.g. 4.9.1")
+@click.option("--nvr", metavar="BUILD_NVR", required=True,
+              help="Pin specific Build NVR")
+@click.option("--prerelease", metavar="PRE_RELEASE", required=True,
+              help="Use pre-release as directory name.")
 @click.option("--updatelatest", metavar="UPDATE_LATEST_SYMLINK", required=True,
               help="Update latest symlink on mirror")
 @pass_runtime
 @click_coroutine
-def tarball_sources(runtime: Runtime, group: str, assembly: str, updatelatest: bool):
-    pipeline = OperatorSDKPipeline(runtime, group, assembly, updatelatest)
+def tarball_sources(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: str, updatelatest: bool):
+    pipeline = OperatorSDKPipeline(runtime, group, assembly, nvr, prerelease, updatelatest)
     pipeline.run()

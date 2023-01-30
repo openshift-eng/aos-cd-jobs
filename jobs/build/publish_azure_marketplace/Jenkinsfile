@@ -5,7 +5,7 @@ node {
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib
     commonlib.describeJob("publish_azure_marketplace", """
-    Per https://issues.redhat.com/browse/ART-3669, provide for occasional
+    Per https://issues.redhat.com/browse/ART-3669 & https://issues.redhat.com/browse/ART-5907, provide for occasional
     upload of Azure VHD for marketplace.
     """)
 
@@ -23,7 +23,7 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
-                    commonlib.dryrunParam('Dowload artifacts, but do not upload'),
+                    commonlib.dryrunParam('Download artifacts, but do not upload'),
                     commonlib.mockParam(),
                 ]
             ],
@@ -37,9 +37,11 @@ node {
     buildlib.cleanWorkdir(workDir)
 
     def azureArtifactCoordinate = [
-        '4.8': ['path': 'data/data/rhcos-stream.json', 'jq': '.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk'],
-        '4.9': ['path': 'data/data/rhcos-stream.json', 'jq': '.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk'],
-        'default': ['path': 'data/data/coreos/rhcos.json', 'jq': '.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk'],
+        '4.8': ['path': 'data/data/rhcos-stream.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.9': ['path': 'data/data/rhcos-stream.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.10': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        '4.11': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
+        'default': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk', '.architectures.aarch64.artifacts.azure.formats."vhd.gz".disk']],
     ]
 
     stage('upload vhd.gz') {
@@ -54,28 +56,30 @@ node {
                 gitRef = params.OPENSHIFT_INSTALLER_GIT_REF
             }
             def filePath = azureArtifactCoordinate[coordinateKey]['path']
-            def jqExpression = azureArtifactCoordinate[coordinateKey]['jq']
+            def jqExpressions = azureArtifactCoordinate[coordinateKey]['jq']
             def rhcosJsonURL = "https://raw.githubusercontent.com/openshift/installer/${gitRef}/${filePath}"
             withCredentials([string(credentialsId: 'azure_marketplace_staging_upload_key', variable: 'ACCESS_KEY')]) {
-                commonlib.shell(script:  """
-                pushd ${workDir}
-                echo 'Using file: ${rhcosJsonURL}'
-                echo 'Using jq expression base: ${jqExpression}'
-                VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.location' -r`
-                VHD_SHA=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.sha256' -r`
-                """ +
-                '''
-                VHD_GZ_FILE=`basename $VHD_GZ_URL`
-                VHD_SHA_FILE="$VHD_GZ_FILE".sha256
-                echo $VHD_SHA > $VHD_SHA_FILE
+                for ( jqExpression in jqExpressions ) {
+                    commonlib.shell(script:  """
+                    pushd ${workDir}
+                    echo 'Using file: ${rhcosJsonURL}'
+                    echo 'Using jq expression base: ${jqExpression}'
+                    VHD_GZ_URL=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.location' -r`
+                    VHD_SHA=`curl --fail '${rhcosJsonURL}' | jq '${jqExpression}.sha256' -r`
+                    """ +
+                    '''
+                    VHD_GZ_FILE=`basename $VHD_GZ_URL`
+                    VHD_SHA_FILE="$VHD_GZ_FILE".sha256
+                    echo $VHD_SHA > $VHD_SHA_FILE
 
-                curl --fail $VHD_GZ_URL > $VHD_GZ_FILE
-                echo Target VHD: $VHD_GZ_FILE
-                ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
-                                az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
-                                az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
-                ''')
-                )
+                    curl --fail $VHD_GZ_URL > $VHD_GZ_FILE
+                    echo Target VHD: $VHD_GZ_FILE
+                    ''' + (params.DRY_RUN?"echo Exiting before upload because of DRY_RUN": '''
+                                    az storage blob upload -f $VHD_SHA_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                                    az storage blob upload -f $VHD_GZ_FILE --container-name rhcos --account-name artupload --account-key $ACCESS_KEY
+                    ''')
+                    )
+                }
             }
         }
     }

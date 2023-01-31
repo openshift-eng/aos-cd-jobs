@@ -213,7 +213,7 @@ node {
         stage("Publish azure marketplace") {
             if ( buildlib.cmp_version(ocpVersion, "4.9") == 1 ) {
                 build(
-                    job: 'build%2publish_azure_marketplace',
+                    job: 'build%252Fpublish_azure_marketplace',
                     wait: true,
                     parameters: [
                         string(name: 'VERSION', value: ocpVersion),

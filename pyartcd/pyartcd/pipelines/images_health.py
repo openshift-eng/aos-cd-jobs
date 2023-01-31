@@ -11,7 +11,7 @@ class ImagesHealthPipeline:
     def __init__(self, runtime: Runtime, version: str,
                  send_to_release_channel: bool, send_to_aos_art: bool):
         self.runtime = runtime
-        self.doozer_working = f'{self.runtime.working_dir.absolute()}/doozer_working'
+        self.doozer_working = self.runtime.working_dir / "doozer_working"
         self.logger = self.runtime.logger
         self.version = version
         self.send_to_release_channel = send_to_release_channel

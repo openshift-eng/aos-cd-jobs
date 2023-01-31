@@ -30,6 +30,11 @@ node {
                             defaultValue: "test",
                             trim: true
                         ),
+                        booleanParam(
+                            name: "FORCE_REBUILD",
+                            description: "(For named assemblies) Rebuild even if a build already exists",
+                            defaultValue: false
+                        ),
                         string(
                             name: 'RELEASE_PAYLOADS',
                             description: '(Optional) List of release payloads to rebase against; can be nightly names or full pullspecs',
@@ -94,6 +99,9 @@ node {
                     for (nightly in commonlib.parseList(params.RELEASE_PAYLOADS)) {
                         cmd << "--payload" << nightly.trim()
                     }
+                }
+                if (params.FORCE_REBUILD) {
+                    cmd << "--force"
                 }
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"

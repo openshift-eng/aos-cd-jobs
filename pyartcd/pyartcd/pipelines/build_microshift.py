@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import re
@@ -6,23 +7,25 @@ import traceback
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from tempfile import TemporaryDirectory
+from typing import Dict, Iterable, List, Optional, Tuple, cast
 
 import click
 from doozerlib.assembly import AssemblyTypes
-from doozerlib.util import brew_arch_for_go_arch, isolate_nightly_name_components
+from doozerlib.util import (brew_arch_for_go_arch,
+                            isolate_nightly_name_components)
 from ghapi.all import GhApi
-from pyartcd import exectools, oc, util
+from ruamel.yaml import YAML
+from semver import VersionInfo
+
+from pyartcd import constants, exectools, oc, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.git import GitRepository
-from pyartcd import constants
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
-                          isolate_el_version_in_release,
-                          load_group_config, load_releases_config)
-from ruamel.yaml import YAML
-from semver import VersionInfo
+                          isolate_el_version_in_release, load_group_config,
+                          load_releases_config)
 
 yaml = YAML(typ="rt")
 yaml.preserve_quotes = True
@@ -34,12 +37,13 @@ class BuildMicroShiftPipeline:
     SUPPORTED_ASSEMBLY_TYPES = {AssemblyTypes.STANDARD, AssemblyTypes.CANDIDATE, AssemblyTypes.PREVIEW, AssemblyTypes.STREAM, AssemblyTypes.CUSTOM}
 
     def __init__(self, runtime: Runtime, group: str, assembly: str, payloads: Tuple[str, ...], no_rebase: bool,
-                 ocp_build_data_url: str, logger: Optional[logging.Logger] = None):
+                 force: bool, ocp_build_data_url: str, logger: Optional[logging.Logger] = None):
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
         self.payloads = payloads
         self.no_rebase = no_rebase
+        self.force = force
         self._logger = logger or runtime.logger
         self._working_dir = self.runtime.working_dir.absolute()
 
@@ -49,7 +53,9 @@ class BuildMicroShiftPipeline:
             raise ValueError(f"Invalid group name: {group}")
         self._ocp_version = (int(match[1]), int(match[2]))
 
-        # sets environment variables for Doozer
+        # sets environment variables for Elliott and Doozer
+        self._elliott_env_vars = os.environ.copy()
+        self._elliott_env_vars["ELLIOTT_WORKING_DIR"] = str(self._working_dir / "elliott-working")
         self._doozer_env_vars = os.environ.copy()
         self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self._working_dir / "doozer-working")
 
@@ -57,6 +63,7 @@ class BuildMicroShiftPipeline:
             ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
         if ocp_build_data_url:
             self._doozer_env_vars["DOOZER_DATA_PATH"] = ocp_build_data_url
+            self._elliott_env_vars["ELLIOTT_DATA_PATH"] = ocp_build_data_url
 
     async def run(self):
         slack_client = None
@@ -92,29 +99,39 @@ class BuildMicroShiftPipeline:
                     raise ValueError(f"Specifying payloads for assembly type {assembly_type.value} is not allowed.")
                 release_name = util.get_release_name_for_assembly(self.group, releases_config, self.assembly)
 
-            # Rebases and builds microshift
-            if assembly_type is not AssemblyTypes.STREAM:
-                slack_client = self.runtime.new_slack_client()
-                slack_client.bind_channel(self.group)
-                slack_response = await slack_client.say(f":construction: Build microshift for assembly {self.assembly} :construction:")
-                slack_thread = slack_response["message"]["ts"]
-            version, release = self.generate_microshift_version_release(release_name)
-            nvrs = await self._rebase_and_build_rpm(version, release, custom_payloads)
-
-            # Create a PR to pin microshift build
+            # For named releases, check if the build already exists
+            nvrs = []
             pr = None
-            assembly_basis = get_assembly_basis(releases_config, self.assembly)
-            if assembly_basis.brew_event:
-                pr = await self._create_or_update_pull_request(nvrs)
+
+            if assembly_type is not AssemblyTypes.STREAM and not self.force:
+                nvrs = await self._find_builds()
+
+            if nvrs:
+                self._logger.info("Builds already exist: %s", nvrs)
+            else:
+                # Rebases and builds microshift
+                if assembly_type is not AssemblyTypes.STREAM:
+                    slack_client = self.runtime.new_slack_client()
+                    slack_client.bind_channel(self.group)
+                    slack_response = await slack_client.say(f":construction: Build microshift for assembly {self.assembly} :construction:")
+                    slack_thread = slack_response["message"]["ts"]
+                version, release = self.generate_microshift_version_release(release_name)
+                nvrs = await self._rebase_and_build_rpm(version, release, custom_payloads)
+
+                # Create a PR to pin microshift build
+                assembly_basis = get_assembly_basis(releases_config, self.assembly)
+                if assembly_basis.brew_event:
+                    pr = await self._create_or_update_pull_request(nvrs)
 
             # Sends a slack message
             message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
-                message += "\nTo publish the build to the pocket (if asked by QE), run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fupdate-microshift-pocket/|update-microshift-pocket> job after the PR is merged."
-                message += f"\nTo attach the build to Errata, run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fprepare-release/|prepare-release> job or `elliott --group {self.group} --assembly {self.assembly} --rpms microshift find-builds -k rpm --member-only --use-default-advisory microshift` after the PR is merged."
-                if assembly_type is AssemblyTypes.PREVIEW:
-                    message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with `UPDATE_PUB_MIRROR` checked after the PR is merged."
+                message += "\nReview and merge the PR before you proceed.\n"
+            message += "\nTo publish the build to the pocket (if asked by QE), run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fupdate-microshift-pocket/|update-microshift-pocket> job."
+            message += f"\nTo attach the build to Errata, run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fprepare-release/|prepare-release> job or `elliott --group {self.group} --assembly {self.assembly} --rpms microshift find-builds -k rpm --member-only --use-default-advisory microshift`."
+            if assembly_type is AssemblyTypes.PREVIEW:
+                message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with `UPDATE_PUB_MIRROR` checked."
             if slack_client:
                 await slack_client.say(message, slack_thread)
         except Exception as err:
@@ -165,6 +182,28 @@ class BuildMicroShiftPipeline:
             version += f"~{release_version.prerelease.replace('-', '_')}"
         release = f"{timestamp}.p?"
         return version, release
+
+    async def _find_builds(self) -> List[str]:
+        """ Find microshift builds in Brew
+        :param release: release field for rebase
+        :return: NVRs
+        """
+        cmd = [
+            "elliott",
+            "--group", self.group,
+            "--assembly", self.assembly,
+            "-r", "microshift",
+            "find-builds",
+            "-k", "rpm",
+            "--member-only",
+        ]
+        with TemporaryDirectory() as tmpdir:
+            path = f"{tmpdir}/out.json"
+            cmd.append(f"--json={path}")
+            await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars)
+            with open(path) as f:
+                result = json.load(f)
+        return cast(List[str], result["builds"])
 
     async def _rebase_and_build_rpm(self, version, release: str, custom_payloads: Optional[Dict[str, str]]) -> List[str]:
         """ Rebase and build RPM
@@ -284,9 +323,12 @@ class BuildMicroShiftPipeline:
               help="[Multiple] Release payload to rebase against; Can be a nightly name or full pullspec")
 @click.option("--no-rebase", is_flag=True,
               help="Don't rebase microshift code; build the current source we have in the upstream repo for testing purpose")
+@click.option("--force", is_flag=True,
+              help="(For named assemblies) Rebuild even if a build already exists")
 @pass_runtime
 @click_coroutine
-async def build_microshift(runtime: Runtime, ocp_build_data_url: str, group: str, assembly: str, payloads: Tuple[str, ...], no_rebase: bool):
-    pipeline = BuildMicroShiftPipeline(runtime=runtime, group=group, assembly=assembly,
-                                       payloads=payloads, no_rebase=no_rebase, ocp_build_data_url=ocp_build_data_url)
+async def build_microshift(runtime: Runtime, ocp_build_data_url: str, group: str, assembly: str, payloads: Tuple[str, ...],
+                           no_rebase: bool, force: bool):
+    pipeline = BuildMicroShiftPipeline(runtime=runtime, group=group, assembly=assembly, payloads=payloads,
+                                       no_rebase=no_rebase, force=force, ocp_build_data_url=ocp_build_data_url)
     await pipeline.run()

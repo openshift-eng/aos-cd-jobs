@@ -51,7 +51,7 @@ class ImagesHealthPipeline:
 
             if self.send_to_aos_art:
                 self.slack_client.bind_channel('#aos-art')
-                self.slack_client.say(msg)
+                await self.slack_client.say(msg)
 
         else:
             if self.send_to_release_channel:

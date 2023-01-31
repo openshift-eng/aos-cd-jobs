@@ -54,8 +54,11 @@ node() {
         cmd << "--send-to-aos-art"
     }
 
-    withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-        withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}"]) {
+    withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                     usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
+
+        withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}", "DOOZER_DB_NAME=art_dash"]) {
             try {
                 echo "Will run ${cmd}"
                 commonlib.shell(script: cmd.join(' '))

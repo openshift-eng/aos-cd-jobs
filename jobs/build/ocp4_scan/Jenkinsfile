@@ -19,8 +19,8 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
             limit it to a release that's not frozen.
         """)
 
-
-        def doozer_working = "${WORKSPACE}/doozer_working"
+        def artcd_working = "${WORKSPACE}/artcd_working"
+        def doozer_working = "${artcd_working}/doozer_working"
 
         // Expose properties for a parameterized build
         properties(
@@ -76,7 +76,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                 currentBuild.displayName += "[DRY_RUN]"
             }
 
-            buildlib.cleanWorkdir(doozer_working, true)
+            buildlib.cleanWorkdir(artcd_working, true)
         }
 
         stage("Scan") {
@@ -85,7 +85,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                 cmd = [
                     "artcd",
                     "-v",
-                    "--working-dir=./artcd_working",
+                    "--working-dir=${artcd_working}",
                     "--config=./config/artcd.toml",
                 ]
                 if (params.DRY_RUN) {

@@ -112,7 +112,7 @@ get_plugin() {
     wget -O "${tmp_hpi_file}" "${plugin_url}" 2> /dev/null
     if [ "$?" != "0" ]; then
         echo "Error downloading ${plugin}; exiting"
-        exit 1
+        return 1
     fi
 
     extract="${workingdir}/extracts/${plugin}"

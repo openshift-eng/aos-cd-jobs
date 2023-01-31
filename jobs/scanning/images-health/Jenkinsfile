@@ -31,9 +31,10 @@ node() {
 
     GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
-    // doozer_working must be in WORKSPACE in order to have artifacts archived
-    def doozer_working = "${WORKSPACE}/doozer_working"
-    buildlib.cleanWorkdir(doozer_working)
+    // Working dirs
+    def artcd_working = "${WORKSPACE}/artcd_working"
+    def doozer_working = "${artcd_working}/doozer_working"
+    buildlib.cleanWorkdir(artcd_working)
 
     // Run pyartcd
     sh "mkdir -p ./artcd_working"
@@ -41,7 +42,7 @@ node() {
     def cmd = [
         "artcd",
         "-vv",
-        "--working-dir=./artcd_working",
+        "--working-dir=${artcd_working}",
         "--config=./config/artcd.toml",
         "images-health",
         "--version=${params.BUILD_VERSION}"
@@ -62,6 +63,11 @@ node() {
                 slacklib.to(BUILD_VERSION).say(":alert: Image health check job failed!\n${BUILD_URL}")
                 currentBuild.result = "FAILURE"
                 throw exception  // gets us a stack trace FWIW
+            } finally {
+                // archive artifacts
+                artifacts = []
+                artifacts.add("artcd_working/doozer_working/debug.log")
+                commonlib.safeArchiveArtifacts(artifacts)
             }
         }
     }

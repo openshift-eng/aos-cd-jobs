@@ -220,7 +220,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
         return False
 
     # Check if group can run on weekends
-    if freeze_automation == 'weekdays':
+    if freeze_automation == 'weekdays' and not is_manual_build():
         # The build is permitted only if current day is saturday or sunday
         weekday = datetime.today().strftime("%A")
         if weekday in ['Saturday', 'Sunday'] or is_manual_build():

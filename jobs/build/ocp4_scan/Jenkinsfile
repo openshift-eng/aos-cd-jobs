@@ -1,6 +1,6 @@
 // activity == true, means that the timeout will only occur if there
 // is no log activity for the specified period.
-timeout(activity: true, time: 30, unit: 'MINUTES') {
+timeout(activity: true, time: 60, unit: 'MINUTES') {
     node() {
         checkout scm
         def buildlib = load("pipeline-scripts/buildlib.groovy")
@@ -132,7 +132,7 @@ timeout(activity: true, time: 30, unit: 'MINUTES') {
                                 } finally {
                                     sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
                                     sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
-                                    commonlib.safeArchiveArtifacts(["doozer_working/*.bz2"])
+                                    commonlib.safeArchiveArtifacts(["${doozer_working}/*.bz2"])
                                     buildlib.cleanWorkspace()
                                 }
                             } // withEnv

@@ -1446,6 +1446,18 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     "--include-previous-for ovn", // this is a package prefix
                     "--include-previous-for haproxy", // avoid chicken and egg issues with base image & haproxy bumps
                     "--include-previous-for cri-o", // Fix regression in 4.10 CI
+                    // Allow previous for rhcos, so consecutive arch builds have the builds from their locks available:
+                    "--include-previous-for podman",
+                    "--include-previous-for crun",
+                    "--include-previous-for skopeo",
+                    "--include-previous-for conmon",
+                    "--include-previous-for conmon-rs",
+                    "--include-previous-for openshift-hyperkube",
+                    "--include-previous-for ignition",
+                    "--include-previous-for openshift-clients",
+                    "--include-previous-for buildah",
+                    "--include-previous-for rust-afterburn",
+                    "--include-previous-for cri-tools",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
             ].join(' '))
         }

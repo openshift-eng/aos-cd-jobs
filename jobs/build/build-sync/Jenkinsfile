@@ -222,12 +222,17 @@ node('covscan') {
                 // TODO: https://issues.redhat.com/browse/ART-5657
                 artNotifyFrequency = 2
                 forumReleaseNotifyFrequency = 5
-                if (failCount > 10) {
+                if (failCount > 10 && failCount <= 50) {
                     artNotifyFrequency = 5
                     forumReleaseNotifyFrequency = 10
-                } else if (failCount > 50) {
+                }
+                if (failCount > 50 && failCount <= 200) {
                     artNotifyFrequency = 10
-                    forumReleaseNotifyFrequency = 20
+                    forumReleaseNotifyFrequency = 50
+                }
+                if (failCount > 200) {
+                    artNotifyFrequency = 100
+                    forumReleaseNotifyFrequency = 100
                 }
                 if (failCount % artNotifyFrequency == 0) {  // spam ourselves a little more often than forum-release
                     slacklib.to(params.BUILD_VERSION).failure(msg)

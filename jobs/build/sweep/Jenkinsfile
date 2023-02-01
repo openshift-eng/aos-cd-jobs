@@ -97,7 +97,9 @@ node {
         withCredentials([file(credentialsId: 'exd-ocp-buildvm-bot-prod.keytab', variable: 'DISTGIT_KEYTAB_FILE'), string(credentialsId: 'exd-ocp-buildvm-bot-prod.user', variable: 'DISTGIT_KEYTAB_USER')]) {
             // Execute script
             withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+                withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}"]) {
+                    exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
+                }
             }
         }
         echo("command ${cmd} returned with status ${exitCode}")

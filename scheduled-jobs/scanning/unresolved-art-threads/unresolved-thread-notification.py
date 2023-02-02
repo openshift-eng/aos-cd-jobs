@@ -44,26 +44,10 @@ if __name__ == '__main__':
 
     print(json.dumps(all_matches))
 
-    fallback_text = "Currently unresolved ART threads:"
+    header_text = "Currently unresolved ART threads"
+    fallback_text = header_text
 
-    message_blocks = [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": fallback_text,
-                "emoji": True
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"Attention @{RELEASE_ARTIST_HANDLE}"
-            }
-        }
-    ]
-
+    response_messages = []
     current_epoch_time = time.time()
     for match in all_matches:
         team_id = match.get('team', '')
@@ -102,23 +86,34 @@ if __name__ == '__main__':
         # Slack includes an arrow character in the text if should be replaced by rich text elements (e.g. a n@username).
         # We just remove them since we are just trying for a short summary.
         snippet = snippet.replace('\ue006', '...')
-        message_blocks.append(
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Channel:* <https://jupierce.slack.com/archives/{channel_id}|#{channel_name}>\n*Date:* {str_date}Z\n*Age:* {age} {age_type}"
-                    },
-                    {
-                        "type": "mrkdwn",
-                        f"text": f"*Message:* <{permalink}|Link>\n*Snippet:* {snippet}..."
-                    }
-                ]
-            },
-        )
+        response_messages.append(
+            f"*Channel:* <https://redhat-internal.slack.com/archives/{channel_id}|#{channel_name}>\n*Date:* {str_date}Z\n*Age:* {age} {age_type}\n*Message:* <{permalink}|Link>\n*Snippet:* {snippet}...")
 
-    app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
-                                text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
-                                blocks=message_blocks,
-                                unfurl_links=False)
+    header_block = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": f"{header_text} ({len(response_messages)})",
+                "emoji": True
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"Attention @{RELEASE_ARTIST_HANDLE}"
+            }
+        }
+    ]
+
+    # https://api.slack.com/methods/chat.postMessage#examples
+    response = app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+                                           text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
+                                           blocks=header_block,
+                                           unfurl_links=False)
+
+    for response_message in response_messages:
+        app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+                                    text=response_message,
+                                    thread_ts=response['ts'])  # use the timestamp from the response

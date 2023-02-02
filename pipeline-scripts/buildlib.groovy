@@ -635,37 +635,6 @@ def param(type, name, value) {
     return [$class: type + 'ParameterValue', name: name, value: value]
 }
 
-def build_ami(major, minor, version, release, yum_base_url, ansible_branch, mail_list) {
-    if(major < 3 || (major == 3 && minor < 9))
-        return
-    final full_version = "${version}-${release}"
-    try {
-        build(job: 'build%2Faws-ami', parameters: [
-            param('String', 'OPENSHIFT_VERSION', version),
-            param('String', 'OPENSHIFT_RELEASE', release),
-            param('String', 'YUM_BASE_URL', yum_base_url),
-            param('String', 'OPENSHIFT_ANSIBLE_CHECKOUT', ansible_branch),
-            param('Boolean', 'USE_CRIO', true),
-            param(
-                'String', 'CRIO_SYSTEM_CONTAINER_IMAGE_OVERRIDE',
-                'registry.reg-aws.openshift.com:443/openshift3/cri-o:v'
-                    + full_version)])
-    } catch(err) {
-        commonlib.email(
-            to: "${mail_list},jupierce@redhat.com,openshift-cr@redhat.com",
-            from: "aos-cicd@redhat.com",
-            subject: "RESUMABLE Error during AMI build for OCP v${full_version}",
-            body: [
-                "Encountered an error: ${err}",
-                "Input URL: ${env.BUILD_URL}input",
-                "Jenkins job: ${env.BUILD_URL}"
-            ].join('\n')
-        )
-
-        // Continue on, this is not considered a fatal error
-    }
-}
-
 /**
  * Trigger sweep job.
  *
@@ -1477,6 +1446,18 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
                     "--include-previous-for ovn", // this is a package prefix
                     "--include-previous-for haproxy", // avoid chicken and egg issues with base image & haproxy bumps
                     "--include-previous-for cri-o", // Fix regression in 4.10 CI
+                    // Allow previous for rhcos, so consecutive arch builds have the builds from their locks available:
+                    "--include-previous-for podman",
+                    "--include-previous-for crun",
+                    "--include-previous-for skopeo",
+                    "--include-previous-for conmon",
+                    "--include-previous-for conmon-rs",
+                    "--include-previous-for openshift-hyperkube",
+                    "--include-previous-for ignition",
+                    "--include-previous-for openshift-clients",
+                    "--include-previous-for buildah",
+                    "--include-previous-for rust-afterburn",
+                    "--include-previous-for cri-tools",
                     "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
             ].join(' '))
         }

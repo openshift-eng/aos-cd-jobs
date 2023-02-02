@@ -6,8 +6,7 @@ commonlib = buildlib.commonlib
 // RPMS can periodically be synced with https://unix.stackexchange.com/a/189
 
 backupPlan = [
-    srcHost: 'buildvm.openshift.eng.bos.redhat.com',
-    destHost: 'buildvm2.openshift.eng.bos.redhat.com',
+    srcHost: 'buildvm.hosts.prod.psi.bos.redhat.com',
     backupPath: '/mnt/workspace/backups/buildvm', // must exist on both src and dest host
     files: [
         '/etc/sysconfig/jenkins',  // config file for jenkins server
@@ -33,7 +32,7 @@ backupPlan = [
         '/home/jenkins/go',
 
         // Jenkins war
-        '/usr/lib/jenkins',
+        '/usr/share/java',
 
         // Jenkins configuration, plugins, etc
         '/mnt/nfs/jenkins_home/*.xml',
@@ -67,13 +66,13 @@ def buildTarCommand(tarballPath) {
 def stageRunBackup() {
 
     if (env.BUILD_URL.indexOf(backupPlan.srcHost) == -1) {
-        echo "This (${env.BUILD_URL}) is not the backupPlan.srcHost (${backupPlan.srcHost}); skipping"
-        return
+        error("This (${env.BUILD_URL}) is not the backupPlan.srcHost (${backupPlan.srcHost}); skipping")
     }
 
     // 52 backups a year; then backups are overwritten
     def weekOfYear = new Date().format("w")
-    tarballPath = "${backupPlan.backupPath}/${backupPlan.srcHost}.week-${weekOfYear}.tgz"
+    tarballName = "${backupPlan.srcHost}.week-${weekOfYear}.tgz"
+    tarballPath = "${backupPlan.backupPath}/${tarballName}"
     def tarCmd = buildTarCommand(tarballPath)
 
     def cmds = [
@@ -88,27 +87,22 @@ def stageRunBackup() {
         return
     }
 
+    // Create tar archives
     tarRes = commonlib.shell(
             returnAll: true,
             script: cmds.join('\n')
     )
 
+    // Even if an error raised during archive creation,
+    // upload to S3 what we have... better than nothing
+    withCredentials([aws(credentialsId: 's3-art-buildvm-backup', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+        commonlib.shell("aws s3 cp ${tarballPath} s3://art-buildvm-backup/archives/${tarballName}")
+    }
+
+    // Notify errors raised during tarball creation
     if (tarRes.returnStatus != 0) {
         error("Error creating local tar")
     }
-
-    scpRes = commonlib.shell(
-            returnAll: true,
-            script: """
-              ssh -l root ${backupPlan.destHost} mkdir -p ${backupPlan.backupPath}
-              scp ${tarballPath} root@${backupPlan.destHost}:${tarballPath}
-            """
-    )
-
-    if (scpRes.returnStatus != 0) {
-        error("Error copying tar to destination host: ${backupPlan.destHost}")
-    }
-
 }
 
 return this

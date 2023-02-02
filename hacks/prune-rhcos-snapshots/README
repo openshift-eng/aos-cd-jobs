@@ -1,0 +1,35 @@
+- Requires sufficient privileges in 'rh-dev' AWS account ().
+  - Creating rules in AWS Recycle Bin.
+  - Labeling AMIs.
+  - Deregistering AMIs.
+  - Deleting snapshots.
+
+To run:
+- Clone github.com/openshift/installer under $GOPATH/src/github.com/openshift/installer .
+  - Ensure 'upstream' remote points to github.com/openshift/installer and that it has been 
+    recently fetched.
+- Export AWS environment variables for account keys.
+- Run tag-rhcos-snapshots.py to label AMIs for garbage collection.
+  - This script will also create recycling bin rules for all regions to prevent
+    AMIs from disappearing immediately upon deregistration.
+- Run deregister-tagged-rhcos-snapshots.py to actually deregister AMIs.
+
+How the tagger works:
+- All branches in the upstream remote are scanned by the labeler.
+  - A check is made for commits which altered 'data/data/coreos/rhcos.json' or 'data/data/rhcos.json'.
+  - For each commit, a regular expression is used to look for AMI-like references in the file.
+  - Each match is captured in as list as being necessary for production RHCOS.
+- For all AWS regions, list all AMIs created in the account.
+  - If the AMI exists in the production list, tag it as 'production: true'.
+  - If the AMI is relatively young, ignore it.
+  - Otherwise, tag the AMI as 'garbage_collect: true'.
+
+How the deregistering process works:
+- For all AWS regions, list all AMIs created in the account.
+  - Run sanity checks.
+  - If the AMI is labeled with 'garbage_collect: true', deregister the AMI.
+- Note:
+  - All images will be retained in the AWS recyling bin for a configured number of days.
+  - Deleting AMIs does not delete the backing snapshots. 
+
+

@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 import logging
@@ -8,7 +9,7 @@ import aiofiles
 import yaml
 
 from doozerlib import assembly, model, util as doozerutil
-from pyartcd import exectools
+from pyartcd import exectools, constants
 
 logger = logging.getLogger(__name__)
 
@@ -135,3 +136,99 @@ async def branch_arches(group: str, assembly: str, ga_only: bool = False) -> lis
 
     # Otherwise, read supported arches from group config
     return group_config['arches']
+
+
+def get_changes(yaml_data: dict) -> dict:
+    """
+    Scans data outputted by config:scan-sources yaml and records changed
+    elements in the object it returns.
+    The return dict has optional .rpms, .images and .rhcos fields,
+    that are omitted if no change was detected.
+    """
+
+    changes = {}
+
+    rpms = [rpm['name'] for rpm in yaml_data['rpms'] if rpm['changed']]
+    if rpms:
+        changes['rpms'] = rpms
+
+    images = [image['name'] for image in yaml_data['images'] if image['changed']]
+    if images:
+        changes['images'] = images
+
+    rhcos = [rhcos['name'] for rhcos in yaml_data['rhcos'] if rhcos['changed']]
+    if rhcos:
+        changes['rhcos'] = rhcos
+
+    return changes
+
+
+async def get_freeze_automation(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
+                                doozer_working: str = '') -> str:
+    """
+    Returns freeze_automation flag for a specific group
+    """
+
+    cmd = [
+        'doozer',
+        f'--working-dir={doozer_working}' if doozer_working else '',
+        '--assembly=stream',
+        f'--data-path={data_path}',
+        f'--group=openshift-{version}',
+        'config:read-group',
+        '--default=no',
+        'freeze_automation'
+    ]
+    _, out, _ = await exectools.cmd_gather_async(cmd)
+    return out.strip()
+
+
+def is_manual_build() -> bool:
+    """
+    Builds that are triggered manually by a Jenkins user carry a BUILD_USER_EMAIL environment variable.
+    If this var is not defined, we can infer that the build was triggered by a timer.
+
+    Be aware that Jenkins pipeline need to pass this var by enclosing the code in a wrap([$class: 'BuildUser']) {} block
+    """
+
+    return os.getenv('BUILD_USER_EMAIL') is not None
+
+
+async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
+                             doozer_working: str = '') -> bool:
+    """
+    Check whether the group should be built right now.
+    This depends on:
+        - group config 'freeze_automation'
+        - manual/scheduled run
+        - current day of the week
+    """
+
+    # Get 'freeze_automation' flag
+    freeze_automation = await get_freeze_automation(version, data_path, doozer_working)
+
+    # Check for frozen automation
+    # yaml parses unquoted "yes" as a boolean... accept either
+    if freeze_automation in ['yes', 'True']:
+        logger.info('All automation is currently disabled by freeze_automation in group.yml.')
+        return False
+
+    # Check for frozen scheduled automation
+    if freeze_automation == "scheduled" and not is_manual_build():
+        logger.info('Only manual runs are permitted according to freeze_automation in group.yml '
+                    'and this run appears to be non-manual.')
+        return False
+
+    # Check if group can run on weekends
+    if freeze_automation == 'weekdays' and not is_manual_build():
+        # The build is permitted only if current day is saturday or sunday
+        weekday = datetime.today().strftime("%A")
+        if weekday in ['Saturday', 'Sunday'] or is_manual_build():
+            return True
+
+        logger.info('Scheduled builds for %s are permitted only on weekends, and today is %s',
+                    version, weekday)
+        return False
+
+    # Fallback to default
+    return True

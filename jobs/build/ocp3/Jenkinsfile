@@ -294,11 +294,6 @@ node {
                         description: 'Build container images?',
                         defaultValue: true,
                     ),
-                    booleanParam(
-                        name: 'BUILD_AMI',
-                        description: 'Build golden image after building images?',
-                        defaultValue: true,
-                    ),
                     commonlib.mockParam(),
                     commonlib.dryrunParam(),
                 ]
@@ -742,25 +737,6 @@ node {
             // 3.11-plashet-to-rcm-guest.sh sets up a different puddle name on rcm-guest and the mirrors
             PLASHET = "v${NEW_FULL_VERSION}_${PLASHET}"
             final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
-
-            stage("ami") {
-                if (params.BUILD_AMI && params.BUILD_CONTAINER_IMAGES) {
-                    // define openshift ansible source branch
-                    OPENSHIFT_ANSIBLE_SOURCE_BRANCH = 'master'
-                    // At 3.6, openshift-ansible switched from release-1.X to match 3.X release branches
-                    if (BUILD_VERSION_MAJOR == 3 && BUILD_VERSION_MINOR < 6) {
-                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-1.${BUILD_VERSION_MINOR}"
-                    } else {
-                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH = "release-${params.BUILD_VERSION}"
-                    }
-                    buildlib.build_ami(
-                        BUILD_VERSION_MAJOR, BUILD_VERSION_MINOR,
-                        NEW_VERSION, NEW_RELEASE,
-                        "${mirror_url}/${PLASHET}/x86_64/os",
-                        OPENSHIFT_ANSIBLE_SOURCE_BRANCH,
-                        params.MAIL_LIST_FAILURE)
-                }
-            }
 
             buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
 

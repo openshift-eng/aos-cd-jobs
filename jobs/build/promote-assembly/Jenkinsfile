@@ -394,7 +394,7 @@ node {
         }
         build(
             job: "build%2Fbuild-microshift",
-            propagate: false,
+            propagate: true,
             parameters: [
                 string(name: 'BUILD_VERSION', value: params.VERSION),
                 string(name: 'ASSEMBLY', value: params.ASSEMBLY),

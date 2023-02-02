@@ -558,7 +558,7 @@ class RebuildPipeline:
 
 @cli.command("rebuild")
 @click.option("--ocp-build-data-url", metavar='BUILD_DATA', default=None,
-              help="Git repo or directory containing groups metadata e.g. https://github.com/openshift/ocp-build-data")
+              help=f"Git repo or directory containing groups metadata e.g. {constants.OCP_BUILD_DATA_URL}")
 @click.option("-g", "--group", metavar='NAME', required=True,
               help="The group of components on which to operate. e.g. openshift-4.9")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,

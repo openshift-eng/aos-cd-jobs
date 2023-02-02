@@ -11,9 +11,9 @@ node() {
 
     try {
         withCredentials([
-                            string(credentialsId: "art-insights-bot-slack-api-token", variable: "SLACK_API_TOKEN"),
-                            string(credentialsId: "art-insights-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
-                            string(credentialsId: "art-insights-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
+                            string(credentialsId: "art-bot-slack-token", variable: "SLACK_API_TOKEN"),
+                            string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
+                            string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
                         ]) {
             commonlib.shell(script: "scl enable rh-python38 -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
         }

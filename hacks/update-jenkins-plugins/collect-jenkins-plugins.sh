@@ -112,7 +112,7 @@ get_plugin() {
     wget -O "${tmp_hpi_file}" "${plugin_url}" 2> /dev/null
     if [ "$?" != "0" ]; then
         echo "Error downloading ${plugin}; exiting"
-        exit 1
+        return 1
     fi
 
     extract="${workingdir}/extracts/${plugin}"
@@ -197,7 +197,7 @@ for plugin_entry in ${DEP_LIST}; do
     plugin_line=${plugin_line%\;*}
 
     stripped_entry=$(echo "${plugin_entry}:" | cut -d : -f 1)  # Strip off the version since Jenkins doesn't really honor dependency versions
-    get_plugin "${stripped_entry}" || exit 1
+    get_plugin "${stripped_entry}" || get_plugin "${plugin_entry}" || exit 1
 done
 
 echo

@@ -37,25 +37,25 @@ skip_missing_names_on_install=0
 
 [rhel-server-7-optional-rpms]
 name = rhel-server-7-optional-rpms
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/optional/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/optional/os/
 gpgcheck = 0
 enabled = 1
 
 [rhel-server-7-extras-rpms]
 name = rhel-server-7-extras-rpms
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/extras/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/extras/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-7-rpms]
 name = rhel-server-7-rpms
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel/server/7/7Server/{ARCH}/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-7-ose-{OCP_VERSION}-rpms]
 name = rhel-server-7-ose-{OCP_VERSION}-rpms
-baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}/building/{ARCH}/os
+baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el7/latest/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 """,
@@ -73,19 +73,19 @@ skip_missing_names_on_install=0
 
 [rhel-server-8-baseos]
 name = rhel-server-8-baseos
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/{ARCH}/baseos/os
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/{ARCH}/baseos/os
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-8-appstream]
 name = rhel-server-8-appstream
-baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/{ARCH}/appstream/os/
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/{ARCH}/appstream/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-server-8-ose-{OCP_VERSION}-rpms]
 name = rhel-server-8-ose-{OCP_VERSION}-rpms
-baseurl = http://download.lab.bos.redhat.com/rcm-guest/puddles/RHAOS/plashets/{OCP_VERSION}-el8/stream/building/{ARCH}/os
+baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el8/latest/{ARCH}/os
 enabled = 1
 gpgcheck = 0
 module_hotfixes=1
@@ -123,7 +123,14 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             "--",
         ] + PACKAGES
         LOGGER.info("Running command %s", cmd)
-        process = await asyncio.subprocess.create_subprocess_exec(*cmd, env=os.environ.copy())
+        env = os.environ.copy()
+        # yum doesn't honor cachedir in the yum.conf. It keeps a user specific cache
+        # https://unix.stackexchange.com/questions/92257/yum-user-temp-files-var-tmp-yum-fills-up-with-repo-data
+        # override the location using TMPDIR
+        tmp_dir = working_dir / "tmp"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        env['TMPDIR'] = str(tmp_dir)
+        process = await asyncio.subprocess.create_subprocess_exec(*cmd, env=env)
         rc = await process.wait()
         if rc != 0:
             raise ChildProcessError(f"Process {cmd} exited with status {rc}")

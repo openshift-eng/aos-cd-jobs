@@ -119,10 +119,16 @@ node() {
                         writeFile(file: notificationFile, text: "${System.currentTimeMillis()}" )
                         currentBuild.description += "\nNotifying for ${stream_name}"
 
-                        // Send out notifications
+                        // Notify ART internal channels
                         msg = "ART automation has detected that the latest ${rejects} nightlies have been rejected in ${stream_name}"
                         commonlib.slacklib.to(stream_name).failure(msg)
-                        if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
+
+                        // Get build version from stream name
+                        // stream_name has format 4.y.z-0.nightly
+                        build_version = stream_name.split('.0-0.nightly')[0]
+
+                        // Send public notifications
+                        if (commonlib.ocpReleaseState[build_version]['release'].isEmpty()) {
                             // For development releases, notify TRT and release artists
                             commonlib.slacklib.to('#forum-release-oversight').say("@release-artists ${msg}")
                         } else {

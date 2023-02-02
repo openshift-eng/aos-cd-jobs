@@ -4,7 +4,7 @@ node {
     checkout scm
     buildlib = load( "pipeline-scripts/buildlib.groovy" )
     commonlib = buildlib.commonlib
-    commonlib.describeJob("update-microshift-pocket", """https://issues.redhat.com/browse/ART-4221""")
+    commonlib.describeJob("⛔❌⛔ update-microshift-pocket (deprecated) ⛔❌⛔ ", "Use microshift_sync instead")
 
     properties(
         [

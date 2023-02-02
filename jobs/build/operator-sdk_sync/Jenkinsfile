@@ -7,6 +7,37 @@ node {
         <b>Timing</b>: Manually, upon request. Expected to happen once every y-stream and
         sporadically on z-stream releases.
     """)
+
+    properties([
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.ocpVersionParam('BUILD_VERSION'),
+                string(
+                    name: 'ASSEMBLY',
+                    description: 'Under which ASSEMBLY directory to place the binaries.',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'UPDATE_LATEST_SYMLINK',
+                    description: 'You need to update "latest" on the highest 4.x version',
+                    defaultValue: false,
+                ),
+                string(
+                    name: 'BUILD_NVR',
+                    description: 'If QE request specific build, use nvr as parameter and it will ignore assembly.',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'USE_PRE_RELEASE',
+                    description: 'Use pre-release as directory name if requested by QE',
+                    defaultValue: false,
+                )
+            ]
+        ],
+    ])
 }
 
 pipeline {
@@ -15,32 +46,6 @@ pipeline {
     options {
         disableResume()
         skipDefaultCheckout()
-    }
-
-    parameters {
-        commonlib.ocpVersionParam('BUILD_VERSION'),
-        string(
-            name: 'ASSEMBLY',
-            description: 'Under which ASSEMBLY directory to place the binaries.',
-            defaultValue: "",
-            trim: true,
-        ),
-        string(
-            name: 'BUILD_NVR',
-            description: 'If QE request specific build, use nvr as parameter.',
-            defaultValue: "",
-            trim: true,
-        ),
-        booleanParam(
-            name: 'UPDATE_LATEST_SYMLINK',
-            description: 'You just want to update "latest" on the highest 4.x version',
-            defaultValue: false,
-        ),
-        booleanParam(
-            name: 'USE_PRE_RELEASE',
-            description: 'Use pre-release as directory name if requested by QE',
-            defaultValue: false,
-        )
     }
 
     stages {
@@ -57,10 +62,16 @@ pipeline {
                         "operator-sdk-sync",
                         "--group=openshift-${params.BUILD_VERSION}",
                         "--assembly=${params.ASSEMBLY}",
-                        "--nvr=${params.BUILD_NVR}",
-                        "--prerelease=${params.USE_PRE_RELEASE}",
-                        "--updatelatest=${params.UPDATE_LATEST_SYMLINK}"
                     ]
+                    if (params.BUILD_NVR) {
+                        cmd << "--nvr" << params.BUILD_NVR
+                    }
+                    if (params.USE_PRE_RELEASE) {
+                        cmd << "--prerelease"
+                    }
+                    if (params.UPDATE_LATEST_SYMLINK) {
+                        cmd << "--updatelatest"
+                    }
 
                     buildlib.withAppCiAsArtPublish() {
                         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),

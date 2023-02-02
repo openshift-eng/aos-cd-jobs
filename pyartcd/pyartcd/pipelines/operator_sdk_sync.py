@@ -12,7 +12,7 @@ from pyartcd.runtime import Runtime
 
 
 class OperatorSDKPipeline:
-    def __init__(self, runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: str, updatelatest: bool) -> None:
+    def __init__(self, runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool) -> None:
         self.runtime = runtime
         self._logger = runtime.logger
         self.version = group.split("-")[1]
@@ -61,8 +61,8 @@ class OperatorSDKPipeline:
         self._logger.info(sdkVersion)
         for arch in archlist:
             self._extract_binaries(arch, sdkVersion, build['extra']['image']['index']['pull'][0])
-        self._update_jira(self.parent_jira_key, 7,
-                          f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+        if self.assembly:
+            self._update_jira(self.parent_jira_key, 7, f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
 
     def get_ad_jira_key(self, assembly, release_yaml):
         if 'group' in release_yaml['releases'][assembly]['assembly'].keys():
@@ -116,7 +116,7 @@ class OperatorSDKPipeline:
         cmd = f"aws s3 sync --no-progress --exact-timestamps {extra_args} --delete {local_dir} s3://art-srv-enterprise{s3_path}"
         self._logger.info(cmd)
         subprocess.run(cmd, shell=True)
-        if self.updatelatest == "true":
+        if self.updatelatest:
             s3_path_latest = f"/pub/openshift-v4/{arch}/clients/operator-sdk/latest/"
             cmd = f"aws s3 sync --no-progress --exact-timestamps {extra_args} --delete {local_dir} s3://art-srv-enterprise{s3_path_latest}"
             self._logger.info(cmd)
@@ -135,14 +135,14 @@ class OperatorSDKPipeline:
               help="The group of components on which to operate. e.g. openshift-4.9")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
               help="The name of an assembly. e.g. 4.9.1")
-@click.option("--nvr", metavar="BUILD_NVR", required=True,
+@click.option("--nvr", metavar="BUILD_NVR", required=False,
               help="Pin specific Build NVR")
-@click.option("--prerelease", metavar="PRE_RELEASE", required=True,
+@click.option("--prerelease", metavar="PRE_RELEASE", is_flag=True, required=False,
               help="Use pre-release as directory name.")
-@click.option("--updatelatest", metavar="UPDATE_LATEST_SYMLINK", required=True,
+@click.option("--updatelatest", metavar="UPDATE_LATEST_SYMLINK", is_flag=True, required=False,
               help="Update latest symlink on mirror")
 @pass_runtime
 @click_coroutine
-def tarball_sources(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: str, updatelatest: bool):
+def tarball_sources(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool):
     pipeline = OperatorSDKPipeline(runtime, group, assembly, nvr, prerelease, updatelatest)
     pipeline.run()

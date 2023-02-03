@@ -55,6 +55,22 @@ async def main():
     signing_mode = "signed" if args.auto_sign else "unsigned"
     signing_advisory: bool = args.signing_advisory
     dry_run = args.dry_run
+    previous_packages = [
+        "buildah",
+        "conmon",
+        "cri-o",
+        "cri-tools",
+        "crun",
+        "haproxy",
+        "ignition",
+        "openshift",
+        "openvswitch",
+        "ovn",
+        "podman",
+        "python3-openvswitch",
+        "rust-afterburn",
+        "skopeo"
+    ]
 
     # PLASHET_CONFIG should be moved to ocp-build-data in the future
     PLASHET_CONFIG = {
@@ -64,7 +80,7 @@ async def main():
             "product_version": f"OSE-{major}.{minor}-RHEL-9",
             "include_embargoed": True,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-9-embargoed"],
-            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+            "include_previous_packages": previous_packages,
         },
         "rhel-9-server-ose-rpms": {
             "slug": "el9",
@@ -72,7 +88,7 @@ async def main():
             "product_version": f"OSE-{major}.{minor}-RHEL-9",
             "include_embargoed": False,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-9-embargoed"],
-            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+            "include_previous_packages": previous_packages,
         },
         "rhel-9-server-ironic-rpms": {
             "slug": "ironic-el9",
@@ -88,7 +104,7 @@ async def main():
             "product_version": f"OSE-{major}.{minor}-RHEL-8",
             "include_embargoed": True,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-8-embargoed"],
-            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+            "include_previous_packages": previous_packages,
         },
         "rhel-8-server-ose-rpms": {
             "slug": "el8",
@@ -96,7 +112,7 @@ async def main():
             "product_version": f"OSE-{major}.{minor}-RHEL-8",
             "include_embargoed": False,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-8-embargoed"],
-            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+            "include_previous_packages": previous_packages,
         },
         "rhel-8-server-ironic-rpms": {
             "slug": "ironic-el8",
@@ -112,7 +128,7 @@ async def main():
             "product_version": f"RHEL-7-OSE-{major}.{minor}",
             "include_embargoed": True,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-7-embargoed"],
-            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+            "include_previous_packages": previous_packages,
         },
         "rhel-server-ose-rpms": {
             "slug": "el7",
@@ -120,7 +136,7 @@ async def main():
             "product_version": f"RHEL-7-OSE-{major}.{minor}",
             "include_embargoed": False,
             "embargoed_tags": [f"rhaos-{major}.{minor}-rhel-7-embargoed"],
-            "include_previous_packages": ["openvswitch", "python3-openvswitch", "ovn", "haproxy", "cri-o"],
+            "include_previous_packages": previous_packages,
         },
     }
 

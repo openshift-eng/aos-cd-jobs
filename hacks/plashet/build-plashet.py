@@ -56,7 +56,6 @@ async def main():
     signing_advisory: bool = args.signing_advisory
     dry_run = args.dry_run
     previous_packages = [
-        "buildah",
         "conmon",
         "cri-o",
         "cri-tools",
@@ -68,8 +67,6 @@ async def main():
         "ovn",
         "podman",
         "python3-openvswitch",
-        "rust-afterburn",
-        "skopeo"
     ]
 
     # PLASHET_CONFIG should be moved to ocp-build-data in the future

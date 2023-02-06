@@ -102,7 +102,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                         // There is a vanishingly small race condition here, but it is not dangerous;
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).
                         lock(activityLockName) {
-                            withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}"]) {
+                            withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL?: ''}"]) {
                                 try {
                                     echo "Will run ${cmd}"
                                     sh(script: cmd.join(' '), returnStdout: true)

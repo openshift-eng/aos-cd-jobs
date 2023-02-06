@@ -191,7 +191,15 @@ def is_manual_build() -> bool:
     Be aware that Jenkins pipeline need to pass this var by enclosing the code in a wrap([$class: 'BuildUser']) {} block
     """
 
-    return os.getenv('BUILD_USER_EMAIL') is not None
+    build_user_email = os.getenv('BUILD_USER_EMAIL')
+    logger.info('Found BUILD_USER_EMAIL=%s', build_user_email)
+
+    if build_user_email is not None:
+        logger.info('Considering this a manual build')
+        return True
+
+    logger.info('Considering this a scheduled build')
+    return False
 
 
 async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
@@ -206,6 +214,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
 
     # Get 'freeze_automation' flag
     freeze_automation = await get_freeze_automation(version, data_path, doozer_working)
+    logger.info('Group freeze automation flag is set to: "%s"', freeze_automation)
 
     # Check for frozen automation
     # yaml parses unquoted "yes" as a boolean... accept either
@@ -223,7 +232,10 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     if freeze_automation == 'weekdays' and not is_manual_build():
         # The build is permitted only if current day is saturday or sunday
         weekday = datetime.today().strftime("%A")
+        logger.info('Automation permitted during weekends, and today is %s', weekday)
+
         if weekday in ['Saturday', 'Sunday'] or is_manual_build():
+            logger.info('Current build is permitted')
             return True
 
         logger.info('Scheduled builds for %s are permitted only on weekends, and today is %s',

@@ -75,7 +75,6 @@ pipeline {
 
                     buildlib.withAppCiAsArtPublish() {
                         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                                         string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                             def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                             echo out

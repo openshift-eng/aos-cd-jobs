@@ -6,7 +6,7 @@ import click
 import koji
 import yaml
 from errata_tool import Erratum
-from pyartcd import constants
+from pyartcd import constants, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
 
@@ -26,12 +26,11 @@ class OperatorSDKPipeline:
         self.parent_jira_key = ""
         self._jira_client = runtime.new_jira_client()
 
-    def run(self):
+    async def run(self):
         if self.assembly:
-            release_file = self.runtime.new_github_client().get_repo(
-                "openshift/ocp-build-data").get_contents("releases.yml", ref=self.group)
-            self.extra_ad_id, self.parent_jira_key = self.get_ad_jira_key(
-                self.assembly, yaml.load(release_file.decoded_content, Loader=yaml.FullLoader))
+            group_config = await util.load_group_config(self.group, self.assembly, env=os.environ.copy())
+            self.extra_ad_id = group_config.get("advisories", {}).get("extras", 0)
+            self.parent_jira_key = group_config.get("release_jira")
             advisory = Erratum(errata_id=self.extra_ad_id)
             self._logger.info("Check advisory status ...")
             if advisory.errata_state in ["QE", "NEW_FILES"]:
@@ -64,15 +63,6 @@ class OperatorSDKPipeline:
         if self.assembly:
             self._update_jira(self.parent_jira_key, 7, f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
 
-    def get_ad_jira_key(self, assembly, release_yaml):
-        if 'group' in release_yaml['releases'][assembly]['assembly'].keys():
-            extra_ad_id = release_yaml['releases'][assembly]['assembly']['group']['advisories']['extras']
-            parent_jira_key = release_yaml['releases'][assembly]['assembly']['group']['release_jira']
-            return extra_ad_id, parent_jira_key
-        if 'assembly' not in release_yaml['releases'][assembly]['assembly']['basis'].keys():
-            raise ValueError("Can not find jira and advisory number from assembly")
-        return self.get_ad_jira_key(release_yaml['releases'][assembly]['assembly']['basis']['assembly'], release_yaml)
-
     def _get_sdkversion(self, build):
         output = subprocess.getoutput(f"oc image info --filter-by-os amd64 -o json {build} | jq .digest")
         shasum = re.findall("sha256:\\w*", output)[0]
@@ -95,32 +85,31 @@ class OperatorSDKPipeline:
               f" && oc image extract {constants.OPERATOR_URL}@{shasum} --path /usr/local/bin/{self.sdk}:./{rarch}/ --confirm" + \
               f" && chmod +x ./{rarch}/{self.sdk} && tar -c --preserve-order -z -v --file ./{rarch}/{tarballFilename} ./{rarch}/{self.sdk}" + \
               f" && ln -s {tarballFilename} ./{rarch}/{self.sdk}-linux-{rarch}.tar.gz && rm -f ./{rarch}/{self.sdk}"
-        self._logger.info(cmd)
-        subprocess.run(cmd, shell=True)
+        self.exec_cmd(cmd)
         if arch == 'amd64':
             tarballFilename = f"{self.sdk}-{sdkVersion}-darwin-{rarch}.tar.gz"
             cmd = f"oc image extract {constants.OPERATOR_URL}@{shasum} --path /usr/share/{self.sdk}/mac/{self.sdk}:./{rarch}/ --confirm" + \
                   f" && chmod +x ./{rarch}/{self.sdk} && tar -c --preserve-order -z -v --file ./{rarch}/{tarballFilename} ./{rarch}/{self.sdk}" + \
                   f" && ln -s {tarballFilename} ./{rarch}/{self.sdk}-darwin-{rarch}.tar.gz && rm -f ./{rarch}/{self.sdk}"
-            self._logger.info(cmd)
-            subprocess.run(cmd, shell=True)
+            self.exec_cmd(cmd)
         self._sync_mirror(rarch)
 
     def _sync_mirror(self, arch):
         extra_args = "--exclude '*' --include '*.tar.gz'"
-        local_dir = f"./{arch}/"
         if self.prerelease:
             s3_path = f"/pub/openshift-v4/{arch}/clients/operator-sdk/pre-release/"
         else:
             s3_path = f"/pub/openshift-v4/{arch}/clients/operator-sdk/{self.assembly}/"
-        cmd = f"aws s3 sync --no-progress --exact-timestamps {extra_args} --delete {local_dir} s3://art-srv-enterprise{s3_path}"
-        self._logger.info(cmd)
-        subprocess.run(cmd, shell=True)
+        cmd = f"aws s3 sync --no-progress --exact-timestamps {extra_args} --delete ./{arch}/ s3://art-srv-enterprise{s3_path}"
+        self.exec_cmd(cmd)
         if self.updatelatest:
             s3_path_latest = f"/pub/openshift-v4/{arch}/clients/operator-sdk/latest/"
-            cmd = f"aws s3 sync --no-progress --exact-timestamps {extra_args} --delete {local_dir} s3://art-srv-enterprise{s3_path_latest}"
-            self._logger.info(cmd)
-            subprocess.run(cmd, shell=True)
+            cmd = f"aws s3 sync --no-progress --exact-timestamps {extra_args} --delete ./{arch}/ s3://art-srv-enterprise{s3_path_latest}"
+            self.exec_cmd(cmd)
+
+    def exec_cmd(self, cmd):
+        self._logger.info(cmd)
+        subprocess.run(cmd, shell=True, check=True)
 
     def _update_jira(self, parent_jira_id, subtask_id, comment):
         parent_jira = self._jira_client.get_issue(parent_jira_id)
@@ -143,6 +132,6 @@ class OperatorSDKPipeline:
               help="Update latest symlink on mirror")
 @pass_runtime
 @click_coroutine
-def tarball_sources(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool):
+async def tarball_sources(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool):
     pipeline = OperatorSDKPipeline(runtime, group, assembly, nvr, prerelease, updatelatest)
-    pipeline.run()
+    await pipeline.run()

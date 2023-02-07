@@ -132,6 +132,6 @@ class OperatorSDKPipeline:
               help="Update latest symlink on mirror")
 @pass_runtime
 @click_coroutine
-async def tarball_sources(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool):
+async def operator_sdk_sync(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool):
     pipeline = OperatorSDKPipeline(runtime, group, assembly, nvr, prerelease, updatelatest)
     await pipeline.run()

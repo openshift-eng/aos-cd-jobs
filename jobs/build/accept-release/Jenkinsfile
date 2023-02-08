@@ -57,6 +57,7 @@ node {
     currentBuild.displayName = "${params.RELEASE_NAME} ${dry_run}"
 
     def action = params.REJECT ? "reject" : 'accept'
+    def message = "Manually ${action}ed by ART"
     def confirm_param = params.CONFIRM ? "--execute" : ''
 
     sh "wget https://raw.githubusercontent.com/openshift/release-controller/master/hack/release-tool.py"
@@ -64,7 +65,7 @@ node {
     buildlib.withAppCiAsArtPublish() {
         commonlib.shell(
             script: """
-                scl enable rh-python38 -- python3 release-tool.py -a ${params.ARCH} ${confirm_param} --context art-publish@app.ci ${action} ${params.RELEASE_NAME}
+                scl enable rh-python38 -- python3 release-tool.py -a ${params.ARCH} ${confirm_param} --context art-publish@app.ci ${action} ${params.RELEASE_NAME} --message ${message}
                 """,
         )
     }

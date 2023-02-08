@@ -4,11 +4,11 @@ import subprocess
 
 import click
 import koji
-import yaml
 from errata_tool import Erratum
 from pyartcd import constants, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
+from doozerlib.util import brew_arch_for_go_arch
 
 
 class OperatorSDKPipeline:
@@ -34,26 +34,24 @@ class OperatorSDKPipeline:
             advisory = Erratum(errata_id=self.extra_ad_id)
             self._logger.info("Check advisory status ...")
             if advisory.errata_state in ["QE", "NEW_FILES"]:
-                self._logger.info("Advisory status not in REL_PREP yet ...")
-                return
+                raise ValueError("Advisory status not in REL_PREP yet ...")
             if advisory.errata_state == "SHIPPED_LIVE":
                 self._logger.info("Advisory status already in SHIPPED_LIVE, update subtask 9 ...")
-                self._update_jira(self.parent_jira_key, 8, "Advisory status already in SHIPPED_LIVE")
+                self._jira_client.complete_subtask(self.parent_jira_key, 8, "Advisory status already in SHIPPED_LIVE")
             self._logger.info("Advisory status already in post REL_PREP, update subtask 7 ...")
-            self._update_jira(self.parent_jira_key, 6, "Advisory status already in REL_PREP")
+            self._jira_client.complete_subtask(self.parent_jira_key, 6, "Advisory status already in REL_PREP")
 
             et_builds = advisory.errata_builds
             sdk_build = [i for i in et_builds[f'OSE-{self.version}-RHEL-8'] if re.search("openshift-enterprise-operator-sdk-container*", i)]
             if not sdk_build:
                 self._logger.info("No SDK build to ship, update subtask 8 then close ...")
-                self._update_jira(self.parent_jira_key, 7, f"No SDK build to ship, operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+                self._jira_client.complete_subtask(self.parent_jira_key, 7, f"No SDK build to ship, operator_sdk_sync job: {self.runtime.get_job_run_url()}")
                 return
             build = koji.ClientSession(constants.BREW_SERVER).getBuild(sdk_build[0])
         elif self.nvr:
             build = koji.ClientSession(constants.BREW_SERVER).getBuild(self.nvr)
         else:
-            self._logger.info("no assembly or nvr provided")
-            return
+            raise ValueError("no assembly or nvr provided")
 
         archlist = ["amd64", "arm64", "ppc64le", "s390x"]
         sdkVersion = self._get_sdkversion(build['extra']['image']['index']['pull'][0])
@@ -61,7 +59,7 @@ class OperatorSDKPipeline:
         for arch in archlist:
             self._extract_binaries(arch, sdkVersion, build['extra']['image']['index']['pull'][0])
         if self.assembly:
-            self._update_jira(self.parent_jira_key, 7, f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+            self._jira_client.complete_subtask(self.parent_jira_key, 7, f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
 
     def _get_sdkversion(self, build):
         output = subprocess.getoutput(f"oc image info --filter-by-os amd64 -o json {build} | jq .digest")
@@ -76,9 +74,7 @@ class OperatorSDKPipeline:
         output = subprocess.getoutput(f"oc image info --filter-by-os {arch} -o json {build} | jq .digest")
         shasum = re.findall("sha256:\\w*", output)[0]
 
-        rarch = arch
-        rarch = 'x86_64' if arch == 'amd64' else rarch
-        rarch = 'aarch64' if arch == 'arm64' else rarch
+        rarch = brew_arch_for_go_arch(arch)
         tarballFilename = f"{self.sdk}-{sdkVersion}-linux-{rarch}.tar.gz"
 
         cmd = f"rm -rf ./{rarch} && mkdir ./{rarch}" + \
@@ -108,15 +104,8 @@ class OperatorSDKPipeline:
             self.exec_cmd(cmd)
 
     def exec_cmd(self, cmd):
-        self._logger.info(cmd)
+        self._logger.info(f"running command: {cmd}")
         subprocess.run(cmd, shell=True, check=True)
-
-    def _update_jira(self, parent_jira_id, subtask_id, comment):
-        parent_jira = self._jira_client.get_issue(parent_jira_id)
-        subtask = self._jira_client.get_issue(parent_jira.fields.subtasks[subtask_id].key)
-        self._jira_client.add_comment(subtask, comment)
-        self._jira_client.assign_to_me(subtask)
-        self._jira_client.close_task(subtask)
 
 
 @cli.command("operator-sdk-sync")

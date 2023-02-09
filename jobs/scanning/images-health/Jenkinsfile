@@ -58,7 +58,11 @@ node() {
                      string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                      usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER')]) {
 
-        withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}", "DOOZER_DB_NAME=art_dash"]) {
+        wrap([$class: 'BuildUser']) {
+            builderEmail = env.BUILD_USER_EMAIL
+        }
+
+        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "DOOZER_DB_NAME=art_dash"]) {
             try {
                 echo "Will run ${cmd}"
                 commonlib.shell(script: cmd.join(' '))

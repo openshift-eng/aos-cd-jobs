@@ -96,8 +96,11 @@ node {
         // pyartcd/pyartcd/util.py kinit uses these environment variables.
         withCredentials([file(credentialsId: 'exd-ocp-buildvm-bot-prod.keytab', variable: 'DISTGIT_KEYTAB_FILE'), string(credentialsId: 'exd-ocp-buildvm-bot-prod.user', variable: 'DISTGIT_KEYTAB_USER')]) {
             // Execute script
+            wrap([$class: 'BuildUser']) {
+                builderEmail = env.BUILD_USER_EMAIL
+            }
             withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                withEnv(["BUILD_USER_EMAIL=${env.BUILD_USER_EMAIL}"]) {
+                withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}"]) {
                     exitCode = commonlib.shell(script: cmd.join(' '), returnStatus: true)
                 }
             }

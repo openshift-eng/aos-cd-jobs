@@ -56,7 +56,7 @@ class ImagesHealthPipeline:
         else:
             if self.send_to_release_channel:
                 self.slack_client.bind_channel(self.version)
-                await self.slack_client.say(f':white_check_mark: All images are healthy for opensshift-{self.version}')
+                await self.slack_client.say(f':white_check_mark: All images are healthy for openshift-{self.version}')
 
 
 @cli.command('images-health')

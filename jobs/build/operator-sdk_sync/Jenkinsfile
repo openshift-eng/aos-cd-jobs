@@ -34,6 +34,12 @@ node {
                     name: 'USE_PRE_RELEASE',
                     description: 'Use pre-release as directory name if requested by QE',
                     defaultValue: false,
+                ),
+                string(
+                    name: "ARCHES",
+                    description: "Defaults to all arches in the build",
+                    defaultValue: "amd64,arm64,ppc64le,s390x",
+                    trim: true,
                 )
             ]
         ],
@@ -71,6 +77,10 @@ pipeline {
                     }
                     if (params.UPDATE_LATEST_SYMLINK) {
                         cmd << "--updatelatest"
+                    }
+                    if (params.ARCHES) {
+                        def arches = commonlib.cleanCommaList(params.ARCHES)
+                        cmd << "--arches=${arches}"
                     }
 
                     buildlib.withAppCiAsArtPublish() {

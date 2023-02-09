@@ -12,10 +12,9 @@ from doozerlib.util import brew_arch_for_go_arch
 
 
 class OperatorSDKPipeline:
-    def __init__(self, runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool) -> None:
+    def __init__(self, runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool, arches: str) -> None:
         self.runtime = runtime
         self._logger = runtime.logger
-        self.version = group.split("-")[1]
         self.assembly = assembly
         self.prerelease = prerelease
         self.nvr = nvr
@@ -41,8 +40,7 @@ class OperatorSDKPipeline:
             self._logger.info("Advisory status already in post REL_PREP, update subtask 7 ...")
             self._jira_client.complete_subtask(self.parent_jira_key, 6, "Advisory status already in REL_PREP")
 
-            et_builds = advisory.errata_builds
-            sdk_build = [i for i in et_builds[f'OSE-{self.version}-RHEL-8'] if re.search("openshift-enterprise-operator-sdk-container*", i)]
+            sdk_build = [b for b in sum(list(map(list, advisory.errata_builds.values())),[]) if b.startswith('openshift-enterprise-operator-sdk-container')]
             if not sdk_build:
                 self._logger.info("No SDK build to ship, update subtask 8 then close ...")
                 self._jira_client.complete_subtask(self.parent_jira_key, 7, f"No SDK build to ship, operator_sdk_sync job: {self.runtime.get_job_run_url()}")
@@ -53,13 +51,12 @@ class OperatorSDKPipeline:
         else:
             raise ValueError("no assembly or nvr provided")
 
-        archlist = ["amd64", "arm64", "ppc64le", "s390x"]
         sdkVersion = self._get_sdkversion(build['extra']['image']['index']['pull'][0])
         self._logger.info(sdkVersion)
-        for arch in archlist:
+        for arch in arches.split(','):
             self._extract_binaries(arch, sdkVersion, build['extra']['image']['index']['pull'][0])
         if self.assembly:
-            self._jira_client.complete_subtask(self.parent_jira_key, 7, f"operator_sdk_sync job: {os.environ.get('BUILD_URL')}")
+            self._jira_client.complete_subtask(self.parent_jira_key, 7, f"operator_sdk_sync job: {self.runtime.get_job_run_url()}")
 
     def _get_sdkversion(self, build):
         output = subprocess.getoutput(f"oc image info --filter-by-os amd64 -o json {build} | jq .digest")
@@ -119,8 +116,10 @@ class OperatorSDKPipeline:
               help="Use pre-release as directory name.")
 @click.option("--updatelatest", metavar="UPDATE_LATEST_SYMLINK", is_flag=True, required=False,
               help="Update latest symlink on mirror")
+@click.option("--arches", metavar="ARCHES", required=False,
+              help="Arches in the build")
 @pass_runtime
 @click_coroutine
-async def operator_sdk_sync(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool):
-    pipeline = OperatorSDKPipeline(runtime, group, assembly, nvr, prerelease, updatelatest)
+async def operator_sdk_sync(runtime: Runtime, group: str, assembly: str, nvr: str, prerelease: bool, updatelatest: bool, arches: str):
+    pipeline = OperatorSDKPipeline(runtime, group, assembly, nvr, prerelease, updatelatest, arches)
     await pipeline.run()

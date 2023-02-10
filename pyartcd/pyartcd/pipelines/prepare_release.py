@@ -116,15 +116,17 @@ class PrepareReleasePipeline:
         if assembly_type == AssemblyTypes.STREAM:
             if self.release_version[0] >= 4:
                 raise ValueError("Preparing a release from a stream assembly for OCP4+ is no longer supported.")
-        else:
-            release_config = releases_config.get("releases", {}).get(self.assembly, {})
-            self.release_name = get_release_name_for_assembly(self.group_name, releases_config, self.assembly)
-            self.release_version = semver.VersionInfo.parse(self.release_name).to_tuple()
-            if not release_config:
-                raise ValueError(f"Assembly {self.assembly} is not explicitly defined in releases.yml for group {self.group_name}.")
-            group_config = assembly_group_config(Model(releases_config), self.assembly, Model(group_config)).primitive()
-            nightlies = get_assembly_basis(releases_config, self.assembly).get("reference_releases", {}).values()
-            self.candidate_nightlies = self.parse_nighties(nightlies)
+        elif assembly_type == AssemblyTypes.PREVIEW:
+            raise ValueError("Do not run prepare-release for ECs")
+
+        release_config = releases_config.get("releases", {}).get(self.assembly, {})
+        self.release_name = get_release_name_for_assembly(self.group_name, releases_config, self.assembly)
+        self.release_version = semver.VersionInfo.parse(self.release_name).to_tuple()
+        if not release_config:
+            raise ValueError(f"Assembly {self.assembly} is not explicitly defined in releases.yml for group {self.group_name}.")
+        group_config = assembly_group_config(Model(releases_config), self.assembly, Model(group_config)).primitive()
+        nightlies = get_assembly_basis(releases_config, self.assembly).get("reference_releases", {}).values()
+        self.candidate_nightlies = self.parse_nighties(nightlies)
 
         if release_config and assembly_type != AssemblyTypes.STANDARD:
             _LOGGER.warning("No need to check Blocker Bugs for assembly %s", self.assembly)

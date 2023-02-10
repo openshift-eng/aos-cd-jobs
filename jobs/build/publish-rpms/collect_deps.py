@@ -20,6 +20,8 @@ PACKAGES = [
     "openshift-clients-redistributable",
     "slirp4netns",
     "conmon-rs",
+    "openvswitch-selinux-extra-policy",
+    "openvswitch2.17"
 ]
 
 YUM_CONF_TEMPLATES = {
@@ -80,6 +82,12 @@ gpgcheck = 0
 [rhel-server-8-appstream]
 name = rhel-server-8-appstream
 baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel8/8/{ARCH}/appstream/os/
+enabled = 1
+gpgcheck = 0
+
+[rhel-server-8-fast-datapath]
+name = rhel-server-8-fast-datapath
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel8/{ARCH}/fast-datapath/os/
 enabled = 1
 gpgcheck = 0
 

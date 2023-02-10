@@ -135,7 +135,11 @@ pipeline {
             steps {
                 script {
                     // Establish the credentials necessary to build the AMI in osd-art / us-east-2 region.
-                    withCredentials([aws(credentialsId: 'quay-image-builder-aws', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'), string(credentialsId: 'ICMP_AWS_SHARE_ACCOUNT', variable: 'SHARE_ACCOUNT')]) {
+                    withCredentials([
+                                        aws(credentialsId: 'quay-image-builder-aws', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                                        string(credentialsId: 'ICMP_AWS_SHARE_ACCOUNT', variable: 'SHARE_ACCOUNT'),
+                                        string(credentialsId: 'ICMP_AWS_SHARE_DEV_ACCOUNT', variable: 'DEV_SHARE_ACCOUNT')
+                    ]) {
                         dir("quay-image-builder") {
                             commonlib.shell("""
                                 # For this AMI, we do not want to carry any optional operators. Strip the optional
@@ -153,6 +157,10 @@ pipeline {
                             // Share with staging account https://issues.redhat.com/browse/ART-5510
                             commonlib.shell("""
                             aws ec2 modify-image-attribute --region ${region} --image-id ${ami_id} --launch-permission "Add=[{UserId=${SHARE_ACCOUNT}}]"
+                            """)
+                            // Share with Dev staging account https://issues.redhat.com/browse/ART-5510
+                            commonlib.shell("""
+                            aws ec2 modify-image-attribute --region ${region} --image-id ${ami_id} --launch-permission "Add=[{UserId=${DEV_SHARE_ACCOUNT}}]"
                             """)
                         }
                     }

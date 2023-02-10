@@ -118,6 +118,8 @@ class PromotePipeline:
                 raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
 
             impetus_advisories = group_config.get("advisories", {})
+            # Not check microshift advisory
+            impetus_advisories.pop("microshift", 0)
 
             # Check for blocker bugs
             if self.skip_blocker_bug_check or assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:

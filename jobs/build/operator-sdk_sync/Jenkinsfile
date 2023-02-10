@@ -1,12 +1,49 @@
 node {
     checkout scm
-    commonlib = load('pipeline-scripts/commonlib.groovy')
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
     commonlib.describeJob("operator-sdk_sync", """
         <h2>Sync operator-sdk to mirror</h2>
         <b>Timing</b>: Manually, upon request. Expected to happen once every y-stream and
         sporadically on z-stream releases.
     """)
-    imagePath = 'registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-sdk'
+
+    properties([
+        [
+            $class: 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                commonlib.ocpVersionParam('BUILD_VERSION'),
+                string(
+                    name: 'ASSEMBLY',
+                    description: 'Under which ASSEMBLY directory to place the binaries.',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'UPDATE_LATEST_SYMLINK',
+                    description: 'You need to update "latest" on the highest 4.x version',
+                    defaultValue: false,
+                ),
+                string(
+                    name: 'BUILD_NVR',
+                    description: 'If QE request specific build, use nvr as parameter and it will ignore assembly.',
+                    defaultValue: "",
+                    trim: true,
+                ),
+                booleanParam(
+                    name: 'USE_PRE_RELEASE',
+                    description: 'Use pre-release as directory name if requested by QE',
+                    defaultValue: false,
+                ),
+                string(
+                    name: "ARCHES",
+                    description: "Defaults to all arches in the build",
+                    defaultValue: "amd64,arm64,ppc64le,s390x",
+                    trim: true,
+                )
+            ]
+        ],
+    ])
 }
 
 pipeline {
@@ -17,123 +54,42 @@ pipeline {
         skipDefaultCheckout()
     }
 
-    parameters {
-        string(
-            name: 'OCP_VERSION',
-            description: 'Under which directory to place the binaries.<br/>' +
-                         'Examples:<br/>' +
-                         '<ul>' +
-                         '<li>4.7.0</li>' +
-                         '<li>4.7.0-rc.0</li>' +
-                         '</ul>',
-            defaultValue: '',
-            trim: true,
-        )
-        string(
-            name: 'BUILD_TAG',
-            description: 'Build of ose-operator-sdk from which the contents should be extracted.<br/>' +
-                         'Examples:<br/>' +
-                         '<ul>' +
-                         '<li>v4.7.0-202101261648.p0</li>' +
-                         '<li>v4.7.0</li>' +
-                         '<li>v4.7</li>' +
-                         '</ul>',
-            defaultValue: '',
-            trim: true,
-        )
-        booleanParam(
-            name: 'UPDATE_LATEST_SYMLINK',
-            description: 'You just want to update "latest" on the highest 4.x version',
-            defaultValue: true,
-        )
-    }
-
     stages {
-        stage('pre-flight') {
+        stage('operator-sdk-sync') {
             steps {
                 script {
-                    if (!params.OCP_VERSION) {
-                        error 'OCP_VERSION must be specified'
+                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                    currentBuild.displayName += " ${params.ASSEMBLY}"
+                    def cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "operator-sdk-sync",
+                        "--group=openshift-${params.BUILD_VERSION}",
+                        "--assembly=${params.ASSEMBLY}",
+                    ]
+                    if (params.BUILD_NVR) {
+                        cmd << "--nvr" << params.BUILD_NVR
                     }
-                    if (!params.BUILD_TAG) {
-                        error 'BUILD_TAG must be specified'
+                    if (params.USE_PRE_RELEASE) {
+                        cmd << "--prerelease"
                     }
-                    sdkVersion = ''
-                    buildvmArch = sh(script: 'arch', returnStdout: true).trim()
-
-                    currentBuild.description = "${params.BUILD_TAG}"
-                    currentBuild.displayName = "${params.OCP_VERSION}"
-
-                    archList = ['x86_64']
-                    readJSON(
-                        text: sh(
-                            script: "skopeo inspect --raw docker://${imagePath}:${params.BUILD_TAG}",
-                            returnStdout: true,
-                        )
-                    ).manifests.each {
-                        // We want x86_64 to be the first in the list, as that will be used to extract the
-                        // Operator SDK version, which is used while naming the files.
-                        def sdkArch = commonlib.brewArchForGoArch(it.platform.architecture)
-                        def data = [arch: sdkArch, digest: it.digest]
-                        println("data: ${data}")
-
-                        if (archList.contains(sdkArch)) {
-                            def ind = archList.findIndexOf({it == 'x86_64'})
-                            archList.set(ind, data)
-                        } else {
-                            archList.add(data)
-                        }
+                    if (params.UPDATE_LATEST_SYMLINK) {
+                        cmd << "--updatelatest"
                     }
-                    echo "archList: ${archList}"
-                }
-            }
-        }
-        stage('extract binaries') {
-            steps {
-                script {
-                    archList.each {
-                        sh "rm -rf ./${it.arch} && mkdir ./${it.arch}"
-                        dir("./${it.arch}") {
-                            sh "oc image extract ${imagePath}@${it.digest} --path /usr/local/bin/operator-sdk:. --confirm"
-                            sh "chmod +x operator-sdk"
-
-                            if (it.arch == buildvmArch) {
-                                def sdkVersionRaw = sh(script: './operator-sdk version', returnStdout: true)
-                                sdkVersion = (sdkVersionRaw =~ /operator-sdk version: "([^"]+)"/).findAll()[0][1]
-                                currentBuild.displayName += "/${sdkVersion}"
-                            }
-
-                            def tarballFilename = "operator-sdk-${sdkVersion}-linux-${it.arch}.tar.gz"
-                            sh "tar --create --preserve-order --gzip --verbose --file ${tarballFilename} ./operator-sdk"
-                            sh "ln -s ${tarballFilename} operator-sdk-linux-${it.arch}.tar.gz"
-                            sh "rm -f ./operator-sdk"
-
-                            // Extract darwin binaries
-                            if (it.arch == "x86_64") {
-                                sh "oc image extract ${imagePath}@${it.digest} --path /usr/share/operator-sdk/mac/operator-sdk:. --confirm"
-                                sh "chmod +x operator-sdk"
-                                tarballFilename = "operator-sdk-${sdkVersion}-darwin-${it.arch}.tar.gz"
-                                sh "tar --create --preserve-order --gzip --verbose --file ${tarballFilename} ./operator-sdk"
-                                sh "ln -s ${tarballFilename} operator-sdk-darwin-${it.arch}.tar.gz"
-                                sh "rm -f ./operator-sdk"
-                            }
-
-                        }
+                    if (params.ARCHES) {
+                        def arches = commonlib.cleanCommaList(params.ARCHES)
+                        cmd << "--arches=${arches}"
                     }
-                }
-            }
-        }
-        stage('sync tarballs') {
-            steps {
-                script {
-                    sh "pwd"
-                    archList.each {
-                        def arch = it.arch
-                        sh "tree ${arch}"
-                        dir("./${arch}") {
-                            commonlib.syncDirToS3Mirror(".", "/pub/openshift-v4/${arch}/clients/operator-sdk/${params.OCP_VERSION}/", "*.tar.gz")
-                            if (params.UPDATE_LATEST_SYMLINK) {
-                                commonlib.syncDirToS3Mirror(".", "/pub/openshift-v4/${arch}/clients/operator-sdk/latest/", "*.tar.gz")
+
+                    buildlib.withAppCiAsArtPublish() {
+                        withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                            def out = sh(script: cmd.join(' '), returnStdout: true).trim()
+                            echo out
+                            if (out.contains('failed with')) {
+                                currentBuild.result = "FAILURE"
                             }
                         }
                     }

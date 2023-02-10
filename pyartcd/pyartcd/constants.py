@@ -5,6 +5,9 @@ PLASHET_REMOTE_BASE_DIR = "/mnt/rcm-guest/puddles/RHAOS/plashets"
 TARBALL_SOURCES_REMOTE_HOST = "ocp-build@rcm-guest.app.eng.bos.redhat.com"
 TARBALL_SOURCES_REMOTE_BASE_DIR = "/mnt/rcm-guest/ocp-client-handoff"
 
+OPERATOR_URL = 'registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-sdk'
+BREW_SERVER = 'https://brewhub.engineering.redhat.com/brewhub'
+
 RELEASE_IMAGE_REPO = "quay.io/openshift-release-dev/ocp-release"
 
 GIT_AUTHOR = "AOS Automation Release Team <noreply@redhat.com>"

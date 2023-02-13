@@ -24,6 +24,7 @@ class OperatorSDKPipeline:
         self.extra_ad_id = ""
         self.parent_jira_key = ""
         self._jira_client = runtime.new_jira_client()
+        self.arches = arches
 
     async def run(self):
         if self.assembly:
@@ -53,7 +54,7 @@ class OperatorSDKPipeline:
 
         sdkVersion = self._get_sdkversion(build['extra']['image']['index']['pull'][0])
         self._logger.info(sdkVersion)
-        for arch in arches.split(','):
+        for arch in self.arches.split(','):
             self._extract_binaries(arch, sdkVersion, build['extra']['image']['index']['pull'][0])
         if self.assembly:
             self._jira_client.complete_subtask(self.parent_jira_key, 7, f"operator_sdk_sync job: {self.runtime.get_job_run_url()}")

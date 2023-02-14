@@ -39,7 +39,7 @@ node {
                 parameterDefinitions: [
                     string(
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Release Image tag (or pullspec with a tag) from which to determine RHCOS buildID; for example <b>quay.io/openshift-release-dev/ocp-release:4.12.0-ec.2-aarch64</b> or just <b>4.12.0-ec.2-x86_64</b>',
+                        description: 'Release Name (or pullspec with a tag) from which to get RHCOS buildID reference (ex. 4.12.0-ec.2-x86_64). <b>Note:</b> The buildID is pulled from the installer image in the payload, which is often different from what is in the rhcos image - so make sure the installer image points to the right buildID OR use OVERRIDE_BUILD.',
                         defaultValue: "",
                         trim: true,
                     ),

@@ -16,7 +16,7 @@ import semver
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
-from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory
+from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, get_advisory_greenwave
 from elliottlib.model import Model
 from jira.resources import Issue
 from pyartcd import exectools, constants
@@ -272,8 +272,8 @@ class PrepareReleasePipeline:
         _LOGGER.info("Check failed greenwave tests ...")
         self._slack_client.bind_channel(self.release_name)
         for advisory in [advisories["image"], advisories["extras"], advisories["metadata"]]:
-            test_result = await self.check_failed_greenwave(advisory)
-            if test_result != '[]':
+            test_result = get_advisory_greenwave(advisory)
+            if test_result != []:
                 _LOGGER.warning(f"Some greenwave tests on {advisory} failed with {test_result}")
                 await self._slack_client.say(f"Some greenwave tests failed on {advisory} @release-artists")
 
@@ -716,17 +716,6 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             cmd.append(f"{advisory}")
         _LOGGER.info("Running command: %s", cmd)
         await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, cwd=self.working_dir)
-
-    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
-    async def check_failed_greenwave(self, advisory: int):
-        cmd = [
-            "elliott",
-            "get",
-            "--greenwave",
-            f"{advisory}"
-        ]
-        _, stdout, _ = await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars, stderr=None)
-        return stdout
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
     def send_notification_email(self, advisories: Dict[str, int], jira_link: str):

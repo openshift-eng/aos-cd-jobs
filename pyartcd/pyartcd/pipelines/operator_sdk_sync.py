@@ -129,7 +129,7 @@ class OperatorSDKPipeline:
 @cli.command("operator-sdk-sync")
 @click.option("-g", "--group", metavar='NAME', required=True,
               help="The group of components on which to operate. e.g. openshift-4.9")
-@click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
+@click.option("--assembly", metavar="ASSEMBLY_NAME", required=False,
               help="The name of an assembly. e.g. 4.9.1")
 @click.option("--nvr", metavar="BUILD_NVR", required=False,
               help="Pin specific Build NVR")

@@ -198,7 +198,9 @@ node('covscan') {
 
         try {
             buildlib.withAppCiAsArtPublish() {
-                sh(script: cmd.join(' '), returnStdout: true)
+                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
+                    sh(script: cmd.join(' '), returnStdout: true)
+                }
             }
 
             // Successful buildsync, reset fail count

@@ -159,15 +159,19 @@ rhcos() {
     major="${r%.*}"
     minor="${r#*.}"
     (( major < 4 )) && continue
-    echo "https://jenkins-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
-    echo "https://jenkins-rhcos.cloud.s390x.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
-    echo "https://jenkins-rhcos.cloud.p8.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
-    (( minor < 9 )) && continue
-    echo "https://jenkins-rhcos.cloud.arm.psi.redhat.com/job/rhcos/job/rhcos-rhcos-$r/"
+    if (( minor < 9 )); then
+      echo "https://jenkins-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
+      echo "https://jenkins-rhcos-art.apps.s390x.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
+      echo "https://jenkins-rhcos-art.apps.ocp-ppc.stage.psi.redhat.com/job/rhcos-art/job/rhcos-art-rhcos-$r/"
+      continue
+    fi
   done
-  for console in "${rhcos_consoles[@]}"; do
-    echo "$console"
-  done
+  echo "https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com/job/build/"
+  echo "https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com/job/build-arch/"
+  echo "https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com/job/release/"
+  # for console in "${rhcos_consoles[@]}"; do
+  #   echo "$console"
+  # done
 }
 
 prs() {

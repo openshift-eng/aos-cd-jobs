@@ -15,7 +15,7 @@ node {
                 commonlib.ocpVersionParam('BUILD_VERSION'),
                 string(
                     name: 'ASSEMBLY',
-                    description: 'Under which ASSEMBLY directory to place the binaries.',
+                    description: 'Under which ASSEMBLY directory to place the binaries. If not provide will use latest release in candidate channel.',
                     defaultValue: "",
                     trim: true,
                 ),
@@ -40,6 +40,11 @@ node {
                     description: "Defaults to all arches in the build",
                     defaultValue: "amd64,arm64,ppc64le,s390x",
                     trim: true,
+                ),
+                booleanParam(
+                    name: 'FORCE',
+                    description: 'Force sync to mirror whether already exist',
+                    defaultValue: false,
                 )
             ]
         ],
@@ -78,6 +83,9 @@ pipeline {
                     if (params.UPDATE_LATEST_SYMLINK) {
                         cmd << "--updatelatest"
                     }
+                    if (params.FORCE) {
+                        cmd << "--force"
+                    }
                     if (params.ARCHES) {
                         def arches = commonlib.cleanCommaList(params.ARCHES)
                         cmd << "--arches=${arches}"
@@ -85,7 +93,7 @@ pipeline {
 
                     buildlib.withAppCiAsArtPublish() {
                         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                                        string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                                        string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                             def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                             echo out
                             if (out.contains('failed with')) {

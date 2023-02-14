@@ -798,4 +798,14 @@ def listS3Mirror(s3_path, timeout_minutes=2) {
     error("Error running $cmd: Process exited with code ${res.returnStatus} and stderr ${res.stderr}")
 }
 
+
+def is_prerelease(version) {
+    try {
+        return ocpReleaseState[version]['release'].isEmpty()
+    } catch (Exception e) {
+        // there is no "version" release defined in ocpReleaseState
+        return false
+    }
+}
+
 return this

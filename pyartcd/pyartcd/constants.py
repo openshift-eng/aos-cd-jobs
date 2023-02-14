@@ -7,6 +7,7 @@ TARBALL_SOURCES_REMOTE_BASE_DIR = "/mnt/rcm-guest/ocp-client-handoff"
 
 OPERATOR_URL = 'registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-sdk'
 BREW_SERVER = 'https://brewhub.engineering.redhat.com/brewhub'
+OPERATOR_MIRROR_URL = 'https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/operator-sdk'
 
 RELEASE_IMAGE_REPO = "quay.io/openshift-release-dev/ocp-release"
 

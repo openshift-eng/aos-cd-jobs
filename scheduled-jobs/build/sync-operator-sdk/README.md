@@ -1,0 +1,1 @@
+Trigger operator-sdk_sync job for each release, automatically complete the subtask

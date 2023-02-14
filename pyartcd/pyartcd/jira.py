@@ -33,12 +33,13 @@ class JIRAClient:
     # subtask_id = 6 relate to subtask [Fri/Mon] QE moves advisories to REL_PREP
     # subtask_id = 7 relate to subtask [Once REL_PREP] ART provides non-golang container-first sources and operator-sdk
     # subtask_id = 8 relate to subtask [Mon-Wed] EXD CLOUDDST pushes advisory content to production CDN
-    def complete_subtask(self, parent_jira_id, subtask_id, comment):
+    def complete_subtask(self, parent_jira_id, subtask_id, comment, force):
         parent_jira = self.get_issue(parent_jira_id)
         subtask = self.get_issue(parent_jira.fields.subtasks[subtask_id].key)
-        self.add_comment(subtask, comment)
-        self.assign_to_me(subtask)
-        self.close_task(subtask)
+        if subtask.fields.status.name != "Closed" or force:
+            self.add_comment(subtask, comment)
+            self.assign_to_me(subtask)
+            self.close_task(subtask)
 
     @classmethod
     def _copy_issue_fields(cls, fields: Dict[str, Any]):

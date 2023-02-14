@@ -52,7 +52,7 @@ node {
             cmd.add(version)
         }
         for (String version : commonlib.ocpVersions) {
-            if (is_prerelease(version)) {
+            if (commonlib.is_prerelease(version)) {
                 cmd.add("--pre_release")
                 cmd.add(version)
             }
@@ -68,14 +68,5 @@ node {
                 }
             }
         }
-    }
-}
-
-def is_prerelease(version) {
-    try {
-        return commonlib.ocpReleaseState[version]['release'].isEmpty()
-    } catch (Exception e) {
-        // there is no "version" release defined in ocpReleaseState
-        return false
     }
 }

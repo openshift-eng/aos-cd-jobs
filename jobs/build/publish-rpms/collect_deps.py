@@ -9,20 +9,50 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
-PACKAGES = [
-    "criu",
-    "runc",
-    "cri-o",
-    "cri-tools",
-    "skopeo",
-    "openshift-clients",
-    "openshift-hyperkube",
-    "openshift-clients-redistributable",
-    "slirp4netns",
-    "conmon-rs",
-    "openvswitch-selinux-extra-policy",
-    "openvswitch2.17"
-]
+PACKAGES = {
+    7: [
+        "criu",
+        "runc",
+        "cri-o",
+        "cri-tools",
+        "skopeo",
+        "openshift-clients",
+        "openshift-hyperkube",
+        "openshift-clients-redistributable",
+        "slirp4netns",
+        "conmon-rs",
+        "openvswitch-selinux-extra-policy",
+        "openvswitch2.17"
+    ],
+    8: [
+        "criu",
+        "runc",
+        "cri-o",
+        "cri-tools",
+        "skopeo",
+        "openshift-clients",
+        "openshift-hyperkube",
+        "openshift-clients-redistributable",
+        "slirp4netns",
+        "conmon-rs",
+        "openvswitch-selinux-extra-policy",
+        "openvswitch2.17"
+    ],
+    9: [
+        "criu",
+        "runc",
+        "cri-o",
+        "cri-tools",
+        "skopeo",
+        "openshift-clients",
+        "openshift-hyperkube",
+        "openshift-clients-redistributable",
+        "slirp4netns",
+        "conmon-rs",
+        # "openvswitch-selinux-extra-policy",  # Not present in repos at this time. Not sure if this is expected or not.
+        "openvswitch2.17"
+    ],
+}
 
 YUM_CONF_TEMPLATES = {
     7: """[main]
@@ -98,6 +128,43 @@ enabled = 1
 gpgcheck = 0
 module_hotfixes=1
 """,
+    9: """[main]
+cachedir={CACHE_DIR}
+keepcache=0
+debuglevel=2
+exactarch=1
+obsoletes=1
+gpgcheck=1
+plugins=1
+installonly_limit=3
+reposdir=
+skip_missing_names_on_install=0
+
+[rhel-server-{EL}-baseos]
+name = rhel-server-{EL}-baseos
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel{EL}/{EL}/{ARCH}/baseos/os
+enabled = 1
+gpgcheck = 0
+
+[rhel-server-{EL}-appstream]
+name = rhel-server-{EL}-appstream
+baseurl = https://rhsm-pulp.corp.redhat.com/content/dist/rhel{EL}/{EL}/{ARCH}/appstream/os/
+enabled = 1
+gpgcheck = 0
+
+[rhel-server-{EL}-fast-datapath]
+name = rhel-server-{EL}-fast-datapath
+baseurl = http://rhsm-pulp.corp.redhat.com/content/dist/layered/rhel{EL}/{ARCH}/fast-datapath/os/
+enabled = 1
+gpgcheck = 0
+
+[rhel-server-{EL}-ose-{OCP_VERSION}-rpms]
+name = rhel-server-{EL}-ose-{OCP_VERSION}-rpms
+baseurl = https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/{OCP_VERSION}/stream/el{EL}/latest/{ARCH}/os
+enabled = 1
+gpgcheck = 0
+module_hotfixes=1
+""",
 }
 
 LOGGER = logging.getLogger(__name__)
@@ -115,7 +182,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
         cache_dir = working_dir / "cache"
 
         yum_conf = yum_conf_tmpl.format(yum_conf_tmpl, OCP_VERSION=quote(
-            ocp_version), ARCH=arch, CACHE_DIR=cache_dir).strip()
+            ocp_version), ARCH=arch, CACHE_DIR=cache_dir, EL=rhel_major).strip()
         with open(yum_conf_filename, "w") as f:
             f.write(yum_conf)
         cmd = [
@@ -129,7 +196,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
             f"--destdir={output_dir}",
             f"--arch={arch}",
             "--",
-        ] + PACKAGES
+        ] + PACKAGES[rhel_major]
         LOGGER.info("Running command %s", cmd)
         env = os.environ.copy()
         # yum doesn't honor cachedir in the yum.conf. It keeps a user specific cache

@@ -15,7 +15,7 @@ node {
                 commonlib.ocpVersionParam('BUILD_VERSION'),
                 string(
                     name: 'ASSEMBLY',
-                    description: 'Under which ASSEMBLY directory to place the binaries. If not provide will use latest release in candidate channel.',
+                    description: 'Under which ASSEMBLY directory to place the binaries. If empty, then the latest release in candidate channel would be used as the assembly.',
                     defaultValue: "",
                     trim: true,
                 ),
@@ -43,7 +43,7 @@ node {
                 ),
                 booleanParam(
                     name: 'FORCE',
-                    description: 'Force sync to mirror whether already exist',
+                    description: 'Force sync to mirror',
                     defaultValue: false,
                 )
             ]

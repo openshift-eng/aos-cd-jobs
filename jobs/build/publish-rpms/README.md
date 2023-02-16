@@ -3,11 +3,11 @@
 ## Purpose
 
 This job will publish the dependent RPMs to mirror location under https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rpms/<4.y-beta>
-So that we can test out pre-GA versions on RHEL 7 workers
+So that we can test out pre-GA versions on BYO RHEL workers and enable microshift CI builds.
 
 ## Timing
 
-The [pull-payload](https://github.com/openshift/aos-cd-jobs/tree/master/scheduled-jobs/build/poll-payload) job will trigger this job when create a new release branch for x86.
+The [poll-payload](https://github.com/openshift/aos-cd-jobs/tree/master/scheduled-jobs/build/poll-payload) job will trigger this job when create a new release branch for x86.
 
 ## Parameters
 

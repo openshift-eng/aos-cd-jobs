@@ -78,7 +78,7 @@ node {
                 def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
                 commonlib.shell(script: "pip install -e ./pyartcd && rm -rf ./artcd_working && mkdir -p ./artcd_working")
 
-                try {
+                def run_multi_build = {
                     withCredentials([file(credentialsId: kubeconfigs['multi'], variable: 'KUBECONFIG')]) {
                         // we want to see the stderr as it runs, so will not capture with commonlib.shell;
                         // but somehow it is buffering the stderr anyway and [lmeyer] cannot figure out why.
@@ -104,6 +104,10 @@ node {
                             currentBuild.description += "\n<br>${status}"
                         }
                     }
+                }
+                try {
+                    // succeed or fail, RHCOS team do not want us to kick off builds too often
+                    parallel "multi": run_multi_build, "rate-limit": { sleep 60 * 60 * 2 }
                 } catch (err) {
                     currentBuild.displayName += " -- Failed"
                     echo "Failure: ${err}"

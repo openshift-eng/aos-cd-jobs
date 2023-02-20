@@ -49,7 +49,7 @@ PACKAGES = {
         "openshift-clients-redistributable",
         "slirp4netns",
         "conmon-rs",
-        # "openvswitch-selinux-extra-policy",  # Not present in repos at this time. Not sure if this is expected or not.
+        "openvswitch-selinux-extra-policy",
         "openvswitch2.17"
     ],
 }

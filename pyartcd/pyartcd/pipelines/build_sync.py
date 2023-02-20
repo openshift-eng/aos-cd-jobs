@@ -108,7 +108,8 @@ class BuildSyncPipeline:
             self.logger.info('Backup completed for namespace %s', ns)
 
         namespaces = ['ocp', 'ocp-priv', 'ocp-s390x', 'ocp-s390x-priv', 'ocp-ppc64le',
-                      'ocp-ppc64le-priv', 'ocp-arm64', 'ocp-arm64-priv']
+                      'ocp-ppc64le-priv', 'ocp-arm64', 'ocp-arm64-priv',
+                      'ocp-multi', 'ocp-multi-priv']
 
         tasks = []
         for namespace in namespaces:

@@ -1,41 +1,51 @@
-node {
-    properties(
+properties(
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '360'
+            )
+        ),
         [
-            buildDiscarder(
-                logRotator(
-                    artifactDaysToKeepStr: '',
-                    artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '360'
-                )
-            ),
-            [
-                $class : 'ParametersDefinitionProperty',
-                parameterDefinitions: [
-                    [
-                        name: 'MOCK',
-                        description: 'Mock run to pickup new Jenkins parameters?',
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false,
-                    ],
-                    [
-                        name: 'DRY_RUN',
-                        description: "Don't change anything, just detect the current enforcement state",
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false,
-                    ],
-                    [
-                        name: 'DISABLE',
-                        description: "Temporarily disable the firewall. The firewall is automatically enforced every 8 hours",
-                        $class: 'hudson.model.BooleanParameterDefinition',
-                        defaultValue: false,
-                    ],
-                ]
-            ],
-            disableResume(),
-            disableConcurrentBuilds()
-        ]
-    )
+            $class : 'ParametersDefinitionProperty',
+            parameterDefinitions: [
+                choice(
+                    name: 'JENKINS_AGENT_LABEL',
+                    description: 'Jenkins agent label to run this script on',
+                    choices: [
+                            'buildvm',
+                            'buildvm2',
+                            'ocp-artifacts',
+                        ].join('\n'),
+                ),
+                [
+                    name: 'MOCK',
+                    description: 'Mock run to pickup new Jenkins parameters?',
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
+                ],
+                [
+                    name: 'DRY_RUN',
+                    description: "Don't change anything, just detect the current enforcement state",
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
+                ],
+                [
+                    name: 'DISABLE',
+                    description: "Temporarily disable the firewall. The firewall is automatically enforced every 8 hours",
+                    $class: 'hudson.model.BooleanParameterDefinition',
+                    defaultValue: false,
+                ],
+            ]
+        ],
+        disableResume(),
+        disableConcurrentBuilds()
+    ]
+)
+
+node(params.JENKINS_AGENT_LABEL) {
     checkout scm
     def buildlib = load( "pipeline-scripts/buildlib.groovy" )
     def commonlib = buildlib.commonlib
@@ -99,7 +109,7 @@ node {
             if ( disabled && !params.DRY_RUN) {
                 currentBuild.displayName = "Cleared the rules"
                 slackChannel = slacklib.to(notifyChannel)
-                slackChannel.say(':alert: The firewall rules have been cleared on buildvm :alert:')
+                slackChannel.say(":alert: The firewall rules have been cleared on host: {JENKINS_AGENT_LABEL} :alert:")
             } else {
                 echo "Skipping slack notification because..."
                 echo "The rules would have been cleaned, however, you requested a DRY RUN"
@@ -108,7 +118,7 @@ node {
             if ( previouslyDisabled && !params.DRY_RUN ) {
                 currentBuild.displayName = "Reenabled the rules"
                 slackChannel = slacklib.to(notifyChannel)
-                slackChannel.say(':itsfine-fire: The firewall rules have been reapplied to the buildvm :itsfine-fire:')
+                slackChannel.say(":itsfine-fire: The firewall rules have been reapplied to host: {JENKINS_AGENT_LABEL} :itsfine-fire:")
             } else {
                 echo "Skipping slack notification because..."
                 echo "The rules were already applied or this was a dry run"

@@ -29,6 +29,7 @@ def initialize(test=false, regAws=false) {
 // app.ci as art-publish service account.
 def withAppCiAsArtPublish(closure) {
     withCredentials([file(credentialsId: 'art-publish.app.ci.kubeconfig', variable: 'KUBECONFIG')]) {
+        sh 'oc registry login'
         closure()
     }
 }

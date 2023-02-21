@@ -12,13 +12,16 @@ properties([
 description = ""
 failed = false
 
-b = build(
-    job: '../aos-cd-builds/build%2Fenforce-firewall',
-    propagate: false,
-)
 
-description += "${b.displayName} - ${b.result}\n"
-failed |= (b.result != "SUCCESS")
+for ( label in ['buildvm', 'buildvm2', 'ocp-artifacts'] ) {
+    b = build(
+        job: '../aos-cd-builds/build%2Fenforce-firewall',
+        parameters: [string(name: 'JENKINS_AGENT_LABEL', value: label)]
+        propagate: false,
+    )
+    description += "{label} - ${b.result}\n"
+    failed |= (b.result != "SUCCESS")
+}
 
 currentBuild.description = description.trim()
 currentBuild.result = failed ? "FAILURE" : "SUCCESS"

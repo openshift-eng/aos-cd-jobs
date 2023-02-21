@@ -62,11 +62,15 @@ def add_logging_rule(direct_root, priority, space, prefix):
 
 def add_drop_rule(direct_root, priority, space):
     # e.g.   <rule priority="100" table="filter" ipv="ipv4" chain="OUTPUT">'!' -o lo -j REJECT --reject-with icmp-host-prohibited</rule>
+    if space == 'ipv6':
+        rule = 'icmp6-adm-prohibited'
+    else:
+        rule = 'icmp-host-prohibited'
     ET.SubElement(direct_root, 'rule',
                   priority=str(priority),
                   table='filter',
                   ipv=space,
-                  chain='OUTPUT').text = "'!' -o lo -j REJECT --reject-with icmp-host-prohibited"
+                  chain='OUTPUT').text = f"'!' -o lo -j REJECT --reject-with {rule}"
 
 
 @click.command(short_help="Manage OUTPUT rules using firewalld")

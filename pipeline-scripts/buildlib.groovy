@@ -146,7 +146,13 @@ def setup_venv(use_python38=false) {
     ELLIOTT_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/elliott/elliott"
 
     if (use_python38) {
-        commonlib.shell(script: "scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
+        commonlib.shell(script: """
+        if [[ -f /bin/scl ]]; then
+            scl enable rh-python38 -- python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
+        else
+            python3.8 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}
+        fi
+        """)
     } else {
         commonlib.shell(script: "python3 -m venv --system-site-packages --symlinks ${VIRTUAL_ENV}")
     }

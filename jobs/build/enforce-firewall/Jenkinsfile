@@ -109,7 +109,7 @@ node(params.JENKINS_AGENT_LABEL) {
             if ( disabled && !params.DRY_RUN) {
                 currentBuild.displayName = "Cleared the rules"
                 slackChannel = slacklib.to(notifyChannel)
-                slackChannel.say(":alert: The firewall rules have been cleared on host: {JENKINS_AGENT_LABEL} :alert:")
+                slackChannel.say(":alert: The firewall rules have been cleared on host: ${JENKINS_AGENT_LABEL} :alert:")
             } else {
                 echo "Skipping slack notification because..."
                 echo "The rules would have been cleaned, however, you requested a DRY RUN"
@@ -118,7 +118,7 @@ node(params.JENKINS_AGENT_LABEL) {
             if ( previouslyDisabled && !params.DRY_RUN ) {
                 currentBuild.displayName = "Reenabled the rules"
                 slackChannel = slacklib.to(notifyChannel)
-                slackChannel.say(":itsfine-fire: The firewall rules have been reapplied to host: {JENKINS_AGENT_LABEL} :itsfine-fire:")
+                slackChannel.say(":itsfine-fire: The firewall rules have been reapplied to host: ${JENKINS_AGENT_LABEL} :itsfine-fire:")
             } else {
                 echo "Skipping slack notification because..."
                 echo "The rules were already applied or this was a dry run"

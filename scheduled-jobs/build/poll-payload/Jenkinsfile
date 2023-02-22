@@ -71,7 +71,10 @@ def startBuildMicroshiftJob(String releaseStream, Map latestRelease, Map previou
     // Get all nightlies matching the x86_64 nightly
     echo "Get nightlies matching the x86_64 nightly ${x86_64_nightly}..."
     def cmd = "doozer --assembly=stream --arches x86_64,aarch64 --group openshift-${buildVersion} --working-dir ./doozer-working get-nightlies --matching ${x86_64_nightly}"
-    def res = commonlib.shell(script: cmd, returnAll: true)
+    buildlib.withAppCiAsArtPublish() {
+        sh "oc registry login"
+        def res = commonlib.shell(script: cmd, returnAll: true)
+    }
     if (res.returnStatus != 0) {
         if (res.combined.contains("Found no nightlies") || res.combined.contains("No sets of equivalent nightlies")) {
             // Couldn't find consistent and accepted nightlies matching the x86_64 nightly
@@ -176,7 +179,7 @@ node() {
                     try {
                         fn(args[0], args[1], args[2])
                     } catch (Exception ex) {
-                        echo "Error invoking action $fn for $releaseStream: $ex"
+                        echo "Error invoking action $fn for $releaseStream with arguments ${args[0]}, ${args[1]}, ${args[2]}: $ex"
                         currentBuild.result = "UNSTABLE"
                     }
                 }

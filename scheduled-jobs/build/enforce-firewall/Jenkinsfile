@@ -16,7 +16,7 @@ failed = false
 for ( label in ['buildvm', 'buildvm2', 'ocp-artifacts'] ) {
     b = build(
         job: '../aos-cd-builds/build%2Fenforce-firewall',
-        parameters: [string(name: 'JENKINS_AGENT_LABEL', value: label)]
+        parameters: [string(name: 'JENKINS_AGENT_LABEL', value: label)],
         propagate: false,
     )
     description += "{label} - ${b.result}\n"

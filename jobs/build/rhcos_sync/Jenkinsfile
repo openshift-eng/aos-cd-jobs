@@ -46,18 +46,18 @@ node {
                     commonlib.ocpVersionParam('OCP_VERSION', '4', ['auto']),
                     string(
                         name: 'OVERRIDE_BUILD',
-                        description: 'ID of the RHCOS build to sync. e.g.: <b>42.80.20190828.2</b>. This overrides what would be inferred from <code>FROM_RELEASE_TAG</code> and requires explicit specifications below too.',
+                        description: "ID of the RHCOS build to sync. e.g.: <code>42.80.20190828.2</code>. Empty (default) will retrieve the metadata from the installer image. <b>Leave empty, unless you know what you're doing</b>",
                         defaultValue: "",
                         trim: true,
                     ),
                     choice(
                         name: 'ARCH',
-                        description: 'Which architecture of RHCOS build to look for. Required with <code>OVERRIDE_BUILD</code>',
+                        description: 'Which architecture of RHCOS build to look for. Required with <code>OVERRIDE_BUILD</code>. Leave at <code>auto</code> otherwise.'
                         choices: (["auto"] + commonlib.brewArches),
                     ),
                     string(
                         name: 'OVERRIDE_NAME',
-                        description: 'The release name, like <b>4.2.0</b>, or <b>4.2.0-0.nightly-2019-08-28-152644</b>. Required with <code>OVERRIDE_BUILD</code>',
+                        description: 'The release name, like <b>4.2.0</b>, or <b>4.2.0-0.nightly-2019-08-28-152644</b>. Required with <code>OVERRIDE_BUILD</code>. Leave at empty otherwise.',
                         defaultValue: "",
                         trim: true,
                     ),

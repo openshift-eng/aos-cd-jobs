@@ -134,7 +134,7 @@ node {
                     if ( SIG_NAME == "" ) {
                         for (int i = 1; i < 15; i++) {
 			    eqDigest = DIGEST.replace(':','=')
-                            url = "http://mirror.openshift.com/pub/rhacs/signatures/rh-acs/${REPO}@${eqDigest}/signature-${i}"
+                            url = "https://mirror.openshift.com/pub/rhacs/signatures/rh-acs/${REPO}@${eqDigest}/signature-${i}"
                             r = httpRequest( url: url, validResponseCodes: '100:404' )
                             if ( r.status == 200 ) {
                                 continue

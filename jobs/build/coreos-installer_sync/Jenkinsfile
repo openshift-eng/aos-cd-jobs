@@ -7,7 +7,7 @@ node {
 
     commonlib.describeJob("coreos-installer_sync", """
         <h2>Sync contents of the coreos-installer RPM to mirror</h2>
-        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/coreos-installer/
+        https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/coreos-installer/
 
         Timing: This is only ever run by humans, upon request.
     """)

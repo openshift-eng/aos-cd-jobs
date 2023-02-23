@@ -8,12 +8,12 @@ gpgkey = https://rpm.releases.hashicorp.com/gpg
 
 [rhel-8-baseos-rpms]
 name = rhel-8-baseos-rpms
-baseurl =  http://rhsm-pulp.corp.redhat.com/content/eus/rhel8/8.6/$basearch/baseos/os/
+baseurl =  https://rhsm-pulp.corp.redhat.com/content/eus/rhel8/8.6/$basearch/baseos/os/
 enabled = 1
 gpgcheck = 0
 
 [rhel-8-appstream-rpms]
 name = rhel-8-appstream-rpms
-baseurl =  http://rhsm-pulp.corp.redhat.com/content/eus/rhel8/8.6/$basearch/appstream/os/
+baseurl =  https://rhsm-pulp.corp.redhat.com/content/eus/rhel8/8.6/$basearch/appstream/os/
 enabled = 1
 gpgcheck = 0

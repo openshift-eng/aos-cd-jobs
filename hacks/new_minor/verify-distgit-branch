@@ -11,7 +11,7 @@ check_branch() {
   local repo branch result url
   repo="$1"
   branch="$2"
-  url="http://pkgs.devel.redhat.com/cgit/${repo}/tree/?h=${branch}"
+  url="https://pkgs.devel.redhat.com/cgit/${repo}/tree/?h=${branch}"
   result=bad
   if curl --fail -XHEAD -sSL "$url" >/dev/null 2>&1; then
     result=good

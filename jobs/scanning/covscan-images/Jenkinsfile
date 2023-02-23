@@ -100,19 +100,19 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
                             writeFile(file: repo_fn, text: """
 [covscan]
 name=Copr repo for covscan
-baseurl=http://coprbe.devel.redhat.com/repos/kdudka/covscan/epel-${rhel_version}-x86_64/
+baseurl=https://coprbe.devel.redhat.com/repos/kdudka/covscan/epel-${rhel_version}-x86_64/
 skip_if_unavailable=True
 gpgcheck=0
-gpgkey=http://coprbe.devel.redhat.com/repos/kdudka/covscan/pubkey.gpg
+gpgkey=https://coprbe.devel.redhat.com/repos/kdudka/covscan/pubkey.gpg
 enabled=1
 enabled_metadata=1
 
 [covscan-testing]
 name=Copr repo for covscan-testing
-baseurl=http://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/epel-${rhel_version}-x86_64/
+baseurl=https://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/epel-${rhel_version}-x86_64/
 skip_if_unavailable=True
 gpgcheck=0
-gpgkey=http://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/pubkey.gpg
+gpgkey=https://coprbe.devel.redhat.com/repos/kdudka/covscan-testing/pubkey.gpg
 enabled=0
 enabled_metadata=1
 """)
@@ -181,10 +181,10 @@ enabled_metadata=1
                     commonlib.shell("ssh ocp-build@rcm-guest.app.eng.bos.redhat.com mkdir -p ${RCM_GUEST_DEST}")
                     commonlib.shell("rsync -r ${record['commit_results_path']}/ ocp-build@rcm-guest.app.eng.bos.redhat.com:${RCM_GUEST_DEST}")
 
-                    def all_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.html"
-                    def all_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.js"
-                    def diff_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html"
-                    def diff_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.js"
+                    def all_results_url = "https://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.html"
+                    def all_results_js_url = "https://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.js"
+                    def diff_results_url = "https://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html"
+                    def diff_results_js_url = "https://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.js"
 
                     if ( record['diff_count'] != '0' ) {
                         // Gather the types of issues recorded in the scan

@@ -9,7 +9,7 @@ node {
     def slacklib = commonlib.slacklib
     commonlib.describeJob("rhcos_sync", """
         <h2>Sync the RHCOS boot images to mirror</h2>
-        <ul><li>http://mirror.openshift.com/pub/openshift-v4/\$ARCH/dependencies/rhcos/</li></ul>
+        <ul><li>https://mirror.openshift.com/pub/openshift-v4/\$ARCH/dependencies/rhcos/</li></ul>
         Publishes RHCOS boot images for a particular release (according to the
         installer image manifest) so that customers can base their OCP 4
         installs on them. Also updates <code>latest</code> directory by default.

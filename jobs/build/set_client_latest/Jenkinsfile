@@ -10,7 +10,7 @@ node {
 
         This job looks at what has been published in the various cincinnati
         channels and updates the symlinks accordingly under
-        http://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp
+        https://mirror.openshift.com/pub/openshift-v4/<arch>/clients/ocp
 
         try.openshift.com directs customers to "latest" links, so they need to
         be kept in sync with what has been made available in cincinnati.

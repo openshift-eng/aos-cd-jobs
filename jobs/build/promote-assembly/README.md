@@ -30,7 +30,7 @@ For the default use case, this job:
  * publishes a nightly as an [officially named release image](https://amd64.ocp.releases.ci.openshift.org/#4-stable) with with a list of releases allowed to upgrade to it
  * waits up to three hours for the release to pass acceptance tests (currently, just upgrade tests)
  * opens pull requests to [cinci-graph-data](https://github.com/openshift/cincinnati-graph-data/tree/master/channels)
- * copies the clients to the [mirror](http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/)
+ * copies the clients to the [mirror](https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/)
  * signs the clients and release image
  * ...and handles other odds and ends for a release
 

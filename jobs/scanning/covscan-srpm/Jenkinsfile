@@ -96,7 +96,7 @@ node('covscan') {
 [${BUILD_TAG}]
 name=${BUILD_TAG}
 gpgcheck=0
-baseurl=http://download.eng.bos.redhat.com/brewroot/repos/${BUILD_TAG}/latest/x86_64/
+baseurl=https://download.eng.bos.redhat.com/brewroot/repos/${BUILD_TAG}/latest/x86_64/
 priority=255
 """)
 

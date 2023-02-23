@@ -21,8 +21,6 @@ import groovy.json.JsonOutput
     "4.13.0-0.nightly":  [this.&startBuildMicroshiftJob],
 
     "4.12.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMs],
-    "4.12.0-0.nightly-s390x": [this.&publishRPMs],
-    "4.12.0-0.nightly-ppc64le": [this.&publishRPMs],
     "4.12.0-0.nightly-arm64": [this.&publishRPMs],
     "4.12.0-0.nightly-multi": [this.&startPreReleaseJob],
     // 4.11 is not going to be released as a fc/rc named release, so

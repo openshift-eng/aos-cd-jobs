@@ -175,11 +175,11 @@ node() {
             stage(releaseStream) {
                 echo "Invoking actions for $releaseStream"
                 def actions = ACTIONS[releaseStream]
-                for (fn in actions) {
+                actions.eachWithIndex { fn, idx ->
                     try {
                         fn(args[0], args[1], args[2])
                     } catch (Exception ex) {
-                        echo "Error invoking action $fn for $releaseStream with arguments ${args[0]}, ${args[1]}, ${args[2]}: $ex"
+                        echo "Error invoking action number ${idx} for $releaseStream with arguments '${args}': $ex"
                         currentBuild.result = "UNSTABLE"
                     }
                 }

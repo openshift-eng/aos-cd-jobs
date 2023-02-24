@@ -95,6 +95,14 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
         ]
     }
 
+    def setUp(self) -> None:
+        os.environ.update({
+            "GITHUB_TOKEN": "fake-github-token",
+            "JIRA_TOKEN": "fake-jira-token",
+            "QUAY_PASSWORD": "fake-quay-password",
+        })
+
+
     @patch("pyartcd.jira.JIRAClient.from_url", return_value=None)
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={})
     @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
@@ -112,7 +120,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", skip_signing=True)
         with self.assertRaisesRegex(ValueError, "must be explictly defined"):
             await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)

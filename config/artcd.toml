@@ -21,3 +21,9 @@ url = "https://issues.redhat.com"
 [jira.templates]
 ocp4 = "ART-4223"
 ocp3 = "ART-4234"
+
+[umb.stage]
+umb_uri = "stomp+ssl://umb.stage.api.redhat.com:61612"
+
+[umb.prod]
+umb_uri = "stomp+ssl://umb.api.redhat.com:61612"

@@ -61,7 +61,8 @@ def proxy_setup() {
         'cdn.quay.io',
         'cdn01.quay.io',
         'cdn02.quay.io',
-        'cdn03.quay.io'
+        'cdn03.quay.io',
+        "api.redhat.com",
     ]
 
     env.https_proxy = proxy

@@ -2,10 +2,11 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import aiofiles
 import yaml
@@ -16,7 +17,7 @@ from errata_tool import ErrataConnector
 from pyartcd import exectools, constants, jenkins, record
 from pyartcd.mail import MailService
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def isolate_el_version_in_release(release: str) -> Optional[int]:
@@ -64,10 +65,10 @@ def is_greenwave_all_pass_on_advisory(advisory_id: int) -> bool:
     Return True, If all greenwave test passed on advisory
     Return False, If there are failed test on advisory
     """
-    logger.info(f"Check failed greenwave tests on {advisory_id}")
+    _LOGGER.info(f"Check failed greenwave tests on {advisory_id}")
     result = ErrataConnector()._get(f'/api/v1/external_tests?filter[test_type]=greenwave_cvp&filter[status]=FAILED&filter[active]=true&page[size]=1000&filter[errata_id]={advisory_id}')
     if result.get('data', []):
-        logger.warning(f"Some greenwave tests on {advisory_id} failed with {result}")
+        _LOGGER.warning(f"Some greenwave tests on {advisory_id} failed with {result}")
         return False
     return True
 
@@ -116,7 +117,7 @@ async def load_releases_config(group: str, data_path: str = constants.OCP_BUILD_
         return yaml.safe_load(out.strip())
 
     except ChildProcessError as e:
-        logger.error('Command "%s" failed: %s', ' '.join(cmd), e)
+        _LOGGER.error('Command "%s" failed: %s', ' '.join(cmd), e)
         return None
 
 
@@ -137,7 +138,7 @@ async def load_assembly(group: str, assembly: str, key: str = '',
         return yaml.safe_load(out.strip())
 
     except ChildProcessError as e:
-        logger.error('Command "%s" failed: %s', ' '.join(cmd), e)
+        _LOGGER.error('Command "%s" failed: %s', ' '.join(cmd), e)
         return None
 
 
@@ -163,7 +164,7 @@ def is_rpm_pinned(releases_config: Dict, assembly_name: str, rpm_name: str):
 
 
 async def kinit():
-    logger.info('Initializing ocp-build kerberos credentials')
+    _LOGGER.info('Initializing ocp-build kerberos credentials')
 
     keytab_file = os.getenv('DISTGIT_KEYTAB_FILE', None)
     keytab_user = os.getenv('DISTGIT_KEYTAB_USER', 'exd-ocp-buildvm-bot-prod@IPA.REDHAT.COM')
@@ -181,7 +182,7 @@ async def kinit():
         ]
         await exectools.cmd_assert_async(cmd)
     else:
-        logger.warning('DISTGIT_KEYTAB_FILE is not set. Using any existing kerberos credential.')
+        _LOGGER.warning('DISTGIT_KEYTAB_FILE is not set. Using any existing kerberos credential.')
 
 
 async def branch_arches(group: str, assembly: str, ga_only: bool = False) -> list:
@@ -193,7 +194,7 @@ async def branch_arches(group: str, assembly: str, ga_only: bool = False) -> lis
     :return: A list of the arches built for this branch
     """
 
-    logger.info('Fetching group config for %s', group)
+    _LOGGER.info('Fetching group config for %s', group)
     group_config = await load_group_config(group=group, assembly=assembly)
 
     # Check if arches_override has been specified. This is used in group.yaml
@@ -264,13 +265,13 @@ def is_manual_build() -> bool:
     """
 
     build_user_email = os.getenv('BUILD_USER_EMAIL')
-    logger.info('Found BUILD_USER_EMAIL=%s', build_user_email)
+    _LOGGER.info('Found BUILD_USER_EMAIL=%s', build_user_email)
 
     if build_user_email is not None:
-        logger.info('Considering this a manual build')
+        _LOGGER.info('Considering this a manual build')
         return True
 
-    logger.info('Considering this a scheduled build')
+    _LOGGER.info('Considering this a scheduled build')
     return False
 
 
@@ -286,34 +287,34 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
 
     # Get 'freeze_automation' flag
     freeze_automation = await get_freeze_automation(version, data_path, doozer_working, doozer_data_path)
-    logger.info('Group freeze automation flag is set to: "%s"', freeze_automation)
+    _LOGGER.info('Group freeze automation flag is set to: "%s"', freeze_automation)
 
     # Check for frozen automation
     # yaml parses unquoted "yes" as a boolean... accept either
     if freeze_automation in ['yes', 'True']:
-        logger.info('All automation is currently disabled by freeze_automation in group.yml.')
+        _LOGGER.info('All automation is currently disabled by freeze_automation in group.yml.')
         return False
 
     # Check for frozen scheduled automation
     if freeze_automation == "scheduled" and not is_manual_build():
-        logger.info('Only manual runs are permitted according to freeze_automation in group.yml '
-                    'and this run appears to be non-manual.')
+        _LOGGER.info('Only manual runs are permitted according to freeze_automation in group.yml '
+                     'and this run appears to be non-manual.')
         return False
 
     # Check if group can run on weekends
     if freeze_automation == 'weekdays':
         # Manual builds are always permitted
         if is_manual_build():
-            logger.info('Current build is permitted as it has been triggered manually')
+            _LOGGER.info('Current build is permitted as it has been triggered manually')
             return True
 
         # Check current day of the week
         weekday = datetime.today().strftime("%A")
         if weekday in ['Saturday', 'Sunday']:
-            logger.info('Automation is permitted during weekends, and today is %s', weekday)
+            _LOGGER.info('Automation is permitted during weekends, and today is %s', weekday)
             return True
 
-        logger.info('Scheduled builds for %s are permitted only on weekends, and today is %s', version, weekday)
+        _LOGGER.info('Scheduled builds for %s are permitted only on weekends, and today is %s', version, weekday)
         return False
 
     # Fallback to default
@@ -321,16 +322,16 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
 
 
 def log_dir_tree(path_to_dir):
-    logger.info(f"Printing dir tree of {path_to_dir}")
+    _LOGGER.info(f"Printing dir tree of {path_to_dir}")
     for child in os.listdir(path_to_dir):
         child_path = os.path.join(path_to_dir, child)
-        logger.info(child_path)
+        _LOGGER.info(child_path)
 
 
 def log_file_content(path_to_file):
-    logger.info(f"Printing file content of {path_to_file}")
+    _LOGGER.info(f"Printing file content of {path_to_file}")
     with open(path_to_file, 'r') as f:
-        logger.info(f.read())
+        _LOGGER.info(f.read())
 
 
 async def sync_images(version: str, assembly: str, operator_nvrs: list,
@@ -344,7 +345,7 @@ async def sync_images(version: str, assembly: str, operator_nvrs: list,
     """
 
     if assembly == 'test':
-        logger.warning('Skipping build-sync job for test assembly')
+        _LOGGER.warning('Skipping build-sync job for test assembly')
     else:
         jenkins.start_build_sync(
             build_version=version,
@@ -566,7 +567,7 @@ The following logs are just the container build portion of the OSBS build:
         except:
             container_log = "Unfortunately there were no container build logs; " \
                             "something else about the build failed."
-            logger.warning('No container build log for failed %s build\n'
+            _LOGGER.warning('No container build log for failed %s build\n'
                            '(task url %s)\n'
                            'at path %s',
                            failure['distgit'], failure['task_url'], container_log)
@@ -590,3 +591,28 @@ The following logs are just the container build portion of the OSBS build:
             subject=f'Failed OCP build of {failure["image"]}:{failure["version"]}',
             content=explanation_body
         )
+async def mirror_to_s3(source: Union[str, Path], dest: str, exclude: Optional[str] = None, include: Optional[str] = None, dry_run=False):
+    """
+    Copy to AWS S3
+    """
+    cmd = ["aws", "s3", "sync", "--no-progress", "--exact-timestamps"]
+    if exclude is not None:
+        cmd.append(f"--exclude={exclude}")
+    if include is not None:
+        cmd.append(f"--include={include}")
+    if dry_run:
+        cmd.append("--dryrun")
+    cmd.extend(["--", f"{source}", f"{dest}"])
+    await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
+
+
+async def mirror_to_google_cloud(source: Union[str, Path], dest: str, dry_run=False):
+    """
+    Copy to Google Cloud
+    """
+    # -n - no clobber/overwrite; -v - print url of item; -L - write to log for auto re-processing; -r - recursive
+    cmd = ["gsutil", "cp", "-n", "-v", "-r", "--", f"{source}", f"{dest}"]
+    if dry_run:
+        _LOGGER.warning("[DRY RUN] Would have run %s", cmd)
+        return
+    await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)

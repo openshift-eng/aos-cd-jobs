@@ -57,7 +57,6 @@ node {
                         choices: [
                             "openshift",
                             "rhcos",
-                            "rhacs",
                             "coreos-installer",
                         ].join("\n"),
                     ),
@@ -265,20 +264,6 @@ node {
                                 )
                             }
                         }
-                    } else if ( params.PRODUCT == 'rhacs' ) {
-                        def openshiftJsonSignParams = buildlib.cleanWhitespace("""
-                             ${baseUmbParams} --product openshift --arch ${params.ARCH} --client-type ${params.CLIENT_TYPE}
-                             --request-id 'openshift-json-digest-${timestamp}${requestIdSuffix}' ${digestParam} ${noop}
-                         """)
-
-                        echo "Submitting RHACS Payload JSON claim signature request"
-                        retry(3) {
-                            timeout(time: umb_timeout, unit: 'MINUTES') {
-                                commonlib.shell(
-                                    script: "../umb_producer.py json-digest ${openshiftJsonSignParams}"
-                                )
-                            }
-                        }
                     } else if ( params.PRODUCT == 'coreos-installer' ) {
                         def coreosSha256SignParams = buildlib.cleanWhitespace("""
                                     ${baseUmbParams} --product coreos-installer ${noop} --arch ${params.ARCH}
@@ -430,13 +415,6 @@ node {
                                 def nameXY = "${name_parts[0]}.${name_parts[1]}"
                                 def mirrorReleasePath = "openshift-v4/${params.ARCH}/dependencies/rhcos/${nameXY}/${params.NAME}"
                                 sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256sum.txt.gpg' ./ s3://art-srv-enterprise/pub/${mirrorReleasePath}/"
-                            }
-                        }
-                    } else if ( params.PRODUCT == 'rhacs' ) {
-                        sshagent(["openshift-bot"]) {
-                            withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rhacs/"
-                                sh "aws s3 sync --no-progress --exact-timestamps --exclude='*' --include 'sha256=*' ./ s3://art-srv-enterprise/pub/rhacs/signatures/rh-acs/"
                             }
                         }
                     } else if ( params.PRODUCT == 'coreos-installer' ) {

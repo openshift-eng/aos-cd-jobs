@@ -154,6 +154,9 @@ node {
         if (params.SKIP_MIRROR_BINARIES) {
             cmd << "--skip-mirror-binaries"
         }
+        if (params.SKIP_SIGNING) {
+            cmd << "--skip-signing"
+        }
         if (params.NO_MULTI) {
             cmd << "--no-multi"
         }
@@ -166,7 +169,10 @@ node {
             // because 4.11 heterogeneous is tech preview.
             cmd << "--use-multi-hack"
         }
+        def signing_env = params.DRY_RUN? "stage": "prod"
+        cmd << "--signing-env=${signing_env}"
         echo "Will run ${cmd}"
+        def siging_cert_id = signing_env == "prod" ? "0xffe138e-openshift-art-bot" : "0xffe138d-nonprod-openshift-art-bot"
         buildlib.withAppCiAsArtPublish() {
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD'],
                              aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
@@ -174,7 +180,13 @@ node {
                              string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                              string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                              string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
+                             string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                             file(credentialsId: "${siging_cert_id}.crt", variable: 'SIGNING_CERT'),
+                             file(credentialsId: "${siging_cert_id}.key", variable: 'SIGNING_KEY'),
+                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                             string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                             string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                            ]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)
@@ -230,31 +242,6 @@ node {
             )
         }
         */
-    }
-
-    stage("sign artifacts") {
-        if (params.SKIP_SIGNING) {
-            echo "Signing artifacts is skipped."
-            return
-        }
-        release_info.content.each { arch, info ->
-            def payloadDigest = release_info.content[arch].digest
-            // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
-            // Using the real per-arch release name in $info instead of the one defined by release artists.
-            def release_name = info.metadata.version
-            echo "Signing $arch"
-            release.signArtifacts(
-                name: release_name,
-                signature_name: "signature-1",
-                dry_run: params.DRY_RUN,
-                env: "prod",
-                key_name: release_info.client_type=='ocp'?"redhatrelease2":"beta2",
-                arch: arch,
-                digest: payloadDigest,
-                client_type: release_info.client_type,
-                product: "openshift",
-            )
-        }
     }
 
     stage("send release message") {

@@ -415,7 +415,8 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
 
     // Anything under this directory will be sync'd to the mirror
     def BASE_TO_MIRROR_DIR="${WORKSPACE}/to_mirror/openshift-v4"
-    def RELEASE_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/multi/clients/${client_type}/${release_name}"
+    def CLIENT_MIRROR_RELATIVE_DIR = "multi/clients/${client_type}/${release_name}"
+    def RELEASE_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${CLIENT_MIRROR_RELATIVE_DIR}"
     sh "rm -rf ${BASE_TO_MIRROR_DIR}"
 
     for (subarch in commonlib.goArches) {
@@ -473,6 +474,12 @@ def stagePublishMultiClient(quay_url, from_release_tag, release_name, client_typ
 
     def mirror_cmd = "aws s3 sync --no-progress --exact-timestamps ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
     if ( ! params.DRY_RUN ) {
+        // Copy sha256sum.txt to staging directory for signing
+        def BASE_SIGNING_STAGING_DIR = "/mnt/nfs/signing_staging/openshift-v4"
+        def SIGNING_STAGING_DIR = "${BASE_SIGNING_STAGING_DIR}/${CLIENT_MIRROR_RELATIVE_DIR}"
+        sh "mkdir -p ${SIGNING_STAGING_DIR}"
+        sh "cp ${RELEASE_MIRROR_DIR}/sha256sum.txt ${SIGNING_STAGING_DIR}/sha256sum.txt"
+
         // Publish the clients to our S3 bucket.
         try {
             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
@@ -498,7 +505,8 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
 
     // From the newly built release, extract the client tools into the workspace following the directory structure
     // we expect to publish to mirror
-    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
+    def CLIENT_MIRROR_RELATIVE_DIR = "${arch}/clients/${client_type}/${release_name}"
+    def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${CLIENT_MIRROR_RELATIVE_DIR}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 
     def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
@@ -696,6 +704,11 @@ extract_opm "$OUTDIR"
 
     mirror_cmd = "aws s3 sync --no-progress --exact-timestamps ${BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/"
     if ( ! params.DRY_RUN ) {
+        // Copy sha256sum.txt to staging directory for signing
+        def BASE_SIGNING_STAGING_DIR = "/mnt/nfs/signing_staging/openshift-v4"
+        def SIGNING_STAGING_DIR = "${BASE_SIGNING_STAGING_DIR}/${CLIENT_MIRROR_RELATIVE_DIR}"
+        sh "mkdir -p ${SIGNING_STAGING_DIR}"
+        sh "cp ${CLIENT_MIRROR_DIR}/sha256sum.txt ${SIGNING_STAGING_DIR}/sha256sum.txt"
         // Publish the clients to our S3 bucket.
         try {
             withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {

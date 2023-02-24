@@ -27,7 +27,6 @@ MIRROR_CLIENTS = {
 }
 
 OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'
-QUAY_RELEASE_REPO_URL = "quay.io/openshift-release-dev/ocp-release"
 
 # This is the URL that buildvm itself uses to resolve Jenkins
 # It shall be used by jenkinsapi to start new builds
@@ -38,3 +37,10 @@ JENKINS_SERVER_URL = 'https://buildvm.hosts.prod.psi.bos.redhat.com:8443'
 JENKINS_UI_URL = 'https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888'
 
 MIRROR_BASE_URL = 'https://mirror.openshift.com'
+
+UMB_BROKERS = {
+    "prod": "stomp+ssl://umb.api.redhat.com:61612",
+    "stage": "stomp+ssl://umb.stage.api.redhat.com:61612",
+    "qa": "stomp+ssl://umb.qa.api.redhat.com:61612",
+    "dev": "stomp+ssl://umb.dev.api.redhat.com:61612",
+}

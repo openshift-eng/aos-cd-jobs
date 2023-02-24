@@ -2,10 +2,11 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import aiofiles
 import yaml
@@ -297,7 +298,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     # Check for frozen scheduled automation
     if freeze_automation == "scheduled" and not is_manual_build():
         logger.info('Only manual runs are permitted according to freeze_automation in group.yml '
-                    'and this run appears to be non-manual.')
+                     'and this run appears to be non-manual.')
         return False
 
     # Check if group can run on weekends
@@ -567,9 +568,9 @@ The following logs are just the container build portion of the OSBS build:
             container_log = "Unfortunately there were no container build logs; " \
                             "something else about the build failed."
             logger.warning('No container build log for failed %s build\n'
-                           '(task url %s)\n'
-                           'at path %s',
-                           failure['distgit'], failure['task_url'], container_log)
+                            '(task url %s)\n'
+                            'at path %s',
+                            failure['distgit'], failure['task_url'], container_log)
 
         explanation_body = f"ART's brew/OSBS build of OCP image {failure['image']}:{failure['version']} has failed.\n\n"
         if failure['owners']:
@@ -590,3 +591,30 @@ The following logs are just the container build portion of the OSBS build:
             subject=f'Failed OCP build of {failure["image"]}:{failure["version"]}',
             content=explanation_body
         )
+
+
+async def mirror_to_s3(source: Union[str, Path], dest: str, exclude: Optional[str] = None, include: Optional[str] = None, dry_run=False):
+    """
+    Copy to AWS S3
+    """
+    cmd = ["aws", "s3", "sync", "--no-progress", "--exact-timestamps"]
+    if exclude is not None:
+        cmd.append(f"--exclude={exclude}")
+    if include is not None:
+        cmd.append(f"--include={include}")
+    if dry_run:
+        cmd.append("--dryrun")
+    cmd.extend(["--", f"{source}", f"{dest}"])
+    await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
+
+
+async def mirror_to_google_cloud(source: Union[str, Path], dest: str, dry_run=False):
+    """
+    Copy to Google Cloud
+    """
+    # -n - no clobber/overwrite; -v - print url of item; -L - write to log for auto re-processing; -r - recursive
+    cmd = ["gsutil", "cp", "-n", "-v", "-r", "--", f"{source}", f"{dest}"]
+    if dry_run:
+        logger.warning("[DRY RUN] Would have run %s", cmd)
+        return
+    await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)

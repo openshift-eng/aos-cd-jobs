@@ -275,7 +275,7 @@ class PrepareReleasePipeline:
             test_result = get_advisory_greenwave(advisory)
             if test_result != []:
                 _LOGGER.warning(f"Some greenwave tests on {advisory} failed with {test_result}")
-                await self._slack_client.say(f"Some greenwave tests failed on {advisory} @release-artists")
+                await self._slack_client.say(f"Some greenwave tests failed on https://errata.devel.redhat.com/advisory/{advisory}/test_run/greenwave_cvp @release-artists")
 
     async def load_releases_config(self) -> Optional[None]:
         repo = self.working_dir / "ocp-build-data-push"

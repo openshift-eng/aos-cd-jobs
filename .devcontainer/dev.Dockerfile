@@ -51,7 +51,7 @@ RUN groupadd --gid "$USER_GID" "$USERNAME" \
  && chmod 0440 /etc/sudoers.d/"$USERNAME" \
  && cd /workspaces/aos-cd-jobs \
  && sudo -u "$USERNAME" pip3 install --user -e ./art-tools/doozer ./art-tools/elliott ./pyartcd \
- && sudo -u "$USERNAME" pip3 install --user -r ./pyartcd/requirements-dev.txt
+ && sudo -u "$USERNAME" pip3 install --user -r ./pyartcd/requirements-dev.txt -r ./pyartcd/requirements.txt
 
 USER "$USER_UID"
 WORKDIR /workspaces/aos-cd-jobs

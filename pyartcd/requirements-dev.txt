@@ -1,5 +1,3 @@
--rrequirements.txt
-
 coverage
 flake8
 mock

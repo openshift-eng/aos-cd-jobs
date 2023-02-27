@@ -21,15 +21,15 @@ spec:
     - name: REPO_FULL_NAME
     - name: PR_NUMBER
   resourcetemplates:
-  - apiVersion: tekton.dev/v1beta1
-    kind: PipelineRun
-    metadata:
-      generateName: link-pull-request-to-jira-run-
-    spec:
-      pipelineRef:
-        name: link-pull-request-to-jira
-      params:
-      - name: REPO_FULL_NAME
-        value: $(params.REPO_FULL_NAME)
-      - name: PR_NUMBER
-        value: $(params.PR_NUMBER)
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: link-pull-request-to-jira-run-
+      spec:
+        pipelineRef:
+          name: link-pull-request-to-jira
+        params:
+          - name: REPO_FULL_NAME
+            value: $(params.REPO_FULL_NAME)
+          - name: PR_NUMBER
+            value: $(params.PR_NUMBER)

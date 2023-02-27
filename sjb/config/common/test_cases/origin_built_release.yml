@@ -1,7 +1,0 @@
----
-parent: 'common/test_cases/origin_minimal.yml'
-overrides:
-  provision:
-    os: "rhel"
-    stage: "build"
-    provider: "aws"

@@ -16,7 +16,7 @@ import semver
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
-from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory
+from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, set_blocking_errata, get_blocking_errata
 from elliottlib.model import Model
 from jira.resources import Issue
 from pyartcd import exectools, constants
@@ -177,6 +177,8 @@ class PrepareReleasePipeline:
                     advisories["microshift"] = self.create_advisory("RHBA", "rpm", "microshift")
                 else:
                     _LOGGER.info("Reusing existing microshift advisory %s", advisories["microshift"])
+
+        self.set_advisory_dependencies(advisories)
 
         jira_issue_key = group_config.get("release_jira")
         jira_issue = None
@@ -625,6 +627,12 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
         except jinja2.TemplateSyntaxError as ex:
             _LOGGER.warning("Failed to render JIRA template text: %s", ex)
         return fields
+
+    def set_advisory_dependencies(self, advisories):
+        # check if dependencies are set for advisories
+        # if not, set them
+        # if yes, check if they are correct
+        pass
 
     def update_release_jira(self, issue: Issue, subtasks: List[Issue], template_vars: Dict[str, int]):
         template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]

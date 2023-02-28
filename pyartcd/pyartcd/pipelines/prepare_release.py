@@ -16,7 +16,7 @@ import semver
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
-from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, set_blocking_errata, get_blocking_errata
+from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, set_blocking_advisory, get_blocking_advisory
 from elliottlib.model import Model
 from jira.resources import Issue
 from pyartcd import exectools, constants

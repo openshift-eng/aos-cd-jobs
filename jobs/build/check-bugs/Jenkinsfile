@@ -63,7 +63,7 @@ node {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo out
 
-                if (out.contains('failed with')) {
+                if (out.contains('Command failed:')) {
                     currentBuild.result = "UNSTABLE"
                 }
             }

@@ -122,7 +122,7 @@ class CheckBugsPipeline:
             self.logger.info(out.decode())
         errcode = process.returncode
         if errcode:
-            self.logger.error(f'Command {cmd} failed with {errcode}: see output below')
+            self.logger.error(f'Command failed: cmd={cmd} errcode={errcode}. See output below')
             self.logger.info(err)
             return None
 
@@ -176,7 +176,7 @@ class CheckBugsPipeline:
         if out:
             res = {version: out}
         else:
-            self.logger.error(f'Command {cmd} failed with {err}: see output below')
+            self.logger.error(f'Command failed: cmd={cmd} errcode={errcode}. See output below')
             self.logger.info(err)
         return res
 

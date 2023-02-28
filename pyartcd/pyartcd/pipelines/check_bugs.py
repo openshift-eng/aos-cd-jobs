@@ -27,7 +27,7 @@ class CheckBugsPipeline:
         self.applicable_versions = []
         self.blockers = {}
         self.regressions = {}
-        self.slack_client = self.initialize_slack_client(runtime, channel)
+        self.slack_client = None if not channel else self.initialize_slack_client(runtime, channel)
 
     @staticmethod
     def initialize_slack_client(runtime: Runtime, channel: str):
@@ -118,7 +118,8 @@ class CheckBugsPipeline:
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
-        self.logger.info(out.decode())
+        if out:
+            self.logger.info(out.decode())
         errcode = process.returncode
         if errcode:
             self.logger.error(f'Command {cmd} failed with {errcode}: see output below')
@@ -156,16 +157,27 @@ class CheckBugsPipeline:
             'verify-bugs',
             '--output=slack'
         ]
+        self.logger.info(f'Executing command: {" ".join(cmd)}')
+
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
-        self.logger.info(f'Executing command: {" ".join(cmd)}')
-        self.logger.info(err.decode())
-        # If process returned 0, no regressions were found
-        if not process.returncode:
+        if out:
+            self.logger.info(out.decode())
+
+        errcode = process.returncode
+        res = None
+
+        # If returncode is 0 then no regressions were found
+        if not errcode:
             self.logger.info('No regressions found for version %s', version)
-            return None
+            return res
+
         out = out.decode().strip().splitlines()
-        res = {version: out} if out else None
+        if out:
+            res = {version: out}
+        else:
+            self.logger.error(f'Command {cmd} failed with {err}: see output below')
+            self.logger.info(err)
         return res
 
     def _next_is_prerelease(self, version: str) -> bool:
@@ -173,7 +185,7 @@ class CheckBugsPipeline:
 
     async def _slack_report(self):
         # If no issues have been found, do nothing
-        if not any((self.blockers, self.regressions)):
+        if not any((self.blockers, self.regressions)) or not self.slack_client:
             return
 
         # Merge results
@@ -196,7 +208,7 @@ class CheckBugsPipeline:
 
 
 @cli.command('check-bugs')
-@click.option('--slack_channel', required=False, default='#art-team',
+@click.option('--slack_channel', required=False,
               help='Slack channel to be notified for failures')
 @click.option('--version', required=True, multiple=True,
               help='OCP version to check for blockers e.g. 4.7')

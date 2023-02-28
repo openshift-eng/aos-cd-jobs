@@ -28,7 +28,7 @@ class BuildSyncPipeline:
         self.emergency_ignore_issues = emergency_ignore_issues
         self.retrigger_current_nightly = retrigger_current_nightly
         self.doozer_data_gitref = doozer_data_gitref
-        self.debug= debug
+        self.debug = debug
         self.images = images
         self.exclude_arches = [] if not exclude_arches else exclude_arches.replace(',', ' ').split()
         self.skip_multiarch_payload = skip_multiarch_payload

@@ -26,7 +26,8 @@ from pyartcd.mail import MailService
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
-                          get_release_name_for_assembly)
+                          get_release_name_for_assembly,
+                          is_greenwave_all_pass_on_advisory)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -82,6 +83,7 @@ class PrepareReleasePipeline:
                 raise ValueError("default_advisories cannot be set for a non-stream assembly.")
 
         self.release_date = date
+        self._slack_client = self.runtime.new_slack_client()
         self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
         self.working_dir = self.runtime.working_dir.absolute()
         self.default_advisories = default_advisories
@@ -261,6 +263,7 @@ class PrepareReleasePipeline:
             self.send_notification_email(advisories, jira_issue_link)
 
         # Move advisories to QE
+        self._slack_client.bind_channel(self.release_name)
         for impetus, advisory in advisories.items():
             try:
                 if impetus == "metadata":
@@ -269,6 +272,10 @@ class PrepareReleasePipeline:
                 self.change_advisory_state(advisory, "QE")
             except CalledProcessError as ex:
                 _LOGGER.warning(f"Unable to move {impetus} advisory {advisory} to QE: {ex}")
+
+            if impetus in ["image", "extras", "metadata"]:
+                if not is_greenwave_all_pass_on_advisory(impetus):
+                    await self._slack_client.say(f"Some greenwave tests failed on https://errata.devel.redhat.com/advisory/{advisory}/test_run/greenwave_cvp @release-artists")
 
     async def load_releases_config(self) -> Optional[None]:
         repo = self.working_dir / "ocp-build-data-push"
@@ -495,8 +502,7 @@ class PrepareReleasePipeline:
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
-    async def sweep_builds_async(
-        self, impetus: str, advisory: int):
+    async def sweep_builds_async(self, impetus: str, advisory: int):
         only_payload = False
         only_non_payload = False
         if impetus in ["rpm", "microshift"]:
@@ -752,7 +758,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 @pass_runtime
 @click_coroutine
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
-                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
+                          package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
     # parse environment variables for credentials
     jira_token = os.environ.get("JIRA_TOKEN")
     if not runtime.dry_run and not jira_token:

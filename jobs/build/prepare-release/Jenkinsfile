@@ -92,13 +92,6 @@ node {
                 currentBuild.displayName += " - $params.VERSION - $params.ASSEMBLY"
             }
         }
-        stage ("Notify release channel") {
-            if (params.DRY_RUN) {
-                return
-            }
-            slackChannel = slacklib.to(params.NAME?: params.VERSION)
-            slackChannel.say(":construction: prepare-release for ${params.NAME?: params.ASSEMBLY} :construction:")
-        }
         try {
             stage("prepare release") {
                 sh "mkdir -p ./artcd_working"
@@ -151,15 +144,6 @@ node {
                 "artcd_working/**/*.yaml",
                 "artcd_working/**/*.yml",
             ])
-            if (!params.DRY_RUN) {
-                slackChannel = slacklib.to(params.NAME?: params.VERSION)
-                if (currentBuild.currentResult == "SUCCESS") {
-                    slackChannel.say(":white_check_mark: prepare-release for ${params.NAME?: params.ASSEMBLY} completes.")
-                } else {
-                    slackChannel.say(":warning: prepare-release for ${params.NAME?: params.ASSEMBLY} has result ${currentBuild.currentResult}.")
-                }
-
-            }
             buildlib.cleanWorkspace()
         }
     }

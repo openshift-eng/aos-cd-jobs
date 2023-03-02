@@ -27,9 +27,9 @@ async def trigger_jenkins_job(job_path: str, params=None):
     # Otherwise, just call the 'build' endpoint with empty data
     url = f'https://buildvm.hosts.prod.psi.bos.redhat.com:8443/{job_path}'
     if params:
-        url += '/buildWithParameters'
+        url += f'/buildWithParameters'
     else:
-        url += '/build'
+        url += f'/build'
 
     # Call API endpoint
     logger.info('Triggering remote job %s', job_path)

@@ -24,6 +24,7 @@ def isolate_el_version_in_release(release: str) -> Optional[int]:
     match = re.match(r'.*\.el(\d+)(?:\.+|$)', release)
     if match:
         return int(match.group(1))
+
     return None
 
 
@@ -36,6 +37,7 @@ def isolate_el_version_in_branch(branch_name: str) -> Optional[int]:
     match = re.fullmatch(r'.*rhel-(\d+).*', branch_name)
     if match:
         return int(match.group(1))
+
     return None
 
 
@@ -51,7 +53,7 @@ def isolate_major_minor_in_group(group_name: str) -> Tuple[int, int]:
     return int(match[1]), int(match[2])
 
 
-def is_greenwave_all_pass_on_advisory(advisory_id: str) -> bool:
+def is_greenwave_all_pass_on_advisory(advisory_id: int) -> bool:
     """
     Use /api/v1/external_tests API to check if builds on advisory have failed greenwave_cvp test
     If the tests all pass then the data field of the return value will be empty

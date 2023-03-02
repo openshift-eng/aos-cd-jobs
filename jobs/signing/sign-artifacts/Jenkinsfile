@@ -134,8 +134,8 @@ node {
             echo("Submitting${noop} signing requests as user: ${buildUserId}")
 
             dir(workDir) {
-                withCredentials([file(credentialsId: '0xFFE0973-openshift-art-signatory-prod.crt', variable: 'busCertificate'),
-                                 file(credentialsId: '0xFFE0973-openshift-art-signatory-prod.key', variable: 'busKey')]) {
+                withCredentials([file(credentialsId: '0xffc054e-openshift-art-signatory.crt', variable: 'busCertificate'),
+                                 file(credentialsId: '0xffc054e-openshift-art-signatory.key', variable: 'busKey')]) {
                     // ######################################################################
                     def baseUmbParams = buildlib.cleanWhitespace("""
                                 --requestor "${buildUserId}" --sig-keyname ${params.KEY_NAME}

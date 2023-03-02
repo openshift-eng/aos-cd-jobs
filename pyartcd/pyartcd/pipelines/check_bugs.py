@@ -1,7 +1,7 @@
 import asyncio
 import subprocess
 import concurrent
-
+import sys
 import click
 import aiohttp
 from aiohttp_retry import RetryClient, ExponentialRetry
@@ -28,6 +28,7 @@ class CheckBugsPipeline:
         self.blockers = {}
         self.regressions = {}
         self.slack_client = None if not channel else self.initialize_slack_client(runtime, channel)
+        self.unstable = False # This is set to True if any of the commands in the pipeline fail
 
     @staticmethod
     def initialize_slack_client(runtime: Runtime, channel: str):
@@ -68,7 +69,7 @@ class CheckBugsPipeline:
 
         # Notify Slack
         await self._slack_report()
-        self.logger.info('All done!')
+        sys.exit(1 if self.unstable else 0)
 
     async def _check_applicable_versions(self):
         async with aiohttp.ClientSession() as session:
@@ -122,8 +123,8 @@ class CheckBugsPipeline:
             self.logger.info(out.decode())
         errcode = process.returncode
         if errcode:
-            self.logger.error(f'Command failed: cmd={cmd} errcode={errcode}. See output below')
-            self.logger.info(err)
+            self.unstable = True
+            self.logger.error(f'Command failed: cmd={cmd} status={errcode}. Output: {err.decode()}')
             return None
 
         out = out.decode().strip().splitlines()
@@ -176,8 +177,8 @@ class CheckBugsPipeline:
         if out:
             res = {version: out}
         else:
-            self.logger.error(f'Command failed: cmd={cmd} errcode={errcode}. See output below')
-            self.logger.info(err)
+            self.unstable = True
+            self.logger.error(f'Command failed: cmd={cmd} status={errcode}. Output: {err.decode()}')
         return res
 
     def _next_is_prerelease(self, version: str) -> bool:

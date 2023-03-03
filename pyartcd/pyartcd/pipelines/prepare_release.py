@@ -495,8 +495,7 @@ class PrepareReleasePipeline:
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
-    async def sweep_builds_async(
-        self, impetus: str, advisory: int):
+    async def sweep_builds_async(self, impetus: str, advisory: int):
         only_payload = False
         only_non_payload = False
         if impetus in ["rpm", "microshift"]:
@@ -752,7 +751,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 @pass_runtime
 @click_coroutine
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
-                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
+                          package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
     # parse environment variables for credentials
     jira_token = os.environ.get("JIRA_TOKEN")
     if not runtime.dry_run and not jira_token:

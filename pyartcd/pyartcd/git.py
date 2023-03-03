@@ -2,11 +2,7 @@
 
 from logging import getLogger
 from pathlib import Path
-import subprocess
-from os import PathLike
 import os
-import shutil
-import pygit2
 
 from pyartcd import StrOrBytesPath, exectools
 

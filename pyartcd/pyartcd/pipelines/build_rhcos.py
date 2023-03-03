@@ -1,9 +1,13 @@
 from pyartcd.cli import cli, pass_runtime
 from pyartcd.runtime import Runtime
 import openshift as oc
-from openshift import OpenShiftPythonException, Missing
 import click
-import requests, re, base64, json, time, sys
+import requests
+import re
+import base64
+import json
+import time
+import sys
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from typing import List, Dict, Tuple
@@ -13,7 +17,9 @@ JENKINS_BASE_URL = "https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com"
 
 # lifted verbatim from
 # https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
-DEFAULT_TIMEOUT = 5 # seconds
+DEFAULT_TIMEOUT = 5  # seconds
+
+
 class TimeoutHTTPAdapter(HTTPAdapter):
     def __init__(self, *args, **kwargs):
         self.timeout = DEFAULT_TIMEOUT
@@ -39,13 +45,8 @@ class BuildRhcosPipeline:
         self.api_token = None
 
         self.request_session = requests.Session()
-        retries = Retry(
-                total=5, backoff_factor=1,
-                status_forcelist=[500, 502, 503, 504],
-                method_whitelist=["HEAD", "GET", "POST"],
-        )
+        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504], method_whitelist=["HEAD", "GET", "POST"])
         self.request_session.mount("https://", TimeoutHTTPAdapter(max_retries=retries))
-
 
     def run(self):
         self.request_session.headers.update({"Authorization": f"Bearer {self.retrieve_auth_token()}"})
@@ -127,7 +128,7 @@ class BuildRhcosPipeline:
             if initial_builds:
                 break
             time.sleep(1)  # may take a few seconds for the build to start
-            initial_builds  = self.query_existing_builds()
+            initial_builds = self.query_existing_builds()
         else:  # only gets here if the for loop reaches the count
             raise Exception("Waited too long for build to start")
 

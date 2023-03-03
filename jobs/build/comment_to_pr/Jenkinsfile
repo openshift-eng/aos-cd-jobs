@@ -1,0 +1,31 @@
+node {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("comment-build-to-pr", """
+        Comment on origin PR about build
+    """)
+
+    // Check for mock build
+    commonlib.checkMock()
+    
+    stage("comment-on-pr") {
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+            "comment-status-to-pr",
+            "--job-base-name=${env.PARENT_JOB_BASE_NAME}"
+            "--job-build-number=${env.PARENT_BUILD_NUMBER}"
+        ]
+
+        withCredentials([string(credentialsId: "openshift-bot-token", variable: "OPENSHIFT_BOT_TOKEN")]){
+            def out = sh(script: cmd.join(" "), returnStdout: true).trim()
+                echo out
+        }
+    }
+
+    buildlib.cleanWorkspace()
+}

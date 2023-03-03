@@ -638,7 +638,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             if not blocking:
                 raise ValueError(f"Failed to fetch blocking advisories for {target_advisory_id} ")
             if expected_blocking.issubset(set(blocking)):
-                return
+                continue
             for blocking_advisory_id in expected_blocking:
                 set_blocking_advisory(target_advisory_id, blocking_advisory_id, "SHIPPED_LIVE")
 

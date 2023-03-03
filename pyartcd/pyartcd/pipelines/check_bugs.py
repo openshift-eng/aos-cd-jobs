@@ -1,7 +1,7 @@
 import asyncio
 import subprocess
 import concurrent
-
+import sys
 import click
 import aiohttp
 from aiohttp_retry import RetryClient, ExponentialRetry
@@ -27,7 +27,8 @@ class CheckBugsPipeline:
         self.applicable_versions = []
         self.blockers = {}
         self.regressions = {}
-        self.slack_client = self.initialize_slack_client(runtime, channel)
+        self.slack_client = None if not channel else self.initialize_slack_client(runtime, channel)
+        self.unstable = False # This is set to True if any of the commands in the pipeline fail
 
     @staticmethod
     def initialize_slack_client(runtime: Runtime, channel: str):
@@ -68,7 +69,7 @@ class CheckBugsPipeline:
 
         # Notify Slack
         await self._slack_report()
-        self.logger.info('All done!')
+        sys.exit(1 if self.unstable else 0)
 
     async def _check_applicable_versions(self):
         async with aiohttp.ClientSession() as session:
@@ -118,11 +119,12 @@ class CheckBugsPipeline:
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
-        self.logger.info(out.decode())
+        if out:
+            self.logger.info(out.decode())
         errcode = process.returncode
         if errcode:
-            self.logger.error(f'Command {cmd} failed with {errcode}: see output below')
-            self.logger.info(err)
+            self.unstable = True
+            self.logger.error(f'Command failed: cmd={cmd} status={errcode}. Output: {err.decode()}')
             return None
 
         out = out.decode().strip().splitlines()
@@ -156,16 +158,27 @@ class CheckBugsPipeline:
             'verify-bugs',
             '--output=slack'
         ]
+        self.logger.info(f'Executing command: {" ".join(cmd)}')
+
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
-        self.logger.info(f'Executing command: {" ".join(cmd)}')
-        self.logger.info(err.decode())
-        # If process returned 0, no regressions were found
-        if not process.returncode:
+        if out:
+            self.logger.info(out.decode())
+
+        errcode = process.returncode
+        res = None
+
+        # If returncode is 0 then no regressions were found
+        if not errcode:
             self.logger.info('No regressions found for version %s', version)
-            return None
+            return res
+
         out = out.decode().strip().splitlines()
-        res = {version: out} if out else None
+        if out:
+            res = {version: out}
+        else:
+            self.unstable = True
+            self.logger.error(f'Command failed: cmd={cmd} status={errcode}. Output: {err.decode()}')
         return res
 
     def _next_is_prerelease(self, version: str) -> bool:
@@ -173,7 +186,7 @@ class CheckBugsPipeline:
 
     async def _slack_report(self):
         # If no issues have been found, do nothing
-        if not any((self.blockers, self.regressions)):
+        if not any((self.blockers, self.regressions)) or not self.slack_client:
             return
 
         # Merge results
@@ -196,7 +209,7 @@ class CheckBugsPipeline:
 
 
 @cli.command('check-bugs')
-@click.option('--slack_channel', required=False, default='#art-team',
+@click.option('--slack_channel', required=False,
               help='Slack channel to be notified for failures')
 @click.option('--version', required=True, multiple=True,
               help='OCP version to check for blockers e.g. 4.7')

@@ -634,7 +634,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
         _LOGGER.info("Setting advisory dependencies for %s", target_kind)
         for kind in target_kind:
             target_advisory_id = advisories[kind]
-            blocking = get_blocking_advisories(target_advisory_id)
+            blocking: Optional[List] = get_blocking_advisories(target_advisory_id)
             if not blocking:
                 raise ValueError(f"Failed to fetch blocking advisories for {target_advisory_id} ")
             if expected_blocking.issubset(set(blocking)):

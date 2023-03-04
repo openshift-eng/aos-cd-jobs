@@ -22,11 +22,13 @@ from jira.resources import Issue
 from pyartcd import exectools, constants
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.jira import JIRAClient
+from pyartcd.slack import SlackClient
 from pyartcd.mail import MailService
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
-                          get_release_name_for_assembly)
+                          get_release_name_for_assembly,
+                          is_greenwave_all_pass_on_advisory)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -36,6 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 class PrepareReleasePipeline:
     def __init__(
         self,
+        slack_client: SlackClient,
         runtime: Runtime,
         group: Optional[str],
         assembly: Optional[str],
@@ -83,6 +86,7 @@ class PrepareReleasePipeline:
 
         self.release_date = date
         self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
+        self._slack_client = slack_client
         self.working_dir = self.runtime.working_dir.absolute()
         self.default_advisories = default_advisories
         self.include_shipped = include_shipped
@@ -261,6 +265,7 @@ class PrepareReleasePipeline:
             self.send_notification_email(advisories, jira_issue_link)
 
         # Move advisories to QE
+        self._slack_client.bind_channel(self.release_name)
         for impetus, advisory in advisories.items():
             try:
                 if impetus == "metadata":
@@ -269,6 +274,10 @@ class PrepareReleasePipeline:
                 self.change_advisory_state(advisory, "QE")
             except CalledProcessError as ex:
                 _LOGGER.warning(f"Unable to move {impetus} advisory {advisory} to QE: {ex}")
+
+            if impetus in ["image", "extras", "metadata"]:
+                if not is_greenwave_all_pass_on_advisory(advisory):
+                    await self._slack_client.say(f"Some greenwave tests failed on https://errata.devel.redhat.com/advisory/{advisory}/test_run/greenwave_cvp @release-artists")
 
     async def load_releases_config(self) -> Optional[None]:
         repo = self.working_dir / "ocp-build-data-push"
@@ -753,21 +762,30 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 @click_coroutine
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
                   package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
-    # parse environment variables for credentials
-    jira_token = os.environ.get("JIRA_TOKEN")
-    if not runtime.dry_run and not jira_token:
-        raise ValueError("JIRA_TOKEN environment variable is not set")
-    # start pipeline
-    pipeline = PrepareReleasePipeline(
-        runtime=runtime,
-        group=group,
-        assembly=assembly,
-        name=name,
-        date=date,
-        nightlies=nightlies,
-        package_owner=package_owner,
-        jira_token=jira_token,
-        default_advisories=default_advisories,
-        include_shipped=include_shipped,
-    )
-    await pipeline.run()
+    slack_client = runtime.new_slack_client()
+    slack_client.bind_channel(assembly)
+    await slack_client.say(f":construction: prepare-release for {name if name else assembly} :construction:")
+    try:
+        # parse environment variables for credentials
+        jira_token = os.environ.get("JIRA_TOKEN")
+        if not runtime.dry_run and not jira_token:
+            raise ValueError("JIRA_TOKEN environment variable is not set")
+        # start pipeline
+        pipeline = PrepareReleasePipeline(
+            slack_client=slack_client,
+            runtime=runtime,
+            group=group,
+            assembly=assembly,
+            name=name,
+            date=date,
+            nightlies=nightlies,
+            package_owner=package_owner,
+            jira_token=jira_token,
+            default_advisories=default_advisories,
+            include_shipped=include_shipped,
+        )
+        await pipeline.run()
+        await slack_client.say(f":white_check_mark: prepare-release for {name if name else assembly} completes.")
+    except Exception as e:
+        await slack_client.say(f":warning: prepare-release for {name if name else assembly} has result FAILURE.")
+        raise e  # return failed status to jenkins

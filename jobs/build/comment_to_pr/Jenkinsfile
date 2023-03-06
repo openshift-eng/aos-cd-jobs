@@ -1,0 +1,78 @@
+node {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("comment-build-to-pr", """
+        Comment on origin PR about build
+    """)
+
+    // Expose properties for a parameterized build
+
+    properties(
+            [
+                buildDiscarder(
+                    logRotator(
+                        artifactDaysToKeepStr: "7",
+                        daysToKeepStr: "7"
+                      )
+                   ),
+                [
+                    $class: "ParametersDefinitionProperty",
+                    parameterDefinitions: [
+                        string(
+                        name: "JOB_BASE_NAME",
+                        description: "job base name",
+                        trim: true,
+                        defaultValue: ""
+                        ),
+                         string(
+                            name: "BUILD_NUMBER",
+                            description: "build number",
+                            trim: true,
+                            defaultValue: ""
+                        ),
+                         string(
+                            name: "BUILD_VERSION",
+                            description: "build version",
+                            trim: true,
+                            defaultValue: ""
+                        ),
+                        commonlib.mockParam(),
+                    ]
+                ],
+            ]
+        )
+
+    // Check for mock build
+    commonlib.checkMock()
+    
+    stage("comment-on-pr") {
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+        parentJobBaseName = params.JOB_BASE_NAME
+        parentJobBuildNumber = params.BUILD_NUMBER
+        parentJobBuildVersion = params.BUILD_VERSION
+
+        if (parentJobBaseName == "" && parentJobBuildNumber == "" && parentJobBuildVersion == "") {
+            parentJobBaseName = env.JOB_BASE_NAME
+            parentJobBuildNumber = env.BUILD_NUMBER
+            parentJobBuildVersion = env.BUILD_VERSION
+        }
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+            "comment-status-to-pr",
+            "--job-base-name=${parentJobBaseName}",
+            "--job-build-number=${parentJobBuildNumber}",
+            "--openshift-version=${parentJobBuildVersion}"
+        ]
+
+        withCredentials([string(credentialsId: "openshift-bot-token", variable: "OPENSHIFT_BOT_TOKEN")]){
+            def out = sh(script: cmd.join(" "), returnStdout: true).trim()
+                echo out
+        }
+    }
+
+    buildlib.cleanWorkspace()
+}

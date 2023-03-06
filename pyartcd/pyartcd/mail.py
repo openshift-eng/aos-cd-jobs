@@ -34,15 +34,7 @@ class MailService:
 
         if archive_dir:
             archive_dir.mkdir(parents=True, exist_ok=True)
-            filename = (
-                "email-"
-                + datetime.now().strftime("%Y%m%d-%H%M%S")
-                + "-"
-                + re.sub(r"[^@.\w]+", "_", msg["To"])
-                + "-"
-                + re.sub(r"[^@.\w]+", "_", subject)
-                + ".eml"
-            )
+            filename = ("email-" + datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + re.sub(r"[^@.\w]+", "_", msg["To"]) + "-" + re.sub(r"[^@.\w]+", "_", subject) + ".eml")
             with open(archive_dir / filename, "w") as f:
                 gen = Generator(f)
                 gen.flatten(msg)

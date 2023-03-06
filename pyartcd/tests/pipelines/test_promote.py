@@ -729,8 +729,8 @@ class TestPromotePipeline(TestCase):
         },
     }[pullspec, raise_if_not_found])
     @patch('pyartcd.pipelines.promote.PromotePipeline.get_image_digest', return_value='fake:deadbeef-toplevel-manifest-list')
-    def test_build_release_image_from_image_stream(self, get_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
-                                                   build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
+    def test_build_release_image_from_heterogeneous_image_stream(self, get_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
+                                                                 build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
         runtime = MagicMock(
             config={
                 "build_config": {

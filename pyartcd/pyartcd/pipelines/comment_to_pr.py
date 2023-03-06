@@ -1,6 +1,8 @@
+import asyncio
 import pprint
 import sys
 import re
+import aiohttp
 import requests
 import logging
 import os
@@ -143,7 +145,7 @@ class Distgit(GithubRepo):
                                                                                distgit_name=self._distgit_name))
         self._logger.info(f"Commented on PR: {pr_url}")
 
-    def get_previous_distgit_commit(self, dg_name, dg_commit):
+    async def get_previous_distgit_commit(self, dg_name, dg_commit):
         """
         Get the distgit commit of the previous successful build of that distgit name.
         """
@@ -151,20 +153,17 @@ class Distgit(GithubRepo):
               f"group=openshift-{self._openshift_version}"
         self._logger.info(f"Querying art-dash with: {url}")
 
-        response = requests.get(url)
-        if response.status_code != 200:
-            self._logger.error("Querying art-dash failed")
-            sys.exit(1)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                response = await resp.json()
 
-        data = response.json()
-
-        if data["count"] > 0:
-            results = data["results"]
-            for index, data in enumerate(results):
-                if data["dg_commit"] == dg_commit:
+        if response["count"] > 0:
+            results = response["results"]
+            for index, response in enumerate(results):
+                if response["dg_commit"] == dg_commit:
                     return results[index + 1]["dg_commit"]
 
-    def get_github_commit_from_dg_commit(self, dg_commit):
+    async def get_github_commit_from_dg_commit(self, dg_commit):
         """
         Find the GitHub commit from the distgit commit using the API server.
         """
@@ -172,15 +171,12 @@ class Distgit(GithubRepo):
               f"group=openshift-{self._openshift_version}"
         self._logger.info(f"Querying art-dash with: {url}")
 
-        response = requests.get(url)
-        if response.status_code != 200:
-            self._logger.error("Querying art-dash failed")
-            sys.exit(1)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                response = await resp.json()
 
-        data = response.json()
-
-        if data["count"] == 1:
-            return data["results"][0]["label_io_openshift_build_commit_id"]
+        if response["count"] == 1:
+            return response["results"][0]["label_io_openshift_build_commit_id"]
         else:
             self._logger.error("More than one distgit commits found")
             sys.exit(1)
@@ -214,7 +210,7 @@ class CommentOnPrPipeline:
         self.openshift_version = openshift_version
         self._logger = logger or runtime.logger
 
-    def _get_distgit(self, build):
+    async def _get_distgit(self, build):
         # extract data from the API result
         build_commit_url = build["label_io_openshift_build_source_location"]
 
@@ -231,11 +227,11 @@ class CommentOnPrPipeline:
 
         # Get the current and previous distgit commit that was built successfully
         dg_commit = build["dg_commit"]
-        previous_dg_commit = distgit.get_previous_distgit_commit(build["dg_name"], dg_commit)
+        previous_dg_commit = await distgit.get_previous_distgit_commit(build["dg_name"], dg_commit)
 
         # Get the current and previous built GitHub commit that was built successfully
-        latest_github_commit = distgit.get_github_commit_from_dg_commit(dg_commit)
-        previous_github_commit = distgit.get_github_commit_from_dg_commit(previous_dg_commit)
+        latest_github_commit = await distgit.get_github_commit_from_dg_commit(dg_commit)
+        previous_github_commit = await distgit.get_github_commit_from_dg_commit(previous_dg_commit)
 
         self._logger.info(f"Latest commit distgit:github  :: {dg_commit} : {latest_github_commit}")
         self._logger.info(f"Previous commit distgit:github  :: {previous_dg_commit} : {previous_github_commit}")
@@ -277,27 +273,28 @@ class CommentOnPrPipeline:
         self._logger.debug(f"Response: {pprint.pformat(data)}")
 
         if data["count"] > 0:
-            distgits = []
             api_results = data["results"]
 
+            tasks = []
             for build in api_results:
                 if build["brew_task_state"] != "success":
                     # Do not check for unsuccessful builds
                     self._logger.info(f"Skipping Build {build['build_0_id']} because it failed.")
                     continue
 
-                distgit = self._get_distgit(build)
-                distgits.append(distgit)
+                tasks.append(asyncio.ensure_future(self._get_distgit(build)))
+
+            distgits = asyncio.gather(*tasks)
 
             return distgits
         else:
             self._logger.error(f"No builds were found for job no: {self.job_id}")
 
-    def _check_builds(self):
+    async def _check_builds(self):
         """
         Returns a list of repo PRs that needs reporting to based on successful builds.
         """
-        distgits = self._builds_from_job()
+        distgits = await self._builds_from_job()
         for distgit in distgits:
             # Log the object to see if the data is populated correctly
             # https://docs.python.org/2/library/functions.html#vars
@@ -313,7 +310,7 @@ class CommentOnPrPipeline:
         pass
 
     async def run(self):
-        self._check_builds()
+        await self._check_builds()
 
 
 @cli.command("comment-status-to-pr")

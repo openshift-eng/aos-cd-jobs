@@ -7,6 +7,7 @@ import logging
 
 import aiofiles
 import yaml
+from errata_tool import ErrataConnector
 
 from doozerlib import assembly, model, util as doozerutil
 from pyartcd import exectools, constants
@@ -50,6 +51,21 @@ def isolate_major_minor_in_group(group_name: str) -> Tuple[int, int]:
     if not match:
         return None, None
     return int(match[1]), int(match[2])
+
+
+def is_greenwave_all_pass_on_advisory(advisory_id: int) -> bool:
+    """
+    Use /api/v1/external_tests API to check if builds on advisory have failed greenwave_cvp test
+    If the tests all pass then the data field of the return value will be empty
+    Return True, If all greenwave test passed on advisory
+    Return False, If there are failed test on advisory
+    """
+    logger.info(f"Check failed greenwave tests on {advisory_id}")
+    result = ErrataConnector()._get(f'/api/v1/external_tests?filter[test_type]=greenwave_cvp&filter[status]=FAILED&filter[active]=true&page[size]=1000&filter[errata_id]={advisory_id}')
+    if result.get('data', []):
+        logger.warning(f"Some greenwave tests on {advisory_id} failed with {result}")
+        return False
+    return True
 
 
 async def load_group_config(group: str, assembly: str, env=None) -> Dict:

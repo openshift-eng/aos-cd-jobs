@@ -21,19 +21,19 @@ node {
                     parameterDefinitions: [
                         string(
                         name: "JOB_BASE_NAME",
-                        description: "job base name",
+                        description: "Job base name eg: build/ocp4",
                         trim: true,
                         defaultValue: ""
                         ),
                          string(
                             name: "BUILD_NUMBER",
-                            description: "build number",
+                            description: "Jenkins build number eg: 4010",
                             trim: true,
                             defaultValue: ""
                         ),
                          string(
                             name: "BUILD_VERSION",
-                            description: "build version",
+                            description: "Build version. Eg: 4.12",
                             trim: true,
                             defaultValue: ""
                         ),

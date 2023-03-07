@@ -1,4 +1,5 @@
 import asyncio
+import json
 import pprint
 import sys
 import re
@@ -137,7 +138,7 @@ class Distgit(GithubRepo):
         """
         Post to a PR with the given message
         """
-        # https://docs.github.com/en/rest/issues/comments#list-issue-comments
+        # https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
         # PR is considered an issue in the context of GitHub API, so PR number is issue number.
         # Add pr number to the url to get the comments from that particular PR.
         self._github_api.issues.create_comment(pr_no,
@@ -153,14 +154,22 @@ class Distgit(GithubRepo):
               f"group=openshift-{self._openshift_version}"
         self._logger.info(f"Querying art-dash with: {url}")
 
+        # Fetch data
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                response = await resp.json()
+            self._logger.info("Fetching url %s", url)
+            async with session.get(url) as url_response:
+                try:
+                    url_response.raise_for_status()
+                    # response.json() will throw an exception as the content type is text/plain
+                    response_json = json.loads(await url_response.text())
+                except aiohttp.ClientResponseError:
+                    self._logger.warning('Failed fetching %s: %s', url, url_response.reason)
+                    raise
 
-        if response["count"] > 0:
-            results = response["results"]
-            for index, response in enumerate(results):
-                if response["dg_commit"] == dg_commit:
+        if response_json["count"] > 0:
+            results = response_json["results"]
+            for index, response_data in enumerate(results):
+                if response_data["dg_commit"] == dg_commit:
                     return results[index + 1]["dg_commit"]
 
     async def get_github_commit_from_dg_commit(self, dg_commit):
@@ -171,12 +180,20 @@ class Distgit(GithubRepo):
               f"group=openshift-{self._openshift_version}"
         self._logger.info(f"Querying art-dash with: {url}")
 
+        # Fetch data
         async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                response = await resp.json()
+            self._logger.info("Fetching url %s", url)
+            async with session.get(url) as url_response:
+                try:
+                    url_response.raise_for_status()
+                    # response.json() will throw an exception as the content type is text/plain
+                    response_json = json.loads(await url_response.text())
+                except aiohttp.ClientResponseError:
+                    self._logger.warning('Failed fetching %s: %s', url, url_response.reason)
+                    raise
 
-        if response["count"] == 1:
-            return response["results"][0]["label_io_openshift_build_commit_id"]
+        if response_json["count"] == 1:
+            return response_json["results"][0]["label_io_openshift_build_commit_id"]
         else:
             self._logger.error("More than one distgit commits found")
             sys.exit(1)
@@ -257,7 +274,7 @@ class CommentOnPrPipeline:
 
         return distgit
 
-    def _builds_from_job(self):
+    async def _builds_from_job(self):
         """
         Find the distgits that has PRs that needs reporting to.
         """
@@ -284,7 +301,7 @@ class CommentOnPrPipeline:
 
                 tasks.append(asyncio.ensure_future(self._get_distgit(build)))
 
-            distgits = asyncio.gather(*tasks)
+            distgits = await asyncio.gather(*tasks)
 
             return distgits
         else:

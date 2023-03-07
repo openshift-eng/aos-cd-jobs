@@ -60,7 +60,7 @@ See [How do I hack on the jobs?](https://mojo.redhat.com/docs/DOC-1206910#jive_c
 
 ## Common conventions
 
-It is a very good idea to get familiar with [commonlib.groovy](https://github.com/openshift/aos-cd-jobs/blob/master/pipeline-scripts/commonlib.groovy).
+It is a very good idea to get familiar with [commonlib.groovy](https://github.com/openshift-eng/aos-cd-jobs/blob/master/pipeline-scripts/commonlib.groovy).
 
 ### Standard parameters
 
@@ -76,7 +76,7 @@ This is so standard that when provided, `buildlib.doozer` and
 
 ### DOOZER\_DATA\_PATH
 
-Fork of `ocp-build-data` to use instead of the [default](https://github.com/openshift/ocp-build-data)
+Fork of `ocp-build-data` to use instead of the [default](https://github.com/openshift-eng/ocp-build-data)
 (e.g. when you have an assembly definition in your own fork).
 
 ### DOOZER\_DATA\_GITREF
@@ -108,9 +108,9 @@ without executing any of the logic that is the purpose of the job, to avoid the
 case where running it with the wrong properties (e.g. no parameters or old
 parameter names) would be undesirable.
 
-Standardized in [`commonlib.mockParam()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L155)
+Standardized in [`commonlib.mockParam()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L155)
 
-Jobs that use this need to invoke [`commonlib.checkMock()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L145)
+Jobs that use this need to invoke [`commonlib.checkMock()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L145)
 after defining job properties but before beginning their logic. When invoked,
 this throws an error if there is no MOCK parameter defined (on the first run)
 or if it is true (to pick up changes).
@@ -122,18 +122,18 @@ email texts and archive them in the job run.  It defaults to sending email when
 deployed under [aos-cd-builds](https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/)
 and defaults to suppressing it anywhere else.
 
-Standardized in [`commonlib.suppressEmailParam()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L173)
+Standardized in [`commonlib.suppressEmailParam()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L173)
 
-[`commonlib.email()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L245)
+[`commonlib.email()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L245)
 automatically respects this parameter so jobs do not need to branch their logic.
 
 #### VERSION or BUILD\_VERSION or MINOR\_VERSION
 
 This refers to the OCP minor version like 3.11 or 4.5; available choices are given in a pulldown.
-There must be a matching branch `openshift-VERSION` in the [ocp-build-data repository](https://github.com/openshift/ocp-build-data/branches).
+There must be a matching branch `openshift-VERSION` in the [ocp-build-data repository](https://github.com/openshift-eng/ocp-build-data/branches).
 Jobs with this parameter cannot be run against arbitrary branches in ocp-build-data.
 
-Standardized in [`commonlib.ocpVersionParam()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L164)
+Standardized in [`commonlib.ocpVersionParam()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L164)
 
 ### List parameters
 
@@ -142,9 +142,9 @@ Jenkins doesn't provide a good way to enter multiple values in a parameter. We t
 * Because doozer and elliott accept comma-separater parameters like this, most
   jobs with parameters like this accept a comma-separated list.
 * Because nobody likes fooling around with syntax, most of them use
-  [parseList()](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L245)
+  [parseList()](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L245)
   or
-  [cleanCommaList()](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L202)
+  [cleanCommaList()](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L202)
   from `commonlib` to split a list by any combination of commas and whitespace.
 * Usually (but not in all cases!) these lists refer to distgit names defined in ocp-build-data.
 
@@ -157,13 +157,13 @@ before continuing. In this case the job can pause and change its status to
 indicate that input is needed.
 
 A common pattern is that something exceptional happens and the job needs a human to tell it how/whether to proceed.
-This has been abstracted out in [commonlib](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L508-L578).
+This has been abstracted out in [commonlib](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L508-L578).
 
 Since we humans would rather not have to pay attention to our job runs all day,
 this integrates slack to notify humans when a job is waiting on input.
 Typically a job should send these to one of our version-specific channels. The
 `release` job uses this heavily, for example to [let release-artists know
-release tests failed](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/release/Jenkinsfile#L341-L345).
+release tests failed](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/release/Jenkinsfile#L341-L345).
 
 ### Concurrency and locks
 
@@ -175,17 +175,17 @@ hack job for the same thing) from running.
 
 Use the [`lock` step](https://www.jenkins.io/doc/pipeline/steps/lockable-resources/#lock-lock-shared-resource)
 to scope locking only to the conflict that needs to be avoided.  For example in
-the [ocp4 job](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/ocp4/Jenkinsfile#L110)
+the [ocp4 job](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/jobs/build/ocp4/Jenkinsfile#L110)
 there are locks to prevent conflicting dist-git commits or RPM composes for the
 same version (but different versions can run concurrently just fine).
 
 If a job needs to check whether a lock is free without actually locking, see
-[`commonlib.canLock()`](https://github.com/openshift/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L476).
+[`commonlib.canLock()`](https://github.com/openshift-eng/aos-cd-jobs/blob/fbdf70d1e82e375d013978d5a4583008fafcf45e/pipeline-scripts/commonlib.groovy#L476).
 
 ## Job documentation template
 
 Jobs should (WIP) each have a README to explain what they are for and how to use them.
-They should also have a [description](https://github.com/openshift/aos-cd-jobs/blob/908864ae4b444c7fb382836564b4fb9fb21d3dce/pipeline-scripts/commonlib.groovy#L135)
+They should also have a [description](https://github.com/openshift-eng/aos-cd-jobs/blob/908864ae4b444c7fb382836564b4fb9fb21d3dce/pipeline-scripts/commonlib.groovy#L135)
 and link to their docs.
 
 The following is a template to start out a new README.md. Copy and remove two hash marks from each title.

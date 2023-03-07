@@ -16,7 +16,7 @@ node {
         The custom job runs this only after building one of the packages in question.
         It should be very rare that a human runs this directly.
 
-        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/el8-rebuilds/README.md" target="_blank">README</a>
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/el8-rebuilds/README.md" target="_blank">README</a>
     """)
 
 

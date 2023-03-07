@@ -19,4 +19,4 @@ NIGHTLY_PAYLOAD_REPOS = {
     "aarch64": "registry.ci.openshift.org/ocp-arm64/release-arm64",
 }
 
-OCP_BUILD_DATA_URL = 'https://github.com/openshift/ocp-build-data'
+OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'

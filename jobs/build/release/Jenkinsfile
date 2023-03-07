@@ -360,7 +360,7 @@ node {
                     def branch = "openshift-${major}.${minor}"
                     def edit = [
                         "rm -rf ocp-build-data",
-                        "git clone --single-branch --branch ${branch} git@github.com:openshift/ocp-build-data.git",
+                        "git clone --single-branch --branch ${branch} git@github.com:openshift-eng/ocp-build-data.git",
                         "cd ocp-build-data",
                         "sed -e 's/freeze_automation:.*/freeze_automation: no/' -i group.yml",
                         "git diff",

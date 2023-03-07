@@ -13,7 +13,7 @@ spec:
       dockerfilePath: tekton-pipelines/images/artcd/Containerfile
   source:
     git:
-      uri: "https://github.com/openshift/aos-cd-jobs.git"
+      uri: "https://github.com/openshift-eng/aos-cd-jobs.git"
       ref: "master"
   output:
     to:

@@ -645,7 +645,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
                     set_blocking_advisory(target_advisory_id, blocking_advisory_id, "SHIPPED_LIVE")
                 except Exception as ex:
                     _LOGGER.warning(f"Unable to set blocking advisories ({expected_blocking}) for {target_advisory_id}: {ex}")
-                    await self._slack_client.say(f"Unable to set blocking advisories ({expected_blocking}) for {target_advisory_id}. Please check job logs for details.")
+                    await self._slack_client.say(f"Unable to set blocking advisories ({expected_blocking}) for {target_advisory_id}. Details in log.")
 
     def update_release_jira(self, issue: Issue, subtasks: List[Issue], template_vars: Dict[str, int]):
         template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]

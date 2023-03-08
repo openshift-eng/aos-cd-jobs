@@ -45,7 +45,11 @@ class BuildRhcosPipeline:
         self.api_token = None
 
         self.request_session = requests.Session()
-        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504], method_whitelist=["HEAD", "GET", "POST"])
+        retries = Retry(
+            total=5, backoff_factor=1,
+            status_forcelist=[500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "POST"],
+        )
         self.request_session.mount("https://", TimeoutHTTPAdapter(max_retries=retries))
 
     def run(self):

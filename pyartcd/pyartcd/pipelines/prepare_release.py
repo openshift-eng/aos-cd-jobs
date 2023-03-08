@@ -16,7 +16,7 @@ import semver
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
-from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, set_blocking_advisory, get_blocking_advisory
+from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, set_blocking_advisory, get_blocking_advisories
 from elliottlib.model import Model
 from jira.resources import Issue
 from pyartcd import exectools, constants
@@ -629,10 +629,18 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
         return fields
 
     def set_advisory_dependencies(self, advisories):
-        # check if dependencies are set for advisories
-        # if not, set them
-        # if yes, check if they are correct
-        pass
+        target_kind = ['rpm', 'metadata']
+        expected_blocking = {advisories['image'], advisories['metadata']}
+        _LOGGER.info("Setting advisory dependencies for %s", target_kind)
+        for kind in target_kind:
+            target_advisory_id = advisories[kind]
+            blocking = get_blocking_advisories(target_advisory_id)
+            if not blocking:
+                raise ValueError(f"Failed to fetch blocking advisories for {target_advisory_id} ")
+            if expected_blocking.issubset(set(blocking)):
+                return
+            for blocking_advisory_id in expected_blocking:
+                set_blocking_advisory(target_advisory_id, blocking_advisory_id, "SHIPPED_LIVE")
 
     def update_release_jira(self, issue: Issue, subtasks: List[Issue], template_vars: Dict[str, int]):
         template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]

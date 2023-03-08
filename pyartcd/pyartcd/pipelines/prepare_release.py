@@ -178,7 +178,7 @@ class PrepareReleasePipeline:
                 else:
                     _LOGGER.info("Reusing existing microshift advisory %s", advisories["microshift"])
 
-        self.set_advisory_dependencies(advisories)
+        await self.set_advisory_dependencies(advisories)
 
         jira_issue_key = group_config.get("release_jira")
         jira_issue = None
@@ -234,7 +234,7 @@ class PrepareReleasePipeline:
         # attached to the advisory
         # currently for rpm advisory and cves only
         _LOGGER.info("Sweep bugs into the the advisories...")
-        self.sweep_bugs(check_builds=True)
+        self.sweep_bugs()
 
         _LOGGER.info("Adding placeholder bugs...")
         for impetus, advisory in advisories.items():
@@ -469,7 +469,6 @@ class PrepareReleasePipeline:
     def sweep_bugs(
         self,
         advisory: Optional[int] = None,
-        check_builds: bool = False,
     ):
         cmd = [
             "elliott",
@@ -478,8 +477,6 @@ class PrepareReleasePipeline:
             "--assembly", self.assembly,
             "find-bugs:sweep",
         ]
-        if check_builds:
-            cmd.append("--check-builds")
         if advisory:
             cmd.append(f"--add={advisory}")
         else:
@@ -628,19 +625,27 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             _LOGGER.warning("Failed to render JIRA template text: %s", ex)
         return fields
 
-    def set_advisory_dependencies(self, advisories):
+    async def set_advisory_dependencies(self, advisories):
+        blocking_kind = ['image', 'extras']
         target_kind = ['rpm', 'metadata']
-        expected_blocking = {advisories['image'], advisories['metadata']}
-        _LOGGER.info("Setting advisory dependencies for %s", target_kind)
-        for kind in target_kind:
-            target_advisory_id = advisories[kind]
+        expected_blocking = {i for i in [advisories[k] for k in blocking_kind if k in advisories] if i}
+        target_advisories = {i for i in [advisories[k] for k in target_kind if k in advisories] if i}
+        if not target_advisories or not expected_blocking:
+            return
+
+        _LOGGER.info(f"Setting blocking advisories ({expected_blocking}) for {target_advisories}")
+        for target_advisory_id in target_advisories:
             blocking: Optional[List] = get_blocking_advisories(target_advisory_id)
-            if not blocking:
+            if blocking is None:
                 raise ValueError(f"Failed to fetch blocking advisories for {target_advisory_id} ")
             if expected_blocking.issubset(set(blocking)):
                 continue
             for blocking_advisory_id in expected_blocking:
-                set_blocking_advisory(target_advisory_id, blocking_advisory_id, "SHIPPED_LIVE")
+                try:
+                    set_blocking_advisory(target_advisory_id, blocking_advisory_id, "SHIPPED_LIVE")
+                except Exception as ex:
+                    _LOGGER.warning(f"Unable to set blocking advisories ({expected_blocking}) for {target_advisory_id}: {ex}")
+                    await self._slack_client.say(f"Unable to set blocking advisories ({expected_blocking}) for {target_advisory_id}. Please check job logs for details.")
 
     def update_release_jira(self, issue: Issue, subtasks: List[Issue], template_vars: Dict[str, int]):
         template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]

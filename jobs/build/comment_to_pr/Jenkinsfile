@@ -48,24 +48,16 @@ node {
     
     stage("comment-on-pr") {
         sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-        parentJobBaseName = params.JOB_BASE_NAME
-        parentJobBuildNumber = params.BUILD_NUMBER
-        parentJobBuildVersion = params.BUILD_VERSION
 
-        if (parentJobBaseName == "" && parentJobBuildNumber == "" && parentJobBuildVersion == "") {
-            parentJobBaseName = env.JOB_BASE_NAME
-            parentJobBuildNumber = env.BUILD_NUMBER
-            parentJobBuildVersion = env.BUILD_VERSION
-        }
         def cmd = [
             "artcd",
             "-v",
             "--working-dir=./artcd_working",
             "--config=./config/artcd.toml",
             "comment-status-to-pr",
-            "--job-base-name=${parentJobBaseName}",
-            "--job-build-number=${parentJobBuildNumber}",
-            "--openshift-version=${parentJobBuildVersion}"
+            "--job-base-name=${params.JOB_BASE_NAME}",
+            "--job-build-number=${params.BUILD_NUMBER}",
+            "--openshift-version=${params.BUILD_VERSION}"
         ]
 
         withCredentials([string(credentialsId: "openshift-bot-token", variable: "OPENSHIFT_BOT_TOKEN")]){

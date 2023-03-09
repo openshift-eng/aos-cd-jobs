@@ -4,7 +4,6 @@ import pprint
 import sys
 import re
 import aiohttp
-import requests
 import logging
 import os
 import click
@@ -281,16 +280,22 @@ class CommentOnPrPipeline:
         url = f"{ART_DASH_API_ENDPOINT}/builds?jenkins_build_url__icontains={self.job_name}/{self.job_id}"
         self._logger.info(f"Querying ART Dash server with url: {url}")
 
-        response = requests.get(url)
-        if response.status_code != 200:
-            self._logger.error(f"ART DASH Server error. Status code: {response.status_code}")
-            sys.exit(1)
+        # Fetch data
+        async with aiohttp.ClientSession() as session:
+            self._logger.info("Fetching url %s", url)
+            async with session.get(url) as url_response:
+                try:
+                    url_response.raise_for_status()
+                    # response.json() will throw an exception as the content type is text/plain
+                    response_json = json.loads(await url_response.text())
+                except aiohttp.ClientResponseError:
+                    self._logger.warning('Failed fetching %s: %s', url, url_response.reason)
+                    raise
 
-        data = response.json()
-        self._logger.debug(f"Response: {pprint.pformat(data)}")
+        self._logger.debug(f"Response: {pprint.pformat(response_json)}")
 
-        if data["count"] > 0:
-            api_results = data["results"]
+        if response_json["count"] > 0:
+            api_results = response_json["results"]
 
             tasks = []
             for build in api_results:

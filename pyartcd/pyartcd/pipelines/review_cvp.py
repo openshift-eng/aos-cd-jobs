@@ -4,7 +4,6 @@ import re
 from collections import namedtuple
 from pathlib import Path
 from typing import Dict
-from urllib.parse import quote, urljoin, urlparse
 
 import click
 from ghapi.all import GhApi

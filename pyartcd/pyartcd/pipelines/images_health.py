@@ -1,7 +1,4 @@
-import os
-
 import click
-
 from pyartcd import util, exectools
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime

@@ -28,7 +28,7 @@ class CheckBugsPipeline:
         self.blockers = {}
         self.regressions = {}
         self.slack_client = None if not channel else self.initialize_slack_client(runtime, channel)
-        self.unstable = False # This is set to True if any of the commands in the pipeline fail
+        self.unstable = False  # This is set to True if any of the commands in the pipeline fail
 
     @staticmethod
     def initialize_slack_client(runtime: Runtime, channel: str):

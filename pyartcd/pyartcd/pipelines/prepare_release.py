@@ -85,6 +85,7 @@ class PrepareReleasePipeline:
                 raise ValueError("default_advisories cannot be set for a non-stream assembly.")
 
         self.release_date = date
+        self._slack_client = self.runtime.new_slack_client()
         self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
         self._slack_client = slack_client
         self.working_dir = self.runtime.working_dir.absolute()
@@ -504,8 +505,7 @@ class PrepareReleasePipeline:
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
-    async def sweep_builds_async(
-        self, impetus: str, advisory: int):
+    async def sweep_builds_async(self, impetus: str, advisory: int):
         only_payload = False
         only_non_payload = False
         if impetus in ["rpm", "microshift"]:
@@ -761,7 +761,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 @pass_runtime
 @click_coroutine
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
-                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
+                          package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
     slack_client = runtime.new_slack_client()
     slack_client.bind_channel(assembly)
     await slack_client.say(f":construction: prepare-release for {name if name else assembly} :construction:")

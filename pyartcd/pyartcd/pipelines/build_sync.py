@@ -28,7 +28,7 @@ class BuildSyncPipeline:
         self.emergency_ignore_issues = emergency_ignore_issues
         self.retrigger_current_nightly = retrigger_current_nightly
         self.doozer_data_gitref = doozer_data_gitref
-        self.debug= debug
+        self.debug = debug
         self.images = images
         self.exclude_arches = [] if not exclude_arches else exclude_arches.replace(',', ' ').split()
         self.skip_multiarch_payload = skip_multiarch_payload
@@ -129,15 +129,14 @@ class BuildSyncPipeline:
 
     async def _tags_to_transfer(self) -> list:
         """
-        Gather a list of tags to mirror to the CI imagestream. This will include rhel-coreos-*
-        to pick up any future RHCOS RHEL versions (e.g. rhel-coreos-9).
+        Gather a list of tags to mirror to the CI imagestream. This will include rhel-coreos*
+        to pick up any future RHCOS RHEL versions (e.g. rhel-coreos-8 and rhel-coreos[-extensions] starting with RHEL9).
         """
 
         cmd = f'oc --kubeconfig {os.environ["KUBECONFIG"]} get -n ocp is/{self.version}-art-latest -o=json'
         _, out, _ = await exectools.cmd_gather_async(cmd)
         tags = json.loads(out)['spec']['tags']
-        tags_to_transfer = [tag['name'] for tag in tags if 'machine-os-content' in tag['name']
-                            or 'rhel-coreos-' in tag['name']]
+        tags_to_transfer = [tag['name'] for tag in tags if 'machine-os-content' in tag['name'] or 'rhel-coreos' in tag['name']]
         return tags_to_transfer
 
     @exectools.limit_concurrency(500)

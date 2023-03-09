@@ -6,7 +6,7 @@ import click
 
 from pyartcd import util
 from pyartcd.cli import cli, pass_runtime, click_coroutine
-from pyartcd.exectools import cmd_assert_async, cmd_gather_async
+from pyartcd.exectools import cmd_assert_async
 from pyartcd.runtime import Runtime
 from pyartcd.util import kinit
 

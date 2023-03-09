@@ -325,6 +325,19 @@ class PromotePipeline:
                 "digest": release_info["digest"],
                 "metadata": {k: release_info["metadata"][k] for k in release_info["metadata"].keys() & {'version', 'previous'}},
             }
+            # if this payload is a manifest list, iterate through each manifest
+            manifests = release_info.get("manifests", [])
+            if manifests:
+                manifests_ent = data["content"][arch]["manifests"] = {}
+                for manifest in manifests:
+                    if manifest["platform"]["os"] != "linux":
+                        logger.warning("Unsupported OS %s in manifest list %s", manifest["platform"]["os"], release_info["image"])
+                        continue
+                    manifest_arch = brew_arch_for_go_arch(manifest["platform"]["architecture"])
+                    manifests_ent[manifest_arch] = {
+                        "digest": manifest["digest"]
+                    }
+
             from_release = release_info.get("references", {}).get("metadata", {}).get("annotations", {}).get("release.openshift.io/from-release")
             if from_release:
                 data["content"][arch]["from_release"] = from_release
@@ -856,6 +869,7 @@ class PromotePipeline:
         if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
             cmd = ["skopeo"]
         cmd.extend([
+            "--override-os=linux",  # needed to run this command on macOS
             "inspect",
             "--no-tags",
             "--format={{.Digest}}",

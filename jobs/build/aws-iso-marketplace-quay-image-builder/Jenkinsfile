@@ -30,8 +30,14 @@ pipeline {
             trim: true,
         )
         string(
+            name: "QUAY_IMAGE_BUILDER_FORK",
+            description: "Which org/user contains the quay-image-builder repo to utilize",
+            defaultValue: "openshift",
+            trim: true,
+        )
+        string(
             name: "QUAY_IMAGE_BUILDER_COMMITISH",
-            description: "A commitish to use for github.com/openshift/quay-image-builder",
+            description: "A commitish to use for github.com/[QUAY_IMAGE_BUILDER_FORK]/quay-image-builder",
             defaultValue: "main",
             trim: true,
         )
@@ -44,6 +50,11 @@ pipeline {
             name: 'BUILD_TEMPLATE_AMI',
             defaultValue: false,
             description: "The template AMI construct that speeds up the creation of the final deliverable. It installs packages and configures hundreds of elements of the system so that the final image build process does not need to. It should only need to be updated if the template changes or packages are taking a long time to be updated in final AMI builds."
+        )
+        booleanParam(
+            name: 'PACKER_DEBUG',
+            defaultValue: false,
+            description: "Set to true to pass -debug to packer (this will write ssh keys out to the quay-image-builder workspace directory) and to increase ssh timeout to 30m."
         )
         booleanParam(name: 'MOCK', defaultValue: false)
     }
@@ -92,6 +103,15 @@ pipeline {
                     cd quay-image-builder
                     git checkout ${params.QUAY_IMAGE_BUILDER_COMMITISH}
                     """
+                    withCredentials([file(credentialsId: 'rh-cdn.pem', variable: 'CERT_FILE')]) {
+                        dir(env.WORKSPACE) {
+                            // Ensure that the rh-cdn.pem is in the same directory as the build_template.sh script
+                            sh '''
+                                cp $CERT_FILE quay-image-builder/rh-cdn.pem
+                                chmod +r quay-image-builder/rh-cdn.pem
+                            '''
+                        }
+                    }
                 }
             }
         }
@@ -116,11 +136,10 @@ pipeline {
                         withCredentials([aws(credentialsId: 'quay-image-builder-aws', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                             dir("quay-image-builder") {
                                 commonlib.shell("""
-                                    # For this AMI, we do not want to carry any optional operators. Strip the optional
-                                    # operators from the template.
-                                    cat imageset-config.yaml | yq '.mirror.operators=[]' > generated-imageset-config-template.yaml
                                     # See https://github.com/openshift/quay-image-builder for environment variable description.
-                                    docker run --rm -v ${env.WORKSPACE}/quay-image-builder:/quay-image-builder:z -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e IMAGESET_CONFIG_TEMPLATE=/quay-image-builder/generated-imageset-config-template.yaml -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build_template.sh runner-image
+                                    # SOURCE_AMI derived from https://issues.redhat.com/browse/ART-5898
+                                    # EIP_ALLOC was created in us-east-2 osd-art account specifically for this purpose and goes unused otherwise.
+                                    docker run --rm -v ${env.WORKSPACE}/quay-image-builder:/quay-image-builder:z -e PACKER_DEBUG=${params.PACKER_DEBUG} -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e SOURCE_AMI=ami-0bab7c98f46febc77 -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build_template.sh runner-image
                                 """)
                             }
                         }
@@ -142,11 +161,10 @@ pipeline {
                     ]) {
                         dir("quay-image-builder") {
                             commonlib.shell("""
-                                # For this AMI, we do not want to carry any optional operators. Strip the optional
-                                # operators from the template.
-                                cat imageset-config.yaml | yq '.mirror.operators=[]' > generated-imageset-config-template.yaml
                                 # See https://github.com/openshift/quay-image-builder for environment variable description.
-                                docker run --rm -v ${env.WORKSPACE}/quay-image-builder:/quay-image-builder:z -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e IMAGESET_CONFIG_TEMPLATE=/quay-image-builder/generated-imageset-config-template.yaml -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build.sh runner-image
+                                # SOURCE_AMI derived from https://issues.redhat.com/browse/ART-5898
+                                # EIP_ALLOC was created in us-east-2 osd-art account specifically for this purpose and goes unused otherwise.
+                                docker run --rm -v ${env.WORKSPACE}/quay-image-builder:/quay-image-builder:z -e PACKER_DEBUG=${params.PACKER_DEBUG} -e EIP_ALLOC=eipalloc-03243b75c8ef5f56b -e SOURCE_AMI=ami-0bab7c98f46febc77 -e IAM_INSTANCE_PROFILE=ec2-instance-profile-for-quay-image-builder -e IMAGESET_CONFIG_TEMPLATE=/quay-image-builder/imageset-config.yaml -e OCP_VER=${params.CINCINNATI_OCP_VERSION} -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-2 -v $HOME/.docker/:/pullsecret:z -e PULL_SECRET=/pullsecret/config.json --entrypoint /quay-image-builder/build.sh runner-image
                             """)
                             // Packer, involved by build.sh, will create a machine-readable packer.log. Look
                             // for a line like:

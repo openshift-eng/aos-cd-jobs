@@ -510,6 +510,7 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
                 MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc image extract `oc adm release info ${quay_url}:${from_release_tag} --image-for=oc-mirror` --path /usr/bin/oc-mirror:${CLIENT_MIRROR_DIR}
                 pushd ${CLIENT_MIRROR_DIR}
                 tar zcvf oc-mirror.tar.gz oc-mirror
+                sha256sum oc-mirror.tar.gz >> sha256sum.txt
                 rm oc-mirror
                 popd
             fi

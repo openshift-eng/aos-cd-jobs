@@ -387,12 +387,7 @@ node {
             echo "Skip microshift build for version < 4.12"
             return
         }
-        def mirror_path = "/pockets/microshift/${params.VERSION}-el8/${params.ASSEMBLY}"
-        if (commonlib.listS3Mirror(mirror_path + "/plashet.yml")) {
-            echo "Microshift for this assembly has been published to the pocket. If a rebuild is required, please manually run build-microshift job."
-            return
-        }
-        build(
+        def jobResult = build(
             job: "build%2Fbuild-microshift",
             propagate: true,
             parameters: [
@@ -401,6 +396,32 @@ node {
                 booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
             ]
         )
+        microshiftNVR = jobResult.getDescription()
+    }
+
+    stage("attach microshift build and related bugs") {
+        if (params.SKIP_BUILD_MICROSHIFT) {
+            echo "Don't trigger build-microshift because SKIP_BUILD_MICROSHIFT is set"
+            return
+        }
+        if (major == 4 && minor < 12) {
+            echo "Skip microshift build for version < 4.12"
+            return
+        }
+        if (microshiftNVR) {
+            echo "attach builds ${microshiftNVR}"
+            nvrs = ""
+            for (nvr in microshiftNVR.split("\n")){ nvrs << "${nvr} " }
+            def elliott = "${buildlib.ELLIOTT_BIN} -g=openshift-${params.VERSION} --assembly=${params.ASSEMBLY} "
+            withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                commonlib.shell(
+                    script: """
+                    ${elliott} find-builds -b ${nvrs} --use-default-advisory microshift
+                    ${elliott} find-bugs:sweep --use-default-advisory microshift
+                    """,
+                )
+            }
+        }
     }
 
     stage("clean and mail") {

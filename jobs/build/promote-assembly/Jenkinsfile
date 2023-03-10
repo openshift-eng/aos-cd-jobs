@@ -13,7 +13,7 @@ node {
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
-        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
     """)
 
 

@@ -69,7 +69,7 @@ parse_args() {
 }
 
 build_urls() {
-  yaml="$(curl -sSL "https://github.com/openshift/ocp-build-data/raw/$branch/releases.yml")"
+  yaml="$(curl -sSL "https://github.com/openshift-eng/ocp-build-data/raw/$branch/releases.yml")"
   if [[ "$assembly" =~ ^(building|shipping)$ ]]; then
     [[ "$assembly" == building ]] && index=0 || index=1
     yq -r \

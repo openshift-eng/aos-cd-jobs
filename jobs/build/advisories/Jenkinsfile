@@ -18,7 +18,7 @@ node {
             <b>Timing</b>: The "release" job runs this as soon as the previous release
             for this version is defined in the release-controller.
 
-            For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/advisories/README.md" target="_blank">README</a>
+            For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/advisories/README.md" target="_blank">README</a>
         """)
 
         // Please update README.md if modifying parameter names or semantics
@@ -217,7 +217,7 @@ Customers would have to upgrade to 4.7.z or later to upgrade to 4.8 version.
                     if (params.TEXT_ONLY != true) {
                         def edit = [
                             "rm -rf ocp-build-data",
-                            "git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift/ocp-build-data.git",
+                            "git clone --single-branch --branch openshift-${params.VERSION} git@github.com:openshift-eng/ocp-build-data.git",
                             "cd ocp-build-data"
                         ]
                         for (advisory in lib.ADVISORIES) {

@@ -35,7 +35,7 @@ node('openshift-build-1') {
             error('This job uses ssh keys for auth, please use an ssh url')
           }
           def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift/aos-cd-jobs.git') {
+          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
             prune = false
             key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
           }

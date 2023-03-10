@@ -7,7 +7,7 @@ So that we can test out pre-GA versions on BYO RHEL workers and enable microshif
 
 ## Timing
 
-The [poll-payload](https://github.com/openshift/aos-cd-jobs/tree/master/scheduled-jobs/build/poll-payload) job will trigger this job when create a new release branch for x86.
+The [poll-payload](https://github.com/openshift-eng/aos-cd-jobs/tree/master/scheduled-jobs/build/poll-payload) job will trigger this job when create a new release branch for x86.
 
 ## Parameters
 

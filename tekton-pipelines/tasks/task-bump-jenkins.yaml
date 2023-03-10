@@ -24,7 +24,7 @@ spec:
         echo failed > /tekton/results/jobresult
 
         wget -q -P /etc/
-        https://raw.githubusercontent.com/openshift/doozer/master/.devcontainer/krb5-redhat.conf
+        https://raw.githubusercontent.com/openshift-eng/doozer/master/.devcontainer/krb5-redhat.conf
 
         mv /etc/krb5-redhat.conf /etc/krb5.conf
 
@@ -53,7 +53,7 @@ spec:
         mv jenkins.war jenkins.${UVERSION}.war
 
         wget -q
-        https://raw.githubusercontent.com/openshift/aos-cd-jobs/devex/jenkins-bump-version/rpm-bump-version.sh
+        https://raw.githubusercontent.com/openshift-eng/aos-cd-jobs/devex/jenkins-bump-version/rpm-bump-version.sh
 
         rhpkg new-sources jenkins.${UVERSION}.war
 

@@ -43,7 +43,7 @@ pipeline {
         string(
             name: 'DOOZER_DATA_PATH',
             description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
-            defaultValue: "https://github.com/openshift/ocp-build-data",
+            defaultValue: "https://github.com/openshift-eng/ocp-build-data",
             trim: true,
         )
         string(

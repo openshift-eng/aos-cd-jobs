@@ -14,4 +14,4 @@ spec:
       jenkinsfile: |-
         library identifier: 'art-ci-toolkit@demo-openshift-pipeline', changelog: false,
           retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://github.com/vfreex/aos-cd-jobs.git'])
-        artToolRelease("https://github.com/openshift/elliott.git", params.GIT_BRANCH, "art-pypi")
+        artToolRelease("https://github.com/openshift-eng/elliott.git", params.GIT_BRANCH, "art-pypi")

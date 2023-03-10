@@ -14,7 +14,7 @@ node {
         It is also still necessary for building OCP 3.11 releases using signed
         RPMs in containers.
 
-        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/custom/README.md" target="_blank">README</a>
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/custom/README.md" target="_blank">README</a>
     """)
 
 
@@ -57,7 +57,7 @@ node {
                     string(
                         name: 'DOOZER_DATA_PATH',
                         description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
-                        defaultValue: "https://github.com/openshift/ocp-build-data",
+                        defaultValue: "https://github.com/openshift-eng/ocp-build-data",
                         trim: true,
                     ),
                     string(

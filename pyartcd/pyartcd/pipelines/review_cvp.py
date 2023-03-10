@@ -80,7 +80,7 @@ class ReviewCVPPipeline:
                     if not match:
                         raise ValueError(f"Couldn't create a pull request: {ocp_build_data_repo_push_url} is not a valid github repo")
                     pr_head = f"{match[1]}:{branch}"
-                    result = await self._create_or_update_pull_request(owner="openshift", repo="ocp-build-data", base=self.group, head=pr_head, title=title, body=body)
+                    result = await self._create_or_update_pull_request(owner="openshift-eng", repo="ocp-build-data", base=self.group, head=pr_head, title=title, body=body)
                     pr_html_url = result.html_url
                     messages.append("")
                     messages.append(f"A PR has been created/updated to fix common CVP content_set_check failures: {pr_html_url}")

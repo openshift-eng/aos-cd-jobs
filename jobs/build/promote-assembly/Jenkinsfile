@@ -381,13 +381,6 @@ node {
         }
     }
 
-    stage("trigger build-microshift") {
-        if (major == 4 && minor < 12) {
-            echo "Skip microshift build for version < 4.12"
-            return
-        }
-    }
-
     stage("clean and mail") {
         dry_subject = ""
         if (params.DRY_RUN) { dry_subject = "[DRY RUN] "}

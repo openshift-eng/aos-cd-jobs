@@ -298,7 +298,7 @@ class BuildMicroShiftPipeline:
             github_token = os.environ.get('GITHUB_TOKEN')
             if not github_token:
                 raise ValueError("GITHUB_TOKEN environment variable is required to create a pull request")
-            owner = "openshift"
+            owner = "openshift-eng"
             repo = "ocp-build-data"
             api = GhApi(owner=owner, repo=repo, token=github_token)
             existing_prs = api.pulls.list(state="open", base=base, head=head)

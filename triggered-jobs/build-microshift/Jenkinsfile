@@ -23,6 +23,17 @@ that being part of a multibranch pipeline could not be configured to receive rem
                 parameterDefinitions: [
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    string(
+                        name: "ASSEMBLY",
+                        description: "The name of an assembly to rebase & build for. e.g. 4.9.1",
+                        defaultValue: "test",
+                        trim: true
+                    ),
+                    booleanParam(
+                        name: "DRY_RUN",
+                        description: "Take no action, just echo what the job would have done.",
+                        defaultValue: false
+                    ),
                 ]
             ],
         ]

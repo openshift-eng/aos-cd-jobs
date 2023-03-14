@@ -195,7 +195,7 @@ class GenAssemblyPipeline:
         pushed = await build_data.commit_push(f"{title}\n{body}")
         result = None
         if pushed:
-            owner = "openshift"
+            owner = "openshift-eng"
             repo = "ocp-build-data"
             api = GhApi(owner=owner, repo=repo, token=self._github_token)
             existing_prs = api.pulls.list(state="open", base=base, head=head)

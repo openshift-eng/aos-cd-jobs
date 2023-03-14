@@ -436,7 +436,7 @@ class PromotePipeline:
 
     async def _build_microshift(self, releases_config):
         if self.skip_build_microshift:
-            self._logger.info("Skipping build-microshift because SKIP_BUILD_MICROSHIFT is set.")
+            self._logger.info("Skipping microshift build because SKIP_BUILD_MICROSHIFT is set.")
             return
 
         major, minor = util.isolate_major_minor_in_group(self.group)
@@ -444,11 +444,11 @@ class PromotePipeline:
             self._logger.info("Skip microshift build for version < 4.12")
             return
 
-        if not util.is_microshift_pinned(releases_config, self.assembly):
-            self._logger.info("Microshift is not pinned. Starting build...")
+        if not util.is_rpm_pinned(releases_config, self.assembly, 'microshift'):
+            self._logger.info("Microshift is not pinned in the assembly config. Starting build...")
             await trigger_build_microshift(self.group, self.assembly, self.runtime.dry_run)
         else:
-            self._logger.info("Microshift is pinned. Skipping build. If a rebuild is required, please manually run build-microshift job.")
+            self._logger.info("Microshift is pinned in the assembly config. Skipping build. If a rebuild is required, please manually run build-microshift job.")
 
     @staticmethod
     def get_live_id(advisory_info: Dict):

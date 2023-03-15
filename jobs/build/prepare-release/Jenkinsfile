@@ -134,7 +134,7 @@ node {
                     }
                 }
                 sshagent(["openshift-bot"]) {
-                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
                         echo "Will run ${cmd}"
                         commonlib.shell(script: cmd.join(' '))
                     }

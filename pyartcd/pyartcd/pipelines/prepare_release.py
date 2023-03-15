@@ -27,7 +27,8 @@ from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
                           get_release_name_for_assembly,
-                          is_greenwave_all_pass_on_advisory)
+                          is_greenwave_all_pass_on_advisory, 
+                          isolate_major_minor_in_group)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -745,6 +746,8 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             content += (
                 f"- {impetus}: https://errata.devel.redhat.com/advisory/{advisory}\n"
             )
+        if 'microshift' in advisories.keys():
+            content += f"\n Note: Microshift advisory is not expected to be prepared (and be ON_QA) until after release has been promoted."
         if self.candidate_nightlies:
             content += "\nNightlies:\n"
             for arch, pullspec in self.candidate_nightlies.items():

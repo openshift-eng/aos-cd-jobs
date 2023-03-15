@@ -27,8 +27,7 @@ from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
                           get_release_name_for_assembly,
-                          is_greenwave_all_pass_on_advisory, 
-                          isolate_major_minor_in_group)
+                          is_greenwave_all_pass_on_advisory)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 

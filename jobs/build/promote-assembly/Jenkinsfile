@@ -181,7 +181,7 @@ node {
         }
         echo "Will run ${cmd}"
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'), string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)

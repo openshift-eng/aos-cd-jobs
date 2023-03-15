@@ -746,7 +746,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
                 f"- {impetus}: https://errata.devel.redhat.com/advisory/{advisory}\n"
             )
         if 'microshift' in advisories.keys():
-            content += f"\n Note: Microshift advisory is not expected to be prepared (and be ON_QA) until after release has been promoted."
+            content += f"\n Note: Microshift advisory is not expected to be prepared (and be on QE) until after release has been promoted."
         if self.candidate_nightlies:
             content += "\nNightlies:\n"
             for arch, pullspec in self.candidate_nightlies.items():

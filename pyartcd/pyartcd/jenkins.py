@@ -1,7 +1,6 @@
 import base64
 import logging
 import os
-import requests
 import aiohttp
 
 logger = logging.getLogger(__name__)
@@ -32,13 +31,10 @@ async def trigger_jenkins_job(job_path: str, params=None):
         url += '/build'
 
     # Call API endpoint
-    logger.info('Triggering remote job %s', job_path)
+    logger.info('Triggering remote job /%s', job_path)
     async with aiohttp.ClientSession(headers=headers) as session:
         async with session.post(url, data=params) as response:
-            if response.status_code != requests.codes.created:
-                logger.error('Failed to trigger remote job %s', job_path)
-                logger.error('Response: %s', response.text())
-                raise RuntimeError('Failed to trigger remote job')
+            response.raise_for_status()
             await response.text()
 
 

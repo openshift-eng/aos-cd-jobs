@@ -161,6 +161,9 @@ node {
         if (params.SKIP_ATTACH_CVE_FLAWS) {
             cmd << "--skip-attach-cve-flaws"
         }
+        if (params.SKIP_BUILD_MICROSHIFT) {
+            cmd << "--skip-build-microshift"
+        }
         if (params.PERMIT_PAYLOAD_OVERWRITE) {
             cmd << "--permit-overwrite"
         }
@@ -376,31 +379,6 @@ node {
                 slacklib.to(params.VERSION).say(msg)
             }
         }
-    }
-
-    stage("trigger build-microshift") {
-        if (params.SKIP_BUILD_MICROSHIFT) {
-            echo "Don't trigger build-microshift because SKIP_BUILD_MICROSHIFT is set"
-            return
-        }
-        if (major == 4 && minor < 12) {
-            echo "Skip microshift build for version < 4.12"
-            return
-        }
-        def mirror_path = "/pockets/microshift/${params.VERSION}-el8/${params.ASSEMBLY}"
-        if (commonlib.listS3Mirror(mirror_path + "/plashet.yml")) {
-            echo "Microshift for this assembly has been published to the pocket. If a rebuild is required, please manually run build-microshift job."
-            return
-        }
-        build(
-            job: "build%2Fbuild-microshift",
-            propagate: true,
-            parameters: [
-                string(name: 'BUILD_VERSION', value: params.VERSION),
-                string(name: 'ASSEMBLY', value: params.ASSEMBLY),
-                booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
-            ]
-        )
     }
 
     stage("clean and mail") {

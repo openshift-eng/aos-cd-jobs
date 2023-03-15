@@ -58,3 +58,14 @@ async def trigger_build_sync(build_version: str):
         job_path='job/triggered-builds/job/build-sync',
         params={'BUILD_VERSION': build_version}
     )
+
+
+async def trigger_build_microshift(build_version: str, assembly: str, dry_run: bool):
+    await trigger_jenkins_job(
+        job_path='job/triggered-builds/job/build-microshift',
+        params={
+            'BUILD_VERSION': build_version,
+            'ASSEMBLY': assembly,
+            'DRY_RUN': dry_run
+        }
+    )

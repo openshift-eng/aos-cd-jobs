@@ -21,6 +21,7 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
 from pyartcd.oc import get_release_image_info
+from pyartcd.jenkins import trigger_build_microshift
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 from semver import VersionInfo
@@ -38,7 +39,9 @@ class PromotePipeline:
     def __init__(self, runtime: Runtime, group: str, assembly: str,
                  skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
-                 skip_image_list: bool = False, permit_overwrite: bool = False,
+                 skip_image_list: bool = False,
+                 skip_build_microshift: bool = False,
+                 permit_overwrite: bool = False,
                  no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
@@ -47,6 +50,7 @@ class PromotePipeline:
         self.skip_attached_bug_check = skip_attached_bug_check
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
+        self.skip_build_microshift = skip_build_microshift
         self.permit_overwrite = permit_overwrite
 
         if multi_only and no_multi:
@@ -230,6 +234,10 @@ class PromotePipeline:
             tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]
             release_infos = await self.promote(assembly_type, release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)
+
+            # Before waiting for release images to be accepted by release controllers,
+            # we can start microshift build
+            await self._build_microshift(releases_config)
 
             # Wait for payloads to be accepted by release controllers
             pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}
@@ -425,6 +433,22 @@ class PromotePipeline:
         if not isinstance(advisory_info, dict):
             raise ValueError(f"Got invalid advisory info for advisory {advisory}: {advisory_info}.")
         return advisory_info
+
+    async def _build_microshift(self, releases_config):
+        if self.skip_build_microshift:
+            self._logger.info("Skipping microshift build because SKIP_BUILD_MICROSHIFT is set.")
+            return
+
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        if major == 4 and minor < 12:
+            self._logger.info("Skip microshift build for version < 4.12")
+            return
+
+        if not util.is_rpm_pinned(releases_config, self.assembly, 'microshift'):
+            self._logger.info("Microshift is not pinned in the assembly config. Starting build...")
+            await trigger_build_microshift(self.group, self.assembly, self.runtime.dry_run)
+        else:
+            self._logger.info("Microshift is pinned in the assembly config. Skipping build. If a rebuild is required, please manually run build-microshift job.")
 
     @staticmethod
     def get_live_id(advisory_info: Dict):
@@ -1000,6 +1024,8 @@ class PromotePipeline:
               help="Skip attaching CVE flaws.")
 @click.option("--skip-image-list", is_flag=True,
               help="Do not gather an advisory image list for docs.")
+@click.option("--skip-build-microshift", is_flag=True,
+              help="Do not build microshift rpm")
 @click.option("--permit-overwrite", is_flag=True,
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
@@ -1010,8 +1036,11 @@ class PromotePipeline:
 async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
+                  skip_build_microshift: bool,
                   permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
-                               skip_image_list, permit_overwrite, no_multi, multi_only, use_multi_hack)
+                               skip_image_list,
+                               skip_build_microshift,
+                               permit_overwrite, no_multi, multi_only, use_multi_hack)
     await pipeline.run()

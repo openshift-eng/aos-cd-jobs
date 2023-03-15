@@ -1,0 +1,45 @@
+#!/usr/bin/env groovy
+
+node() {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+
+    commonlib.describeJob("build-microshift", """
+This job is meant to be triggered by remote API calls.
+It will forward the call to build/build-microshift,
+that being part of a multibranch pipeline could not be configured to receive remote triggers directly.<br>
+    """)
+
+    // Expose properties for a parameterized build
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '365',
+                    daysToKeepStr: '365')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.mockParam(),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    string(name: "ASSEMBLY", trim: true),
+                    booleanParam(name: "DRY_RUN", defaultValue: false),
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+    currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION} - ${params.ASSEMBLY}"
+
+    build(
+        job: '../aos-cd-builds/build%2Fbuild-microshift/',
+        propagate: false,
+        parameters: [
+            string(name: 'BUILD_VERSION', value: params.BUILD_VERSION),
+            string(name: 'ASSEMBLY', value: params.ASSEMBLY),
+            booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
+        ]
+    )
+}

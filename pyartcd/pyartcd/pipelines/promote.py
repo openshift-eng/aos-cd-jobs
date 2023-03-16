@@ -446,7 +446,7 @@ class PromotePipeline:
 
         if not util.is_rpm_pinned(releases_config, self.assembly, 'microshift'):
             self._logger.info("Microshift is not pinned in the assembly config. Starting build...")
-            await trigger_build_microshift(self.group, self.assembly, self.runtime.dry_run)
+            await trigger_build_microshift(f'{major}.{minor}', self.assembly, self.runtime.dry_run)
         else:
             self._logger.info("Microshift is pinned in the assembly config. Skipping build. If a rebuild is required, please manually run build-microshift job.")
 

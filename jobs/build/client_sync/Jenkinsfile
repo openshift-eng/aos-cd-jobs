@@ -44,7 +44,7 @@ node {
                     ),
                     string(
                         name: "SOURCE_VERSION",
-                        description: "This should exactly match the source directory version folder to fetch from. Also also used to create the target directory folder name. If OVERRIDE_LOCATION is used then only used for target directory name. Example: 1.24.0-0",
+                        description: "This should exactly match the source directory version folder to fetch from. Also used to create the target directory folder name. If OVERRIDE_LOCATION is used then only used for target directory name. Example: 1.24.0-0",
                         defaultValue: "",
                         trim: true,
                     ),

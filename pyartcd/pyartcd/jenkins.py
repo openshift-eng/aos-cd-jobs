@@ -2,6 +2,7 @@ import base64
 import logging
 import os
 import aiohttp
+from jenkinsapi.jenkins import Jenkins
 
 logger = logging.getLogger(__name__)
 
@@ -68,3 +69,12 @@ async def trigger_build_microshift(build_version: str, assembly: str, dry_run: b
             'DRY_RUN': dry_run
         }
     )
+
+
+def new_jenkins_client():
+    jenkins_server = "https://buildvm.hosts.prod.psi.bos.redhat.com:8443/"
+    try:
+        client = Jenkins(jenkins_server, username=os.environ['JENKINS_SERVICE_ACCOUNT'], password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'])
+    except Exception as e:
+        raise e
+    return client

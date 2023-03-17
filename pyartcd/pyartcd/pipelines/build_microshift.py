@@ -14,6 +14,8 @@ import click
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import (brew_arch_for_go_arch,
                             isolate_nightly_name_components)
+import ruamel.yaml
+import io
 from ghapi.all import GhApi
 from ruamel.yaml import YAML
 from semver import VersionInfo
@@ -117,23 +119,9 @@ class BuildMicroShiftPipeline:
                     slack_thread = slack_response["message"]["ts"]
                 version, release = self.generate_microshift_version_release(release_name)
                 nvrs = await self._rebase_and_build_rpm(version, release, custom_payloads)
+                if slack_client:
+                    await slack_client.say(f"complete build microshift {nvrs}", slack_thread)
 
-                # Create a PR to pin microshift build
-                assembly_basis = get_assembly_basis(releases_config, self.assembly)
-                if assembly_basis.brew_event:
-                    pr = await self._create_or_update_pull_request(nvrs)
-
-            # Sends a slack message
-            message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
-            if pr:
-                message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
-                message += "\nReview and merge the PR before you proceed.\n"
-            message += "\nTo publish the build to the pocket (if asked by QE), run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fupdate-microshift-pocket/|update-microshift-pocket> job."
-            message += f"\nTo attach the build to Errata, run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fprepare-release/|prepare-release> job or `elliott --group {self.group} --assembly {self.assembly} --rpms microshift find-builds -k rpm --member-only --use-default-advisory microshift`."
-            if assembly_type is AssemblyTypes.PREVIEW:
-                message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with `UPDATE_PUB_MIRROR` checked."
-            if slack_client:
-                await slack_client.say(message, slack_thread)
         except Exception as err:
             error_message = f"Error building microshift: {err}\n {traceback.format_exc()}"
             self._logger.error(error_message)
@@ -236,80 +224,6 @@ class BuildMicroShiftPipeline:
         with open(Path(self._doozer_env_vars["DOOZER_WORKING_DIR"]) / "record.log", "r") as file:
             record_log = parse_record_log(file)
             return record_log["build_rpm"][-1]["nvrs"].split(",")
-
-    def _pin_nvrs(self, nvrs: List[str], releases_config) -> Dict:
-        """ Update releases.yml to pin the specified NVRs.
-        Example:
-            releases:
-                4.11.7:
-                    assembly:
-                    members:
-                        rpms:
-                        - distgit_key: microshift
-                        metadata:
-                            is:
-                                el8: microshift-4.11.7-202209300751.p0.g7ebffc3.assembly.4.11.7.el8
-        """
-        is_entry = {}
-        dg_key = "microshift"
-        for nvr in nvrs:
-            el_version = isolate_el_version_in_release(nvr)
-            assert el_version is not None
-            is_entry[f"el{el_version}"] = nvr
-
-        rpms_entry = releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("members", {}).setdefault("rpms", [])
-        microshift_entry = next(filter(lambda rpm: rpm.get("distgit_key") == dg_key, rpms_entry), None)
-        if microshift_entry is None:
-            microshift_entry = {"distgit_key": dg_key, "why": "Pin microshift to assembly"}
-            rpms_entry.append(microshift_entry)
-        microshift_entry.setdefault("metadata", {})["is"] = is_entry
-        return microshift_entry
-
-    async def _create_or_update_pull_request(self, nvrs: List[str]):
-        self._logger.info("Creating ocp-build-data PR...")
-        # Clone ocp-build-data
-        build_data_path = self._working_dir / "ocp-build-data-push"
-        build_data = GitRepository(build_data_path, dry_run=self.runtime.dry_run)
-        ocp_build_data_repo_push_url = self.runtime.config["build_config"]["ocp_build_data_repo_push_url"]
-        await build_data.setup(ocp_build_data_repo_push_url)
-        branch = f"auto-pin-microshift-{self.group}-{self.assembly}"
-        await build_data.fetch_switch_branch(branch, self.group)
-        # Make changes
-        releases_yaml_path = build_data_path / "releases.yml"
-        releases_yaml = yaml.load(releases_yaml_path)
-        self._pin_nvrs(nvrs, releases_yaml)
-        yaml.dump(releases_yaml, releases_yaml_path)
-        # Create a PR
-        title = f"Pin microshift build for {self.group} {self.assembly}"
-        body = f"Created by job run {self.runtime.get_job_run_url()}"
-        match = re.search(r"github\.com[:/](.+)/(.+)(?:.git)?", ocp_build_data_repo_push_url)
-        if not match:
-            raise ValueError(f"Couldn't create a pull request: {ocp_build_data_repo_push_url} is not a valid github repo")
-        head = f"{match[1]}:{branch}"
-        base = self.group
-        if self.runtime.dry_run:
-            self._logger.warning("[DRY RUN] Would have created pull-request with head '%s', base '%s' title '%s', body '%s'", head, base, title, body)
-            d = {"html_url": "https://github.example.com/foo/bar/pull/1234", "number": 1234}
-            result = namedtuple('pull_request', d.keys())(*d.values())
-            return result
-        pushed = await build_data.commit_push(f"{title}\n{body}")
-        result = None
-        if pushed:
-            github_token = os.environ.get('GITHUB_TOKEN')
-            if not github_token:
-                raise ValueError("GITHUB_TOKEN environment variable is required to create a pull request")
-            owner = "openshift-eng"
-            repo = "ocp-build-data"
-            api = GhApi(owner=owner, repo=repo, token=github_token)
-            existing_prs = api.pulls.list(state="open", base=base, head=head)
-            if not existing_prs.items:
-                result = api.pulls.create(head=head, base=base, title=title, body=body, maintainer_can_modify=True)
-            else:
-                pull_number = existing_prs.items[0].number
-                result = api.pulls.update(pull_number=pull_number, title=title, body=body)
-        else:
-            self._logger.warning("PR is not created: Nothing to commit.")
-        return result
 
 
 @cli.command("build-microshift")

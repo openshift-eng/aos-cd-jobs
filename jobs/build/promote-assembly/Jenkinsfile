@@ -143,6 +143,7 @@ node {
             "-v",
             "--working-dir=./artcd_working",
             "--config=./config/artcd.toml",
+            "--mail-list-success=${params.MAIL_LIST_SUCCESS}",
         ]
         if (params.DRY_RUN) {
             cmd << "--dry-run"
@@ -167,6 +168,18 @@ node {
         if (params.PERMIT_PAYLOAD_OVERWRITE) {
             cmd << "--permit-overwrite"
         }
+        if (params.SKIP_MIRROR_BINARIES) {
+            cmd << "--skip-mirror-binaries"
+        }
+        if (params.SKIP_SIGNING) {
+            cmd << "--skip-signing"
+        }
+        if (params.SKIP_CINCINNATI_PR_CREATION) {
+            cmd << "--skip-cincinnati-pr-creation"
+        }
+        if (params.SKIP_OTA_SLACK_NOTIFICATION) {
+            cmd << "--skip-ota-slack-notification"
+        }
         if (params.NO_MULTI) {
             cmd << "--no-multi"
         }
@@ -181,14 +194,19 @@ node {
         }
         echo "Will run ${cmd}"
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'), string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'],
+                            aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                            string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                            string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                            string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)
             }
         }
     }
-
+    /*
     buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
 
     def justifications =release_info.justifications ?: []
@@ -220,7 +238,8 @@ node {
             }
         }
     }
-
+    */
+    
     stage("sync RHCOS") {
         /*
          * This has inappropriate logic, disabling it for now.
@@ -265,7 +284,7 @@ node {
         }
         */
     }
-
+    /*
     stage("sign artifacts") {
         if (params.SKIP_SIGNING) {
             echo "Signing artifacts is skipped."
@@ -290,7 +309,7 @@ node {
             )
         }
     }
-
+    */
     stage("send release message") {
         if (release_info.type == "custom") {
             echo "Don't send release messages for a custom release."
@@ -312,7 +331,7 @@ node {
             release.sendReleaseCompleteMessage(["name": release_name], release_info.advisory ?: 0, release_info.live_url, arch)
         }
     }
-
+    /*
     stage("channel prs") {
         if (release_info.type == "custom") {
             echo "Skipping PR creation for custom (hotfix) release."
@@ -396,5 +415,6 @@ PullSpecs: ${pullspecs.join(",")}
         """);
         buildlib.cleanWorkspace()
     }
-
+    */
+    buildlib.cleanWorkspace()
 }

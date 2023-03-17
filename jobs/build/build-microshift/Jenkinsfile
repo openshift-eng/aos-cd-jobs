@@ -114,6 +114,11 @@ node {
                         lock("build-microshift-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
                     }
                 }
+                def build_nvr = sh (
+                        script: "grep -oP '(?<=nvrs=)[^|]+' artcd_working/doozer-working/record.log",
+                        returnStdout: true
+                    ).trim()
+                currentBuild.description = build_nvr
             }
         } finally {
             stage("save artifacts") {

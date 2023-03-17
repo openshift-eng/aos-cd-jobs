@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import toml
-
+from github import Github
 from pyartcd.jira import JIRAClient
 from pyartcd.mail import MailService
 from pyartcd.slack import SlackClient
@@ -56,6 +56,12 @@ class Runtime:
 
     def new_mail_client(self):
         return MailService.from_config(self.config)
+
+    def new_github_client(self, github_token: Optional[str] = None):
+        token = github_token if github_token else os.environ.get("GITHUB_TOKEN")
+        if not token:
+            raise ValueError("GITHUB_TOKEN environment variable is not set")
+        return Github(token)
 
     def get_job_name(self):
         return os.environ.get("JOB_NAME")

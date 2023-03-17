@@ -9,6 +9,8 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 from urllib.parse import quote
+import ruamel.yaml
+import io
 
 import aiohttp
 import click
@@ -20,8 +22,8 @@ from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
+from pyartcd.jenkins import new_jenkins_client
 from pyartcd.oc import get_release_image_info
-from pyartcd.jenkins import trigger_build_microshift
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 from semver import VersionInfo
@@ -36,21 +38,28 @@ yaml.default_flow_style = False
 class PromotePipeline:
     DEST_RELEASE_IMAGE_REPO = constants.RELEASE_IMAGE_REPO
 
-    def __init__(self, runtime: Runtime, group: str, assembly: str,
+    def __init__(self, runtime: Runtime, group: str, assembly: str, mail_list_success: str,
                  skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
                  skip_image_list: bool = False,
                  skip_build_microshift: bool = False,
                  permit_overwrite: bool = False,
-                 no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
+                 no_multi: bool = False, multi_only: bool = False, skip_mirror_binaries: bool = False,
+                 skip_signing: bool = False, skip_cincinnati_pr_creation: bool = False,
+                 skip_ota_slack_notification: bool = False, use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
+        self.mail_list_success = mail_list_success
         self.skip_blocker_bug_check = skip_blocker_bug_check
         self.skip_attached_bug_check = skip_attached_bug_check
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
         self.skip_build_microshift = skip_build_microshift
+        self.skip_mirror_binaries = skip_mirror_binaries
+        self.skip_signing = skip_signing
+        self.skip_cincinnati_pr_creation = skip_cincinnati_pr_creation
+        self.skip_ota_slack_notification = skip_ota_slack_notification
         self.permit_overwrite = permit_overwrite
 
         if multi_only and no_multi:
@@ -63,6 +72,7 @@ class PromotePipeline:
         self._logger = self.runtime.logger
         self._slack_client = self.runtime.new_slack_client()
         self._mail = self.runtime.new_mail_client()
+        self.jenkins_client = new_jenkins_client()
 
         self._working_dir = self.runtime.working_dir
         self._doozer_working_dir = self._working_dir / "doozer-working"
@@ -237,7 +247,18 @@ class PromotePipeline:
 
             # Before waiting for release images to be accepted by release controllers,
             # we can start microshift build
-            await self._build_microshift(releases_config)
+            microshiftNVRs = self._build_microshift(releases_config)
+            # Create a PR to pin microshift build
+            assembly_basis = util.get_assembly_basis(releases_config, self.assembly)
+            if assembly_basis.brew_event:
+                if microshiftNVRs:
+                    pr = self._update_release_in_pr(microshiftNVRs.split(" "))
+
+            # Sends a slack message
+            message = f"Assembly definition has been updated with {pr}"
+            if assembly_type is assembly.AssemblyTypes.PREVIEW:
+                message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with `UPDATE_PUB_MIRROR` checked."
+            await self._slack_client.say(message, slack_thread)
 
             # Wait for payloads to be accepted by release controllers
             pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}
@@ -354,6 +375,74 @@ class PromotePipeline:
                 rhcos_version = rhcos["annotations"]["io.openshift.build.versions"].split("=")[1]  # machine-os=48.84.202112162302-0 => 48.84.202112162302-0
                 data["content"][arch]["rhcos_version"] = rhcos_version
 
+        # mirror binaries
+        client_type = "ocp"
+        if not self.skip_mirror_binaries:
+            logger.info("Mirroring binaries.")
+            if (assembly_type == assembly.AssemblyTypes.CANDIDATE and not self.assembly.startswith('rc.')) or assembly_type in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
+                client_type = "ocp-dev-preview"
+            for arch in data['content']:
+                logger.info(f"Mirroring client binaries for {arch}")
+                if self.runtime.dry_run:
+                    logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
+                else:
+                    if arch != "multi":
+                        util.stagePublishClient(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
+                    else:
+                        util.stagePublishMultiClient(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
+
+        # sign artifacts
+        if not self.skip_signing:
+            logger.info("Sign artifacts.")
+            job = self.jenkins_client.get_job("signing-jobs/signing%2Fsign-artifacts")
+            builds = []
+            for arch in data["content"]:
+                params = {
+                    "NAME": data["content"][arch]["metadata"]["version"],
+                    "SIGNATURE_NAME": "signature-1",
+                    "CLIENT_TYPE": client_type,
+                    "DRY_RUN": self.runtime.dry_run,
+                    "ENV": "prod",
+                    "KEY_NAME": "redhatrelease2" if client_type == "ocp" else "beta2",
+                    "ARCH": arch,
+                    "DIGEST": data["content"][arch]["digest"],
+                    "PRODUCT": "openshift",
+                }
+                build = job.invoke(build_params=params).block_until_building()
+                logger.info(f"trigger job: {build.get_build_url()}")
+                builds.append(build)
+            for b in builds:
+                b.block_until_complete() if b.is_running() else None
+
+        # create cincinnati prs
+        if assembly_type.value != "custom" and not self.skip_cincinnati_pr_creation and not self.runtime.dry_run:
+            logger.info("Create cincinnati prs")
+            job = self.jenkins_client.get_job("aos-cd-builds/build%2Fcincinnati-prs")
+            params = {
+                "FROM_RELEASE_TAG": from_release,
+                "RELEASE_NAME": release_name,
+                "ADVISORY_NUM": image_advisory if image_advisory else 0,
+                "GITHUB_ORG": "openshift",
+                "CANDIDATE_PR_NOTE": "\n".join(justification) if justification else "",
+                "SKIP_OTA_SLACK_NOTIFICATION": self.skip_ota_slack_notification,
+            }
+            build = job.invoke(build_params=params).block_until_building()
+            logger.info(f"trigger job: {build.get_build_url()}")
+            build.block_until_complete() if build.is_running() else None
+
+        # validate rhsa
+        for ad in list(filter(lambda ad: ad > 0, impetus_advisories.values())):
+            await self.validate_rhsa_state(ad)
+
+        # attach microshift build and related bugs
+        await self.attach_microshift_builds_bugs(microshiftNVRs) if microshiftNVRs else None
+
+        # send mail
+        dry_subject = "[DRY RUN] " if self.runtime.dry_run else ""
+        subject = f"{dry_subject}Success building release payload: {release_name}"
+        content = f"Jenkins Job: {os.environ.get('BUILD_URL')}\nPullSpecs: {','.join(pullspecs_repr)}\n"
+        await exectools.to_thread(self._mail.send_mail, self.mail_list_success, subject, content, archive_dir=f"{self._working_dir}/email", dry_run=self.runtime.dry_run)
+
         json.dump(data, sys.stdout)
 
     @staticmethod
@@ -375,6 +464,85 @@ class PromotePipeline:
             raise ValueError("A justification is required to permit issue %s.", code)
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
+
+    def _update_release_in_pr(self, nvrs: List[str]):
+        branch = f"auto-pin-microshift-{self.group}-{self.assembly}"
+        title = f"Pin microshift build for {self.group} {self.assembly}"
+        body = f"Created by job run {self.runtime.get_job_run_url()}"
+        repo = self.runtime.new_github_client().get_repo("openshift/ocp-build-data")
+        microref = repo.create_git_ref(f"refs/heads/{branch}", repo.get_git_ref(f"heads/{self.group}").object.sha)  # create a microshift branch
+        releasefile = repo.get_contents("releases.yml", ref=branch)
+        yaml = ruamel.yaml.YAML()
+        yaml.preserve_quotes = True
+        releases_yaml = yaml.load(releasefile.decoded_content)
+        self._pin_nvrs(nvrs, releases_yaml)  # insert nvrs into release.yaml
+        f = io.StringIO()
+        yaml.dump(releases_yaml, f)
+        f.seek(0)
+        commit = repo.update_file(releasefile.path, "update microshift", f.read(), releasefile.sha, branch=branch)  # update releases.yaml in microshift branch
+        pr = repo.create_pull(title=title, body=body, head=f"openshift:{branch}", base={self.group})  # create pr from microshift to {group} branch
+        pr.merge(merge_method="squash")  # merge pr
+        microref.delete()  # delete microshift branch
+        self._logger.info("Insert microshift nvr into releases.yaml complete")
+        return pr.html_url
+
+
+    def _pin_nvrs(self, nvrs: List[str], releases_config) -> Dict:
+        """ Update releases.yml to pin the specified NVRs.
+        Example:
+            releases:
+                4.11.7:
+                    assembly:
+                    members:
+                        rpms:
+                        - distgit_key: microshift
+                        metadata:
+                            is:
+                                el8: microshift-4.11.7-202209300751.p0.g7ebffc3.assembly.4.11.7.el8
+        """
+        is_entry = {}
+        dg_key = "microshift"
+        for nvr in nvrs:
+            el_version = util.isolate_el_version_in_release(nvr)
+            assert el_version is not None
+            is_entry[f"el{el_version}"] = nvr
+
+        rpms_entry = releases_config["releases"][self.assembly].setdefault("assembly", {}).setdefault("members", {}).setdefault("rpms", [])
+        microshift_entry = next(filter(lambda rpm: rpm.get("distgit_key") == dg_key, rpms_entry), None)
+        if microshift_entry is None:
+            microshift_entry = {"distgit_key": dg_key, "why": "Pin microshift to assembly"}
+            rpms_entry.append(microshift_entry)
+        microshift_entry.setdefault("metadata", {})["is"] = is_entry
+        return microshift_entry
+
+    async def attach_microshift_builds_bugs(self, microshiftNVRs: str):
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        if not self.skip_build_microshift and major == 4 and minor >= 12:
+            self._logger.info("attach microshift build and related bugs")
+            # microshift job is built, get the nvrs from it's job description
+            async with self._elliott_lock:
+                await exectools.cmd_assert_async(["elliott", "find-builds", microshiftNVRs, "--use-default-advisory", "microshift"], env=self._elliott_env_vars, stdout=sys.stderr)
+            async with self._elliott_lock:
+                await exectools.cmd_assert_async(["elliott", "find-bugs:sweep", "--use-default-advisory", "microshift"], env=self._elliott_env_vars, stdout=sys.stderr)
+
+    async def validate_rhsa_state(self, advisory: int):
+        cmd = [
+            "elliott",
+            "validate-rhsa",
+            str(advisory),
+        ]
+        async with self._elliott_lock:
+            status, stdout, _ = await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars, stderr=None)
+        if status != 0:
+            msg = f"""
+                    Review of CVE situation required for advisory <https://errata.devel.redhat.com/advisory/{advisory}|{advisory}>.
+                    Report:
+                    ```
+                    {stdout}
+                    ```
+                    Note: For GA image advisories this is expected to fail.
+                """
+            await self._slack_client.say(msg)
 
     async def change_advisory_state(self, advisory: int, state: str):
         cmd = [
@@ -434,7 +602,7 @@ class PromotePipeline:
             raise ValueError(f"Got invalid advisory info for advisory {advisory}: {advisory_info}.")
         return advisory_info
 
-    async def _build_microshift(self, releases_config):
+    def _build_microshift(self, releases_config):
         if self.skip_build_microshift:
             self._logger.info("Skipping microshift build because SKIP_BUILD_MICROSHIFT is set.")
             return
@@ -446,9 +614,19 @@ class PromotePipeline:
 
         if not util.is_rpm_pinned(releases_config, self.assembly, 'microshift'):
             self._logger.info("Microshift is not pinned in the assembly config. Starting build...")
-            await trigger_build_microshift(f'{major}.{minor}', self.assembly, self.runtime.dry_run)
+            job = self.jenkins_client.get_job("aos-cd-builds/build%2Fbuild-microshift")
+            params = {
+                "BUILD_VERSION": f'{major}.{minor}',
+                "ASSEMBLY": self.assembly,
+                "DRY_RUN": self.runtime.dry_run,
+            }
+            build = job.invoke(build_params=params).block_until_building()
+            self._logger.info(f"trigger job: {build.get_build_url()}")
+            build.block_until_complete() if build.is_running() else None
+            return build.get_description().replace("\n", " ")
         else:
             self._logger.info("Microshift is pinned in the assembly config. Skipping build. If a rebuild is required, please manually run build-microshift job.")
+            return None
 
     @staticmethod
     def get_live_id(advisory_info: Dict):
@@ -1016,6 +1194,8 @@ class PromotePipeline:
               help="The group of components on which to operate. e.g. openshift-4.9")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
               help="The name of an assembly. e.g. 4.9.1")
+@click.option("--mail-list-success", metavar="MAIL_LIST_SUCCESS", required=False,
+              help="The list of mail when build success send to")
 @click.option("--skip-blocker-bug-check", is_flag=True,
               help="Skip blocker bug check. Note block bugs are never checked for CUSTOM and CANDIDATE releases.")
 @click.option("--skip-attached-bug-check", is_flag=True,
@@ -1030,17 +1210,24 @@ class PromotePipeline:
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
 @click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
+@click.option("--skip-mirror-binaries", is_flag=True, help="Do not mirror client binaries to mirror")
+@click.option("--skip-signing", is_flag=True, help="Do not trigger signing job")
+@click.option("--skip-cincinnati-pr-creation", is_flag=True, help="Do not trigger cincinnati pr creation job")
+@click.option("--skip-ota-slack-notification", is_flag=True, help="Do not notify ota on slack")
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
-async def promote(runtime: Runtime, group: str, assembly: str,
+async def promote(runtime: Runtime, group: str, assembly: str, mail_list_success: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   skip_build_microshift: bool,
-                  permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
-    pipeline = PromotePipeline(runtime, group, assembly,
+                  permit_overwrite: bool, no_multi: bool, multi_only: bool,
+                  skip_mirror_binaries: bool, skip_signing: bool,
+                  skip_cincinnati_pr_creation: bool, skip_ota_slack_notification: bool,
+                  use_multi_hack: bool):
+    pipeline = PromotePipeline(runtime, group, assembly, mail_list_success,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
-                               skip_image_list,
-                               skip_build_microshift,
-                               permit_overwrite, no_multi, multi_only, use_multi_hack)
+                               skip_image_list, skip_build_microshift, permit_overwrite, no_multi,
+                               multi_only, skip_mirror_binaries, skip_signing, skip_cincinnati_pr_creation,
+                               skip_ota_slack_notification, use_multi_hack)
     await pipeline.run()

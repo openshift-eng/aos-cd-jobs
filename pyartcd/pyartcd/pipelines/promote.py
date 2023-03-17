@@ -731,7 +731,15 @@ class PromotePipeline:
             await self.push_manifest_list(release_name, dest_manifest_list)
             self._logger.info("Heterogeneous release payload for %s has been built. Manifest list pullspec is %s", release_name, dest_image_pullspec)
             self._logger.info("Getting release image information for %s...", dest_image_pullspec)
-            dest_image_digest = await self.get_image_digest(dest_image_pullspec, raise_if_not_found=True) if not self.runtime.dry_run else "fake:deadbeef-multi"
+
+            # Get info of the pushed manifest list
+            self._logger.info("Getting release image information for %s...", dest_image_pullspec)
+            if self.runtime.dry_run:
+                dest_image_digest = "fake:deadbeef-multi"
+                dest_manifest_list = dest_manifest_list.copy()
+            else:
+                dest_image_digest = await self.get_image_digest(dest_image_pullspec, raise_if_not_found=True)
+                dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
 
         dest_image_info = dest_manifest_list.copy()
         dest_image_info["image"] = dest_image_pullspec

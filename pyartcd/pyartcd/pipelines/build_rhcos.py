@@ -197,6 +197,6 @@ class BuildRhcosPipeline:
               help="Force a new build even if no changes were detected from the last build")
 @pass_runtime
 def build_rhcos(runtime: Runtime, new_build: bool, ignore_running: bool, version: str):
-    if not re.match(r'^\d+\.\d+$', version):
-        raise Exception("Version must be in the format 'x.y'")
+    if not re.match(r'^\d+\.\d+(-\d+\.\d+)?$', version):
+        raise Exception("Version must be in the format 'x.y(-rhelx.rhely)?'")
     BuildRhcosPipeline(runtime, new_build, ignore_running, version).run()

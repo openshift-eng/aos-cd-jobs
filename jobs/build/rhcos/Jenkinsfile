@@ -82,9 +82,10 @@ node {
                     withCredentials([file(credentialsId: kubeconfigs['multi'], variable: 'KUBECONFIG')]) {
                         // we want to see the stderr as it runs, so will not capture with commonlib.shell;
                         // but somehow it is buffering the stderr anyway and [lmeyer] cannot figure out why.
+                        rhcos_version = ["4.13", "4.14", "4.15"].contains(params.BUILD_VERSION) ? "${params.BUILD_VERSION}-9.2" : params.BUILD_VERSION
                         text = sh(returnStdout: true, script: """
                               no_proxy=api.ocp-virt.prod.psi.redhat.com,\$no_proxy \\
-                              artcd --config=./config/artcd.toml build-rhcos --version=${params.BUILD_VERSION} \\
+                              artcd --config=./config/artcd.toml build-rhcos --version=${rhcos_version} \\
                                     --ignore-running=${params.IGNORE_RUNNING} --new-build=${params.NEW_BUILD}
                         """)
                         data = readJSON text: text

@@ -48,6 +48,12 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    string(
+                        name: "OVERRIDE_LOCATION",
+                        description: "Warning: This overrides the default location. Example: https://download.eng.bos.redhat.com/staging-cds/etera/openshift-gitops-kam/1/1.8/1.8.0-143/staging/" ,
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: "SET_LATEST",
                         description: "Update /latest",
@@ -76,7 +82,11 @@ node {
             error 'SOURCE_VERSION must be specified'
         }
         dest_version = "${(kind in prefixes) ? prefixes[kind] : ""}${source_version}"
-        source_dir = String.format(location[kind], source_version)
+        if (params.OVERRIDE_LOCATION) {
+            source_dir = params.OVERRIDE_LOCATION
+        } else {
+            source_dir = String.format(location[kind], source_version)
+        }
         latest_dir = "latest/"
     }
 

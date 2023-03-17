@@ -254,11 +254,24 @@ class PromotePipeline:
                 if microshiftNVRs:
                     pr = self._update_release_in_pr(microshiftNVRs.split(" "))
 
-            # Sends a slack message
-            message = f"Assembly definition has been updated with {pr}"
-            if assembly_type is assembly.AssemblyTypes.PREVIEW:
-                message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with `UPDATE_PUB_MIRROR` checked."
-            await self._slack_client.say(message, slack_thread)
+                # Sends a slack message
+                message = f"Assembly definition has been updated with {pr}"
+                if assembly_type is assembly.AssemblyTypes.PREVIEW:
+                    logger.info("Build microshift_sync microshift_sync job")
+                    major, minor = util.isolate_major_minor_in_group(self.group)
+                    job = self.jenkins_client.get_job("aos-cd-builds/build%2Fmicroshift_sync")
+                    params = {
+                        "BUILD_VERSION": f'{major}.{minor}',
+                        "ASSEMBLY": self.assembly,
+                        "RHEL_TARGETS": "8,9",
+                        "ARCHES": "x86_64 aarch64",
+                        "UPDATE_PUB_MIRROR": True,
+                        "SET_LATEST": True,
+                    }
+                    build = job.invoke(build_params=params).block_until_building()
+                    build.block_until_complete() if build.is_running() else None
+                    message += f"trigger microshift_sync job: {build.get_build_url()}"
+                await self._slack_client.say(message, slack_thread)
 
             # Wait for payloads to be accepted by release controllers
             pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}

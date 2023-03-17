@@ -44,13 +44,13 @@ node {
                     ),
                     string(
                         name: "SOURCE_VERSION",
-                        description: "Example: 1.24.0-0",
+                        description: "This should exactly match the source directory version folder to fetch from. Also also used to create the target directory folder name. If OVERRIDE_LOCATION is used then only used for target directory name. Example: 1.24.0-0",
                         defaultValue: "",
                         trim: true,
                     ),
                     string(
                         name: "OVERRIDE_LOCATION",
-                        description: "Warning: This overrides the default location. Example: https://download.eng.bos.redhat.com/staging-cds/etera/openshift-gitops-kam/1/1.8/1.8.0-143/staging/" ,
+                        description: "Warning: This overrides the SOURCE_VERSION and default location. Example: /mnt/redhat/staging-cds/etera/openshift-gitops-kam/1/1.8/1.8.0-143/staging" ,
                         defaultValue: "",
                         trim: true,
                     ),

@@ -82,11 +82,7 @@ node {
             error 'SOURCE_VERSION must be specified'
         }
         dest_version = "${(kind in prefixes) ? prefixes[kind] : ""}${source_version}"
-        if (params.OVERRIDE_LOCATION) {
-            source_dir = params.OVERRIDE_LOCATION
-        } else {
-            source_dir = String.format(location[kind], source_version)
-        }
+        source_dir = params.OVERRIDE_LOCATION ? params.OVERRIDE_LOCATION : String.format(location[kind], source_version)
         latest_dir = "latest/"
     }
 

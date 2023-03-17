@@ -85,7 +85,6 @@ class PrepareReleasePipeline:
                 raise ValueError("default_advisories cannot be set for a non-stream assembly.")
 
         self.release_date = date
-        self._slack_client = self.runtime.new_slack_client()
         self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
         self._slack_client = slack_client
         self.working_dir = self.runtime.working_dir.absolute()
@@ -763,7 +762,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
                           package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
     slack_client = runtime.new_slack_client()
-    slack_client.bind_channel(assembly)
+    slack_client.bind_channel(group)
     await slack_client.say(f":construction: prepare-release for {name if name else assembly} :construction:")
     try:
         # parse environment variables for credentials

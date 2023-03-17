@@ -25,6 +25,7 @@ that being part of a multibranch pipeline could not be configured to receive rem
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(name: "ASSEMBLY", trim: true),
                     booleanParam(name: "DRY_RUN", defaultValue: false),
+                    string(name: "TRIGGERED_FROM", trim: true),
                 ]
             ],
         ]
@@ -32,6 +33,8 @@ that being part of a multibranch pipeline could not be configured to receive rem
 
     commonlib.checkMock()
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION} - ${params.ASSEMBLY}"
+
+    echo "Triggered from ${TRIGGERED_FROM}"
 
     build(
         job: '../aos-cd-builds/build%2Fbuild-microshift/',

@@ -6,7 +6,7 @@ import aiohttp
 logger = logging.getLogger(__name__)
 
 
-async def trigger_jenkins_job(job_path: str, params=None):
+async def trigger_jenkins_job(job_path: str, params: dict = {}):
     """
     Trigger a job using remote API calls.
     :param job_path: relative path to the job, starting from <buildvm hostname>:<jenkins port>
@@ -15,6 +15,10 @@ async def trigger_jenkins_job(job_path: str, params=None):
 
     service_account = os.environ['JENKINS_SERVICE_ACCOUNT']
     token = os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN']
+
+    build_url = os.environ.get('BUILD_URL', '')
+    if build_url:
+        params['TRIGGERED_FROM'] = build_url
 
     # Build authorization header
     auth = base64.b64encode(f'{service_account}:{token}'.encode()).decode()

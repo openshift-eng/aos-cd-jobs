@@ -24,6 +24,7 @@ In this context, the only <strong>BUILD_VERSION</strong> param is required.
                 parameterDefinitions: [
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
+                    string(name: "TRIGGERED_FROM", trim: true),
                 ]
             ],
         ]
@@ -31,6 +32,8 @@ In this context, the only <strong>BUILD_VERSION</strong> param is required.
 
     commonlib.checkMock()
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}"
+
+    echo "Triggered from ${TRIGGERED_FROM}"
 
     build(
         job: '../aos-cd-builds/build%252Fbuild-sync/',

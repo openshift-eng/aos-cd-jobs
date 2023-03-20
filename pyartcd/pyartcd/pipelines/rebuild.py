@@ -103,7 +103,7 @@ class RebuildPipeline:
             with open(overrides_plashet_dir / "rebuild.repo", "w") as file:
                 self._generate_repo_file_for_image(file, plashets, group_config["arches"])
 
-            # Copies plashet repos out to rcm-guest
+            # Copies plashet repos out to ocp-artifacts
             await asyncio.gather(*[
                 self._copy_plashet_out_to_remote(el_version, plashet[1]) for plashet in plashets
             ])
@@ -125,7 +125,7 @@ class RebuildPipeline:
             with open(overrides_plashet_dir / "rebuild.repo", "w") as file:
                 self._generate_repo_file_for_rhcos(file, plashets)
 
-            # Copies plashet repos out to rcm-guest
+            # Copies plashet repos out to ocp-artifacts
             await asyncio.gather(*[
                 self._copy_plashet_out_to_remote(el_version, plashet[1]) for plashet in plashets
             ])
@@ -265,7 +265,7 @@ class RebuildPipeline:
         return PlashetBuildResult(name, plashet_dir, remote_url)
 
     async def _copy_plashet_out_to_remote(self, el_version: int, local_plashet_dir: os.PathLike, symlink_name: Optional[str] = None):
-        """ Copies plashet out to remote host (rcm-guest)
+        """ Copies plashet out to remote host (ocp-artifacts)
         """
         # Make sure the remote base dir exist
         major, minor = self._ocp_version

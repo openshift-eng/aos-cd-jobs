@@ -41,7 +41,7 @@ class TarballSourcesPipeline:
         self.runtime.logger.info("Creating tarball sources for advisories %s", advisories)
         source_directory = f"{self.runtime.working_dir}/container-sources/"
         tarball_files = await self._create_tarball_sources(advisories, source_directory)
-        self.runtime.logger.info("Copying to rcm-guest")
+        self.runtime.logger.info("Copying to spmm-util")
         await self._copy_to_rcm_guest(source_directory)
         self.runtime.logger.info("Creating JIRA")
         new_issue = self._create_jira(advisories, tarball_files)

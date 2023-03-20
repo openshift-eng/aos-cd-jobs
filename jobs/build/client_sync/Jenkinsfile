@@ -44,7 +44,13 @@ node {
                     ),
                     string(
                         name: "SOURCE_VERSION",
-                        description: "Example: 1.24.0-0",
+                        description: "This should exactly match the source directory version folder to fetch from. Also used to create the target directory folder name. If OVERRIDE_LOCATION is used then only used for target directory name. Example: 1.24.0-0",
+                        defaultValue: "",
+                        trim: true,
+                    ),
+                    string(
+                        name: "OVERRIDE_LOCATION",
+                        description: "Warning: This overrides the SOURCE_VERSION and default location. Example: /mnt/redhat/staging-cds/etera/openshift-gitops-kam/1/1.8/1.8.0-143/staging" ,
                         defaultValue: "",
                         trim: true,
                     ),
@@ -76,7 +82,7 @@ node {
             error 'SOURCE_VERSION must be specified'
         }
         dest_version = "${(kind in prefixes) ? prefixes[kind] : ""}${source_version}"
-        source_dir = String.format(location[kind], source_version)
+        source_dir = params.OVERRIDE_LOCATION ? params.OVERRIDE_LOCATION : String.format(location[kind], source_version)
         latest_dir = "latest/"
     }
 

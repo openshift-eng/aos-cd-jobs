@@ -84,7 +84,7 @@ node {
             (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
 
             sh "rm -rf ${group}"
-            sh "git clone https://github.com/openshift/ocp-build-data --branch ${group} --single-branch --depth 1 ${group}"
+            sh "git clone https://github.com/openshift-eng/ocp-build-data --branch ${group} --single-branch --depth 1 ${group}"
             dir(group) {
                 now_hash = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
             }

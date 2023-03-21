@@ -13,7 +13,7 @@ node {
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
-        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
     """)
 
 
@@ -161,6 +161,9 @@ node {
         if (params.SKIP_ATTACH_CVE_FLAWS) {
             cmd << "--skip-attach-cve-flaws"
         }
+        if (params.SKIP_BUILD_MICROSHIFT) {
+            cmd << "--skip-build-microshift"
+        }
         if (params.PERMIT_PAYLOAD_OVERWRITE) {
             cmd << "--permit-overwrite"
         }
@@ -178,7 +181,7 @@ node {
         }
         echo "Will run ${cmd}"
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'), string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)
@@ -376,26 +379,6 @@ node {
                 slacklib.to(params.VERSION).say(msg)
             }
         }
-    }
-
-    stage("trigger build-microshift") {
-        if (params.SKIP_BUILD_MICROSHIFT) {
-            echo "Don't trigger build-microshift because SKIP_BUILD_MICROSHIFT is set"
-            return
-        }
-        if (major == 4 && minor < 12) {
-            echo "Skip microshift build for version < 4.12"
-            return
-        }
-        build(
-            job: "build%2Fbuild-microshift",
-            propagate: true,
-            parameters: [
-                string(name: 'BUILD_VERSION', value: params.VERSION),
-                string(name: 'ASSEMBLY', value: params.ASSEMBLY),
-                booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
-            ]
-        )
     }
 
     stage("clean and mail") {

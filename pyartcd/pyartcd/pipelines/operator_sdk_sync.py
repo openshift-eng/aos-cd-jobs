@@ -41,7 +41,8 @@ class OperatorSDKPipeline:
             self._logger.info("Advisory status already in post REL_PREP, update subtask 7 ...")
             self._jira_client.complete_subtask(self.parent_jira_key, 6, "Advisory status already in REL_PREP")
 
-            sdk_build = [b for b in sum(list(map(list, advisory.errata_builds.values())), []) if b.startswith('openshift-enterprise-operator-sdk-container')]
+            sdk_build = [b for b in sum(list(map(list, advisory.errata_builds.values())), []) if b.startswith(
+                'openshift-enterprise-operator-sdk-container')]
             if not sdk_build:
                 self._logger.info("No SDK build to ship, update subtask 8 then close ...")
                 self._jira_client.complete_subtask(self.parent_jira_key, 7, f"No SDK build to ship, operator_sdk_sync job: {self.runtime.get_job_run_url()}")

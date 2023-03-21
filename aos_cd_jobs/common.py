@@ -14,5 +14,5 @@ def initialize_repo():
         return Repo(repo_dir)
 
     print('aos-cd-jobs not detected -- cloning a copy')
-    return Repo.clone_from('git@github.com:openshift/aos-cd-jobs.git', repo_dir)
+    return Repo.clone_from('git@github.com:openshift-eng/aos-cd-jobs.git', repo_dir)
 

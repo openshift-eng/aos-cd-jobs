@@ -16,11 +16,11 @@ Created tarball source /mnt/nfs/home/jenkins/yuxzhu/OSE-4.6-RHEL-8/84693/release
 
 All tarball sources are successfully created.
 
-To send all tarball sources to rcm-guest, run:
+To send all tarball sources to spmm-util, run:
 
-    rsync -avz --no-perms --no-owner --no-group /mnt/nfs/home/jenkins/yuxzhu/ ocp-build@rcm-guest.app.eng.bos.redhat.com:/mnt/rcm-guest/ocp-client-handoff/
+    rsync -avz --no-perms --no-owner --no-group /mnt/nfs/home/jenkins/yuxzhu/ exd-ocp-buildvm-bot-prod@spmm-util:ocp-client-handoff/
 
-Then notify RCM (https://projects.engineering.redhat.com/projects/RCM/issues) that the following tarball sources have been uploaded to rcm-guest:
+Then notify RCM (https://projects.engineering.redhat.com/projects/RCM/issues) that the following tarball sources have been uploaded to spmm-util:
 
 OSE-4.6-RHEL-8/84693/release/logging-fluentd-container-v4.6.0-202111191944.p0.gf73a1dd.assembly.stream.tar.gz
         """, "")

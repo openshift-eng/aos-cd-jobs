@@ -28,7 +28,7 @@ spec:
         echo failed > /tekton/results/jobresult
 
         wget -q -P /etc/
-        https://raw.githubusercontent.com/openshift/doozer/master/.devcontainer/krb5-redhat.conf
+        https://raw.githubusercontent.com/openshift-eng/doozer/master/.devcontainer/krb5-redhat.conf
 
         mv /etc/krb5-redhat.conf /etc/krb5.conf
 
@@ -50,10 +50,10 @@ spec:
         wget $(inputs.params.build-url)
 
         wget
-        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/tekton-pipelines/scripts/update-dist-git.sh
+        https://raw.githubusercontent.com/openshift-eng/aos-cd-jobs/master/tekton-pipelines/scripts/update-dist-git.sh
 
         wget
-        https://raw.githubusercontent.com/openshift/aos-cd-jobs/master/tekton-pipelines/scripts/collect-jenkins-plugins.sh
+        https://raw.githubusercontent.com/openshift-eng/aos-cd-jobs/master/tekton-pipelines/scripts/collect-jenkins-plugins.sh
 
         ls /etc/update-jenkins-plugins
 

@@ -1598,7 +1598,7 @@ def build_plashets(doozerOpts, version, release, dryRun = false) {
 def get_releases_config(String group) {
     // FIXME: This method doesn't handle assembly inheritance.
     def r = httpRequest(
-        url: "https://raw.githubusercontent.com/openshift/ocp-build-data/${URLEncoder.encode(group, 'utf-8')}/releases.yml",
+        url: "https://raw.githubusercontent.com/openshift-eng/ocp-build-data/${URLEncoder.encode(group, 'utf-8')}/releases.yml",
         httpMode: 'GET',
         timeout: 30,
         validResponseCodes: '200:404',

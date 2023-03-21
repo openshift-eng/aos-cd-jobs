@@ -69,8 +69,8 @@ pipeline {
         timestamps()
         buildDiscarder(
             logRotator(
-                artifactDaysToKeepStr: '365',
-                daysToKeepStr: '365')
+                artifactDaysToKeepStr: '30',
+                daysToKeepStr: '30')
         )
     }
     stages {

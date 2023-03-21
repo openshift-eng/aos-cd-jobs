@@ -17,8 +17,8 @@ In this context, the only <strong>BUILD_VERSION</strong> param is required.
             disableResume(),
             buildDiscarder(
                 logRotator(
-                    artifactDaysToKeepStr: '365',
-                    daysToKeepStr: '365')),
+                    artifactDaysToKeepStr: '30',
+                    daysToKeepStr: '30')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

@@ -859,7 +859,7 @@ class PromotePipeline:
             "--privileged",
             "-v",
             f"{os.path.expanduser('~/.docker/config.json')}:/tmp/auth.json:ro",
-            "quay.io/containers/skopeo:v1.8"
+            "quay.io/containers/skopeo:v1.11"
         ]
         if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
             cmd = ["skopeo"]
@@ -896,7 +896,7 @@ class PromotePipeline:
             "run",
             "--rm",
             "--privileged",
-            "quay.io/containers/skopeo:v1.8"
+            "quay.io/containers/skopeo:v1.11"
         ]
         if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
             cmd = ["skopeo"]

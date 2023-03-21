@@ -4,9 +4,11 @@ from typing import Iterable, Tuple
 from urllib.parse import quote, urljoin, urlparse
 
 import click
+
 from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
+from pyartcd.util import kinit
 
 
 class TarballSourcesPipeline:
@@ -30,6 +32,13 @@ class TarballSourcesPipeline:
             self._doozer_env_vars["DOOZER_DATA_PATH"] = self._ocp_build_data_url
 
     async def run(self):
+        # Initialize kerberos credentials
+        try:
+            await kinit()
+        except ChildProcessError:
+            self.runtime.logger.error('Failed initializing Kerberos credentials')
+            raise RuntimeError
+
         advisories = self.advisories
         if not advisories:
             # use advisory numbers from ocp-build-data

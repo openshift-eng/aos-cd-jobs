@@ -22,6 +22,7 @@ from jira.resources import Issue
 from pyartcd import exectools, constants
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.jira import JIRAClient
+from pyartcd.slack import SlackClient
 from pyartcd.mail import MailService
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
@@ -37,6 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 class PrepareReleasePipeline:
     def __init__(
         self,
+        slack_client: SlackClient,
         runtime: Runtime,
         group: Optional[str],
         assembly: Optional[str],
@@ -83,8 +85,8 @@ class PrepareReleasePipeline:
                 raise ValueError("default_advisories cannot be set for a non-stream assembly.")
 
         self.release_date = date
-        self._slack_client = self.runtime.new_slack_client()
         self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
+        self._slack_client = slack_client
         self.working_dir = self.runtime.working_dir.absolute()
         self.default_advisories = default_advisories
         self.include_shipped = include_shipped
@@ -782,21 +784,30 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 @click_coroutine
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
                           package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
-    # parse environment variables for credentials
-    jira_token = os.environ.get("JIRA_TOKEN")
-    if not runtime.dry_run and not jira_token:
-        raise ValueError("JIRA_TOKEN environment variable is not set")
-    # start pipeline
-    pipeline = PrepareReleasePipeline(
-        runtime=runtime,
-        group=group,
-        assembly=assembly,
-        name=name,
-        date=date,
-        nightlies=nightlies,
-        package_owner=package_owner,
-        jira_token=jira_token,
-        default_advisories=default_advisories,
-        include_shipped=include_shipped,
-    )
-    await pipeline.run()
+    slack_client = runtime.new_slack_client()
+    slack_client.bind_channel(group)
+    await slack_client.say(f":construction: prepare-release for {name if name else assembly} :construction:")
+    try:
+        # parse environment variables for credentials
+        jira_token = os.environ.get("JIRA_TOKEN")
+        if not runtime.dry_run and not jira_token:
+            raise ValueError("JIRA_TOKEN environment variable is not set")
+        # start pipeline
+        pipeline = PrepareReleasePipeline(
+            slack_client=slack_client,
+            runtime=runtime,
+            group=group,
+            assembly=assembly,
+            name=name,
+            date=date,
+            nightlies=nightlies,
+            package_owner=package_owner,
+            jira_token=jira_token,
+            default_advisories=default_advisories,
+            include_shipped=include_shipped,
+        )
+        await pipeline.run()
+        await slack_client.say(f":white_check_mark: prepare-release for {name if name else assembly} completes.")
+    except Exception as e:
+        await slack_client.say(f":warning: prepare-release for {name if name else assembly} has result FAILURE.")
+        raise e  # return failed status to jenkins

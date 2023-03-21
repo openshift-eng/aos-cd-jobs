@@ -198,8 +198,12 @@ node {
                             aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                            file(credentialsId: "0xffe0b38-openshift-art-bot.crt", variable: 'busCertificate'),
+                            file(credentialsId: "0xffe0b38-openshift-art-bot.key", variable: 'busKey'),
                             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                cmd << "--ssl-cert" << "${busCertificate}"
+                cmd << "--ssl-key" << "${busKey}"
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)
@@ -309,7 +313,6 @@ node {
             )
         }
     }
-    */
     stage("send release message") {
         if (release_info.type == "custom") {
             echo "Don't send release messages for a custom release."
@@ -331,7 +334,6 @@ node {
             release.sendReleaseCompleteMessage(["name": release_name], release_info.advisory ?: 0, release_info.live_url, arch)
         }
     }
-    /*
     stage("channel prs") {
         if (release_info.type == "custom") {
             echo "Skipping PR creation for custom (hotfix) release."

@@ -49,11 +49,6 @@ node {
                         trim: true,
                     ),
                     booleanParam(
-                        name: 'UPDATE_PUB_MIRROR',
-                        description: '(For ECs) Update the public location on the mirror.openshift.com',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
                         name: 'SET_LATEST',
                         description: 'Set the latest link to point to this version',
                         defaultValue: true,
@@ -74,7 +69,6 @@ node {
     def assembly = params.ASSEMBLY
     def rhel_targets = commonlib.parseList(params.RHEL_TARGETS)
     def arches = params.ARCHES == 'all' ? commonlib.ocpReleaseState[version]["release"] : commonlib.parseList(params.ARCHES)
-    def update_pub_mirror = params.UPDATE_PUB_MIRROR
     def set_latest = params.SET_LATEST
     def dry_run = params.DRY_RUN
 
@@ -105,11 +99,8 @@ node {
             } else {
                 slackChannel.say(":construction: microshift_sync for ${currentBuild.displayName} :construction:")
             }
-            if (update_pub_mirror) {
+            if (assembly.startsWith('ec.')) {
                 currentBuild.displayName += " - pub mirror"
-                if (!assembly.startsWith('ec.') /*&& !assembly.startsWith('rc.')*/) {
-                     error("UPDATE_PUB_MIRROR only supports EC releases")
-                }
             }
             if (!arches) {
                 error("No arches configured.")
@@ -184,7 +175,7 @@ node {
             def client_type = 'ocp-dev-preview'
             for (String rhel_target in rhel_targets) {
                 def repo_name = "el$rhel_target"
-                if (update_pub_mirror) {
+                if (assembly.startsWith('ec.')) {
                     echo "Copying ${repo_name} to public mirror..."
                     for (arch in arches) {
                         def mirror_src = "${STAGING_PLASHET_DIR}/${repo_name}/${arch}/os"

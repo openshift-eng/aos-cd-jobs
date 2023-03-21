@@ -180,7 +180,12 @@ node {
                         joblib.stageUpdateDistgit()
                     }
                 }
-                stage("build images") { joblib.stageBuildImages() }
+                stage("build images") {
+                    joblib.stageBuildImages()
+
+                    // Fire off the job which comments on the PRs from which the images were built from.
+                    build wait: false, propagate: false, job: 'build%2Fcomment-build-to-pr', parameters: [string(name: 'PARENT_JOB_BASE_NAME', value: ${env.JOB_BASE_NAME}), string(name: 'PARENT_BUILD_NUMBER', value: ${env.BUILD_NUMBER})]
+                }
             }
             stage("sync images") {
                 if (buildlib.allImagebuildfailed) { return }

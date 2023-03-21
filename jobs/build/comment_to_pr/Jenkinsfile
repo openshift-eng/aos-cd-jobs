@@ -1,0 +1,70 @@
+node {
+    checkout scm
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
+    commonlib.describeJob("comment-build-to-pr", """
+        Comment on origin PR about build
+    """)
+
+    // Expose properties for a parameterized build
+
+    properties(
+            [
+                buildDiscarder(
+                    logRotator(
+                        artifactDaysToKeepStr: "7",
+                        daysToKeepStr: "7"
+                      )
+                   ),
+                [
+                    $class: "ParametersDefinitionProperty",
+                    parameterDefinitions: [
+                        string(
+                        name: "JOB_BASE_NAME",
+                        description: "Job base name eg: build/ocp4",
+                        trim: true,
+                        defaultValue: ""
+                        ),
+                         string(
+                            name: "BUILD_NUMBER",
+                            description: "Jenkins build number eg: 4010",
+                            trim: true,
+                            defaultValue: ""
+                        ),
+                         string(
+                            name: "BUILD_VERSION",
+                            description: "Build version. Eg: 4.12",
+                            trim: true,
+                            defaultValue: ""
+                        ),
+                        commonlib.mockParam(),
+                    ]
+                ],
+            ]
+        )
+
+    // Check for mock build
+    commonlib.checkMock()
+    
+    stage("comment-on-pr") {
+        sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+            "comment-status-to-pr",
+            "--job-base-name=${params.JOB_BASE_NAME}",
+            "--job-build-number=${params.BUILD_NUMBER}",
+            "--openshift-version=${params.BUILD_VERSION}"
+        ]
+
+        withCredentials([string(credentialsId: "openshift-bot-token", variable: "OPENSHIFT_BOT_TOKEN")]){
+            def out = sh(script: cmd.join(" "), returnStdout: true).trim()
+                echo out
+        }
+    }
+
+    buildlib.cleanWorkspace()
+}

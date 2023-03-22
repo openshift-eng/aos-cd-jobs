@@ -76,7 +76,7 @@ class TarballSourcesPipeline:
 
     async def _copy_to_rcm_guest(self, source_directory: str):
         remote = f"{constants.TARBALL_SOURCES_REMOTE_HOST}:{constants.TARBALL_SOURCES_REMOTE_BASE_DIR}"
-        cmd = ["rsync", "-avz", "--no-perms", "--no-owner", "--no-group", f"{source_directory}", f"{remote}"]
+        cmd = ["rsync", "-avz", "--no-perms", "--no-owner", "--omit-dir-times", "--no-group", f"{source_directory}", f"{remote}"]
         if self.runtime.dry_run:
             self.runtime.logger.warning("[DRY RUN] Would have run: %s", cmd)
             return

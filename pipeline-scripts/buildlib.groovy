@@ -1363,8 +1363,8 @@ def getChanges(yamlData) {
 }
 
 /**
- * Creates a plashet in the current Jenkins workspace and then sync's it to rcm-guest.
- * @param version  The ocp version (e.g. 4.5.25)
+ * Creates a plashet in the current Jenkins workspace and then syncs it to ocp-artifacts.
+ * @param version  The ocp version (e.g. 4.5.25). This is currently only used by 3.11
  * @param release  The 4.x release field (usually a timestamp)
  * @param el_major The RHEL major version (7 or 8)
  * @param include_embargoed If true, the plashet will include the very latest rpms (embargoed & unembargoed). Otherwise Plashet will only include unembargoed historical builds of rpms
@@ -1453,55 +1453,53 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     /**
      * The yum repos that plashet creates are very lightweight because
      * it only symlinks out to the desired RPMs on buildvm's /mnt/redhat
-     * share. We now want to copy the new repo out to rcm-guest. The
-     * good news is that we can keep it lightweight! rcm-guest has the
+     * share. We now want to copy the new repo out to ocp-artifacts. The
+     * good news is that we can keep it lightweight! ocp-artifacts has the
      * exact same share path. The symlinks plashet created can be copied
      * as symlinks. Note that if you copy the puddle to a system without
      * these links, you should use rsync --copy-links which will transfer
      * the linked file's content to the destination filename.
      *
-     * Now.. let's copy to rcm-guest! Why? Because when we build images in
+     * Now.. let's copy to ocp-artifacts! Why? Because when we build images in
      * brew, OSBS will only let the Dockerfile's yum invocations
      * access certain remote locations. One of those whitelisted locations
-     * is rcm-guest, so copy our lightweight repo there.
+     * is ocp-artifacts, so copy our lightweight repo there.
      *
-     * ocp-build is a user established for us on the rcm-guest host by
-     * Red Hat PnT devops. See /home/jenkins/.ssh.config.
      */
 
     // During an image build, doozer will provide repo files pointing back to a directory named
-    // 'building' in this rcm-guest directory. Before creating 'building', let's get the
+    // 'building' in this ocp-artifacts directory. Before creating 'building', let's get the
     // repo over there.
-    def destBaseDir = "/mnt/rcm-guest/puddles/RHAOS/plashets/${major_minor}"
+    def destBaseDir = "/mnt/data/pub/RHOCP/plashets/${major_minor}"
     if (for_ironic) destBaseDir += "-el${el_major}-ironic"
     else if (el_major >= 8) destBaseDir += "-el${el_major}"
 
     def assembly = params.ASSEMBLY ?: "stream"
     destBaseDir += "/${assembly}"
-    // Just in case this is the first time we have built this release, create the landing place on rcm-guest.
-    commonlib.shell("ssh ocp-build@rcm-guest -- mkdir -p ${destBaseDir}")
+    // Just in case this is the first time we have built this release, create the landing place on ocp-artifacts.
+    commonlib.shell("ssh ocp-artifacts -- mkdir -p ${destBaseDir}")
     commonlib.shell([
             "rsync",
             "-av",  // archive mode, verbose
             "--links",  // include links, but keep them as symlinks
             "--progress",
             "-h", // human readable numbers
-            "--no-g",  // use default group on rcm-guest for the user
+            "--no-g",  // use default group on ocp-artifacts for the user
             "--omit-dir-times",
             "--chmod=Dug=rwX,ugo+r",
             "--perms",
             "${r.localPlashetPath}",  // plashet we just created
-            "ocp-build@rcm-guest:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
+            "ocp-artifacts:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
     ].join(" "))
 
-    // So we have a yum repo out on rcm-guest. Now we need to name it 'building' so the
-    // doozer repo files (which have static urls back to rcm-guest) will resolve.
+    // So we have a yum repo out on ocp-artifacts. Now we need to name it 'building' so the
+    // doozer repo files (which have static urls back to ocp-artifacts) will resolve.
     def symlink = include_embargoed? "building-embargoed" : "building"
-    commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
+    commonlib.shell("ssh -t ocp-artifacts \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
 
     // If and only if we are building for "stream" assembly, replace the legacy symlink (e.g. puddles/RHAOS/plashets/{MAJOR}.{MINOR}-el8/building-embargoed) to stream/building-embargoed
     if (assembly == "stream") {
-        commonlib.shell("ssh -t ocp-build@rcm-guest \"cd ${destBaseDir}/..; ln -sfn stream/${symlink} ${symlink}\" ")
+        commonlib.shell("ssh -t ocp-artifacts \"cd ${destBaseDir}/..; ln -sfn stream/${symlink} ${symlink}\" ")
     }
     return r
 }
@@ -1567,14 +1565,14 @@ def build_plashets(doozerOpts, version, release, dryRun = false) {
         // Populate plashets_built
         plashets_built = readYaml(file: "$working_dir/plashets_built.yaml")
         echo "plashets_built: $plashets_built"
-        if (major > 4 || major == 4 && minor >= 6) { // 4.6+ already fully migrated; no need to create repos on rcm-guest.
+        if (major > 4 || major == 4 && minor >= 6) { // 4.6+ already fully migrated; no need to create repos on ocp-artifacts.
             return plashets_built
         }
-        // Continue to build and sync plashet repos out to rcm-guest until RHCOS starts consuming content from ocp-artifacts.
+        // Continue to build and sync plashet repos out to ocp-artifacts until RHCOS starts consuming content from ocp-artifacts.
         plashets_built = [:]
     }
 
-    // produce plashet repos on rcm-guest
+    // produce plashet repos on ocp-artifacts
     for (rhel_major in [7, 8, 9]) {  // TODO: should have a central list of these by version
         for (ironic in [true, false]) {
             for (priv in [true, false]) {

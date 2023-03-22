@@ -46,7 +46,7 @@ pkg_tar() {
 
 OSE_VERSION=$1
 VERSION=$2
-RPM_PATH=/mnt/rcm-guest/puddles/RHAOS/plashets/${OSE_VERSION}/building/%s/os/Packages
+RPM_PATH=/mnt/data/pub/RHOCP/plashets/${OSE_VERSION}/building/%s/os/Packages
 PKG=${3:-atomic-openshift}
 RPM=${PKG}-clients
 ARCH='aarch64 ppc64le s390x'

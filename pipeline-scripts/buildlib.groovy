@@ -624,16 +624,16 @@ def args_to_string(Object... args) {
 }
 
 /**
- * We need to execute some scripts directly from the rcm-guest host. To perform
+ * We need to execute some scripts directly from the ocp-artifacts host. To perform
  * those operations, we stream the script into stdin of an SSH bash invocation.
  * @param git_script_filename  The file in build-scripts/rcm-guest to execute
  * @param args A list of arguments to pass to script
  * @return Returns the stdout of the operation
  */
-def invoke_on_rcm_guest(git_script_filename, Object... args ) {
+def invoke_on_ocp_artifacts(git_script_filename, Object... args ) {
     return sh(
             returnStdout: true,
-            script: "ssh ocp-build@rcm-guest.app.eng.bos.redhat.com sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
+            script: "ssh ocp-artifacts sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
     ).trim()
 }
 

@@ -26,7 +26,7 @@ fi
 FULL_VERSION="${VERSION}-${RELEASE}"
 
 BUILD_MODE="${3}"
-BASEDIR="/mnt/rcm-guest/puddles/RHAOS"
+BASEDIR="/mnt/data/pub/RHOCP"
 MAJOR_MINOR=$(echo "${FULL_VERSION}" | cut -d . -f 1-2)
 
 REPO="enterprise-${MAJOR_MINOR}"

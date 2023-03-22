@@ -731,14 +731,8 @@ node {
             }
 
 
-            // Push the building puddle out to the correct directory on the mirrors (e.g. online-int, online-stg, or enterprise-X.Y)
-            buildlib.invoke_on_rcm_guest("3.11-plashet-to-rcm-guest.sh", SYMLINK_NAME, NEW_FULL_VERSION, BUILD_MODE)
-
-            // 3.11-plashet-to-rcm-guest.sh sets up a different puddle name on rcm-guest and the mirrors
             PLASHET = "v${NEW_FULL_VERSION}_${PLASHET}"
             final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
-
-            buildlib.invoke_on_rcm_guest("publish-oc-binary.sh", params.BUILD_VERSION, NEW_FULL_VERSION)
 
             stage("sweep") {
                 buildlib.sweep(params.BUILD_VERSION)

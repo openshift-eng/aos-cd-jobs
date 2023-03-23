@@ -22,11 +22,7 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    string(
-                        name: 'BUILD_VERSION',
-                        description: 'OCP release version',
-                        trim: true,
-                    ),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(
                         name: 'ASSEMBLY',
                         description: 'Which assembly contains the microshift to sync.',
@@ -37,9 +33,9 @@ node {
                         name: 'RHEL_TARGETS',
                         description: 'A space delimited list of target RHEL versions',
                         choices: [
-                            "8",
+                            "9,8",
                             "9",
-                            "8,9"
+                            "8",
                         ].join("\n"),
                     ),
                     string(
@@ -172,20 +168,18 @@ node {
 
         stage('Copy to mirror') {
             def release_name = assembly.startsWith('ec.') | assembly.startsWith('rc.') ? "${version}.0-${assembly}" : assembly
-            def client_type = 'ocp-dev-preview'
+            def client_type = assembly.startsWith('ec.')? 'ocp-dev-preview' : 'ocp'
             for (String rhel_target in rhel_targets) {
                 def repo_name = "el$rhel_target"
-                if (assembly.startsWith('ec.')) {
-                    echo "Copying ${repo_name} to public mirror..."
-                    for (arch in arches) {
-                        def mirror_src = "${STAGING_PLASHET_DIR}/${repo_name}/${arch}/os"
-                        def mirror_path = "/pub/openshift-v4/${arch}/microshift/${client_type}/${release_name}/${repo_name}/os"
-                        def latest_path = "/pub/openshift-v4/${arch}/microshift/${client_type}/latest-${version}/${repo_name}/os"
-                        withEnv(["https_proxy="]) {
-                            commonlib.syncRepoToS3Mirror(mirror_src, mirror_path, true, 10, dry_run)
-                            if (set_latest) {
-                                commonlib.syncRepoToS3Mirror(mirror_src, latest_path, true, 10, dry_run)
-                            }
+                echo "Copying ${repo_name} to public mirror..."
+                for (arch in arches) {
+                    def mirror_src = "${STAGING_PLASHET_DIR}/${repo_name}/${arch}/os"
+                    def mirror_path = "/pub/openshift-v4/${arch}/microshift/${client_type}/${release_name}/${repo_name}/os"
+                    def latest_path = "/pub/openshift-v4/${arch}/microshift/${client_type}/latest-${version}/${repo_name}/os"
+                    withEnv(["https_proxy="]) {
+                        commonlib.syncRepoToS3Mirror(mirror_src, mirror_path, true, 10, dry_run)
+                        if (set_latest) {
+                            commonlib.syncRepoToS3Mirror(mirror_src, latest_path, true, 10, dry_run)
                         }
                     }
                 }

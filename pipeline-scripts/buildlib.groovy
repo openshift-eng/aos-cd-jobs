@@ -633,7 +633,7 @@ def args_to_string(Object... args) {
 def invoke_on_ocp_artifacts(git_script_filename, Object... args ) {
     return sh(
             returnStdout: true,
-            script: "ssh ocp-artifacts sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/rcm-guest/${git_script_filename}",
+            script: "ssh ocp-artifacts sh -s ${this.args_to_string(args)} < ${env.WORKSPACE}/build-scripts/ocp-artifacts/${git_script_filename}",
     ).trim()
 }
 

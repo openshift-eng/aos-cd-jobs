@@ -49,16 +49,6 @@ node {
                         trim: true,
                     ),
                     booleanParam(
-                        name: 'UPDATE_POCKET',
-                        description: '(Do not do this unless requested) Update the private pocket on mirror.openshift.com',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
-                        name: 'UPDATE_PUB_MIRROR',
-                        description: '(For ECs) Update the public location on the mirror.openshift.com',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
                         name: 'SET_LATEST',
                         description: 'Set the latest link to point to this version',
                         defaultValue: true,
@@ -79,8 +69,6 @@ node {
     def assembly = params.ASSEMBLY
     def rhel_targets = commonlib.parseList(params.RHEL_TARGETS)
     def arches = params.ARCHES == 'all' ? commonlib.ocpReleaseState[version]["release"] : commonlib.parseList(params.ARCHES)
-    def update_pocket = params.UPDATE_POCKET
-    def update_pub_mirror = params.UPDATE_PUB_MIRROR
     def set_latest = params.SET_LATEST
     def dry_run = params.DRY_RUN
 
@@ -111,17 +99,8 @@ node {
             } else {
                 slackChannel.say(":construction: microshift_sync for ${currentBuild.displayName} :construction:")
             }
-            if (!update_pocket && !update_pub_mirror) {
-                error("One of UPDATE_PUB_MIRROR or UPDATE_PUB_MIRROR must be checked.")
-            }
-            if (update_pocket) {
-                currentBuild.displayName += " - pocket"
-            }
-            if (update_pub_mirror) {
+            if (assembly.startsWith('ec.')) {
                 currentBuild.displayName += " - pub mirror"
-                if (!assembly.startsWith('ec.') /*&& !assembly.startsWith('rc.')*/) {
-                     error("UPDATE_PUB_MIRROR only supports EC releases")
-                }
             }
             if (!arches) {
                 error("No arches configured.")
@@ -196,7 +175,7 @@ node {
             def client_type = 'ocp-dev-preview'
             for (String rhel_target in rhel_targets) {
                 def repo_name = "el$rhel_target"
-                if (update_pub_mirror) {
+                if (assembly.startsWith('ec.')) {
                     echo "Copying ${repo_name} to public mirror..."
                     for (arch in arches) {
                         def mirror_src = "${STAGING_PLASHET_DIR}/${repo_name}/${arch}/os"
@@ -207,18 +186,6 @@ node {
                             if (set_latest) {
                                 commonlib.syncRepoToS3Mirror(mirror_src, latest_path, true, 10, dry_run)
                             }
-                        }
-                    }
-                }
-                if (update_pocket) {
-                    echo "Copying ${repo_name} to private pocket..."
-                    def mirror_src = "${STAGING_PLASHET_DIR}/${repo_name}/"
-                    def mirror_path = "/pockets/microshift/${version}-${repo_name}/${assembly}"
-                    def latest_path = "/pockets/microshift/${version}-${repo_name}/latest"
-                    withEnv(["https_proxy="]) {
-                        commonlib.syncRepoToS3Mirror(mirror_src, mirror_path, true, 10, dry_run)
-                        if (set_latest) {
-                            commonlib.syncRepoToS3Mirror(mirror_src, latest_path, true, 10, dry_run)
                         }
                     }
                 }

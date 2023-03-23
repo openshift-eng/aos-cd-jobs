@@ -95,7 +95,8 @@ node {
                     cmd << "--default-advisories"
                 }
                 sshagent(["openshift-bot"]) {
-                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                    // pyartcd/pyartcd/util.py kinit uses these environment variables.
+                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'), file(credentialsId: 'exd-ocp-buildvm-bot-prod.keytab', variable: 'DISTGIT_KEYTAB_FILE'), string(credentialsId: 'exd-ocp-buildvm-bot-prod.user', variable: 'DISTGIT_KEYTAB_USER')]) {
                         echo "Will run ${cmd}"
                         output = commonlib.shell(script: cmd.join(' '), returnStdout: true)
                     }

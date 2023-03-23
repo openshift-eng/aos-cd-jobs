@@ -1,0 +1,25 @@
+name: Snyk Scan
+
+on: [ push, pull_request ]
+
+jobs:
+  snyk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Test for open source vulnerabilities and license issues.
+        uses: snyk/actions/python-3.8@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          COMMAND: "apt update -y && apt install -y rpm && pip install -r pyartcd/requirements.txt"
+        with:
+          command: test
+          args: --all-projects
+      - name: Test for any known security issues using Static Code Analysis.
+        uses: snyk/actions/python-3.8@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          COMMAND: "apt update -y && apt install -y rpm && pip install -r pyartcd/requirements.txt"
+        with:
+          command: code test
+          args: --all-projects

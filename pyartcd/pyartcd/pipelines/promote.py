@@ -39,7 +39,8 @@ yaml.default_flow_style = False
 class PromotePipeline:
     DEST_RELEASE_IMAGE_REPO = constants.RELEASE_IMAGE_REPO
 
-    def __init__(self, runtime: Runtime, group: str, assembly: str, ssl_cert: Optional[str], ssl_key: Optional[str],
+    def __init__(self, runtime: Runtime, group: str, ssl_cert: Optional[str], ssl_key: Optional[str], assembly: str,
+                 mail_list_success: str,
                  skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
                  skip_image_list: bool = False,
@@ -56,6 +57,7 @@ class PromotePipeline:
         self.ssl_cert = ssl_cert
         self.ssl_key = ssl_key
         self.assembly = assembly
+        self.mail_list_success = mail_list_success
         self.skip_blocker_bug_check = skip_blocker_bug_check
         self.skip_attached_bug_check = skip_attached_bug_check
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
@@ -431,6 +433,12 @@ class PromotePipeline:
         # validate rhsa
         for ad in list(filter(lambda ad: ad > 0, impetus_advisories.values())):
             await self.validate_rhsa_state(ad)
+
+        # send mail
+        dry_subject = "[DRY RUN] " if self.runtime.dry_run else ""
+        subject = f"{dry_subject}Success building release payload: {release_name}"
+        content = f"Jenkins Job: {os.environ.get('BUILD_URL')}\nPullSpecs: {','.join(pullspecs_repr)}\n"
+        await exectools.to_thread(self._mail.send_mail, self.mail_list_success, subject, content, archive_dir=f"{self._working_dir}/email", dry_run=self.runtime.dry_run)
 
         json.dump(data, sys.stdout)
 
@@ -1169,6 +1177,8 @@ class PromotePipeline:
 @click.option("--ssl-key", help="prod umb key for message broker connection")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
               help="The name of an assembly. e.g. 4.9.1")
+@click.option("--mail-list-success", metavar="MAIL_LIST_SUCCESS", required=False,
+              help="The list of mail when build success send to")
 @click.option("--skip-blocker-bug-check", is_flag=True,
               help="Skip blocker bug check. Note block bugs are never checked for CUSTOM and CANDIDATE releases.")
 @click.option("--skip-attached-bug-check", is_flag=True,
@@ -1190,7 +1200,8 @@ class PromotePipeline:
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
-async def promote(runtime: Runtime, group: str, assembly: str, ssl_cert: Optional[str], ssl_key: Optional[str],
+async def promote(runtime: Runtime, group: str, ssl_cert: Optional[str], ssl_key: Optional[str], assembly: str,
+                  mail_list_success: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   skip_build_microshift: bool,
@@ -1199,7 +1210,7 @@ async def promote(runtime: Runtime, group: str, assembly: str, ssl_cert: Optiona
                   skip_signing: bool,
                   skip_cincinnati_pr_creation: bool, skip_ota_slack_notification: bool,
                   use_multi_hack: bool):
-    pipeline = PromotePipeline(runtime, group, ssl_cert, ssl_key, assembly,
+    pipeline = PromotePipeline(runtime, group, ssl_cert, ssl_key, assembly, mail_list_success,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
                                skip_image_list,
                                skip_build_microshift,

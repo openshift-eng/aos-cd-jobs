@@ -1565,11 +1565,9 @@ def build_plashets(doozerOpts, version, release, dryRun = false) {
         // Populate plashets_built
         plashets_built = readYaml(file: "$working_dir/plashets_built.yaml")
         echo "plashets_built: $plashets_built"
-        if (major > 4 || major == 4 && minor >= 6) { // 4.6+ already fully migrated; no need to create repos on ocp-artifacts.
+        if (major > 4 || major == 4 && minor >= 6) {
             return plashets_built
         }
-        // Continue to build and sync plashet repos out to ocp-artifacts until RHCOS starts consuming content from ocp-artifacts.
-        plashets_built = [:]
     }
 
     // produce plashet repos on ocp-artifacts

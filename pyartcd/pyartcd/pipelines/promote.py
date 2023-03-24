@@ -43,7 +43,9 @@ class PromotePipeline:
                  skip_image_list: bool = False,
                  skip_build_microshift: bool = False,
                  permit_overwrite: bool = False,
-                 no_multi: bool = False, multi_only: bool = False, skip_signing: bool = False,
+                 no_multi: bool = False, multi_only: bool = False,
+                 skip_mirror_binaries: bool = False,
+                 skip_signing: bool = False,
                  use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
@@ -53,6 +55,7 @@ class PromotePipeline:
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
         self.skip_build_microshift = skip_build_microshift
+        self.skip_mirror_binaries = skip_mirror_binaries
         self.skip_signing = skip_signing
         self.permit_overwrite = permit_overwrite
 
@@ -361,6 +364,18 @@ class PromotePipeline:
         client_type = "ocp"
         if (assembly_type == assembly.AssemblyTypes.CANDIDATE and not self.assembly.startswith('rc.')) or assembly_type in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
             client_type = "ocp-dev-preview"
+        # mirror binaries
+        if not self.skip_mirror_binaries:
+            for arch in data['content']:
+                logger.info(f"Mirroring client binaries for {arch}")
+                if self.runtime.dry_run:
+                    logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
+                else:
+                    if arch != "multi":
+                        util.stagePublishClient(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
+                    else:
+                        util.stagePublishMultiClient(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
+
         # sign artifacts
         if not self.skip_signing:
             logger.info("Sign artifacts.")
@@ -1068,6 +1083,7 @@ class PromotePipeline:
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
 @click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
+@click.option("--skip-mirror-binaries", is_flag=True, help="Do not mirror client binaries to mirror")
 @click.option("--skip-signing", is_flag=True, help="Do not trigger signing job")
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
@@ -1076,12 +1092,16 @@ async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   skip_build_microshift: bool,
-                  permit_overwrite: bool, no_multi: bool, multi_only: bool, skip_signing: bool,
+                  permit_overwrite: bool, no_multi: bool, multi_only: bool,
+                  skip_mirror_binaries: bool,
+                  skip_signing: bool,
                   use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
                                skip_image_list,
                                skip_build_microshift,
-                               permit_overwrite, no_multi, multi_only, skip_signing,
+                               permit_overwrite, no_multi, multi_only,
+                               skip_mirror_binaries,
+                               skip_signing,
                                use_multi_hack)
     await pipeline.run()

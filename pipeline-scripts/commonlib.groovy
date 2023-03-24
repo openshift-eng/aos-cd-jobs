@@ -759,7 +759,7 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
     }
 }
 
-def syncDirToS3Mirror(local_dir, s3_path, include_only='', timeout_minutes=60) {
+def syncDirToS3Mirror(local_dir, s3_path, include_only='', timeout_minutes=60, delete_old=true) {
     try {
         checkS3Path(s3_path)
         extra_args = ""
@@ -767,10 +767,13 @@ def syncDirToS3Mirror(local_dir, s3_path, include_only='', timeout_minutes=60) {
             // --include only takes effect if files are excluded.
             extra_args = "--exclude '*' --include '${include_only}'"
         }
+        if (delete_old) {
+            extra_args += " --delete"
+        }
         withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
             retry(3) {
                 timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
-                    shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} --delete  ${local_dir} s3://art-srv-enterprise${s3_path}")
+                    shell(script: "aws s3 sync --no-progress --exact-timestamps ${extra_args} ${local_dir} s3://art-srv-enterprise${s3_path}")
                 }
             }
         }

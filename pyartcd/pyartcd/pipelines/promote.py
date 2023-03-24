@@ -48,6 +48,8 @@ class PromotePipeline:
                  no_multi: bool = False, multi_only: bool = False,
                  skip_mirror_binaries: bool = False,
                  skip_signing: bool = False,
+                 skip_cincinnati_pr_creation: bool = False,
+                 skip_ota_slack_notification: bool = False,
                  use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
@@ -61,6 +63,8 @@ class PromotePipeline:
         self.skip_build_microshift = skip_build_microshift
         self.skip_mirror_binaries = skip_mirror_binaries
         self.skip_signing = skip_signing
+        self.skip_cincinnati_pr_creation = skip_cincinnati_pr_creation
+        self.skip_ota_slack_notification = skip_ota_slack_notification
         self.permit_overwrite = permit_overwrite
 
         if multi_only and no_multi:
@@ -407,6 +411,22 @@ class PromotePipeline:
         if not self.skip_signing and assembly_type.value != "custom" and not self.runtime.dry_run:
             for arch in data["content"]:
                 self.send_ci_messages(arch, release_name, image_advisory, errata_url)
+
+        # create cincinnati prs
+        if assembly_type.value != "custom" and not self.skip_cincinnati_pr_creation and not self.runtime.dry_run:
+            logger.info("Create cincinnati prs")
+            job = self.jenkins_client.get_job("aos-cd-builds/build%2Fcincinnati-prs")
+            params = {
+                "FROM_RELEASE_TAG": from_release,
+                "RELEASE_NAME": release_name,
+                "ADVISORY_NUM": image_advisory if image_advisory else 0,
+                "GITHUB_ORG": "openshift",
+                "CANDIDATE_PR_NOTE": "\n".join(justification) if justification else "",
+                "SKIP_OTA_SLACK_NOTIFICATION": self.skip_ota_slack_notification,
+            }
+            build = job.invoke(build_params=params).block_until_building()
+            logger.info(f"trigger job: {build.get_build_url()}")
+            build.block_until_complete() if build.is_running() else None
 
         json.dump(data, sys.stdout)
 
@@ -1142,6 +1162,8 @@ class PromotePipeline:
 @click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
 @click.option("--skip-mirror-binaries", is_flag=True, help="Do not mirror client binaries to mirror")
 @click.option("--skip-signing", is_flag=True, help="Do not trigger signing job")
+@click.option("--skip-cincinnati-pr-creation", is_flag=True, help="Do not trigger cincinnati pr creation job")
+@click.option("--skip-ota-slack-notification", is_flag=True, help="Do not notify ota on slack")
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
@@ -1152,6 +1174,7 @@ async def promote(runtime: Runtime, group: str, assembly: str, ssl_cert: Optiona
                   permit_overwrite: bool, no_multi: bool, multi_only: bool,
                   skip_mirror_binaries: bool,
                   skip_signing: bool,
+                  skip_cincinnati_pr_creation: bool, skip_ota_slack_notification: bool,
                   use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, ssl_cert, ssl_key, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
@@ -1160,5 +1183,6 @@ async def promote(runtime: Runtime, group: str, assembly: str, ssl_cert: Optiona
                                permit_overwrite, no_multi, multi_only,
                                skip_mirror_binaries,
                                skip_signing,
+                               skip_cincinnati_pr_creation, skip_ota_slack_notification,
                                use_multi_hack)
     await pipeline.run()

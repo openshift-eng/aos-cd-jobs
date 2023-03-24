@@ -20,6 +20,7 @@ from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
+from pyartcd.jenkins import new_jenkins_client
 from pyartcd.oc import get_release_image_info
 from pyartcd.jenkins import trigger_build_microshift
 from pyartcd.runtime import Runtime
@@ -42,7 +43,8 @@ class PromotePipeline:
                  skip_image_list: bool = False,
                  skip_build_microshift: bool = False,
                  permit_overwrite: bool = False,
-                 no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
+                 no_multi: bool = False, multi_only: bool = False, skip_signing: bool = False,
+                 use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
@@ -51,6 +53,7 @@ class PromotePipeline:
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
         self.skip_build_microshift = skip_build_microshift
+        self.skip_signing = skip_signing
         self.permit_overwrite = permit_overwrite
 
         if multi_only and no_multi:
@@ -63,6 +66,7 @@ class PromotePipeline:
         self._logger = self.runtime.logger
         self._slack_client = self.runtime.new_slack_client()
         self._mail = self.runtime.new_mail_client()
+        self.jenkins_client = new_jenkins_client()
 
         self._working_dir = self.runtime.working_dir
         self._doozer_working_dir = self._working_dir / "doozer-working"
@@ -353,6 +357,32 @@ class PromotePipeline:
             if rhcos:
                 rhcos_version = rhcos["annotations"]["io.openshift.build.versions"].split("=")[1]  # machine-os=48.84.202112162302-0 => 48.84.202112162302-0
                 data["content"][arch]["rhcos_version"] = rhcos_version
+
+        client_type = "ocp"
+        if (assembly_type == assembly.AssemblyTypes.CANDIDATE and not self.assembly.startswith('rc.')) or assembly_type in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
+            client_type = "ocp-dev-preview"
+        # sign artifacts
+        if not self.skip_signing:
+            logger.info("Sign artifacts.")
+            job = self.jenkins_client.get_job("signing-jobs/signing%2Fsign-artifacts")
+            builds = []
+            for arch in data["content"]:
+                params = {
+                    "NAME": data["content"][arch]["metadata"]["version"],
+                    "SIGNATURE_NAME": "signature-1",
+                    "CLIENT_TYPE": client_type,
+                    "DRY_RUN": self.runtime.dry_run,
+                    "ENV": "prod",
+                    "KEY_NAME": "redhatrelease2" if client_type == "ocp" else "beta2",
+                    "ARCH": arch,
+                    "DIGEST": data["content"][arch]["digest"],
+                    "PRODUCT": "openshift",
+                }
+                build = job.invoke(build_params=params).block_until_building()
+                logger.info(f"trigger job: {build.get_build_url()}")
+                builds.append(build)
+            for b in builds:
+                b.block_until_complete() if b.is_running() else None
 
         json.dump(data, sys.stdout)
 
@@ -1038,6 +1068,7 @@ class PromotePipeline:
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
 @click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
+@click.option("--skip-signing", is_flag=True, help="Do not trigger signing job")
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
@@ -1045,10 +1076,12 @@ async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   skip_build_microshift: bool,
-                  permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
+                  permit_overwrite: bool, no_multi: bool, multi_only: bool, skip_signing: bool,
+                  use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
                                skip_image_list,
                                skip_build_microshift,
-                               permit_overwrite, no_multi, multi_only, use_multi_hack)
+                               permit_overwrite, no_multi, multi_only, skip_signing,
+                               use_multi_hack)
     await pipeline.run()

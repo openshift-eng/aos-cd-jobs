@@ -167,6 +167,9 @@ node {
         if (params.PERMIT_PAYLOAD_OVERWRITE) {
             cmd << "--permit-overwrite"
         }
+        if (params.SKIP_SIGNING) {
+            cmd << "--skip-signing"
+        }
         if (params.NO_MULTI) {
             cmd << "--no-multi"
         }
@@ -264,31 +267,6 @@ node {
             )
         }
         */
-    }
-
-    stage("sign artifacts") {
-        if (params.SKIP_SIGNING) {
-            echo "Signing artifacts is skipped."
-            return
-        }
-        release_info.content.each { arch, info ->
-            def payloadDigest = release_info.content[arch].digest
-            // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
-            // Using the real per-arch release name in $info instead of the one defined by release artists.
-            def release_name = info.metadata.version
-            echo "Signing $arch"
-            release.signArtifacts(
-                name: release_name,
-                signature_name: "signature-1",
-                dry_run: params.DRY_RUN,
-                env: "prod",
-                key_name: client_type=='ocp'?"redhatrelease2":"beta2",
-                arch: arch,
-                digest: payloadDigest,
-                client_type: client_type,
-                product: "openshift",
-            )
-        }
     }
 
     stage("send release message") {

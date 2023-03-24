@@ -428,6 +428,10 @@ class PromotePipeline:
             logger.info(f"trigger job: {build.get_build_url()}")
             build.block_until_complete() if build.is_running() else None
 
+        # validate rhsa
+        for ad in list(filter(lambda ad: ad > 0, impetus_advisories.values())):
+            await self.validate_rhsa_state(ad)
+
         json.dump(data, sys.stdout)
 
     @staticmethod
@@ -553,6 +557,25 @@ class PromotePipeline:
         if not isinstance(advisory_info, dict):
             raise ValueError(f"Got invalid advisory info for advisory {advisory}: {advisory_info}.")
         return advisory_info
+
+    async def validate_rhsa_state(self, advisory: int):
+        cmd = [
+            "elliott",
+            "validate-rhsa",
+            str(advisory),
+        ]
+        async with self._elliott_lock:
+            status, stdout, _ = await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars, stderr=None)
+        if status != 0:
+            msg = f"""
+                    Review of CVE situation required for advisory <https://errata.devel.redhat.com/advisory/{advisory}|{advisory}>.
+                    Report:
+                    ```
+                    {stdout}
+                    ```
+                    Note: For GA image advisories this is expected to fail.
+                """
+            await self._slack_client.say(msg)
 
     async def _build_microshift(self, releases_config):
         if self.skip_build_microshift:

@@ -12,6 +12,8 @@ from urllib.parse import quote
 
 import aiohttp
 import click
+import datetime
+import stomp
 # from pyartcd.cincinnati import CincinnatiAPI
 from doozerlib import assembly
 from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
@@ -37,7 +39,7 @@ yaml.default_flow_style = False
 class PromotePipeline:
     DEST_RELEASE_IMAGE_REPO = constants.RELEASE_IMAGE_REPO
 
-    def __init__(self, runtime: Runtime, group: str, assembly: str,
+    def __init__(self, runtime: Runtime, group: str, assembly: str, ssl_cert: Optional[str], ssl_key: Optional[str],
                  skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
                  skip_image_list: bool = False,
@@ -49,6 +51,8 @@ class PromotePipeline:
                  use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
+        self.ssl_cert = ssl_cert
+        self.ssl_key = ssl_key
         self.assembly = assembly
         self.skip_blocker_bug_check = skip_blocker_bug_check
         self.skip_attached_bug_check = skip_attached_bug_check
@@ -399,6 +403,11 @@ class PromotePipeline:
             for b in builds:
                 b.block_until_complete() if b.is_running() else None
 
+        # send release CI message
+        if not self.skip_signing and assembly_type.value != "custom" and not self.runtime.dry_run:
+            for arch in data["content"]:
+                self.send_ci_messages(arch, release_name, image_advisory, errata_url)
+
         json.dump(data, sys.stdout)
 
     @staticmethod
@@ -420,6 +429,52 @@ class PromotePipeline:
             raise ValueError("A justification is required to permit issue %s.", code)
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
+
+    def send_ci_messages(self, arch, releaseName, advisoryNumber, advisoryLiveUrl):
+        msg = {
+            "contact": {
+                "url": "https://mojo.redhat.com/docs/DOC-1178565",
+                "team": "OpenShift Automatic Release Team (ART)",
+                "email": "aos-team-art@redhat.com",
+                "name": "ART Jobs",
+                "slack": "#aos-art",
+            },
+            "run": {
+                "url": self.runtime.get_job_run_url(),
+                "log": f"{self.runtime.get_job_run_url()}/console",
+            },
+            "artifact": {
+                "type": "ocp-release",
+                "name": "ocp-release",
+                "version": releaseName,
+                "nvr": f"ocp-release-{releaseName}",
+                "architecture": arch,
+                "release_stream": "4-stable",
+                "release": {"name": releaseName},
+                "advisory": {
+                    "number": advisoryNumber,
+                    "live_url": advisoryLiveUrl,
+                },
+            },
+            "generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "version": "0.2.3",
+        }
+        headers = {
+            "messageType": "Custom",
+            "release": releaseName,
+            "release_stream": "4-stable",
+            "product": "OpenShift Container Platform",
+            "providerName": "Red Hat UMB",
+        }
+        conn = stomp.Connection11(host_and_ports=constants.UMB_CI_Broker)
+        conn.set_ssl(
+            for_hosts=constants.UMB_CI_Broker,
+            cert_file=self.ssl_cert,
+            key_file=self.ssl_key,
+        )
+        conn.connect()
+        conn.send(body=msg, headers=headers, destination=constants.PROMOTE_TOPIC)
+        conn.disconnect()
 
     async def change_advisory_state(self, advisory: int, state: str):
         cmd = [
@@ -1067,6 +1122,8 @@ class PromotePipeline:
 @cli.command("promote")
 @click.option("-g", "--group", metavar='NAME', required=True,
               help="The group of components on which to operate. e.g. openshift-4.9")
+@click.option("--ssl-cert", help="prod umb certificate for message broker connection")
+@click.option("--ssl-key", help="prod umb key for message broker connection")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
               help="The name of an assembly. e.g. 4.9.1")
 @click.option("--skip-blocker-bug-check", is_flag=True,
@@ -1088,7 +1145,7 @@ class PromotePipeline:
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
-async def promote(runtime: Runtime, group: str, assembly: str,
+async def promote(runtime: Runtime, group: str, assembly: str, ssl_cert: Optional[str], ssl_key: Optional[str],
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   skip_build_microshift: bool,
@@ -1096,7 +1153,7 @@ async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_mirror_binaries: bool,
                   skip_signing: bool,
                   use_multi_hack: bool):
-    pipeline = PromotePipeline(runtime, group, assembly,
+    pipeline = PromotePipeline(runtime, group, ssl_cert, ssl_key, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
                                skip_image_list,
                                skip_build_microshift,

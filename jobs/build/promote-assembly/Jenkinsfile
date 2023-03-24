@@ -190,8 +190,12 @@ node {
             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'],
                              string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                              string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                             file(credentialsId: "0xffe0b38-openshift-art-bot.crt", variable: 'busCertificate'),
+                             file(credentialsId: "0xffe0b38-openshift-art-bot.key", variable: 'busKey'),
                              string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                              string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                cmd << "--ssl-cert" << "${busCertificate}"
+                cmd << "--ssl-key" << "${busKey}"
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)
@@ -246,28 +250,6 @@ node {
             )
         }
         */
-    }
-
-    stage("send release message") {
-        if (release_info.type == "custom") {
-            echo "Don't send release messages for a custom release."
-            return
-        }
-        if (params.SKIP_SIGNING) {
-            echo "Don't send release messages because SKIP_SIGNING is set."
-            return
-        }
-        if (params.DRY_RUN) {
-            echo "DRY_RUN: Would have sent release messages."
-            return
-        }
-
-        release_info.content.each { arch, info ->
-            // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
-            // Using the real per-arch release name in $info instead of the one defined by release artists.
-            def release_name = info.metadata.version
-            release.sendReleaseCompleteMessage(["name": release_name], release_info.advisory ?: 0, release_info.live_url, arch)
-        }
     }
 
     stage("channel prs") {

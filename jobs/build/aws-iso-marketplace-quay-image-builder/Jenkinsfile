@@ -176,9 +176,16 @@ pipeline {
                             commonlib.shell("""
                             aws ec2 modify-image-attribute --region ${region} --image-id ${ami_id} --launch-permission "Add=[{UserId=${SHARE_ACCOUNT}}]"
                             """)
+
                             // Share with Dev staging account https://issues.redhat.com/browse/ART-5510
                             commonlib.shell("""
                             aws ec2 modify-image-attribute --region ${region} --image-id ${ami_id} --launch-permission "Add=[{UserId=${DEV_SHARE_ACCOUNT}}]"
+                            """)
+
+                            // Share EBS snapshots so that image can be copied between regions
+                            commonlib.shell("""
+                            ami_snapshot_id=`aws ec2 describe-images --region ${region} --image-ids ${ami_id} --query 'Images[*].BlockDeviceMappings[*].Ebs.SnapshotId' --output text`
+                            aws ec2 modify-snapshot-attribute --region ${region} --snapshot-id \$ami_snapshot_id --attribute createVolumePermission --operation-type add --user-ids ${SHARE_ACCOUNT} ${DEV_SHARE_ACCOUNT}
                             """)
                         }
                     }

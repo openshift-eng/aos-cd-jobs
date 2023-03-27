@@ -43,6 +43,7 @@ class BuildRhcosPipeline:
         self.ignore_running = ignore_running
         self.version = version
         self.api_token = None
+        self._stream = None # rhcos stream the version maps to
 
         self.request_session = requests.Session()
         retries = Retry(
@@ -113,10 +114,33 @@ class BuildRhcosPipeline:
 
         return [b for b in builds if b["parameters"].get("STREAM") == self.version]
 
+    @property
+    def stream(self):
+        if self._stream:
+            return self._stream
+
+        # doozer --quiet -g openshift-4.14 config:read-group urls.rhcos_release_base.multi --default ''
+        # https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/4.14-9.2/builds
+        cmd = [
+            "doozer",
+            "--quiet",
+            "--group", f'openshift-{self.version}',
+            "config:read-group",
+            "urls.rhcos_release_base.multi",
+            "--default ''"
+        ]
+        _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None)
+        match = re.search(r'streams/(.*)/builds', stdout)
+        if match:
+            self._stream = match[1]
+        else:
+            self._stream = self.version
+        return self._stream
+
     def start_build(self):
         """Start a new build for the given version"""
         # determine parameters
-        params = dict(STREAM=self.version, EARLY_ARCH_JOBS="false")
+        params = dict(STREAM=self.stream, EARLY_ARCH_JOBS="false")
         if self.new_build:
             params["FORCE"] = "true"
 

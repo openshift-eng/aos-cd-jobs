@@ -129,7 +129,13 @@ class BuildRhcosPipeline:
             "urls.rhcos_release_base.multi",
             "--default ''"
         ]
-        _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None)
+        _LOGGER.info("Running command: %s", cmd)
+        result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=False, universal_newlines=True)
+        if result.returncode != 0:
+            raise IOError(
+                f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}"
+            )
+        _LOGGER.info(result.stdout)
         match = re.search(r'streams/(.*)/builds', stdout)
         if match:
             self._stream = match[1]

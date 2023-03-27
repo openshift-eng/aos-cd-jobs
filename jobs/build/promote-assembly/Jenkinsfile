@@ -222,6 +222,21 @@ node {
     }
 
     stage("sync RHCOS") {
+
+        /* Sync potential pre-release source on which RHCOS depends. See ART-6419 for details. */
+        if ( major > 4 || (major == 4 && minor >= 13) ) {
+            if (release_info.type == 'candidate' || release_info.type == 'standard') {
+                def src_output_dir = "${WORKSPACE}/rhcos_src_staging"
+                sh "rm -rf ${src_output_dir}"
+                for (arch in arches) {
+                    arch = commonlib.brewArchForGoArch(arch)
+                    def rhcos_build = release_info.content[arch].rhcos_version
+                    buildlib.doozer("--group openshift-${major}.${minor} --assembly ${params.ASSEMBLY} config:rhcos-srpms --version ${rhcos_build} --arch ${arch} -o ${src_output_dir}")
+                }
+                commonlib.syncDirToS3Mirror("${src_output_dir}/", "/pub/openshift-v4/sources/packages/", delete_old=false)
+            }
+        }
+
         /*
          * This has inappropriate logic, disabling it for now.
          * Current behavior is to look up rhcos version of machine-os-content

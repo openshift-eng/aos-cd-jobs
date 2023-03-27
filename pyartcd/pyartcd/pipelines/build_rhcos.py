@@ -202,7 +202,7 @@ class BuildRhcosPipeline:
                 if spec not in new_builds_seen and spec not in completed_builds:
                     completed_builds[spec] = completed = self.build_result(*spec)
                     if completed:  # silently ignore if it's somehow not there... should never happen
-                        _LOGGER.info(f"{completed['url']} finished with {completed['result']}: '{completed['description']}'")
+                        print(f"{completed['url']} finished with {completed['result']}: '{completed['description']}'", file=sys.stderr)
 
             # if there are no builds left running, we're done
             if not new_builds_seen:
@@ -212,9 +212,9 @@ class BuildRhcosPipeline:
             for spec, description in new_builds_seen.items():
                 job, number = spec
                 if spec not in builds_seen:
-                    _LOGGER.info(f"New build #{number} of {job} job: {self.build_url(job, number)}")
+                    print(f"New build #{number} of {job} job: {self.build_url(job, number)}", file=sys.stderr)
                 elif description != builds_seen[spec]:
-                    _LOGGER.info(f"Build #{number} of {job} job update: '{description}'")
+                    print(f"Build #{number} of {job} job update: '{description}'", file=sys.stderr)
 
             builds_seen = new_builds_seen
             time.sleep(10)

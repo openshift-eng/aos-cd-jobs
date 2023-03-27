@@ -92,7 +92,7 @@ node {
                         text = sh(returnStdout: true, script: """
                               no_proxy=api.ocp-virt.prod.psi.redhat.com,\$no_proxy \\
                               artcd ${dryrun} --config=./config/artcd.toml build-rhcos --version=${params.BUILD_VERSION} \\
-                              --ignore-running=${params.IGNORE_RUNNING} --new-build=${params.NEW_BUILD}
+                                --ignore-running=${params.IGNORE_RUNNING} --new-build=${params.NEW_BUILD}
                         """)
                         echo text
                         if (params.DRY_RUN) {

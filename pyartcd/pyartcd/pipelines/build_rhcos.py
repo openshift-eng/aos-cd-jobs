@@ -8,6 +8,8 @@ import base64
 import json
 import time
 import sys
+import subprocess
+from subprocess import PIPE
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from typing import List, Dict, Tuple
@@ -44,6 +46,7 @@ class BuildRhcosPipeline:
         self.version = version
         self.api_token = None
         self._stream = None # rhcos stream the version maps to
+        self.dry_run = self.runtime.dry_run
 
         self.request_session = requests.Session()
         retries = Retry(
@@ -71,6 +74,8 @@ class BuildRhcosPipeline:
             # happen we will see a build start, assume we started it, and watch it to completion.
             # this seems unlikely to cause any problems other than mild confusion.
             self.start_build()
+            if self.dry_run:
+                print('DRY RUN - Exiting', file=sys.stderr)
             result["action"] = "build"
             result["builds"] = self.wait_for_builds()
 
@@ -127,16 +132,13 @@ class BuildRhcosPipeline:
             "--group", f'openshift-{self.version}',
             "config:read-group",
             "urls.rhcos_release_base.multi",
-            "--default ''"
+            "--default",
+            "''"
         ]
-        _LOGGER.info("Running command: %s", cmd)
         result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=False, universal_newlines=True)
         if result.returncode != 0:
-            raise IOError(
-                f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}"
-            )
-        _LOGGER.info(result.stdout)
-        match = re.search(r'streams/(.*)/builds', stdout)
+            raise IOError(f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}")
+        match = re.search(r'streams/(.*)/builds', result.stdout)
         if match:
             self._stream = match[1]
         else:
@@ -149,10 +151,14 @@ class BuildRhcosPipeline:
         params = dict(STREAM=self.stream, EARLY_ARCH_JOBS="false")
         if self.new_build:
             params["FORCE"] = "true"
+        job_url = f"{JENKINS_BASE_URL}/job/build/buildWithParameters"
+        if self.dry_run:
+            print(f"Would've started build at url={job_url} with params={params}", file=sys.stderr)
+            return {}
 
         # start the build
         self.request_session.post(
-            f"{JENKINS_BASE_URL}/job/build/buildWithParameters",
+            job_url,
             data=params,
         )
 
@@ -196,7 +202,7 @@ class BuildRhcosPipeline:
                 if spec not in new_builds_seen and spec not in completed_builds:
                     completed_builds[spec] = completed = self.build_result(*spec)
                     if completed:  # silently ignore if it's somehow not there... should never happen
-                        print(f"{completed['url']} finished with {completed['result']}: '{completed['description']}'", file=sys.stderr)
+                        _LOGGER.info(f"{completed['url']} finished with {completed['result']}: '{completed['description']}'")
 
             # if there are no builds left running, we're done
             if not new_builds_seen:
@@ -206,9 +212,9 @@ class BuildRhcosPipeline:
             for spec, description in new_builds_seen.items():
                 job, number = spec
                 if spec not in builds_seen:
-                    print(f"New build #{number} of {job} job: {self.build_url(job, number)}", file=sys.stderr)
+                    _LOGGER.info(f"New build #{number} of {job} job: {self.build_url(job, number)}")
                 elif description != builds_seen[spec]:
-                    print(f"Build #{number} of {job} job update: '{description}'", file=sys.stderr)
+                    _LOGGER.info(f"Build #{number} of {job} job update: '{description}'")
 
             builds_seen = new_builds_seen
             time.sleep(10)

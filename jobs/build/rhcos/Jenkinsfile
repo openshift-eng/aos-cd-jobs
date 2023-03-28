@@ -39,6 +39,11 @@ node {
                         description: '(Multi pipeline only) Request a build from the RHCOS pipeline even if one is already in progress (instead of aborting like usual). Still only one runs at a time. Only for use by humans, really, and you probably want NEW_BUILD with this.',
                         defaultValue: false,
                     ),
+                    booleanParam(
+                        name: "DRY_RUN",
+                        description: "Take no action, just echo what the job would have done.",
+                        defaultValue: false
+                    ),
                 ]
             ],
         ]
@@ -65,7 +70,8 @@ node {
         // Disabling compose lock for now. Ideally we achieve a stable repo for RHCOS builds in the future,
         // but for now, being this strict is slowing down the delivery of nightlies.
         //lock("compose-lock-${params.BUILD_VERSION}") {
-        lock(resource: "rhcos-lock-${params.BUILD_VERSION}", skipIfLocked: true) {  // wait for all to succeed or fail for this version before starting more
+        def lockval = params.DRY_RUN ? "rhcos-lock-${params.BUILD_VERSION}-dryrun" : "rhcos-lock-${params.BUILD_VERSION}"
+        lock(resource: lockval, skipIfLocked: true) {  // wait for all to succeed or fail for this version before starting more
             skipBuild = false
 
             // Check if urls.rhcos_release_base.multi is defined in group.yml
@@ -78,15 +84,21 @@ node {
                 def jenkins_url = 'https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com'
                 commonlib.shell(script: "pip install -e ./pyartcd && rm -rf ./artcd_working && mkdir -p ./artcd_working")
 
+                def dryrun = params.DRY_RUN ? '--dry-run' : ''
                 def run_multi_build = {
                     withCredentials([file(credentialsId: kubeconfigs['multi'], variable: 'KUBECONFIG')]) {
                         // we want to see the stderr as it runs, so will not capture with commonlib.shell;
                         // but somehow it is buffering the stderr anyway and [lmeyer] cannot figure out why.
                         text = sh(returnStdout: true, script: """
                               no_proxy=api.ocp-virt.prod.psi.redhat.com,\$no_proxy \\
-                              artcd --config=./config/artcd.toml build-rhcos --version=${params.BUILD_VERSION} \\
-                                    --ignore-running=${params.IGNORE_RUNNING} --new-build=${params.NEW_BUILD}
+                              artcd ${dryrun} --config=./config/artcd.toml build-rhcos --version=${params.BUILD_VERSION} \\
+                                --ignore-running=${params.IGNORE_RUNNING} --new-build=${params.NEW_BUILD}
                         """)
+                        echo text
+                        if (params.DRY_RUN) {
+                            skipBuild = true
+                            return
+                        }
                         data = readJSON text: text
                         if (data["action"] == "skip") {
                             skipBuild = true

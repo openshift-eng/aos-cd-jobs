@@ -17,6 +17,7 @@ import tarfile
 import hashlib
 import shutil
 import urllib.request
+import urllib.parse
 import requests
 import subprocess
 import stomp
@@ -507,45 +508,57 @@ class PromotePipeline:
         self.create_symlink(CLIENT_MIRROR_DIR, False, False)
 
         if minor > 0:
-            try:
-                # To encourage customers to explore dev-previews & pre-GA releases, populate changelog
-                # https://issues.redhat.com/browse/ART-3040
-                prevMinor = minor - 1
-                rcURL = util.get_release_controller_url(release_name)
-                rcArch = util.get_release_controller_arch(release_name)
-                stableStream = "4-stable" if rcArch == "amd64" else f"4-stable-{rcArch}"
-                outputDest = f"{CLIENT_MIRROR_DIR}/changelog.html"
-                outputDestMd = f"{CLIENT_MIRROR_DIR}/changelog.md"
-
-                # If the previous minor is not yet GA, look for the latest fc/rc/ec. If the previous minor is GA, this should
-                # always return 4.m.0.
-                url = 'https://amd64.ocp.releases.ci.openshift.org/api/v1/releasestream/4-stable/latest'
-                full_url = f"{url}?{urllib.parse.urlencode({'in': f'=>4.{prevMinor}.0-0 <4.{prevMinor}.1'})}"
-                with urllib.request.urlopen(full_url) as response:
-                    data = json.load(response)
-                prevGA = data['name']
-                # See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
-                check = requests.get(f"{rcURL}/releasestream/{stableStream}/release/{prevGA}", timeout=30)
-                if check.status_code == 200:
-                    # If prevGA is known to the release controller, compute the changelog html
-                    response = requests.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html", timeout=180)
-                    with open(outputDest, 'w') as f:
-                        f.write(response.text)
-                    # Also collect the output in markdown for SD to consume
-                    response = requests.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}", timeout=180)
-                    with open(outputDestMd, 'w') as f:
-                        f.write(response.text)
-                else:
-                    with open(outputDest, 'w') as f:
-                        f.write(f"<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.</p></body></html>")
-                    with open(outputDestMd, 'w') as f:
-                        f.write(f"Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.")
-            except Exception as e:
-                self._logger.error("Error generating changelog for release")
-                raise e
+            self.generate_changelog(release_name, CLIENT_MIRROR_DIR, minor)
 
         # extract opm binaries
         operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
+        self.extract_opm(CLIENT_MIRROR_DIR, release_name, operator_registry, arch)
+
+        util.print_dir_tree(CLIENT_MIRROR_DIR)  # print dir tree
+        util.print_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
+
+        # Publish the clients to our S3 bucket.
+        subprocess.run(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", shell=True, check=True)
+
+    def generate_changelog(self, release_name, client_mirror_dir, minor):
+        try:
+            # To encourage customers to explore dev-previews & pre-GA releases, populate changelog
+            # https://issues.redhat.com/browse/ART-3040
+            prevMinor = minor - 1
+            rcURL = util.get_release_controller_url(release_name)
+            rcArch = util.get_release_controller_arch(release_name)
+            stableStream = "4-stable" if rcArch == "amd64" else f"4-stable-{rcArch}"
+            outputDest = f"{client_mirror_dir}/changelog.html"
+            outputDestMd = f"{client_mirror_dir}/changelog.md"
+
+            # If the previous minor is not yet GA, look for the latest fc/rc/ec. If the previous minor is GA, this should
+            # always return 4.m.0.
+            url = 'https://amd64.ocp.releases.ci.openshift.org/api/v1/releasestream/4-stable/latest'
+            full_url = f"{url}?{urllib.parse.urlencode({'in': f'=>4.{prevMinor}.0-0 <4.{prevMinor}.1'})}"
+            with urllib.request.urlopen(full_url) as response:
+                data = json.load(response)
+            prevGA = data['name']
+            # See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
+            check = requests.get(f"{rcURL}/releasestream/{stableStream}/release/{prevGA}", timeout=30)
+            if check.status_code == 200:
+                # If prevGA is known to the release controller, compute the changelog html
+                response = requests.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html", timeout=180)
+                with open(outputDest, 'w') as f:
+                    f.write(response.text)
+                # Also collect the output in markdown for SD to consume
+                response = requests.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}", timeout=180)
+                with open(outputDestMd, 'w') as f:
+                    f.write(response.text)
+            else:
+                with open(outputDest, 'w') as f:
+                    f.write(f"<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.</p></body></html>")
+                with open(outputDestMd, 'w') as f:
+                    f.write(f"Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.")
+        except Exception as e:
+            self._logger.error("Error generating changelog for release")
+            raise e
+
+    def extract_opm(self, client_mirror_dir, release_name, operator_registry, arch):
         binaries = ['opm']
         platforms = ['linux']
         if arch == 'x86_64':  # For x86_64, we have binaries for macOS and Windows
@@ -553,10 +566,10 @@ class PromotePipeline:
             platforms += ['mac', 'windows']
         path_args = []
         for binary in binaries:
-            path_args.append(f'--path=/usr/bin/registry/{binary}:{CLIENT_MIRROR_DIR}')
+            path_args.append(f'--path=/usr/bin/registry/{binary}:{client_mirror_dir}')
         extract_release_binary(operator_registry, path_args)
         # Compress binaries into tar.gz files and calculate sha256 digests
-        os.chdir(CLIENT_MIRROR_DIR)
+        os.chdir(client_mirror_dir)
         for idx, binary in enumerate(binaries):
             platform = platforms[idx]
             os.chmod(binary, 0o755)
@@ -568,12 +581,6 @@ class PromotePipeline:
                 shasum = hashlib.sha256(f.read()).hexdigest()
             with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
                 f.write(f"{shasum} opm-{platform}-{release_name}.tar.gz")
-
-        util.print_dir_tree(CLIENT_MIRROR_DIR)  # print dir tree
-        util.print_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
-
-        # Publish the clients to our S3 bucket.
-        subprocess.run(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", shell=True, check=True)
 
     def publish_multi_client(self, working_dir, from_release_tag, release_name, client_type):
         subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")

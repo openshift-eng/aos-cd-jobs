@@ -16,9 +16,7 @@ import datetime
 import tarfile
 import hashlib
 import shutil
-import urllib.request
 import urllib.parse
-import requests
 import subprocess
 import stomp
 # from pyartcd.cincinnati import CincinnatiAPI
@@ -390,9 +388,9 @@ class PromotePipeline:
                     logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
                 else:
                     if arch != "multi":
-                        self.publish_client(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
+                        await self.publish_client(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
                     else:
-                        self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
+                        await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
 
         # sign artifacts
         if not self.skip_signing:
@@ -439,8 +437,10 @@ class PromotePipeline:
             build.block_until_complete() if build.is_running() else None
 
         # validate rhsa
+        tasks = []
         for ad in list(filter(lambda ad: ad > 0, impetus_advisories.values())):
-            await self.validate_rhsa_state(ad)
+            tasks.append(self.validate_rhsa_state(ad))
+        await asyncio.gather(*tasks)
 
         # send mail
         dry_subject = "[DRY RUN] " if self.runtime.dry_run else ""
@@ -470,7 +470,7 @@ class PromotePipeline:
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
 
-    def publish_client(self, working_dir, from_release_tag, release_name, arch, client_type):
+    async def publish_client(self, working_dir, from_release_tag, release_name, arch, client_type):
         subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
         minor = release_name.split(".")[1]
         quay_url = constants.QUAY_URL
@@ -508,7 +508,7 @@ class PromotePipeline:
         self.create_symlink(CLIENT_MIRROR_DIR, False, False)
 
         if minor > 0:
-            self.generate_changelog(release_name, CLIENT_MIRROR_DIR, minor)
+            await self.generate_changelog(release_name, CLIENT_MIRROR_DIR, minor)
 
         # extract opm binaries
         operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
@@ -518,9 +518,9 @@ class PromotePipeline:
         util.print_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
 
         # Publish the clients to our S3 bucket.
-        subprocess.run(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", shell=True, check=True)
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
 
-    def generate_changelog(self, release_name, client_mirror_dir, minor):
+    async def generate_changelog(self, release_name, client_mirror_dir, minor):
         try:
             # To encourage customers to explore dev-previews & pre-GA releases, populate changelog
             # https://issues.redhat.com/browse/ART-3040
@@ -535,25 +535,29 @@ class PromotePipeline:
             # always return 4.m.0.
             url = 'https://amd64.ocp.releases.ci.openshift.org/api/v1/releasestream/4-stable/latest'
             full_url = f"{url}?{urllib.parse.urlencode({'in': f'=>4.{prevMinor}.0-0 <4.{prevMinor}.1'})}"
-            with urllib.request.urlopen(full_url) as response:
-                data = json.load(response)
-            prevGA = data['name']
             # See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
-            check = requests.get(f"{rcURL}/releasestream/{stableStream}/release/{prevGA}", timeout=30)
-            if check.status_code == 200:
-                # If prevGA is known to the release controller, compute the changelog html
-                response = requests.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html", timeout=180)
-                with open(outputDest, 'w') as f:
-                    f.write(response.text)
-                # Also collect the output in markdown for SD to consume
-                response = requests.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}", timeout=180)
-                with open(outputDestMd, 'w') as f:
-                    f.write(response.text)
-            else:
-                with open(outputDest, 'w') as f:
-                    f.write(f"<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.</p></body></html>")
-                with open(outputDestMd, 'w') as f:
-                    f.write(f"Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.")
+            async with aiohttp.ClientSession() as session:
+                async with session.get(full_url) as response:
+                    text = await response.json()
+                    data = json.load(text)
+                    prevGA = data['name']
+                async with session.get(f"{rcURL}/releasestream/{stableStream}/release/{prevGA}") as response:
+                    if response.status == 200:
+                        # If prevGA is known to the release controller, compute the changelog html
+                        async with session.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html") as response:
+                            text = await response.text()
+                            with open(outputDest, 'w') as f:
+                                f.write(await response.text())
+                        # Also collect the output in markdown for SD to consume
+                        async with session.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html") as response:
+                            text = await response.text()
+                            with open(outputDestMd, 'w') as f:
+                                f.write(text)
+                    else:
+                        with open(outputDest, 'w') as f:
+                            f.write(f"<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.</p></body></html>")
+                        with open(outputDestMd, 'w') as f:
+                            f.write(f"Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.")
         except Exception as e:
             self._logger.error("Error generating changelog for release")
             raise e
@@ -582,7 +586,7 @@ class PromotePipeline:
             with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
                 f.write(f"{shasum} opm-{platform}-{release_name}.tar.gz")
 
-    def publish_multi_client(self, working_dir, from_release_tag, release_name, client_type):
+    async def publish_multi_client(self, working_dir, from_release_tag, release_name, client_type):
         subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
         # Anything under this directory will be sync'd to the mirror
         BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"
@@ -603,10 +607,20 @@ class PromotePipeline:
 
         # Create a master sha256sum.txt including the sha256sum.txt files from all subarches
         # This is the file we will sign -- trust is transitive to the subarches
-        subprocess.run(f"cd {RELEASE_MIRROR_DIR};sha256sum */sha256sum.txt > {RELEASE_MIRROR_DIR}/sha256sum.txt", shell=True, check=True)
+        os.chdir(RELEASE_MIRROR_DIR)
+        for dir in os.listdir(RELEASE_MIRROR_DIR):
+            if not os.path.isdir(os.path.join(RELEASE_MIRROR_DIR, dir)):
+                continue
+            for root, dirs, files in os.walk(os.path.join(RELEASE_MIRROR_DIR, dir)):
+                if "sha256sum.txt" not in files:
+                    continue
+                with open(os.path.join(root, "sha256sum.txt"), "rb") as f:
+                    shasum = hashlib.sha256(f.read()).hexdigest()
+                with open(f"{RELEASE_MIRROR_DIR}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
+                    f.write(f"{shasum} {dir}/sha256sum.txt")
 
         # Publish the clients to our S3 bucket.
-        subprocess.run(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", shell=True, check=True)
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
 
     def create_symlink(self, path_to_dir, print_tree, print_file):
         # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .

@@ -382,9 +382,9 @@ class PromotePipeline:
                     logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
                 else:
                     if arch != "multi":
-                        util.stagePublishClient(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
+                        util.publish_client(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
                     else:
-                        util.stagePublishMultiClient(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
+                        util.publish_multi_client(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
 
         # sign artifacts
         if not self.skip_signing:

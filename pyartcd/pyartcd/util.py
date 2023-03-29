@@ -277,7 +277,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     return True
 
 
-def getReleaseControllerArch(releaseStreamName):
+def get_release_controller_arch(releaseStreamName):
     arch = 'amd64'
     streamNameComponents = releaseStreamName.split('-')
     for goArch in goArches:
@@ -286,12 +286,12 @@ def getReleaseControllerArch(releaseStreamName):
     return arch
 
 
-def getReleaseControllerURL(releaseStreamName):
-    arch = getReleaseControllerArch(releaseStreamName)
+def get_release_controller_url(releaseStreamName):
+    arch = get_release_controller_arch(releaseStreamName)
     return f"https://{arch}.ocp.releases.ci.openshift.org"
 
 
-def stagePublishClient(working_dir, from_release_tag, release_name, arch, client_type):
+def publish_client(working_dir, from_release_tag, release_name, arch, client_type):
     subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
     minor = release_name.split(".")[1]
     quay_url = constants.QUAY_URL
@@ -315,11 +315,11 @@ def stagePublishClient(working_dir, from_release_tag, release_name, arch, client
             with tarfile.open(f"{CLIENT_MIRROR_DIR}/oc-mirror.tar.gz", "w:gz") as tar:
                 tar.add(f"{CLIENT_MIRROR_DIR}/oc-mirror")
             # calc shasum
-            with open(f"{CLIENT_MIRROR_DIR}/oc-mirror", 'rb') as f:
+            with open(f"{CLIENT_MIRROR_DIR}/oc-mirror.tar.gz", 'rb') as f:
                 shasum = hashlib.sha256(f.read()).hexdigest()
             # write shasum to sha256sum.txt
             with open(f"{CLIENT_MIRROR_DIR}/sha256sum.txt", 'a') as f:
-                f.write(shasum)
+                f.write(f"{shasum} oc-mirror.tar.gz")
             # remove oc-mirror
             os.remove(f"{CLIENT_MIRROR_DIR}/oc-mirror")
 
@@ -333,8 +333,8 @@ def stagePublishClient(working_dir, from_release_tag, release_name, arch, client
             # To encourage customers to explore dev-previews & pre-GA releases, populate changelog
             # https://issues.redhat.com/browse/ART-3040
             prevMinor = minor - 1
-            rcURL = getReleaseControllerURL(release_name)
-            rcArch = getReleaseControllerArch(release_name)
+            rcURL = get_release_controller_url(release_name)
+            rcArch = get_release_controller_arch(release_name)
             stableStream = "4-stable" if rcArch == "amd64" else f"4-stable-{rcArch}"
             outputDest = f"{CLIENT_MIRROR_DIR}/changelog.html"
             outputDestMd = f"{CLIENT_MIRROR_DIR}/changelog.md"
@@ -386,10 +386,10 @@ def stagePublishClient(working_dir, from_release_tag, release_name, arch, client
             tar.add(binary)
         os.remove(binary)  # remove oc-mirror
         os.symlink(f'opm-{platform}-{release_name}.tar.gz', f'opm-{platform}.tar.gz')  # create symlink
-        with open(binary, 'rb') as f:  # calc shasum
+        with open(f"opm-{platform}-{release_name}.tar.gz", 'rb') as f:  # calc shasum
             shasum = hashlib.sha256(f.read()).hexdigest()
         with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
-            f.write(shasum)
+            f.write(f"{shasum} opm-{platform}-{release_name}.tar.gz")
 
     print_dir_tree(CLIENT_MIRROR_DIR)  # print dir tree
     print_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
@@ -398,7 +398,7 @@ def stagePublishClient(working_dir, from_release_tag, release_name, arch, client
     subprocess.run(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", shell=True, check=True)
 
 
-def stagePublishMultiClient(working_dir, from_release_tag, release_name, client_type):
+def publish_multi_client(working_dir, from_release_tag, release_name, client_type):
     subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
     # Anything under this directory will be sync'd to the mirror
     BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"

@@ -1,6 +1,10 @@
 name: Snyk Scan
 
-on: [ push, pull_request ]
+on:
+  push: { }
+  pull_request_target:
+    types: [ opened ]
+    if: github.actor in ['jupierce', 'sosiouxme', 'thiagoalessio', 'joepvd', 'thegreyd', 'vfreex', 'locriandev', 'Ximinhan', 'ashwindasr']
 
 jobs:
   snyk:

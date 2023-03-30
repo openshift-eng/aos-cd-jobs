@@ -28,8 +28,8 @@ node {
                     ),
                     choice(
                         name: 'ARCH',
-                        description: 'Release architecture (amd64, s390x, ppc64le, arm64)',
-                        choices: ['amd64', 's390x', 'ppc64le', 'arm64'].join('\n'),
+                        description: 'Release architecture (amd64, s390x, ppc64le, arm64, multi)',
+                        choices: ['amd64', 's390x', 'ppc64le', 'arm64', 'multi'].join('\n'),
                     ),
                     booleanParam(
                         name: 'REJECT',

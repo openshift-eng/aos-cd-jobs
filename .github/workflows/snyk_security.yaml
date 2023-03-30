@@ -4,11 +4,11 @@ on:
   push: { }
   pull_request_target:
     types: [ opened ]
-    if: github.actor in ['jupierce', 'sosiouxme', 'thiagoalessio', 'joepvd', 'thegreyd', 'vfreex', 'locriandev', 'Ximinhan', 'ashwindasr']
 
 jobs:
   snyk:
     runs-on: ubuntu-latest
+    if: contains(fromJSON('["jupierce", "sosiouxme", "thiagoalessio", "joepvd", "thegreyd", "vfreex", "locriandev", "Ximinhan", "ashwindasr"]'), github.actor)
     steps:
       - uses: actions/checkout@master
       - name: Test for open source vulnerabilities and license issues.

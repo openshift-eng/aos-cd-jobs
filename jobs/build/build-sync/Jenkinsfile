@@ -266,8 +266,11 @@ node('covscan') {
             artifacts = []
             artifacts.addAll(["app.ci-backup.tgz", "gen-payload-artifacts/*", "MIRROR_working/debug.log"])
             commonlib.safeArchiveArtifacts(artifacts)
-            sh "rm -rf ${env.WORKSPACE}/doozer_working"  // do not use cleanWorkspace as this will remove failure count
+
+            // Cleanup without calling cleanWorkspace as this will remove failure count
+            sh "rm -rf ${env.WORKSPACE}/doozer_working"
             sh "rm -rf ${mirrorWorking}"
+            sh "rm -rf ${env.WORKSPACE}/gen-payload-artifacts"
         }
     } // stage build-sync
 }

@@ -228,10 +228,11 @@ node {
             if (release_info.type == 'candidate' || release_info.type == 'standard') {
                 def src_output_dir = "${WORKSPACE}/rhcos_src_staging"
                 sh "rm -rf ${src_output_dir}"
-                for (arch in arches) {
-                    arch = commonlib.brewArchForGoArch(arch)
-                    def rhcos_build = release_info.content[arch].rhcos_version
-                    buildlib.doozer("--group openshift-${major}.${minor} --assembly ${params.ASSEMBLY} config:rhcos-srpms --version ${rhcos_build} --arch ${arch} -o ${src_output_dir}")
+                release_info.content.each { arch, info ->
+                    if (arch != "multi") {
+                        def rhcos_build = info.rhcos_version
+                        buildlib.doozer("--group openshift-${major}.${minor} --assembly ${params.ASSEMBLY} config:rhcos-srpms --version ${rhcos_build} --arch ${arch} -o ${src_output_dir}")
+                    }
                 }
                 commonlib.syncDirToS3Mirror("${src_output_dir}/", "/pub/openshift-v4/sources/packages/", delete_old=false)
             }

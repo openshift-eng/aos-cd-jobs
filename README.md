@@ -65,7 +65,6 @@ Jobs under the `jobs/build/` directory are indexed at the
 | -------------------------- | ----------- |
 | `build/ocp`                | Main build task for OCP 3.7. Also builds openshift-ansible 3.7 and all OCP images. |
 | `build/ose`                | Main build task for OCP <=3.6. Also builds openshift-ansible artifiacts and jenkins images. |
-| `build/make-puddle`        | Create an Atomic OpenShift puddle on `rcm-guest`. |
 | `build/openshift-scripts`  | Builds RPMs and container images for the [OpenShift Online](https://github.com/openshift/online) team. |
 | `build/refresh-images`     |             |
 | `build/scan-images`        | Scans the images for CVEs using openscap. |

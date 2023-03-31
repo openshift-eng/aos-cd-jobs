@@ -108,8 +108,8 @@ ${image_list}
 OpenShift Version: v${version}
 ${inject_notes}
 RPMs:
-    Plashet (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${params.BUILD_VERSION}/${PLASHET}
-    External Mirror: ${mirrorURL}/${PLASHET}
+    Plashet (internal): https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/3.11/stream/${NEW_FULL_VERSION}
+    External Mirror: ${mirrorURL}/${NEW_FULL_VERSION}
 ${image_details}
 
 Brew:
@@ -139,7 +139,7 @@ ${oa_changelog}
                     messageContent: "New build for OpenShift ${target}: ${version}",
                     messageProperties:
                         """build_mode=${BUILD_MODE}
-                        PUDDLE_URL=${mirrorURL}/${PLASHET}
+                        PUDDLE_URL=${mirrorURL}/${NEW_FULL_VERSION}
                         IMAGE_REGISTRY_ROOT=registry.reg-aws.openshift.com:443
                         brew_task_url_openshift=${OSE_BREW_URL}
                         brew_task_url_openshift_ANSIBLE=${OA_BREW_URL}
@@ -213,6 +213,148 @@ def get_rpm_specfile_path(record_log, package_name) {
     }
 
     return specfile_path
+}
+
+/**
+ * Creates a plashet in the current Jenkins workspace and then syncs it to ocp-artifacts.
+ * @param version  The ocp version (e.g. 4.5.25). This is currently only used by 3.11
+ * @param release  The 4.x release field (usually a timestamp)
+ * @param el_major The RHEL major version (7 or 8)
+ * @param include_embargoed If true, the plashet will include the very latest rpms (embargoed & unembargoed). Otherwise Plashet will only include unembargoed historical builds of rpms
+ * @param auto_signing_advisory The signing advisory to use. Set to 0 to use the default advisory.
+ * @return { 'localPlashetPath' : 'path/to/local/workspace/plashetDirName',
+ *           'plashetDirName' : 'e.g. 4.5.0-<release timestamp>' or 4.5.0-<release timestamp>-embargoed'
+ *
+ * }
+ */
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory, for_ironic=false) {
+    def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
+    if (for_ironic) baseDir += "ironic"
+
+    def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
+    if (include_embargoed) {
+        plashetDirName += "-embargoed"
+    }
+    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
+    def major_minor = "${major}.${minor}"
+    def r = [:]
+    r['localPlashetPath'] = "${baseDir}/${plashetDirName}"  // where to find source for mirroring
+    r['plashetDirName'] = "${plashetDirName}"  // what to name the mirrored repo directory
+
+    /**
+     * plashet will build one or more yum repos for us -- one for each
+     * architecture enabled for the release. For each arch, a yum repo
+     * {baseDir}/{plashetName}/{arch}/os will be created.
+     * plashet will examine RPM packages currently tagged in the rhel-7 candidate
+     * and build the yum repos. plashet allows each arch to have different signing
+     * characteristics (i.e. x86_64 can be signed and s390x can be unsigned).
+     * However, during an image build OSBS will fail if it finds we have used
+     * unsigned RPMs for one CPU arch and signed images for arch. Thus,
+     * if one of our arches is in 'release' mode, we must build all
+     * arches with signed.
+     * commonlib.ocpReleaseState declares which arches are in release / pre-release mode.
+     * Read the comment on that map for more information
+     */
+    def archReleaseStates = commonlib.ocpReleaseState[major_minor]
+    def plashet_arch_args = ""
+
+    for (String release_arch : archReleaseStates['release']) {
+        plashet_arch_args += " --arch ${release_arch} signed"
+    }
+
+    // If any arch is GA, use signed for everything.
+    def pre_release_signing_mode = archReleaseStates['release']?'signed':'unsigned'
+
+    for (String pre_release_arch : archReleaseStates['pre-release']) {
+        plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
+    }
+
+    def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"
+    def brewTag = "rhaos-${major_minor}-rhel-${el_major}-candidate"
+    def embargoedBrewTag = "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed"
+    if (for_ironic) {
+        productVersion = "OSE-IRONIC-${major_minor}-RHEL-${el_major}"
+        brewTag = "rhaos-${major_minor}-ironic-rhel-${el_major}-candidate"
+        embargoedBrewTag  = ""  // unlikely to exist until we begin using -gating tag
+    }
+
+    // To prevent add/remove races within the advisory, a lock is used.
+    lock("signing-advisory-${auto_signing_advisory}") {
+        retry(2) {
+            commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case we are retrying..
+            def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=openshift-${major_minor}"
+            doozer([
+                    doozerOpts,
+                    "config:plashet",
+                    "--base-dir ${baseDir}",  // Directory in which to create the yum repo
+                    "--name ${plashetDirName}",  // The name of the directory to create within baseDir to contain the arch repos.
+                    "--repo-subdir os",  // This is just to be compatible with legacy doozer puddle layouts which had {arch}/os.
+                    plashet_arch_args,
+                    "from-tags", // plashet mode of operation => build from brew tags
+                    include_embargoed? "--include-embargoed" : "",
+                    "--inherit",
+                    "--brew-tag ${brewTag} ${productVersion}",  // --brew-tag <tag> <associated-advisory-product-version>
+                    "${embargoedBrewTag}",
+                    (major == 3) ? "--inherit" :  "", // For OCP3.11, we depend on tag inheritance to populate the OSE repo
+                    auto_signing_advisory?"--signing-advisory-id ${auto_signing_advisory}":"",    // The advisory to use for signing
+                    "--signing-advisory-mode clean",
+                    "--poll-for 15",   // wait up to 15 minutes for auto-signing to work its magic.
+            ].join(' '))
+        }
+    }
+
+    /**
+     * The yum repos that plashet creates are very lightweight because
+     * it only symlinks out to the desired RPMs on buildvm's /mnt/redhat
+     * share. We now want to copy the new repo out to ocp-artifacts. The
+     * good news is that we can keep it lightweight! ocp-artifacts has the
+     * exact same share path. The symlinks plashet created can be copied
+     * as symlinks. Note that if you copy the puddle to a system without
+     * these links, you should use rsync --copy-links which will transfer
+     * the linked file's content to the destination filename.
+     *
+     * Now.. let's copy to ocp-artifacts! Why? Because when we build images in
+     * brew, OSBS will only let the Dockerfile's yum invocations
+     * access certain remote locations. One of those whitelisted locations
+     * is ocp-artifacts, so copy our lightweight repo there.
+     *
+     */
+
+    // During an image build, doozer will provide repo files pointing back to a directory named
+    // 'building' in this ocp-artifacts directory. Before creating 'building', let's get the
+    // repo over there.
+    def destBaseDir = "/mnt/data/pub/RHOCP/plashets/${major_minor}"
+    if (for_ironic) destBaseDir += "-el${el_major}-ironic"
+    else if (el_major >= 8) destBaseDir += "-el${el_major}"
+
+    def assembly = params.ASSEMBLY ?: "stream"
+    destBaseDir += "/${assembly}"
+    // Just in case this is the first time we have built this release, create the landing place on ocp-artifacts.
+    commonlib.shell("ssh ocp-artifacts -- mkdir -p ${destBaseDir}")
+    commonlib.shell([
+            "rsync",
+            "-av",  // archive mode, verbose
+            "--links",  // include links, but keep them as symlinks
+            "--progress",
+            "-h", // human readable numbers
+            "--no-g",  // use default group on ocp-artifacts for the user
+            "--omit-dir-times",
+            "--chmod=Dug=rwX,ugo+r",
+            "--perms",
+            "${r.localPlashetPath}",  // plashet we just created
+            "ocp-artifacts:${destBaseDir}"  // the plashetDirName will be created in this destBaseDir
+    ].join(" "))
+
+    // So we have a yum repo out on ocp-artifacts. Now we need to name it 'building' so the
+    // doozer repo files (which have static urls back to ocp-artifacts) will resolve.
+    def symlink = include_embargoed? "building-embargoed" : "building"
+    commonlib.shell("ssh -t ocp-artifacts \"cd ${destBaseDir}; ln -sfn ${plashetDirName} ${symlink}\" ")
+
+    // If and only if we are building for "stream" assembly, replace the legacy symlink (e.g. puddles/RHAOS/plashets/{MAJOR}.{MINOR}-el8/building-embargoed) to stream/building-embargoed
+    if (assembly == "stream") {
+        commonlib.shell("ssh -t ocp-artifacts \"cd ${destBaseDir}/..; ln -sfn stream/${symlink} ${symlink}\" ")
+    }
+    return r
 }
 
 node {
@@ -647,10 +789,9 @@ node {
 
                 def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
 
-                embargoedPlashet = buildlib.buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
-                def plashet = buildlib.buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
+                embargoedPlashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
+                def plashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
                 unembargoedPlashet = plashet
-                PLASHET = plashet.plashetDirName
             }
 
             stage("update dist-git") {
@@ -730,16 +871,13 @@ node {
                 commonlib.slacklib.to(params.BUILD_VERSION).failure("Failed ${params.BUILD_VERSION} publishing oc binary art-srv-enterprise S3")
             }
 
-
-            PLASHET = "v${NEW_FULL_VERSION}_${PLASHET}"
-            final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
-
             stage("sweep") {
                 buildlib.sweep(params.BUILD_VERSION)
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
+            final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)
         }
     } catch (err) {

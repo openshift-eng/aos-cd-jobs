@@ -108,8 +108,8 @@ ${image_list}
 OpenShift Version: v${version}
 ${inject_notes}
 RPMs:
-    Plashet (internal): http://download-node-02.eng.bos.redhat.com/rcm-guest/puddles/RHAOS/AtomicOpenShift/${params.BUILD_VERSION}/${PLASHET}
-    External Mirror: ${mirrorURL}/${PLASHET}
+    Plashet (internal): https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/RHOCP/plashets/3.11/stream/${NEW_FULL_VERSION}
+    External Mirror: ${mirrorURL}/${NEW_FULL_VERSION}
 ${image_details}
 
 Brew:
@@ -139,7 +139,7 @@ ${oa_changelog}
                     messageContent: "New build for OpenShift ${target}: ${version}",
                     messageProperties:
                         """build_mode=${BUILD_MODE}
-                        PUDDLE_URL=${mirrorURL}/${PLASHET}
+                        PUDDLE_URL=${mirrorURL}/${NEW_FULL_VERSION}
                         IMAGE_REGISTRY_ROOT=registry.reg-aws.openshift.com:443
                         brew_task_url_openshift=${OSE_BREW_URL}
                         brew_task_url_openshift_ANSIBLE=${OA_BREW_URL}
@@ -792,7 +792,6 @@ node {
                 embargoedPlashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
                 def plashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
                 unembargoedPlashet = plashet
-                PLASHET = plashet.plashetDirName
             }
 
             stage("update dist-git") {
@@ -872,16 +871,13 @@ node {
                 commonlib.slacklib.to(params.BUILD_VERSION).failure("Failed ${params.BUILD_VERSION} publishing oc binary art-srv-enterprise S3")
             }
 
-
-            PLASHET = "v${NEW_FULL_VERSION}_${PLASHET}"
-            final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
-
             stage("sweep") {
                 buildlib.sweep(params.BUILD_VERSION)
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"
             PREV_BUILD = null  // We are done. Don't untag even if there is an error sending the email.
+            final mirror_url = "https://mirror.openshift.com/enterprise/enterprise-${params.BUILD_VERSION}"
             mail_success(NEW_FULL_VERSION, mirror_url, record_log, OA_CHANGELOG, commonlib)
         }
     } catch (err) {

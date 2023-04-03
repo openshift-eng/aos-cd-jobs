@@ -52,7 +52,7 @@ node {
                     ),
                     choice(
                         name: 'ARCH',
-                        description: 'Which architecture of RHCOS build to look for. Required with <code>OVERRIDE_BUILD</code>. Leave at <code>auto</code> otherwise.'
+                        description: 'Which architecture of RHCOS build to look for. Required with <code>OVERRIDE_BUILD</code>. Leave at <code>auto</code> otherwise.',
                         choices: (["auto"] + commonlib.brewArches),
                     ),
                     string(

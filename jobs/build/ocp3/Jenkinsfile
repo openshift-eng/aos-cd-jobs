@@ -283,7 +283,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
         retry(2) {
             commonlib.shell("rm -rf ${baseDir}/${plashetDirName}") // in case we are retrying..
             def doozerOpts = "--working-dir=${env.WORKSPACE}/doozer_working --group=openshift-${major_minor}"
-            doozer([
+            buildlib.doozer([
                     doozerOpts,
                     "config:plashet",
                     "--base-dir ${baseDir}",  // Directory in which to create the yum repo

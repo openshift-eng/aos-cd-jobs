@@ -1,16 +1,19 @@
 name: Snyk Scan
 
-on:
-  push: { }
-  pull_request_target:
-    types: [ opened ]
+on: [ push, pull_request_target ]
 
 jobs:
   snyk:
     runs-on: ubuntu-latest
     if: contains(fromJSON('["jupierce", "sosiouxme", "thiagoalessio", "joepvd", "thegreyd", "vfreex", "locriandev", "Ximinhan", "ashwindasr"]'), github.actor)
     steps:
-      - uses: actions/checkout@master
+      - name: Checkout the base branch to get the secret
+        uses: actions/checkout@v3
+      - name: Checkout the code from the forked branch to run the tests on
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
       - name: Test for open source vulnerabilities and license issues.
         uses: snyk/actions/python-3.8@master
         env:

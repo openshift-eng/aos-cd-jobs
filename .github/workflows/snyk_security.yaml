@@ -5,7 +5,7 @@ on: [ push, pull_request_target ]
 jobs:
   snyk:
     runs-on: ubuntu-latest
-    if: contains(fromJSON('["jupierce", "sosiouxme", "thiagoalessio", "joepvd", "thegreyd", "vfreex", "locriandev", "Ximinhan", "ashwindasr"]'), github.actor)
+    if: contains(fromJSON('["jupierce", "sosiouxme", "thiagoalessio", "joepvd", "thegreyd", "vfreex", "locriandev", "Ximinhan", "ashwindasr"]'), github.actor)&& github.repository == 'openshift-eng/aos-cd-jobs'
     steps:
       - name: Checkout the base branch to get the secret
         uses: actions/checkout@v3

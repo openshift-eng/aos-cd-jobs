@@ -501,6 +501,15 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 
+    // Find the GitHub commit id for cli and download the repo at that commit, then publish it.
+    def download_cli_tarball = """
+        if oc adm release info ${quay_url}:${from_release_tag} --image-for=cli ; then
+            commit=$(oc image info --output json `oc adm release info ${quay_url}:${from_release_tag} --image-for=cli` | jq -r '.config.config.Labels."io.openshift.build.commit.id"')
+            curl -L -o "${CLIENT_MIRROR_DIR}/oc-source.tar.gz" https://github.com/openshift/oc/archive/${commit}.tar.gz
+        fi
+    """
+    commonlib.shell(script: download_cli_tarball)
+
     if ( arch == 'x86_64' ) {
         // oc image  extract requires an empty destination directory. So do this before extracting tools.
         // oc adm release extract --tools does not require an empty directory.

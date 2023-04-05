@@ -12,6 +12,7 @@ from pyartcd.runtime import Runtime
 from pyartcd import exectools, constants
 from pyartcd.util import branch_arches
 from doozerlib.util import go_suffix_for_arch
+from ghapi.all import GhApi
 
 GEN_PAYLOAD_ARTIFACTS_OUT_DIR = 'gen-payload-artifacts'
 
@@ -19,7 +20,8 @@ GEN_PAYLOAD_ARTIFACTS_OUT_DIR = 'gen-payload-artifacts'
 class BuildSyncPipeline:
     def __init__(self, runtime: Runtime, version: str, assembly: str, publish: bool, data_path: str,
                  emergency_ignore_issues: bool, retrigger_current_nightly: bool, doozer_data_gitref: str,
-                 debug: bool, images: str, exclude_arches: str, skip_multiarch_payload: bool):
+                 debug: bool, images: str, exclude_arches: str, skip_multiarch_payload: bool,
+                 triggered_from_gen_assembly: bool):
         self.runtime = runtime
         self.version = version
         self.assembly = assembly
@@ -32,10 +34,56 @@ class BuildSyncPipeline:
         self.images = images
         self.exclude_arches = [] if not exclude_arches else exclude_arches.replace(',', ' ').split()
         self.skip_multiarch_payload = skip_multiarch_payload
+        self.triggered_from_gen_assembly = triggered_from_gen_assembly
+        self.job_run = self.runtime.get_job_run_url()
         self.logger = runtime.logger
         self.working_dir = self.runtime.working_dir
 
+    async def comment_on_assembly_pr(self):
+        """
+        Comment the link to this jenkins build on the assembly PR if it was triggered automatically
+        """
+        owner = "openshift-eng"
+        repository = "ocp-build-data"
+        branch = self.doozer_data_gitref
+        token = os.environ.get('GITHUB_TOKEN')
+
+        api = GhApi(owner=owner, repo=repository, token=token)
+
+        # Head needs to have the repo name prepended for GhApi to fetch the correct one
+        head = f"{owner}:{branch}"
+        # Find our assembly PR.
+        prs = api.pulls.list(head=head, state="open")
+
+        if len(prs) != 1:
+            self.logger.error(f"{len(prs)} PR(s) were found from the auto generated branch {branch}. We need only 1.")
+            return
+
+        pr_number = prs[0]["number"]
+
+        text_body = f"Build sync job [run]({self.job_run}) has been triggered"
+
+        if self.runtime.dry_run:
+            self.logger.warning(f"[DRY RUN] Would have commented on PR {owner}/{repository}/pull/{pr_number} "
+                                f"with the message: \n {text_body}")
+            return
+
+        # https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28#create-an-issue-comment
+        # PR is an issue as far as  GitHub API is concerned
+        api.issues.create_comment(issue_number=pr_number, body=text_body)
+
     async def run(self):
+        # Comment on PR if triggered from gen assembly
+        # Keeping in try-except so that job doesn't fail because of any error here
+        if self.triggered_from_gen_assembly:
+            self.logger.info("Found that build-sync was triggered by gen-assembly automatically")
+            try:
+                await self.comment_on_assembly_pr()
+            except Exception as e:
+                self.logger.error(f"Error commenting to PR: {e}")
+        else:
+            self.logger.info("Not commenting on PR since its not triggered from gen assembly automatically")
+
         # Make sure we're logged into the OC registry
         await registry_login(self.runtime)
 
@@ -303,11 +351,16 @@ class BuildSyncPipeline:
 @click.option("--skip-multiarch-payload", is_flag=True,
               help="If group/assembly has multi_arch.enabled, you can bypass --apply-multi-arch and the generation of a"
                    "heterogeneous release payload by setting this to true")
+@click.option("--triggered-from-gen-assembly", is_flag=True,
+              help="If its triggered automatically by gen-assembly")
+@click.option("--build-number", required=False,
+              help="(Optional) Jenkins build number of this build-sync job if triggered by gen-assembly")
 @pass_runtime
 @click_coroutine
 async def build_sync(runtime: Runtime, version: str, assembly: str, publish: bool, data_path: str,
                      emergency_ignore_issues: bool, retrigger_current_nightly: bool, data_gitref: str,
-                     debug: bool, images: str, exclude_arches: str, skip_multiarch_payload: bool):
+                     debug: bool, images: str, exclude_arches: str, skip_multiarch_payload: bool,
+                     triggered_from_gen_assembly: bool):
     pipeline = BuildSyncPipeline(
         runtime=runtime,
         version=version,
@@ -320,6 +373,7 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         debug=debug,
         images=images,
         exclude_arches=exclude_arches,
-        skip_multiarch_payload=skip_multiarch_payload
+        skip_multiarch_payload=skip_multiarch_payload,
+        triggered_from_gen_assembly=triggered_from_gen_assembly
     )
     await pipeline.run()

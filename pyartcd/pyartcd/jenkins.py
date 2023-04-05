@@ -56,10 +56,15 @@ async def trigger_rhcos(build_version: str, new_build: bool):
     )
 
 
-async def trigger_build_sync(build_version: str):
+async def trigger_build_sync(build_version: str, doozer_data_gitref: str = '',
+                             triggered_from_gen_assembly: bool = False):
     await trigger_jenkins_job(
         job_path='job/triggered-builds/job/build-sync',
-        params={'BUILD_VERSION': build_version}
+        params={
+                    'BUILD_VERSION': build_version,
+                    'DOOZER_DATA_GITREF': doozer_data_gitref,
+                    'TRIGGERED_FROM_GEN_ASSEMBLY': triggered_from_gen_assembly
+        }
     )
 
 

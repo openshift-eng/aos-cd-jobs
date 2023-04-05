@@ -13,6 +13,7 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.git import GitRepository
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
+from pyartcd.jenkins import trigger_build_sync
 
 yaml = YAML(typ="rt")
 yaml.preserve_quotes = True
@@ -38,7 +39,7 @@ class GenAssemblyPipeline:
 
     def __init__(self, runtime: Runtime, group: str, assembly: str, ocp_build_data_url: str,
                  nightlies: Tuple[str, ...], allow_pending: bool, allow_rejected: bool, allow_inconsistency: bool,
-                 custom: bool, arches: Tuple[str, ...], in_flight: Optional[str], previous_list: Tuple[str, ...], auto_previous: bool,
+                 custom: bool, arches: Tuple[str, ...], in_flight: Optional[str], previous_list: Tuple[str, ...], auto_previous: bool, auto_trigger_build_sync: bool,
                  logger: Optional[logging.Logger] = None):
         self.runtime = runtime
         self.group = group
@@ -52,6 +53,7 @@ class GenAssemblyPipeline:
         self.in_flight = in_flight
         self.previous_list = previous_list
         self.auto_previous = auto_previous
+        self.auto_trigger_build_sync = auto_trigger_build_sync
         self._logger = logger or runtime.logger
         self._slack_client = self.runtime.new_slack_client()
         self._working_dir = self.runtime.working_dir.absolute()
@@ -189,6 +191,7 @@ class GenAssemblyPipeline:
         base = self.group
         if self.runtime.dry_run:
             self._logger.warning("[DRY RUN] Would have created pull-request with head '%s', base '%s' title '%s', body '%s'", head, base, title, body)
+            self._logger.warning("[DRY RUN] Would have triggered build sync with the PR assembly definition if TRIGGER_BUILD_SYNC was enabled")
             d = {"html_url": "https://github.example.com/foo/bar/pull/1234", "number": 1234}
             result = namedtuple('pull_request', d.keys())(*d.values())
             return result
@@ -204,6 +207,15 @@ class GenAssemblyPipeline:
             else:
                 pull_number = existing_prs.items[0].number
                 result = api.pulls.update(pull_number=pull_number, title=title, body=body)
+
+            if self.auto_trigger_build_sync:
+                self._logger.info("Triggering build sync")
+                build_version = self.group.split("-")[1]  # eg: 4.14 from openshift-4.14
+
+                await trigger_build_sync(build_version=build_version,
+                                         doozer_data_gitref=f"{branch}",
+                                         triggered_from_gen_assembly=True
+                                        )
         else:
             self._logger.warning("PR is not created: Nothing to commit.")
         return result
@@ -231,12 +243,13 @@ class GenAssemblyPipeline:
 @click.option('--in-flight', 'in_flight', metavar='EDGE', help='An in-flight release that can upgrade to this release')
 @click.option('--previous', 'previous_list', metavar='EDGES', default=[], multiple=True, help='A list of releases that can upgrade to this release')
 @click.option('--auto-previous', 'auto_previous', is_flag=True, help='If specified, previous list is calculated from Cincinnati graph')
+@click.option('--auto-trigger-build-sync', 'auto_trigger_build_sync', is_flag=True, help='Will trigger build sync automatically after PR creation')
 @pass_runtime
 @click_coroutine
 async def gen_assembly(runtime: Runtime, data_path: str, group: str, assembly: str, nightlies: Tuple[str, ...],
                        allow_pending: bool, allow_rejected: bool, allow_inconsistency: bool, custom: bool, arches: Tuple[str, ...], in_flight: Optional[str],
-                       previous_list: Tuple[str, ...], auto_previous: bool):
+                       previous_list: Tuple[str, ...], auto_previous: bool, auto_trigger_build_sync: bool):
     pipeline = GenAssemblyPipeline(runtime=runtime, group=group, assembly=assembly, ocp_build_data_url=data_path,
                                    nightlies=nightlies, allow_pending=allow_pending, allow_rejected=allow_rejected, allow_inconsistency=allow_inconsistency,
-                                   arches=arches, custom=custom, in_flight=in_flight, previous_list=previous_list, auto_previous=auto_previous)
+                                   arches=arches, custom=custom, in_flight=in_flight, previous_list=previous_list, auto_previous=auto_previous, auto_trigger_build_sync=auto_trigger_build_sync)
     await pipeline.run()

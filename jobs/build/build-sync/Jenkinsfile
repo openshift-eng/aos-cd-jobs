@@ -192,13 +192,16 @@ node('covscan') {
         if (params.SKIP_MULTI_ARCH_PAYLOAD) {
             cmd << "--skip-multiarch-payload"
         }
+        if (params.TRIGGERED_FROM_GEN_ASSEMBLY) {
+            cmd << "--triggered-from-gen-assembly"
+        }
 
         // Run pipeline
         echo "Will run ${cmd}"
 
         try {
             buildlib.withAppCiAsArtPublish() {
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
+                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                     sh(script: cmd.join(' '), returnStdout: true)
                 }
             }

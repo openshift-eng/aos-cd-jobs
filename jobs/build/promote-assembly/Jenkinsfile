@@ -48,11 +48,6 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
-                        name: 'PERMIT_PAYLOAD_OVERWRITE',
-                        description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
                         name: 'SKIP_MIRROR_BINARIES',
                         description: 'Do not mirror binaries. Useful in case of reruns on subsequent failure',
                         defaultValue: false,
@@ -163,9 +158,6 @@ node {
         }
         if (params.SKIP_BUILD_MICROSHIFT) {
             cmd << "--skip-build-microshift"
-        }
-        if (params.PERMIT_PAYLOAD_OVERWRITE) {
-            cmd << "--permit-overwrite"
         }
         if (params.NO_MULTI) {
             cmd << "--no-multi"

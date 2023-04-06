@@ -91,7 +91,7 @@ node {
         commonlib.shell([
             "set -euxo pipefail",
             "tree ${source_dir}",
-            "cat ${source_dir}/sha256sum.txt"
+            "cat ${source_dir}sha256sum.txt"
         ].join('\n'))
         println("params.DRY_RUN: ${params.DRY_RUN}")
         if (params.DRY_RUN) {

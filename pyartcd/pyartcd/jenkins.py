@@ -3,6 +3,7 @@ import logging
 import os
 import aiohttp
 from jenkinsapi.jenkins import Jenkins
+from pyartcd import constants
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ async def trigger_jenkins_job(job_path: str, params: dict = {}):
     # Build url
     # If the job to be triggered is parametrized, use 'buildWithParameters' and send HTTP data
     # Otherwise, just call the 'build' endpoint with empty data
-    url = f'https://buildvm.hosts.prod.psi.bos.redhat.com:8443/{job_path}'
+    url = f"{constants.JENKINS_SERVER}/{job_path}"
     if params:
         url += '/buildWithParameters'
     else:
@@ -76,9 +77,8 @@ async def trigger_build_microshift(build_version: str, assembly: str, dry_run: b
 
 
 def new_jenkins_client():
-    jenkins_server = "https://buildvm.hosts.prod.psi.bos.redhat.com:8443/"
     try:
-        client = Jenkins(jenkins_server, username=os.environ['JENKINS_SERVICE_ACCOUNT'], password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'])
+        client = Jenkins(constants.JENKINS_SERVER, username=os.environ['JENKINS_SERVICE_ACCOUNT'], password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'])
     except Exception as e:
         raise e
     return client

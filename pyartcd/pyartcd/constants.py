@@ -23,3 +23,4 @@ OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'
 QUAY_URL = "quay.io/openshift-release-dev/ocp-release"
 UMB_CI_Broker = [['umb-broker03.api.redhat.com', 61616], ['umb-broker04.api.redhat.com', 61616]]
 PROMOTE_TOPIC = "/topic/VirtualTopic.eng.ci.art.ocp-release.complete"
+JENKINS_SERVER = "https://buildvm.hosts.prod.psi.bos.redhat.com:8443/"

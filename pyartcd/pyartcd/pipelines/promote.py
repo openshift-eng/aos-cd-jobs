@@ -472,7 +472,7 @@ class PromotePipeline:
 
     async def publish_client(self, working_dir, from_release_tag, release_name, arch, client_type):
         subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
-        minor = release_name.split(".")[1]
+        _, minor = util.isolate_major_minor_in_group(self.group)
         quay_url = constants.QUAY_URL
         # Anything under this directory will be sync'd to the mirror
         BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"

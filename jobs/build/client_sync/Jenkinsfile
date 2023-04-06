@@ -13,6 +13,7 @@ node {
         "odo",
         "rosa",
         "pipeline",
+        "rhacs"
     ]
 
     skip_arches = [
@@ -71,7 +72,7 @@ node {
                     ),
                     booleanParam(
                         name: "SET_LATEST",
-                        description: "Update /latest",
+                        description: "Try and update /latest",
                         defaultValue: true,
                     ),
                     booleanParam(
@@ -103,14 +104,25 @@ node {
         local_dest_dir = "${env.WORKSPACE}/${dest_version}"
         source_path = "${base_path}/${params.LOCATION}"
         latest_dir = "${env.WORKSPACE}/latest/"
-        s3_target_dir = "/pub/openshift-v4/x86_64/clients/${kind}/${dest_version}/"
-        s3_latest_dir = "/pub/openshift-v4/x86_64/clients/${kind}/latest/"
-
+        
+        if (kind == "rhacs") {
+            if (params.SET_LATEST) {
+                error 'SET_LATEST is not supported for rhacs'
+            }
+            s3_target_dir = "/pub/rhacs/support-packages/${dest_version}"
+        } else {
+            s3_target_dir = "/pub/openshift-v4/x86_64/clients/${kind}/${dest_version}/"
+        }
+        
         echo "destination version: ${dest_version}"
         echo "source path: ${source_path}"
         echo "latest dir: ${latest_dir}"
         echo "s3 target dir: ${s3_target_dir}"
-        echo "s3 latest dir: ${s3_latest_dir}"
+        
+        if (params.SET_LATEST) {
+            s3_latest_dir = "/pub/openshift-v4/x86_64/clients/${kind}/latest/"
+            echo "s3 latest dir: ${s3_latest_dir}"
+        }
     }
 
     stage("Clean working dir") {
@@ -124,7 +136,9 @@ node {
             """
             set -euxo pipefail
             cp -aL ${source_path} ${local_dest_dir}
-            cat ${local_dest_dir}/sha256sum.txt
+            if [ -e ${local_dest_dir}/sha256sum.txt ]; then
+                cat ${local_dest_dir}/sha256sum.txt
+            fi
             """
         )
 

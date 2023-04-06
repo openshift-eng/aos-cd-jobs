@@ -656,7 +656,7 @@ class PromotePipeline:
         dest_image_tag = f"{release_name}-multi"
         dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
         self._logger.info("Checking if multi/heterogeneous payload %s exists...", dest_image_pullspec)
-        dest_image_digest = await self.get_image_digest(dest_image_pullspec)
+        dest_image_digest = await self.get_multi_image_digest(dest_image_pullspec)
         if dest_image_digest:  # already promoted
             self._logger.warning("Multi/heterogeneous payload %s already exists; digest: %s", dest_image_pullspec, dest_image_digest)
             dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
@@ -738,7 +738,7 @@ class PromotePipeline:
                 dest_image_digest = "fake:deadbeef-multi"
                 dest_manifest_list = dest_manifest_list.copy()
             else:
-                dest_image_digest = await self.get_image_digest(dest_image_pullspec, raise_if_not_found=True)
+                dest_image_digest = await self.get_multi_image_digest(dest_image_pullspec, raise_if_not_found=True)
                 dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
 
         dest_image_info = dest_manifest_list.copy()
@@ -884,7 +884,7 @@ class PromotePipeline:
         return manifests
 
     @staticmethod
-    async def get_image_digest(pullspec: str, raise_if_not_found: bool = False):
+    async def get_multi_image_digest(pullspec: str, raise_if_not_found: bool = False):
         # Get image digest
         cmd = f'oc image info {pullspec} --filter-by-os linux/amd64 -o json'
         env = os.environ.copy()

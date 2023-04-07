@@ -131,7 +131,7 @@ node() {
                         if (commonlib.ocpReleaseState[build_version]['release'].isEmpty()) {
                             // For development releases, notify TRT and release artists
                             commonlib.slacklib.to('#forum-release-oversight').say("@release-artists ${msg}")
-                        } else {
+                        } else if (!["4.7", "4.8"].contains(build_version)) {
                             // For GA releases, let forum-release know why no new builds
                             commonlib.slacklib.to('#forum-release').say(msg)
                         }

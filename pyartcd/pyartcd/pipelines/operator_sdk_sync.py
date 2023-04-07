@@ -81,7 +81,7 @@ class OperatorSDKPipeline:
               f" && chmod +x ./{rarch}/{self.sdk} && tar -c --preserve-order -z -v --file ./{rarch}/{tarballFilename} ./{rarch}/{self.sdk}" + \
               f" && ln -s {tarballFilename} ./{rarch}/{self.sdk}-linux-{rarch}.tar.gz && rm -f ./{rarch}/{self.sdk}"
         self.exec_cmd(cmd)
-        if arch == 'amd64':
+        if arch == 'amd64' or arch == 'arm64':
             tarballFilename = f"{self.sdk}-{sdkVersion}-darwin-{rarch}.tar.gz"
             cmd = f"oc image extract {constants.OPERATOR_URL}@{shasum} --path /usr/share/{self.sdk}/mac/{self.sdk}:./{rarch}/ --confirm" + \
                   f" && chmod +x ./{rarch}/{self.sdk} && tar -c --preserve-order -z -v --file ./{rarch}/{tarballFilename} ./{rarch}/{self.sdk}" + \

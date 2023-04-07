@@ -505,7 +505,10 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     def download_cli_tarball = '''
         if oc adm release info ${quay_url}:${from_release_tag} --image-for=cli ; then
             commit=$(oc image info --output json `oc adm release info ${quay_url}:${from_release_tag} --image-for=cli` | jq -r '.config.config.Labels."io.openshift.build.commit.id"')
-            curl -L -o "${CLIENT_MIRROR_DIR}/oc-source.tar.gz" https://github.com/openshift/oc/archive/${commit}.tar.gz
+            pushd ${CLIENT_MIRROR_DIR}
+            curl -L -o "oc-source.tar.gz" https://github.com/openshift/oc/archive/${commit}.tar.gz
+            sha256sum oc-source.tar.gz >> sha256sum.txt
+            popd
         fi
     '''
     commonlib.shell(script: download_cli_tarball)

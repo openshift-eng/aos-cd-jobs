@@ -37,7 +37,6 @@ node {
     buildlib.cleanWorkdir(workDir)
 
     def azureArtifactCoordinate = [
-        '4.8': ['path': 'data/data/rhcos-stream.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.9': ['path': 'data/data/rhcos-stream.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.10': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],
         '4.11': ['path': 'data/data/coreos/rhcos.json', 'jq': ['.architectures.x86_64.artifacts.azure.formats."vhd.gz".disk']],

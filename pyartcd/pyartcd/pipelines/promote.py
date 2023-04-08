@@ -869,7 +869,7 @@ class PromotePipeline:
             raise ValueError(f'Inconsistent media types across manifests: {media_types}')
 
         manifests = {
-            'mediaType': media_types.pop(),
+            'mediaType': "application/vnd.docker.distribution.manifest.list.v2+json",
             'manifests': [
                 {
                     'digest': manifest['digest'],

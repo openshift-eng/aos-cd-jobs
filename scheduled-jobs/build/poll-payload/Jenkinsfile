@@ -76,16 +76,16 @@ def publishRPMsEl8(String releaseStream, Map latestRelease, Map previousRelease)
 }
 
 def startBuildMicroshiftJob(String releaseStream, Map latestRelease, Map previousRelease) {
+    buildlib.withAppCiAsArtPublish() {
+        sh "oc registry login"
+    }
     // This function is invoked when a new x86_64 is created and accepted by the Release Controller
     def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
     def x86_64_nightly = latestRelease.name
     // Get all nightlies matching the x86_64 nightly
     echo "Get nightlies matching the x86_64 nightly ${x86_64_nightly}..."
     def cmd = "doozer --assembly=stream --arches x86_64,aarch64 --group openshift-${buildVersion} --working-dir ./doozer-working get-nightlies --matching ${x86_64_nightly}"
-    buildlib.withAppCiAsArtPublish() {
-        sh "oc registry login"
-        def res = commonlib.shell(script: cmd, returnAll: true)
-    }
+    def res = commonlib.shell(script: cmd, returnAll: true)
     if (res.returnStatus != 0) {
         if (res.combined.contains("Found no nightlies") || res.combined.contains("No sets of equivalent nightlies")) {
             // Couldn't find consistent and accepted nightlies matching the x86_64 nightly

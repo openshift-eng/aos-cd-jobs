@@ -483,6 +483,27 @@ class PromotePipeline:
         CLIENT_MIRROR_DIR = f"{BASE_TO_MIRROR_DIR}/{arch}/clients/{client_type}/{release_name}"
         os.makedirs(CLIENT_MIRROR_DIR)
 
+        # Get cli installer operator-registory pull-spec from the release
+        for tarball in ["cli", "installer", "operator-registry"]:
+          image_stat, cli_pull_spec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", tarball)
+          if image_stat == 0:  # image exists
+              image_info = get_release_image_info(cli_pull_spec)
+              # Retrieve the commit from image info
+              commit = image_info["config"]["config"]["Labels"]["io.openshift.build.commit.id"]
+              source_url = image_info["config"]["config"]["Labels"]["io.openshift.build.source-location"]
+              source_name = source_url.split("/")[-1]
+              # URL to download the tarball a specific commit
+              response = requests.get(f"{source_url}/archive/{commit}.tar.gz", stream=True)
+              if response.ok:
+                  with open(f"{CLIENT_MIRROR_DIR}/{source_name}-source.tar.gz", "wb") as f:
+                      f.write(response.raw.read())
+                  # calc shasum
+                  with open(f"{CLIENT_MIRROR_DIR}/{source_name}-source.tar.gz", 'rb') as f:
+                      shasum = hashlib.sha256(f.read()).hexdigest()
+                  # write shasum to sha256sum.txt
+                  with open(f"{CLIENT_MIRROR_DIR}/sha256sum.txt", 'a') as f:
+                      f.write(f"{shasum} {source_name}-source.tar.gz")
+
         if arch == 'x86_64':
             # oc image  extract requires an empty destination directory. So do this before extracting tools.
             # oc adm release extract --tools does not require an empty directory.

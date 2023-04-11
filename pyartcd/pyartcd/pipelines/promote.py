@@ -656,7 +656,7 @@ class PromotePipeline:
         dest_image_tag = f"{release_name}-multi"
         dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
         self._logger.info("Checking if multi/heterogeneous payload %s exists...", dest_image_pullspec)
-        dest_image_digest = await self.get_image_digest(dest_image_pullspec)
+        dest_image_digest = await self.get_multi_image_digest(dest_image_pullspec)
         if dest_image_digest:  # already promoted
             self._logger.warning("Multi/heterogeneous payload %s already exists; digest: %s", dest_image_pullspec, dest_image_digest)
             dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
@@ -738,7 +738,7 @@ class PromotePipeline:
                 dest_image_digest = "fake:deadbeef-multi"
                 dest_manifest_list = dest_manifest_list.copy()
             else:
-                dest_image_digest = await self.get_image_digest(dest_image_pullspec, raise_if_not_found=True)
+                dest_image_digest = await self.get_multi_image_digest(dest_image_pullspec, raise_if_not_found=True)
                 dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
 
         dest_image_info = dest_manifest_list.copy()
@@ -848,28 +848,7 @@ class PromotePipeline:
     @staticmethod
     async def get_image_info(pullspec: str, raise_if_not_found: bool = False):
         # Get image manifest/manifest-list.
-        # We use skopeo instead of `oc image info` because oc doesn't support json/yaml output for a manifest list.
-        if "://" not in pullspec:
-            pullspec = f"docker://{pullspec}"
-        # skopeo on buildvm is too old. Use a containerized version instead.
-        cmd = [
-            "podman",
-            "run",
-            "--rm",
-            "--privileged",
-            "-v",
-            f"{os.path.expanduser('~/.docker/config.json')}:/tmp/auth.json:ro",
-            "quay.io/containers/skopeo:v1.11"
-        ]
-        if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
-            cmd = ["skopeo"]
-        cmd.extend([
-            "inspect",
-            "--no-tags",
-            "--raw",
-            "--",
-            pullspec,
-        ])
+        cmd = f'oc image info --show-multiarch -o json {pullspec}'
         env = os.environ.copy()
         rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
         if rc != 0:
@@ -879,37 +858,38 @@ class PromotePipeline:
                     raise IOError(f"Image {pullspec} is not found.")
                 return None
             raise ChildProcessError(f"Error running {cmd}: exit_code={rc}, stdout={stdout}, stderr={stderr}")
+
+        # Info provided by oc need to be converted back into Skopeo-looking format
         info = json.loads(stdout)
-        if not isinstance(info, dict):
+        if not isinstance(info, list):
             raise ValueError(f"Invalid image info: {info}")
-        return info
+
+        media_types = set([manifest['mediaType'] for manifest in info])
+        if len(media_types) > 1:
+            raise ValueError(f'Inconsistent media types across manifests: {media_types}')
+
+        manifests = {
+            'mediaType': "application/vnd.docker.distribution.manifest.list.v2+json",
+            'manifests': [
+                {
+                    'digest': manifest['digest'],
+                    'platform': {
+                        'architecture': manifest['config']['architecture'],
+                        'os': manifest['config']['os']
+                    }
+                } for manifest in info
+            ]
+        }
+
+        return manifests
 
     @staticmethod
-    async def get_image_digest(pullspec: str, raise_if_not_found: bool = False):
+    async def get_multi_image_digest(pullspec: str, raise_if_not_found: bool = False):
         # Get image digest
-        # We use skopeo instead of `oc image info` because oc doesn't support json/yaml output for a manifest list.
-        if "://" not in pullspec:
-            pullspec = f"docker://{pullspec}"
-        # skopeo on buildvm is too old. Use a containerized version instead.
-        cmd = [
-            "podman",
-            "run",
-            "--rm",
-            "--privileged",
-            "quay.io/containers/skopeo:v1.11"
-        ]
-        if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
-            cmd = ["skopeo"]
-        cmd.extend([
-            "--override-os=linux",  # needed to run this command on macOS
-            "inspect",
-            "--no-tags",
-            "--format={{.Digest}}",
-            "--",
-            pullspec,
-        ])
+        cmd = f'oc image info {pullspec} --filter-by-os linux/amd64 -o json'
         env = os.environ.copy()
         rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
+
         if rc != 0:
             if "manifest unknown" in stderr or "was deleted or has expired" in stderr:
                 # image doesn't exist
@@ -917,7 +897,8 @@ class PromotePipeline:
                     raise IOError(f"Image {pullspec} is not found.")
                 return None
             raise ChildProcessError(f"Error running {cmd}: exit_code={rc}, stdout={stdout}, stderr={stderr}")
-        return stdout.strip()
+
+        return json.loads(stdout)['listDigest']
 
     @staticmethod
     async def get_image_stream_tag(namespace: str, image_stream_tag: str):

@@ -94,7 +94,7 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
                     // To make installing covscan reasonably quick for scanner images, make a local copy of covscan repos.
                     // doozer can use these with the --local-repo arg to images:covscan.
                     withEnv(["https_proxy=", "http_proxy=", "no_proxy="]) {
-                        for ( rhel_version in ['7', '8'] ) {
+                        for ( rhel_version in ['7', '8', '9'] ) {
                             prefix = "covscan-rhel-${rhel_version}"
                             repo_fn = "${prefix}.repo"
                             writeFile(file: repo_fn, text: """
@@ -137,8 +137,8 @@ enabled_metadata=1
                         --local-repo-rhel-7 covscan-rhel-7_repos/covscan-testing
                         --local-repo-rhel-8 covscan-rhel-8_repos/covscan
                         --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
-                        --local-repo-rhel-9 covscan-rhel-8_repos/covscan
-                        --local-repo-rhel-9 covscan-rhel-8_repos/covscan-testing
+                        --local-repo-rhel-9 covscan-rhel-9_repos/covscan
+                        --local-repo-rhel-9 covscan-rhel-9_repos/covscan-testing
                         --result-archive ${RESULTS_ARCHIVE_DIR}
                         --repo-type unsigned
                         ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}

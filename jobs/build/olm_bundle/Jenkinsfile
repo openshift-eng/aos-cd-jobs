@@ -103,6 +103,7 @@ pipeline {
                 }
             }
         }
+
         stage('Set build info') {
             steps {
                 script {
@@ -117,46 +118,64 @@ pipeline {
                 }
             }
         }
+
         stage('Build bundles') {
             steps {
                 script {
-                    lock("olm_bundle-${params.BUILD_VERSION}") {
-                        def cmd = ""
-                        cmd += "--data-path=${params.DOOZER_DATA_PATH}"
-                        if (only)
-                            cmd += " --images=${only.join(',')}"
-                        if (exclude)
-                            cmd += " --exclude=${exclude.join(',')}"
-                        cmd += " olm-bundle:rebase-and-build"
-                        if (params.FORCE_BUILD)
-                            cmd += " --force"
-                        if (params.DRY_RUN)
-                            cmd += " --dry-run"
-                        cmd += " -- "
-                        cmd += operator_nvrs.join(' ')
+                    // Prepare working dirs
+                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                    def doozer_working = "${WORKSPACE}/doozer_working"
+                    buildlib.cleanWorkdir(doozer_working)
 
-                        def doozer_working = "${WORKSPACE}/doozer_working"
-                        buildlib.cleanWorkdir(doozer_working)
-                        def groupParam = "openshift-${params.BUILD_VERSION}"
-                        if (doozer_data_gitref) {
-                            groupParam += "@${params.DOOZER_DATA_GITREF}"
-                        }
-                        def doozer_opts = "--working-dir ${doozer_working} -g '${groupParam}'"
-
-                        timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
-                            buildlib.doozer("${doozer_opts} ${cmd}")
-                            def record_log = buildlib.parse_record_log(doozer_working)
-                            def records = record_log.get('build_olm_bundle', [])
-                            def bundle_nvrs = []
-                            for (record in records) {
-                                if (record['status'] != '0') {
-                                    throw new Exception("record.log includes unexpected build_olm_bundle record with error message: ${record['message']}")
-                                }
-                                bundle_nvrs << record["bundle_nvr"]
-                            }
-                        }
+                    // Create artcd command
+                    def cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                    ]
+                    if (params.DRY_RUN) {
+                        cmd << "--dry-run"
                     }
-                    echo "Successfully built:\n${bundle_nvrs.join('\n')}"
+                    cmd += [
+                        "olm-bundle",
+                        "--version=${params.BUILD_VERSION}",
+                        "--assembly=${params.ASSEMBLY}",
+                        "--data-path=${params.DOOZER_DATA_PATH}",
+                        "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                    ]
+                    if (operator_nvrs)
+                        cmd << "--nvrs=${operator_nvrs.join(',')}"
+                    if (only)
+                        cmd << "--only=${only.join(',')}"
+                    if (exclude)
+                        cmd << "--exclude=${exclude.join(',')}"
+                    if (params.FORCE_BUILD)
+                        cmd << "--force"
+
+                    // Run pipeline
+                    timeout(activity: true, time: 60, unit: 'MINUTES') { // if there is no log activity for 1 hour
+                        echo "Will run ${cmd}"
+                        withCredentials([
+                                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
+                                ]) {
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        }
+
+                        // Parse doozer record.log
+                        def record_log = buildlib.parse_record_log(doozer_working)
+                        def records = record_log.get('build_olm_bundle', [])
+                        def bundle_nvrs = []
+                        for (record in records) {
+                            if (record['status'] != '0') {
+                                throw new Exception("record.log includes unexpected build_olm_bundle record with error message: ${record['message']}")
+                            }
+                            bundle_nvrs << record["bundle_nvr"]
+                        }
+                        echo "Successfully built:\n${bundle_nvrs.join('\n')}"
+                    }
                 }
             }
         }
@@ -167,7 +186,6 @@ pipeline {
                 commonlib.safeArchiveArtifacts([
                     "doozer_working/*.log",
                     "doozer_working/*.yaml",
-                    "doozer_working/brew-logs/**",
                 ])
             }
         }

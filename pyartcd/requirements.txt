@@ -1,5 +1,6 @@
 aiohttp[speedups] >= 3.6
 aiofiles
+aioredlock >= 0.7.3
 click
 contextvars
 errata_tool

@@ -501,6 +501,10 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 
+    def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
+                                " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
+    commonlib.shell(script: tools_extract_cmd)
+
     // Find the GitHub commit id for cli and download the repo at that commit, then publish it.
     def download_cli_tarball = """
         if oc adm release info ${quay_url}:${from_release_tag} --image-for=cli ; then
@@ -530,10 +534,6 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
         commonlib.shell(script: oc_mirror_extract_cmd)
     }
 
-    def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
-                                " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
-
-    commonlib.shell(script: tools_extract_cmd)
     commonlib.shell("cd ${CLIENT_MIRROR_DIR}\n" + '''
 # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
 # So whatever we extract, remove the version specific info and make a symlink with that name.

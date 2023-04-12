@@ -1,61 +1,5 @@
 #!/usr/bin/env groovy
 
-
-def get_changelog(rpm_name, record_log) {
-    //
-    // INPUTS:
-    //   rpm_name - the name of an RPM build previously
-    //   record_log - an array of build records with | separated fields
-
-    rpm_builds = record_log['build_rpm']
-    if (rpm_builds == null || rpm_builds.size() == 0) {
-        return ""
-    }
-
-    // filter for the desired RPM using name
-    build_record_index = rpm_builds.findIndexOf {
-        it['rpm'] == rpm_name
-    }
-    if (build_record_index == -1) {
-        return ""
-    }
-    build_record = rpm_builds[build_record_index]
-
-    // then get the task_id and task_url out of it
-    // task_id = build_record['task_id']
-    task_url = build_record['task_url']
-
-    // get the build ID from the web page
-    // there must be an API way to do this MAL 20180622
-    try {
-        build_id = sh(
-            returnStdout: true,
-            script: [
-                "curl --silent --insecure ${task_url}",
-                "sed -n -e 's/.*buildID=\\([0-9]*\\).*/\\1/p'"
-            ].join(" | ")
-        ).trim()
-    } catch (err) {
-        error("failed to retrieve task page from brew: ${task_url}")
-    }
-
-    // buildinfo can return the changelog.  Return just the text after
-    // the Changelog: line
-    try {
-        changelog = sh(
-            returnStdout: true,
-            script: [
-                "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew buildinfo ${build_id} --changelog",
-                "sed -n '/Changelog/,\$p'"
-            ].join(' | ')
-        ).trim()
-    } catch (err) {
-        error "failed to get build info and changelog for build ${build_id}"
-    }
-
-    return changelog
-}
-
 def mail_success(version, mirrorURL, record_log, oa_changelog, commonlib) {
 
     def target = "(Release Candidate)"
@@ -195,26 +139,6 @@ def get_image_build_report(record_log) {
         image_set.toSorted().join("\n    ")
 }
 
-// Search the RPM build logs for the named package
-// extract the path to the spec file and return the changelog section.
-def get_rpm_specfile_path(record_log, package_name) {
-    rpms = record_log['build_rpm']
-    if (rpms == null) {
-        return null
-    }
-
-    // find the named package and the spec file path
-    specfile_path = ""
-    for (i = 0 ; i < rpms.size(); i++) {
-        if (rpms[i]['distgit_key'] == package_name) {
-            specfile_path = rpms[i]['specfile']
-            break
-        }
-    }
-
-    return specfile_path
-}
-
 /**
  * Creates a plashet in the current Jenkins workspace and then syncs it to ocp-artifacts.
  * @param version  The ocp version (e.g. 4.5.25). This is currently only used by 3.11
@@ -227,9 +151,8 @@ def get_rpm_specfile_path(record_log, package_name) {
  *
  * }
  */
-def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory, for_ironic=false) {
+def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_signing_advisory, buildlib) {
     def baseDir = "${env.WORKSPACE}/plashets/el${el_major}"
-    if (for_ironic) baseDir += "ironic"
 
     def plashetDirName = "${version}-${release}" // e.g. 4.6.22-<release timestamp>
     if (include_embargoed) {
@@ -272,12 +195,7 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"
     def brewTag = "rhaos-${major_minor}-rhel-${el_major}-candidate"
     def embargoedBrewTag = "--embargoed-brew-tag rhaos-${major_minor}-rhel-${el_major}-embargoed"
-    if (for_ironic) {
-        productVersion = "OSE-IRONIC-${major_minor}-RHEL-${el_major}"
-        brewTag = "rhaos-${major_minor}-ironic-rhel-${el_major}-candidate"
-        embargoedBrewTag  = ""  // unlikely to exist until we begin using -gating tag
-    }
-
+    
     // To prevent add/remove races within the advisory, a lock is used.
     lock("signing-advisory-${auto_signing_advisory}") {
         retry(2) {
@@ -324,8 +242,6 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
     // 'building' in this ocp-artifacts directory. Before creating 'building', let's get the
     // repo over there.
     def destBaseDir = "/mnt/data/pub/RHOCP/plashets/${major_minor}"
-    if (for_ironic) destBaseDir += "-el${el_major}-ironic"
-    else if (el_major >= 8) destBaseDir += "-el${el_major}"
 
     def assembly = params.ASSEMBLY ?: "stream"
     destBaseDir += "/${assembly}"
@@ -788,9 +704,8 @@ node {
                 }
 
                 def auto_signing_advisory = Integer.parseInt(buildlib.doozer("${doozerOpts} config:read-group --default=0 signing_advisory", [capture: true]).trim())
-
-                embargoedPlashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory)  // build el7 embargoed plashet
-                def plashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, false, auto_signing_advisory)  // build el7 unembargoed plashet
+                def embargoedPlashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, true, auto_signing_advisory, buildlib)  // build el7 embargoed plashet
+                def plashet = buildBuildingPlashet(NEW_VERSION, NEW_RELEASE, 7, false, auto_signing_advisory, buildlib)  // build el7 unembargoed plashet
                 unembargoedPlashet = plashet
             }
 

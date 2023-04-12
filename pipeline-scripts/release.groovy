@@ -501,19 +501,32 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 
+    // Find the GitHub commit id for cli and download the repo at that commit, then publish it.
+    def download_cli_tarball = '''
+        if oc adm release info ${quay_url}:${from_release_tag} --image-for=cli ; then
+            commit=$(oc image info --output json `oc adm release info ${quay_url}:${from_release_tag} --image-for=cli` | jq -r '.config.config.Labels."io.openshift.build.commit.id"')
+            pushd ${CLIENT_MIRROR_DIR}
+            curl -L -o "oc-source.tar.gz" https://github.com/openshift/oc/archive/${commit}.tar.gz
+            sha256sum oc-source.tar.gz >> sha256sum.txt
+            popd
+        fi
+    '''
+    commonlib.shell(script: download_cli_tarball)
+
     if ( arch == 'x86_64' ) {
         // oc image  extract requires an empty destination directory. So do this before extracting tools.
         // oc adm release extract --tools does not require an empty directory.
-        def oc_mirror_extract_cmd = """
+        def oc_mirror_extract_cmd = '''
             # If the release payload contains an oc-mirror artifact image, then extract the oc-mirror binary.
             if oc adm release info ${quay_url}:${from_release_tag} --image-for=oc-mirror ; then
                 MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc image extract `oc adm release info ${quay_url}:${from_release_tag} --image-for=oc-mirror` --path /usr/bin/oc-mirror:${CLIENT_MIRROR_DIR}
                 pushd ${CLIENT_MIRROR_DIR}
                 tar zcvf oc-mirror.tar.gz oc-mirror
+                sha256sum oc-mirror.tar.gz >> sha256sum.txt
                 rm oc-mirror
                 popd
             fi
-        """
+        '''
         commonlib.shell(script: oc_mirror_extract_cmd)
     }
 

@@ -10,7 +10,7 @@ node {
         <hr />
         <p><b>Timing</b>: The promote-assembly job runs this once the release is accepted.</p>
         This creates PRs to enter the new release in all the relevant Cincinnati channels <a href="https://github.com/openshift/cincinnati-graph-data/tree/master/channels" target="_blank">here</a>
-        <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/cincinnati-prs/README.md">For more details see the README.</a>
+        <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/cincinnati-prs/README.md">For more details see the README.</a>
     """)
 
     // Please update README.md if modifying parameter names or semantics

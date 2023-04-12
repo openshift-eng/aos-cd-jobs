@@ -1,4 +1,0 @@
----
-openshift_schedulable: true
-
-openshift_node_group_name: "node-config-all-in-one"

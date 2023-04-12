@@ -37,28 +37,30 @@ node() {
     timestamps {
         releaseChannel = slacklib.to(BUILD_VERSION)
         try {
-            report = buildlib.doozer("${doozerOpts} images:streams prs list", [capture: true]).trim()
-            if (report) {
-                data = readYaml text: report
-                text = ""
-                data.each { email, repos ->
-                    text += "*${email} is a contact for these PRs:*\n"
-                    repos.each { _, prs ->
-                        prs.each { pr -> text += ":black_small_square:${pr.pr_url}\n" }
+            withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
+                report = buildlib.doozer("${doozerOpts} images:streams prs list", [capture: true]).trim()
+                if (report) {
+                    data = readYaml text: report
+                    text = ""
+                    data.each { email, repos ->
+                        text += "*${email} is a contact for these PRs:*\n"
+                        repos.each { _, prs ->
+                            prs.each { pr -> text += ":black_small_square:${pr.pr_url}\n" }
+                        }
                     }
-                }
-                def attachment = [
-                    color: "#f2c744",
-                    blocks: [[type: "section", text: [type: "mrkdwn", text: text]]]
-                ]
-                releaseChannel.pinAttachment(attachment)
-                if (params.SEND_TO_SLACK) {
-                    releaseChannel.say(":scroll: Howdy! Some alignment prs are still open for ${group}\n", [attachment])
-                }
-            } else {
-                echo "There are no alignment prs left open."
-                if (params.SEND_TO_SLACK) {
-                    releaseChannel.say(":scroll: All prs are merged for ${group}")
+                    def attachment = [
+                        color: "#f2c744",
+                        blocks: [[type: "section", text: [type: "mrkdwn", text: text]]]
+                    ]
+                    releaseChannel.pinAttachment(attachment)
+                    if (params.SEND_TO_SLACK) {
+                        releaseChannel.say(":scroll: Howdy! Some alignment prs are still open for ${group}\n", [attachment])
+                    }
+                } else {
+                    echo "There are no alignment prs left open."
+                    if (params.SEND_TO_SLACK) {
+                        releaseChannel.say(":scroll: All prs are merged for ${group}")
+                    }
                 }
             }
         } catch (exception) {

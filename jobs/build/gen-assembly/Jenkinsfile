@@ -34,7 +34,7 @@ node {
                         string(
                             name: 'DOOZER_DATA_PATH',
                             description: 'ocp-build-data fork to use (e.g. assembly definition in your own fork)',
-                            defaultValue: "https://github.com/openshift/ocp-build-data",
+                            defaultValue: "https://github.com/openshift-eng/ocp-build-data",
                             trim: true,
                         ),
                         string(

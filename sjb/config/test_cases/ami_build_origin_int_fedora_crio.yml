@@ -1,7 +1,0 @@
----
-parent: 'test_cases/ami_build_origin_int_rhel_crio.yml'
-overrides:
-  provision:
-    os: "fedora"
-    stage: "bare"
-    provider: "aws"

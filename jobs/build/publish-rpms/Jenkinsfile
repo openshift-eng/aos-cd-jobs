@@ -25,21 +25,17 @@ node {
             [
                 $class : 'ParametersDefinitionProperty',
                 parameterDefinitions: [
-                    string(
-                        name: 'BUILD_VERSION',
-                        description: 'Target release version',
-                        trim: true,
-                    ),
+                    commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     choice(
                         name: 'ARCH',
                         description: 'architecture being synced',
-                        choices: commonlib.brewArches.join('\n'),
+                        // no reason to support ppc64le or s390x (yet)
+                        choices: ['x86_64', 'aarch64'],
                     ),
-                    string(
+                    choice(
                         name: 'EL_VERSION',
                         description: 'RHEL Version for which to synchronize RPMs',
-                        defaultValue: '8',
-                        trim: true
+                        choices: ['9', '8', '7'],
                     ),
                     booleanParam(
                         name: "DRY_RUN",
@@ -54,7 +50,7 @@ node {
     commonlib.checkMock()
 
     version = params.BUILD_VERSION
-    currentBuild.displayName += " $version-el${params.EL_VERSION}"
+    currentBuild.displayName += " $version-el${params.EL_VERSION} [${params.ARCH}]"
     path = "openshift-v4/${params.ARCH}/dependencies/rpms"
     AWS_S3_SYNC_OPTS='--no-progress --delete --exact-timestamps'
     if (params.DRY_RUN) {

@@ -25,19 +25,19 @@ pipeline {
         )
         string(
             name: "LINUX_BINARIES_LOCATION",
-            description: "Example: http://rcm-guest.app.eng.bos.redhat.com/rcm-guest/staging/integration/RHI-1.0.0.TP1-CR7/linux-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            description: "Example: hhttp://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/linux-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
             defaultValue: "",
             trim: true,
         )
         string(
             name: "MACOS_BINARIES_LOCATION",
-            description: "Example: http://rcm-guest.app.eng.bos.redhat.com/rcm-guest/staging/integration/RHI-1.0.0.TP1-CR7/mac-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            description: "Example: http://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/mac-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
             defaultValue: "",
             trim: true,
         )
         string(
             name: "WINDOWS_BINARIES_LOCATION",
-            description: "Example: http://rcm-guest.app.eng.bos.redhat.com/rcm-guest/staging/integration/RHI-1.0.0.TP1-CR7/windows-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            description: "Example: http://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/windows-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
             defaultValue: "",
             trim: true,
         )

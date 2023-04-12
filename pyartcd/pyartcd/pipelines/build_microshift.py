@@ -128,10 +128,9 @@ class BuildMicroShiftPipeline:
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
                 message += "\nReview and merge the PR before you proceed.\n"
-            message += "\nTo publish the build to the pocket (if asked by QE), run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fupdate-microshift-pocket/|update-microshift-pocket> job."
             message += f"\nTo attach the build to Errata, run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fprepare-release/|prepare-release> job or `elliott --group {self.group} --assembly {self.assembly} --rpms microshift find-builds -k rpm --member-only --use-default-advisory microshift`."
-            if assembly_type is AssemblyTypes.PREVIEW:
-                message += "\n This is an EC release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> with `UPDATE_PUB_MIRROR` checked."
+            if assembly_type in [AssemblyTypes.PREVIEW, AssemblyTypes.CANDIDATE]:
+                message += f"\n This is a {assembly_type.name} release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> to publish the build to mirror."
             if slack_client:
                 await slack_client.say(message, slack_thread)
         except Exception as err:
@@ -298,7 +297,7 @@ class BuildMicroShiftPipeline:
             github_token = os.environ.get('GITHUB_TOKEN')
             if not github_token:
                 raise ValueError("GITHUB_TOKEN environment variable is required to create a pull request")
-            owner = "openshift"
+            owner = "openshift-eng"
             repo = "ocp-build-data"
             api = GhApi(owner=owner, repo=repo, token=github_token)
             existing_prs = api.pulls.list(state="open", base=base, head=head)

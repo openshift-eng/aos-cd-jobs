@@ -21,6 +21,7 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
 from pyartcd.oc import get_release_image_info
+from pyartcd.jenkins import trigger_build_microshift
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 from semver import VersionInfo
@@ -38,7 +39,9 @@ class PromotePipeline:
     def __init__(self, runtime: Runtime, group: str, assembly: str,
                  skip_blocker_bug_check: bool = False,
                  skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
-                 skip_image_list: bool = False, permit_overwrite: bool = False,
+                 skip_image_list: bool = False,
+                 skip_build_microshift: bool = False,
+                 permit_overwrite: bool = False,
                  no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
@@ -47,6 +50,7 @@ class PromotePipeline:
         self.skip_attached_bug_check = skip_attached_bug_check
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
+        self.skip_build_microshift = skip_build_microshift
         self.permit_overwrite = permit_overwrite
 
         if multi_only and no_multi:
@@ -231,6 +235,10 @@ class PromotePipeline:
             release_infos = await self.promote(assembly_type, release_name, arches, previous_list, metadata, reference_releases, tag_stable)
             self._logger.info("All release images for %s have been promoted.", release_name)
 
+            # Before waiting for release images to be accepted by release controllers,
+            # we can start microshift build
+            await self._build_microshift(releases_config)
+
             # Wait for payloads to be accepted by release controllers
             pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}
             pullspecs_repr = ", ".join(f"{arch}: {pullspecs[arch]}" for arch in sorted(pullspecs.keys()))
@@ -325,6 +333,19 @@ class PromotePipeline:
                 "digest": release_info["digest"],
                 "metadata": {k: release_info["metadata"][k] for k in release_info["metadata"].keys() & {'version', 'previous'}},
             }
+            # if this payload is a manifest list, iterate through each manifest
+            manifests = release_info.get("manifests", [])
+            if manifests:
+                manifests_ent = data["content"][arch]["manifests"] = {}
+                for manifest in manifests:
+                    if manifest["platform"]["os"] != "linux":
+                        logger.warning("Unsupported OS %s in manifest list %s", manifest["platform"]["os"], release_info["image"])
+                        continue
+                    manifest_arch = brew_arch_for_go_arch(manifest["platform"]["architecture"])
+                    manifests_ent[manifest_arch] = {
+                        "digest": manifest["digest"]
+                    }
+
             from_release = release_info.get("references", {}).get("metadata", {}).get("annotations", {}).get("release.openshift.io/from-release")
             if from_release:
                 data["content"][arch]["from_release"] = from_release
@@ -412,6 +433,22 @@ class PromotePipeline:
         if not isinstance(advisory_info, dict):
             raise ValueError(f"Got invalid advisory info for advisory {advisory}: {advisory_info}.")
         return advisory_info
+
+    async def _build_microshift(self, releases_config):
+        if self.skip_build_microshift:
+            self._logger.info("Skipping microshift build because SKIP_BUILD_MICROSHIFT is set.")
+            return
+
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        if major == 4 and minor < 12:
+            self._logger.info("Skip microshift build for version < 4.12")
+            return
+
+        if not util.is_rpm_pinned(releases_config, self.assembly, 'microshift'):
+            self._logger.info("Microshift is not pinned in the assembly config. Starting build...")
+            await trigger_build_microshift(f'{major}.{minor}', self.assembly, self.runtime.dry_run)
+        else:
+            self._logger.info("Microshift is pinned in the assembly config. Skipping build. If a rebuild is required, please manually run build-microshift job.")
 
     @staticmethod
     def get_live_id(advisory_info: Dict):
@@ -619,7 +656,7 @@ class PromotePipeline:
         dest_image_tag = f"{release_name}-multi"
         dest_image_pullspec = f"{self.DEST_RELEASE_IMAGE_REPO}:{dest_image_tag}"
         self._logger.info("Checking if multi/heterogeneous payload %s exists...", dest_image_pullspec)
-        dest_image_digest = await self.get_image_digest(dest_image_pullspec)
+        dest_image_digest = await self.get_multi_image_digest(dest_image_pullspec)
         if dest_image_digest:  # already promoted
             self._logger.warning("Multi/heterogeneous payload %s already exists; digest: %s", dest_image_pullspec, dest_image_digest)
             dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
@@ -694,7 +731,15 @@ class PromotePipeline:
             await self.push_manifest_list(release_name, dest_manifest_list)
             self._logger.info("Heterogeneous release payload for %s has been built. Manifest list pullspec is %s", release_name, dest_image_pullspec)
             self._logger.info("Getting release image information for %s...", dest_image_pullspec)
-            dest_image_digest = await self.get_image_digest(dest_image_pullspec, raise_if_not_found=True) if not self.runtime.dry_run else "fake:deadbeef-multi"
+
+            # Get info of the pushed manifest list
+            self._logger.info("Getting release image information for %s...", dest_image_pullspec)
+            if self.runtime.dry_run:
+                dest_image_digest = "fake:deadbeef-multi"
+                dest_manifest_list = dest_manifest_list.copy()
+            else:
+                dest_image_digest = await self.get_multi_image_digest(dest_image_pullspec, raise_if_not_found=True)
+                dest_manifest_list = await self.get_image_info(dest_image_pullspec, raise_if_not_found=True)
 
         dest_image_info = dest_manifest_list.copy()
         dest_image_info["image"] = dest_image_pullspec
@@ -803,28 +848,7 @@ class PromotePipeline:
     @staticmethod
     async def get_image_info(pullspec: str, raise_if_not_found: bool = False):
         # Get image manifest/manifest-list.
-        # We use skopeo instead of `oc image info` because oc doesn't support json/yaml output for a manifest list.
-        if "://" not in pullspec:
-            pullspec = f"docker://{pullspec}"
-        # skopeo on buildvm is too old. Use a containerized version instead.
-        cmd = [
-            "podman",
-            "run",
-            "--rm",
-            "--privileged",
-            "-v",
-            f"{os.path.expanduser('~/.docker/config.json')}:/tmp/auth.json:ro",
-            "quay.io/containers/skopeo:v1.8"
-        ]
-        if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
-            cmd = ["skopeo"]
-        cmd.extend([
-            "inspect",
-            "--no-tags",
-            "--raw",
-            "--",
-            pullspec,
-        ])
+        cmd = f'oc image info --show-multiarch -o json {pullspec}'
         env = os.environ.copy()
         rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
         if rc != 0:
@@ -834,36 +858,38 @@ class PromotePipeline:
                     raise IOError(f"Image {pullspec} is not found.")
                 return None
             raise ChildProcessError(f"Error running {cmd}: exit_code={rc}, stdout={stdout}, stderr={stderr}")
+
+        # Info provided by oc need to be converted back into Skopeo-looking format
         info = json.loads(stdout)
-        if not isinstance(info, dict):
+        if not isinstance(info, list):
             raise ValueError(f"Invalid image info: {info}")
-        return info
+
+        media_types = set([manifest['mediaType'] for manifest in info])
+        if len(media_types) > 1:
+            raise ValueError(f'Inconsistent media types across manifests: {media_types}')
+
+        manifests = {
+            'mediaType': "application/vnd.docker.distribution.manifest.list.v2+json",
+            'manifests': [
+                {
+                    'digest': manifest['digest'],
+                    'platform': {
+                        'architecture': manifest['config']['architecture'],
+                        'os': manifest['config']['os']
+                    }
+                } for manifest in info
+            ]
+        }
+
+        return manifests
 
     @staticmethod
-    async def get_image_digest(pullspec: str, raise_if_not_found: bool = False):
+    async def get_multi_image_digest(pullspec: str, raise_if_not_found: bool = False):
         # Get image digest
-        # We use skopeo instead of `oc image info` because oc doesn't support json/yaml output for a manifest list.
-        if "://" not in pullspec:
-            pullspec = f"docker://{pullspec}"
-        # skopeo on buildvm is too old. Use a containerized version instead.
-        cmd = [
-            "podman",
-            "run",
-            "--rm",
-            "--privileged",
-            "quay.io/containers/skopeo:v1.8"
-        ]
-        if os.environ.get("PYARTCD_USE_NATIVE_SKOPEO") == "1":
-            cmd = ["skopeo"]
-        cmd.extend([
-            "inspect",
-            "--no-tags",
-            "--format={{.Digest}}",
-            "--",
-            pullspec,
-        ])
+        cmd = f'oc image info {pullspec} --filter-by-os linux/amd64 -o json'
         env = os.environ.copy()
         rc, stdout, stderr = await exectools.cmd_gather_async(cmd, check=False, env=env)
+
         if rc != 0:
             if "manifest unknown" in stderr or "was deleted or has expired" in stderr:
                 # image doesn't exist
@@ -871,7 +897,8 @@ class PromotePipeline:
                     raise IOError(f"Image {pullspec} is not found.")
                 return None
             raise ChildProcessError(f"Error running {cmd}: exit_code={rc}, stdout={stdout}, stderr={stderr}")
-        return stdout.strip()
+
+        return json.loads(stdout)['listDigest']
 
     @staticmethod
     async def get_image_stream_tag(namespace: str, image_stream_tag: str):
@@ -986,6 +1013,8 @@ class PromotePipeline:
               help="Skip attaching CVE flaws.")
 @click.option("--skip-image-list", is_flag=True,
               help="Do not gather an advisory image list for docs.")
+@click.option("--skip-build-microshift", is_flag=True,
+              help="Do not build microshift rpm")
 @click.option("--permit-overwrite", is_flag=True,
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
@@ -996,8 +1025,11 @@ class PromotePipeline:
 async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
+                  skip_build_microshift: bool,
                   permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
-                               skip_image_list, permit_overwrite, no_multi, multi_only, use_multi_hack)
+                               skip_image_list,
+                               skip_build_microshift,
+                               permit_overwrite, no_multi, multi_only, use_multi_hack)
     await pipeline.run()

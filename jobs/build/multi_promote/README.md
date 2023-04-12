@@ -118,4 +118,4 @@ it's a good idea to consult other ARTists and read the code since this is an
 advanced param :)
 
 ## Known issues
-As of right now (May 4th 2021) the job expects 3 nightlies always (for s390x, ppc64le and x86). In the future we want to fix this by varying for release type/version, and for supporting more arches. - [see this comment](https://github.com/openshift/aos-cd-jobs/pull/2606#discussion_r625391662) for details.
+As of right now (May 4th 2021) the job expects 3 nightlies always (for s390x, ppc64le and x86). In the future we want to fix this by varying for release type/version, and for supporting more arches. - [see this comment](https://github.com/openshift-eng/aos-cd-jobs/pull/2606#discussion_r625391662) for details.

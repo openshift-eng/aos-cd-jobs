@@ -69,7 +69,7 @@ specify something different (but it would still need to end in `.p?`).
 ### DOOZER\_DATA\_PATH
 
 This is possibly the most useful parameter for this job. It specifies the fork
-of [ocp-build-data](https://github.com/openshift/ocp-build-data) to be used as
+of [ocp-build-data](https://github.com/openshift-eng/ocp-build-data) to be used as
 configuration for this build.
 
 Override this with your fork when you want to try out some configuration

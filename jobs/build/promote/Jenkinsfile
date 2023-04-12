@@ -16,7 +16,7 @@ node {
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
-        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
     """)
 
 
@@ -627,7 +627,7 @@ ${reason}"""
                     def branch = "openshift-${major}.${minor}"
                     def edit = [
                         "rm -rf ocp-build-data",
-                        "git clone --single-branch --branch ${branch} git@github.com:openshift/ocp-build-data.git",
+                        "git clone --single-branch --branch ${branch} git@github.com:openshift-eng/ocp-build-data.git",
                         "cd ocp-build-data",
                         "sed -e 's/freeze_automation:.*/freeze_automation: no/' -i group.yml",
                         "git diff",

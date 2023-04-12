@@ -13,7 +13,7 @@ node {
         Be aware that by default the job stops for user input very early on. It
         sends slack alerts in our release channels when this occurs.
 
-        For more details see the <a href="https://github.com/openshift/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
+        For more details see the <a href="https://github.com/openshift-eng/aos-cd-jobs/blob/master/jobs/build/promote/README.md" target="_blank">README</a>
     """)
 
 
@@ -45,11 +45,6 @@ node {
                     booleanParam(
                         name: 'MULTI_ONLY',
                         description: 'Do not promote arch-specific homogenous payloads.',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
-                        name: 'PERMIT_PAYLOAD_OVERWRITE',
-                        description: 'DO NOT USE without team lead approval. Allows the pipeline to overwrite an existing payload in quay.',
                         defaultValue: false,
                     ),
                     booleanParam(
@@ -161,8 +156,8 @@ node {
         if (params.SKIP_ATTACH_CVE_FLAWS) {
             cmd << "--skip-attach-cve-flaws"
         }
-        if (params.PERMIT_PAYLOAD_OVERWRITE) {
-            cmd << "--permit-overwrite"
+        if (params.SKIP_BUILD_MICROSHIFT) {
+            cmd << "--skip-build-microshift"
         }
         if (params.NO_MULTI) {
             cmd << "--no-multi"
@@ -178,7 +173,7 @@ node {
         }
         echo "Will run ${cmd}"
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'), string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)
@@ -219,6 +214,22 @@ node {
     }
 
     stage("sync RHCOS") {
+
+        /* Sync potential pre-release source on which RHCOS depends. See ART-6419 for details. */
+        if ( major > 4 || (major == 4 && minor >= 13) ) {
+            if (release_info.type == 'candidate' || release_info.type == 'standard') {
+                def src_output_dir = "${WORKSPACE}/rhcos_src_staging"
+                sh "rm -rf ${src_output_dir}"
+                release_info.content.each { arch, info ->
+                    if (arch != "multi") {
+                        def rhcos_build = info.rhcos_version
+                        buildlib.doozer("--group openshift-${major}.${minor} --assembly ${params.ASSEMBLY} config:rhcos-srpms --version ${rhcos_build} --arch ${arch} -o ${src_output_dir}")
+                    }
+                }
+                commonlib.syncDirToS3Mirror("${src_output_dir}/", "/pub/openshift-v4/sources/packages/", delete_old=false)
+            }
+        }
+
         /*
          * This has inappropriate logic, disabling it for now.
          * Current behavior is to look up rhcos version of machine-os-content
@@ -376,31 +387,6 @@ node {
                 slacklib.to(params.VERSION).say(msg)
             }
         }
-    }
-
-    stage("trigger build-microshift") {
-        if (params.SKIP_BUILD_MICROSHIFT) {
-            echo "Don't trigger build-microshift because SKIP_BUILD_MICROSHIFT is set"
-            return
-        }
-        if (major == 4 && minor < 12) {
-            echo "Skip microshift build for version < 4.12"
-            return
-        }
-        def mirror_path = "/pockets/microshift/${params.VERSION}-el8/${params.ASSEMBLY}"
-        if (commonlib.listS3Mirror(mirror_path + "/plashet.yml")) {
-            echo "Microshift for this assembly has been published to the pocket. If a rebuild is required, please manually run build-microshift job."
-            return
-        }
-        build(
-            job: "build%2Fbuild-microshift",
-            propagate: true,
-            parameters: [
-                string(name: 'BUILD_VERSION', value: params.VERSION),
-                string(name: 'ASSEMBLY', value: params.ASSEMBLY),
-                booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
-            ]
-        )
     }
 
     stage("clean and mail") {

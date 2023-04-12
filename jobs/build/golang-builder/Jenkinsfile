@@ -17,7 +17,7 @@ node {
                 string(
                     name: 'DOOZER_DATA_PATH',
                     description: 'ocp-build-data fork to use (e.g. test customizations on your own fork)',
-                    defaultValue: "https://github.com/openshift/ocp-build-data",
+                    defaultValue: "https://github.com/openshift-eng/ocp-build-data",
                     trim: true,
                 ),
                 string(
@@ -69,8 +69,8 @@ pipeline {
         timestamps()
         buildDiscarder(
             logRotator(
-                artifactDaysToKeepStr: '365',
-                daysToKeepStr: '365')
+                artifactDaysToKeepStr: '30',
+                daysToKeepStr: '30')
         )
     }
     stages {

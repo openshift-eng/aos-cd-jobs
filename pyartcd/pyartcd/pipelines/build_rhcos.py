@@ -1,9 +1,15 @@
 from pyartcd.cli import cli, pass_runtime
 from pyartcd.runtime import Runtime
 import openshift as oc
-from openshift import OpenShiftPythonException, Missing
 import click
-import requests, re, base64, json, time, sys
+import requests
+import re
+import base64
+import json
+import time
+import sys
+import subprocess
+from subprocess import PIPE
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from typing import List, Dict, Tuple
@@ -13,7 +19,9 @@ JENKINS_BASE_URL = "https://jenkins-rhcos.apps.ocp-virt.prod.psi.redhat.com"
 
 # lifted verbatim from
 # https://findwork.dev/blog/advanced-usage-python-requests-timeouts-retries-hooks/
-DEFAULT_TIMEOUT = 5 # seconds
+DEFAULT_TIMEOUT = 5  # seconds
+
+
 class TimeoutHTTPAdapter(HTTPAdapter):
     def __init__(self, *args, **kwargs):
         self.timeout = DEFAULT_TIMEOUT
@@ -37,15 +45,16 @@ class BuildRhcosPipeline:
         self.ignore_running = ignore_running
         self.version = version
         self.api_token = None
+        self._stream = None # rhcos stream the version maps to
+        self.dry_run = self.runtime.dry_run
 
         self.request_session = requests.Session()
         retries = Retry(
-                total=5, backoff_factor=1,
-                status_forcelist=[500, 502, 503, 504],
-                method_whitelist=["HEAD", "GET", "POST"],
+            total=5, backoff_factor=1,
+            status_forcelist=[500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "POST"],
         )
         self.request_session.mount("https://", TimeoutHTTPAdapter(max_retries=retries))
-
 
     def run(self):
         self.request_session.headers.update({"Authorization": f"Bearer {self.retrieve_auth_token()}"})
@@ -65,6 +74,8 @@ class BuildRhcosPipeline:
             # happen we will see a build start, assume we started it, and watch it to completion.
             # this seems unlikely to cause any problems other than mild confusion.
             self.start_build()
+            if self.dry_run:
+                print('DRY RUN - Exiting', file=sys.stderr)
             result["action"] = "build"
             result["builds"] = self.wait_for_builds()
 
@@ -108,16 +119,46 @@ class BuildRhcosPipeline:
 
         return [b for b in builds if b["parameters"].get("STREAM") == self.version]
 
+    @property
+    def stream(self):
+        if self._stream:
+            return self._stream
+
+        # doozer --quiet -g openshift-4.14 config:read-group urls.rhcos_release_base.multi --default ''
+        # https://releases-rhcos-art.apps.ocp-virt.prod.psi.redhat.com/storage/prod/streams/4.14-9.2/builds
+        cmd = [
+            "doozer",
+            "--quiet",
+            "--group", f'openshift-{self.version}',
+            "config:read-group",
+            "urls.rhcos_release_base.multi",
+            "--default",
+            "''"
+        ]
+        result = subprocess.run(cmd, stdout=PIPE, stderr=PIPE, check=False, universal_newlines=True)
+        if result.returncode != 0:
+            raise IOError(f"Command {cmd} returned {result.returncode}: stdout={result.stdout}, stderr={result.stderr}")
+        match = re.search(r'streams/(.*)/builds', result.stdout)
+        if match:
+            self._stream = match[1]
+        else:
+            self._stream = self.version
+        return self._stream
+
     def start_build(self):
         """Start a new build for the given version"""
         # determine parameters
-        params = dict(STREAM=self.version, EARLY_ARCH_JOBS="false")
+        params = dict(STREAM=self.stream, EARLY_ARCH_JOBS="false")
         if self.new_build:
             params["FORCE"] = "true"
+        job_url = f"{JENKINS_BASE_URL}/job/build/buildWithParameters"
+        if self.dry_run:
+            print(f"Would've started build at url={job_url} with params={params}", file=sys.stderr)
+            return {}
 
         # start the build
         self.request_session.post(
-            f"{JENKINS_BASE_URL}/job/build/buildWithParameters",
+            job_url,
             data=params,
         )
 
@@ -127,7 +168,7 @@ class BuildRhcosPipeline:
             if initial_builds:
                 break
             time.sleep(1)  # may take a few seconds for the build to start
-            initial_builds  = self.query_existing_builds()
+            initial_builds = self.query_existing_builds()
         else:  # only gets here if the for loop reaches the count
             raise Exception("Waited too long for build to start")
 

@@ -1,7 +1,0 @@
----
-parent: 'test_cases/test_pull_request_crio_ami_rhel.yml'
-overrides:
-  provision:
-    os: "fedora"
-    stage: "bare"
-    provider: "aws"

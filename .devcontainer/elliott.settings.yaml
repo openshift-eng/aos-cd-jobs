@@ -2,7 +2,7 @@
 working_dir: /workspaces/aos-cd-jobs-working/elliott-working
 
 #Git URL or File Path to build data
-data_path: https://github.com/openshift/ocp-build-data.git
+data_path: https://github.com/openshift-eng/ocp-build-data.git
 
 #Sub-group directory or branch to pull build data
 # group:

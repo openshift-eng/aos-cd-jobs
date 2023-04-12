@@ -2,6 +2,7 @@ aiohttp[speedups] >= 3.6
 aiofiles
 click
 contextvars
+errata_tool
 ghapi
 jenkinsapi >= 0.3.13  # https://github.com/pycontribs/jenkinsapi/issues/833
 Jinja2

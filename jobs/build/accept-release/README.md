@@ -8,7 +8,7 @@ This job can be used to Accept/Reject a release/nightly on [release controller](
 
 Sometimes we want to "Accept" currently "Rejected" nightlies when blocking tests are determined to be flaky. Sometimes we want to "Reject" long pending nightlies, to make way for newer nightlies.
 
-After the [promote-assembly](https://github.com/openshift/aos-cd-jobs/tree/master/scheduled-jobs/build/promote-assembly) job creates a named release on Release controller, and it is "Rejected" due to failing tests, but newer tests pass - in which case we want to Accept it. 
+After the [promote-assembly](https://github.com/openshift-eng/aos-cd-jobs/tree/master/scheduled-jobs/build/promote-assembly) job creates a named release on Release controller, and it is "Rejected" due to failing tests, but newer tests pass - in which case we want to Accept it. 
 
 ## Parameters
 

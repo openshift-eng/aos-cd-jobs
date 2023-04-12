@@ -39,25 +39,25 @@ node {
                 parameterDefinitions: [
                     string(
                         name: 'FROM_RELEASE_TAG',
-                        description: 'Release Image tag (or pullspec with a tag) from which to determine RHCOS buildID; for example <b>quay.io/openshift-release-dev/ocp-release:4.12.0-ec.2-aarch64</b> or just <b>4.12.0-ec.2-x86_64</b>',
+                        description: 'Release Name (or pullspec with a tag) from which to get RHCOS buildID reference (ex. 4.12.0-ec.2-x86_64). <b>Note:</b> The buildID is pulled from the installer image in the payload, which is often different from what is in the rhcos image - so make sure the installer image points to the right buildID OR use OVERRIDE_BUILD.',
                         defaultValue: "",
                         trim: true,
                     ),
                     commonlib.ocpVersionParam('OCP_VERSION', '4', ['auto']),
                     string(
                         name: 'OVERRIDE_BUILD',
-                        description: 'ID of the RHCOS build to sync. e.g.: <b>42.80.20190828.2</b>. This overrides what would be inferred from <code>FROM_RELEASE_TAG</code> and requires explicit specifications below too.',
+                        description: "ID of the RHCOS build to sync. e.g.: <code>42.80.20190828.2</code>. Empty (default) will retrieve the metadata from the installer image. <b>Leave empty, unless you know what you're doing</b>",
                         defaultValue: "",
                         trim: true,
                     ),
                     choice(
                         name: 'ARCH',
-                        description: 'Which architecture of RHCOS build to look for. Required with <code>OVERRIDE_BUILD</code>',
+                        description: 'Which architecture of RHCOS build to look for. Required with <code>OVERRIDE_BUILD</code>. Leave at <code>auto</code> otherwise.',
                         choices: (["auto"] + commonlib.brewArches),
                     ),
                     string(
                         name: 'OVERRIDE_NAME',
-                        description: 'The release name, like <b>4.2.0</b>, or <b>4.2.0-0.nightly-2019-08-28-152644</b>. Required with <code>OVERRIDE_BUILD</code>',
+                        description: 'The release name, like <b>4.2.0</b>, or <b>4.2.0-0.nightly-2019-08-28-152644</b>. Required with <code>OVERRIDE_BUILD</code>. Leave at empty otherwise.',
                         defaultValue: "",
                         trim: true,
                     ),

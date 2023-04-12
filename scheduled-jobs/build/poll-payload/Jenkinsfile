@@ -18,17 +18,14 @@ import groovy.json.JsonOutput
     "4-dev-preview-ppc64le": [this.&setDevPreviewLatest],
     "4-dev-preview-arm64": [this.&setDevPreviewLatest],
 
-    "4.13.0-0.nightly":  [this.&startBuildMicroshiftJob],
+    "4.14.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
+    "4.14.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
 
-    "4.12.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMs],
-    "4.12.0-0.nightly-s390x": [this.&publishRPMs],
-    "4.12.0-0.nightly-ppc64le": [this.&publishRPMs],
-    "4.12.0-0.nightly-arm64": [this.&publishRPMs],
-    "4.12.0-0.nightly-multi": [this.&startPreReleaseJob],
-    // 4.11 is not going to be released as a fc/rc named release, so
-    // continue to publish as dev-preview until all 4.11 heterogeneous
-    // users are using named releases.
-    "4.11.0-0.nightly-multi": [this.&startPreReleaseJob],
+    "4.13.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl9, this.&publishRPMsEl8],
+    "4.13.0-0.nightly-arm64": [this.&publishRPMsEl9, this.&publishRPMsEl8],
+
+    "4.12.0-0.nightly":  [this.&startBuildMicroshiftJob, this.&publishRPMsEl8],
+    "4.12.0-0.nightly-arm64": [this.&publishRPMsEl8],
 ]
 
 def setDevPreviewLatest(String releaseStream, Map latestRelease, Map previousRelease) {
@@ -52,7 +49,7 @@ def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRele
     )
 }
 
-def publishRPMs(String releaseStream, Map latestRelease, Map previousRelease) {
+def publishRPMsEl9(String releaseStream, Map latestRelease, Map previousRelease) {
     def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
     def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
     build(
@@ -60,11 +57,28 @@ def publishRPMs(String releaseStream, Map latestRelease, Map previousRelease) {
         parameters: [
             string(name: 'BUILD_VERSION', value: buildVersion),
             string(name: 'ARCH', value: arch),
+            string(name: 'EL_VERSION', value: '9'),
+        ],
+    )
+}
+
+def publishRPMsEl8(String releaseStream, Map latestRelease, Map previousRelease) {
+    def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
+    def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
+    build(
+        job: '/aos-cd-builds/build%2Fpublish-rpms',
+        parameters: [
+            string(name: 'BUILD_VERSION', value: buildVersion),
+            string(name: 'ARCH', value: arch),
+            string(name: 'EL_VERSION', value: '8'),
         ],
     )
 }
 
 def startBuildMicroshiftJob(String releaseStream, Map latestRelease, Map previousRelease) {
+    buildlib.withAppCiAsArtPublish() {
+        sh "oc registry login"
+    }
     // This function is invoked when a new x86_64 is created and accepted by the Release Controller
     def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
     def x86_64_nightly = latestRelease.name
@@ -89,7 +103,6 @@ def startBuildMicroshiftJob(String releaseStream, Map latestRelease, Map previou
             string(name: 'BUILD_VERSION', value: buildVersion),
             string(name: 'ASSEMBLY', value: "microshift"),
             string(name: 'RELEASE_PAYLOADS', value: nightlies),
-            booleanParam(name: 'UPDATE_POCKET', value: false),
         ]
     )
 }
@@ -172,11 +185,11 @@ node() {
             stage(releaseStream) {
                 echo "Invoking actions for $releaseStream"
                 def actions = ACTIONS[releaseStream]
-                for (fn in actions) {
+                actions.eachWithIndex { fn, idx ->
                     try {
                         fn(args[0], args[1], args[2])
                     } catch (Exception ex) {
-                        echo "Error invoking action $fn for $releaseStream: $ex"
+                        echo "Error invoking action number ${idx} for $releaseStream with arguments '${args}': $ex"
                         currentBuild.result = "UNSTABLE"
                     }
                 }

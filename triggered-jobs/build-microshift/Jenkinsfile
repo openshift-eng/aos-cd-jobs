@@ -4,11 +4,10 @@ node() {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
 
-    commonlib.describeJob("rhcos", """
-This job is meant to be triggered by remote API calls (namely from ocp4_scan). It will forward the call to 
-<a href="https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Frhcos">rhcos</a>,
+    commonlib.describeJob("build-microshift", """
+This job is meant to be triggered by remote API calls.
+It will forward the call to build/build-microshift,
 that being part of a multibranch pipeline could not be configured to receive remote triggers directly.<br>
-In this context, the only <strong>BUILD_VERSION</strong> and <strong>NEW_BUILD</strong> params are required.
     """)
 
     // Expose properties for a parameterized build
@@ -24,11 +23,8 @@ In this context, the only <strong>BUILD_VERSION</strong> and <strong>NEW_BUILD</
                 parameterDefinitions: [
                     commonlib.mockParam(),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                    booleanParam(
-                        name: "NEW_BUILD",
-                        description: "(Multi pipeline only) Request a new build from the RHCOS pipeline even when it finds no changes from the last.",
-                        defaultValue: false
-                    ),
+                    string(name: "ASSEMBLY", trim: true),
+                    booleanParam(name: "DRY_RUN", defaultValue: false),
                     string(name: "TRIGGERED_FROM", trim: true),
                 ]
             ],
@@ -36,16 +32,17 @@ In this context, the only <strong>BUILD_VERSION</strong> and <strong>NEW_BUILD</
     )
 
     commonlib.checkMock()
-    currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}"
+    currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION} - ${params.ASSEMBLY}"
 
     echo "Triggered from ${TRIGGERED_FROM}"
 
     build(
-        job: '../aos-cd-builds/build%252Frhcos/',
+        job: '../aos-cd-builds/build%2Fbuild-microshift/',
         propagate: false,
         parameters: [
             string(name: 'BUILD_VERSION', value: params.BUILD_VERSION),
-            booleanParam(name: 'NEW_BUILD', value: params.NEW_BUILD)
+            string(name: 'ASSEMBLY', value: params.ASSEMBLY),
+            booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
         ]
     )
 }

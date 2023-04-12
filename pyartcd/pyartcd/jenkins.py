@@ -1,13 +1,12 @@
 import base64
 import logging
 import os
-
 import aiohttp
 
 logger = logging.getLogger(__name__)
 
 
-async def trigger_jenkins_job(job_path: str, params=None):
+async def trigger_jenkins_job(job_path: str, params: dict = {}):
     """
     Trigger a job using remote API calls.
     :param job_path: relative path to the job, starting from <buildvm hostname>:<jenkins port>
@@ -16,6 +15,10 @@ async def trigger_jenkins_job(job_path: str, params=None):
 
     service_account = os.environ['JENKINS_SERVICE_ACCOUNT']
     token = os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN']
+
+    build_url = os.environ.get('BUILD_URL', '')
+    if build_url:
+        params['TRIGGERED_FROM'] = build_url
 
     # Build authorization header
     auth = base64.b64encode(f'{service_account}:{token}'.encode()).decode()
@@ -27,12 +30,12 @@ async def trigger_jenkins_job(job_path: str, params=None):
     # Otherwise, just call the 'build' endpoint with empty data
     url = f'https://buildvm.hosts.prod.psi.bos.redhat.com:8443/{job_path}'
     if params:
-        url += f'/buildWithParameters'
+        url += '/buildWithParameters'
     else:
-        url += f'/build'
+        url += '/build'
 
     # Call API endpoint
-    logger.info('Triggering remote job %s', job_path)
+    logger.info('Triggering remote job /%s', job_path)
     async with aiohttp.ClientSession(headers=headers) as session:
         async with session.post(url, data=params) as response:
             response.raise_for_status()
@@ -57,4 +60,15 @@ async def trigger_build_sync(build_version: str):
     await trigger_jenkins_job(
         job_path='job/triggered-builds/job/build-sync',
         params={'BUILD_VERSION': build_version}
+    )
+
+
+async def trigger_build_microshift(build_version: str, assembly: str, dry_run: bool):
+    await trigger_jenkins_job(
+        job_path='job/triggered-builds/job/build-microshift',
+        params={
+            'BUILD_VERSION': build_version,
+            'ASSEMBLY': assembly,
+            'DRY_RUN': dry_run
+        }
     )

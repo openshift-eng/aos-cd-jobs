@@ -16,17 +16,19 @@ import semver
 from doozerlib.assembly import AssemblyTypes
 from doozerlib.util import go_suffix_for_arch
 from elliottlib.assembly import assembly_group_config
-from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory
+from elliottlib.errata import get_bug_ids, get_jira_issue_from_advisory, set_blocking_advisory, get_blocking_advisories
 from elliottlib.model import Model
 from jira.resources import Issue
 from pyartcd import exectools, constants
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.jira import JIRAClient
+from pyartcd.slack import SlackClient
 from pyartcd.mail import MailService
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 from pyartcd.util import (get_assembly_basis, get_assembly_type,
-                          get_release_name_for_assembly)
+                          get_release_name_for_assembly,
+                          is_greenwave_all_pass_on_advisory)
 from ruamel.yaml import YAML
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -36,6 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 class PrepareReleasePipeline:
     def __init__(
         self,
+        slack_client: SlackClient,
         runtime: Runtime,
         group: Optional[str],
         assembly: Optional[str],
@@ -83,6 +86,7 @@ class PrepareReleasePipeline:
 
         self.release_date = date
         self.package_owner = package_owner or self.runtime.config["advisory"]["package_owner"]
+        self._slack_client = slack_client
         self.working_dir = self.runtime.working_dir.absolute()
         self.default_advisories = default_advisories
         self.include_shipped = include_shipped
@@ -176,6 +180,8 @@ class PrepareReleasePipeline:
                 else:
                     _LOGGER.info("Reusing existing microshift advisory %s", advisories["microshift"])
 
+        await self.set_advisory_dependencies(advisories)
+
         jira_issue_key = group_config.get("release_jira")
         jira_issue = None
         jira_template_vars = {
@@ -230,7 +236,7 @@ class PrepareReleasePipeline:
         # attached to the advisory
         # currently for rpm advisory and cves only
         _LOGGER.info("Sweep bugs into the the advisories...")
-        self.sweep_bugs(check_builds=True)
+        self.sweep_bugs()
 
         _LOGGER.info("Adding placeholder bugs...")
         for impetus, advisory in advisories.items():
@@ -261,6 +267,7 @@ class PrepareReleasePipeline:
             self.send_notification_email(advisories, jira_issue_link)
 
         # Move advisories to QE
+        self._slack_client.bind_channel(self.release_name)
         for impetus, advisory in advisories.items():
             try:
                 if impetus == "metadata":
@@ -269,6 +276,10 @@ class PrepareReleasePipeline:
                 self.change_advisory_state(advisory, "QE")
             except CalledProcessError as ex:
                 _LOGGER.warning(f"Unable to move {impetus} advisory {advisory} to QE: {ex}")
+
+            if impetus in ["image", "extras", "metadata"]:
+                if not is_greenwave_all_pass_on_advisory(advisory):
+                    await self._slack_client.say(f"Some greenwave tests failed on https://errata.devel.redhat.com/advisory/{advisory}/test_run/greenwave_cvp @release-artists")
 
     async def load_releases_config(self) -> Optional[None]:
         repo = self.working_dir / "ocp-build-data-push"
@@ -460,7 +471,6 @@ class PrepareReleasePipeline:
     def sweep_bugs(
         self,
         advisory: Optional[int] = None,
-        check_builds: bool = False,
     ):
         cmd = [
             "elliott",
@@ -469,8 +479,6 @@ class PrepareReleasePipeline:
             "--assembly", self.assembly,
             "find-bugs:sweep",
         ]
-        if check_builds:
-            cmd.append("--check-builds")
         if advisory:
             cmd.append(f"--add={advisory}")
         else:
@@ -495,8 +503,7 @@ class PrepareReleasePipeline:
         subprocess.run(cmd, check=True, universal_newlines=True, cwd=self.working_dir)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_fixed(10))
-    async def sweep_builds_async(
-        self, impetus: str, advisory: int):
+    async def sweep_builds_async(self, impetus: str, advisory: int):
         only_payload = False
         only_non_payload = False
         if impetus in ["rpm", "microshift"]:
@@ -620,6 +627,28 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             _LOGGER.warning("Failed to render JIRA template text: %s", ex)
         return fields
 
+    async def set_advisory_dependencies(self, advisories):
+        blocking_kind = ['image', 'extras']
+        target_kind = ['rpm', 'metadata']
+        expected_blocking = {i for i in [advisories[k] for k in blocking_kind if k in advisories] if i}
+        target_advisories = {i for i in [advisories[k] for k in target_kind if k in advisories] if i}
+        if not target_advisories or not expected_blocking:
+            return
+
+        _LOGGER.info(f"Setting blocking advisories ({expected_blocking}) for {target_advisories}")
+        for target_advisory_id in target_advisories:
+            blocking: Optional[List] = get_blocking_advisories(target_advisory_id)
+            if blocking is None:
+                raise ValueError(f"Failed to fetch blocking advisories for {target_advisory_id} ")
+            if expected_blocking.issubset(set(blocking)):
+                continue
+            for blocking_advisory_id in expected_blocking:
+                try:
+                    set_blocking_advisory(target_advisory_id, blocking_advisory_id, "SHIPPED_LIVE")
+                except Exception as ex:
+                    _LOGGER.warning(f"Unable to set blocking advisories ({expected_blocking}) for {target_advisory_id}: {ex}")
+                    await self._slack_client.say(f"Unable to set blocking advisories ({expected_blocking}) for {target_advisory_id}. Details in log.")
+
     def update_release_jira(self, issue: Issue, subtasks: List[Issue], template_vars: Dict[str, int]):
         template_issue_key = self.runtime.config["jira"]["templates"][f"ocp{self.release_version[0]}"]
         _LOGGER.info("Updating release JIRA %s from template %s...", issue.key, template_issue_key)
@@ -718,6 +747,8 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
             content += (
                 f"- {impetus}: https://errata.devel.redhat.com/advisory/{advisory}\n"
             )
+        if 'microshift' in advisories.keys():
+            content += f"\n Note: Microshift advisory is not populated with build until after the release has been promoted on Release Controller. It will take a few hours for it to be ready and on QE."
         if self.candidate_nightlies:
             content += "\nNightlies:\n"
             for arch, pullspec in self.candidate_nightlies.items():
@@ -752,22 +783,31 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
 @pass_runtime
 @click_coroutine
 async def prepare_release(runtime: Runtime, group: str, assembly: str, name: Optional[str], date: str,
-                  package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
-    # parse environment variables for credentials
-    jira_token = os.environ.get("JIRA_TOKEN")
-    if not runtime.dry_run and not jira_token:
-        raise ValueError("JIRA_TOKEN environment variable is not set")
-    # start pipeline
-    pipeline = PrepareReleasePipeline(
-        runtime=runtime,
-        group=group,
-        assembly=assembly,
-        name=name,
-        date=date,
-        nightlies=nightlies,
-        package_owner=package_owner,
-        jira_token=jira_token,
-        default_advisories=default_advisories,
-        include_shipped=include_shipped,
-    )
-    await pipeline.run()
+                          package_owner: Optional[str], nightlies: Tuple[str, ...], default_advisories: bool, include_shipped: bool):
+    slack_client = runtime.new_slack_client()
+    slack_client.bind_channel(group)
+    await slack_client.say(f":construction: prepare-release for {name if name else assembly} :construction:")
+    try:
+        # parse environment variables for credentials
+        jira_token = os.environ.get("JIRA_TOKEN")
+        if not runtime.dry_run and not jira_token:
+            raise ValueError("JIRA_TOKEN environment variable is not set")
+        # start pipeline
+        pipeline = PrepareReleasePipeline(
+            slack_client=slack_client,
+            runtime=runtime,
+            group=group,
+            assembly=assembly,
+            name=name,
+            date=date,
+            nightlies=nightlies,
+            package_owner=package_owner,
+            jira_token=jira_token,
+            default_advisories=default_advisories,
+            include_shipped=include_shipped,
+        )
+        await pipeline.run()
+        await slack_client.say(f":white_check_mark: prepare-release for {name if name else assembly} completes.")
+    except Exception as e:
+        await slack_client.say(f":warning: prepare-release for {name if name else assembly} has result FAILURE.")
+        raise e  # return failed status to jenkins

@@ -34,21 +34,6 @@ def setDevPreviewLatest(String releaseStream, Map latestRelease, Map previousRel
     release.stageSetClientLatest(latestRelease.name, arch, "ocp-dev-preview")
 }
 
-def startPreReleaseJob(String releaseStream, Map latestRelease, Map previousRelease) {
-    def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
-    def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
-    build(
-        job: '/aos-cd-builds/build%2Fpre-release',
-        parameters: [
-            string(name: 'BUILD_VERSION', value: buildVersion),
-            string(name: 'ARCH', value: arch),
-            string(name: 'FROM_RELEASE_TAG', value: latestRelease.name),
-            booleanParam(name: 'MIRROR', value: true),
-            booleanParam(name: 'SUPPRESS_EMAIL', value: true),
-        ],
-    )
-}
-
 def publishRPMsEl9(String releaseStream, Map latestRelease, Map previousRelease) {
     def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
     def arch = commonlib.extractArchFromReleaseName(latestRelease.name)

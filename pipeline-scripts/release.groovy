@@ -546,9 +546,9 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
                 source_name="openshift-client"
                 ;;
               installer)
-                source_name="openshift-installer"
+                source_name="openshift-install"
                 ;;
-              operator-registry)
+              operator-framework-olm)
                 source_name="opm"
                 ;;
             esac

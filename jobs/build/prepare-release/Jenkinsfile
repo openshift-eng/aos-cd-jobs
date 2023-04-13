@@ -117,7 +117,7 @@ node {
                     cmd << "--default-advisories"
                 }
                 if (params.INCLUDE_SHIPPED) {
-                    cmd << "--include_shipped"
+                    cmd << "--include-shipped"
                 }
                 if (params.PACKAGE_OWNER)
                     cmd << "--package-owner" << params.PACKAGE_OWNER

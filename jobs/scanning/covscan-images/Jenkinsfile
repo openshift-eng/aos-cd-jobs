@@ -94,7 +94,7 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
                     // To make installing covscan reasonably quick for scanner images, make a local copy of covscan repos.
                     // doozer can use these with the --local-repo arg to images:covscan.
                     withEnv(["https_proxy=", "http_proxy=", "no_proxy="]) {
-                        for ( rhel_version in ['7', '8'] ) {
+                        for ( rhel_version in ['7', '8', '9'] ) {
                             prefix = "covscan-rhel-${rhel_version}"
                             repo_fn = "${prefix}.repo"
                             writeFile(file: repo_fn, text: """
@@ -137,12 +137,15 @@ enabled_metadata=1
                         --local-repo-rhel-7 covscan-rhel-7_repos/covscan-testing
                         --local-repo-rhel-8 covscan-rhel-8_repos/covscan
                         --local-repo-rhel-8 covscan-rhel-8_repos/covscan-testing
+                        --local-repo-rhel-9 covscan-rhel-9_repos/covscan
+                        --local-repo-rhel-9 covscan-rhel-9_repos/covscan-testing
                         --result-archive ${RESULTS_ARCHIVE_DIR}
                         --repo-type unsigned
                         ${params.PRESERVE_BUILDER_IMAGES?'--preserve-builder-images':''}
                         ${params.IGNORE_WAIVED?'--ignore-waived':''}
                         ${params.FORCE_ANALYSIS?'--force-analysis':''}
                         "--https-proxy=${env.https_proxy}"
+                        --podman-tmpdir=/mnt/workspace/podman_tmp/jenkins
                     """
                 }
             }
@@ -174,17 +177,17 @@ enabled_metadata=1
                         continue
                     }
 
-                    // Copy archive results files to rcm-guest (rsync should no-op if it has happened before). This
+                    // Copy archive results files to spmm-utils (rsync should no-op if it has happened before). This
                     // includes files like all_results.js and diff_results.html.
-                    RCM_RELATIVE_DEST = "rcm-guest/puddles/RHAOS/coverity/results/${distgit_key}/${commit_hash}/stage_${stage_number}"
-                    RCM_GUEST_DEST = "/mnt/${RCM_RELATIVE_DEST}"
-                    commonlib.shell("ssh ocp-build@rcm-guest.app.eng.bos.redhat.com mkdir -p ${RCM_GUEST_DEST}")
-                    commonlib.shell("rsync -r ${record['commit_results_path']}/ ocp-build@rcm-guest.app.eng.bos.redhat.com:${RCM_GUEST_DEST}")
+                    // Paths on spmm-utils are relative to /mnt/rcm-guest. mkdir command is enabled via SSH
+                    RCM_RELATIVE_DEST = "puddles/RHAOS/coverity/results/${distgit_key}/${commit_hash}/stage_${stage_number}"
+                    commonlib.shell("ssh exd-ocp-buildvm-bot-prod@spmm-util mkdir -p ${RCM_RELATIVE_DEST}")
+                    commonlib.shell("rsync -r ${record['commit_results_path']}/ exd-ocp-buildvm-bot-prod@spmm-util:${RCM_RELATIVE_DEST}")
 
-                    def all_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.html"
-                    def all_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/all_results.js"
-                    def diff_results_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.html"
-                    def diff_results_js_url = "http://download.eng.bos.redhat.com/${RCM_RELATIVE_DEST}/diff_results.js"
+                    def all_results_url = "http://download.eng.bos.redhat.com/rcm-guest/${RCM_RELATIVE_DEST}/all_results.html"
+                    def all_results_js_url = "http://download.eng.bos.redhat.com/rcm-guest/${RCM_RELATIVE_DEST}/all_results.js"
+                    def diff_results_url = "http://download.eng.bos.redhat.com/rcm-guest/${RCM_RELATIVE_DEST}/diff_results.html"
+                    def diff_results_js_url = "http://download.eng.bos.redhat.com/rcm-guest/${RCM_RELATIVE_DEST}/diff_results.js"
 
                     if ( record['diff_count'] != '0' ) {
                         // Gather the types of issues recorded in the scan

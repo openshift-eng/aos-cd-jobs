@@ -2,8 +2,7 @@ PLASHET_REMOTE_URL = "https://ocp-artifacts.hosts.prod.psi.rdu2.redhat.com/pub/R
 PLASHET_REMOTE_HOST = "ocp-artifacts"
 PLASHET_REMOTE_BASE_DIR = "/mnt/data/pub/RHOCP/plashets"
 
-TARBALL_SOURCES_REMOTE_HOST = "exd-ocp-buildvm-bot-prod@spmm-util"
-TARBALL_SOURCES_REMOTE_BASE_DIR = "ocp-client-handoff"
+SPMM_UTILS_REMOTE_HOST = "exd-ocp-buildvm-bot-prod@spmm-util"
 
 OPERATOR_URL = 'registry-proxy.engineering.redhat.com/rh-osbs/openshift-ose-operator-sdk'
 BREW_SERVER = 'https://brewhub.engineering.redhat.com/brewhub'

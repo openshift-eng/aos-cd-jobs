@@ -10,6 +10,8 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
 from pyartcd.util import kinit
 
+TARBALL_SOURCES_REMOTE_BASE_DIR = "ocp-client-handoff"
+
 
 class TarballSourcesPipeline:
     def __init__(self, runtime: Runtime, group: str, assembly: str, components: Iterable[str], advisories: Iterable[int]) -> None:
@@ -51,7 +53,7 @@ class TarballSourcesPipeline:
         source_directory = f"{self.runtime.working_dir}/container-sources/"
         tarball_files = await self._create_tarball_sources(advisories, source_directory)
         self.runtime.logger.info("Copying to spmm-util")
-        await self._copy_to_rcm_guest(source_directory)
+        await self._copy_to_spmm_utils(source_directory)
         self.runtime.logger.info("Creating JIRA")
         new_issue = self._create_jira(advisories, tarball_files)
         if self.runtime.dry_run:
@@ -74,8 +76,8 @@ class TarballSourcesPipeline:
         tarball_files = [line for line in out.splitlines() if pattern.match(line)]
         return tarball_files
 
-    async def _copy_to_rcm_guest(self, source_directory: str):
-        remote = f"{constants.TARBALL_SOURCES_REMOTE_HOST}:{constants.TARBALL_SOURCES_REMOTE_BASE_DIR}"
+    async def _copy_to_spmm_utils(self, source_directory: str):
+        remote = f"{constants.SPMM_UTILS_REMOTE_HOST}:{TARBALL_SOURCES_REMOTE_BASE_DIR}"
         cmd = ["rsync", "-avz", "--no-perms", "--no-owner", "--omit-dir-times", "--no-group", f"{source_directory}", f"{remote}"]
         if self.runtime.dry_run:
             self.runtime.logger.warning("[DRY RUN] Would have run: %s", cmd)
@@ -87,9 +89,9 @@ class TarballSourcesPipeline:
         description = f"""
 The OpenShift ART team needs to provide sources for `{self.components}` in advisories {[advisory for advisory in advisories]}
 
-The following sources are uploaded to {urlparse(constants.TARBALL_SOURCES_REMOTE_HOST).hostname}:
+The following sources are uploaded to {urlparse(constants.SPMM_UTILS_REMOTE_HOST).hostname}:
 
-{os.linesep.join(map(lambda f: f"{constants.TARBALL_SOURCES_REMOTE_HOST}:{constants.TARBALL_SOURCES_REMOTE_BASE_DIR}/{f}", tarball_files))}
+{os.linesep.join(map(lambda f: f"{constants.SPMM_UTILS_REMOTE_HOST}:{TARBALL_SOURCES_REMOTE_BASE_DIR}/{f}", tarball_files))}
 
 Attaching source tarballs to be published on ftp.redhat.com as in https://projects.engineering.redhat.com/browse/RCMTEMPL-6549
 """.strip()

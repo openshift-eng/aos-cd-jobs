@@ -541,13 +541,25 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
             source_url=$( cat temp_image_info.json | jq -r '.config.config.Labels."io.openshift.build.source-location"')
             source_name=$( echo "$source_url" | cut -d '/' -f 5)
 
+            case $source_name in
+              oc)
+                source_name="openshift-client"
+                ;;
+              installer)
+                source_name="openshift-installer"
+                ;;
+              operator-registry)
+                source_name="opm"
+                ;;
+            esac
+
             # Delete temporary file
             rm temp_image_info.json
 
             # Download the tar file to the correct path
             pushd ${CLIENT_MIRROR_DIR}
-                curl -L -o "$source_name-source.tar.gz" "$source_url/archive/$commit.tar.gz"
-                sha256sum "$source_name-source.tar.gz" >> sha256sum.txt
+                curl -L -o "${source_name}-src-${FROM_RELEASE_TAG}.tar.gz" "${source_url}/archive/${commit}.tar.gz"
+                sha256sum "${source_name}-src-${FROM_RELEASE_TAG}.tar.gz" >> sha256sum.txt
             popd
           fi
         done

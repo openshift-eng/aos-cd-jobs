@@ -159,6 +159,9 @@ node {
         if (params.SKIP_BUILD_MICROSHIFT) {
             cmd << "--skip-build-microshift"
         }
+        if (params.SKIP_MIRROR_BINARIES) {
+            cmd << "--skip-mirror-binaries"
+        }
         if (params.NO_MULTI) {
             cmd << "--no-multi"
         }
@@ -173,7 +176,11 @@ node {
         }
         echo "Will run ${cmd}"
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'), string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'],
+                             string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                             string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                             string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                             string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
                 def out = sh(script: cmd.join(' '), returnStdout: true).trim()
                 echo "artcd returns:\n$out"
                 release_info = readJSON(text: out)
@@ -184,34 +191,6 @@ node {
     buildlib.registry_quay_dev_login()  // chances are, earlier auth has expired
 
     def justifications =release_info.justifications ?: []
-    def quay_url = "quay.io/openshift-release-dev/ocp-release"
-    def client_type = 'ocp'
-    if ((release_info.type == "candidate" && !release_info.assembly.startsWith('rc.')) || release_info.type == "custom" || release_info.type == "preview") {
-        // Feature candidates and custom releases and .next "preview" releases use client_type ocp-dev-preview and beta2 signing key.
-        client_type = 'ocp-dev-preview'
-    }
-    stage("mirror binaries") {
-        if (params.SKIP_MIRROR_BINARIES) {
-            echo "Skip mirroring binaries."
-            return
-        }
-        release_info.content.each { arch, info ->
-            echo "Mirroring client binaries for $arch"
-            def dest_release_tag = release.destReleaseTag(release_info.name, arch)
-            // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
-            // Using the real per-arch release name in $info instead of the one defined by release artists.
-            def release_name = info.metadata.version
-            if (!params.DRY_RUN) {
-                if (arch != "multi") {
-                    release.stagePublishClient(quay_url, dest_release_tag, release_name, arch, client_type)
-                } else {
-                    release.stagePublishMultiClient(quay_url, dest_release_tag, release_name, client_type)
-                }
-            } else {
-                echo "[DRY RUN] Would have sync'd client binaries for ${quay_url}:${dest_release_tag} to mirror ${arch}/clients/${client_type}/${release_name}."
-            }
-        }
-    }
 
     stage("sync RHCOS") {
 

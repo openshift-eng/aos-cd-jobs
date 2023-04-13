@@ -19,3 +19,4 @@ NIGHTLY_PAYLOAD_REPOS = {
 }
 
 OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'
+QUAY_URL = "quay.io/openshift-release-dev/ocp-release"

@@ -12,6 +12,12 @@ from urllib.parse import quote
 
 import aiohttp
 import click
+import tarfile
+import hashlib
+import shutil
+import urllib.parse
+import subprocess
+import requests
 # from pyartcd.cincinnati import CincinnatiAPI
 from doozerlib import assembly
 from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
@@ -20,7 +26,7 @@ from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
-from pyartcd.oc import get_release_image_info
+from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary, extract_release_client_tools
 from pyartcd.jenkins import trigger_build_microshift
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
@@ -42,7 +48,9 @@ class PromotePipeline:
                  skip_image_list: bool = False,
                  skip_build_microshift: bool = False,
                  permit_overwrite: bool = False,
-                 no_multi: bool = False, multi_only: bool = False, use_multi_hack: bool = False) -> None:
+                 no_multi: bool = False, multi_only: bool = False,
+                 skip_mirror_binaries: bool = False,
+                 use_multi_hack: bool = False) -> None:
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
@@ -51,6 +59,7 @@ class PromotePipeline:
         self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
         self.skip_build_microshift = skip_build_microshift
+        self.skip_mirror_binaries = skip_mirror_binaries
         self.permit_overwrite = permit_overwrite
 
         if multi_only and no_multi:
@@ -354,6 +363,21 @@ class PromotePipeline:
                 rhcos_version = rhcos["annotations"]["io.openshift.build.versions"].split("=")[1]  # machine-os=48.84.202112162302-0 => 48.84.202112162302-0
                 data["content"][arch]["rhcos_version"] = rhcos_version
 
+        client_type = "ocp"
+        if (assembly_type == assembly.AssemblyTypes.CANDIDATE and not self.assembly.startswith('rc.')) or assembly_type in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
+            client_type = "ocp-dev-preview"
+        # mirror binaries
+        if not self.skip_mirror_binaries:
+            for arch in data['content']:
+                logger.info(f"Mirroring client binaries for {arch}")
+                if self.runtime.dry_run:
+                    logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
+                else:
+                    if arch != "multi":
+                        await self.publish_client(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
+                    else:
+                        await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
+
         json.dump(data, sys.stdout)
 
     @staticmethod
@@ -375,6 +399,211 @@ class PromotePipeline:
             raise ValueError("A justification is required to permit issue %s.", code)
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
+
+    async def publish_client(self, working_dir, from_release_tag, release_name, arch, client_type):
+        subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
+        _, minor = util.isolate_major_minor_in_group(self.group)
+        quay_url = constants.QUAY_URL
+        # Anything under this directory will be sync'd to the mirror
+        BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"
+        shutil.rmtree(BASE_TO_MIRROR_DIR, ignore_errors=True)
+
+        # From the newly built release, extract the client tools into the workspace following the directory structure
+        # we expect to publish to mirror
+        CLIENT_MIRROR_DIR = f"{BASE_TO_MIRROR_DIR}/{arch}/clients/{client_type}/{release_name}"
+        os.makedirs(CLIENT_MIRROR_DIR)
+
+        # Get cli installer operator-registory pull-spec from the release
+        for tarball in ["cli", "installer", "operator-registry"]:
+            image_stat, cli_pull_spec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", tarball)
+            if image_stat == 0:  # image exists
+                image_info = get_release_image_info(cli_pull_spec)
+                # Retrieve the commit from image info
+                commit = image_info["config"]["config"]["Labels"]["io.openshift.build.commit.id"]
+                source_url = image_info["config"]["config"]["Labels"]["io.openshift.build.source-location"]
+                source_name = source_url.split("/")[-1]
+                if source_name == "oc":
+                    source_name = "openshift-client"
+                elif source_name == "installer":
+                    source_name = "openshift-installer"
+                elif source_name == "operator-registry":
+                    source_name = "opm"
+                # URL to download the tarball a specific commit
+                response = requests.get(f"{source_url}/archive/{commit}.tar.gz", stream=True)
+                if response.ok:
+                    with open(f"{CLIENT_MIRROR_DIR}/{source_name}-src-{from_release_tag}.tar.gz", "wb") as f:
+                        f.write(response.raw.read())
+                    # calc shasum
+                    with open(f"{CLIENT_MIRROR_DIR}/{source_name}-src-{from_release_tag}.gz", 'rb') as f:
+                        shasum = hashlib.sha256(f.read()).hexdigest()
+                    # write shasum to sha256sum.txt
+                    with open(f"{CLIENT_MIRROR_DIR}/sha256sum.txt", 'a') as f:
+                        f.write(f"{shasum} {source_name}-src-{from_release_tag}.tar.gz")
+
+        if arch == 'x86_64':
+            # oc image  extract requires an empty destination directory. So do this before extracting tools.
+            # oc adm release extract --tools does not require an empty directory.
+            image_stat, oc_mirror_pullspec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "oc-mirror")
+            if image_stat == 0:  # image exist
+                # extract image to workdir, if failed it will raise error in function
+                extract_release_binary(oc_mirror_pullspec, f"--path=/usr/bin/oc-mirror:{CLIENT_MIRROR_DIR}")
+                # archive file
+                with tarfile.open(f"{CLIENT_MIRROR_DIR}/oc-mirror.tar.gz", "w:gz") as tar:
+                    tar.add(f"{CLIENT_MIRROR_DIR}/oc-mirror")
+                # calc shasum
+                with open(f"{CLIENT_MIRROR_DIR}/oc-mirror.tar.gz", 'rb') as f:
+                    shasum = hashlib.sha256(f.read()).hexdigest()
+                # write shasum to sha256sum.txt
+                with open(f"{CLIENT_MIRROR_DIR}/sha256sum.txt", 'a') as f:
+                    f.write(f"{shasum} oc-mirror.tar.gz")
+                # remove oc-mirror
+                os.remove(f"{CLIENT_MIRROR_DIR}/oc-mirror")
+
+        # extract release clients tools
+        extract_release_client_tools(f"{quay_url}:{from_release_tag}", f"--to={CLIENT_MIRROR_DIR}", None)
+        # create symlink for clients
+        self.create_symlink(CLIENT_MIRROR_DIR, False, False)
+        await self.generate_changelog(release_name, CLIENT_MIRROR_DIR, minor)
+
+        # extract opm binaries
+        operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
+        self.extract_opm(CLIENT_MIRROR_DIR, release_name, operator_registry, arch)
+
+        util.print_dir_tree(CLIENT_MIRROR_DIR)  # print dir tree
+        util.print_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
+
+        # Publish the clients to our S3 bucket.
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
+
+    async def generate_changelog(self, release_name, client_mirror_dir, minor):
+        try:
+            # To encourage customers to explore dev-previews & pre-GA releases, populate changelog
+            # https://issues.redhat.com/browse/ART-3040
+            prevMinor = minor - 1
+            rcURL = util.get_release_controller_url(release_name)
+            rcArch = util.get_release_controller_arch(release_name)
+            stableStream = "4-stable" if rcArch == "amd64" else f"4-stable-{rcArch}"
+            outputDest = f"{client_mirror_dir}/changelog.html"
+            outputDestMd = f"{client_mirror_dir}/changelog.md"
+
+            # If the previous minor is not yet GA, look for the latest fc/rc/ec. If the previous minor is GA, this should
+            # always return 4.m.0.
+            url = 'https://amd64.ocp.releases.ci.openshift.org/api/v1/releasestream/4-stable/latest'
+            full_url = f"{url}?{urllib.parse.urlencode({'in': f'=>4.{prevMinor}.0-0 <4.{prevMinor}.1'})}"
+            # See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
+            async with aiohttp.ClientSession() as session:
+                async with session.get(full_url) as response:
+                    text = await response.json()
+                    data = json.load(text)
+                    prevGA = data['name']
+                async with session.get(f"{rcURL}/releasestream/{stableStream}/release/{prevGA}") as response:
+                    if response.status == 200:
+                        # If prevGA is known to the release controller, compute the changelog html
+                        async with session.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html") as response:
+                            text = await response.text()
+                            with open(outputDest, 'w') as f:
+                                f.write(await response.text())
+                        # Also collect the output in markdown for SD to consume
+                        async with session.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html") as response:
+                            text = await response.text()
+                            with open(outputDestMd, 'w') as f:
+                                f.write(text)
+                    else:
+                        with open(outputDest, 'w') as f:
+                            f.write(f"<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.</p></body></html>")
+                        with open(outputDestMd, 'w') as f:
+                            f.write(f"Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.")
+        except Exception as e:
+            self._logger.error("Error generating changelog for release")
+            raise e
+
+    def extract_opm(self, client_mirror_dir, release_name, operator_registry, arch):
+        binaries = ['opm']
+        platforms = ['linux']
+        if arch == 'x86_64':  # For x86_64, we have binaries for macOS and Windows
+            binaries += ['darwin-amd64-opm', 'windows-amd64-opm']
+            platforms += ['mac', 'windows']
+        path_args = []
+        for binary in binaries:
+            path_args.append(f'--path=/usr/bin/registry/{binary}:{client_mirror_dir}')
+        extract_release_binary(operator_registry, path_args)
+        # Compress binaries into tar.gz files and calculate sha256 digests
+        os.chdir(client_mirror_dir)
+        for idx, binary in enumerate(binaries):
+            platform = platforms[idx]
+            os.chmod(binary, 0o755)
+            with tarfile.open(f"opm-{platform}-{release_name}.tar.gz", "w:gz") as tar:  # archive file
+                tar.add(binary)
+            os.remove(binary)  # remove oc-mirror
+            os.symlink(f'opm-{platform}-{release_name}.tar.gz', f'opm-{platform}.tar.gz')  # create symlink
+            with open(f"opm-{platform}-{release_name}.tar.gz", 'rb') as f:  # calc shasum
+                shasum = hashlib.sha256(f.read()).hexdigest()
+            with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
+                f.write(f"{shasum} opm-{platform}-{release_name}.tar.gz")
+
+    async def publish_multi_client(self, working_dir, from_release_tag, release_name, client_type):
+        subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
+        # Anything under this directory will be sync'd to the mirror
+        BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"
+        shutil.rmtree(BASE_TO_MIRROR_DIR, ignore_errors=True)
+        RELEASE_MIRROR_DIR = f"{BASE_TO_MIRROR_DIR}/multi/clients/{client_type}/{release_name}"
+
+        for goArch in util.goArches:
+            if goArch == "multi":
+                continue
+            # From the newly built release, extract the client tools into the workspace following the directory structure
+            # we expect to publish to mirror
+            CLIENT_MIRROR_DIR = f"{RELEASE_MIRROR_DIR}/{goArch}"
+            os.makedirs(CLIENT_MIRROR_DIR)
+            # extract release clients tools
+            extract_release_client_tools(f"{constants.QUAY_URL}:{from_release_tag}", f"--to={CLIENT_MIRROR_DIR}", goArch)
+            # create symlink for clients
+            self.create_symlink(CLIENT_MIRROR_DIR, True, True)
+
+        # Create a master sha256sum.txt including the sha256sum.txt files from all subarches
+        # This is the file we will sign -- trust is transitive to the subarches
+        os.chdir(RELEASE_MIRROR_DIR)
+        for dir in os.listdir(RELEASE_MIRROR_DIR):
+            if not os.path.isdir(os.path.join(RELEASE_MIRROR_DIR, dir)):
+                continue
+            for root, dirs, files in os.walk(os.path.join(RELEASE_MIRROR_DIR, dir)):
+                if "sha256sum.txt" not in files:
+                    continue
+                with open(os.path.join(root, "sha256sum.txt"), "rb") as f:
+                    shasum = hashlib.sha256(f.read()).hexdigest()
+                with open(f"{RELEASE_MIRROR_DIR}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
+                    f.write(f"{shasum} {dir}/sha256sum.txt")
+
+        # Publish the clients to our S3 bucket.
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
+
+    def create_symlink(self, path_to_dir, print_tree, print_file):
+        # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
+        # So whatever we extract, remove the version specific info and make a symlink with that name.
+        for f in os.listdir(path_to_dir):
+            if f.endswith(('.tar.gz', '.bz', '.zip', '.tgz')):
+                # Is this already a link?
+                if os.path.islink(f):
+                    continue
+                # example file names:
+                #  - openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+                #  - openshift-client-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+                #  - openshift-install-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+                #  - openshift-client-linux-4.1.9.tar.gz
+                #  - openshift-install-mac-4.3.0-0.nightly-s390x-2020-01-06-081137.tar.gz
+                #  ...
+                # So, match, and store in a group, any character up to the point we find -DIGIT. Ignore everything else
+                # until we match (and store in a group) one of the valid file extensions.
+                match = re.match(r'^([^-]+)((-[^0-9][^-]+)+)-[0-9].*(tar.gz|tgz|bz|zip)$', f)
+                if match:
+                    new_name = match.group(1) + match.group(2) + '.' + match.group(4)
+                    # Create a symlink like openshift-client-linux.tgz => openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
+                    os.symlink(f, new_name)
+
+            if print_tree:
+                util.print_dir_tree(path_to_dir)  # print dir tree
+            if print_file:
+                util.print_file_content(f"{path_to_dir}/sha256sum.txt")  # print sha256sum.txt
 
     async def change_advisory_state(self, advisory: int, state: str):
         cmd = [
@@ -1019,6 +1248,7 @@ class PromotePipeline:
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
 @click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
+@click.option("--skip-mirror-binaries", is_flag=True, help="Do not mirror client binaries to mirror")
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
 @pass_runtime
 @click_coroutine
@@ -1026,10 +1256,14 @@ async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_attach_cve_flaws: bool, skip_image_list: bool,
                   skip_build_microshift: bool,
-                  permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
+                  permit_overwrite: bool, no_multi: bool, multi_only: bool,
+                  skip_mirror_binaries: bool,
+                  use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
                                skip_image_list,
                                skip_build_microshift,
-                               permit_overwrite, no_multi, multi_only, use_multi_hack)
+                               permit_overwrite, no_multi, multi_only,
+                               skip_mirror_binaries,
+                               use_multi_hack)
     await pipeline.run()

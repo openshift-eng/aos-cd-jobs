@@ -501,29 +501,37 @@ def stagePublishClient(quay_url, from_release_tag, release_name, arch, client_ty
     def CLIENT_MIRROR_DIR="${BASE_TO_MIRROR_DIR}/${arch}/clients/${client_type}/${release_name}"
     sh "mkdir -p ${CLIENT_MIRROR_DIR}"
 
+    def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
+                                " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
+    commonlib.shell(script: tools_extract_cmd)
+
     if ( arch == 'x86_64' ) {
+        // oc_mirror_extract_cmd needs to extract to a emtpy folder, since tools_extract_cmd is already extracting to
+        // CLIENT_MIRROR_DIR, creating a temporary folder
+        def TEMP_OC_MIRROR_DIR = "${CLIENT_MIRROR_DIR}/temp-oc-mirror-dir"
+        sh "mkdir ${TEMP_OC_MIRROR_DIR}"
+
         // oc image  extract requires an empty destination directory. So do this before extracting tools.
-        // oc adm release extract --tools does not require an empty directory.
+        // oc adm release extract --tools does not require an empty directory, but will overwrite the files.
         def oc_mirror_extract_cmd = '''
             # If the release payload contains an oc-mirror artifact image, then extract the oc-mirror binary.
             if oc adm release info ${QUAY_URL}:${FROM_RELEASE_TAG} --image-for=oc-mirror ; then
-                MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc image extract `oc adm release info ${QUAY_URL}:${FROM_RELEASE_TAG} --image-for=oc-mirror` --path /usr/bin/oc-mirror:${CLIENT_MIRROR_DIR}
-                pushd ${CLIENT_MIRROR_DIR}
+                MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc image extract `oc adm release info ${QUAY_URL}:${FROM_RELEASE_TAG} --image-for=oc-mirror` --path /usr/bin/oc-mirror:${TEMP_OC_MIRROR_DIR}
+                pushd ${TEMP_OC_MIRROR_DIR}
                 tar zcvf oc-mirror.tar.gz oc-mirror
-                sha256sum oc-mirror.tar.gz >> sha256sum.txt
-                rm oc-mirror
                 popd
+                pushd ${CLIENT_MIRROR_DIR}
+                cp ${TEMP_OC_MIRROR_DIR}/oc-mirror.tar.gz oc-mirror.tar.gz
+                sha256sum oc-mirror.tar.gz >> sha256sum.txt
+                popd
+                rm -rf ${TEMP_OC_MIRROR_DIR}
             fi
         '''
-        withEnv(["CLIENT_MIRROR_DIR=${CLIENT_MIRROR_DIR}", "QUAY_URL=${quay_url}", "FROM_RELEASE_TAG=${from_release_tag}"]) {
+        withEnv(["CLIENT_MIRROR_DIR=${CLIENT_MIRROR_DIR}", "QUAY_URL=${quay_url}", "FROM_RELEASE_TAG=${from_release_tag}", "TEMP_OC_MIRROR_DIR=${TEMP_OC_MIRROR_DIR}"]) {
             commonlib.shell(script: oc_mirror_extract_cmd)
         }
     }
 
-    def tools_extract_cmd = "MOBY_DISABLE_PIGZ=true GOTRACEBACK=all oc adm release extract --tools --command-os='*' -n ocp " +
-                                " --to=${CLIENT_MIRROR_DIR} --from ${quay_url}:${from_release_tag}"
-
-    commonlib.shell(script: tools_extract_cmd)
 
     // Find the GitHub commit id for cli, installer and opm and download the repo at that commit, then publish it.
     def download_tarballs = '''

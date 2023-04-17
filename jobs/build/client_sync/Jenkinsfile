@@ -10,7 +10,7 @@ node {
         "serverless": "/mnt/redhat/staging-cds/developer/openshift-serverless-clients/%s/staging/",
         "odo": "/mnt/redhat/staging-cds/developer/odo/%s/staging/",
         "rosa": "/mnt/redhat/staging-cds/etera/rosa/%s/staging/",
-        "pipelines": "/mnt/redhat/staging-cds/developer/openshift-pipeline-clients/%s/staging/",
+        "pipeline": "/mnt/redhat/staging-cds/developer/openshift-pipeline-clients/%s/staging/",
     ]
 
     prefixes = [
@@ -50,7 +50,7 @@ node {
                     ),
                     string(
                         name: "OVERRIDE_LOCATION",
-                        description: "Warning: This overrides the SOURCE_VERSION and default location. Example: /mnt/redhat/staging-cds/etera/openshift-gitops-kam/1/1.8/1.8.0-143/staging" ,
+                        description: "Warning: This overrides the SOURCE_VERSION and default location. Example: /mnt/redhat/staging-cds/etera/openshift-gitops-kam/1/1.8/1.8.0-143/staging/" ,
                         defaultValue: "",
                         trim: true,
                     ),

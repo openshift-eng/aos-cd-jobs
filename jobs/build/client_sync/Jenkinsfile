@@ -3,14 +3,24 @@ node {
     checkout scm
     commonlib = load("pipeline-scripts/commonlib.groovy")
 
-    location = [
-        "crc": "/mnt/redhat/staging-cds/developer/crc/%s/staging/",
-        "helm": "/mnt/redhat/staging-cds/developer/helm/%s/staging/",
-        "kam": "/mnt/redhat/staging-cds/developer/openshift-gitops-kam/%s/staging/",
-        "serverless": "/mnt/redhat/staging-cds/developer/openshift-serverless-clients/%s/staging/",
-        "odo": "/mnt/redhat/staging-cds/developer/odo/%s/staging/",
-        "rosa": "/mnt/redhat/staging-cds/etera/rosa/%s/staging/",
-        "pipeline": "/mnt/redhat/staging-cds/developer/openshift-pipeline-clients/%s/staging/",
+    base_path = "/mnt/redhat"
+
+    kinds = [
+        "crc",
+        "helm",
+        "kam",
+        "serverless",
+        "odo",
+        "rosa",
+        "pipelines",
+    ]
+
+    skip_arches = [
+        "none",
+        "amd64",
+        "ppc64le",
+        "s390x",
+        "arm64"
     ]
 
     prefixes = [
@@ -21,11 +31,11 @@ node {
         --------------------------
         Sync developer client binaries to mirror
         --------------------------
-        From: https://download.eng.bos.redhat.com/staging-cds/developer/
+        From: https://download.eng.bos.redhat.com/
         To: http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/
 
         Supported clients:
-        ${location.keySet().each { println "${it}" }}
+        ${kinds.each { println "${it}" }}
 
         Timing: This is only ever run by humans, upon request.
     """)
@@ -40,17 +50,22 @@ node {
                     choice(
                         name: "KIND",
                         description: "What binary type to sync",
-                        choices: location.keySet().join('\n')
+                        choices: kinds.join('\n')
                     ),
                     string(
-                        name: "SOURCE_VERSION",
-                        description: "This should exactly match the source directory version folder to fetch from. Also used to create the target directory folder name. If OVERRIDE_LOCATION is used then only used for target directory name. Example: 1.24.0-0",
+                        name: "VERSION",
+                        description: "This is used to create the target directory folder name. Example: 1.24.0-0",
                         defaultValue: "",
                         trim: true,
                     ),
+                    choice(
+                        name: "SKIP_ARCH",
+                        description: "Optional arch to be skipped, choose 'none' to sync all",
+                        choices: skip_arches.join('\n')
+                    ),
                     string(
-                        name: "OVERRIDE_LOCATION",
-                        description: "Warning: This overrides the SOURCE_VERSION and default location. Example: /mnt/redhat/staging-cds/etera/openshift-gitops-kam/1/1.8/1.8.0-143/staging/" ,
+                        name: "LOCATION",
+                        description: "Source location relative to https://download.eng.bos.redhat.com. Example: etera/openshift-serverless-clients/1/1.7/1.7.1-2/staging",
                         defaultValue: "",
                         trim: true,
                     ),
@@ -73,40 +88,73 @@ node {
     commonlib.checkMock()
 
     def kind = params.KIND
-    def source_version = params.SOURCE_VERSION
 
-    currentBuild.displayName = "#${currentBuild.number} - ${kind} ${source_version}${(params.DRY_RUN) ? " [DRY_RUN]" : ""}"
+    currentBuild.displayName = "#${currentBuild.number} - ${kind} ${params.VERSION}${(params.DRY_RUN) ? " [DRY_RUN]" : ""}"
 
     stage("Validate params") {
-        if (!source_version) {
+        if (!params.VERSION) {
             error 'SOURCE_VERSION must be specified'
         }
-        dest_version = "${(kind in prefixes) ? prefixes[kind] : ""}${source_version}"
-        source_dir = params.OVERRIDE_LOCATION ? params.OVERRIDE_LOCATION : String.format(location[kind], source_version)
-        latest_dir = "latest/"
+        if (!params.LOCATION) {
+            error 'LOCATION must be specified'
+        }
+
+        dest_version = "${(kind in prefixes) ? prefixes[kind] : ""}${params.VERSION}"
+        local_dest_dir = "${env.WORKSPACE}/${dest_version}"
+        source_path = "${base_path}/${params.LOCATION}"
+        latest_dir = "${env.WORKSPACE}/latest/"
+        s3_target_dir = "/pub/openshift-v4/x86_64/clients/${kind}/${dest_version}/"
+        s3_latest_dir = "/pub/openshift-v4/x86_64/clients/${kind}/latest/"
+
+        echo "destination version: ${dest_version}"
+        echo "source path: ${source_path}"
+        echo "latest dir: ${latest_dir}"
+        echo "s3 target dir: ${s3_target_dir}"
+        echo "s3 latest dir: ${s3_latest_dir}"
+    }
+
+    stage("Clean working dir") {
+        sh "rm -rf ${local_dest_dir}"
     }
 
     stage("Sync to mirror") {
-        s3_target_dir = "/pub/openshift-v4/x86_64/clients/${kind}/${dest_version}/"
-        commonlib.shell([
-            "set -euxo pipefail",
-            "tree ${source_dir}",
-            "cat ${source_dir}sha256sum.txt"
-        ].join('\n'))
-        println("params.DRY_RUN: ${params.DRY_RUN}")
+        // Copy NFS dir to local tmp dir
+        commonlib.shell(
+            script:
+            """
+            set -euxo pipefail
+            cp -aL ${source_path} ${local_dest_dir}
+            cat ${local_dest_dir}/sha256sum.txt
+            """
+        )
+
+        // Remove undesired arch from source dir
+        if (params.SKIP_ARCH != "none") {
+            commonlib.shell(
+                script:
+                """
+                rm -f ${local_dest_dir}/*${params.SKIP_ARCH}*
+                tree ${local_dest_dir}
+                """
+            )
+        }
+
         if (params.DRY_RUN) {
-            println("Would have s3 sync'ed ${source_dir} to ${s3_target_dir}")
+            echo "Would have s3 sync'ed ${dest_version} to ${s3_target_dir}"
         } else {
-            commonlib.syncDirToS3Mirror(source_dir, s3_target_dir)
+            commonlib.syncDirToS3Mirror(dest_version, s3_target_dir)
         }
 
         if (params.SET_LATEST) {
-            s3_latest_dir = "/pub/openshift-v4/x86_64/clients/${kind}/latest/"
-            commonlib.shell([
-                "set -euxo pipefail",
-                "rm -rf ${latest_dir}",
-                "cp -aL ${source_dir} ${latest_dir}",
-            ].join('\n'))
+            commonlib.shell(
+                script:
+                """
+                set -euxo pipefail
+                rm -rf ${latest_dir}
+                cp -aL ${local_dest_dir} ${latest_dir}
+                """
+            )
+
             if (params.DRY_RUN) {
                 println("Would have s3 sync'ed ${latest_dir} to ${s3_latest_dir}")
             } else {

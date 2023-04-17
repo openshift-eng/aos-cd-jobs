@@ -57,14 +57,8 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
     )
 
     # Create a Lock manager instance
-    redis_url = locks.redis.substitute(
-        redis_password=os.environ['REDIS_SERVER_PASSWORD'],
-        redis_host=os.environ['REDIS_HOST'],
-        redis_port=os.environ['REDIS_PORT']
-    )
     retry_policy = locks.RETRY_POLICY['olm_bundle']
-    lock_manager = Aioredlock(
-        [redis_url],
+    lock_manager = locks.new_lock_manager(
         internal_lock_timeout=locks.LOCK_TIMEOUTS['olm-bundle'],
         retry_count=retry_policy['retry_count'],
         retry_delay_min=retry_policy['retry_delay_min']

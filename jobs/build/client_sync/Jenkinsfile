@@ -12,7 +12,7 @@ node {
         "serverless",
         "odo",
         "rosa",
-        "pipelines",
+        "pipeline",
     ]
 
     skip_arches = [

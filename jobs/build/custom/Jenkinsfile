@@ -214,10 +214,12 @@ node {
                 command += "images:${params.IMAGE_MODE} --version v${version} --release '${release}' "
                 command += "--repo-type ${repo_type} "
                 command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
-                if (params.IGNORE_LOCKS) {
-                     buildlib.doozer command
-                } else {
-                    lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
+                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                    if (params.IGNORE_LOCKS) {
+                         buildlib.doozer command
+                    } else {
+                        lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
+                    }
                 }
             }
 

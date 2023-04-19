@@ -84,12 +84,25 @@ class BuildRhcosPipeline:
 
     def retrieve_auth_token(self) -> str:
         """Retrieve the auth token from the Jenkins service account to use with Jenkins API"""
-        # use the first secret named after the jenkins service account (there can be several)
-        secret = next((s for s in oc.selector('secrets') if s.name().startswith('jenkins-token-')), None)
-        if secret is None:
-            raise Exception("Unable to find Jenkins service account token")
+        # https://github.com/coreos/fedora-coreos-pipeline/blob/main/HACKING.md#triggering-builds-remotely
 
-        return base64.b64decode(secret.model.data.token).decode('utf-8')
+        secret = None
+        jenkins_uid = oc.selector('sa/jenkins').objects()[0].model.metadata.uid
+        for s in oc.selector('secrets'):
+            if s.model.type == "kubernetes.io/service-account-token" and s.model.metadata.annotations["kubernetes.io/service-account.name"] == "jenkins" and s.model.metadata.annotations["kubernetes.io/service-account.uid"] == jenkins_uid:
+                secret_maybe = base64.b64decode(s.model.data.token).decode('utf-8')
+                r = self.request_session.get(
+                    f"{JENKINS_BASE_URL}/me/api/json",
+                    headers={"Authorization": f"Bearer {secret_maybe}"},
+                )
+                if r.status_code == 200:
+                    secret = secret_maybe
+                    break
+
+        if secret is None:
+            raise Exception("Unable to find a valid Jenkins service account token")
+
+        return secret
 
     @staticmethod
     def build_parameters(build: Dict[str, List[Dict]]) -> Dict:

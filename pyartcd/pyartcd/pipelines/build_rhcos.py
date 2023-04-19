@@ -130,7 +130,7 @@ class BuildRhcosPipeline:
                 if b["result"] is None  # build is still running when it has no status
             )
 
-        return [b for b in builds if b["parameters"].get("STREAM") == self.version]
+        return [b for b in builds if b["parameters"].get("STREAM") == self.stream]
 
     @property
     def stream(self):

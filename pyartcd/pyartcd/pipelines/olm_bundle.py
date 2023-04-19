@@ -49,12 +49,8 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
         cmd.append('--force')
     if runtime.dry_run:
         cmd.append('--dry-run')
-    cmd.extend(
-        [
-            '--',
-            ' '.join(nvrs.split(','))
-        ]
-    )
+    cmd.append('--')
+    cmd.extend(nvrs.split(','))
 
     # Create a Lock manager instance
     retry_policy = locks.RETRY_POLICY['olm_bundle']

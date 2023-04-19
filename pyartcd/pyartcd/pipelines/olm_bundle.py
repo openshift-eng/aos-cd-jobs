@@ -1,7 +1,5 @@
-import os
-
 import click
-from aioredlock import Aioredlock, LockError
+from aioredlock import LockError
 
 from pyartcd import constants, exectools
 from pyartcd.cli import cli, pass_runtime, click_coroutine
@@ -17,7 +15,8 @@ from pyartcd.runtime import Runtime
 @click.option('--data-gitref', required=False,
               help='(Optional) Doozer data path git [branch / tag / sha] to use')
 @click.option('--nvrs', required=False,
-              help='(Optional) List **only** the operator NVRs you want to build bundles for, everything else gets ignored. The operators should not be mode:disabled/wip in ocp-build-data')
+              help='(Optional) List **only** the operator NVRs you want to build bundles for, everything else '
+                   'gets ignored. The operators should not be mode:disabled/wip in ocp-build-data')
 @click.option('--only', required=False,
               help='(Optional) List **only** the operators you want to build, everything else gets ignored.\n' 
                    'Format: Comma and/or space separated list of brew packages (e.g.: cluster-nfd-operator-container)\n'

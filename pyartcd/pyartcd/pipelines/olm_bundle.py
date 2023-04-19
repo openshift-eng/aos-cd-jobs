@@ -62,9 +62,7 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
     # Try to acquire olm-bundle lock for build version
     lock_name = f'olm_bundle-{version}'
     try:
-        runtime.logger.info('Trying to acquire lock %s', lock_name)
         async with await lock_manager.lock(lock_name):
-            runtime.logger.info('Lock %s acquired', lock_name)
             runtime.logger.info('Running command: %s', cmd)
             await exectools.cmd_assert_async(cmd)
 

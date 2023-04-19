@@ -1,3 +1,4 @@
+import logging
 import os
 from string import Template
 
@@ -20,6 +21,23 @@ RETRY_POLICY = {
         'retry_delay_min': 0.1
     }
 }
+
+
+class LockManager(Aioredlock):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger('pyartcd')
+
+    async def lock(self, resource, *args):
+        self.logger.info('Trying to acquire lock %s', resource)
+        lock = await super().lock(resource, *args)
+        self.logger.info('Acquired resource %s', lock.resource)
+        return lock
+
+    async def unlock(self, lock):
+        self.logger.info('Releasing lock "%s"', lock.resource)
+        await super().unlock(lock)
+        self.logger.info('Lock released')
 
 
 def new_lock_manager(internal_lock_timeout=10.0, retry_count=3, retry_delay_min=0.1, use_ssl=True):
@@ -47,7 +65,7 @@ def new_lock_manager(internal_lock_timeout=10.0, retry_count=3, retry_delay_min=
         redis_host=os.environ['REDIS_HOST'],
         redis_port=os.environ['REDIS_PORT']
     )
-    return Aioredlock(
+    return LockManager(
         [redis_instance],
         internal_lock_timeout=internal_lock_timeout,
         retry_count=retry_count,

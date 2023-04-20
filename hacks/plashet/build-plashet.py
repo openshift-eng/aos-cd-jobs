@@ -315,7 +315,7 @@ async def cmd_assert_async(cmd: Union[Sequence[str], str], check: bool = True, *
     else:
         cmd_list = cmd
     LOGGER.info("Executing:cmd_assert_async %s", cmd_list)
-    proc = await asyncio.subprocess.create_subprocess_exec(shlex.quote(cmd_list[0]), shlex.quote( *cmd_list[1:]), **kwargs)
+    proc = await asyncio.subprocess.create_subprocess_exec(shlex.quote(cmd_list[0]), shlex.quote(cmd_list[1:]), **kwargs)
     returncode = await proc.wait()
     if returncode != 0:
         msg = f"Process {cmd_list!r} exited with code {returncode}."
@@ -343,7 +343,7 @@ async def cmd_gather_async(cmd: Union[Sequence[str], str], check: bool = True, *
         kwargs["stdout"] = asyncio.subprocess.PIPE
     if "stderr" not in kwargs:
         kwargs["stderr"] = asyncio.subprocess.PIPE
-    proc = await asyncio.subprocess.create_subprocess_exec(shlex.quote(cmd_list[0]), shlex.quote( *cmd_list[1:]), **kwargs)
+    proc = await asyncio.subprocess.create_subprocess_exec(shlex.quote(cmd_list[0]), shlex.quote(cmd_list[1:]), **kwargs)
     stdout, stderr = await proc.communicate()
     stdout = stdout.decode() if stdout else ""
     stderr = stderr.decode() if stderr else ""

@@ -422,12 +422,7 @@ class PromotePipeline:
                 commit = image_info["config"]["config"]["Labels"]["io.openshift.build.commit.id"]
                 source_url = image_info["config"]["config"]["Labels"]["io.openshift.build.source-location"]
                 source_name = source_url.split("/")[-1]
-                if source_name == "oc":
-                    source_name = "openshift-client"
-                elif source_name == "installer":
-                    source_name = "openshift-installer"
-                elif source_name == "operator-registry":
-                    source_name = "opm"
+                source_name = constants.MIRROR_CLIENTS[source_name]
                 # URL to download the tarball a specific commit
                 response = requests.get(f"{source_url}/archive/{commit}.tar.gz", stream=True)
                 if response.ok:
@@ -469,8 +464,8 @@ class PromotePipeline:
         operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
         self.extract_opm(CLIENT_MIRROR_DIR, release_name, operator_registry, arch)
 
-        util.print_dir_tree(CLIENT_MIRROR_DIR)  # print dir tree
-        util.print_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
+        util.log_dir_tree(CLIENT_MIRROR_DIR)  # print dir tree
+        util.log_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
 
         # Publish the clients to our S3 bucket.
         await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
@@ -548,17 +543,17 @@ class PromotePipeline:
         shutil.rmtree(BASE_TO_MIRROR_DIR, ignore_errors=True)
         RELEASE_MIRROR_DIR = f"{BASE_TO_MIRROR_DIR}/multi/clients/{client_type}/{release_name}"
 
-        for goArch in util.goArches:
-            if goArch == "multi":
+        for go_arch in util.goArches:
+            if go_arch == "multi":
                 continue
             # From the newly built release, extract the client tools into the workspace following the directory structure
             # we expect to publish to mirror
-            CLIENT_MIRROR_DIR = f"{RELEASE_MIRROR_DIR}/{goArch}"
+            CLIENT_MIRROR_DIR = f"{RELEASE_MIRROR_DIR}/{go_arch}"
             os.makedirs(CLIENT_MIRROR_DIR)
             # extract release clients tools
-            extract_release_client_tools(f"{constants.QUAY_URL}:{from_release_tag}", f"--to={CLIENT_MIRROR_DIR}", goArch)
+            extract_release_client_tools(f"{constants.QUAY_URL}:{from_release_tag}", f"--to={CLIENT_MIRROR_DIR}", go_arch)
             # create symlink for clients
-            self.create_symlink(CLIENT_MIRROR_DIR, True, True)
+            self.create_symlink(path_to_dir=CLIENT_MIRROR_DIR, log_tree=True, log_shasum=True)
 
         # Create a master sha256sum.txt including the sha256sum.txt files from all subarches
         # This is the file we will sign -- trust is transitive to the subarches
@@ -577,7 +572,7 @@ class PromotePipeline:
         # Publish the clients to our S3 bucket.
         await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
 
-    def create_symlink(self, path_to_dir, print_tree, print_file):
+    def create_symlink(self, path_to_dir, log_tree, log_shasum):
         # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
         # So whatever we extract, remove the version specific info and make a symlink with that name.
         for f in os.listdir(path_to_dir):
@@ -600,10 +595,10 @@ class PromotePipeline:
                     # Create a symlink like openshift-client-linux.tgz => openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
                     os.symlink(f, new_name)
 
-            if print_tree:
-                util.print_dir_tree(path_to_dir)  # print dir tree
-            if print_file:
-                util.print_file_content(f"{path_to_dir}/sha256sum.txt")  # print sha256sum.txt
+            if log_tree:
+                util.log_dir_tree(path_to_dir)  # print dir tree
+            if log_shasum:
+                util.log_file_content(f"{path_to_dir}/sha256sum.txt")  # print sha256sum.txt
 
     async def change_advisory_state(self, advisory: int, state: str):
         cmd = [

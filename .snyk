@@ -3,6 +3,10 @@ version: v1.25.0
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore: {}
 patch: {}
-exclude:
-  global:
-    - hacks/plashet/build-plashet.py
+ignore:
+  CWE-23:
+    - '*':
+        reason: None Given
+        expires: 2023-05-21T08:40:29.903Z
+        created: 2023-04-21T08:40:29.909Z
+patch: {}

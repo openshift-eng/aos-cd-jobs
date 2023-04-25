@@ -628,15 +628,18 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
         return fields
 
     async def set_advisory_dependencies(self, advisories):
-        blocking_kind = ['image', 'extras']
-        target_kind = ['rpm', 'metadata']
-        expected_blocking = {i for i in [advisories[k] for k in blocking_kind if k in advisories] if i}
-        target_advisories = {i for i in [advisories[k] for k in target_kind if k in advisories] if i}
-        if not target_advisories or not expected_blocking:
-            return
-
-        _LOGGER.info(f"Setting blocking advisories ({expected_blocking}) for {target_advisories}")
-        for target_advisory_id in target_advisories:
+        # dict keys should ship after values.
+        blocked_by = {
+            'rpm': {'image', 'extras'},
+            'metadata': {'image', 'extras'},
+            'microshift': {'rpm', 'image'},
+        }
+        for target_kind in blocked_by.keys():
+            target_advisory_id = advisories.get(target_kind, 0)
+            if target_advisory_id <= 0:
+                continue
+            expected_blocking = {advisories[k] for k in (blocked_by[target_kind] & advisories.keys()) if advisories[k] > 0}
+            _LOGGER.info(f"Setting blocking advisories ({expected_blocking}) for {target_advisory_id}")
             blocking: Optional[List] = get_blocking_advisories(target_advisory_id)
             if blocking is None:
                 raise ValueError(f"Failed to fetch blocking advisories for {target_advisory_id} ")

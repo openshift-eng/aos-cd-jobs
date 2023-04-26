@@ -16,7 +16,6 @@ import tarfile
 import hashlib
 import shutil
 import urllib.parse
-import subprocess
 import requests
 # from pyartcd.cincinnati import CincinnatiAPI
 from doozerlib import assembly
@@ -371,7 +370,7 @@ class PromotePipeline:
             for arch in data['content']:
                 logger.info(f"Mirroring client binaries for {arch}")
                 if self.runtime.dry_run:
-                    logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
+                    logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_RELEASE_REPO_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
                 else:
                     if arch != "multi":
                         await self.publish_client(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
@@ -401,9 +400,10 @@ class PromotePipeline:
         return justification
 
     async def publish_client(self, working_dir, from_release_tag, release_name, arch, client_type):
-        subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
+        cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", {os.environ['PASSWORD']}, "quay.io"]
+        await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
         _, minor = util.isolate_major_minor_in_group(self.group)
-        quay_url = constants.QUAY_URL
+        quay_url = constants.QUAY_RELEASE_REPO_URL
         # Anything under this directory will be sync'd to the mirror
         BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"
         shutil.rmtree(BASE_TO_MIRROR_DIR, ignore_errors=True)
@@ -441,7 +441,7 @@ class PromotePipeline:
             image_stat, oc_mirror_pullspec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "oc-mirror")
             if image_stat == 0:  # image exist
                 # extract image to workdir, if failed it will raise error in function
-                extract_release_binary(oc_mirror_pullspec, f"--path=/usr/bin/oc-mirror:{CLIENT_MIRROR_DIR}")
+                extract_release_binary(oc_mirror_pullspec, [f"--path=/usr/bin/oc-mirror:{CLIENT_MIRROR_DIR}"])
                 # archive file
                 with tarfile.open(f"{CLIENT_MIRROR_DIR}/oc-mirror.tar.gz", "w:gz") as tar:
                     tar.add(f"{CLIENT_MIRROR_DIR}/oc-mirror")
@@ -537,13 +537,14 @@ class PromotePipeline:
                 f.write(f"{shasum} opm-{platform}-{release_name}.tar.gz")
 
     async def publish_multi_client(self, working_dir, from_release_tag, release_name, client_type):
-        subprocess.run(f"docker login -u openshift-release-dev+art_quay_dev -p {os.environ['PASSWORD']} quay.io")
+        cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", {os.environ['PASSWORD']}, "quay.io"]
+        await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
         # Anything under this directory will be sync'd to the mirror
         BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"
         shutil.rmtree(BASE_TO_MIRROR_DIR, ignore_errors=True)
         RELEASE_MIRROR_DIR = f"{BASE_TO_MIRROR_DIR}/multi/clients/{client_type}/{release_name}"
 
-        for go_arch in util.goArches:
+        for go_arch in util.go_arches:
             if go_arch == "multi":
                 continue
             # From the newly built release, extract the client tools into the workspace following the directory structure
@@ -551,7 +552,7 @@ class PromotePipeline:
             CLIENT_MIRROR_DIR = f"{RELEASE_MIRROR_DIR}/{go_arch}"
             os.makedirs(CLIENT_MIRROR_DIR)
             # extract release clients tools
-            extract_release_client_tools(f"{constants.QUAY_URL}:{from_release_tag}", f"--to={CLIENT_MIRROR_DIR}", go_arch)
+            extract_release_client_tools(f"{constants.QUAY_RELEASE_REPO_URL}:{from_release_tag}", f"--to={CLIENT_MIRROR_DIR}", go_arch)
             # create symlink for clients
             self.create_symlink(path_to_dir=CLIENT_MIRROR_DIR, log_tree=True, log_shasum=True)
 

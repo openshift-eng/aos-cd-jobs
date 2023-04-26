@@ -4,6 +4,7 @@ import logging
 from pyartcd import exectools
 from pyartcd.runtime import Runtime
 import openshift as oc
+from typing import List
 from openshift import Result
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ def get_release_image_pullspec(release_pullspec: str, image: str):
     return r.status(), r.out().strip()
 
 
-def extract_release_binary(image_pullspec: str, path_args: list[str]):
+def extract_release_binary(image_pullspec: str, path_args: List[str]):
     # oc image extract --confirm --only-files --path=/usr/bin/..:<workdir> <pullspec>
     with oc.tracking() as tracker:
         try:

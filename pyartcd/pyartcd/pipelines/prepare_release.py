@@ -618,11 +618,11 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
     def _render_jira_template(fields: Dict, template_vars: Dict):
         fields.copy()
         try:
-            fields["summary"] = jinja2.Template(fields["summary"], autoescape=True).render(template_vars)
+            fields["summary"] = jinja2.Template(fields["summary"]).render(template_vars)
         except jinja2.TemplateSyntaxError as ex:
             _LOGGER.warning("Failed to render JIRA template text: %s", ex)
         try:
-            fields["description"] = jinja2.Template(fields["description"], autoescape=True).render(template_vars)
+            fields["description"] = jinja2.Template(fields["description"]).render(template_vars)
         except jinja2.TemplateSyntaxError as ex:
             _LOGGER.warning("Failed to render JIRA template text: %s", ex)
         return fields

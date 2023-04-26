@@ -5,7 +5,6 @@ import asyncio
 import logging
 import os
 import tempfile
-import shlex
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -207,7 +206,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
         tmp_dir = working_dir / "tmp"
         tmp_dir.mkdir(parents=True, exist_ok=True)
         env['TMPDIR'] = str(tmp_dir)
-        process = await asyncio.subprocess.create_subprocess_exec(shlex.quote(cmd[0]), *cmd[1:], env=env)
+        process = await asyncio.subprocess.create_subprocess_exec(*cmd, env=env)
         rc = await process.wait()
         if rc != 0:
             raise ChildProcessError(f"Process {cmd} exited with status {rc}")
@@ -216,7 +215,7 @@ async def download_rpms(ocp_version: str, arch: str, rhel_major: int, output_dir
 async def create_repo(directory: str):
     cmd = ["createrepo_c", "-v", "--", f"{directory}"]
     LOGGER.info("Running command %s", cmd)
-    process = await asyncio.subprocess.create_subprocess_exec(shlex.quote(cmd[0]), *cmd[1:], env=os.environ.copy())
+    process = await asyncio.subprocess.create_subprocess_exec(*cmd, env=os.environ.copy())
     rc = await process.wait()
     if rc != 0:
         raise ChildProcessError(f"Process {cmd} exited with status {rc}")

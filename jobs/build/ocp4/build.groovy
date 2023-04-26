@@ -7,7 +7,6 @@ commonlib = buildlib.commonlib
 version = [
     stream: "",     // "X.Y" e.g. "4.0"
     branch: "",     // e.g. "rhaos-4.0-rhel-7"
-    full: "",       // e.g. "4.0.0"
     release: "",    // e.g. "201901011200"
     major: 0,       // X in X.Y, e.g. 4
     minor: 0,       // Y in X.Y, e.g. 0
@@ -45,7 +44,6 @@ def initialize() {
     GITHUB_BASE = "git@github.com:openshift"  // buildlib uses this :eyeroll:
 
     currentBuild.displayName = "#${currentBuild.number} - ${params.BUILD_VERSION}.??"
-    echo "Initializing build: ${currentBuild.displayName}"
 
     version.stream = params.BUILD_VERSION.trim()
     doozerOpts += " --group 'openshift-${version.stream}'"
@@ -62,6 +60,7 @@ def initialize() {
 
     version.branch = buildlib.getGroupBranch(doozerOpts)
     version << determineBuildVersion(version.stream, version.branch)
+    echo "Initializing build: ${version.stream}-${version.release}"
 
     buildPlan << [
         dryRun: params.DRY_RUN,
@@ -91,7 +90,7 @@ def initialize() {
     rpmMirror.url = "https://mirror.openshift.com/enterprise/enterprise-${version.stream}"
 
     // adjust the build "title"
-    currentBuild.displayName = "#${currentBuild.number} - ${version.full}-${version.release}"
+    currentBuild.displayName = "#${currentBuild.number} - ${version.stream}-${version.release}"
     if (buildPlan.dryRun) { currentBuild.displayName += " [DRY RUN]" }
     if (buildPlan.forceBuild) { currentBuild.displayName += " [force build]" }
     if (!buildPlan.buildRpms) { currentBuild.displayName += " [no RPMs]" }
@@ -110,7 +109,6 @@ def determineBuildVersion(stream, branch) {
     return [
         major: segments[0],
         minor: segments[1],
-        full: buildlib.determineBuildVersion(stream, branch, params.NEW_VERSION.trim()),
         release: buildlib.defaultReleaseFor(stream),
     ]
 }
@@ -270,7 +268,7 @@ def stageBuildRpms() {
         """
         ${doozerOpts}
         ${includeExclude "rpms", buildPlan.rpmsIncluded, buildPlan.rpmsExcluded}
-        rpms:rebase-and-build --version v${version.full}
+        rpms:rebase-and-build --version v${version.stream}
         --release '${version.release}'
         """
 
@@ -282,7 +280,7 @@ def stageBuildRpms() {
  * Based on commonlib.ocpReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
  */
 def stageBuildCompose() {
-    def mirrorPlashet = buildlib.build_plashets(doozerOpts, version.full, version.release, buildPlan.dryRun)['rhel-server-ose-rpms']
+    def mirrorPlashet = buildlib.build_plashets(doozerOpts, version.stream, version.release, buildPlan.dryRun)['rhel-server-ose-rpms']
     if(mirrorPlashet) {
         // public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
         rpmMirror.plashetDirName = mirrorPlashet.plashetDirName
@@ -299,8 +297,8 @@ def stageUpdateDistgit() {
         """
         ${doozerOpts}
         ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
-        images:rebase --version v${version.full} --release '${version.release}'
-        --message 'Updating Dockerfile version and release v${version.full}-${version.release}' --push
+        images:rebase --version v${version.stream} --release '${version.release}'
+        --message 'Updating Dockerfile version and release v${version.stream}-${version.release}' --push
         --message '${env.BUILD_URL}'
         """
     if(buildPlan.dryRun) {
@@ -424,7 +422,7 @@ def stageMirrorRpms() {
 
     commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "${s3BaseDir}/latest/") // Note s3BaseDir already has a / prefix
     commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "/enterprise/all/${version.stream}/latest/")
-    echo "Finished mirroring OCP ${version.full} to openshift mirrors"
+    echo "Finished mirroring OCP ${version.stream} to openshift mirrors"
 }
 
 def stageSyncImages() {
@@ -473,7 +471,7 @@ def messageSuccess(mirrorURL) {
     try {
         timeout(3) {
             sendCIMessage(
-                messageContent: "New build for OpenShift: ${version.full}",
+                messageContent: "New build for OpenShift: ${version.stream}",
                 messageProperties:
                     """build_mode=pre-release
                     puddle_url=${rpmMirror.url}/${rpmMirror.plashetDirName}

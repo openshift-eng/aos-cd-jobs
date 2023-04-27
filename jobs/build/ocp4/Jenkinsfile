@@ -175,7 +175,11 @@ node {
                         joblib.stageUpdateDistgit()
                     }
                 }
-                stage("build images") { joblib.stageBuildImages() }
+                stage("build images") {
+                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
+                            joblib.stageBuildImages()
+                    }
+                }
             }
             stage("sync images") {
                 if (buildlib.allImagebuildfailed) { return }

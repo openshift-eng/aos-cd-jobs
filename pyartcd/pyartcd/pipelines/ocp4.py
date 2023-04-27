@@ -1,4 +1,5 @@
 import os
+import traceback
 
 import click
 from aioredlock import LockError
@@ -83,6 +84,7 @@ async def mirror_rpms(runtime: Runtime, version: str, assembly: str, local_plash
     except ChildProcessError as e:
         error_msg = f'Failed syncing {local_plashet_path} repo to art-srv-enterprise S3: {e}',
         runtime.logger.error(error_msg)
+        runtime.logger.error(traceback.format_exc())
         slack_client = runtime.new_slack_client()
         slack_client.bind_channel(f'openshift-{stream_version}')
         await slack_client.say(error_msg)

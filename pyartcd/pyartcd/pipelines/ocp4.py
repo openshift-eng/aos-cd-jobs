@@ -64,11 +64,11 @@ async def mirror_rpms(runtime: Runtime, version: str, assembly: str, local_plash
     s3_base_dir = f'/enterprise/enterprise-{stream_version}'
 
     # Create a Lock manager instance
-    retry_policy = locks.RETRY_POLICY['mirroring_rpms']
+    lock_policy = locks.LOCK_POLICY['mirroring_rpms']
     lock_manager = locks.new_lock_manager(
-        internal_lock_timeout=locks.LOCK_TIMEOUTS['olm-bundle'],
-        retry_count=retry_policy['retry_count'],
-        retry_delay_min=retry_policy['retry_delay_min']
+        internal_lock_timeout=lock_policy['lock_timeout'],
+        retry_count=lock_policy['retry_count'],
+        retry_delay_min=lock_policy['retry_delay_min']
     )
     lock_name = f'mirroring-rpms-lock-{stream_version}'
 

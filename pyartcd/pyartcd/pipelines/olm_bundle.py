@@ -52,11 +52,11 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
     cmd.extend(nvrs.split(','))
 
     # Create a Lock manager instance
-    retry_policy = locks.RETRY_POLICY['olm_bundle']
+    lock_policy = locks.LOCK_POLICY['olm_bundle']
     lock_manager = locks.new_lock_manager(
-        internal_lock_timeout=locks.LOCK_TIMEOUTS['olm-bundle'],
-        retry_count=retry_policy['retry_count'],
-        retry_delay_min=retry_policy['retry_delay_min']
+        internal_lock_timeout=lock_policy['lock_timeout'],
+        retry_count=lock_policy['retry_count'],
+        retry_delay_min=lock_policy['retry_delay_min']
     )
 
     # Try to acquire olm-bundle lock for build version

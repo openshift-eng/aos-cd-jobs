@@ -58,7 +58,7 @@ def common_oc_wrapper(cmd_result_name: str, cli_verb: str, oc_args: List[str], c
                     logger.info(f"Output: {r.out().strip()}")
                 else:
                     logger.warn(r.err())
-            r.fail_if("extract release binary failed")
+            r.fail_if(f"oc action {cmd_result_name} failed")
         except Exception as e:
             logger.error(tracker.get_result())
             raise e
@@ -85,7 +85,7 @@ def get_release_image_pullspec(release_pullspec: str, image: str):
 
 
 def extract_release_client_tools(release_pullspec: str, path_arg: str, arch: str):
-    # oc adm release extract --tools --command-os=* -n ocp --to=<workdir> --filter-by-os=<arch> --from <pullspec>
+    # oc adm release extract --tools --command-os=* -n ocp --to=<workdir> --filter-by-os=<arch> --from <pullspec> --to <path>
     if arch:
         args = ["release", "extract", "--tools", "--command-os=*", "-n=ocp", f"--filter-by-os={arch}", f"--from={release_pullspec}", path_arg]
     else:

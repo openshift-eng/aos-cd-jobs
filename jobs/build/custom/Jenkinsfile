@@ -137,7 +137,7 @@ node {
     def version = params.BUILD_VERSION
     def release = "?"
     if (params.IMAGE_MODE != "nothing") {
-        version = buildlib.determineBuildVersion(params.BUILD_VERSION, buildlib.getGroupBranch(doozerOpts), params.VERSION)
+        version = params.BUILD_VERSION.trim()
         release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION)
     }
     // If any arch is ready for GA, use signed repos for all (plashets will sign everything).

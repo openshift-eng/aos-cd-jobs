@@ -1218,55 +1218,6 @@ def extractBuildVersion(build) {
     return match ? match[0][1] : "" // first group in the regex
 }
 
-/**
- * Given build parameters, determine the version for this build.
- * @param stream: OCP minor version "X.Y"
- * @param stream: distgit branch "rhaos-X.Y-rhel-[78]"
- * @param versionParam: a version "X.Y.Z", empty to reuse latest version, "+" to increment latest .Z
- * @return the version determined "X.Y.Z"
- */
-def determineBuildVersion(stream, branch, versionParam) {
-    def version = "${stream}.0"  // default
-
-    def streamSegments = stream.tokenize(".").collect { it.toInteger() }
-    def major = streamSegments[0]
-    def minor = streamSegments[1]
-
-    // As of 4.4, let's try 4.x for everything (doozer will add patch version).
-    if (major >=4 && minor >= 4) {
-        echo "Forcing version ${stream} which is convention for this major.minor."
-        return stream
-    }
-
-    def prevBuild = latestOpenshiftRpmBuild(stream, branch)
-    if(versionParam == "+") {
-        // increment previous build version
-        version = extractBuildVersion(prevBuild)
-        if (!version) { error("Could not determine version from last build '${prevBuild}'") }
-
-        def segments = version.tokenize(".").collect { it.toInteger() }
-        segments[-1]++
-        version = segments.join(".")
-        echo("Using version ${version} incremented from latest openshift package ${prevBuild}")
-    } else if(versionParam) {
-        // explicit version given
-        version = commonlib.standardVersion(versionParam, false)
-        echo("Using parameter for build version: ${version}")
-    } else if (prevBuild) {
-        // use version from previous build
-        version = extractBuildVersion(prevBuild)
-        if (!version) { error("Could not determine version from last build '${prevBuild}'") }
-        echo("Using version ${version} from latest openshift package ${prevBuild}")
-    }
-
-    if (! version.startsWith("${stream}.")) {
-        // The version we came up with somehow doesn't match what we expect to build; abort
-        error("Determined a version, '${version}', that does not begin with '${stream}.'")
-    }
-
-    return version
-}
-
 @NonCPS
 String extractAdvisoryId(String elliottOut) {
     def matches = (elliottOut =~ /https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)/)

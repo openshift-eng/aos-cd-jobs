@@ -21,7 +21,7 @@ NIGHTLY_PAYLOAD_REPOS = {
 MIRROR_CLIENTS = {
     "oc": "openshift-client",
     "installer": "openshift-installer",
-    "operator-registry": "opm",
+    "operator-framework-olm": "opm",
 }
 
 OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'

@@ -25,7 +25,7 @@ from pyartcd import constants, exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
-from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary, extract_release_client_tools
+from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary, extract_release_client_tools, get_release_image_info_from_pullspec
 from pyartcd.jenkins import trigger_build_microshift
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
@@ -400,7 +400,7 @@ class PromotePipeline:
         return justification
 
     async def publish_client(self, working_dir, from_release_tag, release_name, arch, client_type):
-        cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", {os.environ['PASSWORD']}, "quay.io"]
+        cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", f"{os.environ['PASSWORD']}", "quay.io"]
         await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
         _, minor = util.isolate_major_minor_in_group(self.group)
         quay_url = constants.QUAY_RELEASE_REPO_URL
@@ -417,7 +417,7 @@ class PromotePipeline:
         for tarball in ["cli", "installer", "operator-registry"]:
             image_stat, cli_pull_spec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", tarball)
             if image_stat == 0:  # image exists
-                image_info = get_release_image_info(cli_pull_spec)
+                _, image_info = get_release_image_info_from_pullspec(cli_pull_spec)
                 # Retrieve the commit from image info
                 commit = image_info["config"]["config"]["Labels"]["io.openshift.build.commit.id"]
                 source_url = image_info["config"]["config"]["Labels"]["io.openshift.build.source-location"]
@@ -429,11 +429,11 @@ class PromotePipeline:
                     with open(f"{CLIENT_MIRROR_DIR}/{source_name}-src-{from_release_tag}.tar.gz", "wb") as f:
                         f.write(response.raw.read())
                     # calc shasum
-                    with open(f"{CLIENT_MIRROR_DIR}/{source_name}-src-{from_release_tag}.gz", 'rb') as f:
+                    with open(f"{CLIENT_MIRROR_DIR}/{source_name}-src-{from_release_tag}.tar.gz", 'rb') as f:
                         shasum = hashlib.sha256(f.read()).hexdigest()
                     # write shasum to sha256sum.txt
                     with open(f"{CLIENT_MIRROR_DIR}/sha256sum.txt", 'a') as f:
-                        f.write(f"{shasum} {source_name}-src-{from_release_tag}.tar.gz")
+                        f.write(f"{shasum} {source_name}-src-{from_release_tag}.tar.gz\n")
 
         if arch == 'x86_64':
             # oc image  extract requires an empty destination directory. So do this before extracting tools.
@@ -450,7 +450,7 @@ class PromotePipeline:
                     shasum = hashlib.sha256(f.read()).hexdigest()
                 # write shasum to sha256sum.txt
                 with open(f"{CLIENT_MIRROR_DIR}/sha256sum.txt", 'a') as f:
-                    f.write(f"{shasum} oc-mirror.tar.gz")
+                    f.write(f"{shasum} oc-mirror.tar.gz\n")
                 # remove oc-mirror
                 os.remove(f"{CLIENT_MIRROR_DIR}/oc-mirror")
 
@@ -461,7 +461,7 @@ class PromotePipeline:
         await self.generate_changelog(release_name, CLIENT_MIRROR_DIR, minor)
 
         # extract opm binaries
-        operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
+        _, operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
         self.extract_opm(CLIENT_MIRROR_DIR, release_name, operator_registry, arch)
 
         util.log_dir_tree(CLIENT_MIRROR_DIR)  # print dir tree
@@ -534,10 +534,10 @@ class PromotePipeline:
             with open(f"opm-{platform}-{release_name}.tar.gz", 'rb') as f:  # calc shasum
                 shasum = hashlib.sha256(f.read()).hexdigest()
             with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
-                f.write(f"{shasum} opm-{platform}-{release_name}.tar.gz")
+                f.write(f"{shasum} opm-{platform}-{release_name}.tar.gz\n")
 
     async def publish_multi_client(self, working_dir, from_release_tag, release_name, client_type):
-        cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", {os.environ['PASSWORD']}, "quay.io"]
+        cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", f"{os.environ['PASSWORD']}", "quay.io"]
         await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
         # Anything under this directory will be sync'd to the mirror
         BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"
@@ -568,7 +568,7 @@ class PromotePipeline:
                 with open(os.path.join(root, "sha256sum.txt"), "rb") as f:
                     shasum = hashlib.sha256(f.read()).hexdigest()
                 with open(f"{RELEASE_MIRROR_DIR}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
-                    f.write(f"{shasum} {dir}/sha256sum.txt")
+                    f.write(f"{shasum} {dir}/sha256sum.txt\n")
 
         # Publish the clients to our S3 bucket.
         await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)

@@ -275,19 +275,6 @@ def stageBuildRpms() {
     buildPlan.dryRun ? echo("doozer ${cmd}") : buildlib.doozer(cmd)
 }
 
-/**
- * Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs based on -candidate tags.
- * Based on commonlib.ocpReleaseState, those repos can be signed (release state) or unsigned (pre-release state).
- */
-def stageBuildCompose() {
-    def mirrorPlashet = buildlib.build_plashets(doozerOpts, version.stream, version.release, buildPlan.dryRun)['rhel-server-ose-rpms']
-    if(mirrorPlashet) {
-        // public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
-        rpmMirror.plashetDirName = mirrorPlashet.plashetDirName
-        rpmMirror.localPlashetPath = mirrorPlashet.localPlashetPath
-    }
-}
-
 def stageUpdateDistgit() {
     if (!buildPlan.buildImages) {
         echo "Not rebasing images."

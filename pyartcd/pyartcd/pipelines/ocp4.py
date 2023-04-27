@@ -9,7 +9,8 @@ from pyartcd.runtime import Runtime
 
 
 async def sync_repo_to_s3_mirror(local_dir: str, s3_path: str, dry_run: bool):
-    if s3_path.startswith('/pub/openshift-v4/clients') or \
+    if not s3_path.startswith('/') or \
+            s3_path.startswith('/pub/openshift-v4/clients') or \
             s3_path.startswith('/pub/openshift-v4/amd64') or \
             s3_path.startswith('/pub/openshift-v4/arm64') or \
             s3_path.startswith('/pub/openshift-v4/dependencies'):

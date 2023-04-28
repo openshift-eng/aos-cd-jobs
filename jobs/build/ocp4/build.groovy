@@ -398,33 +398,6 @@ def stageBuildImages() {
     }
 }
 
-/**
- * Copy the plashet created earlier out to the openshift mirrors. This allows QE to
- * easily find the RPMs we used in the creation of the images. These RPMs may be
- * required for bare metal installs.
- */
-def stageMirrorRpms() {
-    if (params.ASSEMBLY && params.ASSEMBLY != 'stream') {
-        echo "No need to mirror rpms for non-stream assembly."
-        return
-    }
-    if (!rpmMirror.localPlashetPath) {
-        echo "No updated RPMs to mirror."
-        return
-    }
-
-    def s3BaseDir = "/enterprise/enterprise-${version.stream}"
-
-    if (buildPlan.dryRun) {
-        echo "Would have copied plashet to mirror.openshift.com${s3BaseDir }"
-        return
-    }
-
-    commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "${s3BaseDir}/latest/") // Note s3BaseDir already has a / prefix
-    commonlib.syncRepoToS3Mirror("${rpmMirror.localPlashetPath}/", "/enterprise/all/${version.stream}/latest/")
-    echo "Finished mirroring OCP ${version.stream} to openshift mirrors"
-}
-
 def stageSyncImages() {
     if (!buildPlan.buildImages) {
         echo "No built images to sync."

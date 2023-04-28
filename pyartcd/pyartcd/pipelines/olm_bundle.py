@@ -1,7 +1,5 @@
-import os
-
 import click
-from aioredlock import Aioredlock, LockError
+from aioredlock import LockError
 
 from pyartcd import constants, exectools
 from pyartcd.cli import cli, pass_runtime, click_coroutine
@@ -17,7 +15,8 @@ from pyartcd.runtime import Runtime
 @click.option('--data-gitref', required=False,
               help='(Optional) Doozer data path git [branch / tag / sha] to use')
 @click.option('--nvrs', required=False,
-              help='(Optional) List **only** the operator NVRs you want to build bundles for, everything else gets ignored. The operators should not be mode:disabled/wip in ocp-build-data')
+              help='(Optional) List **only** the operator NVRs you want to build bundles for, everything else '
+                   'gets ignored. The operators should not be mode:disabled/wip in ocp-build-data')
 @click.option('--only', required=False,
               help='(Optional) List **only** the operators you want to build, everything else gets ignored.\n' 
                    'Format: Comma and/or space separated list of brew packages (e.g.: cluster-nfd-operator-container)\n'
@@ -53,19 +52,17 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
     cmd.extend(nvrs.split(','))
 
     # Create a Lock manager instance
-    retry_policy = locks.RETRY_POLICY['olm_bundle']
+    lock_policy = locks.LOCK_POLICY['olm_bundle']
     lock_manager = locks.new_lock_manager(
-        internal_lock_timeout=locks.LOCK_TIMEOUTS['olm-bundle'],
-        retry_count=retry_policy['retry_count'],
-        retry_delay_min=retry_policy['retry_delay_min']
+        internal_lock_timeout=lock_policy['lock_timeout'],
+        retry_count=lock_policy['retry_count'],
+        retry_delay_min=lock_policy['retry_delay_min']
     )
 
     # Try to acquire olm-bundle lock for build version
     lock_name = f'olm_bundle-{version}'
     try:
-        runtime.logger.info('Trying to acquire lock %s', lock_name)
         async with await lock_manager.lock(lock_name):
-            runtime.logger.info('Lock %s acquired', lock_name)
             runtime.logger.info('Running command: %s', cmd)
             await exectools.cmd_assert_async(cmd)
 

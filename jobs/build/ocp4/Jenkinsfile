@@ -186,8 +186,35 @@ node {
                 joblib.stageSyncImages()
             }
             stage("mirror RPMs") {
-                lock("mirroring-rpms-lock-${params.BUILD_VERSION}") {
-                    joblib.stageMirrorRpms()
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+
+                // Create artcd command
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "ocp4:mirror-rpms",
+                    "--version=${version.stream}",
+                    "--assembly=${params.ASSEMBLY}",
+                    "--local-plashet-path=${rpmMirror.localPlashetPath}"
+                ]
+                withCredentials([
+                            aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
+                        ]) {
+                    retry(3) {
+                        timeout(time: 60, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
+                            sh(script: cmd.join(' '), returnStdout: true)
+                        }
+                    }
                 }
             }
             stage("sweep") {

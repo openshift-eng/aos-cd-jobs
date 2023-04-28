@@ -198,11 +198,12 @@ node {
                 if (params.DRY_RUN) {
                     cmd << "--dry-run"
                 }
+                localPlashetPath = rpmMirror.localPlashetPath ? rpmMirror.localPlashetPath : ''
                 cmd += [
                     "ocp4:mirror-rpms",
                     "--version=${version.stream}",
                     "--assembly=${params.ASSEMBLY}",
-                    "--local-plashet-path=${rpmMirror.localPlashetPath}"
+                    "--local-plashet-path=${localPlashetPath}"
                 ]
                 withCredentials([
                             aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),

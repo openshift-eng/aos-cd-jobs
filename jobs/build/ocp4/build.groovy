@@ -332,6 +332,7 @@ def stageBuildImages() {
             ${includeExclude "images", buildPlan.imagesIncluded, buildPlan.imagesExcluded}
             images:build
             --repo-type ${signing_mode}
+            --comment-on-pr
             """
 
         def includedCount = commonlib.parseList(buildPlan.imagesIncluded).size()

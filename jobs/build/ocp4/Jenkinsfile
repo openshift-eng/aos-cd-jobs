@@ -196,7 +196,7 @@ node {
                 }
                 cmd += [
                     "ocp4:mirror-rpms",
-                    "--version=${version.full}",
+                    "--version=${version.stream}",
                     "--assembly=${params.ASSEMBLY}",
                     "--local-plashet-path=${rpmMirror.localPlashetPath}"
                 ]

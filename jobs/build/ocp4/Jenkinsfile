@@ -208,7 +208,8 @@ node {
                             aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
                             string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                             string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
+                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
                         ]) {
                     retry(3) {
                         timeout(time: 60, unit: 'MINUTES') { // aws s3 sync has been observed to hang before

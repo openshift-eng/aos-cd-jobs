@@ -16,13 +16,13 @@ LOCK_POLICY = {
     'olm_bundle': {
         'retry_count': 36000,
         'retry_delay_min': 0.1,
-        'lock_timeout': 60*60*2,  # 2 hours
+        'lock_timeout': 60 * 60 * 2,  # 2 hours
     },
     # mirror RPMs: give up after 1 hour
     'mirroring_rpms': {
         'retry_count': 36000,
         'retry_delay_min': 0.1,
-        'lock_timeout': 60*60*3,  # 3 hours
+        'lock_timeout': 60 * 60 * 3,  # 3 hours
     },
 }
 

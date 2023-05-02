@@ -18,7 +18,7 @@ from pyartcd.runtime import Runtime
               help='(Optional) List **only** the operator NVRs you want to build bundles for, everything else '
                    'gets ignored. The operators should not be mode:disabled/wip in ocp-build-data')
 @click.option('--only', required=False,
-              help='(Optional) List **only** the operators you want to build, everything else gets ignored.\n' 
+              help='(Optional) List **only** the operators you want to build, everything else gets ignored.\n'
                    'Format: Comma and/or space separated list of brew packages (e.g.: cluster-nfd-operator-container)\n'
                    'Leave empty to build all (except EXCLUDE, if defined)')
 @click.option('--exclude', required=False,

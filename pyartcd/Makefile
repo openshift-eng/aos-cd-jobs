@@ -1,12 +1,21 @@
-.PHONY: venv tox lint test
+.PHONY: lint test unit clean
+
+test: unit lint
 
 venv:
 	python3.8 -m venv venv
+	./venv/bin/pip install -e ../art-tools/doozer/
+	./venv/bin/pip install -e ../art-tools/elliott/
 	./venv/bin/pip install -r requirements-dev.txt -r requirements.txt
 	# source venv/bin/activate
 
-lint:
+lint: venv/bin/python
 	./venv/bin/python -m flake8
 
-test: lint
+unit: venv/bin/python
 	./venv/bin/python -m pytest --verbose --color=yes tests/
+
+venv/bin/python: venv
+
+clean:
+	rm -rf venv/

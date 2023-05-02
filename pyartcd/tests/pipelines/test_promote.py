@@ -9,6 +9,13 @@ from doozerlib.assembly import AssemblyTypes
 
 
 class TestPromotePipeline(TestCase):
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={})
     @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
     def test_run_without_explicit_assembly_definition(self, load_group_config: AsyncMock, load_releases_config: AsyncMock):
@@ -24,7 +31,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
         with self.assertRaisesRegex(ValueError, "must be explictly defined"):
             asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
@@ -47,7 +54,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="stream", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="stream")
         with self.assertRaisesRegex(ValueError, "not supported"):
             asyncio.run(pipeline.run())
         load_group_config.assert_awaited_once_with("openshift-4.10", "stream", env=ANY)
@@ -142,7 +149,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
         pipeline._slack_client = AsyncMock()
         with self.assertRaisesRegex(ValueError, "missing the required `upgrades` field"):
             asyncio.run(pipeline.run())
@@ -196,7 +203,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
         pipeline._slack_client = AsyncMock()
         pipeline.check_blocker_bugs = AsyncMock()
         pipeline.attach_cve_flaws = AsyncMock()
@@ -274,7 +281,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -356,7 +363,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -385,9 +392,9 @@ class TestPromotePipeline(TestCase):
 
     @patch("pyartcd.pipelines.promote.exectools.cmd_assert_async", return_value=0)
     def test_build_release_image_from_image_stream(self, cmd_assert_async: AsyncMock):
-        runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}},
+        runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"}, "jira": {"url": "https://jira_url"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -470,8 +477,8 @@ class TestPromotePipeline(TestCase):
             ]
         },
     }[pullspec, raise_if_not_found])
-    @patch('pyartcd.pipelines.promote.PromotePipeline.get_image_digest', return_value='fake:deadbeef-toplevel-manifest-list')
-    def test_promote_heterogeneous_payload(self, get_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
+    @patch('pyartcd.pipelines.promote.PromotePipeline.get_multi_image_digest', return_value='fake:deadbeef-toplevel-manifest-list')
+    def test_promote_heterogeneous_payload(self, get_multi_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
                                            build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
         runtime = MagicMock(
             config={
@@ -485,7 +492,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -498,15 +505,15 @@ class TestPromotePipeline(TestCase):
             tag_stable=True,
             assembly_type=AssemblyTypes.CUSTOM
         ))
-        get_image_digest.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_multi_image_digest.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
         get_image_info.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
         build_release_image.assert_not_called()
         tag_release.assert_not_called()
 
         # test: promote a GA heterogeneous payload
-        get_image_digest.reset_mock()
-        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+        get_multi_image_digest.reset_mock()
+        get_multi_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
         }[pullspec, raise_if_not_found]
@@ -570,8 +577,8 @@ class TestPromotePipeline(TestCase):
             tag_stable=True,
             assembly_type=AssemblyTypes.CUSTOM
         ))
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
         get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
         get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
@@ -586,8 +593,8 @@ class TestPromotePipeline(TestCase):
         self.assertEqual(actual["digest"], "fake:deadbeef-dest-multi")
 
         # test: promote GA heterogeneous payload
-        get_image_digest.reset_mock()
-        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+        get_multi_image_digest.reset_mock()
+        get_multi_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
         }[pullspec, raise_if_not_found]
@@ -651,8 +658,8 @@ class TestPromotePipeline(TestCase):
             tag_stable=True,
             assembly_type=AssemblyTypes.CUSTOM
         ))
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
         get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
         get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99")
@@ -728,8 +735,8 @@ class TestPromotePipeline(TestCase):
             ]
         },
     }[pullspec, raise_if_not_found])
-    @patch('pyartcd.pipelines.promote.PromotePipeline.get_image_digest', return_value='fake:deadbeef-toplevel-manifest-list')
-    def test_build_release_image_from_heterogeneous_image_stream(self, get_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
+    @patch('pyartcd.pipelines.promote.PromotePipeline.get_multi_image_digest', return_value='fake:deadbeef-toplevel-manifest-list')
+    def test_build_release_image_from_heterogeneous_image_stream(self, get_multi_image_digest: AsyncMock, get_image_info: AsyncMock, get_image_stream: AsyncMock,
                                                                  build_release_image: AsyncMock, push_manifest_list: AsyncMock, get_image_stream_tag: AsyncMock, tag_release: AsyncMock):
         runtime = MagicMock(
             config={
@@ -743,7 +750,7 @@ class TestPromotePipeline(TestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None, use_multi_hack=True)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", use_multi_hack=True)
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -756,15 +763,15 @@ class TestPromotePipeline(TestCase):
             tag_stable=True,
             assembly_type=AssemblyTypes.CUSTOM
         ))
-        get_image_digest.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_multi_image_digest.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
         get_image_info.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99-multi")
         build_release_image.assert_not_called()
         tag_release.assert_not_called()
 
         # test: promote a GA heterogeneous payload
-        get_image_digest.reset_mock()
-        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+        get_multi_image_digest.reset_mock()
+        get_multi_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
         }[pullspec, raise_if_not_found]
@@ -828,8 +835,8 @@ class TestPromotePipeline(TestCase):
             tag_stable=True,
             assembly_type=AssemblyTypes.CUSTOM
         ))
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
         get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
         get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99-multi")
@@ -844,8 +851,8 @@ class TestPromotePipeline(TestCase):
         self.assertEqual(actual["digest"], "fake:deadbeef-dest-multi")
 
         # test: promote GA heterogeneous payload
-        get_image_digest.reset_mock()
-        get_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
+        get_multi_image_digest.reset_mock()
+        get_multi_image_digest.side_effect = lambda pullspec, raise_if_not_found=False: {
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", False): None,
             ("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", True): "fake:deadbeef-dest-multi",
         }[pullspec, raise_if_not_found]
@@ -909,8 +916,8 @@ class TestPromotePipeline(TestCase):
             tag_stable=True,
             assembly_type=AssemblyTypes.CUSTOM
         ))
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
-        get_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
+        get_multi_image_digest.assert_any_await("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", raise_if_not_found=True)
         get_image_info.assert_awaited_once_with("example.com/ocp-release@fake:deadbeef-source-manifest-list", raise_if_not_found=True)
         get_image_stream.assert_awaited_once_with("ocp-multi", "4.10-art-assembly-4.10.99-multi")
         get_image_stream_tag.assert_awaited_once_with("ocp-multi", "release-multi:4.10.99-multi")

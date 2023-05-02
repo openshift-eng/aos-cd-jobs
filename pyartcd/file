@@ -1,0 +1,1 @@
+['rsync', '-avz', '--no-perms', '--no-owner', '--omit-dir-times', '--no-group', 'fake-working/sources', 'exd-ocp-buildvm-bot-prod@spmm-util:ocp-client-handoff']

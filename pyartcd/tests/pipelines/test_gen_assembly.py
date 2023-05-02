@@ -126,6 +126,7 @@ releases:
         pipeline = GenAssemblyPipeline(runtime, "openshift-4.12", "4.12.99", "https://example.com/ocp-build-data.git",
                                        nightlies=(), allow_pending=False, allow_rejected=False, allow_inconsistency=False, custom=False,
                                        arches=(), in_flight=None, previous_list=(), auto_previous=True)
+        pipeline._slack_client.say = AsyncMock()
         pipeline._working_dir = Path("/path/to/working")
         get_nightlies.return_value = ["nightly1", "nightly2", "nightly3", "nightly4"]
         _gen_assembly_from_releases.return_value = OrderedDict([

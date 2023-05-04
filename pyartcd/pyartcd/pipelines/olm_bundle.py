@@ -36,7 +36,7 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
         'doozer',
         f'--assembly={assembly}',
         '--working-dir=doozer_working',
-        f'--group=openshift-{version}@${data_gitref}' if data_gitref else f'--group=openshift-{version}',
+        f'--group=openshift-{version}@{data_gitref}' if data_gitref else f'--group=openshift-{version}',
         f'--data-path={data_path}'
     ]
     if only:

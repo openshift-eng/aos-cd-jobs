@@ -126,14 +126,13 @@ node {
     def doozer_working = "${env.WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
 
-    def doozer_data_path = params.DOOZER_DATA_PATH
     def (majorVersion, minorVersion) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
     def groupParam = "openshift-${params.BUILD_VERSION}"
     def doozer_data_gitref = params.DOOZER_DATA_GITREF
     if (doozer_data_gitref) {
         groupParam += "@${params.DOOZER_DATA_GITREF}"
     }
-    def doozerOpts = "--working-dir ${doozer_working} --data-path ${doozer_data_path} --group '${groupParam}' "
+    def doozerOpts = "--working-dir ${doozer_working} --data-path ${params.DOOZER_DATA_PATH} --group '${groupParam}' "
     def version = params.BUILD_VERSION
     def release = "?"
     if (params.IMAGE_MODE != "nothing") {
@@ -159,34 +158,54 @@ node {
             currentBuild.description = ""
 
             stage("rpm builds") {
-                if (rpms.toUpperCase() != "NONE") {
-                    currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
-                    currentBuild.description = "building RPM(s): ${rpms}\n"
-                    command = doozerOpts
-                    if (rpms) { command += "-r '${rpms}' " }
-                    command += "rpms:rebase-and-build --version ${version} --release '${release}' ${params.SCRATCH ? '--scratch' : ''} "
-
-                    def buildRpms = { ->
-                        buildlib.doozer command
-                    }
-                    params.IGNORE_LOCKS ?  buildRpms() : lock("github-activity-lock-${params.BUILD_VERSION}") { buildRpms() }
+                if (rpms.toUpperCase() == "NONE") {
+                    return
                 }
+                currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
+                currentBuild.description = "building RPM(s): ${rpms}\n"
+
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                    "custom",
+                    "build-rpms",
+                    "--version=${version}-${release}"
+                ]
+                if (rpms) {
+                    cmd << "--rpms=${rpms}"
+                }
+                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
+                if (params.SCRATCH) {
+                    cmd << "--scratch"
+                }
+
+                params.IGNORE_LOCKS ?  sh(script: cmd.join(' ')) : lock("github-activity-lock-${params.BUILD_VERSION}") { sh(script: cmd.join(' ')) }
             }
 
             stage("repo: ose 'building'") {
                 if (params.UPDATE_REPOS || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
-                    lock("update-repo-lock-${params.BUILD_VERSION}") {  // note: respect repo lock regardless of IGNORE_LOCKS
-
-                        buildlib.build_plashets(doozerOpts, version, release)
-                        if ("${majorVersion}" == "4" && buildlib.getAutomationState(doozerOpts) in ["scheduled", "yes", "True"]) {
-                            slacklib.to(params.BUILD_VERSION).say(params.UPDATE_REPOS ?
-                                """ *:alert: custom build repositories update ran during automation freeze*
-                                    UPDATE_REPOS parameter was set to true, forcing a repo update during automation freeze."""
-                                :
-                                """*:alert: custom build repositories ran during automation freeze*
-                                    RPM rebuild(s) in the build plan forced a repo update during automation freeze."""
-                            )
-                        }
+                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                    def cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "custom",
+                        "update-repos",
+                        "--version=${version}-${release}",
+                        "--assembly=${params.ASSEMBLY}"
+                    ]
+                    if (params.DOOZER_DATA_PATH) {
+                        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                    }
+                    if (params.DOOZER_DATA_GITREF) {
+                        cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
                     }
                 }
             }
@@ -262,7 +281,7 @@ node {
                         "aos-team-art@redhat.com", // "reply to"
                         params.ASSEMBLY,
                         operator_nvrs,
-                        doozer_data_path,
+                        params.DOOZER_DATA_PATH,
                         doozer_data_gitref
                     )
                 }

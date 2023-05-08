@@ -3,6 +3,7 @@ from aioredlock import LockError
 
 from pyartcd import constants, exectools, locks, plashets, util
 from pyartcd.cli import cli, pass_runtime, click_coroutine
+from pyartcd.release import ocp_release_state
 from pyartcd.runtime import Runtime
 
 DOOZER_WORKING = "doozer_working"
@@ -105,3 +106,64 @@ async def update_repos(runtime: Runtime, version: str, assembly: str, data_path:
 
     finally:
         await lock_manager.destroy()
+
+
+@custom.command('build-images')
+@click.option('--version', required=True, help='Full OCP version, e.g. 4.14-202304181947.p?')
+@click.option("--data-path", required=False, default=constants.OCP_BUILD_DATA_URL,
+              help="ocp-build-data fork to use (e.g. assembly definition in your own fork)")
+@click.option("--data-gitref", required=False, default='',
+              help="(Optional) Doozer data path git [branch / tag / sha] to use")
+@click.option('--images', required=True,
+              help='Comma-separated list of image distgits to build. Empty for all. "NONE" not to build any.')
+@click.option('--exclude', required=False, default='',
+              help='List of image distgits NOT to build (builds all not listed); --images value is ignored)')
+@click.option('--image-mode', required=True, type=click.Choice(['rebase', 'nothing'], case_sensitive=True),
+              help='How to update image dist-gits: with a source rebase, or not at all (re-run as-is)')
+@click.option('--scratch', is_flag=True,
+              help='Run scratch builds (only unrelated images, no children)')
+@pass_runtime
+@click_coroutine
+async def build_images(runtime: Runtime, version: str, data_path: str, data_gitref: str, images: str,
+                       exclude: str, image_mode: str, scratch: bool):
+    # Determine which images, if any, should be built
+    include_exclude = ''
+    any_images_to_build = True
+
+    if exclude:
+        include_exclude = f'--exclude={exclude}'
+
+    elif images.upper() == 'NONE':
+        any_images_to_build = False
+
+    elif images:
+        include_exclude = f'--images={images}'
+
+    if not any_images_to_build:
+        runtime.logger.info('Will not build any images')
+        return
+
+    stream_version, release_version = version.split('-')  # e.g. 4.14 from 4.14-202304181947.p?
+
+    group_param = f'openshift-{stream_version}'
+    if data_gitref:
+        group_param = f'{group_param}@{data_gitref}'
+
+    # If any arch is ready for GA, use signed repos for all (plashets will sign everything).
+    repo_type = 'signed' if ocp_release_state[stream_version]['release'] else 'unsigned'
+
+    # Update distgit
+    if image_mode == 'rebase':
+        runtime.logger.info('Updating dist-git...')
+        cmd = ['doozer', f'--working-dir={DOOZER_WORKING}', f'--data-path={data_path}', f'--group={group_param}',
+               '--latest-parent-version', include_exclude, f'images:rebase', f'--version=v{stream_version}',
+               f'--release={release_version}', f'--repo-type={repo_type}',
+               f"--message='Updating Dockerfile version and release {stream_version}-{release_version}'", '--push']
+        await exectools.cmd_assert_async(cmd)
+
+    # Build images
+    cmd = ['doozer', f'--working-dir={DOOZER_WORKING}', f'--data-path={data_path}', f'--group={group_param}',
+           include_exclude, f'--profile={repo_type}', 'images:build', '--push-to-defaults']
+    if scratch:
+        cmd.append('--scratch')
+    await exectools.cmd_assert_async(cmd)

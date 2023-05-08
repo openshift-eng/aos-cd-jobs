@@ -1,4 +1,4 @@
-
+import logging
 import traceback
 
 import click
@@ -8,6 +8,37 @@ from pyartcd import locks, util, plashets
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
+
+
+async def is_compose_build_permitted(runtime: Runtime, stream_version: str, build_rpms: bool) -> bool:
+    """
+    If automation is not frozen, go ahead
+    If automation is "scheduled" and job was triggered by human and there were no RPMs in the build plan, do not build
+    If automation is "scheduled" and job was triggered by human and there were RPMs in the build plan: build and warn
+
+    Returns automation state for further reuse
+    """
+
+    result = False
+    automation_state: str = await util.get_freeze_automation(stream_version)
+    runtime.logger.info('Automation state for %s: %s', stream_version, automation_state)
+
+    if automation_state in ['scheduled', 'yes', 'True']:
+        result = True
+
+    elif automation_state in ['scheduled', 'weekdays'] and build_rpms:
+        result = True
+
+        # Send a Slack notification in case compose build ran during automation freeze
+        if automation_state == 'scheduled':
+            slack_client = runtime.new_slack_client()
+            slack_client.bind_channel(f'openshift-{stream_version}')
+            await slack_client.say(
+                "*:alert: ocp4 build compose ran during automation freeze*\n"
+                "There were RPMs in the build plan that forced build compose during automation freeze."
+            )
+
+    return result
 
 
 @cli.command("ocp4:build-compose",
@@ -33,29 +64,12 @@ async def build_compose(runtime: Runtime, version: str, assembly: str, build_rpm
     # Build compose
     try:
         async with await lock_manager.lock(lock_name):
-            automation_state: str = await util.get_freeze_automation(stream_version)
-            runtime.logger.info('Automation state for %s: %s', stream_version, automation_state)
-
-            # - If automation is not frozen, go ahead
-            # - If automation is "scheduled" and job was triggered by human
-            #   and there were no RPMs in the build plan: Do not build compose
-            # - If automation is "scheduled" and job was triggered by human
-            #   and there were RPMs in the build plan: Build compose, and warn
-            if automation_state in ['scheduled', 'yes', 'True'] or \
-                    (automation_state in ['scheduled', 'weekdays'] and build_rpms):
+            if await is_compose_build_permitted(stream_version, build_rpms):
                 mirror_plashet = await plashets.build_plashets(
                     stream_version, release_version, assembly=assembly, dry_run=runtime.dry_run)
                 click.echo(mirror_plashet)
             else:
                 runtime.logger.info('Skipping compose build')
-
-            if automation_state == 'scheduled' and build_rpms:
-                slack_client = runtime.new_slack_client()
-                slack_client.bind_channel(f'openshift-{stream_version}')
-                await slack_client.say(
-                    "*:alert: ocp4 build compose ran during automation freeze*\n"
-                    "There were RPMs in the build plan that forced build compose during automation freeze."
-                )
 
     except ChildProcessError as e:
         error_msg = f'Failed building compose: {e}'

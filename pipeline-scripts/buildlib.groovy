@@ -1318,52 +1318,6 @@ def get_owners(doozerOpts, images, rpms=[]) {
     return yamlData
 }
 
-def build_plashets(doozerOpts, version, release, dryRun = false) {
-    def auto_signing_advisory = Integer.parseInt(doozer("${doozerOpts} -q config:read-group --default=0 signing_advisory", [capture: true]).trim())
-    def plashets_built = [:]
-
-    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-
-    // Create plashet repos on ocp-artifacts
-    if (major >= 4) {
-        def revision = release
-        if (revision.endsWith(".p?"))
-            revision = revision.substring(0, revision.length() - 3)  // remove .p? suffix
-        def working_dir = "${env.WORKSPACE}/plashet-working"
-        cleanWorkdir(working_dir)
-        sh "mkdir -p $working_dir"
-        def assembly = params.ASSEMBLY ?: "stream"
-        def cmd = [
-            "python3",
-            "./hacks/plashet/build-plashet.py",
-            "--working-dir=$working_dir",
-            "--group=openshift-$version",
-            "--assembly=$assembly",
-            "--revision=$revision",
-            "--signing-advisory=$auto_signing_advisory"
-        ]
-        if (commonlib.ocpReleaseState[version]["release"]) {
-            cmd << "--auto-sign"
-        }
-        for (String release_arch : commonlib.ocpReleaseState[version]['release']) {
-            cmd << "--arch=$release_arch"
-        }
-        for (String pre_release_arch : commonlib.ocpReleaseState[version]['pre-release']) {
-            cmd << "--arch=$pre_release_arch"
-        }
-        if (dryRun) {
-            cmd << "--dry-run"
-        }
-        commonlib.shell(cmd.join(' '))
-
-        // Populate plashets_built
-        plashets_built = readYaml(file: "$working_dir/plashets_built.yaml")
-        echo "plashets_built: $plashets_built"
-    }
-
-    return plashets_built
-}
-
 def get_releases_config(String group) {
     // FIXME: This method doesn't handle assembly inheritance.
     def r = httpRequest(

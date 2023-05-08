@@ -3,6 +3,7 @@ from aioredlock import LockError
 
 from pyartcd import constants, exectools, locks, plashets, util
 from pyartcd.cli import cli, pass_runtime, click_coroutine
+from pyartcd.record import parse_record_log
 from pyartcd.release import ocp_release_state
 from pyartcd.runtime import Runtime
 
@@ -167,3 +168,38 @@ async def build_images(runtime: Runtime, version: str, data_path: str, data_gitr
     if scratch:
         cmd.append('--scratch')
     await exectools.cmd_assert_async(cmd)
+
+
+@custom.command('sync-images')
+@click.option('--version', required=True, help='OCP x.y version, e.g. 4.14')
+@click.option('--assembly', required=True, help='The name of an assembly to rebase & build for.')
+@click.option('--data-path', required=False, default=constants.OCP_BUILD_DATA_URL,
+              help='ocp-build-data fork to use (e.g. assembly definition in your own fork)')
+@click.option('--data-gitref', required=False, default='',
+              help='(Optional) Doozer data path git [branch / tag / sha] to use')
+@pass_runtime
+@click_coroutine
+async def sync_images(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str):
+    # Valid only for OCP >= 4
+    if int(version.split('.')[0]) < 4:
+        raise RuntimeError('Invalid sync request: Sync images only applies to 4.x+ builds')
+
+    # Get operators NVRs from Doozer record.log
+    with open(f'{DOOZER_WORKING}/record.log', 'r') as file:
+        record_log = parse_record_log(file)
+    records = record_log.get('build', [])
+    operator_nvrs = []
+    for record in records:
+        if record["has_olm_bundle"] != '1' or record['status'] != '0' or not record['nvrs']:
+            continue
+        operator_nvrs.append(record['nvrs'].split(',')[0])
+    runtime.logger.info('Found operator NVRs: %s', ', '.join(operator_nvrs))
+
+    # Sync images
+    await util.sync_images(
+        version=version,
+        assembly=assembly,
+        operator_nvrs=operator_nvrs,
+        doozer_data_path=data_path,
+        doozer_data_gitref=data_gitref,
+    )

@@ -279,25 +279,35 @@ node {
 
             stage('sync images') {
                 if (params.SCRATCH || (!exclude_images && images.toUpperCase() == "NONE")) { return }  // no point
+                
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
 
-                if (majorVersion >= 4) {
-                    def record_log = buildlib.parse_record_log(doozer_working)
-                    def records = record_log.get('build', [])
-                    def operator_nvrs = []
-                    for (record in records) {
-                        if (record["has_olm_bundle"] != '1' || record['status'] != '0' || !record["nvrs"]) {
-                            continue
+                cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "custom",
+                        "sync-images",
+                        "--version=${version}",
+                        "--assembly=${params.ASSEMBLY}",
+                        "--data-path=${params.DOOZER_DATA_PATH}",
+                        "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                ]
+
+                try {
+                    withCredentials([string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                        withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            sh(script: cmd.join(' '))
                         }
-                        operator_nvrs << record["nvrs"].split(",")[0]
                     }
-                    buildlib.sync_images(
-                        majorVersion,
-                        minorVersion,
-                        "aos-team-art@redhat.com", // "reply to"
-                        params.ASSEMBLY,
-                        operator_nvrs,
-                        params.DOOZER_DATA_PATH,
-                        doozer_data_gitref
+                } catch(err) {
+                    commonlib.email(
+                        replyTo: params.MAIL_LIST_FAILURE,
+                        to: "aos-art-automation+failed-image-sync@redhat.com",
+                        from: "aos-art-automation@redhat.com",
+                        subject: "Problem syncing images after ${currentBuild.displayName}",
+                        body: "Jenkins console: ${commonlib.buildURL('console')}",
                     )
                 }
             }

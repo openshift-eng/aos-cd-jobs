@@ -7,7 +7,7 @@ from typing import Sequence, Optional, Tuple
 
 import yaml
 
-from pyartcd import exectools
+from pyartcd import exectools, constants
 from pyartcd.constants import PLASHET_REMOTE_HOST
 from pyartcd.release import ocp_release_state
 
@@ -99,7 +99,8 @@ def plashet_config_for_major_minor(major, minor):
     }
 
 
-async def build_plashets(stream: str, release: str, assembly: str = 'stream', dry_run: bool = False):
+async def build_plashets(stream: str, release: str, assembly: str = 'stream',
+                         data_path: str = constants.OCP_BUILD_DATA_URL, data_gitref: str = '', dry_run: bool = False):
     """
     Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs
     based on -candidate tags. Based on release state, those repos can be signed
@@ -108,6 +109,8 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream', dr
     :param stream: e.g. 4.14
     :param release: e.g. 202304181947.p?
     :param assembly: e.g. assembly name, defaults to 'stream'
+    :param data_path: ocp-build-data fork to use
+    :param data_gitref: Doozer data path git [branch / tag / sha] to use
     :param dry_run: do not actually run the command, just log it
     """
 
@@ -115,8 +118,11 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream', dr
     revision = release.replace('.p?', '')  # e.g. '202304181947' from '202304181947.p?'
 
     # Load group config
+    group_param = f'--group=openshift-{stream}'
+    if data_gitref:
+        group_param += f'@{data_gitref}'
     rc, stdout, stderr = await exectools.cmd_gather_async(
-        ['doozer', '--working-dir=doozer-working', '-q', f'--group=openshift-{stream}', 'config:read-group']
+        ['doozer', f'--data-path={data_path}', '--working-dir=doozer-working', '-q', group_param, 'config:read-group']
     )
     group_config = yaml.safe_load(stdout.strip())
 
@@ -148,7 +154,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream', dr
         name = f'{timestamp.year}-{timestamp.month:02}/{revision}'
         base_dir = Path(working_dir, f'plashets/{major}.{minor}/{assembly}/{slug}')
         local_path = await build_plashet_from_tags(
-            group=f'openshift-{stream}',
+            group=group_param,
             assembly=assembly,
             base_dir=base_dir,
             name=name,
@@ -159,6 +165,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream', dr
             embargoed_tags=config['embargoed_tags'],
             tag_pvs=((config["tag"], config['product_version']),),
             include_previous_packages=config['include_previous_packages'],
+            data_path=data_path,
             dry_run=dry_run
         )
 
@@ -187,7 +194,8 @@ async def build_plashet_from_tags(group: str, assembly: str, base_dir: os.PathLi
                                   include_embargoed: bool, signing_mode: str, signing_advisory: int,
                                   tag_pvs: Sequence[Tuple[str, str]], embargoed_tags: Optional[Sequence[str]],
                                   include_previous_packages: Optional[Sequence[str]] = None,
-                                  poll_for: int = 0, dry_run: bool = False):
+                                  poll_for: int = 0, data_path: str = constants.OCP_BUILD_DATA_URL,
+                                  dry_run: bool = False):
     """
     Builds Plashet repo with "from-tags"
     """
@@ -197,6 +205,7 @@ async def build_plashet_from_tags(group: str, assembly: str, base_dir: os.PathLi
         shutil.rmtree(repo_path)
     cmd = [
         "doozer",
+        f'--data-path={data_path}',
         "--working-dir", "doozer-working",
         "--group", group,
         "--assembly", assembly,

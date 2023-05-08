@@ -9,9 +9,6 @@ from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
 
-# Doozer working dir
-DOOZER_WORKING = 'doozer_working'
-
 
 @cli.command("ocp4:build-compose",
              help="If any RPMs have changed, create multiple yum repos (one for each arch) based on -candidate tags"

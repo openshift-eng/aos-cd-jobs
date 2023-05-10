@@ -19,3 +19,11 @@ NIGHTLY_PAYLOAD_REPOS = {
 }
 
 OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'
+
+# This is the URL that buildvm itself uses to resolve Jenkins
+# It shall be used by jenkinsapi to start new builds
+JENKINS_SERVER_URL = 'https://buildvm.hosts.prod.psi.bos.redhat.com:8443'
+
+# This is the URL that humans behind a VPN use to browse Jenkins UI
+# It shall be used to print clickable logs that redirect the user to the triggered job page
+JENKINS_UI_URL = 'https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888'

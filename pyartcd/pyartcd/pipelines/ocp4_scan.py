@@ -4,9 +4,9 @@ import yaml
 import click
 
 from pyartcd import exectools, util
+from pyartcd import jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
-from pyartcd.jenkins import trigger_ocp4, trigger_rhcos, trigger_build_sync
 
 
 class Ocp4ScanPipeline:
@@ -33,10 +33,6 @@ class Ocp4ScanPipeline:
         if not os.getenv('KUBECONFIG'):
             raise RuntimeError('Environment variable KUBECONFIG must be defined')
 
-        # Jenkins service account and token must be defined to trigger jobs remotely
-        if not os.getenv('JENKINS_SERVICE_ACCOUNT') or not os.getenv('JENKINS_SERVICE_ACCOUNT_TOKEN'):
-            raise RuntimeError('JENKINS_SERVICE_ACCOUNT and JENKINS_SERVICE_ACCOUNT_TOKEN env vars must be defined')
-
         # Check for RHCOS changes and inconsistencies
         # Running these two commands sequentially (instead of using asyncio.gather) to avoid file system conflicts
         await self._get_changes()
@@ -52,7 +48,7 @@ class Ocp4ScanPipeline:
 
             # Trigger ocp4
             self.logger.info('Triggering a %s ocp4 build', self.version)
-            await trigger_ocp4(self.version)
+            jenkins.start_ocp4(build_version=self.version, blocking=False)
 
         elif self.rhcos_inconsistent:
             self.logger.info('Detected inconsistent RHCOS RPMs:\n%s', self.inconsistent_rhcos_rpms)
@@ -64,7 +60,7 @@ class Ocp4ScanPipeline:
             # Inconsistency probably means partial failure and we would like to retry.
             #  but don't kick off more if already in progress.
             self.logger.info('Triggering a %s RHCOS build for consistency', self.version)
-            await trigger_rhcos(self.version, True)
+            jenkins.start_rhcos(build_version=self.version, new_build=True, blocking=False)
 
         elif self.rhcos_changed:
             self.logger.info('Detected at least one updated RHCOS')
@@ -74,7 +70,7 @@ class Ocp4ScanPipeline:
                 return
 
             self.logger.info('Triggering a %s build-sync', self.version)
-            await trigger_build_sync(self.version)
+            jenkins.start_build_sync(build_version=self.version, blocking=False)
 
     async def _get_changes(self):
         """

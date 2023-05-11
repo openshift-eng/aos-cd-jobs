@@ -365,6 +365,7 @@ class PromotePipeline:
         client_type = "ocp"
         if (assembly_type == assembly.AssemblyTypes.CANDIDATE and not self.assembly.startswith('rc.')) or assembly_type in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
             client_type = "ocp-dev-preview"
+        data['client_type'] = client_type
         # mirror binaries
         if not self.skip_mirror_binaries:
             # make sure login to quay
@@ -376,10 +377,9 @@ class PromotePipeline:
                     logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_RELEASE_REPO_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
                 else:
                     if arch != "multi":
-                        await self.publish_client(self._working_dir, f"{release_name}-{arch}", release_name, arch, client_type)
+                        await self.publish_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], arch, client_type)
                     else:
-                        await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", release_name, client_type)
-
+                        await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], client_type)
         json.dump(data, sys.stdout)
 
     @staticmethod
@@ -446,17 +446,20 @@ class PromotePipeline:
             if image_stat == 0:  # image exist
                 # extract image to workdir, if failed it will raise error in function
                 extract_release_binary(oc_mirror_pullspec, [f"--path=/usr/bin/oc-mirror:{CLIENT_MIRROR_DIR}"])
+                current_path = os.getcwd()
+                os.chdir(CLIENT_MIRROR_DIR)
                 # archive file
-                with tarfile.open(f"{CLIENT_MIRROR_DIR}/oc-mirror.tar.gz", "w:gz") as tar:
-                    tar.add(f"{CLIENT_MIRROR_DIR}/oc-mirror")
+                with tarfile.open(f"oc-mirror.tar.gz", "w:gz") as tar:
+                    tar.add(f"oc-mirror")
                 # calc shasum
-                with open(f"{CLIENT_MIRROR_DIR}/oc-mirror.tar.gz", 'rb') as f:
+                with open(f"oc-mirror.tar.gz", 'rb') as f:
                     shasum = hashlib.sha256(f.read()).hexdigest()
                 # write shasum to sha256sum.txt
-                with open(f"{CLIENT_MIRROR_DIR}/sha256sum.txt", 'a') as f:
+                with open(f"sha256sum.txt", 'a') as f:
                     f.write(f"{shasum}  oc-mirror.tar.gz\n")
                 # remove oc-mirror
-                os.remove(f"{CLIENT_MIRROR_DIR}/oc-mirror")
+                os.remove(f"oc-mirror")
+                os.chdir(current_path)
 
         # create symlink for clients
         self.create_symlink(CLIENT_MIRROR_DIR, False, False)
@@ -470,7 +473,7 @@ class PromotePipeline:
         util.log_file_content(f"{CLIENT_MIRROR_DIR}/sha256sum.txt")  # print sha256sum.txt
 
         # Publish the clients to our S3 bucket.
-        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/{arch} s3://art-srv-enterprise/pub/openshift-v4/{arch}", stdout=sys.stderr)
 
     async def generate_changelog(self, release_name, client_mirror_dir, minor):
         try:
@@ -572,10 +575,10 @@ class PromotePipeline:
                 with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
                     f.write(f"{shasum}  {dir}/sha256sum.txt\n")
         os.chdir(current_path) # return to parent path
-        util.log_dir_tree(current_path)
+        util.log_dir_tree(RELEASE_MIRROR_DIR)
 
         # Publish the clients to our S3 bucket.
-        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/ s3://art-srv-enterprise/pub/openshift-v4/", stdout=sys.stderr)
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/multi s3://art-srv-enterprise/pub/openshift-v4/multi", stdout=sys.stderr)
 
     def create_symlink(self, path_to_dir, log_tree, log_shasum):
         # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .

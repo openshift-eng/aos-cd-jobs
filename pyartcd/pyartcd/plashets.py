@@ -118,11 +118,12 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     revision = release.replace('.p?', '')  # e.g. '202304181947' from '202304181947.p?'
 
     # Load group config
-    group_param = f'--group=openshift-{stream}'
+    group_param = f'openshift-{stream}'
     if data_gitref:
         group_param += f'@{data_gitref}'
     rc, stdout, stderr = await exectools.cmd_gather_async(
-        ['doozer', f'--data-path={data_path}', '--working-dir=doozer-working', '-q', group_param, 'config:read-group']
+        ['doozer', f'--data-path={data_path}', '--working-dir=doozer-working',
+         '-q', f'--group={group_param}', 'config:read-group']
     )
     group_config = yaml.safe_load(stdout.strip())
 
@@ -154,7 +155,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
         name = f'{timestamp.year}-{timestamp.month:02}/{revision}'
         base_dir = Path(working_dir, f'plashets/{major}.{minor}/{assembly}/{slug}')
         local_path = await build_plashet_from_tags(
-            group=f'openshift-{stream}',
+            group_param=group_param,
             assembly=assembly,
             base_dir=base_dir,
             name=name,
@@ -190,7 +191,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
         logger.info('Built plashets dumped to %s', os.path.abspath(outfile.name))
 
 
-async def build_plashet_from_tags(group: str, assembly: str, base_dir: os.PathLike, name: str, arches: Sequence[str],
+async def build_plashet_from_tags(group_param: str, assembly: str, base_dir: os.PathLike, name: str, arches: Sequence[str],
                                   include_embargoed: bool, signing_mode: str, signing_advisory: int,
                                   tag_pvs: Sequence[Tuple[str, str]], embargoed_tags: Optional[Sequence[str]],
                                   include_previous_packages: Optional[Sequence[str]] = None,
@@ -207,7 +208,7 @@ async def build_plashet_from_tags(group: str, assembly: str, base_dir: os.PathLi
         "doozer",
         f'--data-path={data_path}',
         "--working-dir", "doozer-working",
-        "--group", group,
+        "--group", group_param,
         "--assembly", assembly,
         "config:plashet",
         "--base-dir", str(base_dir),

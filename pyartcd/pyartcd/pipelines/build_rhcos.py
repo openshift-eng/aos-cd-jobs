@@ -45,7 +45,7 @@ class BuildRhcosPipeline:
         self.ignore_running = ignore_running
         self.version = version
         self.api_token = None
-        self._stream = None # rhcos stream the version maps to
+        self._stream = None  # rhcos stream the version maps to
         self.dry_run = self.runtime.dry_run
 
         self.request_session = requests.Session()

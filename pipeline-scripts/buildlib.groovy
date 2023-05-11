@@ -1320,7 +1320,6 @@ def get_owners(doozerOpts, images, rpms=[]) {
 
 def build_plashets(doozerOpts, version, release, dryRun = false) {
     def auto_signing_advisory = Integer.parseInt(doozer("${doozerOpts} -q config:read-group --default=0 signing_advisory", [capture: true]).trim())
-    def group_repos = readJSON text: doozer("${doozerOpts} -q config:read-group --default=None repos", [capture: true]).trim()
     def plashets_built = [:]
 
     def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)

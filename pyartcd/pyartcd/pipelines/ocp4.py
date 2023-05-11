@@ -21,22 +21,21 @@ async def is_compose_build_permitted(runtime: Runtime, stream_version: str, buil
 
     result = False
     automation_state: str = await util.get_freeze_automation(stream_version)
-    runtime.logger.info('Automation state for %s: %s', stream_version, automation_state)
+    runtime.logger.info('Automation freeze for %s: %s', stream_version, automation_state)
 
-    if automation_state in ['scheduled', 'yes', 'True']:
+    if automation_state not in ['scheduled', 'yes', 'True']:
         result = True
 
-    elif automation_state in ['scheduled', 'weekdays'] and build_rpms:
+    elif automation_state == 'scheduled' and build_rpms:
         result = True
 
         # Send a Slack notification in case compose build ran during automation freeze
-        if automation_state == 'scheduled':
-            slack_client = runtime.new_slack_client()
-            slack_client.bind_channel(f'openshift-{stream_version}')
-            await slack_client.say(
-                "*:alert: ocp4 build compose ran during automation freeze*\n"
-                "There were RPMs in the build plan that forced build compose during automation freeze."
-            )
+        slack_client = runtime.new_slack_client()
+        slack_client.bind_channel(f'openshift-{stream_version}')
+        await slack_client.say(
+            "*:alert: ocp4 build compose running during automation freeze*\n"
+            "There were RPMs in the build plan that forced build compose during automation freeze."
+        )
 
     return result
 

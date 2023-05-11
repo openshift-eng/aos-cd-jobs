@@ -162,7 +162,7 @@ node {
                         sh(script: cmd.join(' '), returnStdout: true)
                     }
 
-                    def plashets_built_yaml = "${env.WORKSPACE}/artcd_working/plashet-working/plashets_built.yaml"
+                    def plashets_built_yaml = "${env.WORKSPACE}/plashet-working/plashets_built.yaml"
                     def exists = fileExists plashets_built_yaml
 
                     if (exists) {

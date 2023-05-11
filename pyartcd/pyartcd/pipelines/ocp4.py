@@ -64,7 +64,7 @@ async def build_compose(runtime: Runtime, version: str, assembly: str, build_rpm
     # Build compose
     try:
         async with await lock_manager.lock(lock_name):
-            if await is_compose_build_permitted(stream_version, build_rpms):
+            if await is_compose_build_permitted(runtime, stream_version, build_rpms):
                 mirror_plashet = await plashets.build_plashets(
                     stream_version, release_version, assembly=assembly, dry_run=runtime.dry_run)
                 click.echo(mirror_plashet)

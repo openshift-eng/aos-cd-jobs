@@ -162,14 +162,19 @@ node {
                         sh(script: cmd.join(' '), returnStdout: true)
                     }
 
-                    plashets_built = readYaml(file: "${env.WORKSPACE}/plashet-working/plashets_built.yaml")
-                    mirrorPlashet = plashets_built['rhel-server-ose-rpms']
-                    echo "mirrorPlashet: ${mirrorPlashet}"
+                    def plashets_built_yaml = "${env.WORKSPACE}/artcd_working/plashet-working/plashets_built.yaml"
+                    def exists = fileExists plashets_built_yaml
 
-                    if(mirrorPlashet) {
-                        // public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
-                        rpmMirror.plashetDirName = mirrorPlashet.plashetDirName
-                        rpmMirror.localPlashetPath = mirrorPlashet.localPlashetPath
+                    if (exists) {
+                        plashets_built = readYaml(file: plashets_built_yaml)
+                        mirrorPlashet = plashets_built['rhel-server-ose-rpms']
+                        echo "mirrorPlashet: ${mirrorPlashet}"
+
+                        if(mirrorPlashet) {
+                            // public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
+                            rpmMirror.plashetDirName = mirrorPlashet.plashetDirName
+                            rpmMirror.localPlashetPath = mirrorPlashet.localPlashetPath
+                        }
                     }
                 }
 

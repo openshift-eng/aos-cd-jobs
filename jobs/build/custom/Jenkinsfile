@@ -256,7 +256,9 @@ node {
                 base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
                 command = "${base_command} images:build --push-to-defaults ${params.SCRATCH ? '--scratch' : ''}"
                 try {
-                    buildlib.doozer command
+                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
+                        buildlib.doozer command
+                    }
                 } catch (err) {
                     def record_log = buildlib.parse_record_log(doozer_working)
                     def failed_map = buildlib.get_failed_builds(record_log, true)

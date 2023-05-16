@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 from jenkinsapi.jenkins import Jenkins
 from jenkinsapi.queue import QueueItem
@@ -21,22 +21,28 @@ class Jobs(Enum):
     RHCOS = 'aos-cd-builds/build%2Frhcos'
 
 
-logger.info('Initializing Jenkins client')
+jenkins: Optional[Jenkins] = None
 
-requester = CrumbRequester(
-    username=os.environ['JENKINS_SERVICE_ACCOUNT'],
-    password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'],
-    baseurl=constants.JENKINS_SERVER_URL
-)
 
-jenkins = Jenkins(
-    constants.JENKINS_SERVER_URL,
-    username=os.environ['JENKINS_SERVICE_ACCOUNT'],
-    password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'],
-    requester=requester,
-    lazy=True
-)
-logger.info('Connected to Jenkins %s', jenkins.version)
+def init_jenkins():
+    global jenkins
+    if jenkins:
+        return
+    logger.info('Initializing Jenkins client..')
+    requester = CrumbRequester(
+        username=os.environ['JENKINS_SERVICE_ACCOUNT'],
+        password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'],
+        baseurl=constants.JENKINS_SERVER_URL
+    )
+
+    jenkins = Jenkins(
+        constants.JENKINS_SERVER_URL,
+        username=os.environ['JENKINS_SERVICE_ACCOUNT'],
+        password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'],
+        requester=requester,
+        lazy=True
+    )
+    logger.info('Connected to Jenkins %s', jenkins.version)
 
 
 def block_until_building(queue_item: QueueItem, delay: int = 5) -> str:
@@ -73,6 +79,7 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
     Returns the build result if blocking=True, None otherwise
     """
 
+    init_jenkins()
     logger.info('Starting new build for job: %s', job_name)
     job = jenkins.get_job(job_name)
     queue_item = job.invoke(build_params=params)

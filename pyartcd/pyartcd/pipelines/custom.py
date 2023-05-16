@@ -39,10 +39,10 @@ async def build_rpms(runtime: Runtime, version: str, rpms: str, data_path: str, 
            ]
 
     if rpms:
-        runtime.logger.info(f'Building RPMs: %s', rpms)
+        runtime.logger.info('Building RPMs: %s', rpms)
         cmd.append(f'--rpms={rpms}')
     else:
-        runtime.logger.info(f'Building all RPMs')
+        runtime.logger.info('Building all RPMs')
 
     cmd.extend([
         'rpms:rebase-and-build',

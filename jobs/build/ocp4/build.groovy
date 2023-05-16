@@ -156,7 +156,7 @@ def planBuilds() {
 
     // otherwise we need to scan sources.
     echo "Building only where source has changed."
-    currentBuild.description = "Building sources that have changed.<br/>"
+    currentBuild.description += "Building sources that have changed.<br/>"
 
     def changed = [:]
     try {

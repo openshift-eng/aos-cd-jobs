@@ -63,11 +63,11 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
             ]
         )
 
+        commonlib.checkMock()
         buildlib.registry_quay_dev_login()
 
         stage("Initialize") {
             currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
-            currentBuild.description = ""
 
             // this lock ensures we are not scanning during an active build
             activityLockName = "github-activity-lock-${params.VERSION}"
@@ -106,7 +106,7 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                                 builderEmail = env.BUILD_USER_EMAIL
                             }
 
-                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}"]) {
+                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                                 try {
                                     echo "Will run ${cmd}"
                                     sh(script: cmd.join(' '), returnStdout: true)

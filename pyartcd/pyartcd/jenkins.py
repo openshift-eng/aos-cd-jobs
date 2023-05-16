@@ -94,7 +94,7 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
         job=job
     )
     description = f'Started by upstream project <b>{job_name}</b> ' \
-                  f'build number <a href="{upstream_build_url}">{upstream_build_number}</a>'
+                  f'build number <a href="{upstream_build_url}">{upstream_build_number}</a><br><br>'
     build.job.jenkins.requester.post_and_confirm_status(
         f'{build.baseurl}/submitDescription',
         params={

@@ -68,7 +68,6 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
 
         stage("Initialize") {
             currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
-            currentBuild.description = ""
 
             // this lock ensures we are not scanning during an active build
             activityLockName = "github-activity-lock-${params.VERSION}"

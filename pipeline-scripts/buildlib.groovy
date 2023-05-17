@@ -627,43 +627,6 @@ def param(type, name, value) {
     return [$class: type + 'ParameterValue', name: name, value: value]
 }
 
-/**
- * Trigger sweep job.
- *
- * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
- * @param Boolean sweepBuilds: Enable/disable build sweeping
- * @param Boolean attachBugs: Enable/disable bug sweeping
- */
-def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs = false) {
-    def dry_run = true
-    if (params.DRY_RUN != null) {
-        dry_run = params.DRY_RUN
-    }
-    def sweepJob = build(
-        job: 'build%2Fsweep',
-        propagate: false,
-        parameters: [
-            string(name: 'BUILD_VERSION', value: buildVersion),
-            booleanParam(name: 'SWEEP_BUILDS', value: sweepBuilds),
-            booleanParam(name: 'ATTACH_BUGS', value: attachBugs),
-            booleanParam(name: 'DRY_RUN', value: dry_run),
-        ]
-    )
-    if (sweepJob.result != 'SUCCESS') {
-        currentBuild.result = 'UNSTABLE'
-        if (dry_run) {
-            return
-        }
-        commonlib.email(
-            replyTo: 'aos-team-art@redhat.com',
-            to: 'aos-art-automation+failed-sweep@redhat.com',
-            from: 'aos-art-automation@redhat.com',
-            subject: "Problem sweeping after ${currentBuild.displayName}",
-            body: "Jenkins console: ${commonlib.buildURL('console')}",
-        )
-    }
-}
-
 def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_data_path, doozer_data_gitref = "") {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image

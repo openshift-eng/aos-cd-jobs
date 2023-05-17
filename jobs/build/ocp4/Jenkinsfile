@@ -15,7 +15,7 @@ node {
         builds and rebuilds the affected components.  Creates new plashets if
         the automation is not frozen or if there are RPMs that are built in this run,
         and runs other jobs to sync builds to nightlies, create
-        operator metadata, and sweep bugs and builds into advisories.
+        operator metadata, and sets MODIFIED bugs to ON_QA.
 
         May also build unconditionally or with limited components.
     """)
@@ -243,12 +243,44 @@ node {
                     }
                 }
             }
+
             stage("sweep") {
                 if (buildlib.allImagebuildfailed) { return }
-                buildlib.sweep(params.BUILD_VERSION)
+
+                cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+                cmd += [
+                    "ocp4:sweep",
+                    "--version=${version.stream}"
+                ]
+
+                try {
+                    sh(script: cmd.join(' '), returnStdout: true)
+                } catch (err) {
+                    currentBuild.result = 'UNSTABLE'
+                    if (dry_run) {
+                        return
+                    }
+                    commonlib.email(
+                        replyTo: 'aos-team-art@redhat.com',
+                        to: 'aos-art-automation+failed-sweep@redhat.com',
+                        from: 'aos-art-automation@redhat.com',
+                        subject: "Problem sweeping after ${currentBuild.displayName}",
+                        body: "Jenkins console: ${commonlib.buildURL('console')}",
+                    )
+                }
             }
         }
+
         stage("report success") { joblib.stageReportSuccess() }
+
     } catch (err) {
 
         if (!buildlib.isBuildPermitted(doozerOpts)) {

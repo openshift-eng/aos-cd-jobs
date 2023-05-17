@@ -3,7 +3,7 @@ import traceback
 import click
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets
+from pyartcd import locks, util, plashets, exectools
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
@@ -142,3 +142,19 @@ async def mirror_rpms(runtime: Runtime, version: str, assembly: str, local_plash
 
     finally:
         await lock_manager.destroy()
+
+
+@cli.command("ocp4:sweep", help="Move bugs that are in state `MODIFIED` to `ON_QA`.")
+@click.option('--version', required=True, help='Full OCP version, e.g. 4.14-202304181947.p?')
+@pass_runtime
+@click_coroutine
+async def sweep(runtime: Runtime, version: str):
+    cmd = [
+        'elliott',
+        f'--group=openshift-{version}',
+        "find-bugs:qe"
+    ]
+    if runtime.dry_run:
+        cmd.append('--dry-run')
+
+    await exectools.cmd_assert_async(cmd)

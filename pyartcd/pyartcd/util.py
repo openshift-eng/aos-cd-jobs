@@ -1,16 +1,18 @@
+import asyncio
+import logging
 import os
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
-import logging
 
 import aiofiles
 import yaml
+from doozerlib import assembly, model, util as doozerutil
 from errata_tool import ErrataConnector
 
-from doozerlib import assembly, model, util as doozerutil
-from pyartcd import exectools, constants
+from pyartcd import exectools, constants, jenkins
+from pyartcd.runtime import Runtime
 
 logger = logging.getLogger(__name__)
 
@@ -267,3 +269,33 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
 
     # Fallback to default
     return True
+
+
+async def sync_images(version: str, assembly: str, operator_nvrs: list,
+                      doozer_data_path: str = constants.OCP_BUILD_DATA_URL, doozer_data_gitref: str = ''):
+    """
+    Run an image sync after a build. This will mirror content from internal registries to quay.
+    After a successful sync an image stream is updated with the new tags and pullspecs.
+    Also update the app registry with operator manifests.
+    If operator_nvrs is given, will only build manifests for specified operator NVRs.
+    If builds don't succeed, email and set result to UNSTABLE.
+    """
+
+    if assembly == 'test':
+        logger.warning('Skipping build-sync job for test assembly')
+    else:
+        jenkins.start_build_sync(
+            build_version=version,
+            assembly=assembly,
+            doozer_data_path=doozer_data_path,
+            doozer_data_gitref=doozer_data_gitref
+        )
+
+    if operator_nvrs:
+        jenkins.start_olm_bundle(
+            build_version=version,
+            assembly=assembly,
+            operator_nvrs=operator_nvrs,
+            doozer_data_path=doozer_data_path,
+            doozer_data_gitref=doozer_data_gitref
+        )

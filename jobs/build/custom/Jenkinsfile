@@ -219,81 +219,95 @@ node {
                 }
             }
 
-            // determine which images, if any, should be built, and how to tell doozer that
-            include_exclude = ""
-            any_images_to_build = true
-            if (exclude_images) {
-                include_exclude = "-x ${exclude_images}"
-                currentBuild.displayName += " [images]"
-            } else if (images.toUpperCase() == "NONE") {
-                any_images_to_build = false
-            } else if (images) {
-                include_exclude = "-i ${images}"
-                currentBuild.displayName += images.contains(",") ? " [images]" : " [${images} image]"
-            }
-
-            stage("update dist-git") {
-                if (!any_images_to_build) { return }
-                if (params.IMAGE_MODE == "nothing") { return }
-
-                currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
-                command = doozerOpts
-                command += "--latest-parent-version ${include_exclude} "
-                command += "images:${params.IMAGE_MODE} --version v${version} --release '${release}' "
-                command += "--repo-type ${repo_type} "
-                command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
-                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
-                    if (params.IGNORE_LOCKS) {
-                         buildlib.doozer command
-                    } else {
-                        lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
-                    }
+            stage('build images') {
+                if (exclude_images) {
+                    currentBuild.displayName += " [images]"
+                    currentBuild.description += "building all images except: ${exclude_images}"
                 }
-            }
+                else if (images == "") {
+                    currentBuild.displayName += " [images]"
+                    currentBuild.description += "building all images"
+                }
+                else if (images != "NONE") {
+                    currentBuild.displayName += images.contains(",") ? " [images]" : " [${images} image]"
+                    currentBuild.description += "building image(s): ${images}"
+                }
 
-            stage("build images") {
-                if (!any_images_to_build) { return }
-                base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                command = "${base_command} images:build --push-to-defaults ${params.SCRATCH ? '--scratch' : ''}"
-                try {
-                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-                        buildlib.doozer command
-                    }
-                } catch (err) {
-                    def record_log = buildlib.parse_record_log(doozer_working)
-                    def failed_map = buildlib.get_failed_builds(record_log, true)
-                    if (failed_map) {
-                        def r = buildlib.determine_build_failure_ratio(record_log)
-                        if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
-                            echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
-                        } else {
-                            buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "custom",
+                        "build-images",
+                        "--version=${version}-${release}",
+                ]
+                if (params.DOOZER_DATA_PATH) {
+                    cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                }
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
+                cmd << "--images=${images}"
+                if (exclude_images) {
+                    cmd << "--exclude=${exclude_images}"
+                }
+                cmd << "--image-mode=${params.IMAGE_MODE}"
+                if (params.SCRATCH) {
+                    cmd << "--scratch"
+                }
+
+                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                    try {
+                        params.IGNORE_LOCKS ?  sh(script: cmd.join(' ')) : lock("github-activity-lock-${params.BUILD_VERSION}") { sh(script: cmd.join(' ')) }
+                    } catch (err) {
+                        def record_log = buildlib.parse_record_log(doozer_working)
+                        def failed_map = buildlib.get_failed_builds(record_log, true)
+                        if (failed_map) {
+                            def r = buildlib.determine_build_failure_ratio(record_log)
+                            if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
+                                echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+                            } else {
+                                buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                            }
                         }
+                        throw err  // build is considered failed if anything failed
                     }
-                    throw err  // build is considered failed if anything failed
                 }
             }
 
             stage('sync images') {
-                if (params.SCRATCH || !any_images_to_build) { return }  // no point
-                if (majorVersion >= 4) {
-                    def record_log = buildlib.parse_record_log(doozer_working)
-                    def records = record_log.get('build', [])
-                    def operator_nvrs = []
-                    for (record in records) {
-                        if (record["has_olm_bundle"] != '1' || record['status'] != '0' || !record["nvrs"]) {
-                            continue
+                if (params.SCRATCH || (!exclude_images && images.toUpperCase() == "NONE")) { return }  // no point
+                
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+
+                cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "custom",
+                        "sync-images",
+                        "--version=${version}",
+                        "--assembly=${params.ASSEMBLY}",
+                        "--data-path=${params.DOOZER_DATA_PATH}",
+                        "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                ]
+
+                try {
+                    withCredentials([string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                        withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            sh(script: cmd.join(' '))
                         }
-                        operator_nvrs << record["nvrs"].split(",")[0]
                     }
-                    buildlib.sync_images(
-                        majorVersion,
-                        minorVersion,
-                        "aos-team-art@redhat.com", // "reply to"
-                        params.ASSEMBLY,
-                        operator_nvrs,
-                        params.DOOZER_DATA_PATH,
-                        doozer_data_gitref
+                } catch(err) {
+                    commonlib.email(
+                        replyTo: params.MAIL_LIST_FAILURE,
+                        to: "aos-art-automation+failed-image-sync@redhat.com",
+                        from: "aos-art-automation@redhat.com",
+                        subject: "Problem syncing images after ${currentBuild.displayName}",
+                        body: "Jenkins console: ${commonlib.buildURL('console')}",
                     )
                 }
             }

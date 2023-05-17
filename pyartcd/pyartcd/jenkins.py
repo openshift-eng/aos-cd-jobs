@@ -1,3 +1,4 @@
+
 import logging
 import os
 import time
@@ -19,6 +20,7 @@ class Jobs(Enum):
     BUILD_MICROSHIFT = 'aos-cd-builds/build%2Fbuild-microshift'
     OCP4 = 'aos-cd-builds/build%2Focp4'
     RHCOS = 'aos-cd-builds/build%2Frhcos'
+    OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
 
 
 jenkins: Optional[Jenkins] = None
@@ -137,10 +139,16 @@ def start_rhcos(build_version: str, new_build: bool, blocking: bool = False) -> 
     )
 
 
-def start_build_sync(build_version: str, blocking: bool = False) -> Optional[str]:
+def start_build_sync(build_version: str, assembly: str, doozer_data_path: str,
+                     doozer_data_gitref: str, blocking: bool = False) -> Optional[str]:
     return start_build(
         job_name=Jobs.BUILD_SYNC.value,
-        params={'BUILD_VERSION': build_version},
+        params={
+            'BUILD_VERSION': build_version,
+            'ASSEMBLY': assembly,
+            'DOOZER_DATA_PATH': doozer_data_path,
+            'DOOZER_DATA_GITREF': doozer_data_gitref
+        },
         blocking=blocking
     )
 
@@ -152,6 +160,26 @@ def start_build_microshift(build_version: str, assembly: str, dry_run: bool, blo
             'BUILD_VERSION': build_version,
             'ASSEMBLY': assembly,
             'DRY_RUN': dry_run
+        },
+        blocking=blocking
+    )
+
+
+def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
+                     doozer_data_path: str = constants.OCP_BUILD_DATA_URL,
+                     doozer_data_gitref: str = '', blocking: bool = False) -> Optional[str]:
+    if not operator_nvrs:
+        logger.warning('Empty operator NVR received: skipping olm-bundle')
+        return
+
+    return start_build(
+        job_name=Jobs.OLM_BUNDLE.value,
+        params={
+            'BUILD_VERSION': build_version,
+            'ASSEMBLY': assembly,
+            'DOOZER_DATA_PATH': doozer_data_path,
+            'DOOZER_DATA_GITREF': doozer_data_gitref,
+            'OPERATOR_NVRS': ','.join(operator_nvrs)
         },
         blocking=blocking
     )

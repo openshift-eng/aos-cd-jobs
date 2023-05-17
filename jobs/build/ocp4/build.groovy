@@ -130,7 +130,7 @@ def displayTagFor(commaList, kind, isExcluded=false){
  */
 def planBuilds() {
     if (buildPlan.forceBuild) {
-        currentBuild.description = "Force building (whether source changed or not).<br/>"
+        currentBuild.description += "Force building (whether source changed or not).<br/>"
         currentBuild.description +=
             (!buildPlan.buildRpms) ? "RPMs: not building.<br/>" :
             (buildPlan.rpmsIncluded) ? "RPMs: building ${buildPlan.rpmsIncluded}.<br/>" :

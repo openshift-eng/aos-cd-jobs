@@ -119,7 +119,10 @@ node {
 
     commonlib.checkMock()
 
-    currentBuild.description = ""
+    if (currentBuild.description == null) {
+        currentBuild.description = ""
+    }
+
     try {
 
         sshagent(["openshift-bot"]) {

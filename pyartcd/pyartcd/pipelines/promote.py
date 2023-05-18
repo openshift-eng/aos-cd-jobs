@@ -26,7 +26,7 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
 from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary, extract_release_client_tools, get_release_image_info_from_pullspec
-from pyartcd.jenkins import trigger_build_microshift
+from pyartcd.jenkins import jenkins, trigger_build_microshift
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 from semver import VersionInfo
@@ -681,7 +681,7 @@ class PromotePipeline:
 
         if not util.is_rpm_pinned(releases_config, self.assembly, 'microshift'):
             self._logger.info("Microshift is not pinned in the assembly config. Starting build...")
-            await trigger_build_microshift(f'{major}.{minor}', self.assembly, self.runtime.dry_run)
+            jenkins.start_build_microshift(f'{major}.{minor}', self.assembly, self.runtime.dry_run)
         else:
             self._logger.info("Microshift is pinned in the assembly config. Skipping build. If a rebuild is required, please manually run build-microshift job.")
 

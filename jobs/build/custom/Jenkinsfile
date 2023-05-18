@@ -126,18 +126,17 @@ node {
     def doozer_working = "${env.WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
 
-    def doozer_data_path = params.DOOZER_DATA_PATH
     def (majorVersion, minorVersion) = commonlib.extractMajorMinorVersionNumbers(params.BUILD_VERSION)
     def groupParam = "openshift-${params.BUILD_VERSION}"
     def doozer_data_gitref = params.DOOZER_DATA_GITREF
     if (doozer_data_gitref) {
         groupParam += "@${params.DOOZER_DATA_GITREF}"
     }
-    def doozerOpts = "--working-dir ${doozer_working} --data-path ${doozer_data_path} --group '${groupParam}' "
+    def doozerOpts = "--working-dir ${doozer_working} --data-path ${params.DOOZER_DATA_PATH} --group '${groupParam}' "
     def version = params.BUILD_VERSION
     def release = "?"
     if (params.IMAGE_MODE != "nothing") {
-        version = buildlib.determineBuildVersion(params.BUILD_VERSION, buildlib.getGroupBranch(doozerOpts), params.VERSION)
+        version = params.BUILD_VERSION.trim()
         release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION)
     }
     // If any arch is ready for GA, use signed repos for all (plashets will sign everything).
@@ -159,109 +158,156 @@ node {
             currentBuild.description = ""
 
             stage("rpm builds") {
-                if (rpms.toUpperCase() != "NONE") {
-                    currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
-                    currentBuild.description = "building RPM(s): ${rpms}\n"
-                    command = doozerOpts
-                    if (rpms) { command += "-r '${rpms}' " }
-                    command += "rpms:rebase-and-build --version ${version} --release '${release}' ${params.SCRATCH ? '--scratch' : ''} "
-
-                    def buildRpms = { ->
-                        buildlib.doozer command
-                    }
-                    params.IGNORE_LOCKS ?  buildRpms() : lock("github-activity-lock-${params.BUILD_VERSION}") { buildRpms() }
+                if (rpms.toUpperCase() == "NONE") {
+                    return
                 }
+                currentBuild.displayName += rpms.contains(",") ? " [RPMs]" : " [${rpms} RPM]"
+                currentBuild.description = "building RPM(s): ${rpms}\n"
+
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                    "custom",
+                    "build-rpms",
+                    "--version=${version}-${release}"
+                ]
+                if (rpms) {
+                    cmd << "--rpms=${rpms}"
+                }
+                cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
+                if (params.SCRATCH) {
+                    cmd << "--scratch"
+                }
+
+                params.IGNORE_LOCKS ?  sh(script: cmd.join(' ')) : lock("github-activity-lock-${params.BUILD_VERSION}") { sh(script: cmd.join(' ')) }
             }
 
             stage("repo: ose 'building'") {
                 if (params.UPDATE_REPOS || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
-                    lock("update-repo-lock-${params.BUILD_VERSION}") {  // note: respect repo lock regardless of IGNORE_LOCKS
+                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                    def cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "custom",
+                        "update-repos",
+                        "--version=${version}-${release}",
+                        "--assembly=${params.ASSEMBLY}"
+                    ]
+                    if (params.DOOZER_DATA_PATH) {
+                        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                    }
+                    if (params.DOOZER_DATA_GITREF) {
+                        cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                    }
 
-                        buildlib.build_plashets(doozerOpts, version, release)
-                        if ("${majorVersion}" == "4" && buildlib.getAutomationState(doozerOpts) in ["scheduled", "yes", "True"]) {
-                            slacklib.to(params.BUILD_VERSION).say(params.UPDATE_REPOS ?
-                                """ *:alert: custom build repositories update ran during automation freeze*
-                                    UPDATE_REPOS parameter was set to true, forcing a repo update during automation freeze."""
-                                :
-                                """*:alert: custom build repositories ran during automation freeze*
-                                    RPM rebuild(s) in the build plan forced a repo update during automation freeze."""
-                            )
-                        }
+                    withCredentials([
+                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
+                        ]) {
+                        sh(script: cmd.join(' '))
                     }
                 }
             }
 
-            // determine which images, if any, should be built, and how to tell doozer that
-            include_exclude = ""
-            any_images_to_build = true
-            if (exclude_images) {
-                include_exclude = "-x ${exclude_images}"
-                currentBuild.displayName += " [images]"
-            } else if (images.toUpperCase() == "NONE") {
-                any_images_to_build = false
-            } else if (images) {
-                include_exclude = "-i ${images}"
-                currentBuild.displayName += images.contains(",") ? " [images]" : " [${images} image]"
-            }
-
-            stage("update dist-git") {
-                if (!any_images_to_build) { return }
-                if (params.IMAGE_MODE == "nothing") { return }
-
-                currentBuild.description += "building image(s): ${include_exclude ?: 'all'}"
-                command = doozerOpts
-                command += "--latest-parent-version ${include_exclude} "
-                command += "images:${params.IMAGE_MODE} --version v${version} --release '${release}' "
-                command += "--repo-type ${repo_type} "
-                command += "--message 'Updating Dockerfile version and release ${version}-${release}' --push "
-                if (params.IGNORE_LOCKS) {
-                     buildlib.doozer command
-                } else {
-                    lock("github-activity-lock-${params.BUILD_VERSION}") { buildlib.doozer command }
+            stage('build images') {
+                if (exclude_images) {
+                    currentBuild.displayName += " [images]"
+                    currentBuild.description += "building all images except: ${exclude_images}"
                 }
-            }
+                else if (images == "") {
+                    currentBuild.displayName += " [images]"
+                    currentBuild.description += "building all images"
+                }
+                else if (images != "NONE") {
+                    currentBuild.displayName += images.contains(",") ? " [images]" : " [${images} image]"
+                    currentBuild.description += "building image(s): ${images}"
+                }
 
-            stage("build images") {
-                if (!any_images_to_build) { return }
-                base_command = "${doozerOpts} ${include_exclude} --profile ${repo_type}"
-                command = "${base_command} images:build --push-to-defaults ${params.SCRATCH ? '--scratch' : ''}"
-                try {
-                    buildlib.doozer command
-                } catch (err) {
-                    def record_log = buildlib.parse_record_log(doozer_working)
-                    def failed_map = buildlib.get_failed_builds(record_log, true)
-                    if (failed_map) {
-                        def r = buildlib.determine_build_failure_ratio(record_log)
-                        if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
-                            echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
-                        } else {
-                            buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "custom",
+                        "build-images",
+                        "--version=${version}-${release}",
+                ]
+                if (params.DOOZER_DATA_PATH) {
+                    cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                }
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                }
+                cmd << "--images=${images}"
+                if (exclude_images) {
+                    cmd << "--exclude=${exclude_images}"
+                }
+                cmd << "--image-mode=${params.IMAGE_MODE}"
+                if (params.SCRATCH) {
+                    cmd << "--scratch"
+                }
+
+                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                    try {
+                        params.IGNORE_LOCKS ?  sh(script: cmd.join(' ')) : lock("github-activity-lock-${params.BUILD_VERSION}") { sh(script: cmd.join(' ')) }
+                    } catch (err) {
+                        def record_log = buildlib.parse_record_log(doozer_working)
+                        def failed_map = buildlib.get_failed_builds(record_log, true)
+                        if (failed_map) {
+                            def r = buildlib.determine_build_failure_ratio(record_log)
+                            if (r.total > 10 && r.ratio > 0.25 || r.total > 1 && r.failed == r.total) {
+                                echo "${r.failed} of ${r.total} image builds failed; probably not the owners' fault, will not spam"
+                            } else {
+                                buildlib.mail_build_failure_owners(failed_map, "aos-team-art@redhat.com", params.MAIL_LIST_FAILURE)
+                            }
                         }
+                        throw err  // build is considered failed if anything failed
                     }
-                    throw err  // build is considered failed if anything failed
                 }
             }
 
             stage('sync images') {
-                if (params.SCRATCH || !any_images_to_build) { return }  // no point
-                if (majorVersion >= 4) {
-                    def record_log = buildlib.parse_record_log(doozer_working)
-                    def records = record_log.get('build', [])
-                    def operator_nvrs = []
-                    for (record in records) {
-                        if (record["has_olm_bundle"] != '1' || record['status'] != '0' || !record["nvrs"]) {
-                            continue
+                if (params.SCRATCH || (!exclude_images && images.toUpperCase() == "NONE")) { return }  // no point
+                
+                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+
+                cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "custom",
+                        "sync-images",
+                        "--version=${version}",
+                        "--assembly=${params.ASSEMBLY}",
+                        "--data-path=${params.DOOZER_DATA_PATH}",
+                        "--data-gitref=${params.DOOZER_DATA_GITREF}"
+                ]
+
+                try {
+                    withCredentials([string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                        withEnv(["BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            sh(script: cmd.join(' '))
                         }
-                        operator_nvrs << record["nvrs"].split(",")[0]
                     }
-                    buildlib.sync_images(
-                        majorVersion,
-                        minorVersion,
-                        "aos-team-art@redhat.com", // "reply to"
-                        params.ASSEMBLY,
-                        operator_nvrs,
-                        doozer_data_path,
-                        doozer_data_gitref
+                } catch(err) {
+                    commonlib.email(
+                        replyTo: params.MAIL_LIST_FAILURE,
+                        to: "aos-art-automation+failed-image-sync@redhat.com",
+                        from: "aos-art-automation@redhat.com",
+                        subject: "Problem syncing images after ${currentBuild.displayName}",
+                        body: "Jenkins console: ${commonlib.buildURL('console')}",
                     )
                 }
             }

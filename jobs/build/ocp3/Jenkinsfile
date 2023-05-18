@@ -787,7 +787,31 @@ node {
             }
 
             stage("sweep") {
-                buildlib.sweep(params.BUILD_VERSION)
+                cmd = [
+                    "elliott",
+                    "--group=openshift-${params.BUILD_VERSION}",
+                    "find-bugs:qe"
+                ]
+                if (params.DRY_RUN) {
+                    cmd << "--dry-run"
+                }
+
+                echo "Will run ${cmd}"
+                try {
+                    commonlib.shell(script: cmd.join(' '))
+                } catch (err) {
+                    currentBuild.result = 'UNSTABLE'
+
+                    if (!params.DRY_RUN) {
+                        commonlib.email(
+                            replyTo: 'aos-team-art@redhat.com',
+                            to: 'aos-art-automation+failed-sweep@redhat.com',
+                            from: 'aos-art-automation@redhat.com',
+                            subject: "Problem sweeping after ${currentBuild.displayName}",
+                            body: "Jenkins console: ${commonlib.buildURL('console')}",
+                        )
+                    }
+                }
             }
 
             echo "Finished building OCP ${NEW_FULL_VERSION}"

@@ -627,43 +627,6 @@ def param(type, name, value) {
     return [$class: type + 'ParameterValue', name: name, value: value]
 }
 
-/**
- * Trigger sweep job.
- *
- * @param String buildVersion: OCP build version (e.g. 4.2, 4.1, 3.11)
- * @param Boolean sweepBuilds: Enable/disable build sweeping
- * @param Boolean attachBugs: Enable/disable bug sweeping
- */
-def sweep(String buildVersion, Boolean sweepBuilds = false, Boolean attachBugs = false) {
-    def dry_run = true
-    if (params.DRY_RUN != null) {
-        dry_run = params.DRY_RUN
-    }
-    def sweepJob = build(
-        job: 'build%2Fsweep',
-        propagate: false,
-        parameters: [
-            string(name: 'BUILD_VERSION', value: buildVersion),
-            booleanParam(name: 'SWEEP_BUILDS', value: sweepBuilds),
-            booleanParam(name: 'ATTACH_BUGS', value: attachBugs),
-            booleanParam(name: 'DRY_RUN', value: dry_run),
-        ]
-    )
-    if (sweepJob.result != 'SUCCESS') {
-        currentBuild.result = 'UNSTABLE'
-        if (dry_run) {
-            return
-        }
-        commonlib.email(
-            replyTo: 'aos-team-art@redhat.com',
-            to: 'aos-art-automation+failed-sweep@redhat.com',
-            from: 'aos-art-automation@redhat.com',
-            subject: "Problem sweeping after ${currentBuild.displayName}",
-            body: "Jenkins console: ${commonlib.buildURL('console')}",
-        )
-    }
-}
-
 def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_data_path, doozer_data_gitref = "") {
     // Run an image sync after a build. This will mirror content from
     // internal registries to quay. After a successful sync an image
@@ -1218,55 +1181,6 @@ def extractBuildVersion(build) {
     return match ? match[0][1] : "" // first group in the regex
 }
 
-/**
- * Given build parameters, determine the version for this build.
- * @param stream: OCP minor version "X.Y"
- * @param stream: distgit branch "rhaos-X.Y-rhel-[78]"
- * @param versionParam: a version "X.Y.Z", empty to reuse latest version, "+" to increment latest .Z
- * @return the version determined "X.Y.Z"
- */
-def determineBuildVersion(stream, branch, versionParam) {
-    def version = "${stream}.0"  // default
-
-    def streamSegments = stream.tokenize(".").collect { it.toInteger() }
-    def major = streamSegments[0]
-    def minor = streamSegments[1]
-
-    // As of 4.4, let's try 4.x for everything (doozer will add patch version).
-    if (major >=4 && minor >= 4) {
-        echo "Forcing version ${stream} which is convention for this major.minor."
-        return stream
-    }
-
-    def prevBuild = latestOpenshiftRpmBuild(stream, branch)
-    if(versionParam == "+") {
-        // increment previous build version
-        version = extractBuildVersion(prevBuild)
-        if (!version) { error("Could not determine version from last build '${prevBuild}'") }
-
-        def segments = version.tokenize(".").collect { it.toInteger() }
-        segments[-1]++
-        version = segments.join(".")
-        echo("Using version ${version} incremented from latest openshift package ${prevBuild}")
-    } else if(versionParam) {
-        // explicit version given
-        version = commonlib.standardVersion(versionParam, false)
-        echo("Using parameter for build version: ${version}")
-    } else if (prevBuild) {
-        // use version from previous build
-        version = extractBuildVersion(prevBuild)
-        if (!version) { error("Could not determine version from last build '${prevBuild}'") }
-        echo("Using version ${version} from latest openshift package ${prevBuild}")
-    }
-
-    if (! version.startsWith("${stream}.")) {
-        // The version we came up with somehow doesn't match what we expect to build; abort
-        error("Determined a version, '${version}', that does not begin with '${stream}.'")
-    }
-
-    return version
-}
-
 @NonCPS
 String extractAdvisoryId(String elliottOut) {
     def matches = (elliottOut =~ /https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)/)
@@ -1365,53 +1279,6 @@ def get_owners(doozerOpts, images, rpms=[]) {
             """, [capture: true]
         )
     return yamlData
-}
-
-def build_plashets(doozerOpts, version, release, dryRun = false) {
-    def auto_signing_advisory = Integer.parseInt(doozer("${doozerOpts} -q config:read-group --default=0 signing_advisory", [capture: true]).trim())
-    def group_repos = readJSON text: doozer("${doozerOpts} -q config:read-group --default=None repos", [capture: true]).trim()
-    def plashets_built = [:]
-
-    def (major, minor) = commonlib.extractMajorMinorVersionNumbers(version)
-
-    // Create plashet repos on ocp-artifacts
-    if (major >= 4) {
-        def revision = release
-        if (revision.endsWith(".p?"))
-            revision = revision.substring(0, revision.length() - 3)  // remove .p? suffix
-        def working_dir = "${env.WORKSPACE}/plashet-working"
-        cleanWorkdir(working_dir)
-        sh "mkdir -p $working_dir"
-        def assembly = params.ASSEMBLY ?: "stream"
-        def cmd = [
-            "python3",
-            "./hacks/plashet/build-plashet.py",
-            "--working-dir=$working_dir",
-            "--group=openshift-$version",
-            "--assembly=$assembly",
-            "--revision=$revision",
-            "--signing-advisory=$auto_signing_advisory"
-        ]
-        if (commonlib.ocpReleaseState[version]["release"]) {
-            cmd << "--auto-sign"
-        }
-        for (String release_arch : commonlib.ocpReleaseState[version]['release']) {
-            cmd << "--arch=$release_arch"
-        }
-        for (String pre_release_arch : commonlib.ocpReleaseState[version]['pre-release']) {
-            cmd << "--arch=$pre_release_arch"
-        }
-        if (dryRun) {
-            cmd << "--dry-run"
-        }
-        commonlib.shell(cmd.join(' '))
-
-        // Populate plashets_built
-        plashets_built = readYaml(file: "$working_dir/plashets_built.yaml")
-        echo "plashets_built: $plashets_built"
-    }
-
-    return plashets_built
 }
 
 def get_releases_config(String group) {

@@ -45,7 +45,7 @@ class BuildRhcosPipeline:
         self.ignore_running = ignore_running
         self.version = version
         self.api_token = None
-        self._stream = None # rhcos stream the version maps to
+        self._stream = None  # rhcos stream the version maps to
         self.dry_run = self.runtime.dry_run
 
         self.request_session = requests.Session()
@@ -84,12 +84,25 @@ class BuildRhcosPipeline:
 
     def retrieve_auth_token(self) -> str:
         """Retrieve the auth token from the Jenkins service account to use with Jenkins API"""
-        # use the first secret named after the jenkins service account (there can be several)
-        secret = next((s for s in oc.selector('secrets') if s.name().startswith('jenkins-token-')), None)
-        if secret is None:
-            raise Exception("Unable to find Jenkins service account token")
+        # https://github.com/coreos/fedora-coreos-pipeline/blob/main/HACKING.md#triggering-builds-remotely
 
-        return base64.b64decode(secret.model.data.token).decode('utf-8')
+        secret = None
+        jenkins_uid = oc.selector('sa/jenkins').objects()[0].model.metadata.uid
+        for s in oc.selector('secrets'):
+            if s.model.type == "kubernetes.io/service-account-token" and s.model.metadata.annotations["kubernetes.io/service-account.name"] == "jenkins" and s.model.metadata.annotations["kubernetes.io/service-account.uid"] == jenkins_uid:
+                secret_maybe = base64.b64decode(s.model.data.token).decode('utf-8')
+                r = self.request_session.get(
+                    f"{JENKINS_BASE_URL}/me/api/json",
+                    headers={"Authorization": f"Bearer {secret_maybe}"},
+                )
+                if r.status_code == 200:
+                    secret = secret_maybe
+                    break
+
+        if secret is None:
+            raise Exception("Unable to find a valid Jenkins service account token")
+
+        return secret
 
     @staticmethod
     def build_parameters(build: Dict[str, List[Dict]]) -> Dict:
@@ -117,7 +130,7 @@ class BuildRhcosPipeline:
                 if b["result"] is None  # build is still running when it has no status
             )
 
-        return [b for b in builds if b["parameters"].get("STREAM") == self.version]
+        return [b for b in builds if b["parameters"].get("STREAM") == self.stream]
 
     @property
     def stream(self):

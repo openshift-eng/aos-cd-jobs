@@ -514,6 +514,8 @@ class PrepareReleasePipeline:
                 only_payload = True  # OCP 4+ image advisory only contains payload images
             elif impetus == "extras":
                 only_non_payload = True
+        elif impetus.startswith("silentops"):
+            return  # do not sweep into silentops advisories, they are pre-filled
         else:
             raise ValueError("Specified impetus is not supported: %s", impetus)
         cmd = [
@@ -628,15 +630,18 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
         return fields
 
     async def set_advisory_dependencies(self, advisories):
-        blocking_kind = ['image', 'extras']
-        target_kind = ['rpm', 'metadata']
-        expected_blocking = {i for i in [advisories[k] for k in blocking_kind if k in advisories] if i}
-        target_advisories = {i for i in [advisories[k] for k in target_kind if k in advisories] if i}
-        if not target_advisories or not expected_blocking:
-            return
-
-        _LOGGER.info(f"Setting blocking advisories ({expected_blocking}) for {target_advisories}")
-        for target_advisory_id in target_advisories:
+        # dict keys should ship after values.
+        blocked_by = {
+            'rpm': {'image', 'extras'},
+            'metadata': {'image', 'extras'},
+            'microshift': {'rpm', 'image'},
+        }
+        for target_kind in blocked_by.keys():
+            target_advisory_id = advisories.get(target_kind, 0)
+            if target_advisory_id <= 0:
+                continue
+            expected_blocking = {advisories[k] for k in (blocked_by[target_kind] & advisories.keys()) if advisories[k] > 0}
+            _LOGGER.info(f"Setting blocking advisories ({expected_blocking}) for {target_advisory_id}")
             blocking: Optional[List] = get_blocking_advisories(target_advisory_id)
             if blocking is None:
                 raise ValueError(f"Failed to fetch blocking advisories for {target_advisory_id} ")
@@ -748,7 +753,7 @@ update JIRA accordingly, then notify QE and multi-arch QE for testing.""")
                 f"- {impetus}: https://errata.devel.redhat.com/advisory/{advisory}\n"
             )
         if 'microshift' in advisories.keys():
-            content += f"\n Note: Microshift advisory is not populated with build until after the release has been promoted on Release Controller. It will take a few hours for it to be ready and on QE."
+            content += "\n Note: Microshift advisory is not populated with build until after the release has been promoted on Release Controller. It will take a few hours for it to be ready and on QE."
         if self.candidate_nightlies:
             content += "\nNightlies:\n"
             for arch, pullspec in self.candidate_nightlies.items():

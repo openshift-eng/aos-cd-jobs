@@ -130,7 +130,11 @@ node('covscan') {
                 error("Trying to exclude arch ${excludeArches} not present in known arches ${arches}")
             arches.removeAll(excludeArches)
         }
-        currentBuild.description = "Arches: ${arches.join(', ')}"
+
+        if (currentBuild.description == null) {
+            currentBuild.description = ""
+        }
+        currentBuild.description += "Arches: ${arches.join(', ')}"
 
         if ( params.DEBUG ) {
             logLevel = " --loglevel=5 "

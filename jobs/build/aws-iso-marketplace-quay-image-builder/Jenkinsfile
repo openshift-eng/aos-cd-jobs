@@ -66,6 +66,7 @@ pipeline {
                     if (!params.CINCINNATI_OCP_VERSION) {
                         error "CINCINNATI_OCP_VERSION must be specified"
                     }
+                    currentBuild.displayName += " - ${CINCINNATI_OCP_VERSION}"
                 }
             }
         }

@@ -50,7 +50,8 @@ PACKAGES = {
         "slirp4netns",
         "conmon-rs",
         "openvswitch-selinux-extra-policy",
-        "openvswitch2.17"
+        "openvswitch2.17",
+        "openvswitch3.1"
     ],
 }
 

@@ -12,7 +12,6 @@ from doozerlib import assembly, model, util as doozerutil
 from errata_tool import ErrataConnector
 
 from pyartcd import exectools, constants, jenkins
-from pyartcd.runtime import Runtime
 
 logger = logging.getLogger(__name__)
 go_arches = ["amd64", "s390x", "ppc64le", "arm64", "multi"]

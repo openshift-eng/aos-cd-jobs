@@ -29,8 +29,6 @@ node() {
 
     commonlib.checkMock()
 
-    GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
-
     // Working dirs
     def artcd_working = "${WORKSPACE}/artcd_working"
     def doozer_working = "${artcd_working}/doozer_working"

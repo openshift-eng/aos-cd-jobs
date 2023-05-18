@@ -275,7 +275,6 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
 
 node {
     checkout scm
-    GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
     def buildlib = load("pipeline-scripts/buildlib.groovy")
     def commonlib = buildlib.commonlib

@@ -21,12 +21,11 @@ import requests
 from doozerlib import assembly
 from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
                             go_arch_for_brew_arch, go_suffix_for_arch)
-from pyartcd import constants, exectools, util
+from pyartcd import constants, exectools, util, jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
 from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary, extract_release_client_tools, get_release_image_info_from_pullspec
-from pyartcd.jenkins import jenkins, trigger_build_microshift
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 from semver import VersionInfo

@@ -76,7 +76,6 @@ timeout(activity: true, time: 1, unit: 'DAYS') {  // if there is no log activity
         )
 
         commonlib.checkMock()
-        GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
 
         // doozer_working must be in WORKSPACE in order to have artifacts archived
         def doozer_working = "${WORKSPACE}/doozer_working"

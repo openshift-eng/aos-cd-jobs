@@ -1,9 +1,13 @@
+import json
+import os.path
+import shutil
 import traceback
 
 import click
+import yaml
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets, exectools
+from pyartcd import locks, util, plashets, exectools, constants, run_details
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
@@ -158,3 +162,457 @@ async def sweep(runtime: Runtime, version: str):
         cmd.append('--dry-run')
 
     await exectools.cmd_assert_async(cmd)
+
+
+class BuildPlan:
+    def __init__(self):
+        self.active_image_count = 1  # number of images active in this version
+        self.dry_run = False  # report build plan without performing it
+        self.force_build = False  # build regardless of whether source has changed
+        self.build_rpms = False  # should we build rpms
+        self.rpms_included = []  # include list for rpms to build
+        self.rpms_excluded = []  # exclude list for rpms to build
+        self.build_images = False  # should we build images
+        self.images_included = []  # include list for images to build
+        self.images_excluded = []  # exclude list for images to build
+
+    def __str__(self):
+        return json.dumps(self.__dict__, indent=4)
+
+
+class Version:
+    def __init__(self):
+        self.stream = ''  # "X.Y" e.g. "4.0"
+        self.branch = ''  # e.g. "rhaos-4.0-rhel-7"
+        self.release = ''  # e.g. "201901011200.?"
+        self.major = 0  # X in X.Y, e.g. 4
+        self.minor = 0  # Y in X.Y, e.g. 0
+
+    def __str__(self):
+        return json.dumps(self.__dict__, indent=4)
+
+
+class RpmMirror:
+    def __init__(self):
+        self.url = ''
+        self.compose_name = ''
+        self.local_compose_path = ''
+        self.plashet_dir_name = ''
+
+
+class Ocp4Pipeline:
+    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, force: bool, build_rpms: str,
+                 rpm_list: str, build_images: str, image_list: str):
+
+        self.runtime = runtime
+        self.assembly = assembly
+        self.force = force
+        self.build_rpms = build_rpms
+        self.rpm_list = rpm_list
+        self.build_images = build_images
+        self.image_list = image_list
+
+        self.build_plan = BuildPlan()
+        self.version = Version()
+        self.version.stream = version
+        self.rpm_mirror = RpmMirror()
+        self.rpm_mirror.url = f'{constants.MIRROR_BASE_URL}/enterprise/enterprise/{self.version.stream}'
+
+        self._doozer_working = os.path.abspath(f'{self.runtime.working_dir / "doozer_working"}')
+        self._doozer_base_command = [
+            'doozer',
+            f'--assembly={assembly}',
+            f'--working-dir={self._doozer_working}',
+            f'--data-path={data_path}',
+            f'--group=openshift-{version}'
+        ]
+
+    async def _check_assembly(self):
+        """
+        If assembly != 'stream' and assemblies not enabled for <version>, raise an error
+        """
+
+        shutil.rmtree(self._doozer_working, ignore_errors=True)
+        cmd = self._doozer_base_command.copy()
+        cmd.extend(['config:read-group', '--default=False', 'assemblies.enabled'])
+        _, out, err = await exectools.cmd_gather_async(cmd)
+        assemblies_enabled = out.strip() == 'True'
+        self.runtime.logger.info('Assemblies %s enabled for %s',
+                                 'NOT' if not assemblies_enabled else '', self.version.stream)
+
+        if self.assembly != 'stream' and not assemblies_enabled:
+            raise RuntimeError(
+                f"ASSEMBLY cannot be set to '{self.assembly}' because assemblies are not enabled in ocp-build-data.")
+
+    async def _initialize_version(self):
+        """
+        Initialize the "version" data structure
+        """
+
+        # version.branch
+        shutil.rmtree(self._doozer_working, ignore_errors=True)
+        cmd = self._doozer_base_command.copy()
+        cmd.extend(['config:read-group', 'branch'])
+        _, out, _ = await exectools.cmd_gather_async(cmd)
+        self.version.branch = out
+
+        # version.major, version.minor
+        self.version.major, self.version.minor = [int(val) for val in self.version.stream.split('.')]
+
+        # version.release
+        self.version.release = util.default_release_suffix()
+
+        self.runtime.logger.info('Initializing build:\n%s', str(self.version))
+        run_details.update_title(f' - {self.version.stream}-{self.version.release} ')
+
+    async def _initialize_build_plan(self):
+        """
+        Initialize the "build_plan" data structure based on job parameters
+        """
+
+        # build_plan.active_image_count
+        shutil.rmtree(self._doozer_working, ignore_errors=True)
+        cmd = self._doozer_base_command.copy()
+        cmd.append('images:list')
+        _, out, _ = await exectools.cmd_gather_async(cmd)  # Last line looks like this: "219 images"
+        self.build_plan.active_image_count = int(out.splitlines()[-1].split(' ')[0].strip())
+
+        # build_plan.dry_run
+        self.build_plan.dry_run = self.runtime.dry_run
+
+        # build_plan.force
+        self.build_plan.force_build = self.force
+
+        # build_plan.build_rpms, build_plan.rpms_included, build_plan.rpms_excluded
+        self.build_plan.build_rpms = True
+
+        if self.build_rpms.lower() == 'none':
+            self.build_plan.build_rpms = False
+
+        elif self.build_rpms.lower() == 'all':
+            assert not self.rpm_list, \
+                'Aborting because a list of RPMs was specified; you probably want to specify only/except.'
+
+        elif self.build_rpms.lower() == 'only':
+            assert self.rpm_list, 'A list of RPMs must be specified when "only" is selected'
+            self.build_plan.rpms_included = self.rpm_list.split(',')
+
+        elif self.build_rpms.lower() == 'except':
+            assert self.rpm_list, 'A list of RPMs must be specified when "except" is selected'
+            self.build_plan.rpms_excluded = self.rpm_list.split(',')
+
+        # build_plan.build_images, build_plan.images_included, build_plan.images_excluded
+        self.build_plan.build_images = True
+
+        if self.build_images.lower() == 'none':
+            self.build_plan.build_images = False
+
+        elif self.build_images.lower() == 'all':
+            assert not self.image_list, \
+                'Aborting because a list of RPMs was specified; you probably want to specify only/except.'
+
+        elif self.build_images.lower() == 'only':
+            assert self.image_list, 'A list of images must be specified when "only" is selected'
+            self.build_plan.images_included = self.image_list.split(',')
+
+        elif self.build_images.lower() == 'except':
+            assert self.image_list, 'A list of images must be specified when "except" is selected'
+            self.build_plan.images_excluded = self.image_list.split(',')
+
+        self.runtime.logger.info('Initial build plan:\n%s', self.build_plan)
+
+    async def _initialize(self):
+        await self._check_assembly()
+        await self._initialize_version()
+        await self._initialize_build_plan()
+
+    def _plan_forced_builds(self):
+        """
+        When "--force" is provided, always builds what the operator selected, regardless of source changes.
+        Update build title and description accordingly.
+        """
+
+        run_details.update_description('Force building (whether source changed or not).<br/>')
+
+        if not self.build_plan.build_rpms:
+            run_details.update_description('RPMs: not building.<br/>')
+
+        elif self.build_plan.rpms_included:
+            run_details.update_description(f'RPMs: building {self.build_plan.rpms_included}.<br/>')
+
+        elif self.build_plan.rpms_excluded:
+            run_details.update_description(
+                f'RPMs: building all except {self.build_plan.rpms_excluded}.<br/>')
+
+        else:
+            run_details.update_description('RPMs: building all.<br/>')
+
+        if self.build_plan.rpms_included:
+            run_details.update_title(self._display_tag_for(self.build_plan.rpms_included, 'RPM'))
+
+        elif self.build_plan.rpms_excluded:
+            run_details.update_title(
+                self._display_tag_for(self.build_plan.rpms_excluded, 'RPM', is_excluded=True))
+
+        elif self.build_plan.build_rpms:
+            run_details.update_title(' [all RPMs]')
+
+        run_details.update_description('Will create RPM compose.<br/>')
+
+        if not self.build_plan.build_images:
+            run_details.update_description('Images: not building.<br/>')
+
+        elif self.build_plan.images_included:
+            run_details.update_description(f'Images: building {self.build_plan.images_included}.<br/>')
+
+        elif self.build_plan.images_excluded:
+            run_details.update_description(f'Images: building all except {self.build_plan.images_excluded}.<br/>')
+
+        else:
+            run_details.update_description('Images: building all.<br/>')
+
+        if self.build_plan.images_included:
+            run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
+
+        elif self.build_plan.images_excluded:
+            run_details.update_title(
+                self._display_tag_for(self.build_plan.images_excluded, 'image', is_excluded=True))
+
+        elif self.build_plan.build_images:
+            run_details.update_title(' [all images]')
+
+    async def _get_changes(self) -> dict:
+        """
+        Check for changes by calling doozer config:scan-sources
+        Changed rpms, images or rhcos are recorded in self.changes
+        """
+
+        # Scan sources
+        shutil.rmtree(self._doozer_working, ignore_errors=True)
+        cmd = self._doozer_base_command.copy()
+        cmd.extend(['config:scan-sources', '--yaml', '--ci-kubeconfig', f'{os.environ["KUBECONFIG"]}'])
+        _, out, _ = await exectools.cmd_gather_async(cmd)
+        self.runtime.logger.info('scan-sources output:\n%s', out)
+
+        # Get changes
+        yaml_data = yaml.safe_load(out)
+        changes = util.get_changes(yaml_data)
+        if changes:
+            self.runtime.logger.info('Detected source changes:\n%s', yaml.safe_dump(changes))
+        else:
+            self.runtime.logger.info('No changes detected in RPMs, images or RHCOS')
+
+        return changes
+
+    def _report(self, msg: str):
+        """
+        Logs the message and appends it to current job description
+        """
+        self.runtime.logger.info(msg)
+        run_details.update_description(f'{msg}<br/>')
+
+    def _check_changed_rpms(self, changes: dict):
+        # Check changed RPMs
+        if not self.build_plan.build_rpms:
+            self._report('RPMs: not building.')
+            self._report('Will not create RPM compose if automation is frozen.')
+
+        elif changes.get('rpms', None):
+            changed_rpms = changes["rpms"]
+            self._report(f'RPMs: building {",".join(changed_rpms)}')
+            self._report('Will create RPM compose.')
+            self.build_plan.rpms_included = changed_rpms
+            self.build_plan.rpms_excluded.clear()
+            run_details.update_title(self._display_tag_for(self.build_plan.rpms_included, 'RPM'))
+
+        else:
+            self.build_plan.build_rpms = False
+            self._report('RPMs: none changed.')
+            self._report('Will still create RPM compose.')
+            run_details.update_title(' [no changed RPMs]')
+
+    @staticmethod
+    def _include_exclude(kind: str, includes: list, excludes: list) -> list:
+        """
+        Determine what doozer parameter (if any) to use for includes/excludes
+        --latest-parent-version only applies for images but won't hurt for RPMs
+        """
+
+        if includes:
+            return ['--latest-parent-version', f'--{kind}', ','.join(includes)]
+
+        if excludes:
+            return ['--latest-parent-version', f'--{kind}=', '--exclude', ','.join(excludes)]
+
+        return [f'--{kind}=']
+
+    def _check_changed_images(self, changes: dict):
+        # Check changed images
+        if not self.build_plan.build_images:
+            self._report('Images: not building.')
+            return
+
+        changed_images = changes.get('images', None)
+        if not changed_images:
+            self._report('Images: none changed.')
+            self.build_plan.build_images = False
+            run_details.update_title(' [no changed images]')
+            return
+
+        self._report(f'Found {len(changed_images)} image(s) with changes:\n{",".join(changed_images)}')
+
+    def _gather_children(self, all_images: list, data: dict, initial: list, gather: bool) -> list:
+        """
+        Scan the image tree for changed and their children using recursive closure
+
+        :param all_images: all images gathered so far while traversing tree
+        :param data: the part of the yaml image tree we're looking at
+        :param initial: all images initially found to have changed
+        :param gather: whether this is a subtree of an image with changed source
+        """
+
+        for image, children in data.items():
+            gather_this = gather or image in initial
+            if gather_this:  # this or an ancestor was a changed image
+                all_images.append(image)
+
+            # scan children recursively
+            self._gather_children(all_images, children, initial, gather_this)
+
+    async def _check_changed_child_images(self, changes: dict):
+        # also determine child images of changed
+        cmd = self._doozer_base_command.copy()
+        cmd.extend(self._include_exclude('images', self.build_plan.images_included, self.build_plan.images_excluded))
+        cmd.extend([
+            'images:show-tree',
+            '--yml'
+        ])
+        _, out, _ = await exectools.cmd_gather_async(cmd)
+        self.runtime.logger.info('images:show-tree output:\n%s', out)
+        yaml_data = yaml.safe_load(out)
+
+        children = []
+        self._gather_children(
+            all_images=children,
+            data=yaml_data,
+            initial=changes['images'],
+            gather=False
+        )
+        changed_children = [image for image in children if image not in changes['images']]
+        self.runtime.logger.info('Found children: %s', children)
+
+        if changed_children:
+            self._report(f'Images: also building {len(changed_children)} child(ren):\n {", ".join(changed_children)}')
+        else:
+            self.runtime.logger.info('No changed children found')
+
+        self.build_plan.images_included = children
+        self.build_plan.images_excluded.clear()
+        run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
+
+    async def _plan_builds(self):
+        """
+        Plan what will be built.
+        Figure out whether we're building RPMs and/or images, and which ones, based on
+        the parameters and which sources have changed.
+        Update in the "build_plan" data structure.
+        """
+
+        run_details.update_description('Building sources that have changed.<br/>')
+        changes = await self._get_changes()
+        self._check_changed_rpms(changes)
+        self._check_changed_images(changes)
+        await self._check_changed_child_images(changes)
+        self.runtime.logger.info('Updated build plan:\n%s', self.build_plan)
+
+    @staticmethod
+    def _display_tag_for(items: list, kind: str, is_excluded: bool = False):
+        desc = items[0] if len(items) == 1 else len(items)
+        plurality = kind if len(items) == 1 else f'{kind}s'
+
+        if is_excluded:
+            return f' [{kind}s except {desc}]'
+        return f' [{desc} {plurality}]'
+
+    async def _build_rpms(self):
+        if not self.build_plan.build_rpms:
+            self.runtime.logger.info('Not building RPMs.')
+            return
+
+        cmd = self._doozer_base_command.copy()
+        cmd.extend(self._include_exclude('rpms', self.build_plan.rpms_included, self.build_plan.rpms_excluded))
+        cmd.extend([
+            'rpms:rebase-and-build',
+            f'--version={self.version.stream}',
+            f'--release={self.version.release}'
+        ])
+
+        if self.runtime.dry_run:
+            self.runtime.logger.info('Would have run: %s', ' '.join(cmd))
+            return
+
+        # Build RPMs
+        self.runtime.logger.info('Building RPMs')
+        try:
+            await exectools.cmd_assert_async(cmd)
+        except ChildProcessError:
+            self.runtime.logger.error('Failed building RPMs')
+            raise
+
+    async def run(self):
+        await self._initialize()
+
+        if self.build_plan.force_build:
+            self.runtime.logger.info('Force building (whether source changed or not)')
+            self._plan_forced_builds()
+
+        else:
+            self.runtime.logger.info('Building only where source has changed.')
+            await self._plan_builds()
+
+        await self._build_rpms()
+
+
+@cli.command("ocp4",
+             help="Build OCP 4.y components incrementally. In typical usage, scans for changes that could affect "
+                  "package or image builds and rebuilds the affected components. Creates new plashets if the "
+                  "automation is not frozen or if there are RPMs that are built in this run, and runs other jobs to "
+                  "sync builds to nightlies, create operator metadata, and sets MODIFIED bugs to ON_QA")
+@click.option('--version', required=True, help='OCP version to scan, e.g. 4.14')
+@click.option('--assembly', required=True, help='The name of an assembly to rebase & build for')
+@click.option("--data-path", required=False, default=constants.OCP_BUILD_DATA_URL,
+              help="ocp-build-data fork to use (e.g. assembly definition in your own fork)")
+@click.option('--force', is_flag=True, help='Build regardless of whether source has changed')
+@click.option('--build-rpms', required=True,
+              type=click.Choice(['all', 'only', 'except', 'none'], case_sensitive=False),
+              help='Which RPMs are candidates for building? "only/except" refer to --rpm-list param')
+@click.option('--rpm-list', required=False, default='',
+              help='(Optional) Comma/space-separated list to include/exclude per BUILD_RPMS '
+                   '(e.g. openshift,openshift-kuryr)')
+@click.option('--build-images', required=True,
+              type=click.Choice(['all', 'only', 'except', 'none'], case_sensitive=False),
+              help='Which images are candidates for building? "only/except" refer to --image-list param')
+@click.option('--image-list', required=False, default='',
+              help='(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES '
+                   '(e.g. logging-kibana5,openshift-jenkins-2)')
+@pass_runtime
+@click_coroutine
+async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, force: bool, build_rpms: str,
+               rpm_list: str, build_images: str, image_list: str):
+
+    if not await util.is_build_permitted(version):
+        run_details.update_description('Builds not permitted', append=False)
+        raise RuntimeError('This build is being terminated because it is not permitted according to current group.yml')
+
+    pipeline = Ocp4Pipeline(
+        runtime=runtime,
+        assembly=assembly,
+        version=version,
+        data_path=data_path,
+        force=force,
+        build_rpms=build_rpms,
+        rpm_list=rpm_list,
+        build_images=build_images,
+        image_list=image_list,
+    )
+    await pipeline.run()

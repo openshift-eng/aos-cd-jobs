@@ -126,18 +126,53 @@ node {
     try {
 
         sshagent(["openshift-bot"]) {
-            // To work on private repos, buildlib operations must run
-            // with the permissions of openshift-bot
 
             lock("github-activity-lock-${params.BUILD_VERSION}") {
-                stage("initialize") { joblib.initialize() }
-                buildlib.assertBuildPermitted(doozerOpts)
-                stage("build RPMs") {
-                    try {
-                        joblib.stageBuildRpms()
-                    } catch (err) {
-                        currentBuild.result = 'FAILURE'
+                stage("initialize") {
+                    currentBuild.displayName = "#${currentBuild.number}"
+                    doozerWorking = "${env.WORKSPACE}/doozer_working"
+                    doozerOpts = "--working-dir ${doozerWorking} --data-path ${params.DOOZER_DATA_PATH}"
+                    buildlib.cleanWorkdir(doozerWorking)
+                }
+
+                stage("ocp4") {
+                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+
+                    def cmd = [
+                        "artcd",
+                        "-v",
+                        "--working-dir=./artcd_working",
+                        "--config=./config/artcd.toml",
+                        "ocp4",
+                        "--version=${params.BUILD_VERSION}",
+                        "--assembly=${params.ASSEMBLY}",
+                    ]
+                    if (params.DOOZER_DATA_PATH) {
+                        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
                     }
+                    if (params.FORCE_BUILD) {
+                        cmd << "--force"
+                    }
+                    cmd += [
+                        "--build-rpms=${params.BUILD_RPMS}",
+                        "--rpm-list=${params.RPM_LIST}",
+                        "--build-images=${params.BUILD_IMAGES}",
+                        "--image-list=${params.IMAGE_LIST}"
+                    ]
+
+                    wrap([$class: 'BuildUser']) {
+                            builderEmail = env.BUILD_USER_EMAIL
+                        }
+
+                    buildlib.withAppCiAsArtPublish() {
+                        withCredentials([string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                                sh(script: cmd.join(' '), returnStdout: true)
+                            }
+                        }
+                    }
+
+                    error('manually breaking the build')
                 }
 
                 stage("build compose") {
@@ -284,12 +319,6 @@ node {
         stage("report success") { joblib.stageReportSuccess() }
 
     } catch (err) {
-
-        if (!buildlib.isBuildPermitted(doozerOpts)) {
-            echo 'Exiting because this build is not permitted: ${err}'
-            return
-        }
-
         if (params.MAIL_LIST_FAILURE.trim()) {
             commonlib.email(
                 to: params.MAIL_LIST_FAILURE,

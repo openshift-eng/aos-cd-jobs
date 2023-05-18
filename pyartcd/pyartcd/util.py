@@ -310,3 +310,12 @@ async def sync_images(version: str, assembly: str, operator_nvrs: list,
             doozer_data_path=doozer_data_path,
             doozer_data_gitref=doozer_data_gitref
         )
+
+
+def default_release_suffix():
+    """
+    Returns a release suffix based on current timestamp
+    E.g. "201901011200.?
+    """
+
+    return f'{datetime.strftime(datetime.now(), "%Y%m%d%H")}.p?'

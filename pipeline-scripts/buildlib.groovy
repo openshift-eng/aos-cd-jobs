@@ -1048,18 +1048,6 @@ def isBuildPermitted(doozerOpts) {
 }
 
 /**
- * Throws an exception if isBuildPermitted(...) returns false.
- * @param doozerOpts A string containing, at least, a `--group` parameter.
- */
-def assertBuildPermitted(doozerOpts) {
-    if (!isBuildPermitted(doozerOpts)) {
-        currentBuild.result = 'UNSTABLE'
-        currentBuild.description = 'Builds not permitted'
-        error('This build is being terminated because it is not permitted according to current group.yml')
-    }
-}
-
-/**
  * Scans data outputted by config:scan-sources yaml and records changed
  * elements in the object it returns which has a .rpms list and an .images list.
  * The lists are empty if no change was detected.

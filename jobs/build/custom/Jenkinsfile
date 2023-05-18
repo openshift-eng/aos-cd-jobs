@@ -120,8 +120,6 @@ node {
     commonlib.checkMock()
     buildlib.initialize(false, params.BUILD_VERSION == "3.11")
 
-    GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
-
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     def doozer_working = "${env.WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)

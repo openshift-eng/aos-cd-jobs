@@ -41,7 +41,7 @@ node {
                     string(
                         name: 'ARCHES',
                         description: 'all, or a space delimited list of arches: "x86_64 s390x ..."',
-                        defaultValue: "all",
+                        defaultValue: "x86_64 s390x",
                         trim: true,
                     ),
                     booleanParam(

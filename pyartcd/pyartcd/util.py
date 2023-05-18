@@ -284,7 +284,7 @@ async def sync_images(version: str, assembly: str, operator_nvrs: list,
     if assembly == 'test':
         logger.warning('Skipping build-sync job for test assembly')
     else:
-        jenkins.start_build_sync(
+        jenkins_client.start_build_sync(
             build_version=version,
             assembly=assembly,
             doozer_data_path=doozer_data_path,
@@ -292,7 +292,7 @@ async def sync_images(version: str, assembly: str, operator_nvrs: list,
         )
 
     if operator_nvrs:
-        jenkins.start_olm_bundle(
+        jenkins_client.start_olm_bundle(
             build_version=version,
             assembly=assembly,
             operator_nvrs=operator_nvrs,

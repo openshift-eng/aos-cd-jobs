@@ -262,7 +262,9 @@ node {
                 ]
 
                 try {
-                    sh(script: cmd.join(' '), returnStdout: true)
+                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
+                        sh(script: cmd.join(' '), returnStdout: true)
+                    }
                 } catch (err) {
                     currentBuild.result = 'UNSTABLE'
                     if (dry_run) {

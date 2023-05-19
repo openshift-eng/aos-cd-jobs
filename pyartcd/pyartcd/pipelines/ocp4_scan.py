@@ -88,7 +88,7 @@ class Ocp4ScanPipeline:
         yaml_data = yaml.safe_load(out)
         changes = util.get_changes(yaml_data)
         if changes:
-            self.logger.info('Detected source changes:\n%s', yaml.safe_dump(self.changes))
+            self.logger.info('Detected source changes:\n%s', yaml.safe_dump(changes))
         else:
             self.logger.info('No changes detected in RPMs, images or RHCOS')
 

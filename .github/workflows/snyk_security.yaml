@@ -28,5 +28,5 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
           COMMAND: "apt update -y && apt install -y rpm && pip install -r pyartcd/requirements.txt"
         with:
-          command: code test
+          command: code test --policy-path .snyk
           args: --all-projects

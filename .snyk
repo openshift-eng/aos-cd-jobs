@@ -1,0 +1,22 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore: {}
+patch: {}
+ignore:
+  CWE-23:
+    - 'hacks/plashet/build-plashet.py':
+        reason: The Path we use here is not for web URL
+        expires: 2023-06-21T08:40:29.903Z
+        created: 2023-04-21T08:40:29.909Z
+  CWE-78:
+    - 'jobs/build/publish-rpms/collect_deps.py':
+        reason: Command Injection not applied in internel cmd
+        expires: 2023-06-21T08:40:29.903Z
+        created: 2023-04-21T08:40:29.909Z
+  CWE-79:
+    - 'pyartcd/pyartcd/pipelines/prepare_release.py':
+        reason: We use jinjia2 not for web page
+        expires: 2023-06-21T08:40:29.903Z
+        created: 2023-04-21T08:40:29.909Z
+patch: {}

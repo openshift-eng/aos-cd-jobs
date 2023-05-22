@@ -378,7 +378,7 @@ class PromotePipeline:
                     if arch != "multi":
                         await self.publish_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], arch, client_type)
                     else:
-                        await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], client_type)
+                        await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], data['content'], client_type)
         json.dump(data, sys.stdout)
 
     @staticmethod
@@ -449,20 +449,18 @@ class PromotePipeline:
             if image_stat == 0:  # image exist
                 # extract image to workdir, if failed it will raise error in function
                 extract_release_binary(oc_mirror_pullspec, [f"--path=/usr/bin/oc-mirror:{client_mirror_dir}"])
-                current_path = os.getcwd()
                 os.chdir(client_mirror_dir)
                 # archive file
-                with tarfile.open(f"oc-mirror.tar.gz", "w:gz") as tar:
-                    tar.add(f"oc-mirror")
+                with tarfile.open(f"{client_mirror_dir}/oc-mirror.tar.gz", "w:gz") as tar:
+                    tar.add(f"{client_mirror_dir}/oc-mirror", arcname="oc-mirror")
                 # calc shasum
-                with open(f"oc-mirror.tar.gz", 'rb') as f:
+                with open(f"{client_mirror_dir}/oc-mirror.tar.gz", 'rb') as f:
                     shasum = hashlib.sha256(f.read()).hexdigest()
                 # write shasum to sha256sum.txt
-                with open(f"sha256sum.txt", 'a') as f:
+                with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:
                     f.write(f"{shasum}  oc-mirror.tar.gz\n")
                 # remove oc-mirror
-                os.remove(f"oc-mirror")
-                os.chdir(current_path)
+                os.remove(f"{client_mirror_dir}/oc-mirror")
             else:
                 self._logger.error(f"Error get oc-mirror image from release pullspec")
 
@@ -522,7 +520,6 @@ class PromotePipeline:
             raise e
 
     def extract_opm(self, client_mirror_dir, release_name, operator_registry, arch):
-        current_path = os.getcwd()
         binaries = ['opm']
         platforms = ['linux']
         if arch == 'x86_64':  # For x86_64, we have binaries for macOS and Windows
@@ -533,57 +530,53 @@ class PromotePipeline:
             path_args.append(f'--path=/usr/bin/registry/{binary}:{client_mirror_dir}')
         extract_release_binary(operator_registry, path_args)
         # Compress binaries into tar.gz files and calculate sha256 digests
-        os.chdir(client_mirror_dir)
         for idx, binary in enumerate(binaries):
             platform = platforms[idx]
             os.chmod(binary, 0o755)
-            with tarfile.open(f"opm-{platform}-{release_name}.tar.gz", "w:gz") as tar:  # archive file
-                tar.add(binary)
-            os.remove(binary)  # remove opm binary
-            os.symlink(f'opm-{platform}-{release_name}.tar.gz', f'opm-{platform}.tar.gz')  # create symlink
-            with open(f"opm-{platform}-{release_name}.tar.gz", 'rb') as f:  # calc shasum
+            with tarfile.open(f"{client_mirror_dir}/opm-{platform}-{release_name}.tar.gz", "w:gz") as tar:  # archive file
+                tar.add(f"{client_mirror_dir}/{binary}", arcname=binary)
+            os.remove(f"{client_mirror_dir}/{binary}")  # remove opm binary
+            os.symlink(f"opm-{platform}-{release_name}.tar.gz", f"{client_mirror_dir}/opm-{platform}.tar.gz")  # create symlink
+            with open(f"{client_mirror_dir}/opm-{platform}-{release_name}.tar.gz", 'rb') as f:  # calc shasum
                 shasum = hashlib.sha256(f.read()).hexdigest()
-            with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
+            with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
                 f.write(f"{shasum}  opm-{platform}-{release_name}.tar.gz\n")
-        os.chdir(current_path)
 
-    async def publish_multi_client(self, working_dir, from_release_tag, release_name, client_type):
+    async def publish_multi_client(self, working_dir, from_release_tag, release_name, arch_list, client_type):
         # Anything under this directory will be sync'd to the mirror
-        BASE_TO_MIRROR_DIR = f"{working_dir}/to_mirror/openshift-v4"
-        shutil.rmtree(f"{BASE_TO_MIRROR_DIR}/multi", ignore_errors=True)
-        RELEASE_MIRROR_DIR = f"{BASE_TO_MIRROR_DIR}/multi/clients/{client_type}/{release_name}"
+        base_to_mirror_dir = f"{working_dir}/to_mirror/openshift-v4"
+        shutil.rmtree(f"{base_to_mirror_dir}/multi", ignore_errors=True)
+        release_mirror_dir = f"{base_to_mirror_dir}/multi/clients/{client_type}/{release_name}"
         current_path = os.getcwd()
 
-        for go_arch in util.go_arches:
+        for go_arch in [go_arch_for_brew_arch(arch) for arch in arch_list]:
             if go_arch == "multi":
                 continue
             # From the newly built release, extract the client tools into the workspace following the directory structure
             # we expect to publish to mirror
-            CLIENT_MIRROR_DIR = f"{RELEASE_MIRROR_DIR}/{go_arch}"
-            os.makedirs(CLIENT_MIRROR_DIR)
+            client_mirror_dir = f"{release_mirror_dir}/{go_arch}"
+            os.makedirs(client_mirror_dir)
             # extract release clients tools
-            extract_release_client_tools(f"{constants.QUAY_RELEASE_REPO_URL}:{from_release_tag}", f"--to={CLIENT_MIRROR_DIR}", go_arch)
+            extract_release_client_tools(f"{constants.QUAY_RELEASE_REPO_URL}:{from_release_tag}", f"--to={client_mirror_dir}", go_arch)
             # create symlink for clients
-            self.create_symlink(path_to_dir=CLIENT_MIRROR_DIR, log_tree=True, log_shasum=True)
+            self.create_symlink(path_to_dir=client_mirror_dir, log_tree=True, log_shasum=True)
 
         # Create a master sha256sum.txt including the sha256sum.txt files from all subarches
         # This is the file we will sign -- trust is transitive to the subarches
-        os.chdir(RELEASE_MIRROR_DIR)
-        for dir in os.listdir():
-            if not os.path.isdir(dir):
+        for dir in os.listdir(release_mirror_dir):
+            if not os.path.isdir(f"{release_mirror_dir}/{dir}"):
                 continue
-            for root, dirs, files in os.walk(dir):
+            for root, dirs, files in os.walk(f"{release_mirror_dir}/{dir}"):
                 if "sha256sum.txt" not in files:
                     continue
                 with open(f"{root}/sha256sum.txt", "rb") as f:
                     shasum = hashlib.sha256(f.read()).hexdigest()
-                with open("sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
+                with open(f"{release_mirror_dir}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
                     f.write(f"{shasum}  {dir}/sha256sum.txt\n")
-        os.chdir(current_path) # return to parent path
-        util.log_dir_tree(RELEASE_MIRROR_DIR)
+        util.log_dir_tree(release_mirror_dir)
 
         # Publish the clients to our S3 bucket.
-        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {BASE_TO_MIRROR_DIR}/multi s3://art-srv-enterprise/pub/openshift-v4/multi", stdout=sys.stderr)
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {base_to_mirror_dir}/multi s3://art-srv-enterprise/pub/openshift-v4/multi", stdout=sys.stderr)
 
     def create_symlink(self, path_to_dir, log_tree, log_shasum):
         # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .

@@ -401,16 +401,16 @@ class PromotePipeline:
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
 
-    async def publish_client(self, working_dir, from_release_tag, release_name, arch, client_type):
+    async def publish_client(self, working_dir, from_release_tag, release_name, build_arch, client_type):
         _, minor = util.isolate_major_minor_in_group(self.group)
         quay_url = constants.QUAY_RELEASE_REPO_URL
         # Anything under this directory will be sync'd to the mirror
         base_to_mirror_dir = f"{working_dir}/to_mirror/openshift-v4"
-        shutil.rmtree(f"{base_to_mirror_dir}/{arch}")
+        shutil.rmtree(f"{base_to_mirror_dir}/{build_arch}")
 
         # From the newly built release, extract the client tools into the workspace following the directory structure
         # we expect to publish to mirror
-        client_mirror_dir = f"{base_to_mirror_dir}/{arch}/clients/{client_type}/{release_name}"
+        client_mirror_dir = f"{base_to_mirror_dir}/{build_arch}/clients/{client_type}/{release_name}"
         os.makedirs(client_mirror_dir)
 
         # extract release clients tools
@@ -442,7 +442,7 @@ class PromotePipeline:
             else:
                 self._logger.error(f"Error get {tarball} image from release pullspec")
 
-        if arch == 'x86_64':
+        if build_arch == 'x86_64':
             # oc image  extract requires an empty destination directory. So do this before extracting tools.
             # oc adm release extract --tools does not require an empty directory.
             image_stat, oc_mirror_pullspec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "oc-mirror")
@@ -472,13 +472,13 @@ class PromotePipeline:
 
         # extract opm binaries
         _, operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
-        self.extract_opm(client_mirror_dir, release_name, operator_registry, arch)
+        self.extract_opm(client_mirror_dir, release_name, operator_registry, build_arch)
 
         util.log_dir_tree(client_mirror_dir)  # print dir tree
         util.log_file_content(f"{client_mirror_dir}/sha256sum.txt")  # print sha256sum.txt
 
         # Publish the clients to our S3 bucket.
-        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {base_to_mirror_dir}/{arch} s3://art-srv-enterprise/pub/openshift-v4/{arch}", stdout=sys.stderr)
+        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {base_to_mirror_dir}/{build_arch} s3://art-srv-enterprise/pub/openshift-v4/{build_arch}", stdout=sys.stderr)
 
     async def generate_changelog(self, release_name, client_mirror_dir, minor):
         try:

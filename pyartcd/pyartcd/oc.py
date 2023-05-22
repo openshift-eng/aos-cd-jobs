@@ -3,10 +3,10 @@ import os
 import logging
 from pyartcd import exectools
 from pyartcd.runtime import Runtime
-import openshift as oc
-from typing import List
-from openshift import Result
+import openshift as octool
+from typing import List, Optional
 
+logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -42,22 +42,22 @@ async def registry_login(runtime: Runtime):
         raise
 
 
-def common_oc_wrapper(cmd_result_name: str, cli_verb: str, oc_args: List[str], check_status: bool = False, return_value: bool = False):
+def common_oc_wrapper(cmd_result_name: str, cli_verb: str, oc_args: List[str], check_status: bool = True, return_value: bool = False):
     # cmd_result_name: Result obj name in log
     # cli_verb: first command group
     # oc_args: args list of command
     # check_status: whether check status and print output in log
     # return_value: whether need return value sets
     logger.info(f"run: oc {cli_verb} {' '.join(oc_args)}")
-    with oc.tracking() as tracker:
+    with octool.tracking() as tracker:
         try:
-            r = Result(cmd_result_name)
-            r.add_action(oc.oc_action(oc.cur_context(), cli_verb, cmd_args=oc_args))
+            r = octool.Result(cmd_result_name)
+            r.add_action(octool.oc_action(octool.cur_context(), cli_verb, cmd_args=oc_args))
             if check_status:
                 if r.status() == 0:
-                    logger.info(f"Output: {r.out().strip()}")
+                    logger.debug(f"Output: {r.out().strip()}")
                 else:
-                    logger.warn(r.err())
+                    logger.warn(f"oc command exited with error: {r.err()}")
             r.fail_if(f"oc action {cmd_result_name} failed")
         except Exception as e:
             logger.error(tracker.get_result())
@@ -69,26 +69,26 @@ def common_oc_wrapper(cmd_result_name: str, cli_verb: str, oc_args: List[str], c
 def get_release_image_info_from_pullspec(pullspec: str):
     # oc image info --output=json <pullspec>
     cmd_args = ['info', "--output=json", pullspec]
-    res, out = common_oc_wrapper("single_image_info", "image", cmd_args, False, True)
+    res, out = common_oc_wrapper("single_image_info", "image", cmd_args, True, True)
     return res, json.loads(out)
 
 
 def extract_release_binary(image_pullspec: str, path_args: List[str]):
     # oc image extract --confirm --only-files --path=/usr/bin/..:<workdir> <pullspec>
     cmd_args = ['extract', '--confirm', '--only-files'] + path_args + [image_pullspec]
-    common_oc_wrapper("extract_image", "image", cmd_args, False, False)
+    common_oc_wrapper("extract_image", "image", cmd_args, True, False)
 
 
 def get_release_image_pullspec(release_pullspec: str, image: str):
     # oc adm release info --image-for=<image> <pullspec>
     cmd_args = ['release', 'info', f'--image-for={image}', release_pullspec]
-    return common_oc_wrapper("image_info_in_release", "adm", cmd_args, False, True)
+    return common_oc_wrapper("image_info_in_release", "adm", cmd_args, True, True)
 
 
-def extract_release_client_tools(release_pullspec: str, path_arg: str, arch: str):
+def extract_release_client_tools(release_pullspec: str, path_arg: str, single_arch: Optional[str] = None):
     # oc adm release extract --tools --command-os=* -n ocp --to=<workdir> --filter-by-os=<arch> --from <pullspec> --to <path>
     args = ["release", "extract", "--tools", "--command-os=*", "-n=ocp"]
-    if arch:
-        args += [f"--filter-by-os={arch}"]
+    if single_arch:
+        args += [f"--filter-by-os={single_arch}"]
     args += [f"--from={release_pullspec}", path_arg]
-    common_oc_wrapper("extract_tools", "adm", args, False, False)
+    common_oc_wrapper("extract_tools", "adm", args, True, False)

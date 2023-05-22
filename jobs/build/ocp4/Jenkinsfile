@@ -165,7 +165,13 @@ node {
                         }
 
                     buildlib.withAppCiAsArtPublish() {
-                        withCredentials([string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
+                        withCredentials([
+                                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
+                                ]) {
                             withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                                 sh(script: cmd.join(' '), returnStdout: true)
                             }
@@ -173,60 +179,6 @@ node {
                     }
 
                     error('manually breaking the build')
-                }
-
-                stage("build compose") {
-                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-
-                    def cmd = [
-                        "artcd",
-                        "-v",
-                        "--working-dir=./artcd_working",
-                        "--config=./config/artcd.toml",
-                        "ocp4:build-compose",
-                        "--version=${version.stream}-${version.release}",
-                        "--assembly=${params.ASSEMBLY}"
-                    ]
-                    if (joblib.buildPlan.buildRpms) {
-                        cmd << "--build-rpms"
-                    }
-
-                    withCredentials([
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
-                        ]) {
-                        sh(script: cmd.join(' '), returnStdout: true)
-                    }
-
-                    def plashets_built_yaml = "${env.WORKSPACE}/plashet-working/plashets_built.yaml"
-                    def exists = fileExists plashets_built_yaml
-
-                    if (exists) {
-                        plashets_built = readYaml(file: plashets_built_yaml)
-                        mirrorPlashet = plashets_built['rhel-server-ose-rpms']
-                        echo "mirrorPlashet: ${mirrorPlashet}"
-
-                        if(mirrorPlashet) {
-                            // public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
-                            rpmMirror.plashetDirName = mirrorPlashet.plashetDirName
-                            rpmMirror.localPlashetPath = mirrorPlashet.localPlashetPath
-                        }
-                    }
-                }
-
-                if ( params.ASSEMBLY == "stream" ) {
-                    // Since plashets may have been rebuilt, fire off sync for CI. This will transfer
-                    // RPMs out to mirror.openshift.com/enterprise so that they may be consumed through
-                    // CI rpm mirrors.
-                    build wait: false, propagate: false, job: '/scheduled-builds/sync-for-ci', parameters: [string(name: 'ONLY_FOR_VERSION', value: params.BUILD_VERSION)]
-
-                    // Also trigger rhcos builds for the release in order to absorb any changes from plashets or
-                    // RHEL which may have triggered our rebuild. If there are no changes to the RPMs, the build
-                    // should exit quickly. If there are changes, the hope is that by the time our images are done
-                    // building, RHCOS will be ready and build-sync will find consistent RPMs.
-                    build wait: false, propagate: false, job: 'build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
                 }
 
                 stage("update dist-git") {

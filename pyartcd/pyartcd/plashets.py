@@ -102,7 +102,8 @@ def plashet_config_for_major_minor(major, minor):
 
 
 async def build_plashets(stream: str, release: str, assembly: str = 'stream',
-                         data_path: str = constants.OCP_BUILD_DATA_URL, data_gitref: str = '', dry_run: bool = False):
+                         data_path: str = constants.OCP_BUILD_DATA_URL,
+                         data_gitref: str = '', dry_run: bool = False) -> dict:
     """
     Unless no RPMs have changed, create multiple yum repos (one for each arch) of RPMs
     based on -candidate tags. Based on release state, those repos can be signed
@@ -114,6 +115,21 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     :param data_path: ocp-build-data fork to use
     :param data_gitref: Doozer data path git [branch / tag / sha] to use
     :param dry_run: do not actually run the command, just log it
+
+    Returns a list describing the plashets that have been built. The dict will look like this:
+    {
+        'repo-name-1': {
+            'plashetDirName': str,
+            'localPlashetPath: str
+        },
+
+        ...
+
+        'repo-name-n': {
+            'plashetDirName': str,
+            'localPlashetPath: str
+        },
+    }
     """
 
     major, minor = stream.split('.')  # e.g. ('4', '14') from '4.14'
@@ -186,11 +202,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
             'localPlashetPath': str(local_path),
         }
 
-    logger.info('Plashets built: %s', plashets_built)
-
-    with open(f'{working_dir}/plashets_built.yaml', 'w') as outfile:
-        yaml.dump(plashets_built, outfile)
-        logger.info('Built plashets dumped to %s', os.path.abspath(outfile.name))
+    return plashets_built
 
 
 async def build_plashet_from_tags(group_param: str, assembly: str, base_dir: os.PathLike, name: str, arches: Sequence[str],

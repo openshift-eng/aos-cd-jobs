@@ -7,87 +7,10 @@ import click
 import yaml
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets, exectools, constants, run_details
+from pyartcd import locks, util, plashets, exectools, constants, run_details, jenkins
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
-
-
-async def is_compose_build_permitted(runtime: Runtime, stream_version: str, build_rpms: bool) -> bool:
-    """
-    If automation is not frozen, go ahead
-    If automation is "scheduled" and job was triggered by human and there were no RPMs in the build plan, do not build
-    If automation is "scheduled" and job was triggered by human and there were RPMs in the build plan: build and warn
-
-    Returns automation state for further reuse
-    """
-
-    result = False
-    automation_state: str = await util.get_freeze_automation(stream_version)
-    runtime.logger.info('Automation freeze for %s: %s', stream_version, automation_state)
-
-    if automation_state not in ['scheduled', 'yes', 'True']:
-        result = True
-
-    elif automation_state == 'scheduled' and build_rpms:
-        result = True
-
-        # Send a Slack notification in case compose build ran during automation freeze
-        slack_client = runtime.new_slack_client()
-        slack_client.bind_channel(f'openshift-{stream_version}')
-        await slack_client.say(
-            "*:alert: ocp4 build compose running during automation freeze*\n"
-            "There were RPMs in the build plan that forced build compose during automation freeze."
-        )
-
-    return result
-
-
-@cli.command("ocp4:build-compose",
-             help="If any RPMs have changed, create multiple yum repos (one for each arch) based on -candidate tags"
-                  "those repos can be signed (release state) or unsigned (pre-release state)")
-@click.option('--version', required=True, help='Full OCP version, e.g. 4.14-202304181947.p?')
-@click.option('--assembly', required=True, help='The name of an assembly to rebase & build for')
-@click.option('--build-rpms', is_flag=True, help='True if RPMs should be built')
-@pass_runtime
-@click_coroutine
-async def build_compose(runtime: Runtime, version: str, assembly: str, build_rpms: bool):
-    stream_version, release_version = version.split('-')  # e.g. (4.14, 202304181947.p?) from 4.14-202304181947.p?
-
-    # Create a Lock manager instance
-    lock_policy = locks.LOCK_POLICY['compose']
-    lock_manager = locks.new_lock_manager(
-        internal_lock_timeout=lock_policy['lock_timeout'],
-        retry_count=lock_policy['retry_count'],
-        retry_delay_min=lock_policy['retry_delay_min']
-    )
-    lock_name = f'compose-lock-{stream_version}'
-
-    # Build compose
-    try:
-        async with await lock_manager.lock(lock_name):
-            if await is_compose_build_permitted(runtime, stream_version, build_rpms):
-                mirror_plashet = await plashets.build_plashets(
-                    stream_version, release_version, assembly=assembly, dry_run=runtime.dry_run)
-                click.echo(mirror_plashet)
-            else:
-                runtime.logger.info('Skipping compose build')
-
-    except ChildProcessError as e:
-        error_msg = f'Failed building compose: {e}'
-        runtime.logger.error(error_msg)
-        runtime.logger.error(traceback.format_exc())
-        slack_client = runtime.new_slack_client()
-        slack_client.bind_channel(f'openshift-{stream_version}')
-        await slack_client.say(error_msg)
-        raise
-
-    except LockError as e:
-        runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-        raise
-
-    finally:
-        await lock_manager.destroy()
 
 
 @cli.command("ocp4:mirror-rpms",
@@ -195,14 +118,16 @@ class Version:
 class RpmMirror:
     def __init__(self):
         self.url = ''
-        self.compose_name = ''
-        self.local_compose_path = ''
+        self.local_plashet_path = ''
         self.plashet_dir_name = ''
+
+    def __str__(self):
+        return json.dumps(self.__dict__, indent=4)
 
 
 class Ocp4Pipeline:
-    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, force: bool, build_rpms: str,
-                 rpm_list: str, build_images: str, image_list: str):
+    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str,
+                 force: bool, build_rpms: str, rpm_list: str, build_images: str, image_list: str):
 
         self.runtime = runtime
         self.assembly = assembly
@@ -215,10 +140,11 @@ class Ocp4Pipeline:
         self.build_plan = BuildPlan()
         self.version = Version()
         self.version.stream = version
-        self.rpm_mirror = RpmMirror()
+        self.rpm_mirror = RpmMirror()  # will be filled in later by build-compose stage
         self.rpm_mirror.url = f'{constants.MIRROR_BASE_URL}/enterprise/enterprise/{self.version.stream}'
 
         self._doozer_working = os.path.abspath(f'{self.runtime.working_dir / "doozer_working"}')
+        self.data_path = data_path
         self._doozer_base_command = [
             'doozer',
             f'--assembly={assembly}',
@@ -461,7 +387,7 @@ class Ocp4Pipeline:
 
         self._report(f'Found {len(changed_images)} image(s) with changes:\n{",".join(changed_images)}')
 
-    def _gather_children(self, all_images: list, data: dict, initial: list, gather: bool) -> list:
+    def _gather_children(self, all_images: list, data: dict, initial: list, gather: bool):
         """
         Scan the image tree for changed and their children using recursive closure
 
@@ -559,6 +485,97 @@ class Ocp4Pipeline:
             self.runtime.logger.error('Failed building RPMs')
             raise
 
+    async def _is_compose_build_permitted(self) -> bool:
+        """
+        If automation is not frozen, go ahead
+        If automation is "scheduled", job was triggered by hand and there were no RPMs in the build plan: return False
+        If automation is "scheduled", job was triggered by hand and there were RPMs in the build plan: return True
+        """
+
+        automation_state: str = await util.get_freeze_automation(self.version.stream)
+        self.runtime.logger.info('Automation freeze for %s: %s', self.version.stream, automation_state)
+
+        if automation_state not in ['scheduled', 'yes', 'True']:
+            return True
+
+        if automation_state == 'scheduled' and self.build_plan.build_rpms:
+            # Send a Slack notification since we're running compose build during automation freeze
+            slack_client = self.runtime.new_slack_client()
+            slack_client.bind_channel(f'openshift-{self.version.stream}')
+            await slack_client.say(
+                "*:alert: ocp4 build compose running during automation freeze*\n"
+                "There were RPMs in the build plan that forced build compose during automation freeze."
+            )
+
+            return True
+
+        return False
+
+    async def _build_compose(self):
+        """
+        If any RPMs have changed, create multiple yum repos (one for each arch) based on -candidate tags
+        Those repos can be signed (release state) or unsigned (pre-release state)"
+        """
+
+        # Check if compose build is permitted
+        if not await self._is_compose_build_permitted():
+            self.runtime.logger.info("Skipping compose build as it's not permitted")
+            return
+
+        # Create a Lock manager instance
+        lock_policy = locks.LOCK_POLICY['compose']
+        lock_manager = locks.new_lock_manager(
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
+        lock_name = f'compose-lock-{self.version.stream}'
+
+        try:
+            async with await lock_manager.lock(lock_name):
+                # Build compose
+                plashets_built = await plashets.build_plashets(
+                    stream=self.version.stream,
+                    release=self.version.release,
+                    assembly=self.assembly,
+                    data_path=self.data_path,
+                    dry_run=self.runtime.dry_run
+                )
+                self.runtime.logger.info('Built plashets: %s', json.dumps(plashets_built, indent=4))
+
+                # public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
+                if plashets_built.get('rhel-server-ose-rpms', None):
+                    self.rpm_mirror.plashet_dir_name = plashets_built['rhel-server-ose-rpms']['plashetDirName']
+                    self.rpm_mirror.local_plashet_path = plashets_built['rhel-server-ose-rpms']['localPlashetPath']
+                    self.runtime.logger.info('rhel7 plashet to mirror: %s', str(self.rpm_mirror))
+
+        except ChildProcessError as e:
+            error_msg = f'Failed building compose: {e}'
+            self.runtime.logger.error(error_msg)
+            self.runtime.logger.error(traceback.format_exc())
+            slack_client = self.runtime.new_slack_client()
+            slack_client.bind_channel(f'openshift-{self.version.stream}')
+            await slack_client.say(error_msg)
+            raise
+
+        except LockError as e:
+            self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+            raise
+
+        finally:
+            await lock_manager.destroy()
+
+        if self.assembly == 'stream':
+            # Since plashets may have been rebuilt, fire off sync for CI. This will transfer RPMs out to
+            # mirror.openshift.com/enterprise so that they may be consumed through CI rpm mirrors.
+            jenkins.start_sync_for_ci(version=self.version.stream, blocking=False)
+
+            # Also trigger rhcos builds for the release in order to absorb any changes from plashets or RHEL which may
+            # have triggered our rebuild. If there are no changes to the RPMs, the build should exit quickly. If there
+            # are changes, the hope is that by the time our images are done building, RHCOS will be ready and build-sync
+            # will find consistent RPMs.
+            jenkins.start_rhcos(build_version=self.version.stream, new_build=False, blocking=False)
+
     async def run(self):
         await self._initialize()
 
@@ -571,6 +588,7 @@ class Ocp4Pipeline:
             await self._plan_builds()
 
         await self._build_rpms()
+        await self._build_compose()
 
 
 @cli.command("ocp4",

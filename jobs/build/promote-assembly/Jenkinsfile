@@ -176,7 +176,7 @@ node {
         }
         echo "Will run ${cmd}"
         buildlib.withAppCiAsArtPublish() {
-            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'],
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'creds_dev_registry.quay.io', usernameVariable: 'QUAY_USERNAME', passwordVariable: 'QUAY_PASSWORD'],
                              aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
                              string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
                              string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),

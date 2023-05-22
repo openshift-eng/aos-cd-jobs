@@ -6,7 +6,7 @@ from pyartcd.runtime import Runtime
 import openshift as octool
 from typing import List, Optional
 
-logging.basicConfig(format='%(message)s', level=logging.DEBUG)
+
 logger = logging.getLogger(__name__)
 
 

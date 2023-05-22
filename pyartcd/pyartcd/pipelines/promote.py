@@ -449,7 +449,6 @@ class PromotePipeline:
             if image_stat == 0:  # image exist
                 # extract image to workdir, if failed it will raise error in function
                 extract_release_binary(oc_mirror_pullspec, [f"--path=/usr/bin/oc-mirror:{client_mirror_dir}"])
-                os.chdir(client_mirror_dir)
                 # archive file
                 with tarfile.open(f"{client_mirror_dir}/oc-mirror.tar.gz", "w:gz") as tar:
                     tar.add(f"{client_mirror_dir}/oc-mirror", arcname="oc-mirror")
@@ -536,7 +535,8 @@ class PromotePipeline:
             with tarfile.open(f"{client_mirror_dir}/opm-{platform}-{release_name}.tar.gz", "w:gz") as tar:  # archive file
                 tar.add(f"{client_mirror_dir}/{binary}", arcname=binary)
             os.remove(f"{client_mirror_dir}/{binary}")  # remove opm binary
-            os.symlink(f"opm-{platform}-{release_name}.tar.gz", f"{client_mirror_dir}/opm-{platform}.tar.gz")  # create symlink
+            os.symlink(f"opm-{platform}-{release_name}.tar.gz", f"opm-{platform}.tar.gz")  # create symlink
+            shutil.move(f"opm-{platform}.tar.gz", f"{client_mirror_dir}/opm-{platform}.tar.gz")
             with open(f"{client_mirror_dir}/opm-{platform}-{release_name}.tar.gz", 'rb') as f:  # calc shasum
                 shasum = hashlib.sha256(f.read()).hexdigest()
             with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
@@ -582,11 +582,11 @@ class PromotePipeline:
         # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
         # So whatever we extract, remove the version specific info and make a symlink with that name.
         current_path = os.getcwd() # /mnt/workspace/jenkins/working/build_promote-assembly
-        os.chdir(path_to_dir) # path_to_dir is relative path artcd_working/to_mirror/openshift-v4/aarch64/clients/ocp/4.13.0-rc.6
-        for f in os.listdir():
+        # path_to_dir is relative path artcd_working/to_mirror/openshift-v4/aarch64/clients/ocp/4.13.0-rc.6
+        for f in os.listdir(path_to_dir):
             if f.endswith(('.tar.gz', '.bz', '.zip', '.tgz')):
                 # Is this already a link?
-                if os.path.islink(f):
+                if os.path.islink(f"{path_to_dir}/{f}"):
                     continue
                 # example file names:
                 #  - openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
@@ -602,8 +602,8 @@ class PromotePipeline:
                     new_name = match.group(1) + match.group(2) + '.' + match.group(4)
                     # Create a symlink like openshift-client-linux.tgz => openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
                     os.symlink(f, new_name)
+                    shutil.move(new_name, f"{path_to_dir}/{new_name}")
 
-        os.chdir(current_path) # switch back to work_dir
         if log_tree:
             util.log_dir_tree(f"{current_path}/{path_to_dir}")  # print dir tree
         if log_shasum:

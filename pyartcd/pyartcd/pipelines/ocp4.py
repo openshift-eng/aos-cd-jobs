@@ -153,6 +153,8 @@ class Ocp4Pipeline:
             f'--group=openshift-{version}'
         ]
 
+        self._mail_client = self.runtime.new_mail_client()
+
     async def _check_assembly(self):
         """
         If assembly != 'stream' and assemblies not enabled for <version>, raise an error
@@ -576,6 +578,39 @@ class Ocp4Pipeline:
             # will find consistent RPMs.
             jenkins.start_rhcos(build_version=self.version.stream, new_build=False, blocking=False)
 
+    async def _update_distgit(self):
+        if not self.build_plan.build_images:
+            self.runtime.logger.info('Not rebasing images')
+            return
+
+        cmd = self._doozer_base_command.copy()
+        cmd.extend(self._include_exclude('images', self.build_plan.images_included, self.build_plan.images_excluded))
+        cmd.extend([
+            'images:rebase', f'--version=v{self.version.stream}', f'--release={self.version.release}',
+            f"--message='Updating Dockerfile version and release v${self.version.stream}-${self.version.release}'",
+            '--push', f"--message='{os.environ['BUILD_URL']}'"
+        ])
+
+        if self.runtime.dry_run:
+            self.runtime.logger.info('Would have run: %s', ' '.join(cmd))
+            return
+
+        await exectools.cmd_assert_async(cmd)
+
+        # TODO: if rebase fails for required images, notify image owners, and still notify on other reconciliations
+        util.notify_dockerfile_reconciliations(
+            version=self.version.stream,
+            doozer_working=self._doozer_working,
+            mail_client=self._mail_client
+        )
+
+        # TODO: if a non-required rebase fails, notify ART and the image owners
+        util.notify_bz_info_missing(
+            version=self.version.stream,
+            doozer_working=self._doozer_working,
+            mail_client=self._mail_client
+        )
+
     async def run(self):
         await self._initialize()
 
@@ -589,6 +624,7 @@ class Ocp4Pipeline:
 
         await self._build_rpms()
         await self._build_compose()
+        await self._update_distgit()
 
 
 @cli.command("ocp4",

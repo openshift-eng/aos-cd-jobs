@@ -12,6 +12,8 @@ from doozerlib import assembly, model, util as doozerutil
 from errata_tool import ErrataConnector
 
 from pyartcd import exectools, constants, jenkins
+from pyartcd.mail import MailService
+from pyartcd.record import parse_record_log
 
 logger = logging.getLogger(__name__)
 
@@ -319,3 +321,197 @@ def default_release_suffix():
     """
 
     return f'{datetime.strftime(datetime.now(), "%Y%m%d%H")}.p?'
+
+
+def get_distgit_notify(record_log: dict) -> dict:
+    """
+    gets map of emails to notify from output of parse_record_log map formatted as below:
+
+    rpms/jenkins-slave-maven-rhel7-docker
+      source_alias: [source_alias map]
+      image: openshift3/jenkins-slave-maven-rhel7
+      dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
+      owners: bparees@redhat.com
+      distgit: rpms/jenkins-slave-maven-rhel7-docker
+      sha: 1b8903ef72878cd895b3f94bee1c6f5d60ce95c3    (NOT PRESENT ON FAILURE)
+      failure: ....error description....      (ONLY PRESENT ON FAILURE)
+    """
+
+    result = {}
+
+    # It's possible there were no commits or no one specified to notify
+    if not record_log.get('distgit_commit', None):  # or not record_log.get('dockerfile_notify', None):
+        return result
+
+    source = record_log.get('source_alias', [])
+    commit = record_log.get('distgit_commit', [])
+    failure = record_log.get('distgit_commit_failure', [])
+    notify = record_log.get('dockerfile_notify', [])
+
+    # will use source alias to look up where Dockerfile came from
+    source_alias = {}
+    for i in range(len(source)):
+        source_alias[source[i]['alias']] = source[i]
+
+    # get notification emails by distgit name
+    for i in range(len(notify)):
+        notify[i]['source_alias'] = source_alias.get(notify[i].source_alias, {})
+        result[notify[i]['distgit']] = notify[i]
+
+    # match commit hash with notify email record
+    for i in range(len(commit)):
+        if result.get(commit[i]['distgit'], None):
+            result[commit[i]['distgit']]['sha'] = commit[i]['sha']
+
+    # OR see if the notification is for a merge failure
+    for i in range(len(failure)):
+        if result.get(failure[i]['distgit'], None):
+            result[failure[i]['distgit']]['failure'] = failure[i]['message']
+
+    return result
+
+
+def dockerfile_url_for(url, branch, sub_path) -> str:
+    if not url or not branch:
+        return ''
+
+    # if it looks like an ssh GitHub remote, transform it to https
+    url = url.replace('git@', 'https://')
+    url = url.replace(':', '/')
+    url = url.replace('.git', '')
+
+    return f"{url}/blob/{branch}/{sub_path if sub_path else ''}"
+
+
+def notify_dockerfile_reconciliations(version: str, doozer_working: str, mail_client: MailService):
+    """
+    Loop through all new commits that affect dockerfiles and notify their owners
+    """
+
+    with open(Path(doozer_working) / "record.log", "r") as file:
+        record_log: dict = parse_record_log(file)
+
+    distgit_notify = get_distgit_notify(record_log)
+
+    # Convert the dict to a list of tuples
+    distgit_notify = [(key, value) for key, value in distgit_notify.items()]
+
+    for i in range(len(distgit_notify)):
+        distgit = distgit_notify[i][0]
+
+        val = distgit_notify[i][1]
+        if not val.get('owners'):
+            continue
+
+        alias = val['source_alias']
+        url = dockerfile_url_for(alias['origin_url'], alias['branch'], val['source_dockerfile_subpath'])
+        dockerfile_url = f'Upstream source file: {url}' if url else ''
+
+        # Populate the introduction for all emails to owners
+        explanation_body = """Why am I receiving this?
+------------------------
+You are receiving this message because you are listed as an owner for an
+OpenShift related image - or you recently made a modification to the definition
+of such an image in github. Upstream (github) OpenShift Dockerfiles are
+regularly pulled from their upstream source and used as an input to build our
+productized images - RHEL-based OpenShift Container Platform (OCP) images.
+
+To serve as an input to RHEL/OCP images, upstream Dockerfiles are
+programmatically modified before they are checked into a downstream git
+repository which houses all Red Hat images:
+ - https://pkgs.devel.redhat.com/cgit/containers/
+
+We call this programmatic modification "reconciliation" and you will receive an
+email when the upstream Dockerfile changes so that you can review the
+differences between the upstream & downstream Dockerfiles.\n"""
+
+        if val.get('failure', None):
+            email_subject = f'FAILURE: Error reconciling Dockerfile for {val["image"]} in OCP v{version}'
+            explanation_body += f"""
+What do I need to do?
+---------------------
+An error occurred during your reconciliation. Until this issue is addressed,
+your upstream changes may not be reflected in the product build.
+
+Please review the error message reported below to see if the issue is due to upstream
+content. If it is not, the Automated Release Tooling (ART) team will engage to address
+the issue. Please direct any questions to the ART team (#aos-art on slack).
+
+Error Reported
+--------------
+{val['failure']}\n"""
+
+        elif val.get('sha', None):
+            email_subject = f'SUCCESS: Changed Dockerfile reconciled for ${val["image"]} in OCP v{version}'
+            explanation_body += f"""
+What do I need to do?
+---------------------
+You may want to look at the result of the reconciliation. Usually,
+reconciliation is transparent and safe. However, you may be interested in any
+changes being performed by the OCP build system.
+
+
+What changed this time?
+-----------------------
+Reconciliation has just been performed for the image: ${val.image}
+${dockerfile_url}
+The reconciled (downstream OCP) Dockerfile can be viewed here:
+ - https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
+
+Please direct any questions to the Automated Release Tooling team (#aos-art on slack).\n"""
+
+        else:
+            raise RuntimeError('Unable to determine notification reason; something is broken')
+
+        mail_client.send_mail(
+            to=val['owners'],
+            subject=email_subject,
+            content=explanation_body
+        )
+
+
+def notify_bz_info_missing(version: str, doozer_working: str, mail_client: MailService):
+    with open(Path(doozer_working) / "record.log", "r") as file:
+        record_log: dict = parse_record_log(file)
+
+    bz_notify_entries = record_log.get('bz_maintainer_notify', [])
+    for bz_notify in bz_notify_entries:
+        owners = bz_notify.get('owners', '')
+        if not owners:
+            continue
+
+        public_upstream_url = bz_notify['public_upstream_url']
+        distgit = bz_notify['distgit']
+        email_subject = f'[ACTION REQUIRED] Bugzilla component information ' \
+                        f'missing for image {distgit} in OCP v{version}'
+        explanation_body = f"""
+Why am I receiving this?
+------------------------
+You are receiving this message because you are listed as an owner for an
+OpenShift related image - or you recently made a modification to the definition
+of such an image in github.
+
+To comply with prodsec requirements, all images in the OpenShift product
+should identify their Bugzilla component. To accomplish this, ART
+expects to find Bugzilla component information in the default branch of
+the image's upstream repository or requires it in ART image metadata.
+
+What should I do?
+------------------------
+There are two options to supply Bugzilla component information.
+1) The OWNERS file in the default branch (e.g. main / master) of {public_upstream_url}
+   can be updated to include the bugzilla component information.
+
+2) The component information can be specified directly in the
+   ART metadata for the image {distgit}.
+
+Details for either approach can be found here:
+https://docs.google.com/document/d/1V_DGuVqbo6CUro0RC86THQWZPrQMwvtDr0YQ0A75QbQ/edit?usp=sharing
+
+Thanks for your help!\n"""
+
+        mail_client.send_mail(
+            to=owners,
+            subject=email_subject,
+            content=explanation_body
+        )

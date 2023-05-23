@@ -139,16 +139,20 @@ def start_rhcos(build_version: str, new_build: bool, blocking: bool = False) -> 
     )
 
 
-def start_build_sync(build_version: str, assembly: str, doozer_data_path: str,
-                     doozer_data_gitref: str, blocking: bool = False) -> Optional[str]:
+def start_build_sync(build_version: str, assembly: str, doozer_data_path: Optional[str] = None,
+                     doozer_data_gitref: Optional[str] = None, blocking: bool = False) -> Optional[str]:
+    params = {
+        'BUILD_VERSION': build_version,
+        'ASSEMBLY': assembly,
+    }
+    if doozer_data_path:
+        params['DOOZER_DATA_PATH'] = doozer_data_path
+    if doozer_data_gitref:
+        params['DOOZER_DATA_GITREF'] = doozer_data_gitref
+
     return start_build(
         job_name=Jobs.BUILD_SYNC.value,
-        params={
-            'BUILD_VERSION': build_version,
-            'ASSEMBLY': assembly,
-            'DOOZER_DATA_PATH': doozer_data_path,
-            'DOOZER_DATA_GITREF': doozer_data_gitref
-        },
+        params=params,
         blocking=blocking
     )
 

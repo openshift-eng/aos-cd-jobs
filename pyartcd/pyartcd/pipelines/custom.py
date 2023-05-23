@@ -157,7 +157,7 @@ async def build_images(runtime: Runtime, version: str, data_path: str, data_gitr
     if image_mode == 'rebase':
         runtime.logger.info('Updating dist-git...')
         cmd = ['doozer', f'--working-dir={DOOZER_WORKING}', f'--data-path={data_path}', f'--group={group_param}',
-               '--latest-parent-version', include_exclude, f'images:rebase', f'--version=v{stream_version}',
+               '--latest-parent-version', include_exclude, 'images:rebase', f'--version=v{stream_version}',
                f'--release={release_version}', f'--repo-type={repo_type}',
                f"--message='Updating Dockerfile version and release {stream_version}-{release_version}'", '--push']
         await exectools.cmd_assert_async(cmd)

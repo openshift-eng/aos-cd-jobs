@@ -15,8 +15,6 @@ def click_coroutine(f):
     """ A wrapper to allow to use asyncio with click.
     https://github.com/pallets/click/issues/85
     """
-    f = asyncio.coroutine(f)
-
     def wrapper(*args, **kwargs):
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(f(*args, **kwargs))

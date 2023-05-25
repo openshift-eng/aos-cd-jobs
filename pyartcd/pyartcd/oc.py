@@ -42,7 +42,7 @@ async def registry_login(runtime: Runtime):
         raise
 
 
-def common_oc_wrapper(cmd_result_name: str, cli_verb: str, oc_args: List[str], check_status: bool = True, return_value: bool = False):
+def common_oc_wrapper(cmd_result_name: str, cli_verb: str, oc_args: List[str], check_status: bool = True, return_value: bool = False) -> (int, str):
     # cmd_result_name: Result obj name in log
     # cli_verb: first command group
     # oc_args: args list of command
@@ -66,26 +66,26 @@ def common_oc_wrapper(cmd_result_name: str, cli_verb: str, oc_args: List[str], c
         return r.status(), r.out().strip()
 
 
-def get_release_image_info_from_pullspec(pullspec: str):
+def get_release_image_info_from_pullspec(pullspec: str) -> (int, str):
     # oc image info --output=json <pullspec>
     cmd_args = ['info', "--output=json", pullspec]
     res, out = common_oc_wrapper("single_image_info", "image", cmd_args, True, True)
     return res, json.loads(out)
 
 
-def extract_release_binary(image_pullspec: str, path_args: List[str]):
+def extract_release_binary(image_pullspec: str, path_args: List[str]) -> (int, str):
     # oc image extract --confirm --only-files --path=/usr/bin/..:<workdir> <pullspec>
     cmd_args = ['extract', '--confirm', '--only-files'] + path_args + [image_pullspec]
     common_oc_wrapper("extract_image", "image", cmd_args, True, False)
 
 
-def get_release_image_pullspec(release_pullspec: str, image: str):
+def get_release_image_pullspec(release_pullspec: str, image: str) -> (int, str):
     # oc adm release info --image-for=<image> <pullspec>
     cmd_args = ['release', 'info', f'--image-for={image}', release_pullspec]
     return common_oc_wrapper("image_info_in_release", "adm", cmd_args, True, True)
 
 
-def extract_release_client_tools(release_pullspec: str, path_arg: str, single_arch: Optional[str] = None):
+def extract_release_client_tools(release_pullspec: str, path_arg: str, single_arch: Optional[str] = None) -> (int, str):
     # oc adm release extract --tools --command-os=* -n ocp --to=<workdir> --filter-by-os=<arch> --from <pullspec> --to <path>
     args = ["release", "extract", "--tools", "--command-os=*", "-n=ocp"]
     if single_arch:

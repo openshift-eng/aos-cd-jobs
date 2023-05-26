@@ -22,6 +22,8 @@ previous_packages = [
     "crun",
     "haproxy",
     "ignition",
+    "kernel",
+    "kernel-rt",
     "openshift",
     "openvswitch",
     "ovn",

@@ -14,7 +14,6 @@ from errata_tool import ErrataConnector
 from pyartcd import exectools, constants, jenkins
 
 logger = logging.getLogger(__name__)
-go_arches = ["amd64", "s390x", "ppc64le", "arm64", "multi"]
 
 
 def isolate_el_version_in_release(release: str) -> Optional[int]:
@@ -269,20 +268,6 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
 
     # Fallback to default
     return True
-
-
-def get_release_controller_arch(release_stream_name):
-    arch = 'amd64'
-    stream_name_components = release_stream_name.split('-')
-    for go_arch in go_arches:
-        if go_arch in stream_name_components:
-            arch = go_arch
-    return arch
-
-
-def get_release_controller_url(release_stream_name):
-    arch = get_release_controller_arch(release_stream_name)
-    return f"https://{arch}.ocp.releases.ci.openshift.org"
 
 
 def log_dir_tree(path_to_dir):

@@ -535,8 +535,7 @@ class PromotePipeline:
             with tarfile.open(f"{client_mirror_dir}/opm-{platform}-{release_name}.tar.gz", "w:gz") as tar:  # archive file
                 tar.add(f"{client_mirror_dir}/{binary}", arcname=binary)
             os.remove(f"{client_mirror_dir}/{binary}")  # remove opm binary
-            os.symlink(f"opm-{platform}-{release_name}.tar.gz", f"opm-{platform}.tar.gz")  # create symlink
-            shutil.move(f"opm-{platform}.tar.gz", f"{client_mirror_dir}/opm-{platform}.tar.gz")
+            os.symlink(f"opm-{platform}-{release_name}.tar.gz", f"{client_mirror_dir}/opm-{platform}.tar.gz")  # create symlink
             with open(f"{client_mirror_dir}/opm-{platform}-{release_name}.tar.gz", 'rb') as f:  # calc shasum
                 shasum = hashlib.sha256(f.read()).hexdigest()
             with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
@@ -599,8 +598,7 @@ class PromotePipeline:
                 if match:
                     new_name = match.group(1) + match.group(2) + '.' + match.group(4)
                     # Create a symlink like openshift-client-linux.tgz => openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz
-                    os.symlink(f, new_name)
-                    shutil.move(new_name, f"{path_to_dir}/{new_name}")
+                    os.symlink(f, f"{path_to_dir}/{new_name}")
 
         if log_tree:
             util.log_dir_tree(path_to_dir)  # print dir tree

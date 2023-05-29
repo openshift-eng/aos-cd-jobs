@@ -1,6 +1,5 @@
 #!/usr/bin/env groovy
 
-
 def messageSuccess(mirrorURL) {
     try {
         timeout(3) {

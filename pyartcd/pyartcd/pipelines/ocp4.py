@@ -760,6 +760,24 @@ class Ocp4Pipeline:
                 content=f'Check Jenkins console for details: {run_details.build_url}/console'
             )
 
+    def _report_success(self):
+        # Update description with build metrics
+        if self.runtime.dry_run or (not self.build_plan.build_rpms and not self.build_plan.build_images):
+            record_log = {}  # Nothing was actually built
+        else:
+            with open(f'{self._doozer_working}/record.log', 'r') as file:
+                record_log: dict = record_util.parse_record_log(file)
+        metrics = record_log.get('image_build_metrics', None)
+
+        if not metrics:
+            timing_report = 'No images actually built.'
+        else:
+            timing_report = f'Images built: {metrics[0]["task_count"]}\n' \
+                            f'Elapsed image build time: {metrics[0]["elapsed_total_minutes"]} minutes\n' \
+                            f'Time spent waiting for OSBS capacity: ${metrics[0]["elapsed_wait_minutes"]} minutes'
+
+        run_details.update_description(f'<hr />Build results:<br/><br/>{timing_report}')
+
     async def run(self):
         await self._initialize()
 
@@ -778,6 +796,7 @@ class Ocp4Pipeline:
         await self._sync_images()
         await self._mirror_rpms()
         await self._sweep()
+        self._report_success()
 
 
 @cli.command("ocp4",

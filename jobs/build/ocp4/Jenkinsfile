@@ -2,8 +2,8 @@
 
 node {
     checkout scm
-    def joblib = load("build.groovy")
-    def commonlib = joblib.commonlib
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
 
     commonlib.describeJob("ocp4", """
@@ -186,8 +186,7 @@ node {
                     error('manually breaking the build')
                 }
             }
-
-        stage("report success") { joblib.stageReportSuccess() }
+        }
 
     } catch (err) {
         if (params.MAIL_LIST_FAILURE.trim()) {

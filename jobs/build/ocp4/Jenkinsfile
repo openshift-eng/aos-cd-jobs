@@ -171,7 +171,8 @@ node {
                                     string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
                                     string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                                     string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
-                                    string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')
+                                    string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
                                 ]) {
                             withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                                 sh(script: cmd.join(' '), returnStdout: true)
@@ -181,13 +182,8 @@ node {
 
                     error('manually breaking the build')
                 }
-
-                stage("build images") {
-                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-                            joblib.stageBuildImages()
-                    }
-                }
             }
+
             stage("sync images") {
                 if (buildlib.allImagebuildfailed) { return }
                 joblib.stageSyncImages()

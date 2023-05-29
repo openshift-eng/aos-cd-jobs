@@ -11,9 +11,8 @@ import yaml
 from doozerlib import assembly, model, util as doozerutil
 from errata_tool import ErrataConnector
 
-from pyartcd import exectools, constants, jenkins
+from pyartcd import exectools, constants, jenkins, record
 from pyartcd.mail import MailService
-from pyartcd.record import parse_record_log
 
 logger = logging.getLogger(__name__)
 
@@ -323,54 +322,6 @@ def default_release_suffix():
     return f'{datetime.strftime(datetime.now(), "%Y%m%d%H")}.p?'
 
 
-def get_distgit_notify(record_log: dict) -> dict:
-    """
-    gets map of emails to notify from output of parse_record_log map formatted as below:
-
-    rpms/jenkins-slave-maven-rhel7-docker
-      source_alias: [source_alias map]
-      image: openshift3/jenkins-slave-maven-rhel7
-      dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
-      owners: bparees@redhat.com
-      distgit: rpms/jenkins-slave-maven-rhel7-docker
-      sha: 1b8903ef72878cd895b3f94bee1c6f5d60ce95c3    (NOT PRESENT ON FAILURE)
-      failure: ....error description....      (ONLY PRESENT ON FAILURE)
-    """
-
-    result = {}
-
-    # It's possible there were no commits or no one specified to notify
-    if not record_log.get('distgit_commit', None):  # or not record_log.get('dockerfile_notify', None):
-        return result
-
-    source = record_log.get('source_alias', [])
-    commit = record_log.get('distgit_commit', [])
-    failure = record_log.get('distgit_commit_failure', [])
-    notify = record_log.get('dockerfile_notify', [])
-
-    # will use source alias to look up where Dockerfile came from
-    source_alias = {}
-    for i in range(len(source)):
-        source_alias[source[i]['alias']] = source[i]
-
-    # get notification emails by distgit name
-    for i in range(len(notify)):
-        notify[i]['source_alias'] = source_alias.get(notify[i].source_alias, {})
-        result[notify[i]['distgit']] = notify[i]
-
-    # match commit hash with notify email record
-    for i in range(len(commit)):
-        if result.get(commit[i]['distgit'], None):
-            result[commit[i]['distgit']]['sha'] = commit[i]['sha']
-
-    # OR see if the notification is for a merge failure
-    for i in range(len(failure)):
-        if result.get(failure[i]['distgit'], None):
-            result[failure[i]['distgit']]['failure'] = failure[i]['message']
-
-    return result
-
-
 def dockerfile_url_for(url, branch, sub_path) -> str:
     if not url or not branch:
         return ''
@@ -389,9 +340,9 @@ def notify_dockerfile_reconciliations(version: str, doozer_working: str, mail_cl
     """
 
     with open(Path(doozer_working) / "record.log", "r") as file:
-        record_log: dict = parse_record_log(file)
+        record_log: dict = record.parse_record_log(file)
 
-    distgit_notify = get_distgit_notify(record_log)
+    distgit_notify = record.get_distgit_notify(record_log)
 
     # Convert the dict to a list of tuples
     distgit_notify = [(key, value) for key, value in distgit_notify.items()]
@@ -472,7 +423,7 @@ Please direct any questions to the Automated Release Tooling team (#aos-art on s
 
 def notify_bz_info_missing(version: str, doozer_working: str, mail_client: MailService):
     with open(Path(doozer_working) / "record.log", "r") as file:
-        record_log: dict = parse_record_log(file)
+        record_log: dict = record.parse_record_log(file)
 
     bz_notify_entries = record_log.get('bz_maintainer_notify', [])
     for bz_notify in bz_notify_entries:
@@ -513,5 +464,79 @@ Thanks for your help!\n"""
         mail_client.send_mail(
             to=owners,
             subject=email_subject,
+            content=explanation_body
+        )
+
+
+def mail_build_failure_owners(failed_builds: dict, doozer_working: str, mail_client: MailService, default_owner: str):
+    """
+     Send email to owners of failed image builds.
+
+
+     :param failed_builds: map of records as below (all values strings)
+
+     presto:
+         status: -1
+         push_status: 0
+         distgit: presto
+         image: openshift/ose-presto
+         owners: sd-operator-metering@redhat.com,czibolsk@redhat.com
+         version: v4.0.6
+         release: 1
+         dir: doozer_working/distgits/containers/presto
+         dockerfile: doozer_working/distgits/containers/presto/Dockerfile
+         task_id: 20415814
+         task_url: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=20415814
+         message: "Exception occurred: ;;; Traceback (most recent call last): [...]"
+
+    :param doozer_working: path to Doozer working directory
+
+    :param mail_client: MailService instance
+
+    :param return_address: replies to the email will go to this
+
+    :param default_owner: if no owner is listed, send build failure email to this
+    """
+
+    for failure in failed_builds.values():
+        if failure['status'] == '0':
+            continue
+
+        container_log = """
+--------------------------------------------------------------------------
+The following logs are just the container build portion of the OSBS build:
+--------------------------------------------------------------------------\n"""
+        container_log_file = f'{doozer_working}/brew-logs/{failure["distgit"]}/' \
+                             f'noarch-{failure["task_id"]}/container-build-x86_64.log'
+
+        try:
+            with open(container_log_file) as f:
+                container_log += f.read()
+
+        except:
+            container_log = "Unfortunately there were no container build logs; " \
+                            "something else about the build failed."
+            logger.warning('No container build log for failed %s build\n'
+                           '(task url %s)\n'
+                           'at path %s',
+                           failure['distgit'], failure['task_url'], container_log)
+
+        explanation_body = f"ART's brew/OSBS build of OCP image {failure['image']}:{failure['version']} has failed.\n\n"
+        if failure['owners']:
+            explanation_body += "This email is addressed to the owner(s) of this image per ART's build configuration."
+        else:
+            explanation_body += 'There is no owner listed for this build (you may want to add one).'
+        explanation_body += '\n\n'
+        explanation_body += "Builds may fail for many reasons, some under owner control, some under ART's control, " \
+                            "and some in the domain of other groups. This message is only sent when the build fails " \
+                            "consistently, so it is unlikely this failure will resolve itself without intervention.\n\n"
+        explanation_body += f'The brew build task {failure["task_url"]} failed with error message:\n' \
+                            f'{failure["message"]}\n' \
+                            f'{container_log}'
+
+        mail_client.send_mail(
+            to=['aos-art-automation+failed-ocp-build@redhat.com',
+                failure['owners'] if failure['owners'] else default_owner],
+            subject=f'Failed OCP build of {failure["image"]}:{failure["version"]}',
             content=explanation_body
         )

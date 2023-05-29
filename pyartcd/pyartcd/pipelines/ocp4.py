@@ -7,7 +7,7 @@ import click
 import yaml
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets, exectools, constants, run_details, jenkins
+from pyartcd import locks, util, plashets, exectools, constants, run_details, jenkins, release, record, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
@@ -126,8 +126,8 @@ class RpmMirror:
 
 
 class Ocp4Pipeline:
-    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str,
-                 force: bool, build_rpms: str, rpm_list: str, build_images: str, image_list: str):
+    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, force: bool, build_rpms: str,
+                 rpm_list: str, build_images: str, image_list: str, mail_list_failure):
 
         self.runtime = runtime
         self.assembly = assembly
@@ -136,12 +136,14 @@ class Ocp4Pipeline:
         self.rpm_list = rpm_list
         self.build_images = build_images
         self.image_list = image_list
+        self.mail_list_failure = mail_list_failure
 
         self.build_plan = BuildPlan()
         self.version = Version()
         self.version.stream = version
         self.rpm_mirror = RpmMirror()  # will be filled in later by build-compose stage
         self.rpm_mirror.url = f'{constants.MIRROR_BASE_URL}/enterprise/enterprise/{self.version.stream}'
+        self.all_image_build_failed = False
 
         self._doozer_working = os.path.abspath(f'{self.runtime.working_dir / "doozer_working"}')
         self.data_path = data_path
@@ -611,6 +613,118 @@ class Ocp4Pipeline:
             mail_client=self._mail_client
         )
 
+    async def _mass_rebuild(self, doozer_cmd: list):
+        lock_policy = locks.LOCK_POLICY['mass_rebuild']
+        lock_manager = locks.new_lock_manager(
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
+
+        # Try to acquire olm-bundle lock for build version
+        lock_name = f'mass-rebuild-{self.version.stream}'
+        try:
+            async with await lock_manager.lock(lock_name):
+                self.runtime.logger.info('Running command: %s', doozer_cmd)
+                await exectools.cmd_assert_async(doozer_cmd)
+
+        except LockError as e:
+            self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+            raise
+
+        finally:
+            await lock_manager.destroy()
+
+    def _handle_image_build_failures(self):
+        with open(f'{self._doozer_working}/record.log', 'r') as file:
+            record_log: dict = record.parse_record_log(file)
+
+        failed_map = record.get_failed_builds(record_log, full_record=True)
+        if not failed_map:
+            # failed so badly we don't know what failed; give up
+            raise
+
+        failed_images = list(failed_map.keys())
+        run_details.update_status('UNSTABLE')
+        run_details.update_description(f'Failed images: f{", ".join(failed_images)}<br/>')
+        self.runtime.logger.warning('Failed images: %s', ', '.join(failed_images))
+
+        ratio = record.determine_build_failure_ratio(record_log)
+        if ratio['failed'] == ratio['total']:
+            self.all_image_build_failed = True
+            failed_messages = ''
+            for i in range(len(failed_images)):
+                failed_messages += f"{failed_images[i]}:{failed_map[failed_images[i]]['task_url']}\n"
+
+        if (ratio['total'] > 10 and ratio['ratio'] > 0.25) or \
+                (ratio['ratio'] > 1 and ratio['failed'] == ratio['total']):
+            self.runtime.logger.warning("%s of %s image builds failed; probably not the owners' fault, "
+                                        "will not spam", {ratio['failed']}, {ratio['total']})
+
+        else:
+            util.mail_build_failure_owners(
+                failed_builds=failed_map,
+                doozer_working=self._doozer_working,
+                mail_client=self._mail_client,
+                default_owner=self.mail_list_failure
+            )
+
+    async def _build_images(self):
+        if not self.build_plan.build_images:
+            self.runtime.logger.info('Not building images.')
+            return
+
+        # If any arch is GA, use signed for everything. See _build_compose() for details.
+        arch_release_state = release.ocp_release_state[self.version.stream]
+        signing_mode = 'signed' if arch_release_state['release'] else 'unsigned'
+
+        # If build plan includes more than half or excludes less than half or rebuilds everything, it's a mass rebuild
+        include_count = len(self.build_plan.images_included)
+        exclude_count = len(self.build_plan.images_excluded)
+        mass_rebuild = \
+            (include_count and self.build_plan.active_image_count < include_count * 2) or \
+            (exclude_count and self.build_plan.active_image_count > exclude_count * 2) or \
+            (not include_count and not exclude_count)
+
+        # Doozer command
+        cmd = self._doozer_base_command.copy()
+        cmd.extend(self._include_exclude('images', self.build_plan.images_included, self.build_plan.images_excluded))
+        cmd.extend(['images:build', '--repo-type', signing_mode])
+
+        if self.runtime.dry_run:
+            self.runtime.logger.info('Would have executed: %s', ' '.join(cmd))
+            return
+
+        # Build images. If more than one version is undergoing mass rebuilds,
+        # serialize them to prevent flooding the queue
+        try:
+            if mass_rebuild:
+                run_details.update_description(
+                    '"Mass image rebuild (more than half) - invoking serializing semaphore<br/>')
+                await self._mass_rebuild(cmd)
+            else:
+                await exectools.cmd_assert_async(cmd)
+
+        except ChildProcessError as e:
+            self._handle_image_build_failures()
+
+        # If the API server builds, we mirror out the streams to CI. If ART builds a bad golang builder image it will
+        # break CI builds for most upstream components if we don't catch it before we push. So we use apiserver as
+        # bellweather to make sure that the current builder image is good enough. We can still break CI (e.g. pushing a
+        # bad ruby-25 image along with this push, but it will not be a catastrophic event like breaking the apiserver.
+        with open(f'{self._doozer_working}/record.log', 'r') as file:
+            record_log: dict = record.parse_record_log(file)
+
+        success_map = record.get_successful_builds(record_log, full_record=True)
+        if success_map.get('ose-openshift-apiserver', None):
+            self.runtime.logger.warning('apiserver rebuilt: mirroring streams to CI...')
+
+            # Make sure our api.ci token is fresh
+            await oc.registry_login(self.runtime)
+            cmd = self._doozer_base_command.copy()
+            cmd.extend(['images:streams', 'mirror'])
+            await exectools.cmd_assert_async(cmd)
+
     async def run(self):
         await self._initialize()
 
@@ -625,6 +739,7 @@ class Ocp4Pipeline:
         await self._build_rpms()
         await self._build_compose()
         await self._update_distgit()
+        await self._build_images()
 
 
 @cli.command("ocp4",
@@ -649,10 +764,12 @@ class Ocp4Pipeline:
 @click.option('--image-list', required=False, default='',
               help='(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES '
                    '(e.g. logging-kibana5,openshift-jenkins-2)')
+@click.option('--mail-list-failure', required=False, default='aos-art-automation+failed-ocp4-build@redhat.com',
+              help='Failure Mailing List')
 @pass_runtime
 @click_coroutine
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, force: bool, build_rpms: str,
-               rpm_list: str, build_images: str, image_list: str):
+               rpm_list: str, build_images: str, image_list: str, mail_list_failure):
 
     if not await util.is_build_permitted(version):
         run_details.update_description('Builds not permitted', append=False)
@@ -668,5 +785,6 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, fo
         rpm_list=rpm_list,
         build_images=build_images,
         image_list=image_list,
+        mail_list_failure=mail_list_failure,
     )
     await pipeline.run()

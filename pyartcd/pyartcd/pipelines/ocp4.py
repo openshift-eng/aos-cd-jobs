@@ -14,64 +14,6 @@ from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
 
 
-@cli.command("ocp4:mirror-rpms",
-             help="Copy the plashet created earlier out to the openshift mirrors"
-                  "This allows QE to easily find the RPMs we used in the creation of the images."
-                  "These RPMs may be required for bare metal installs")
-@click.option('--version', required=True, help='Full OCP version, e.g. 4.14-202304181947.p?')
-@click.option('--assembly', required=True, help='Assembly name')
-@click.option('--local-plashet-path', required=False, default='', help='Local path to built plashet')
-@pass_runtime
-@click_coroutine
-async def mirror_rpms(runtime: Runtime, version: str, assembly: str, local_plashet_path: str):
-    if assembly != 'stream':
-        runtime.logger.info('No need to mirror rpms for non-stream assembly')
-        return
-
-    if not local_plashet_path:
-        runtime.logger.info('No updated RPMs to mirror.')
-        return
-
-    stream_version = version.split('-')[0]  # e.g. 4.14 from 4.14-202304181947.p?
-    s3_base_dir = f'/enterprise/enterprise-{stream_version}'
-
-    # Create a Lock manager instance
-    lock_policy = locks.LOCK_POLICY['mirroring_rpms']
-    lock_manager = locks.new_lock_manager(
-        internal_lock_timeout=lock_policy['lock_timeout'],
-        retry_count=lock_policy['retry_count'],
-        retry_delay_min=lock_policy['retry_delay_min']
-    )
-    lock_name = f'mirroring-rpms-lock-{stream_version}'
-
-    # Sync plashets to mirror
-    try:
-        async with await lock_manager.lock(lock_name):
-            s3_path = f'{s3_base_dir}/latest/'
-            await sync_repo_to_s3_mirror(local_plashet_path, s3_path, runtime.dry_run)
-
-            s3_path = f'/enterprise/all/{stream_version}/latest/'
-            await sync_repo_to_s3_mirror(local_plashet_path, s3_path, runtime.dry_run)
-
-        runtime.logger.info('Finished mirroring OCP %s to openshift mirrors', version)
-
-    except ChildProcessError as e:
-        error_msg = f'Failed syncing {local_plashet_path} repo to art-srv-enterprise S3: {e}',
-        runtime.logger.error(error_msg)
-        runtime.logger.error(traceback.format_exc())
-        slack_client = runtime.new_slack_client()
-        slack_client.bind_channel(f'openshift-{stream_version}')
-        await slack_client.say(error_msg)
-        raise
-
-    except LockError as e:
-        runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
-        raise
-
-    finally:
-        await lock_manager.destroy()
-
-
 class BuildPlan:
     def __init__(self):
         self.active_image_count = 1  # number of images active in this version
@@ -734,6 +676,62 @@ class Ocp4Pipeline:
             doozer_data_path=self.data_path
         )
 
+    async def _mirror_rpms(self):
+        if self.assembly != 'stream':
+            self.runtime.logger.info('No need to mirror rpms for non-stream assembly')
+            return
+
+        if not self.rpm_mirror.local_plashet_path:
+            self.runtime.logger.info('No updated RPMs to mirror.')
+            return
+
+        s3_base_dir = f'/enterprise/enterprise-{self.version.stream}'
+
+        # Create a Lock manager instance
+        lock_policy = locks.LOCK_POLICY['mirroring_rpms']
+        lock_manager = locks.new_lock_manager(
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
+        lock_name = f'mirroring-rpms-lock-{self.version.stream}'
+
+        # Sync plashets to mirror
+        try:
+            async with await lock_manager.lock(lock_name):
+                s3_path = f'{s3_base_dir}/latest/'
+                await sync_repo_to_s3_mirror(
+                    local_dir=self.rpm_mirror.local_plashet_path,
+                    s3_path=s3_path,
+                    dry_run=self.runtime.dry_run
+                )
+
+                s3_path = f'/enterprise/all/{self.version.stream}/latest/'
+                await sync_repo_to_s3_mirror(
+                    local_dir=self.rpm_mirror.local_plashet_path,
+                    s3_path=s3_path,
+                    dry_run=self.runtime.dry_run
+                )
+
+            self.runtime.logger.info('Finished mirroring OCP %s to openshift mirrors',
+                                     f'{self.version.stream}-{self.version.release}')
+
+        except ChildProcessError as e:
+            error_msg = f'Failed syncing {self.rpm_mirror.local_plashet_path} repo to art-srv-enterprise S3: {e}',
+            self.runtime.logger.error(error_msg)
+            self.runtime.logger.error(traceback.format_exc())
+            slack_client = self.runtime.new_slack_client()
+            slack_client.bind_channel(f'openshift-{self.version.stream}')
+            await slack_client.say(error_msg)
+            raise
+
+        except LockError as e:
+            self.runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+            raise
+
+        finally:
+            await lock_manager.destroy()
+
     async def _sweep(self):
         if self.all_image_build_failed:
             self.runtime.logger.warning('All image builds failed: skipping sweep')
@@ -778,6 +776,7 @@ class Ocp4Pipeline:
         await self._update_distgit()
         await self._build_images()
         await self._sync_images()
+        await self._mirror_rpms()
         await self._sweep()
 
 

@@ -33,7 +33,9 @@ async def sync_repo_to_s3_mirror(local_dir: str, s3_path: str, dry_run: bool = F
     cmd = base_cmd + [
         '--exclude', '*', '--include', '*/repomd.xml', local_dir, full_s3_path
     ]
-    await exectools.cmd_assert_async(cmd, env=env)
+
+    # aws s3 sync has been observed to hang before: retry for max 3 times
+    await exectools.retry_async(cmd, max_retries=3, env=env)
 
     # For most repos, clean up the old rpms so they don't grow unbounded. Specify remove_old=false to prevent this step.
     # Otherwise:
@@ -42,4 +44,6 @@ async def sync_repo_to_s3_mirror(local_dir: str, s3_path: str, dry_run: bool = F
         cmd = base_cmd + [
             '--delete', local_dir, full_s3_path
         ]
-        await exectools.cmd_assert_async(cmd, env=env)
+
+        # aws s3 sync has been observed to hang before: retry for max 3 times
+        await exectools.retry_async(cmd, max_retries=3, env=env)

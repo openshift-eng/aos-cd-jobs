@@ -548,7 +548,7 @@ class Ocp4Pipeline:
             retry_delay_min=lock_policy['retry_delay_min']
         )
 
-        # Try to acquire olm-bundle lock for build version
+        # Try to acquire mass-rebuild lock for build version
         lock_name = f'mass-rebuild-{self.version.stream}'
         try:
             async with await lock_manager.lock(lock_name):
@@ -666,7 +666,7 @@ class Ocp4Pipeline:
         operator_nvrs = []
 
         for record in records:
-            if record['has_olm_bundle'] != '1' or record['status'] != '0' or not record.get('nvrs', None):
+            if record['has_olm_bundle'] == '1' and record['status'] == '0' and record.get('nvrs', None):
                 operator_nvrs.append(record['nvrs'].split(',')[0])
 
         await util.sync_images(

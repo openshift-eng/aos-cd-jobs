@@ -182,8 +182,6 @@ node {
                             }
                         }
                     }
-
-                    error('manually breaking the build')
                 }
             }
         }

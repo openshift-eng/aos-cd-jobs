@@ -7,7 +7,7 @@ import click
 import yaml
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets, exectools, constants, run_details, jenkins, release, record, oc
+from pyartcd import locks, util, plashets, exectools, constants, run_details, jenkins, release, record as record_util, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
@@ -637,9 +637,9 @@ class Ocp4Pipeline:
 
     def _handle_image_build_failures(self):
         with open(f'{self._doozer_working}/record.log', 'r') as file:
-            record_log: dict = record.parse_record_log(file)
+            record_log: dict = record_util.parse_record_log(file)
 
-        failed_map = record.get_failed_builds(record_log, full_record=True)
+        failed_map = record_util.get_failed_builds(record_log, full_record=True)
         if not failed_map:
             # failed so badly we don't know what failed; give up
             raise
@@ -649,7 +649,7 @@ class Ocp4Pipeline:
         run_details.update_description(f'Failed images: f{", ".join(failed_images)}<br/>')
         self.runtime.logger.warning('Failed images: %s', ', '.join(failed_images))
 
-        ratio = record.determine_build_failure_ratio(record_log)
+        ratio = record_util.determine_build_failure_ratio(record_log)
         if ratio['failed'] == ratio['total']:
             self.all_image_build_failed = True
             failed_messages = ''
@@ -713,9 +713,9 @@ class Ocp4Pipeline:
         # bellweather to make sure that the current builder image is good enough. We can still break CI (e.g. pushing a
         # bad ruby-25 image along with this push, but it will not be a catastrophic event like breaking the apiserver.
         with open(f'{self._doozer_working}/record.log', 'r') as file:
-            record_log: dict = record.parse_record_log(file)
+            record_log: dict = record_util.parse_record_log(file)
 
-        success_map = record.get_successful_builds(record_log, full_record=True)
+        success_map = record_util.get_successful_builds(record_log, full_record=True)
         if success_map.get('ose-openshift-apiserver', None):
             self.runtime.logger.warning('apiserver rebuilt: mirroring streams to CI...')
 
@@ -724,6 +724,30 @@ class Ocp4Pipeline:
             cmd = self._doozer_base_command.copy()
             cmd.extend(['images:streams', 'mirror'])
             await exectools.cmd_assert_async(cmd)
+
+    async def _sync_images(self):
+        if not self.build_plan.build_images:
+            self.runtime.logger.info('No built images to sync.')
+            return
+
+        self.runtime.logger.info(f'Syncing built images')
+
+        with open(f'{self._doozer_working}/record.log', 'r') as file:
+            record_log: dict = record_util.parse_record_log(file)
+
+        records = record_log.get('build', [])
+        operator_nvrs = []
+
+        for record in records:
+            if record['has_olm_bundle'] != '1' or record['status'] != '0' or not record.get('nvrs', None):
+                operator_nvrs.append(record['nvrs'].split(',')[0])
+
+        await util.sync_images(
+            version=self.version.stream,
+            assembly=self.assembly,
+            operator_nvrs=operator_nvrs,
+            doozer_data_path=self.data_path
+        )
 
     async def run(self):
         await self._initialize()
@@ -740,6 +764,7 @@ class Ocp4Pipeline:
         await self._build_compose()
         await self._update_distgit()
         await self._build_images()
+        await self._sync_images()
 
 
 @cli.command("ocp4",

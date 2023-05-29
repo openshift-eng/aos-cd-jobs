@@ -184,10 +184,6 @@ node {
                 }
             }
 
-            stage("sync images") {
-                if (buildlib.allImagebuildfailed) { return }
-                joblib.stageSyncImages()
-            }
             stage("mirror RPMs") {
                 sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
 

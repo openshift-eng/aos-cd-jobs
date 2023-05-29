@@ -7,7 +7,8 @@ import click
 import yaml
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets, exectools, constants, run_details, jenkins, release, record as record_util, oc
+from pyartcd import locks, util, plashets, exectools, constants,\
+    run_details, jenkins, release, record as record_util, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
@@ -69,22 +70,6 @@ async def mirror_rpms(runtime: Runtime, version: str, assembly: str, local_plash
 
     finally:
         await lock_manager.destroy()
-
-
-@cli.command("ocp4:sweep", help="Move bugs that are in state `MODIFIED` to `ON_QA`.")
-@click.option('--version', required=True, help='Full OCP version, e.g. 4.14-202304181947.p?')
-@pass_runtime
-@click_coroutine
-async def sweep(runtime: Runtime, version: str):
-    cmd = [
-        'elliott',
-        f'--group=openshift-{version}',
-        "find-bugs:qe"
-    ]
-    if runtime.dry_run:
-        cmd.append('--dry-run')
-
-    await exectools.cmd_assert_async(cmd)
 
 
 class BuildPlan:
@@ -705,7 +690,7 @@ class Ocp4Pipeline:
             else:
                 await exectools.cmd_assert_async(cmd)
 
-        except ChildProcessError as e:
+        except ChildProcessError:
             self._handle_image_build_failures()
 
         # If the API server builds, we mirror out the streams to CI. If ART builds a bad golang builder image it will
@@ -749,6 +734,34 @@ class Ocp4Pipeline:
             doozer_data_path=self.data_path
         )
 
+    async def _sweep(self):
+        if self.all_image_build_failed:
+            self.runtime.logger.warning('All image builds failed: skipping sweep')
+            return
+
+        cmd = [
+            'elliott',
+            f'--group=openshift-{self.version.stream}',
+            "find-bugs:qe"
+        ]
+        if self.runtime.dry_run:
+            cmd.append('--dry-run')
+
+        try:
+            await exectools.cmd_assert_async(cmd)
+
+        except ChildProcessError:
+            run_details.update_status('UNSTABLE')
+
+            if self.runtime.dry_run:
+                return
+
+            self._mail_client.send_mail(
+                to='aos-art-automation+failed-sweep@redhat.com',
+                subject=f'Problem sweeping after {run_details.build_url}',
+                content=f'Check Jenkins console for details: {run_details.build_url}/console'
+            )
+
     async def run(self):
         await self._initialize()
 
@@ -765,6 +778,7 @@ class Ocp4Pipeline:
         await self._update_distgit()
         await self._build_images()
         await self._sync_images()
+        await self._sweep()
 
 
 @cli.command("ocp4",

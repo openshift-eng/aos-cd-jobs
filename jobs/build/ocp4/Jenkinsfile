@@ -172,7 +172,8 @@ node {
                                     string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                                     string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
                                     string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
-                                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
+                                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')
                                 ]) {
                             withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
                                 sh(script: cmd.join(' '), returnStdout: true)
@@ -218,43 +219,6 @@ node {
                     }
                 }
             }
-
-            stage("sweep") {
-                if (buildlib.allImagebuildfailed) { return }
-
-                cmd = [
-                    "artcd",
-                    "-v",
-                    "--working-dir=./artcd_working",
-                    "--config=./config/artcd.toml",
-                ]
-                if (params.DRY_RUN) {
-                    cmd << "--dry-run"
-                }
-                cmd += [
-                    "ocp4:sweep",
-                    "--version=${version.stream}"
-                ]
-
-                try {
-                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                        sh(script: cmd.join(' '), returnStdout: true)
-                    }
-                } catch (err) {
-                    currentBuild.result = 'UNSTABLE'
-                    if (dry_run) {
-                        return
-                    }
-                    commonlib.email(
-                        replyTo: 'aos-team-art@redhat.com',
-                        to: 'aos-art-automation+failed-sweep@redhat.com',
-                        from: 'aos-art-automation@redhat.com',
-                        subject: "Problem sweeping after ${currentBuild.displayName}",
-                        body: "Jenkins console: ${commonlib.buildURL('console')}",
-                    )
-                }
-            }
-        }
 
         stage("report success") { joblib.stageReportSuccess() }
 

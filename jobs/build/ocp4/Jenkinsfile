@@ -212,12 +212,11 @@ View the build artifacts and console output on Jenkins:
     } finally {
         commonlib.compressBrewLogs()
         commonlib.safeArchiveArtifacts([
-            "doozer_working/*.log",
-            "doozer_working/brew-logs.tar.bz2",
-            "doozer_working/*.yaml",
-            "doozer_working/*.yml",
+            "artcd_working/doozer_working/*.log",
+            "artcd_working/doozer_working/brew-logs.tar.bz2",
+            "artcd_working/doozer_working/*.yaml",
+            "artcd_working/doozer_working/*.yml",
         ])
-        buildlib.cleanWorkdir(joblib.doozerWorking)
         buildlib.cleanWorkspace()
     }
 }

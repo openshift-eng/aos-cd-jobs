@@ -82,6 +82,7 @@ class Ocp4Pipeline:
             f'--group=openshift-{version}'
         ]
 
+        self._slack_client = runtime.new_slack_client()
         self._mail_client = self.runtime.new_mail_client()
 
     async def _check_assembly(self):
@@ -152,11 +153,11 @@ class Ocp4Pipeline:
 
         elif self.build_rpms.lower() == 'only':
             assert self.rpm_list, 'A list of RPMs must be specified when "only" is selected'
-            self.build_plan.rpms_included = self.rpm_list.split(',')
+            self.build_plan.rpms_included = [rpm.strip() for rpm in self.rpm_list.split(',')]
 
         elif self.build_rpms.lower() == 'except':
             assert self.rpm_list, 'A list of RPMs must be specified when "except" is selected'
-            self.build_plan.rpms_excluded = self.rpm_list.split(',')
+            self.build_plan.rpms_excluded = [rpm.strip() for rpm in self.rpm_list.split(',')]
 
         # build_plan.build_images, build_plan.images_included, build_plan.images_excluded
         self.build_plan.build_images = True
@@ -170,11 +171,11 @@ class Ocp4Pipeline:
 
         elif self.build_images.lower() == 'only':
             assert self.image_list, 'A list of images must be specified when "only" is selected'
-            self.build_plan.images_included = self.image_list.split(',')
+            self.build_plan.images_included = [image.strip() for image in self.image_list.split(',')]
 
         elif self.build_images.lower() == 'except':
             assert self.image_list, 'A list of images must be specified when "except" is selected'
-            self.build_plan.images_excluded = self.image_list.split(',')
+            self.build_plan.images_excluded = [image.strip() for image in self.image_list.split(',')]
 
         self.runtime.logger.info('Initial build plan:\n%s', self.build_plan)
 
@@ -295,15 +296,18 @@ class Ocp4Pipeline:
         --latest-parent-version only applies for images but won't hurt for RPMs
         """
 
+        if kind not in ['rpms', 'images']:
+            raise ValueError('Kind must be one in ["rpms", "images"]')
+
         if includes:
             return ['--latest-parent-version', f'--{kind}', ','.join(includes)]
 
         if excludes:
-            return ['--latest-parent-version', f'--{kind}=', '--exclude', ','.join(excludes)]
+            return ['--latest-parent-version', f"--{kind}=''", '--exclude', ','.join(excludes)]
 
         return [f'--{kind}=']
 
-    def _check_changed_images(self, changes: dict):
+    async def _check_changed_images(self, changes: dict):
         # Check changed images
         if not self.build_plan.build_images:
             self._report('Images: not building.')
@@ -317,6 +321,15 @@ class Ocp4Pipeline:
             return
 
         self._report(f'Found {len(changed_images)} image(s) with changes:\n{",".join(changed_images)}')
+
+        # also determine child images of changed
+        changed_children = await self._check_changed_child_images(changes)
+
+        # Update build plan
+        self.build_plan.images_included = changed_images + \
+                                          [child for child in changed_children if child not in changed_images]
+        self.build_plan.images_excluded.clear()
+        run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
 
     def _gather_children(self, all_images: list, data: dict, initial: list, gather: bool):
         """
@@ -336,8 +349,7 @@ class Ocp4Pipeline:
             # scan children recursively
             self._gather_children(all_images, children, initial, gather_this)
 
-    async def _check_changed_child_images(self, changes: dict):
-        # also determine child images of changed
+    async def _check_changed_child_images(self, changes: dict) -> list:
         cmd = self._doozer_base_command.copy()
         cmd.extend(self._include_exclude('images', self.build_plan.images_included, self.build_plan.images_excluded))
         cmd.extend([
@@ -356,16 +368,13 @@ class Ocp4Pipeline:
             gather=False
         )
         changed_children = [image for image in children if image not in changes['images']]
-        self.runtime.logger.info('Found children: %s', children)
 
         if changed_children:
             self._report(f'Images: also building {len(changed_children)} child(ren):\n {", ".join(changed_children)}')
         else:
             self.runtime.logger.info('No changed children found')
 
-        self.build_plan.images_included = children
-        self.build_plan.images_excluded.clear()
-        run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
+        return changed_children
 
     async def _plan_builds(self):
         """
@@ -378,8 +387,7 @@ class Ocp4Pipeline:
         run_details.update_description('Building sources that have changed.<br/>')
         changes = await self._get_changes()
         self._check_changed_rpms(changes)
-        self._check_changed_images(changes)
-        await self._check_changed_child_images(changes)
+        await self._check_changed_images(changes)
         self.runtime.logger.info('Updated build plan:\n%s', self.build_plan)
 
     @staticmethod
@@ -431,9 +439,8 @@ class Ocp4Pipeline:
 
         if automation_state == 'scheduled' and self.build_plan.build_rpms:
             # Send a Slack notification since we're running compose build during automation freeze
-            slack_client = self.runtime.new_slack_client()
-            slack_client.bind_channel(f'openshift-{self.version.stream}')
-            await slack_client.say(
+            self._slack_client.bind_channel(f'openshift-{self.version.stream}')
+            await self._slack_client.say(
                 "*:alert: ocp4 build compose running during automation freeze*\n"
                 "There were RPMs in the build plan that forced build compose during automation freeze."
             )
@@ -484,9 +491,8 @@ class Ocp4Pipeline:
             error_msg = f'Failed building compose: {e}'
             self.runtime.logger.error(error_msg)
             self.runtime.logger.error(traceback.format_exc())
-            slack_client = self.runtime.new_slack_client()
-            slack_client.bind_channel(f'openshift-{self.version.stream}')
-            await slack_client.say(error_msg)
+            self._slack_client.bind_channel(f'openshift-{self.version.stream}')
+            await self._slack_client.say(error_msg)
             raise
 
         except LockError as e:
@@ -516,7 +522,7 @@ class Ocp4Pipeline:
         cmd.extend(self._include_exclude('images', self.build_plan.images_included, self.build_plan.images_excluded))
         cmd.extend([
             'images:rebase', f'--version=v{self.version.stream}', f'--release={self.version.release}',
-            f"--message='Updating Dockerfile version and release v${self.version.stream}-${self.version.release}'",
+            f"--message='Updating Dockerfile version and release v{self.version.stream}-{self.version.release}'",
             '--push', f"--message='{os.environ['BUILD_URL']}'"
         ])
 
@@ -720,9 +726,8 @@ class Ocp4Pipeline:
             error_msg = f'Failed syncing {self.rpm_mirror.local_plashet_path} repo to art-srv-enterprise S3: {e}',
             self.runtime.logger.error(error_msg)
             self.runtime.logger.error(traceback.format_exc())
-            slack_client = self.runtime.new_slack_client()
-            slack_client.bind_channel(f'openshift-{self.version.stream}')
-            await slack_client.say(error_msg)
+            self._slack_client.bind_channel(f'openshift-{self.version.stream}')
+            await self._slack_client.say(error_msg)
             raise
 
         except LockError as e:
@@ -774,7 +779,7 @@ class Ocp4Pipeline:
         else:
             timing_report = f'Images built: {metrics[0]["task_count"]}\n' \
                             f'Elapsed image build time: {metrics[0]["elapsed_total_minutes"]} minutes\n' \
-                            f'Time spent waiting for OSBS capacity: ${metrics[0]["elapsed_wait_minutes"]} minutes'
+                            f'Time spent waiting for OSBS capacity: {metrics[0]["elapsed_wait_minutes"]} minutes'
 
         run_details.update_description(f'<hr />Build results:<br/><br/>{timing_report}')
 

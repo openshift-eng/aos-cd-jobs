@@ -49,7 +49,7 @@ def get_distgit_notify(record_log: dict) -> dict:
 
     # get notification emails by distgit name
     for i in range(len(notify)):
-        notify[i]['source_alias'] = source_alias.get(notify[i].source_alias, {})
+        notify[i]['source_alias'] = source_alias.get(notify[i]['source_alias'], {})
         result[notify[i]['distgit']] = notify[i]
 
     # match commit hash with notify email record
@@ -84,7 +84,8 @@ def get_failed_builds(record_log: dict, full_record: bool = False) -> dict:
 
         else:
             # build may have succeeded later. If so, remove.
-            del failed_map[distgit]
+            if failed_map.get(distgit, None):
+                del failed_map[distgit]
 
     return failed_map
 
@@ -100,7 +101,7 @@ def determine_build_failure_ratio(record_log: dict) -> dict:
         last_status[build['distgit']] = build['status']
 
     total = len(last_status)
-    failed = len({distgit for distgit, status in last_status.keys() if last_status != '0'})
+    failed = len({distgit for distgit, status in last_status.items() if status != '0'})
     ratio = failed / total if total else 0
 
     return {'failed': failed, 'total': total, 'ratio': ratio}

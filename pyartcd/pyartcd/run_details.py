@@ -14,7 +14,6 @@ from pyartcd import constants
 from pyartcd import jenkins
 
 logger = logging.getLogger(__name__)
-jenkins.init_jenkins()
 
 build_url = os.environ.get('BUILD_URL', None)
 job_name = os.environ.get('JOB_NAME', None)

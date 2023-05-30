@@ -832,6 +832,8 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, fo
         run_details.update_description('Builds not permitted', append=False)
         raise RuntimeError('This build is being terminated because it is not permitted according to current group.yml')
 
+    jenkins.init_jenkins()
+
     pipeline = Ocp4Pipeline(
         runtime=runtime,
         assembly=assembly,

@@ -352,7 +352,7 @@ class Ocp4Pipeline:
         self._gather_children(
             all_images=children,
             data=yaml_data,
-            initial=changes['images'],
+            initial=changes.get('images', []),
             gather=False
         )
         changed_children = [image for image in children if image not in changes['images']]

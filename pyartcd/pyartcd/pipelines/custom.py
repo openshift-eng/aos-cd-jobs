@@ -160,7 +160,7 @@ async def build_images(runtime: Runtime, assembly: str, version: str, data_path:
     if image_mode == 'rebase':
         runtime.logger.info('Updating dist-git...')
         cmd = ['doozer', f'--working-dir={DOOZER_WORKING}', f'--data-path={data_path}',
-               f'--group={group_param}', f'assembly={assembly}',
+               f'--group={group_param}', f'--assembly={assembly}',
                '--latest-parent-version', include_exclude, 'images:rebase', f'--version=v{stream_version}',
                f'--release={release_version}', f'--repo-type={repo_type}',
                f"--message='Updating Dockerfile version and release {stream_version}-{release_version}'", '--push']

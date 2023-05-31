@@ -170,7 +170,8 @@ node {
                     "--config=./config/artcd.toml",
                     "custom",
                     "build-rpms",
-                    "--version=${version}-${release}"
+                    "--version=${version}-${release}",
+                    "--assembly=${params.ASSEMBLY}",
                 ]
                 if (rpms) {
                     cmd << "--rpms=${rpms}"
@@ -197,7 +198,7 @@ node {
                         "custom",
                         "update-repos",
                         "--version=${version}-${release}",
-                        "--assembly=${params.ASSEMBLY}"
+                        "--assembly=${params.ASSEMBLY}",
                     ]
                     if (params.DOOZER_DATA_PATH) {
                         cmd << "--data-path=${params.DOOZER_DATA_PATH}"
@@ -240,6 +241,7 @@ node {
                         "custom",
                         "build-images",
                         "--version=${version}-${release}",
+                        "--assembly=${params.ASSEMBLY}",
                 ]
                 if (params.DOOZER_DATA_PATH) {
                     cmd << "--data-path=${params.DOOZER_DATA_PATH}"

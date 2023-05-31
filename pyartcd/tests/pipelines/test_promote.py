@@ -199,7 +199,6 @@ class TestPromotePipeline(TestCase):
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
         pipeline._slack_client = AsyncMock()
         pipeline.check_blocker_bugs = AsyncMock()
-        pipeline.attach_cve_flaws = AsyncMock()
         pipeline.change_advisory_state = AsyncMock()
         pipeline.get_advisory_info = AsyncMock(return_value={
             "id": 2,
@@ -218,7 +217,6 @@ class TestPromotePipeline(TestCase):
         load_releases_config.assert_awaited_once_with(Path("/path/to/working/doozer-working/ocp-build-data"))
         pipeline.check_blocker_bugs.assert_awaited_once_with()
         for advisory in [1, 2, 3, 4]:
-            pipeline.attach_cve_flaws.assert_any_await(advisory)
             pipeline.change_advisory_state.assert_any_await(advisory, "QE")
         pipeline.get_advisory_info.assert_awaited_once_with(2)
         pipeline.verify_attached_bugs.assert_awaited_once_with([1, 2, 3, 4], no_verify_blocking_bugs=False)

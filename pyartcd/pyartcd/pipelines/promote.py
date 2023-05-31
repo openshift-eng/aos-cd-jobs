@@ -37,7 +37,7 @@ class PromotePipeline:
 
     def __init__(self, runtime: Runtime, group: str, assembly: str,
                  skip_blocker_bug_check: bool = False,
-                 skip_attached_bug_check: bool = False, skip_attach_cve_flaws: bool = False,
+                 skip_attached_bug_check: bool = False,
                  skip_image_list: bool = False,
                  skip_build_microshift: bool = False,
                  permit_overwrite: bool = False,
@@ -47,7 +47,6 @@ class PromotePipeline:
         self.assembly = assembly
         self.skip_blocker_bug_check = skip_blocker_bug_check
         self.skip_attached_bug_check = skip_attached_bug_check
-        self.skip_attach_cve_flaws = skip_attach_cve_flaws
         self.skip_image_list = skip_image_list
         self.skip_build_microshift = skip_build_microshift
         self.permit_overwrite = permit_overwrite
@@ -136,27 +135,7 @@ class PromotePipeline:
                     justifications.append(justification)
                 logger.info("No blocker bugs found.")
 
-            if not self.skip_attach_cve_flaws:
-                # If there are CVEs, convert RHBAs to RHSAs and attach CVE flaw bugs
-                tasks = []
-                for impetus, advisory in impetus_advisories.items():
-                    if not advisory:
-                        continue
-                    if advisory < 0 and assembly_type != assembly.AssemblyTypes.CANDIDATE:  # placeholder advisory id is still in group config?
-                        raise ValueError("Found invalid %s advisory %s", impetus, advisory)
-                    logger.info("Attaching CVE flaws for %s advisory %s...", impetus, advisory)
-                    tasks.append(self.attach_cve_flaws(advisory))
-                try:
-                    await asyncio.gather(*tasks)
-                except ChildProcessError as err:
-                    logger.warn("Error attaching CVE flaw bugs: %s", err)
-                    justification = self._reraise_if_not_permitted(err, "CVE_FLAWS", permits)
-                    justifications.append(justification)
-            else:
-                self._logger.warning("Attaching CVE flaws is skipped.")
-
             # Attempt to move all advisories to QE
-
             tasks = []
             for impetus, advisory in impetus_advisories.items():
                 if not advisory:
@@ -404,19 +383,6 @@ class PromotePipeline:
             raise IOError(f"Could determine whether this release has blocker bugs. Elliott printed unexpected message: {stdout}")
         if int(match[1]) != 0:
             raise VerificationError(f"{int(match[1])} blocker Bug(s) found for release; do not proceed without resolving. See https://art-docs.engineering.redhat.com/release/4.y.z-stream/#handling-blocker-bugs. To permit this validation error, see https://art-docs.engineering.redhat.com/jenkins/build-promote-assembly-readme/#permit-certain-validation-failures. Elliott output: {stdout}")
-
-    async def attach_cve_flaws(self, advisory: int):
-        # raise ChildProcessError("test")
-        cmd = [
-            "elliott",
-            f"--group={self.group}",
-            "attach-cve-flaws",
-            f"--advisory={advisory}",
-        ]
-        if self.runtime.dry_run:
-            cmd.append("--dry-run")
-        async with self._elliott_lock:
-            await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars, stdout=sys.stderr)
 
     async def get_advisory_info(self, advisory: int) -> Dict:
         cmd = [
@@ -1008,8 +974,6 @@ class PromotePipeline:
               help="Skip blocker bug check. Note block bugs are never checked for CUSTOM and CANDIDATE releases.")
 @click.option("--skip-attached-bug-check", is_flag=True,
               help="Skip attached bug check. Note attached bugs are never checked for CUSTOM and CANDIDATE releases.")
-@click.option("--skip-attach-cve-flaws", is_flag=True,
-              help="Skip attaching CVE flaws.")
 @click.option("--skip-image-list", is_flag=True,
               help="Do not gather an advisory image list for docs.")
 @click.option("--skip-build-microshift", is_flag=True,
@@ -1023,11 +987,11 @@ class PromotePipeline:
 @click_coroutine
 async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
-                  skip_attach_cve_flaws: bool, skip_image_list: bool,
+                  skip_image_list: bool,
                   skip_build_microshift: bool,
                   permit_overwrite: bool, no_multi: bool, multi_only: bool, use_multi_hack: bool):
     pipeline = PromotePipeline(runtime, group, assembly,
-                               skip_blocker_bug_check, skip_attached_bug_check, skip_attach_cve_flaws,
+                               skip_blocker_bug_check, skip_attached_bug_check,
                                skip_image_list,
                                skip_build_microshift,
                                permit_overwrite, no_multi, multi_only, use_multi_hack)

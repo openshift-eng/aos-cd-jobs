@@ -78,11 +78,6 @@ node {
                         defaultValue: false,
                     ),
                     booleanParam(
-                        name: 'SKIP_ATTACH_CVE_FLAWS',
-                        description: 'Do not attach CVE flaws bugs',
-                        defaultValue: false,
-                    ),
-                    booleanParam(
                         name: 'SKIP_SIGNING',
                         description: 'Do not sign the release.',
                         defaultValue: false,
@@ -152,9 +147,6 @@ node {
         }
         if (params.SKIP_IMAGE_LIST) {
             cmd << "--skip-image-list"
-        }
-        if (params.SKIP_ATTACH_CVE_FLAWS) {
-            cmd << "--skip-attach-cve-flaws"
         }
         if (params.SKIP_BUILD_MICROSHIFT) {
             cmd << "--skip-build-microshift"

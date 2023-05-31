@@ -167,7 +167,7 @@ async def build_images(runtime: Runtime, assembly: str, version: str, data_path:
         await exectools.cmd_assert_async(cmd)
 
     # Build images
-    cmd = ['doozer', f'assembly={assembly}', f'--working-dir={DOOZER_WORKING}', f'--data-path={data_path}', f'--group={group_param}',
+    cmd = ['doozer', f'--assembly={assembly}', f'--working-dir={DOOZER_WORKING}', f'--data-path={data_path}', f'--group={group_param}',
            include_exclude, f'--profile={repo_type}', 'images:build', '--push-to-defaults']
     if scratch:
         cmd.append('--scratch')

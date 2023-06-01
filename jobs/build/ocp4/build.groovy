@@ -419,7 +419,7 @@ def stageReportSuccess() {
 	if (fileExists("doozer_working/state.yaml")) {
 		stateYaml = readYaml(file: "doozer_working/state.yaml")
 	}
-    messageSuccess(rpmMirror.url)
+    //messageSuccess(rpmMirror.url)
 }
 
 def messageSuccess(mirrorURL) {

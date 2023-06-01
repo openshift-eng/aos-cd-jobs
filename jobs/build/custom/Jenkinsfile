@@ -120,8 +120,6 @@ node {
     commonlib.checkMock()
     buildlib.initialize(false, params.BUILD_VERSION == "3.11")
 
-    GITHUB_BASE = "git@github.com:openshift" // buildlib uses this global var
-
     // doozer_working must be in WORKSPACE in order to have artifacts archived
     def doozer_working = "${env.WORKSPACE}/doozer_working"
     buildlib.cleanWorkdir(doozer_working)
@@ -172,7 +170,8 @@ node {
                     "--config=./config/artcd.toml",
                     "custom",
                     "build-rpms",
-                    "--version=${version}-${release}"
+                    "--version=${version}-${release}",
+                    "--assembly=${params.ASSEMBLY}",
                 ]
                 if (rpms) {
                     cmd << "--rpms=${rpms}"
@@ -199,7 +198,7 @@ node {
                         "custom",
                         "update-repos",
                         "--version=${version}-${release}",
-                        "--assembly=${params.ASSEMBLY}"
+                        "--assembly=${params.ASSEMBLY}",
                     ]
                     if (params.DOOZER_DATA_PATH) {
                         cmd << "--data-path=${params.DOOZER_DATA_PATH}"
@@ -242,6 +241,7 @@ node {
                         "custom",
                         "build-images",
                         "--version=${version}-${release}",
+                        "--assembly=${params.ASSEMBLY}",
                 ]
                 if (params.DOOZER_DATA_PATH) {
                     cmd << "--data-path=${params.DOOZER_DATA_PATH}"

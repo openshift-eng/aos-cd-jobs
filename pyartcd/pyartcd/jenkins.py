@@ -23,12 +23,12 @@ class Jobs(Enum):
     OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
 
 
-jenkins: Optional[Jenkins] = None
+jenkins_client: Optional[Jenkins] = None
 
 
 def init_jenkins():
-    global jenkins
-    if jenkins:
+    global jenkins_client
+    if jenkins_client:
         return
     logger.info('Initializing Jenkins client..')
     requester = CrumbRequester(
@@ -37,14 +37,14 @@ def init_jenkins():
         baseurl=constants.JENKINS_SERVER_URL
     )
 
-    jenkins = Jenkins(
+    jenkins_client = Jenkins(
         constants.JENKINS_SERVER_URL,
         username=os.environ['JENKINS_SERVICE_ACCOUNT'],
         password=os.environ['JENKINS_SERVICE_ACCOUNT_TOKEN'],
         requester=requester,
         lazy=True
     )
-    logger.info('Connected to Jenkins %s', jenkins.version)
+    logger.info('Connected to Jenkins %s', jenkins_client.version)
 
 
 def block_until_building(queue_item: QueueItem, delay: int = 5) -> str:
@@ -83,7 +83,7 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
 
     init_jenkins()
     logger.info('Starting new build for job: %s', job_name)
-    job = jenkins.get_job(job_name)
+    job = jenkins_client.get_job(job_name)
     queue_item = job.invoke(build_params=params)
     build_url = block_until_building(queue_item, watch_building_delay)
     logger.info('Started new build at %s', build_url)
@@ -139,16 +139,20 @@ def start_rhcos(build_version: str, new_build: bool, blocking: bool = False) -> 
     )
 
 
-def start_build_sync(build_version: str, assembly: str, doozer_data_path: str,
-                     doozer_data_gitref: str, blocking: bool = False) -> Optional[str]:
+def start_build_sync(build_version: str, assembly: str, doozer_data_path: Optional[str] = None,
+                     doozer_data_gitref: Optional[str] = None, blocking: bool = False) -> Optional[str]:
+    params = {
+        'BUILD_VERSION': build_version,
+        'ASSEMBLY': assembly,
+    }
+    if doozer_data_path:
+        params['DOOZER_DATA_PATH'] = doozer_data_path
+    if doozer_data_gitref:
+        params['DOOZER_DATA_GITREF'] = doozer_data_gitref
+
     return start_build(
         job_name=Jobs.BUILD_SYNC.value,
-        params={
-            'BUILD_VERSION': build_version,
-            'ASSEMBLY': assembly,
-            'DOOZER_DATA_PATH': doozer_data_path,
-            'DOOZER_DATA_GITREF': doozer_data_gitref
-        },
+        params=params,
         blocking=blocking
     )
 

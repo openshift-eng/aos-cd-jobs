@@ -7,6 +7,7 @@ slacklib = commonlib.slacklib
 
 GITHUB_URLS = [:]
 GITHUB_BASE_PATHS = [:]
+GITHUB_BASE = "git@github.com:openshift"
 
 def initialize(test=false, regAws=false) {
     this.proxy_setup()
@@ -20,9 +21,6 @@ def initialize(test=false, regAws=false) {
             this.registry_login()
         }
     }
-
-    GITHUB_URLS = [:]
-    GITHUB_BASE_PATHS = [:]
 }
 
 // Ensure that calls to "oc" within the passed in block will interact with

@@ -32,9 +32,9 @@ import groovy.json.JsonOutput
 ]
 
 def setDevPreviewLatest(String releaseStream, Map latestRelease, Map previousRelease) {
-    def buildVersion = commonlib.extractMajorMinorVersion(releaseStream)
-    def arch = commonlib.extractArchFromReleaseName(latestRelease.name)
-    release.stageSetClientLatest(latestRelease.name, arch, "ocp-dev-preview")
+    def buildVersion = commonlib.extractMajorMinorVersion(latestRelease.name)
+    def arch = commonlib.extractArchFromReleaseName(releaseStream)
+    release.stageSetClientLatest("candidate-${buildVersion}", arch, "ocp-dev-preview")
 }
 
 def publishRPMsEl9(String releaseStream, Map latestRelease, Map previousRelease) {

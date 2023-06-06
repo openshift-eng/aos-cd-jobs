@@ -295,10 +295,10 @@ node {
         [
             buildDiscarder(
                 logRotator(
-                    artifactDaysToKeepStr: '',
-                    artifactNumToKeepStr: '',
-                    daysToKeepStr: '',
-                    numToKeepStr: '1000')),
+                    artifactDaysToKeepStr: '30',
+                    artifactNumToKeepStr: '30',
+                    daysToKeepStr: '30',
+                    numToKeepStr: '30')),
             [
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [

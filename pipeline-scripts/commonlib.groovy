@@ -166,28 +166,6 @@ ocpMajorVersions = [
     "all": ocpVersions,
 ]
 
-ocpBaseImages = [
-        "elasticsearch",
-        "jboss.openjdk18.rhel7",
-        "rhscl.nodejs.6.rhel7",
-        "rhscl.nodejs.10.rhel7",
-        "rhscl.nodejs.12.rhel7",
-        "rhscl.python.36.rhel7",
-        "rhscl.ruby.25.rhel7",
-        "rhel7",
-        "ubi7",
-        "ubi8",
-        "ubi8.nodejs.10",
-        "ubi8.nodejs.12",
-        "ubi8.nodejs.14",
-        "ubi8.python.36",
-        "ubi8.ruby.25",
-        "rhel8.2.els.rhel",
-        "rhel8.2.els.nodejs.10",
-        "rhel8.2.els.python.36",
-        "rhel8.2.els.ruby.25",
-]
-
 /**
  * Handles any common setup required by the library
  */
@@ -259,20 +237,6 @@ def suppressEmailParam() {
         $class: 'BooleanParameterDefinition',
         defaultValue: !env.JOB_NAME.startsWith("aos-cd-builds/"),
     ]
-}
-
-/**
- * Normalize input so whether the user supplies "v" or not we get what we want.
- * Also, for totally bogus versions we get an error early on.
- */
-def standardVersion(String version, Boolean withV=true) {
-    version = version.trim()
-    def match = version =~ /(?ix) ^v? (  \d+ (\.\d+)+  )$/
-    if (!match) {
-        error("Not a valid version: ${version}")
-    }
-    version = match[0][1] // first group in the regex
-    return withV ? "v${version}" : version
 }
 
 def sanitizeInvisible(str) {
@@ -782,24 +746,6 @@ def syncDirToS3Mirror(local_dir, s3_path, include_only='', timeout_minutes=60, d
         slacklib.to("#art-release").say("Failed syncing ${local_dir} repo to art-srv-enterprise S3 path ${s3_path}")
         throw e
     }
-}
-
-def listS3Mirror(s3_path, timeout_minutes=2) {
-    def extra_args = ""
-    def res = null
-    def cmd = "aws s3 ls ${extra_args} s3://art-srv-enterprise${s3_path}"
-    withCredentials([aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-        timeout(time: timeout_minutes, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
-            res = shell(script: cmd, returnAll: true)
-        }
-    }
-    if (res.returnStatus == 0) {  // prefix exists
-        return res.stdout
-    }
-    if (res.returnStatus == 1) {  // prefix doesn't exist
-        return null
-    }
-    error("Error running $cmd: Process exited with code ${res.returnStatus} and stderr ${res.stderr}")
 }
 
 return this

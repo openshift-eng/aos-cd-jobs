@@ -109,14 +109,6 @@ def registry_quay_dev_login() {
     }
 }
 
-def print_tags(image_name) {
-    // Writing the file out is all to avoid displaying the token in the Jenkins console
-    writeFile file:"print_tags.sh", text:'''#!/bin/bash
-    curl -sH "Authorization: Bearer $(oc whoami -t)" ''' + "https://registry.reg-aws.openshift.com/v2/${image_name}/tags/list | jq ."
-    sh 'chmod +x print_tags.sh'
-    sh './print_tags.sh'
-}
-
 def initialize_openshift_dir() {
     OPENSHIFT_DIR = "${GOPATH}/src/github.com/openshift"
     env.OPENSHIFT_DIR = OPENSHIFT_DIR
@@ -243,18 +235,6 @@ def initialize_openshift_ansible() {
     GITHUB_BASE_PATHS["openshift-ansible"] = OPENSHIFT_ANSIBLE_DIR
     env.OPENSHIFT_ANSIBLE_DIR = OPENSHIFT_ANSIBLE_DIR
     echo "Initialized env.OPENSHIFT_ANSIBLE_DIR: ${env.OPENSHIFT_ANSIBLE_DIR}"
-}
-
-/**
- * Brew/koji has an event history. Many of the API calls you invoke against brew
- * accept an 'event' parameter. This effectively asks brew to answer your API
- * call with information that happened before that specified event occurred.
- * e.g. it allows you to look at the state of tag at some specific point in the past - before the event.
- * @return object like: {   "id": 31617279,  "ts": 1590074666.63513  }
- */
-def get_current_brew_event() {
-    def eventJson = commonlib.shell(script: "brew call --json-output  getLastEvent", returnStdout: true).trim()
-    return readJSON(text: eventJson)
 }
 
 /**
@@ -400,45 +380,6 @@ def get_releases(repo_url) {
 }
 
 /**
- * Read an OAuth token from a file on the jenkins server.
- * Because groovy/jenkins sandbox won't let you read it without sh()
- * @param token_file - a file containing a single OAuth token string
- * @return - a string containing the OAuth token
- */
-def read_oath_token(token_file) {
-    token_string = sh (
-        returnStdout: true,
-        script: "cat ${token_file}"
-    ).trim()
-    return token_string
-}
-
-/**
- * Retrieve a single file from a Github repository
- * @param owner
- * @param repo_name
- * @param file_name
- * @param repo_token
- * @param branch
- * @return a string containing the contents of the specified file
- */
-def get_single_file(owner, repo_name, file_name, repo_token, branch='master') {
-    // Get a single file from a Github repository.
-
-    auth_header = "Authorization: token " + repo_token
-    file_url = "https://api.github.com/repos/${owner}/${repo_name}/contents/${file_name}?ref=${branch}"
-    accept_header = "Accept: application/vnd.github.v3.raw"
-
-    query = "curl --silent -H '${auth_header}' -H '${accept_header}' -L ${file_url}"
-    content = sh(
-	      returnStdout: true,
-        script: query
-    )
-
-    return content
-}
-
-/**
  * Sort a list of dot separated version strings.
  * The sort function requires the NonCPS decorator.
  * @param v_in an unsorted array of version strings
@@ -492,85 +433,6 @@ def cmp_version(String v0, String v1) {
 }
 
 /**
- * Test if two version strings are equivalent
- * @param v0 a dot separated version string
- * @param v1 a dot separated version string
- * @return true if versions are equal.  False otherwise
- *
- * If two strings have different numbers of fields, the missing fields are padded with 0s
- * Two versions are equal if all fields are equal
- */
-@NonCPS
-def eq_version(String v0, String v1) {
-    // determine if two versions are the same
-    // return:
-    //   v0 == v1: true
-    //   v0 != v1: false
-    return cmp_version(v0, v1) == 0
-}
-
-/**
- * set the repo and branch information for each mode and build version
- * NOTE: here "origin" refers to the git reference, not to OpenShift Origin
- *
- * @param mode - a string indicating which branches to build from
- * @param build_version - a version string used to compose the branch names
- * @return a map containing the source origin and upstream branch names
- **/
-def get_build_branches(mode, build_version) {
-
-    switch(mode) {
-        case "online:int":
-            branch_names = ['origin': "master", 'upstream': "master"]
-            break
-
-        case "online:stg":
-            branch_names = ['origin': "stage", 'upstream': "stage"]
-            break
-
-        case "pre-release":
-            branch_names = ['origin': "enterprise-${build_version}", 'upstream': "release-${build_version}"]
-            break
-
-        case "release":
-            branch_names = ['origin': "enterprise-${build_version}", 'upstream': null]
-            break
-    }
-
-    return branch_names
-}
-
-/**
- * predicate: build with the web-server-console source tree?
- * @param version_string - a dot separated <major>.<minor>.<release> string
- *               Where <major>, <minor>, and <release> are integer strings
- * @return boolean
- **/
-def use_web_console_server(version_string) {
-    // the web console server was introduced with version 3.9
-    return cmp_version(version_string, "3.9") >= 0
-}
-
-/**
- * set the merge driver for a git repo
- * @param repo_dir string - a git repository workspace
- * @param files List[String] - a list of file/dir strings for the merge driver
- **/
-@NonCPS
-def mock_merge_driver(repo_dir, files) {
-
-    Dir(repo_dir) {
-        sh "git config merge.ours.driver true"
-    }
-
-    // Use fake merge driver on specific packages
-    gitattrs = new File(repo_dir + "/.gitattributes")
-    files.each {
-            gitattrs << "${it}  merge=ours\n"
-    }
-}
-
-/**
  * Extracts ose (with origin as 'upstream') and:
  * Sets OSE_MASTER to major.minor ("X.Y") from current ose#master origin.spec
  * Sets OSE_MASTER_MAJOR to X
@@ -603,22 +465,6 @@ def initialize_ose() {
 
 def initialize_origin_web_console() {
     this.initialize_origin_web_console_dir()
-}
-
-/**
- * Flattens a list of arguments into a string appropriate
- * for a bash script's arguments. Each argument will be
- * wrapped in '', so do not attempt to pass bash variables.
- * @param args The list of arguments to transform
- * @return A string containing the arguments
- */
-@NonCPS
-def args_to_string(Object... args) {
-    def s = ""
-    for ( def a : args ) {
-        s += "'${a}' "
-    }
-    return s
 }
 
 def param(type, name, value) {
@@ -1063,12 +909,6 @@ def determine_build_failure_ratio(record_log) {
     return [failed: failed, total: total, ratio: ratio]
 }
 
-def write_sources_file() {
-  sources = """ose: ${env.OSE_DIR}
-"""
-  writeFile(file: "${env.WORKSPACE}/sources.yml", text: sources)
-}
-
 //https://stackoverflow.com/a/42775560
 @NonCPS
 List<List<?>> mapToList(Map map) {
@@ -1158,36 +998,13 @@ def cleanWorkdir(workdir, synchronous=false) {
     WORKDIR_COUNTER++
 }
 
-def latestOpenshiftRpmBuild(stream, branch) {
-    pkg = stream.startsWith("3") ? "atomic-openshift" : "openshift"
-    retry(3) {
-        commonlib.shell(
-            script: "REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt brew latest-build --quiet ${branch}-candidate ${pkg} | awk '{print \$1}'",
-            returnStdout: true,
-        ).trim()
-    }
-}
-
 def defaultReleaseFor(stream) {
     return stream.startsWith("3") ? "1" : (new Date().format("yyyyMMddHHmm") + ".p?")
-}
-
-// From a brew NVR of openshift, return just the V part.
-@NonCPS  // unserializable regex not allowed in combination with pipeline steps (error|echo)
-def extractBuildVersion(build) {
-    def match = build =~ /(?x) openshift- (  \d+  ( \. \d+ )+  )-/
-    return match ? match[0][1] : "" // first group in the regex
 }
 
 @NonCPS
 String extractAdvisoryId(String elliottOut) {
     def matches = (elliottOut =~ /https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)/)
-    matches[0][1]
-}
-
-@NonCPS
-String extractBugId(String bugzillaOut) {
-    def matches = (bugzillaOut =~ /#([0-9]+)/)
     matches[0][1]
 }
 
@@ -1258,25 +1075,6 @@ def getChanges(yamlData) {
         }
     }
     return changed
-}
-
-/**
- * Get image/rpm owners from ocp-build-data
- * @param doozerOpts Doozer options
- * @param images list of images
- * @param rpms  list of rpms
- * @return owners
- */
-def get_owners(doozerOpts, images, rpms=[]) {
-    yamlData = readYaml text: doozer(
-            """
-            ${doozerOpts}
-            ${images ? '--images=' + images.join(",") : ''}
-            ${rpms ? '--rpms=' + rpms.join(",") : ''}
-            config:print --key owners --yaml
-            """, [capture: true]
-        )
-    return yamlData
 }
 
 def get_releases_config(String group) {

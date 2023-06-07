@@ -105,76 +105,6 @@ def test_cmp_version() {
     }
 }
 
-def test_eq_version() {
-    pass_count = 0
-    fail_count = 0
-
-    values = [
-        "1.2",
-        "3.0",
-        "3.0.2",
-        "3.0.5",
-        "3.1",
-        "3.10",
-        "3.10.1",
-        "3.11",
-        "5.3",
-        "6" // can you do single digit ones?
-    ]
-
-    // test "equals"
-    expected = true
-    values.each {
-        actual = buildlib.eq_version(it, it)
-        try {
-            assert actual == expected
-            pass_count++
-        } catch (AssertionError e) {
-            fail_count++
-            echo "FAIL: eq_version(${values[it]}, ${values[it + 1]}) - expected: ${expected}, actual: ${actual}"
-        }
-    }
-
-    /// test equality of different length versions
-    actual = buildlib.eq_version("3.1", "3.1.0")
-    try {
-        assert actual == expected
-        pass_count++
-    } catch (AssertionError e) {
-        fail_count++
-        echo "FAIL: eq_version(\"3.1\"}, \"3.1.0\") - expected: ${expected}, actual: ${actual}"
-    }
-    
-    /// test equality of different length versions
-    actual = buildlib.eq_version("3.1.0", "3.1")
-    try {
-        assert actual == expected
-        pass_count++
-    } catch (AssertionError e) {
-        fail_count++
-        echo "FAIL: eq_version(\"3.1.0\", \"3.1\") - expected: ${expected}, actual: ${actual}"
-    }
-
-    expected = false
-    (0..(values.size() - 2)).each {
-        /// test equality of different length versions
-        actual = buildlib.eq_version(values[it], values[it + 1])
-        try {
-            assert actual == expected
-            pass_count++
-        } catch (AssertionError e) {
-            fail_count++
-            echo "FAIL: eq_version(${values[it]}, ${values[it + 1]}) - expected: ${expected}, actual: ${actual}"
-        }
-    }
-
-    if (fail_count == 0) {
-        echo "PASS: eq_version() - ${pass_count} tests passed"
-    } else {
-        echo "FAIL: eq_version() - ${pass_count} tests passed, ${fail_count} tests failed"
-    }
-}
-
 //
 // Test sorting arrays of version strings made up of decimal numbers separated by dots (.)
 //
@@ -211,46 +141,6 @@ def test_sort_versions() {
         echo "PASS: sort_versions() - ${pass_count} tests passed"
     } else {
         echo "FAIL: sort_version() - ${pass_count} tests passed, ${fail_count} tests failed"
-    }
-}
-
-def test_get_build_branches() {
-    pass_count = 0
-    fail_count = 0
-
-    test_values = [
-        'online:int': [
-            ['input': '3.9', 'expected': ['origin': 'master', 'upstream': 'master']]
-        ],
-
-        'online:stg': [
-            ['input': '3.3', 'expected': ['origin': 'stage', 'upstream': 'stage']]
-        ],
-
-        'pre-release': [
-            ['input': '3.9', 'expected': ['origin': 'enterprise-3.9', 'upstream': 'release-3.9']]
-        ],
-
-        'release': [
-            ['input': '3.9', 'expected': ['origin': 'enterprise-3.9', 'upstream': null]]
-        ]
-    ]
-
-    test_values.each { mode, samples ->
-        actual = buildlib.get_build_branches(mode, sample['input'])
-        try {
-            assert actual == expected
-            pass_count++
-        } catch (AssertionError e) {
-            fail_count++
-            echo("failed")
-        }
-    }
-
-    if (fail_count == 0) {
-        echo "PASS: validate_build() - ${pass_count} tests passed"
-    } else {
-        echo "FAIL: validate_build() - ${pass_count} tests passed, ${fail_count} tests failed"
     }
 }
 

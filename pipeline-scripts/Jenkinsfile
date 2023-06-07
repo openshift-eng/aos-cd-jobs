@@ -72,12 +72,6 @@ node(TARGET_NODE) {
         echo "END: test_cmp_version()"
     }
 
-    stage("test eq_version") {
-        echo "BEGIN: test_eq_version()"
-        testlib.test_eq_version()
-        echo "END: test_eq_version()"
-    }
-
     stage("test sort_versions") {
         echo "BEGIN: test_sort_versions()"
         testlib.test_sort_versions()

@@ -106,15 +106,3 @@ async def cmd_assert_async(cmd: Union[List[str], str], check: bool = True, **kwa
         else:
             logger.warning(msg)
     return proc.returncode
-
-
-async def retry_async(cmd: Union[List[str], str], max_retries: int, **kwargs):
-    for attempt in range(max_retries):
-        try:
-            await cmd_assert_async(cmd, **kwargs)
-            return  # Command succeeded, no need to keep trying
-
-        except ChildProcessError:
-            logger.warning('Command failed for %s times', attempt + 1)
-            if attempt == max_retries - 1:
-                raise  # Failed for {max_retries} times in a row, raise an error

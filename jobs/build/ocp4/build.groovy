@@ -95,7 +95,19 @@ def initialize() {
     if (!buildPlan.buildRpms) { currentBuild.displayName += " [no RPMs]" }
     if (!buildPlan.buildImages) { currentBuild.displayName += " [no images]" }
 
-    return planBuilds()
+    planBuilds()
+
+    echo """Updated build plan: [
+activeImageCount: ${buildPlan.activeImageCount}
+dryRun: ${buildPlan.dryRun}
+forceBuild: ${buildPlan.forceBuild}
+buildRpms: ${buildPlan.buildRpms}
+rpmsIncluded: ${buildPlan.rpmsIncluded}
+rpmsExcluded: ${buildPlan.rpmsExcluded}
+buildImages: ${buildPlan.buildImages}
+imagesIncluded: ${buildPlan.imagesIncluded}
+imagesExcluded: ${buildPlan.imagesExcluded}
+]"""
 }
 
 /**
@@ -150,7 +162,7 @@ def planBuilds() {
             (buildPlan.imagesIncluded) ? displayTagFor(buildPlan.imagesIncluded, "image") :
             (buildPlan.imagesExcluded) ? displayTagFor(buildPlan.imagesExcluded, "image", true) :
             (buildPlan.buildImages) ? " [all images]" : ""
-        return buildPlan
+        return
     }
 
     // otherwise we need to scan sources.
@@ -195,12 +207,12 @@ def planBuilds() {
 
         if (!buildPlan.buildImages) {
             report "Images: not building."
-            return buildPlan
+            return
         } else if (!changed.images) {
             report "Images: none changed."
             buildPlan.buildImages = false
             currentBuild.displayName += " [no changed images]"
-            return buildPlan
+            return
         }
         report "Found ${changed.images.size()} image(s) with changes:\n  " + changed.images.join("\n  ")
 
@@ -247,7 +259,6 @@ def planBuilds() {
         currentBuild.description += "error during plan builds step:<br/>${err.getMessage()}<br/>"
         throw err
     }
-    return buildPlan
 }
 
 // determine what doozer parameter (if any) to use for includes/excludes

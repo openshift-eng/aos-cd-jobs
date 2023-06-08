@@ -17,8 +17,15 @@ NIGHTLY_PAYLOAD_REPOS = {
     "ppc64le": "registry.ci.openshift.org/ocp-ppc64le/release-ppc64le",
     "aarch64": "registry.ci.openshift.org/ocp-arm64/release-arm64",
 }
+# The client name mapping in nightly with name on mirror
+MIRROR_CLIENTS = {
+    "oc": "openshift-client",
+    "installer": "openshift-installer",
+    "operator-framework-olm": "opm",
+}
 
 OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'
+QUAY_RELEASE_REPO_URL = "quay.io/openshift-release-dev/ocp-release"
 
 # This is the URL that buildvm itself uses to resolve Jenkins
 # It shall be used by jenkinsapi to start new builds

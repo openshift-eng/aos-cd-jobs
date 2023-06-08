@@ -270,6 +270,18 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     return True
 
 
+def log_dir_tree(path_to_dir):
+    logger.info(f"Printing dir tree of {path_to_dir}")
+    for child in os.listdir(path_to_dir):
+        child_path = os.path.join(path_to_dir, child)
+        logger.info(child_path)
+
+
+def log_file_content(path_to_file):
+    logger.info(f"Printing file content of {path_to_file}")
+    with open(path_to_file, 'r') as f:
+        logger.info(f.read())
+
 async def sync_images(version: str, assembly: str, operator_nvrs: list,
                       doozer_data_path: str = constants.OCP_BUILD_DATA_URL, doozer_data_gitref: str = ''):
     """

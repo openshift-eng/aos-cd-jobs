@@ -1,6 +1,9 @@
 import asyncio
 from pathlib import Path
 from unittest import TestCase
+import os
+import shutil
+import tempfile
 
 from mock import AsyncMock, MagicMock, patch
 from mock.mock import ANY
@@ -921,3 +924,28 @@ class TestPromotePipeline(TestCase):
         tag_release.assert_awaited_once_with("quay.io/openshift-release-dev/ocp-release:4.10.99-multi", "ocp-multi/release-multi:4.10.99-multi")
         self.assertEqual(actual["image"], "quay.io/openshift-release-dev/ocp-release:4.10.99-multi")
         self.assertEqual(actual["digest"], "fake:deadbeef-dest-multi")
+
+    def test_build_create_symlink(self):
+        runtime = MagicMock(
+            config={
+                "build_config": {
+                    "ocp_build_data_url": "https://example.com/ocp-build-data.git"
+                },
+                "jira": {
+                    "url": "https://issues.redhat.com/"
+                }
+            },
+            working_dir=Path("/path/to/working"),
+            dry_run=False
+        )
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", release_offset=None)
+        temp_dir = tempfile.mkdtemp()
+        os.chdir(temp_dir)
+        open("openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz", "w").close()
+        open("openshift-client-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz", "w").close()
+        open("openshift-install-mac-4.3.0-0.nightly-2019-12-06-161135.tar.gz", "w").close()
+        pipeline.create_symlink(temp_dir, False, False)
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, 'openshift-client-linux.tar.gz')))
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, 'openshift-client-mac.tar.tgz')))
+        self.assertTrue(os.path.exists(os.path.join(temp_dir, 'openshift-install-mac.tar.gz')))
+        shutil.rmtree(temp_dir)

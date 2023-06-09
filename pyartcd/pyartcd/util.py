@@ -315,10 +315,10 @@ async def sync_images(version: str, assembly: str, operator_nvrs: list,
 def default_release_suffix():
     """
     Returns a release suffix based on current timestamp
-    E.g. "201901011200.?
+    E.g. "202312311112.p?"
     """
 
-    return f'{datetime.strftime(datetime.now(), "%Y%m%d%H")}.p?'
+    return f'{datetime.strftime(datetime.now(), "%Y%m%d%H%M")}.p?'
 
 
 def dockerfile_url_for(url, branch, sub_path) -> str:

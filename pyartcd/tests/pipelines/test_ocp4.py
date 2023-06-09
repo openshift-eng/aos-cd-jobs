@@ -376,7 +376,7 @@ class TestInitialize(unittest.IsolatedAsyncioTestCase):
         # Mock datetime.now()
         class MockedDatetime(datetime):
             @classmethod
-            def now(cls, *args, **kwargs): return datetime(2100, 12, 31, 11, 12, 13)
+            def now(cls, *args, **kwargs): return datetime(2100, month=12, day=31, hour=11, minute=12)
         ocp4.util.datetime = MockedDatetime
 
         # Initial values
@@ -389,7 +389,7 @@ class TestInitialize(unittest.IsolatedAsyncioTestCase):
         # After version initialization
         await self.ocp4._initialize_version()
         self.assertEqual(self.ocp4.version.branch, 'rhaos-4.12-rhel-8')
-        self.assertEqual(self.ocp4.version.release, '2100123111.p?')
+        self.assertEqual(self.ocp4.version.release, '210012311112.p?')
         self.assertEqual(self.ocp4.version.major, 4)
         self.assertEqual(self.ocp4.version.minor, 14)
 

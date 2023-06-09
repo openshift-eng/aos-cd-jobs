@@ -21,7 +21,7 @@ job_name = os.environ.get('JOB_NAME', None)
 
 def check_env_vars(func):
     @functools.wraps(func)
-    def wrapped(func, *args, **kwargs):
+    def wrapped(*args, **kwargs):
         if not build_url or not job_name:
             logger.error('Env vars BUILD_URL and JOB_NAME must be defined!')
             raise RuntimeError

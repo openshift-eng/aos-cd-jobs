@@ -112,7 +112,7 @@ class Ocp4Pipeline:
         cmd = self._doozer_base_command.copy()
         cmd.extend(['config:read-group', 'branch'])
         _, out, _ = await exectools.cmd_gather_async(cmd)
-        self.version.branch = out
+        self.version.branch = out.strip()
 
         # version.major, version.minor
         self.version.major, self.version.minor = [int(val) for val in self.version.stream.split('.')]

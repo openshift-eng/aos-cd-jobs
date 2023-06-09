@@ -86,6 +86,9 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
     logger.info('Starting new build for job: %s', job_name)
     job = jenkins_client.get_job(job_name)
     queue_item = job.invoke(build_params=params)
+    if not blocking:
+        return
+
     build_url = block_until_building(queue_item, watch_building_delay)
     logger.info('Started new build at %s', build_url)
 

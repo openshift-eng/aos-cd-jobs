@@ -1,0 +1,46 @@
+properties([
+    buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '100')),
+    disableConcurrentBuilds(),
+    disableResume(),
+])
+
+description = ""
+failed = false
+
+def runFor(version) {
+    try {
+        timeout(activity: true, time: 20, unit: 'MINUTES') {
+            b = build(
+                job: '../aos-cd-builds/build%2Ftag-rpms',
+                parameters: [
+                    string(name: 'VERSION', value: version),
+                ],
+                propagate: false,
+            )
+        }
+        description += "${version} - ${b.result}\n"
+        failed |= (b.result != "SUCCESS")
+    } catch (te) {
+        description += "${version} - ERROR\n"
+        failed = true
+    }
+}
+
+@NonCPS
+def sortedVersions() {
+  return commonlib.ocp4Versions.sort(false)
+}
+
+node() {
+    checkout scm
+    buildlib = load("pipeline-scripts/buildlib.groovy")
+    commonlib = buildlib.commonlib
+
+    for ( String version : sortedVersions() ) {
+        runFor(version)
+    }
+    buildlib.cleanWorkspace()
+}
+
+currentBuild.description = description.trim()
+currentBuild.result = failed ? "FAILURE" : "SUCCESS"

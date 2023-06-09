@@ -11,7 +11,7 @@ def runFor(version) {
     try {
         timeout(activity: true, time: 20, unit: 'MINUTES') {
             b = build(
-                job: '../aos-cd-builds/build%scan-for-kernel-bugs',
+                job: '../aos-cd-builds/build%2Fscan-for-kernel-bugs',
                 parameters: [
                     string(name: 'VERSION', value: version),
                 ],
@@ -28,7 +28,7 @@ def runFor(version) {
 
 @NonCPS
 def sortedVersions() {
-  return commonlib.ocpVersions.sort(false)
+  return commonlib.ocp4Versions.sort(false)
 }
 
 node() {

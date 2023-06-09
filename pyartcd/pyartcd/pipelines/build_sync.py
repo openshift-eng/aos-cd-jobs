@@ -9,7 +9,7 @@ import yaml
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.oc import registry_login
 from pyartcd.runtime import Runtime
-from pyartcd import exectools, constants
+from pyartcd import exectools, constants, redis, util
 from pyartcd.util import branch_arches
 from doozerlib.util import go_suffix_for_arch
 
@@ -322,4 +322,65 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         exclude_arches=exclude_arches,
         skip_multiarch_payload=skip_multiarch_payload
     )
-    await pipeline.run()
+    fail_count_name = f'{version}-assembly.{assembly}.count'
+
+    try:
+        await pipeline.run()
+
+        #  All good: reset fail count to 0
+        await redis.set_value(fail_count_name, 0)
+        runtime.logger.info('Fail count "%s" set to 0', fail_count_name)
+
+    except (RuntimeError, ChildProcessError):
+        # Increment failure count
+        fail_count = int(await redis.get_value(fail_count_name)) + 1
+        runtime.logger.info('Failure count for %s: %s', version, fail_count)
+
+        # Update fail counter on Redis
+        await redis.set_value(fail_count_name, fail_count)
+
+        # Less than 2 failures: do nothing
+        if fail_count < 2:
+            return
+
+        # Assembly != stream: do nothing
+        if assembly != 'stream':
+            return
+
+        # More than 2 failures: we need to notify ART and #forum-relase
+        slack_client = runtime.new_slack_client()
+        msg = f'Pipeline has failed to assemble release payload for {version} (assembly {assembly}) {fail_count} times.'
+
+        # TODO https://issues.redhat.com/browse/ART-5657
+        if 10 <= fail_count <= 50:
+            art_notify_frequency = 5
+            forum_release_notify_frequency = 10
+
+        elif 50 <= fail_count <= 200:
+            art_notify_frequency = 10
+            forum_release_notify_frequency = 50
+
+        elif fail_count > 200:
+            art_notify_frequency = 100
+            forum_release_notify_frequency = 100
+
+        else:
+            # Default notify frequency
+            art_notify_frequency = 2
+            forum_release_notify_frequency = 5
+
+        # Spam ourselves a little more often than forum-release
+        if fail_count % art_notify_frequency == 0:
+            slack_client.bind_channel(f'openshift-{version}')
+            await slack_client.say(msg)
+
+        if fail_count % forum_release_notify_frequency == 0:
+            group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
+
+            if not group_config['release_state'][version]['release']:
+                # For development releases, notify TRT and release artists
+                slack_client.bind('#forum-release-oversight').say(msg)
+
+            else:
+                # For GA releases, let forum-release know why no new builds
+                slack_client.bind('#forum-release').say(msg)

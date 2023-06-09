@@ -202,61 +202,20 @@ node('covscan') {
 
         try {
             buildlib.withAppCiAsArtPublish() {
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')]) {
+                withCredentials([
+                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
+                ]) {
                     sh(script: cmd.join(' '), returnStdout: true)
                 }
             }
-
-            // Successful buildsync, reset fail count
-            writeFile file: failCountFile, text: "0"
 
             if (params.PUBLISH && !params.DRY_RUN) {
                 currentBuild.description += " [PUBLISH]"
             }
         } catch (err) {
-            failCount = 1
-            if (fileExists(failCountFile)) {
-                failCountStr = readFile(failCountFile).trim()
-                if (failCountStr.isInteger()) {
-                    failCount = failCountStr.toInteger() + 1
-                }
-            }
-            writeFile file: failCountFile, text: "${failCount}"
-
-            if (failCount > 1) {
-                msg = "Pipeline has failed to assemble release payload for ${BUILD_VERSION} (assembly ${ASSEMBLY}) ${failCount} times."
-                // TODO: https://issues.redhat.com/browse/ART-5657
-                artNotifyFrequency = 2
-                forumReleaseNotifyFrequency = 5
-                if (failCount > 10 && failCount <= 50) {
-                    artNotifyFrequency = 5
-                    forumReleaseNotifyFrequency = 10
-                }
-                if (failCount > 50 && failCount <= 200) {
-                    artNotifyFrequency = 10
-                    forumReleaseNotifyFrequency = 50
-                }
-                if (failCount > 200) {
-                    artNotifyFrequency = 100
-                    forumReleaseNotifyFrequency = 100
-                }
-                if (failCount % artNotifyFrequency == 0) {  // spam ourselves a little more often than forum-release
-                    slacklib.to(params.BUILD_VERSION).failure(msg)
-                }
-                if (assembly == "stream" && (failCount % forumReleaseNotifyFrequency == 0)) {
-                    def out = buildlib.doozer("--group=openshift-${params.BUILD_VERSION} config:read-group --yaml release_state",
-                                              [capture: true]).trim()
-                    def archReleaseStates = readYaml(text: out)
-                    if (archReleaseStates[BUILD_VERSION]['release'].isEmpty()) {
-                        // For development releases, notify TRT and release artists
-                        slacklib.to("#forum-release-oversight").failure("@release-artists ${msg}")
-                    } else {
-                        // For GA releases, let forum-release know why no new builds
-                        slacklib.to("#forum-release").failure(msg)
-                    }
-                }
-            }
-
             currentBuild.displayName += " [FAILURE]"
             commonlib.email(
                     to: "aos-art-automation+failed-build-sync@redhat.com",
@@ -273,11 +232,7 @@ node('covscan') {
             artifacts = []
             artifacts.addAll(["app.ci-backup.tgz", "gen-payload-artifacts/*", "MIRROR_working/debug.log"])
             commonlib.safeArchiveArtifacts(artifacts)
-
-            // Cleanup without calling cleanWorkspace as this will remove failure count
-            sh "rm -rf ${env.WORKSPACE}/doozer_working"
-            sh "rm -rf ${mirrorWorking}"
-            sh "rm -rf ${env.WORKSPACE}/gen-payload-artifacts"
+            buildlib.cleanWorkspace()
         }
     } // stage build-sync
 }

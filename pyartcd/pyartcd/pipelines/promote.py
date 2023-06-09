@@ -385,7 +385,7 @@ class PromotePipeline:
         quay_url = constants.QUAY_RELEASE_REPO_URL
         # Anything under this directory will be sync'd to the mirror
         base_to_mirror_dir = f"{working_dir}/to_mirror/openshift-v4"
-        shutil.rmtree(f"{base_to_mirror_dir}/{build_arch}")
+        shutil.rmtree(f"{base_to_mirror_dir}/{build_arch}", ignore_errors=True)
 
         # From the newly built release, extract the client tools into the workspace following the directory structure
         # we expect to publish to mirror
@@ -510,7 +510,7 @@ class PromotePipeline:
         # Compress binaries into tar.gz files and calculate sha256 digests
         for idx, binary in enumerate(binaries):
             platform = platforms[idx]
-            os.chmod(binary, 0o755)
+            os.chmod(f"{client_mirror_dir}/{binary}", 0o755)
             with tarfile.open(f"{client_mirror_dir}/opm-{platform}-{release_name}.tar.gz", "w:gz") as tar:  # archive file
                 tar.add(f"{client_mirror_dir}/{binary}", arcname=binary)
             os.remove(f"{client_mirror_dir}/{binary}")  # remove opm binary

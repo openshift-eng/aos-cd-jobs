@@ -633,7 +633,7 @@ class Ocp4Pipeline:
         try:
             if mass_rebuild:
                 run_details.update_description(
-                    '"Mass image rebuild (more than half) - invoking serializing semaphore<br/>')
+                    'Mass image rebuild (more than half) - invoking serializing semaphore<br/>')
                 await self._mass_rebuild(cmd)
             else:
                 await exectools.cmd_assert_async(cmd)

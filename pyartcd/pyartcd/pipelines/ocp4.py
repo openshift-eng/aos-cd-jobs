@@ -437,7 +437,7 @@ class Ocp4Pipeline:
         if automation_state not in ['scheduled', 'yes', 'True']:
             return True
 
-        if automation_state == 'scheduled' and self.build_plan.build_rpms:
+        if automation_state == 'scheduled' and self.build_plan.build_rpms and util.is_manual_build():
             # Send a Slack notification since we're running compose build during automation freeze
             self._slack_client.bind_channel(f'openshift-{self.version.stream}')
             await self._slack_client.say(

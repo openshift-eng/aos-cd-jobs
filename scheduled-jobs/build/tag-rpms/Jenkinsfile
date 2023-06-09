@@ -28,7 +28,7 @@ def runFor(version) {
 
 @NonCPS
 def sortedVersions() {
-  return commonlib.ocpVersions.sort(false)
+  return commonlib.ocp4Versions.sort(false)
 }
 
 node() {

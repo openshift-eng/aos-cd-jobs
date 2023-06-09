@@ -64,7 +64,10 @@ node {
     def version = params.BUILD_VERSION
     def assembly = params.ASSEMBLY
     def rhel_targets = commonlib.parseList(params.RHEL_TARGETS)
-    def arches = params.ARCHES == 'all' ? commonlib.ocpReleaseState[version]["release"] : commonlib.parseList(params.ARCHES)
+    def out = buildlib.doozer("--group=openshift-${version} config:read-group --yaml release_state",
+                                [capture: true]).trim()
+    def archReleaseStates = readYaml(text: out)
+    def arches = params.ARCHES == 'all' ? archReleaseStates[version]["release"] : commonlib.parseList(params.ARCHES)
     def set_latest = params.SET_LATEST
     def dry_run = params.DRY_RUN
 

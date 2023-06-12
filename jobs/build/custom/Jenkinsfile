@@ -138,7 +138,10 @@ node {
         release = params.RELEASE.trim() ?: buildlib.defaultReleaseFor(params.BUILD_VERSION)
     }
     // If any arch is ready for GA, use signed repos for all (plashets will sign everything).
-    def repo_type = commonlib.ocpReleaseState[params.BUILD_VERSION]['release'] ? 'signed' : 'unsigned'
+    def out = buildlib.doozer("--group=openshift-${params.BUILD_VERSION} config:read-group --yaml release_state",
+                                [capture: true]).trim()
+    def archReleaseStates = readYaml(text: out)
+    def repo_type = archReleaseStates[params.BUILD_VERSION]['release'] ? 'signed' : 'unsigned'
 
     def images = commonlib.cleanCommaList(params.IMAGES)
     def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)

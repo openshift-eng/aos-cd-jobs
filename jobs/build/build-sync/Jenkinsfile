@@ -244,7 +244,10 @@ node('covscan') {
                     slacklib.to(params.BUILD_VERSION).failure(msg)
                 }
                 if (assembly == "stream" && (failCount % forumReleaseNotifyFrequency == 0)) {
-                    if (commonlib.ocpReleaseState[BUILD_VERSION]['release'].isEmpty()) {
+                    def out = buildlib.doozer("--group=openshift-${params.BUILD_VERSION} config:read-group --yaml release_state",
+                                              [capture: true]).trim()
+                    def archReleaseStates = readYaml(text: out)
+                    if (archReleaseStates[BUILD_VERSION]['release'].isEmpty()) {
                         // For development releases, notify TRT and release artists
                         slacklib.to("#forum-release-oversight").failure("@release-artists ${msg}")
                     } else {

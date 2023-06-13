@@ -131,7 +131,8 @@ node() {
                         def out = buildlib.doozer("--group=openshift-${build_version} config:read-group --yaml release_state",
                                                     [capture: true]).trim()
                         def archReleaseStates = readYaml(text: out)
-                        if (archReleaseStates[build_version]['release'].isEmpty()) {
+                        echo "arch release state for ${build_version}: ${archReleaseStates}"
+                        if (archReleaseStates['release'].isEmpty()) {
                             // For development releases, notify TRT and release artists
                             commonlib.slacklib.to('#forum-release-oversight').say("@release-artists ${msg}")
                         } else if (!["4.7", "4.8"].contains(build_version)) {

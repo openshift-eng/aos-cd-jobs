@@ -74,7 +74,8 @@ def is_prerelease(version) {
         def out = buildlib.doozer("--group=openshift-${version} config:read-group --yaml release_state",
                                     [capture: true]).trim()
         def archReleaseStates = readYaml(text: out)
-        return archReleaseStates[version]['release'].isEmpty()
+        echo "arch release state for ${params.BUILD_VERSION}: ${archReleaseStates}"
+        return archReleaseStates['release'].isEmpty()
     } catch (Exception e) {
         // there is no "version" release defined in OCP release state
         return false

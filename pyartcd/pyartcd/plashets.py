@@ -7,9 +7,8 @@ from typing import Sequence, Optional, Tuple
 
 import yaml
 
-from pyartcd import exectools, constants
+from pyartcd import exectools, constants, util
 from pyartcd.constants import PLASHET_REMOTE_HOST
-from pyartcd.release import ocp_release_state
 
 working_dir = "plashet-working"
 
@@ -120,14 +119,8 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     revision = release.replace('.p?', '')  # e.g. '202304181947' from '202304181947.p?'
 
     # Load group config
-    group_param = f'openshift-{stream}'
-    if data_gitref:
-        group_param += f'@{data_gitref}'
-    rc, stdout, stderr = await exectools.cmd_gather_async(
-        ['doozer', f'--data-path={data_path}', '--working-dir=doozer-working',
-         '-q', f'--group={group_param}', 'config:read-group']
-    )
-    group_config = yaml.safe_load(stdout.strip())
+    group_config = await util.load_group_config(group=f'openshift-{stream}', assembly=assembly,
+                                                doozer_data_path=data_path, doozer_data_gitref=data_gitref)
 
     # Check if assemblies are enabled for current group
     if not group_config.get('assemblies', {}).get('enabled'):
@@ -141,7 +134,8 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     logger.info("Building plashet repos: %s", ", ".join(plashet_config.keys()))
 
     # Check release state
-    signing_mode = 'signed' if ocp_release_state[stream]['release'] else 'unsigned'
+    ocp_release_state = group_config['release_state']
+    signing_mode = 'signed' if ocp_release_state['release'] else 'unsigned'
 
     # Create plashet repos on ocp-artifacts
     # We can't safely run doozer config:plashet from-tags in parallel as this moment.
@@ -149,7 +143,10 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     plashets_built = {}  # hold the information of all built plashet repos
     timestamp = datetime.strptime(revision, '%Y%m%d%H%M%S')
     signing_advisory = group_config.get('signing_advisory', '0')
-    arches = ocp_release_state[stream]['release'] + ocp_release_state[stream]['pre-release']
+    arches = ocp_release_state['release'] + ocp_release_state['pre-release']
+    group_param = f'openshift-{stream}'
+    if data_gitref:
+        group_param += f'@{data_gitref}'
 
     for repo_type, config in plashet_config.items():
         logger.info('Building plashet repo for %s', repo_type)

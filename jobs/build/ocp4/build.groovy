@@ -320,7 +320,10 @@ def stageBuildImages() {
     }
     try {
 
-        def archReleaseStates = commonlib.ocpReleaseState[version.stream]
+        def out = buildlib.doozer("--group=openshift-${version.stream} config:read-group --yaml release_state",
+                                  [capture: true]).trim()
+        def archReleaseStates = readYaml(text: out)
+        echo "arch release state for ${params.BUILD_VERSION}: ${archReleaseStates}"
         // If any arch is GA, use signed for everything. See stageBuildCompose for details.
         def signing_mode = archReleaseStates['release']?'signed':'unsigned'
         def cmd =

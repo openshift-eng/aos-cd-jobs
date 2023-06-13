@@ -8,6 +8,7 @@ import yaml
 
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.oc import registry_login
+from pyartcd.redis import RedisError
 from pyartcd.runtime import Runtime
 from pyartcd import exectools, constants, redis, util
 from pyartcd.util import branch_arches
@@ -384,3 +385,7 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
             else:
                 # For GA releases, let forum-release know why no new builds
                 slack_client.bind('#forum-release').say(msg)
+
+    except RedisError as e:
+        runtime.logger.error('Encountered error when updating the fail counter: %s', e)
+        raise

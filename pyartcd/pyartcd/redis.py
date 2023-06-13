@@ -7,13 +7,17 @@ import aioredis
 redis = Template('${protocol}://:${redis_password}@${redis_host}:${redis_port}')
 
 
+class RedisError(Exception):
+    pass
+
+
 def redis_url(use_ssl=True):
     if not os.environ.get('REDIS_SERVER_PASSWORD', None):
-        raise RuntimeError('Please define REDIS_SERVER_PASSWORD env var')
+        raise RedisError('Please define REDIS_SERVER_PASSWORD env var')
     if not os.environ.get('REDIS_HOST', None):
-        raise RuntimeError('Please define REDIS_HOST env var')
+        raise RedisError('Please define REDIS_HOST env var')
     if not os.environ.get('REDIS_PORT', None):
-        raise RuntimeError('Please define REDIS_PORT env var')
+        raise RedisError('Please define REDIS_PORT env var')
 
     return redis.substitute(
         protocol='rediss' if use_ssl else 'redis',

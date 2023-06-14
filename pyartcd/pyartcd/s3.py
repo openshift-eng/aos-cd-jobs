@@ -1,5 +1,6 @@
 import os
 from pyartcd import exectools
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 
 async def sync_repo_to_s3_mirror(local_dir: str, s3_path: str, dry_run: bool = False, remove_old: bool = True):
@@ -45,9 +46,13 @@ async def sync_dir_to_s3_mirror(local_dir: str, s3_path: str, exclude: str, incl
         base_cmd.append('--dryrun')
     if exclude:
         base_cmd += ['--exclude', exclude]
-    if include_only:
+    elif include_only:  # include_only will over-ride exclude.
         base_cmd += ['--exclude', '*', '--include', include_only]
     if remove_old:
         base_cmd.append('--delete')
     base_cmd += [local_dir, full_s3_path]
-    await exectools.cmd_assert_async(base_cmd, env=env)
+    await retry(
+        wait=wait_fixed(30),  # wait for 30 seconds between retries
+        stop=(stop_after_attempt(3)),  # max 3 attempts
+        reraise=True
+    )(exectools.cmd_assert_async)(base_cmd, env=env)

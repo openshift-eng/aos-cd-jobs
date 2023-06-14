@@ -59,6 +59,7 @@ if __name__ == '__main__':
     fallback_text = header_text
 
     response_messages = []
+    channel_warnings = {}
     current_epoch_time = time.time()
     for match in all_matches:
         team_id = match.get('team', '')
@@ -72,7 +73,8 @@ if __name__ == '__main__':
             except SlackApiError:
                 msg = f':warning: Found an unresolved thread in channel {channel_handle}' \
                       f' but the channel is not accessible by the bot. Please invite <@art-bot> to {channel_handle}'
-                app.client.chat_postMessage(channel=TEAM_ART_CHANNEL, text=msg)
+                if not channel_warnings.get(channel_id, None):
+                    channel_warnings[channel_id] = msg
                 continue
 
             channel_name = conv_info.get('channel', {}).get('name_normalized', channel_name)
@@ -132,6 +134,12 @@ if __name__ == '__main__':
                                            text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
                                            blocks=header_block,
                                            unfurl_links=False)
+
+    # Post warnings about inaccessible channels first
+    for warning in channel_warnings.values():
+        app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+                                    text=warning,
+                                    thread_ts=response['ts'])
 
     for response_message in response_messages:
         app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,

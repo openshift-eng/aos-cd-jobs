@@ -1,11 +1,8 @@
 import logging
-import os
-from string import Template
 
 from aioredlock import Aioredlock
 
-# Redis instance where lock are stored
-redis = Template('${protocol}://:${redis_password}@${redis_host}:${redis_port}')
+from pyartcd import redis
 
 # This constant defines for each lock type:
 # - how many times the lock manager should try to acquire the lock before giving up
@@ -69,14 +66,8 @@ def new_lock_manager(internal_lock_timeout=10.0, retry_count=3, retry_delay_min=
     Altogether, if the resource cannot be acquired in (retry_count * retry_delay), the lock operation will fail.
     """
 
-    redis_instance = redis.substitute(
-        protocol='rediss' if use_ssl else 'redis',
-        redis_password=os.environ['REDIS_SERVER_PASSWORD'],
-        redis_host=os.environ['REDIS_HOST'],
-        redis_port=os.environ['REDIS_PORT']
-    )
     return LockManager(
-        [redis_instance],
+        [redis.redis_url(use_ssl)],
         internal_lock_timeout=internal_lock_timeout,
         retry_count=retry_count,
         retry_delay_min=retry_delay_min

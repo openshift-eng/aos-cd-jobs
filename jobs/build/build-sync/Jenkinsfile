@@ -247,7 +247,8 @@ node('covscan') {
                     def out = buildlib.doozer("--group=openshift-${params.BUILD_VERSION} config:read-group --yaml release_state",
                                               [capture: true]).trim()
                     def archReleaseStates = readYaml(text: out)
-                    if (archReleaseStates[BUILD_VERSION]['release'].isEmpty()) {
+                    echo "arch release state for ${params.BUILD_VERSION}: ${archReleaseStates}"
+                    if (archReleaseStates['release'].isEmpty()) {
                         // For development releases, notify TRT and release artists
                         slacklib.to("#forum-release-oversight").failure("@release-artists ${msg}")
                     } else {

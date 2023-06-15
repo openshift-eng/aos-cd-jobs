@@ -440,7 +440,7 @@ class PromotePipeline:
                 # remove oc-mirror
                 os.remove(f"{client_mirror_dir}/oc-mirror")
             else:
-                self._logger.error(f"Error get oc-mirror image from release pullspec")
+                self._logger.error("Error get oc-mirror image from release pullspec")
 
         # create symlink for clients
         self.create_symlink(client_mirror_dir, False, False)

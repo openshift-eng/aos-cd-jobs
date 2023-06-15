@@ -282,6 +282,7 @@ def log_file_content(path_to_file):
     with open(path_to_file, 'r') as f:
         logger.info(f.read())
 
+
 async def sync_images(version: str, assembly: str, operator_nvrs: list,
                       doozer_data_path: str = constants.OCP_BUILD_DATA_URL, doozer_data_gitref: str = ''):
     """

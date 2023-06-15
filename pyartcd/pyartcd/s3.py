@@ -19,7 +19,8 @@ async def sync_repo_to_s3_mirror(local_dir: str, s3_path: str, dry_run: bool = F
         await sync_dir_to_s3_mirror(local_dir, s3_path, exclude='', include_only='', dry_run=dry_run, remove_old=True)
 
 
-async def sync_dir_to_s3_mirror(local_dir: str, s3_path: str, exclude: str, include_only: str, dry_run: bool = False, remove_old: bool = True): 
+async def sync_dir_to_s3_mirror(local_dir: str, s3_path: str, exclude: str, include_only: str,
+                                dry_run: bool = False, remove_old: bool = True):
     """
     Sync a directory to an s3 bucket.
 

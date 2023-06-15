@@ -6,6 +6,7 @@ import time
 import datetime
 
 from slack_bolt import App
+from slack_sdk.errors import SlackApiError
 
 SLACK_API_TOKEN = os.getenv('SLACK_API_TOKEN')
 SLACK_SIGNING_SECRET = os.getenv('SLACK_SIGNING_SECRET')
@@ -13,6 +14,7 @@ USER_TOKEN = os.getenv('SLACK_USER_TOKEN')
 
 TEAM_ART_CHANNEL = 'team-art'
 RELEASE_ARTIST_HANDLE = 'release-artists'
+
 
 if __name__ == '__main__':
     app = App(
@@ -24,13 +26,22 @@ if __name__ == '__main__':
     next_cursor = '*'
     while next_cursor:
         # https://api.slack.com/methods/search.messages#examples
-        slack_response = app.client.search_messages(token=USER_TOKEN,
-                                                    query='has::art-attention: -has::art-attention-resolved:',
-                                                    cursor=next_cursor)
+        slack_response = app.client.search_messages(
+            token=USER_TOKEN,
+            query='has::art-attention: -has::art-attention-resolved:',
+            cursor=next_cursor
+        )
         messages = slack_response.get('messages', {})
-        if messages:
-            matches = messages.get('matches', [])
-            all_matches.extend(matches)
+        all_matches.extend(messages.get('matches', []))
+
+        # API call doesn't return messages sent by the bot unless specified
+        slack_response = app.client.search_messages(
+            token=USER_TOKEN,
+            query='has::art-attention: -has::art-attention-resolved: from:art-release-bot',
+            cursor=next_cursor
+        )
+        messages = slack_response.get('messages', {})
+        all_matches.extend(messages.get('matches', []))
 
         # https://api.slack.com/docs/pagination
         response_metadata = slack_response.get('response_metadata', {})
@@ -48,13 +59,24 @@ if __name__ == '__main__':
     fallback_text = header_text
 
     response_messages = []
+    channel_warnings = {}
     current_epoch_time = time.time()
     for match in all_matches:
         team_id = match.get('team', '')
         channel_id = match.get('channel', {}).get('id', '')
-        channel_name = 'Unknown'
+        channel_name = match.get('channel', {}).get('name', 'Unknown')
+        channel_handle = f'<https://redhat-internal.slack.com/archives/{channel_id}|#{channel_name}>'
         if len(channel_id) > 0:
-            conv_info = app.client.conversations_info(channel=channel_id)
+            try:
+                conv_info = app.client.conversations_info(channel=channel_id)
+
+            except SlackApiError:
+                msg = f':warning: Found an unresolved thread in channel {channel_handle}' \
+                      f' but the channel is not accessible by the bot. Please invite <@art-bot> to {channel_handle}'
+                if not channel_warnings.get(channel_id, None):
+                    channel_warnings[channel_id] = msg
+                continue
+
             channel_name = conv_info.get('channel', {}).get('name_normalized', channel_name)
         text = match.get('text', 'Link')
         permalink = match.get('permalink', None)
@@ -87,7 +109,7 @@ if __name__ == '__main__':
         # We just remove them since we are just trying for a short summary.
         snippet = snippet.replace('\ue006', '...')
         response_messages.append(
-            f"*Channel:* <https://redhat-internal.slack.com/archives/{channel_id}|#{channel_name}>\n*Date:* {str_date}Z\n*Age:* {age} {age_type}\n*Message:* <{permalink}|Link>\n*Snippet:* {snippet}...")
+            f"*Channel:* {channel_handle}\n*Date:* {str_date}Z\n*Age:* {age} {age_type}\n*Message:* <{permalink}|Link>\n*Snippet:* {snippet}...")
 
     header_block = [
         {
@@ -112,6 +134,12 @@ if __name__ == '__main__':
                                            text=f'@{RELEASE_ARTIST_HANDLE} - {fallback_text}',
                                            blocks=header_block,
                                            unfurl_links=False)
+
+    # Post warnings about inaccessible channels first
+    for warning in channel_warnings.values():
+        app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,
+                                    text=warning,
+                                    thread_ts=response['ts'])
 
     for response_message in response_messages:
         app.client.chat_postMessage(channel=TEAM_ART_CHANNEL,

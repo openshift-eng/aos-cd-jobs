@@ -2,7 +2,6 @@ node('covscan') {
     checkout scm
     buildlib = load('pipeline-scripts/buildlib.groovy')
     commonlib = buildlib.commonlib
-    slacklib = commonlib.slacklib
     commonlib.describeJob("olm_bundle", """
         <h2>Create bundle images for OLM operators</h2>
         <b>Timing</b>: Run by the ocp4 or custom jobs after new builds.
@@ -161,20 +160,10 @@ pipeline {
                                     string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
                                     string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
                                 ]) {
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        }
-
-                        // Parse doozer record.log
-                        def record_log = buildlib.parse_record_log(doozer_working)
-                        def records = record_log.get('build_olm_bundle', [])
-                        def bundle_nvrs = []
-                        for (record in records) {
-                            if (record['status'] != '0') {
-                                throw new Exception("record.log includes unexpected build_olm_bundle record with error message: ${record['message']}")
+                            withEnv(["BUILD_URL=${env.BUILD_URL}"]) {
+                                sh(script: cmd.join(' '), returnStdout: true)
                             }
-                            bundle_nvrs << record["bundle_nvr"]
                         }
-                        echo "Successfully built:\n${bundle_nvrs.join('\n')}"
                     }
                 }
             }
@@ -187,17 +176,6 @@ pipeline {
                     "doozer_working/*.log",
                     "doozer_working/*.yaml",
                 ])
-            }
-        }
-        failure {
-            script {
-                if (params.DRY_RUN) {
-                    return
-                }
-                slacklib.to(params.BUILD_VERSION).say("""
-                *:heavy_exclamation_mark: olm_bundle failed*
-                buildvm job: ${commonlib.buildURL('console')}
-                """)
             }
         }
     }

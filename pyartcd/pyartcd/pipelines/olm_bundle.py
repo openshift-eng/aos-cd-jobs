@@ -1,9 +1,12 @@
+import os
+
 import click
 from aioredlock import LockError
 
 from pyartcd import constants, exectools
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd import locks
+from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 
 
@@ -58,13 +61,37 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
         retry_count=lock_policy['retry_count'],
         retry_delay_min=lock_policy['retry_delay_min']
     )
-
-    # Try to acquire olm-bundle lock for build version
     lock_name = f'olm_bundle-{version}'
+
     try:
+        # Try to acquire olm-bundle lock for build version
         async with await lock_manager.lock(lock_name):
+            # Build bundles
             runtime.logger.info('Running command: %s', cmd)
             await exectools.cmd_assert_async(cmd)
+
+            # Parse doozer record.log
+            with open('doozer_working/record.log') as file:
+                record_log = parse_record_log(file)
+            records = record_log.get('build_olm_bundle', [])
+            bundle_nvrs = []
+
+            for record in records:
+                if record['status'] != '0':
+                    raise RuntimeError('record.log includes unexpected build_olm_bundle '
+                                       f'record with error message: {record["message"]}')
+                bundle_nvrs.append(record['bundle_nvr'])
+
+            runtime.logger.info(f'Successfully built:\n{", ".join(bundle_nvrs)}')
+
+    except (ChildProcessError, RuntimeError) as e:
+        runtime.logger.error('Encountered error: %s', e)
+        if not runtime.dry_run:
+            slack_client = runtime.new_slack_client()
+            slack_client.bind_channel(version)
+            await slack_client.say('*:heavy_exclamation_mark: olm_bundle failed*\n'
+                                   f'buildvm job: {os.environ["BUILD_URL"]}')
+            raise
 
     except LockError as e:
         runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)

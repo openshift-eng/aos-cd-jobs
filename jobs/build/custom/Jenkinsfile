@@ -141,7 +141,8 @@ node {
     def out = buildlib.doozer("--group=openshift-${params.BUILD_VERSION} config:read-group --yaml release_state",
                                 [capture: true]).trim()
     def archReleaseStates = readYaml(text: out)
-    def repo_type = archReleaseStates[params.BUILD_VERSION]['release'] ? 'signed' : 'unsigned'
+    echo "arch release state for ${params.BUILD_VERSION}: ${archReleaseStates}"
+    def repo_type = archReleaseStates['release'] ? 'signed' : 'unsigned'
 
     def images = commonlib.cleanCommaList(params.IMAGES)
     def exclude_images = commonlib.cleanCommaList(params.EXCLUDE_IMAGES)

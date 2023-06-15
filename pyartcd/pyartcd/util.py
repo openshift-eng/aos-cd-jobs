@@ -1,18 +1,19 @@
-import asyncio
 import logging
 import os
 import re
 import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import aiofiles
 import yaml
-from doozerlib import assembly, model, util as doozerutil
+from doozerlib import assembly, model
+from doozerlib import util as doozerutil
 from errata_tool import ErrataConnector
 
-from pyartcd import exectools, constants, jenkins
+from pyartcd import constants, exectools, jenkins
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +72,8 @@ def is_greenwave_all_pass_on_advisory(advisory_id: int) -> bool:
 
 
 async def load_group_config(group: str, assembly: str, env=None) -> Dict:
-    temp_workdir = f'{group}-{assembly}-working'
     cmd = [
         "doozer",
-        f"--working-dir={temp_workdir}",
         "--group", group,
         "--assembly", assembly,
         "config:read-group",
@@ -82,8 +81,15 @@ async def load_group_config(group: str, assembly: str, env=None) -> Dict:
     ]
     if env is None:
         env = os.environ.copy()
-    _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=env)
-    shutil.rmtree(temp_workdir)
+    temp_workdir = None
+    if not env.get("DOOZER_WORKING_DIR"):
+        temp_workdir = tempfile.mkdtemp(prefix="doozer-working-", dir=".")
+        env["DOOZER_WORKING_DIR"] = temp_workdir
+    try:
+        _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=env)
+    finally:
+        if temp_workdir:
+            shutil.rmtree(temp_workdir)
     group_config = yaml.safe_load(stdout)
     if not isinstance(group_config, dict):
         raise ValueError("ocp-build-data contains invalid group config.")

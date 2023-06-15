@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -70,8 +71,10 @@ def is_greenwave_all_pass_on_advisory(advisory_id: int) -> bool:
 
 
 async def load_group_config(group: str, assembly: str, env=None) -> Dict:
+    temp_workdir = f'{group}-{assembly}-working'
     cmd = [
         "doozer",
+        f"--working-dir={temp_workdir}",
         "--group", group,
         "--assembly", assembly,
         "config:read-group",
@@ -80,6 +83,7 @@ async def load_group_config(group: str, assembly: str, env=None) -> Dict:
     if env is None:
         env = os.environ.copy()
     _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=env)
+    shutil.rmtree(temp_workdir)
     group_config = yaml.safe_load(stdout)
     if not isinstance(group_config, dict):
         raise ValueError("ocp-build-data contains invalid group config.")

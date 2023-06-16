@@ -6,6 +6,7 @@ import requests
 import traceback
 import xml.etree.cElementTree as ET
 from io import BytesIO
+import shutil
 
 LOG_PREFIX_ALL_CONNECTION = "New Connection: "
 LOG_PREFIX_DISALLOWED_CONNECTION = "Disallowed Connection: "
@@ -14,6 +15,12 @@ DIRECT_XML_PATH = '/etc/firewalld/direct.xml'
 
 def reload_permanent_rules():
     subprocess.check_output(['firewall-cmd', '--reload'])
+    if shutil.which('podman-network-reload'):
+        # Rootful Podman relies on iptables rules in order to provide network connectivity.
+        # If the iptables rules are deleted, this happens for example with firewall-cmd --reload,
+        # the container loses network connectivity.
+        # This command restores the network connectivity.
+        subprocess.check_output(['podman-network-reload', '--all'])
 
 
 def get_direct_rules(space):

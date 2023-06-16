@@ -1,28 +1,31 @@
 import asyncio
-import subprocess
-import concurrent
 import sys
+
 import click
 import aiohttp
 from aiohttp_retry import RetryClient, ExponentialRetry
 
+from pyartcd import exectools, util
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
 
 BASE_URL = 'https://api.openshift.com/api/upgrades_info/v1/graph?arch=amd64&channel=fast'
-ELLIOTT_BIN = 'elliott'
 
 
-def get_next_version(version: str) -> str:
+def get_next_minor(version: str) -> str:
     major, minor = version.split('.')[:2]
     return '.'.join([major, str(int(minor) + 1)])
 
 
+async def is_prerelease(version: str) -> bool:
+    group_config = await util.load_group_config(group=f'openshift-{version}', assembly='stream')
+    return not group_config['release_state']['release']
+
+
 class CheckBugsPipeline:
-    def __init__(self, runtime: Runtime, channel: str, versions: list, pre_releases: list) -> None:
+    def __init__(self, runtime: Runtime, channel: str, versions: list) -> None:
         self.runtime = runtime
         self.versions = versions
-        self.pre_releases = pre_releases
         self.logger = runtime.logger
         self.applicable_versions = []
         self.blockers = {}
@@ -44,28 +47,14 @@ class CheckBugsPipeline:
         await self._check_applicable_versions()
 
         # Find blocker bugs
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = []
-            for v in self.applicable_versions:
-                futures.append(executor.submit(self._find_blockers, v))
-            for f in futures:
-                try:
-                    self.blockers.update(f.result())
-                except TypeError:
-                    # In case no blockers have been found
-                    pass
+        results = await asyncio.gather(*[self._find_blockers(version) for version in self.applicable_versions])
+        for result in filter(lambda r: r, results):
+            self.blockers.update(result)
 
         # Find regressions
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = []
-            for v in self.applicable_versions:
-                futures.append(executor.submit(self._find_regressions, v))
-            for f in futures:
-                try:
-                    self.regressions.update(f.result())
-                except TypeError:
-                    # In case no regressions have been found
-                    pass
+        results = await asyncio.gather(*[self._find_regressions(version) for version in self.applicable_versions])
+        for result in filter(lambda r: r, results):
+            self.regressions.update(result)
 
         # Notify Slack
         await self._slack_report()
@@ -73,10 +62,7 @@ class CheckBugsPipeline:
 
     async def _check_applicable_versions(self):
         async with aiohttp.ClientSession() as session:
-            tasks = []
-            for v in self.versions:
-                tasks.append(asyncio.ensure_future(self.is_ga(v, session)))
-            responses = await asyncio.gather(*tasks)
+            responses = await asyncio.gather(*[asyncio.ensure_future(self.is_ga(v, session)) for v in self.versions])
             ga_info = dict(zip(self.versions, responses))
 
         self.applicable_versions = [v for v in self.versions if ga_info.get(v, True)]
@@ -105,45 +91,42 @@ class CheckBugsPipeline:
             nodes = response_body['nodes']
             return len(nodes) > 0
 
-    def _find_blockers(self, version: str):
+    async def _find_blockers(self, version: str):
         self.logger.info(f'Checking blocker bugs for Openshift {version}')
 
         cmd = [
-            ELLIOTT_BIN,
+            'elliott',
             f'--group=openshift-{version}',
             f'--working-dir={version}-working',
             'find-bugs:blocker',
             '--output=slack'
         ]
-        self.logger.info(f'Executing command: {" ".join(cmd)}')
+        rc, out, err = await exectools.cmd_gather_async(cmd)
 
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = process.communicate()
-        if out:
-            self.logger.info(out.decode())
-        errcode = process.returncode
-        if errcode:
+        if rc:
             self.unstable = True
-            self.logger.error(f'Command failed: cmd={cmd} status={errcode}. Output: {err.decode()}')
+            self.logger.error(f'Command "{cmd}" failed with status={rc}: {err.strip()}')
             return None
 
-        out = out.decode().strip().splitlines()
+        out = out.strip().splitlines()
         if not out:
             self.logger.info('No blockers found for version %s', version)
             return None
-        self.logger.info('Cmd returned: %s', out)
+
+        self.logger.info('Command returned: %s', out)
         return {version: out}
 
-    def _find_regressions(self, version: str):
+    async def _find_regressions(self, version: str):
         # Do nothing for 3.11
         if version == '3.11':
             return None
 
         # Check pre-release
-        if self._next_is_prerelease(version):
+        next_minor = get_next_minor(version)
+        if await is_prerelease(next_minor):
             self.logger.info(
                 'Version %s is in pre-release state: skipping regression checks for %s',
-                get_next_version(version), version
+                next_minor, version
             )
             return None
 
@@ -151,38 +134,27 @@ class CheckBugsPipeline:
 
         # Verify bugs
         cmd = [
-            ELLIOTT_BIN,
+            'elliott',
             f'--group=openshift-{version}',
             '--assembly=stream',
             f'--working-dir={version}-working',
             'verify-bugs',
             '--output=slack'
         ]
-        self.logger.info(f'Executing command: {" ".join(cmd)}')
-
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = process.communicate()
-        if out:
-            self.logger.info(out.decode())
-
-        errcode = process.returncode
-        res = None
+        rc, out, err = await exectools.cmd_gather_async(cmd, check=False)
 
         # If returncode is 0 then no regressions were found
-        if not errcode:
+        if not rc:
             self.logger.info('No regressions found for version %s', version)
-            return res
+            return None
 
-        out = out.decode().strip().splitlines()
+        out = out.strip().splitlines()
         if out:
-            res = {version: out}
+            return {version: out}
         else:
             self.unstable = True
-            self.logger.error(f'Command failed: cmd={cmd} status={errcode}. Output: {err.decode()}')
-        return res
-
-    def _next_is_prerelease(self, version: str) -> bool:
-        return get_next_version(version) in self.pre_releases
+            self.logger.error(f'Command "{cmd}" failed with status={rc}: {err.strip()}')
+            return None
 
     async def _slack_report(self):
         # If no issues have been found, do nothing
@@ -213,10 +185,8 @@ class CheckBugsPipeline:
               help='Slack channel to be notified for failures')
 @click.option('--version', required=True, multiple=True,
               help='OCP version to check for blockers e.g. 4.7')
-@click.option('--pre_release', required=False, multiple=True,
-              help='OCP versions still in pre-release state')
 @pass_runtime
 @click_coroutine
-async def check_bugs(runtime: Runtime, slack_channel: str, version: list, pre_release: list):
-    pipeline = CheckBugsPipeline(runtime, channel=slack_channel, versions=version, pre_releases=pre_release)
+async def check_bugs(runtime: Runtime, slack_channel: str, version: list):
+    pipeline = CheckBugsPipeline(runtime, channel=slack_channel, versions=version)
     await pipeline.run()

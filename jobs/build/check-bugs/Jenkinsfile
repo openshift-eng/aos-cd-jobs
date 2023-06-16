@@ -51,12 +51,6 @@ node {
             cmd.add("--version")
             cmd.add(version)
         }
-        for (String version : commonlib.ocpVersions) {
-            if (is_prerelease(version)) {
-                cmd.add("--pre_release")
-                cmd.add(version)
-            }
-        }
 
         buildlib.withAppCiAsArtPublish() {
             withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
@@ -66,18 +60,5 @@ node {
                 }
             }
         }
-    }
-}
-
-def is_prerelease(version) {
-    try {
-        def out = buildlib.doozer("--group=openshift-${version} config:read-group --yaml release_state",
-                                    [capture: true]).trim()
-        def archReleaseStates = readYaml(text: out)
-        echo "arch release state for ${params.BUILD_VERSION}: ${archReleaseStates}"
-        return archReleaseStates['release'].isEmpty()
-    } catch (Exception e) {
-        // there is no "version" release defined in OCP release state
-        return false
     }
 }

@@ -1,13 +1,16 @@
 import logging
 import os
 import re
+import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import aiofiles
 import yaml
-from doozerlib import assembly, model, util as doozerutil
+from doozerlib import assembly, model
+from doozerlib import util as doozerutil
 from errata_tool import ErrataConnector
 
 from pyartcd import exectools, constants, jenkins, record
@@ -79,7 +82,15 @@ async def load_group_config(group: str, assembly: str, env=None) -> Dict:
     ]
     if env is None:
         env = os.environ.copy()
-    _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=env)
+    temp_workdir = None
+    if not env.get("DOOZER_WORKING_DIR"):
+        temp_workdir = tempfile.mkdtemp(prefix="doozer-working-", dir=".")
+        env["DOOZER_WORKING_DIR"] = temp_workdir
+    try:
+        _, stdout, _ = await exectools.cmd_gather_async(cmd, stderr=None, env=env)
+    finally:
+        if temp_workdir:
+            shutil.rmtree(temp_workdir)
     group_config = yaml.safe_load(stdout)
     if not isinstance(group_config, dict):
         raise ValueError("ocp-build-data contains invalid group config.")
@@ -281,6 +292,7 @@ def log_file_content(path_to_file):
     logger.info(f"Printing file content of {path_to_file}")
     with open(path_to_file, 'r') as f:
         logger.info(f.read())
+
 
 async def sync_images(version: str, assembly: str, operator_nvrs: list,
                       doozer_data_path: str = constants.OCP_BUILD_DATA_URL, doozer_data_gitref: str = ''):

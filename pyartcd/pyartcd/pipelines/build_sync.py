@@ -334,7 +334,10 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
 
     except (RuntimeError, ChildProcessError):
         # Increment failure count
-        fail_count = int(await redis.get_value(fail_count_name)) + 1
+        current_count = await redis.get_value(fail_count_name)
+        if current_count is None:
+            current_count = 0
+        fail_count = int(current_count) + 1
         runtime.logger.info('Failure count for %s: %s', version, fail_count)
 
         # Update fail counter on Redis

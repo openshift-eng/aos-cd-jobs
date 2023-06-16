@@ -78,7 +78,7 @@ async def load_group_config(group: str, assembly: str, env=None,
         group += f'@{doozer_data_gitref}'
     cmd = [
         "doozer",
-        f"--data-path=${doozer_data_path}",
+        f"--data-path={doozer_data_path}",
         "--group", group,
         "--assembly", assembly,
         "config:read-group",

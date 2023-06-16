@@ -143,7 +143,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     plashets_built = {}  # hold the information of all built plashet repos
     timestamp = datetime.strptime(revision, '%Y%m%d%H%M%S')
     signing_advisory = group_config.get('signing_advisory', '0')
-    arches = ocp_release_state['release'] + ocp_release_state['pre-release']
+    arches = ocp_release_state['release'] + ocp_release_state['pre_release']
     group_param = f'openshift-{stream}'
     if data_gitref:
         group_param += f'@{data_gitref}'

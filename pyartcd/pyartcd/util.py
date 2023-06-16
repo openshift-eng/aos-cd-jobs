@@ -71,9 +71,14 @@ def is_greenwave_all_pass_on_advisory(advisory_id: int) -> bool:
     return True
 
 
-async def load_group_config(group: str, assembly: str, env=None) -> Dict:
+async def load_group_config(group: str, assembly: str, env=None,
+                            doozer_data_path: str = constants.OCP_BUILD_DATA_URL,
+                            doozer_data_gitref: str = '') -> Dict:
+    if doozer_data_gitref:
+        group += f'@{doozer_data_gitref}'
     cmd = [
         "doozer",
+        f"--data-path=${doozer_data_path}",
         "--group", group,
         "--assembly", assembly,
         "config:read-group",

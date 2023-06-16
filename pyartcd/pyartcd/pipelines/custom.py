@@ -4,7 +4,6 @@ from aioredlock import LockError
 from pyartcd import constants, exectools, locks, plashets, util
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.record import parse_record_log
-from pyartcd.release import ocp_release_state
 from pyartcd.runtime import Runtime
 
 DOOZER_WORKING = "doozer_working"
@@ -154,7 +153,10 @@ async def build_images(runtime: Runtime, assembly: str, version: str, data_path:
         group_param = f'{group_param}@{data_gitref}'
 
     # If any arch is ready for GA, use signed repos for all (plashets will sign everything).
-    repo_type = 'signed' if ocp_release_state[stream_version]['release'] else 'unsigned'
+    group_config = await util.load_group_config(group=f'openshift-{stream_version}', assembly=assembly,
+                                                doozer_data_path=data_path, doozer_data_gitref=data_gitref)
+    ocp_release_state = group_config['release_state']
+    repo_type = 'signed' if ocp_release_state['release'] else 'unsigned'
 
     # Update distgit
     if image_mode == 'rebase':

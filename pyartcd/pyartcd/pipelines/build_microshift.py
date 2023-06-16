@@ -141,6 +141,8 @@ class BuildMicroShiftPipeline:
                 await slack_client.say(message, slack_thread)
         except Exception as err:
             error_message = f"Error building microshift: {err}\n {traceback.format_exc()}"
+            if assembly_type != AssemblyTypes.STREAM:
+                error_message += "\n@release-artists"
             self._logger.error(error_message)
             if slack_client:
                 await slack_client.say(error_message, slack_thread)

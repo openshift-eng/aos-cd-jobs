@@ -12,7 +12,7 @@ node {
         "serverless",
         "odo",
         "rosa",
-        "pipeline",
+        "pipelines",
         "rhacs"
     ]
 

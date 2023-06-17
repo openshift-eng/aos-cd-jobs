@@ -101,12 +101,42 @@ async def load_group_config(group: str, assembly: str, env=None,
     return group_config
 
 
-async def load_releases_config(build_data_path: os.PathLike) -> Optional[Dict]:
+async def load_releases_config(group: str, data_path: str = constants.OCP_BUILD_DATA_URL) -> Optional[Dict]:
+    cmd = [
+        'doozer',
+        f'--data-path={data_path}',
+        f'--group={group}',
+        'config:read-releases',
+        '--yaml'
+    ]
+
     try:
-        async with aiofiles.open(Path(build_data_path) / "releases.yml", "r") as f:
-            content = await f.read()
-        return yaml.safe_load(content)
-    except FileNotFoundError:
+        _, out, _ = await exectools.cmd_gather_async(cmd)
+        return yaml.safe_load(out.strip())
+
+    except ChildProcessError as e:
+        logger.error('Command "%s" failed: %s', ' '.join(cmd), e)
+        return None
+
+
+async def load_assembly(group: str, assembly: str, key: str = '',
+                        data_path: str = constants.OCP_BUILD_DATA_URL) -> Optional[Dict]:
+    cmd = [
+        'doozer',
+        f'--data-path={data_path}',
+        f'--group={group}',
+        'config:read-assembly',
+        f'--assembly={assembly}',
+        '--yaml',
+        key
+    ]
+
+    try:
+        _, out, _ = await exectools.cmd_gather_async(cmd)
+        return yaml.safe_load(out.strip())
+
+    except ChildProcessError as e:
+        logger.error('Command "%s" failed: %s', ' '.join(cmd), e)
         return None
 
 

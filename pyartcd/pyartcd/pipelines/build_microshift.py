@@ -69,10 +69,7 @@ class BuildMicroShiftPipeline:
         slack_client = None
         try:
             await load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
-            releases_config = await load_releases_config(
-                group=self.group,
-                data_path=self._doozer_env_vars.get("DOOZER_DATA_PATH", None) or constants.OCP_BUILD_DATA_URL
-            )
+            releases_config = await load_releases_config(Path(self._doozer_env_vars["DOOZER_WORKING_DIR"], "ocp-build-data"))
             assembly_type = get_assembly_type(releases_config, self.assembly)
             if assembly_type not in self.SUPPORTED_ASSEMBLY_TYPES:
                 raise ValueError(f"Building MicroShift for assembly type {assembly_type.value} is not currently supported.")

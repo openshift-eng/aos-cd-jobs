@@ -389,6 +389,8 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
                 # For GA releases, let forum-release know why no new builds
                 slack_client.bind('#forum-release').say(msg)
 
+        raise
+
     except RedisError as e:
         runtime.logger.error('Encountered error when updating the fail counter: %s', e)
         raise

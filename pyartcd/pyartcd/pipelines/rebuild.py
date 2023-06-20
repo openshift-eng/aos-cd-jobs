@@ -69,10 +69,7 @@ class RebuildPipeline:
         release = f"{timestamp}.p?"
 
         group_config = await load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
-        releases_config = await load_releases_config(
-            group=self.group,
-            data_path=self._doozer_env_vars.get("DOOZER_DATA_PATH", None) or constants.OCP_BUILD_DATA_URL
-        )
+        releases_config = await load_releases_config(Path(self._doozer_env_vars["DOOZER_WORKING_DIR"], "ocp-build-data"))
 
         if get_assembly_type(releases_config, self.assembly) == AssemblyTypes.STREAM:
             raise ValueError("You may not rebuild a component for a stream assembly.")

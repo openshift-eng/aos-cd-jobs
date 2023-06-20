@@ -91,10 +91,7 @@ class PromotePipeline:
         # Load group config and releases.yml
         logger.info("Loading build data...")
         group_config = await util.load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
-        releases_config = await util.load_releases_config(
-            group=self.group,
-            data_path=self._doozer_env_vars.get("DOOZER_DATA_PATH", None) or constants.OCP_BUILD_DATA_URL
-        )
+        releases_config = await util.load_releases_config(self._doozer_working_dir / "ocp-build-data")
         if releases_config.get("releases", {}).get(self.assembly) is None:
             raise ValueError(f"To promote this release, assembly {self.assembly} must be explictly defined in releases.yml.")
         permits = util.get_assembly_promotion_permits(releases_config, self.assembly)

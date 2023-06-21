@@ -148,6 +148,10 @@ get_plugin() {
             echo "Skipping already existing plugin: ${plugin}:${existing_version}"
             return 0
         fi
+        if [ $(echo "${existing_version}" | cut -d "." -f 1) > $(echo "${PLUGIN_VERSION}" | cut -d "." -f 1) ]; then
+            echo "Skipping due to existing plugin: ${plugin}:${existing_version} higher than ${PLUGIN_VERSION}"
+            return 0
+        fi
 
         # If the version is opinionated, let the human resolve it
         if [ ! -z "${plugin_version}" ]; then
@@ -209,4 +213,3 @@ for vf in ${tmp_hpis_dir}/*.version; do
 done
 
 exit 0
-

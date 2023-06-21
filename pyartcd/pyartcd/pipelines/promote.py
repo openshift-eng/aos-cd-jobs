@@ -424,7 +424,9 @@ class PromotePipeline:
             else:
                 self._logger.error(f"Error get {tarball} image from release pullspec")
 
-        if build_arch == 'x86_64':
+        # Starting from 4.14, oc-mirror will be synced for all arches. See ART-6820 and ART-6863
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        if major > 4 or minor >= 14 or build_arch == 'x86_64':
             # oc image  extract requires an empty destination directory. So do this before extracting tools.
             # oc adm release extract --tools does not require an empty directory.
             image_stat, oc_mirror_pullspec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "oc-mirror")

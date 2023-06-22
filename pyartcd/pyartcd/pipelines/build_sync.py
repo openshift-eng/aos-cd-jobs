@@ -381,12 +381,8 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         if fail_count % forum_release_notify_frequency == 0:
             group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
 
-            if not group_config['release_state']['release']:
-                # For development releases, notify TRT and release artists
-                slack_client.bind('#forum-release-oversight').say(msg)
-
-            else:
-                # For GA releases, let forum-release know why no new builds
+            # For GA releases, let forum-release know why no new builds
+            if group_config['release_state']['release']:
                 slack_client.bind('#forum-release').say(msg)
 
         raise

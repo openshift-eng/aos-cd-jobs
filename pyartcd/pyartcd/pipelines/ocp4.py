@@ -741,6 +741,9 @@ class Ocp4Pipeline:
         if self.all_image_build_failed:
             self.runtime.logger.warning('All image builds failed: skipping sweep')
             return
+        if self.assembly != 'stream':
+            self.runtime.logger.info('Not setting bugs to QE, as assembly is not stream')
+            return
 
         cmd = [
             'elliott',

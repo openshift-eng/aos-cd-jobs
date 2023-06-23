@@ -92,7 +92,8 @@ async def update_repos(runtime: Runtime, version: str, assembly: str, data_path:
 
             # If plashets were rebuilt during automation freeze, notify via Slack (only for OCP >= 4.y)
             if int(stream_version.split('.')[0]) >= 4:
-                automation_state = await util.get_freeze_automation(stream_version, data_path, DOOZER_WORKING)
+                automation_state = await util.get_freeze_automation(
+                    stream_version, data_path, DOOZER_WORKING, data_gitref)
                 if automation_state in ['scheduled', 'yes', 'True']:
                     slack_client = runtime.new_slack_client()
                     slack_client.bind_channel(f'openshift-{stream_version}')

@@ -80,9 +80,16 @@ class TestRebuildPipeline(TestCase):
         pipeline = RebuildPipeline(runtime, group="openshift-4.9", assembly="art0001", type=RebuildType.RHCOS, dg_key=None, ocp_build_data_url='')
         local_plashet_dir = "/path/to/local/plashets/el8/plashet1234"
         get_event_loop().run_until_complete(pipeline._copy_plashet_out_to_remote(8, local_plashet_dir, "building"))
-        cmd_assert_async.assert_any_await(["ssh", constants.PLASHET_REMOTE_HOST, "--", "mkdir", "-p", "--", "/mnt/rcm-guest/puddles/RHAOS/plashets/4.9-el8/art0001"])
-        cmd_assert_async.assert_any_await(["rsync", "-av", "--links", "--progress", "-h", "--no-g", "--omit-dir-times", "--chmod=Dug=rwX,ugo+r", "--perms", "--", "/path/to/local/plashets/el8/plashet1234", f"{constants.PLASHET_REMOTE_HOST}:{constants.PLASHET_REMOTE_BASE_DIR}/4.9-el8/art0001"])
-        cmd_assert_async.assert_any_await(["ssh", constants.PLASHET_REMOTE_HOST, "--", "ln", "-sfn", "--", "plashet1234", f"{constants.PLASHET_REMOTE_BASE_DIR}/4.9-el8/art0001/building"])
+        cmd_assert_async.assert_any_await(
+            ['ssh', 'ocp-artifacts', '--', 'ln', '-sfn', '--', 'plashet1234',
+             '/mnt/data/pub/RHOCP/plashets/4.9-el8/art0001/building'])
+        cmd_assert_async.assert_any_await(
+            ["rsync", "-av", "--links", "--progress", "-h", "--no-g", "--omit-dir-times", "--chmod=Dug=rwX,ugo+r",
+             "--perms", "--", "/path/to/local/plashets/el8/plashet1234",
+             f"{constants.PLASHET_REMOTE_HOST}:{constants.PLASHET_REMOTE_BASE_DIR}/4.9-el8/art0001"])
+        cmd_assert_async.assert_any_await(
+            ["ssh", constants.PLASHET_REMOTE_HOST, "--", "ln", "-sfn", "--",
+             "plashet1234", f"{constants.PLASHET_REMOTE_BASE_DIR}/4.9-el8/art0001/building"])
 
     @patch("pyartcd.pipelines.rebuild.RebuildPipeline._build_plashet_for_assembly")
     @patch("pyartcd.pipelines.rebuild.RebuildPipeline._build_plashet_from_tags")

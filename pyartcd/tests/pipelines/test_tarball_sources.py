@@ -34,7 +34,8 @@ OSE-4.6-RHEL-8/84693/release/logging-fluentd-container-v4.6.0-202111191944.p0.gf
         cmd_assert_async.return_value = (0, "whatever", "whatever")
         pipeline = TarballSourcesPipeline(MagicMock(dry_run=False), "fake-group-4.10", "fake-assembly", ["fake-component"], [])
         get_event_loop().run_until_complete(pipeline._copy_to_spmm_utils("fake-working/sources"))
-        cmd_assert_async.assert_awaited_once_with(["rsync", "-avz", "--no-perms", "--no-owner", "--no-group", "fake-working/sources", ANY])
+        cmd_assert_async.assert_awaited_once_with([
+            'rsync', '-avz', '--no-perms', '--no-owner', '--omit-dir-times', '--no-group', 'fake-working/sources', ANY])
 
     def test_create_jira(self):
         runtime = MagicMock(dry_run=False)

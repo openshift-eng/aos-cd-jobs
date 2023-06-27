@@ -19,7 +19,7 @@ allImagebuildfailed = false
 buildPlan = [
     activeImageCount: 1, // number of images active in this version
     dryRun: false, // report build plan without performing it
-    forceBuild: false, // build regardless of whether source has changed
+    pinBuild: false, // build specified rpms/images regardless of whether source has changed
     buildRpms: false,
     rpmsIncluded: "", // comma-separated list
     rpmsExcluded: "", // comma-separated list
@@ -63,7 +63,7 @@ def initialize() {
 
     buildPlan << [
         dryRun: params.DRY_RUN,
-        forceBuild: params.FORCE_BUILD,
+        pinBuild: params.PIN_BUILDS,
         buildRpms: params.BUILD_RPMS != "none",
         buildImages: params.BUILD_IMAGES != "none",
     ]
@@ -91,7 +91,6 @@ def initialize() {
     // adjust the build "title"
     currentBuild.displayName = "#${currentBuild.number} - ${version.stream}-${version.release}"
     if (buildPlan.dryRun) { currentBuild.displayName += " [DRY RUN]" }
-    if (buildPlan.forceBuild) { currentBuild.displayName += " [force build]" }
     if (!buildPlan.buildRpms) { currentBuild.displayName += " [no RPMs]" }
     if (!buildPlan.buildImages) { currentBuild.displayName += " [no images]" }
 
@@ -100,7 +99,7 @@ def initialize() {
     echo """Updated build plan: [
 activeImageCount: ${buildPlan.activeImageCount}
 dryRun: ${buildPlan.dryRun}
-forceBuild: ${buildPlan.forceBuild}
+pinBuild: ${buildPlan.pinBuild}
 buildRpms: ${buildPlan.buildRpms}
 rpmsIncluded: ${buildPlan.rpmsIncluded}
 rpmsExcluded: ${buildPlan.rpmsExcluded}
@@ -140,8 +139,8 @@ def displayTagFor(commaList, kind, isExcluded=false){
  * @return map which is the buildPlan property of this build.
  */
 def planBuilds() {
-    if (buildPlan.forceBuild) {
-        currentBuild.description += "Force building (whether source changed or not).<br/>"
+    if (buildPlan.pinBuild) {
+        currentBuild.description += "Pin rpms/images to build (whether source changed or not).<br/>"
         currentBuild.description +=
             (!buildPlan.buildRpms) ? "RPMs: not building.<br/>" :
             (buildPlan.rpmsIncluded) ? "RPMs: building ${buildPlan.rpmsIncluded}.<br/>" :

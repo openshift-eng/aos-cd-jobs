@@ -55,8 +55,8 @@ node {
                         trim: true,
                     ),
                     booleanParam(
-                        name: 'FORCE_BUILD',
-                        description: 'Build regardless of whether source has changed',
+                        name: 'PIN_BUILDS',
+                        description: 'Build only specified rpms/images regardless of whether source has changed',
                         defaultValue: false,
                     ),
                     choice(

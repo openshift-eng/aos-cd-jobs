@@ -23,6 +23,7 @@ previous_packages = [
     "ignition",
     "kernel",
     "kernel-rt",
+    "nmstate",
     "openshift",
     "openvswitch",
     "ovn",

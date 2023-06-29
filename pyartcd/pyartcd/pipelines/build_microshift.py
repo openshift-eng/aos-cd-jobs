@@ -67,6 +67,7 @@ class BuildMicroShiftPipeline:
 
     async def run(self):
         slack_client = None
+        assembly_type = AssemblyTypes.STREAM
         try:
             await load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
             releases_config = await load_releases_config(
@@ -119,7 +120,16 @@ class BuildMicroShiftPipeline:
                     slack_response = await slack_client.say(f":construction: Build microshift for assembly {self.assembly} :construction:")
                     slack_thread = slack_response["message"]["ts"]
                 version, release = self.generate_microshift_version_release(release_name)
-                nvrs = await self._rebase_and_build_rpm(version, release, custom_payloads)
+                try:
+                    nvrs = await self._rebase_and_build_rpm(version, release, custom_payloads)
+                except Exception as build_err:
+                    # Send a message to #microshift-alerts for STREAM failures
+                    if assembly_type is AssemblyTypes.STREAM:
+                        try:
+                            await self._notify_microshift_alerts(f"{version}-{release}")
+                        except Exception as slack_err:
+                            self._logger.error(slack_err)
+                    raise build_err
 
                 # Create a PR to pin microshift build
                 assembly_basis = get_assembly_basis(releases_config, self.assembly)
@@ -320,6 +330,24 @@ class BuildMicroShiftPipeline:
         else:
             self._logger.warning("PR is not created: Nothing to commit.")
         return result
+
+    async def _notify_microshift_alerts(self, version_release: str):
+        doozer_log_file = Path(self._doozer_env_vars["DOOZER_WORKING_DIR"]) / "debug.log"
+        slack_client = self.runtime.new_slack_client()
+        slack_client.channel = "#microshift-alerts"
+        message = f":alert: @here ART build failure: microshift-{version_release}."
+        message += "\nPing @ release-artists if you need help."
+        slack_response = await slack_client.say(message)
+        slack_thread = slack_response["message"]["ts"]
+        if doozer_log_file.exists():
+            with doozer_log_file.open() as f:
+                await slack_client.upload_file(
+                    file=f,
+                    filename="microshift-build.log",
+                    initial_comment="Build logs",
+                    thread_ts=slack_thread)
+        else:
+            await slack_client.say("Logs are not available.", thread_ts=slack_thread)
 
 
 @cli.command("build-microshift")

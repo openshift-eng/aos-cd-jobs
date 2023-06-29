@@ -123,10 +123,30 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
         return result
 
 
-def start_ocp4(build_version: str, blocking: bool = False) -> Optional[str]:
+def start_ocp4(build_version: str, rpm_list: list = [], image_list: list = [], blocking: bool = False) -> Optional[str]:
+    params = {'BUILD_VERSION': build_version}
+
+    # If any rpm/image changed, force a build with only changed sources
+    if rpm_list or image_list:
+        params['FORCE_BUILD'] = True
+
+    # Build only changed RPMs or none
+    if rpm_list:
+        params['BUILD_RPMS'] = 'only'
+        params['RPM_LIST'] = ','.join(rpm_list)
+    else:
+        params['BUILD_RPMS'] = 'none'
+
+    # Build only changed images or none
+    if image_list:
+        params['BUILD_IMAGES'] = 'only'
+        params['IMAGE_LIST'] = ','.join(image_list)
+    else:
+        params['BUILD_IMAGES'] = 'none'
+
     return start_build(
         job_name=Jobs.OCP4.value,
-        params={'BUILD_VERSION': build_version},
+        params=params,
         blocking=blocking
     )
 

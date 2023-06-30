@@ -4,6 +4,7 @@ aioredlock >= 0.7.3
 click
 contextvars
 errata_tool
+errata-tool @ git+https://github.com/Ximinhan/errata-tool@5efa05bfa2755af93fc24f17cd5a087e7a96d700 # https://github.com/red-hat-storage/errata-tool/pull/244
 ghapi
 jenkinsapi >= 0.3.13  # https://github.com/pycontribs/jenkinsapi/issues/833
 Jinja2

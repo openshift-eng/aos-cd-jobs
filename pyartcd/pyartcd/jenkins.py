@@ -128,7 +128,7 @@ def start_ocp4(build_version: str, rpm_list: list = [], image_list: list = [], b
 
     # If any rpm/image changed, force a build with only changed sources
     if rpm_list or image_list:
-        params['FORCE_BUILD'] = True
+        params['PIN_BUILDS'] = True
 
     # Build only changed RPMs or none
     if rpm_list:

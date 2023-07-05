@@ -211,9 +211,13 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
+        runtime.new_slack_client.return_value = AsyncMock()
+        runtime.new_slack_client.return_value.say.return_value = {'message': {'ts': ''}}
+        runtime.new_slack_client.return_value.bind_channel = MagicMock()
+
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001",
                                    skip_attached_bug_check=True, skip_mirror_binaries=True)
-        pipeline._slack_client = AsyncMock()
+
         await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "art0001", env=ANY)
         load_releases_config.assert_awaited_once_with(group='openshift-4.10',
@@ -251,8 +255,11 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
+        runtime.new_slack_client.return_value = AsyncMock()
+        runtime.new_slack_client.return_value.say.return_value = {'message': {'ts': ''}}
+        runtime.new_slack_client.return_value.bind_channel = MagicMock()
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
-        pipeline._slack_client = AsyncMock()
+
         with self.assertRaisesRegex(ValueError, "missing the required `upgrades` field"):
             await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
@@ -307,9 +314,11 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
+        runtime.new_slack_client.return_value = AsyncMock()
+        runtime.new_slack_client.return_value.say.return_value = {'message': {'ts': ''}}
+        runtime.new_slack_client.return_value.bind_channel = MagicMock()
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99",
                                    skip_mirror_binaries=True)
-        pipeline._slack_client = AsyncMock()
         pipeline.check_blocker_bugs = AsyncMock()
         pipeline.change_advisory_state = AsyncMock()
         pipeline.get_advisory_info = AsyncMock(return_value={

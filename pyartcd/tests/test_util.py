@@ -1,8 +1,5 @@
-from asyncio import get_event_loop
 from unittest import IsolatedAsyncioTestCase
-from unittest.mock import AsyncMock
-
-from mock import ANY, patch, Mock
+from unittest.mock import AsyncMock, ANY, patch
 from pyartcd import util
 
 
@@ -21,8 +18,10 @@ class TestUtil(IsolatedAsyncioTestCase):
         self.assertEqual(util.isolate_el_version_in_branch('rhaos-4.9-rhel-777'), 777)
         self.assertEqual(util.isolate_el_version_in_branch('rhaos-4.9'), None)
 
+    @patch("tempfile.mkdtemp")
+    @patch("shutil.rmtree")
     @patch("pyartcd.exectools.cmd_gather_async")
-    async def test_load_group_config(self, cmd_gather_async: AsyncMock):
+    async def test_load_group_config(self, cmd_gather_async: AsyncMock, *_):
         group_config_content = """
         key: "value"
         """

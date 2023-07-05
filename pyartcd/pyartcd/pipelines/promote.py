@@ -25,7 +25,8 @@ from pyartcd import constants, exectools, util, jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
-from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary, extract_release_client_tools, get_release_image_info_from_pullspec
+from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary,\
+    extract_release_client_tools, get_release_image_info_from_pullspec, extract_baremetal_installer
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML
 from semver import VersionInfo
@@ -424,6 +425,9 @@ class PromotePipeline:
             else:
                 self._logger.error(f"Error get {tarball} image from release pullspec")
 
+        # ART-7207 - upload baremetal installer binary to mirror
+        self.publish_baremetal_installer_binary(from_release_tag, client_mirror_dir)
+
         # Starting from 4.14, oc-mirror will be synced for all arches. See ART-6820 and ART-6863
         major, minor = util.isolate_major_minor_in_group(self.group)
         if major > 4 or minor >= 14 or build_arch == 'x86_64':
@@ -460,6 +464,35 @@ class PromotePipeline:
 
         # Publish the clients to our S3 bucket.
         await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {base_to_mirror_dir}/{build_arch} s3://art-srv-enterprise/pub/openshift-v4/{build_arch}", stdout=sys.stderr)
+
+    def publish_baremetal_installer_binary(self, from_release_tag: str, client_mirror_dir: str):
+        # Get baremetal image pullspec
+        release_pullspec = f'{constants.QUAY_RELEASE_REPO_URL}:{from_release_tag}'
+        _, baremetal_installer_pullspec = get_release_image_pullspec(release_pullspec, 'baremetal-installer')
+        self._logger.info('baremetal-installer pullspec: %s', baremetal_installer_pullspec)
+
+        # Check rhel version (used for archive naming)
+        # With future releases (probably 4.15) this will eventually need to switch to rhel9
+        rhel_version = 'rhel8'
+
+        # oc adm release extract --command=openshift-baremetal-install -n=ocp <release-pullspec>
+        self._logger.info('Extracting baremetal-install')
+        extract_baremetal_installer(release_pullspec, client_mirror_dir)
+
+        # Create tarball
+        archive_name = f'openshift-install-{rhel_version}.tar.gz'
+        with tarfile.open(f'{client_mirror_dir}/{archive_name}', 'w:gz') as tar:
+            tar.add(f'{client_mirror_dir}/baremetal-installer')
+        self._logger.info('Created tarball %s at %s', archive_name, client_mirror_dir)
+
+        # Write shasum to sha256sum.txt
+        with open(f'{client_mirror_dir}/{archive_name}', 'rb') as f:
+            shasum = hashlib.sha256(f.read()).hexdigest()
+        with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:
+            f.write(f"{shasum}  oc-mirror.tar.gz\n")
+
+        # Remove baremetal-installer-binary
+        os.remove(f'{client_mirror_dir}/baremetal-installer')
 
     async def generate_changelog(self, release_name, client_mirror_dir, minor, build_arch):
         try:

@@ -127,14 +127,13 @@ class BuildMicroShiftPipeline:
                     pr = await self._create_or_update_pull_request(nvrs)
 
             # Sends a slack message
-            message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
+            message = f"microshift for assembly {self.assembly} has been successfully built."
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
-                message += "\nReview and merge the PR before you proceed.\n"
-                message += f"\nAttach build to microshift advisory failed" if await self._attach_builds() !=0 else f"\nAttach build to microshift advisory succeed"
-                message += f"\nAttach cve flaws to microshift advisory failed" if await self._attach_cve_flaws() !=0 else f"\nAttach cve flaws to microshift advisory succeed"
-                message += f"\nVerify microshift bugs failed" if await self._verify_microshift_bugs() !=0 else f"\nVerify microshift bugs succeed"
-                message += f"\nChange microshift advisory status to QE failed" if await self._change_advisory_status() !=0 else f"\nChange microshift advisory status to QE succeed"
+                message += f"\n@release-artists Attach build to microshift advisory failed" if await self._attach_builds() !=0 else f"\nAttach build to microshift advisory succeed"
+                message += f"\n@release-artists Attach cve flaws to microshift advisory failed" if await self._attach_cve_flaws() !=0 else f"\nAttach cve flaws to microshift advisory succeed"
+                message += f"\n@release-artists Verify microshift bugs failed" if await self._verify_microshift_bugs() !=0 else f"\nVerify microshift bugs succeed"
+                message += f"\n@release-artists Change microshift advisory status to QE failed" if await self._change_advisory_status() !=0 else f"\nChange microshift advisory status to QE succeed"
             if assembly_type in [AssemblyTypes.PREVIEW, AssemblyTypes.CANDIDATE]:
                 message += f"\n This is a {assembly_type.name} release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> to publish the build to mirror."
             if slack_client:

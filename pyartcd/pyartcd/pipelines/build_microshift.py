@@ -131,13 +131,10 @@ class BuildMicroShiftPipeline:
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
                 message += "\nReview and merge the PR before you proceed.\n"
-            message += '\n'.join([
-                "To attach the build to Errata, run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fprepare-release/|prepare-release> job, or:",
-                "```",
-                f"elliott --group {self.group} --assembly {self.assembly} --rpms microshift find-builds -k rpm --member-only --use-default-advisory microshift",
-                f"elliott --group {self.group} --assembly {self.assembly} attach-cve-flaws --use-default-advisory microshift",
-                "```"
-            ])
+                message += f"\nAttach build to microshift advisory failed" if await self._attach_builds() !=0 else f"\nAttach build to microshift advisory succeed"
+                message += f"\nAttach cve flaws to microshift advisory failed" if await self._attach_cve_flaws() !=0 else f"\nAttach cve flaws to microshift advisory succeed"
+                message += f"\nVerify microshift bugs failed" if await self._verify_microshift_bugs() !=0 else f"\nVerify microshift bugs succeed"
+                message += f"\nChange microshift advisory status to QE failed" if await self._change_advisory_status() !=0 else f"\nChange microshift advisory status to QE succeed"
             if assembly_type in [AssemblyTypes.PREVIEW, AssemblyTypes.CANDIDATE]:
                 message += f"\n This is a {assembly_type.name} release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> to publish the build to mirror."
             if slack_client:
@@ -150,6 +147,62 @@ class BuildMicroShiftPipeline:
             if slack_client:
                 await slack_client.say(error_message, slack_thread)
             raise
+
+    async def _attach_builds(self):
+        """ attach the microshift builds to advisory
+        """
+        cmd = [
+            "elliott",
+            "--group", self.group,
+            "--assembly", self.assembly,
+            "--rpm", "microshift",
+            "find-builds",
+            "-k", "rpm",
+            "--member-only",
+            "--use-default-advisory", "microshift"
+        ]
+        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
+        return ret
+
+    async def _attach_cve_flaws(self):
+        """ attach CVE flaws to advisory
+        """
+        cmd = [
+            "elliott",
+            "--group", self.group,
+            "--assembly", self.assembly,
+            "attach-cve-flaws",
+            "--use-default-advisory", "microshift"
+        ]
+        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
+        return ret
+
+    async def _verify_microshift_bugs(self):
+        """ verify attached bugs on microshift advisory
+        """
+        cmd = [
+            "elliott",
+            "--group", self.group,
+            "--assembly", self.assembly,
+            "verify-attached-bugs",
+            "--verify-flaws",
+        ]
+        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
+        return ret
+
+    async def _change_advisory_status(self):
+        """ move advisory status to QE
+        """
+        cmd = [
+            "elliott",
+            "--group", self.group,
+            "--assembly", self.assembly,
+            "change-state",
+            "-s", "QE",
+            "--use-default-advisory", "microshift"
+        ]
+        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
+        return ret
 
     @staticmethod
     async def parse_release_payloads(payloads: Iterable[str]):

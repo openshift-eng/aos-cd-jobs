@@ -8,7 +8,7 @@ import yaml
 from aioredlock import LockError
 
 from pyartcd import locks, util, plashets, exectools, constants,\
-    run_details, jenkins, release, record as record_util, oc
+    run_details, jenkins, record as record_util, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
@@ -608,8 +608,9 @@ class Ocp4Pipeline:
             return
 
         # If any arch is GA, use signed for everything. See _build_compose() for details.
-        arch_release_state = release.ocp_release_state[self.version.stream]
-        signing_mode = 'signed' if arch_release_state['release'] else 'unsigned'
+        group_config = await util.load_group_config(
+            group=f'openshift-{self.version.stream}', assembly=self.assembly)
+        signing_mode = 'signed' if group_config['release_state']['release'] else 'unsigned'
 
         # If build plan includes more than half or excludes less than half or rebuilds everything, it's a mass rebuild
         include_count = len(self.build_plan.images_included)

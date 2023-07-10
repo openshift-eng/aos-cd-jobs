@@ -147,35 +147,49 @@ class PrepareReleasePipeline:
                 advisories = group_config.get("advisories", {}).copy()
 
             if self.release_version[2] == 0:  # GA release
-                if advisories.get("rpm", 0) <= 0:
+                if "rpm" not in advisories:
+                    _LOGGER.info("rpm advisory is not defined.")
+                elif advisories["rpm"] < 0:
                     advisories["rpm"] = self.create_advisory("RHEA", "rpm", "ga")
                 else:
                     _LOGGER.info("Reusing existing rpm advisory %s", advisories["rpm"])
-                if advisories.get("image", 0) <= 0:
-                    advisories["image"] = self.create_advisory("RHEA", "image", "ga")
+                if "image" not in advisories:
+                    _LOGGER.info("image advisory is not defined.")
+                elif advisories["image"] < 0:
+                     advisories["image"] = self.create_advisory("RHEA", "image", "ga")
                 else:
                     _LOGGER.info("Reusing existing image advisory %s", advisories["image"])
             else:  # z-stream release
-                if advisories.get("rpm", 0) <= 0:
+                if "rpm" not in advisories:
+                    _LOGGER.info("rpm advisory is not defined.")
+                elif advisories["rpm"] < 0:
                     advisories["rpm"] = self.create_advisory("RHBA", "rpm", "standard")
                 else:
                     _LOGGER.info("Reusing existing rpm advisory %s", advisories["rpm"])
-                if advisories.get("image", 0) <= 0:
+                if "image" not in advisories:
+                    _LOGGER.info("image advisory is not defined.")
+                elif advisories["image"] < 0:
                     advisories["image"] = self.create_advisory("RHBA", "image", "standard")
                 else:
                     _LOGGER.info("Reusing existing image advisory %s", advisories["image"])
             if self.release_version[0] > 3:
-                if advisories.get("extras", 0) <= 0:
+                if "extras" not in advisories:
+                    _LOGGER.info("extras advisory is not defined.")
+                elif advisories["extras"] < 0:
                     advisories["extras"] = self.create_advisory("RHBA", "image", "extras")
                 else:
                     _LOGGER.info("Reusing existing extras advisory %s", advisories["extras"])
-                if advisories.get("metadata", 0) <= 0:
+                if "metadata" not in advisories:
+                    _LOGGER.info("metadata advisory is not defined.")
+                elif advisories["metadata"] < 0:
                     advisories["metadata"] = self.create_advisory("RHBA", "image", "metadata")
                 else:
                     _LOGGER.info("Reusing existing metadata advisory %s", advisories["metadata"])
             # microshift advisory is present since 4.12
             if self.release_version >= (4, 12):
-                if advisories.get("microshift", 0) <= 0:
+                if "microshift" not in advisories:
+                    _LOGGER.info("microshift advisory is not defined.")
+                elif advisories["microshift"] < 0:
                     advisories["microshift"] = self.create_advisory("RHBA", "rpm", "microshift")
                 else:
                     _LOGGER.info("Reusing existing microshift advisory %s", advisories["microshift"])

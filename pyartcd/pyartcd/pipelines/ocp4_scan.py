@@ -48,7 +48,12 @@ class Ocp4ScanPipeline:
 
             # Trigger ocp4
             self.logger.info('Triggering a %s ocp4 build', self.version)
-            jenkins.start_ocp4(build_version=self.version, blocking=False)
+            jenkins.start_ocp4(
+                build_version=self.version,
+                blocking=False,
+                rpm_list=self.changes.get('rpms', []),
+                image_list=self.changes.get('images', []),
+            )
 
         elif self.rhcos_inconsistent:
             self.logger.info('Detected inconsistent RHCOS RPMs:\n%s', self.inconsistent_rhcos_rpms)

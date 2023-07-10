@@ -4,7 +4,7 @@ import unittest
 import asyncio
 
 from mock import MagicMock, AsyncMock, patch
-from pyartcd.pipelines.check_bugs import CheckBugsPipeline
+from pyartcd.pipelines.check_bugs import CheckBugsPipeline, is_prerelease
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.level = logging.DEBUG
@@ -12,25 +12,17 @@ stream_handler = logging.StreamHandler(sys.stdout)
 LOGGER.addHandler(stream_handler)
 
 
-class TestCheckBugsPipeline(unittest.TestCase):
+class TestCheckBugsPipeline(unittest.IsolatedAsyncioTestCase):
     def test_invalid_channel_name(self):
         runtime = MagicMock()
         self.assertRaises(
             ValueError,
-            CheckBugsPipeline, runtime, 'invalid-channel-name', [], []
+            CheckBugsPipeline, runtime, 'invalid-channel-name', []
         )
 
     def test_valid_channel_name(self):
         runtime = MagicMock()
-        CheckBugsPipeline(runtime, '#valid-channel-name', [], [])
-
-    @patch("pyartcd.pipelines.check_bugs.CheckBugsPipeline.initialize_slack_client", return_value=None)
-    @patch("pyartcd.pipelines.check_bugs.CheckBugsPipeline._slack_report", return_value=None)
-    def test_next_is_prerelease(self, *args):
-        runtime = AsyncMock()
-        runtime.logger = LOGGER
-        pipeline = CheckBugsPipeline(runtime, '#test', [], ['4.11'])
-        self.assertTrue(pipeline._next_is_prerelease('4.10'))
+        CheckBugsPipeline(runtime, '#valid-channel-name', [])
 
     @unittest.skip("This test is broken due to production data change")
     @patch("pyartcd.pipelines.check_bugs.CheckBugsPipeline.initialize_slack_client", return_value=None)

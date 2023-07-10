@@ -91,7 +91,10 @@ class PromotePipeline:
         # Load group config and releases.yml
         logger.info("Loading build data...")
         group_config = await util.load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
-        releases_config = await util.load_releases_config(self._doozer_working_dir / "ocp-build-data")
+        releases_config = await util.load_releases_config(
+            group=self.group,
+            data_path=self._doozer_env_vars.get("DOOZER_DATA_PATH", None) or constants.OCP_BUILD_DATA_URL
+        )
         if releases_config.get("releases", {}).get(self.assembly) is None:
             raise ValueError(f"To promote this release, assembly {self.assembly} must be explictly defined in releases.yml.")
         permits = util.get_assembly_promotion_permits(releases_config, self.assembly)
@@ -421,7 +424,9 @@ class PromotePipeline:
             else:
                 self._logger.error(f"Error get {tarball} image from release pullspec")
 
-        if build_arch == 'x86_64':
+        # Starting from 4.14, oc-mirror will be synced for all arches. See ART-6820 and ART-6863
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        if major > 4 or minor >= 14 or build_arch == 'x86_64':
             # oc image  extract requires an empty destination directory. So do this before extracting tools.
             # oc adm release extract --tools does not require an empty directory.
             image_stat, oc_mirror_pullspec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "oc-mirror")

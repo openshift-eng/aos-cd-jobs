@@ -132,11 +132,8 @@ node() {
                                                     [capture: true]).trim()
                         def archReleaseStates = readYaml(text: out)
                         echo "arch release state for ${build_version}: ${archReleaseStates}"
-                        if (archReleaseStates['release'].isEmpty()) {
-                            // For development releases, notify TRT and release artists
-                            commonlib.slacklib.to('#forum-release-oversight').say("@release-artists ${msg}")
-                        } else if (!["4.7", "4.8"].contains(build_version)) {
-                            // For GA releases, let forum-release know why no new builds
+                        if (!archReleaseStates['release'].isEmpty() && !["4.7", "4.8"].contains(build_version)) {
+                            // Only for GA releases, let forum-release know why no new builds; ignore 4.7 and 4.8
                             commonlib.slacklib.to('#forum-release').say(msg)
                         }
                     } else {

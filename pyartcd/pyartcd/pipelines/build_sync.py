@@ -343,15 +343,11 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         # Update fail counter on Redis
         await redis.set_value(fail_count_name, fail_count)
 
-        # Less than 2 failures: do nothing
-        if fail_count < 2:
-            return
+        # Less than 2 failures, assembly != stream: just break the build
+        if fail_count < 2 or assembly != 'stream':
+            raise
 
-        # Assembly != stream: do nothing
-        if assembly != 'stream':
-            return
-
-        # More than 2 failures: we need to notify ART and #forum-relase
+        # More than 2 failures: we need to notify ART and #forum-relase before breaking the build
         slack_client = runtime.new_slack_client()
         msg = f'Pipeline has failed to assemble release payload for {version} (assembly {assembly}) {fail_count} times.'
 
@@ -381,13 +377,11 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         if fail_count % forum_release_notify_frequency == 0:
             group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
 
-            if not group_config['release_state'][version]['release']:
-                # For development releases, notify TRT and release artists
-                slack_client.bind('#forum-release-oversight').say(msg)
-
-            else:
-                # For GA releases, let forum-release know why no new builds
+            # For GA releases, let forum-release know why no new builds
+            if group_config['release_state']['release']:
                 slack_client.bind('#forum-release').say(msg)
+
+        raise
 
     except RedisError as e:
         runtime.logger.error('Encountered error when updating the fail counter: %s', e)

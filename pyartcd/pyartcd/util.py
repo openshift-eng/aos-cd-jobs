@@ -79,7 +79,7 @@ async def load_group_config(group: str, assembly: str, env=None,
         group += f'@{doozer_data_gitref}'
     cmd = [
         "doozer",
-        f"--data-path=${doozer_data_path}",
+        f"--data-path={doozer_data_path}",
         "--group", group,
         "--assembly", assembly,
         "config:read-group",
@@ -102,12 +102,42 @@ async def load_group_config(group: str, assembly: str, env=None,
     return group_config
 
 
-async def load_releases_config(build_data_path: os.PathLike) -> Optional[Dict]:
+async def load_releases_config(group: str, data_path: str = constants.OCP_BUILD_DATA_URL) -> Optional[Dict]:
+    cmd = [
+        'doozer',
+        f'--data-path={data_path}',
+        f'--group={group}',
+        'config:read-releases',
+        '--yaml'
+    ]
+
     try:
-        async with aiofiles.open(Path(build_data_path) / "releases.yml", "r") as f:
-            content = await f.read()
-        return yaml.safe_load(content)
-    except FileNotFoundError:
+        _, out, _ = await exectools.cmd_gather_async(cmd)
+        return yaml.safe_load(out.strip())
+
+    except ChildProcessError as e:
+        logger.error('Command "%s" failed: %s', ' '.join(cmd), e)
+        return None
+
+
+async def load_assembly(group: str, assembly: str, key: str = '',
+                        data_path: str = constants.OCP_BUILD_DATA_URL) -> Optional[Dict]:
+    cmd = [
+        'doozer',
+        f'--data-path={data_path}',
+        f'--group={group}',
+        'config:read-assembly',
+        f'--assembly={assembly}',
+        '--yaml',
+        key
+    ]
+
+    try:
+        _, out, _ = await exectools.cmd_gather_async(cmd)
+        return yaml.safe_load(out.strip())
+
+    except ChildProcessError as e:
+        logger.error('Command "%s" failed: %s', ' '.join(cmd), e)
         return None
 
 
@@ -202,17 +232,21 @@ def get_changes(yaml_data: dict) -> dict:
 
 
 async def get_freeze_automation(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
-                                doozer_working: str = '') -> str:
+                                doozer_working: str = '', doozer_data_gitref: str = '') -> str:
     """
     Returns freeze_automation flag for a specific group
     """
+
+    group_param = f'--group=openshift-{version}'
+    if doozer_data_gitref:
+        group_param += f'@{doozer_data_gitref}'
 
     cmd = [
         'doozer',
         f'--working-dir={doozer_working}' if doozer_working else '',
         '--assembly=stream',
         f'--data-path={data_path}',
-        f'--group=openshift-{version}',
+        group_param,
         'config:read-group',
         '--default=no',
         'freeze_automation'
@@ -241,7 +275,7 @@ def is_manual_build() -> bool:
 
 
 async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_DATA_URL,
-                             doozer_working: str = '') -> bool:
+                             doozer_working: str = '', doozer_data_path: str = '') -> bool:
     """
     Check whether the group should be built right now.
     This depends on:
@@ -251,7 +285,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     """
 
     # Get 'freeze_automation' flag
-    freeze_automation = await get_freeze_automation(version, data_path, doozer_working)
+    freeze_automation = await get_freeze_automation(version, data_path, doozer_working, doozer_data_path)
     logger.info('Group freeze automation flag is set to: "%s"', freeze_automation)
 
     # Check for frozen automation

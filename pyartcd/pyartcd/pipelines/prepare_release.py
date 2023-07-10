@@ -146,11 +146,11 @@ class PrepareReleasePipeline:
             if release_config:
                 advisories = group_config.get("advisories", {}).copy()
 
-            is_ga = True if self.release_version[2] == 0 else False
+            is_ga = self.release_version[2] == 0
             for ad in advisories:
                 if advisories[ad] < 0:
                     if ad == "microshfit":
-                        advisories[ad] = self.create_advisory("RHBA", "rpm", ad)
+                        advisories[ad] = self.create_advisory("RHEA" if is_ga else "RHBA", "rpm", ad)
                     else:
                         advisories[ad] = self.create_advisory("RHEA" if is_ga else "RHBA", "rpm" if ad == "rpm" else "image", "ga" if is_ga else "standard")
 

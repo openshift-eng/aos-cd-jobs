@@ -23,7 +23,7 @@ class TestInitialBuildPlan(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -37,7 +37,7 @@ class TestInitialBuildPlan(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(self.ocp4.build_plan.active_image_count, 219)
         self.assertEqual(self.ocp4.build_plan.dry_run, False)
-        self.assertEqual(self.ocp4.build_plan.force_build, False)
+        self.assertEqual(self.ocp4.build_plan.pin_builds, False)
         self.assertEqual(self.ocp4.build_plan.build_rpms, True)
         self.assertEqual(self.ocp4.build_plan.rpms_included, [])
         self.assertEqual(self.ocp4.build_plan.rpms_excluded, [])
@@ -125,7 +125,7 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -335,7 +335,7 @@ class TestInitialize(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -466,7 +466,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -526,6 +526,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("pyartcd.run_details.update_description")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
+    @patch("pyartcd.util.load_group_config", return_value={'release_state': {'release': 'bogus'}})
     @patch("pyartcd.oc.registry_login")
     @patch("pyartcd.record.parse_record_log")
     @patch("pyartcd.exectools.cmd_assert_async")
@@ -603,6 +604,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("pyartcd.run_details.update_description")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
+    @patch("pyartcd.util.load_group_config", return_value={'release_state': {'release': 'bogus'}})
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._mass_rebuild")
     @patch("pyartcd.exectools.cmd_assert_async")
     async def test_mass_rebuild(self, cmd_assert_async_mock: AsyncMock, mass_rebuild_mock: AsyncMock, *_):
@@ -668,7 +670,7 @@ class TestBuildCompose(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -701,6 +703,7 @@ class TestBuildCompose(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res, False)
 
     @patch("pyartcd.util.get_freeze_automation", return_value="scheduled")
+    @patch("pyartcd.util.is_manual_build", return_value=True)
     async def test_automation_freeze_scheduled(self, *_):
         # If automation is scheduled, build compose only if there are RPMs in the build plan
         self.ocp4._slack_client.say = AsyncMock()
@@ -784,7 +787,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -851,7 +854,7 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -892,7 +895,7 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -941,7 +944,7 @@ class TestMirrorRpms(unittest.IsolatedAsyncioTestCase):
             assembly='test',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
@@ -993,7 +996,7 @@ class TestUtils(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
-            force=False,
+            pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',

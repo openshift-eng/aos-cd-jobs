@@ -18,7 +18,7 @@ class BuildPlan:
     def __init__(self):
         self.active_image_count = 1  # number of images active in this version
         self.dry_run = False  # report build plan without performing it
-        self.force_build = False  # build regardless of whether source has changed
+        self.pin_builds = False  # build only specified rpms/images regardless of whether source has changed
         self.build_rpms = False  # should we build rpms
         self.rpms_included = []  # include list for rpms to build
         self.rpms_excluded = []  # exclude list for rpms to build
@@ -53,12 +53,12 @@ class RpmMirror:
 
 
 class Ocp4Pipeline:
-    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, force: bool, build_rpms: str,
+    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, pin_builds: bool, build_rpms: str,
                  rpm_list: str, build_images: str, image_list: str, mail_list_failure):
 
         self.runtime = runtime
         self.assembly = assembly
-        self.force = force
+        self.pin_builds = pin_builds
         self.build_rpms = build_rpms
         self.rpm_list = rpm_list
         self.build_images = build_images
@@ -138,8 +138,8 @@ class Ocp4Pipeline:
         # build_plan.dry_run
         self.build_plan.dry_run = self.runtime.dry_run
 
-        # build_plan.force
-        self.build_plan.force_build = self.force
+        # build_plan.pin_builds
+        self.build_plan.pin_builds = self.pin_builds
 
         # build_plan.build_rpms, build_plan.rpms_included, build_plan.rpms_excluded
         self.build_plan.build_rpms = True
@@ -184,13 +184,13 @@ class Ocp4Pipeline:
         await self._initialize_version()
         await self._initialize_build_plan()
 
-    def _plan_forced_builds(self):
+    def _plan_pinned_builds(self):
         """
-        When "--force" is provided, always builds what the operator selected, regardless of source changes.
+        When "--pin_builds" is provided, always builds what the operator selected, regardless of source changes.
         Update build title and description accordingly.
         """
 
-        run_details.update_description('Force building (whether source changed or not).<br/>')
+        run_details.update_description('Pinned builds (whether source changed or not).<br/>')
 
         if not self.build_plan.build_rpms:
             run_details.update_description('RPMs: not building.<br/>')
@@ -790,9 +790,9 @@ class Ocp4Pipeline:
     async def run(self):
         await self._initialize()
 
-        if self.build_plan.force_build:
-            self.runtime.logger.info('Force building (whether source changed or not)')
-            self._plan_forced_builds()
+        if self.build_plan.pin_builds:
+            self.runtime.logger.info('Pinned builds (whether source changed or not)')
+            self._plan_pinned_builds()
 
         else:
             self.runtime.logger.info('Building only where source has changed.')
@@ -817,7 +817,7 @@ class Ocp4Pipeline:
 @click.option('--assembly', required=True, help='The name of an assembly to rebase & build for')
 @click.option("--data-path", required=False, default=constants.OCP_BUILD_DATA_URL,
               help="ocp-build-data fork to use (e.g. assembly definition in your own fork)")
-@click.option('--force', is_flag=True, help='Build regardless of whether source has changed')
+@click.option('--pin-builds', is_flag=True, help='Build only specified rpms/images regardless of whether source has changed')
 @click.option('--build-rpms', required=True,
               type=click.Choice(['all', 'only', 'except', 'none'], case_sensitive=False),
               help='Which RPMs are candidates for building? "only/except" refer to --rpm-list param')
@@ -834,7 +834,7 @@ class Ocp4Pipeline:
               help='Failure Mailing List')
 @pass_runtime
 @click_coroutine
-async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, force: bool, build_rpms: str,
+async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, pin_builds: bool, build_rpms: str,
                rpm_list: str, build_images: str, image_list: str, mail_list_failure):
 
     if not await util.is_build_permitted(version):
@@ -848,7 +848,7 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, fo
         assembly=assembly,
         version=version,
         data_path=data_path,
-        force=force,
+        pin_builds=pin_builds,
         build_rpms=build_rpms,
         rpm_list=rpm_list,
         build_images=build_images,

@@ -192,6 +192,12 @@ node {
             }
 
             stage("repo: ose 'building'") {
+                if (!params.UPDATE_REPOS && params.ASSEMBLY && params.ASSEMBLY == 'test') {
+                    // For test assemblies, we can afford the risk of missing something
+                    // On the other hand, we'll have faster builds which is highly desirable
+                    return
+                }
+
                 if (params.UPDATE_REPOS || (images.toUpperCase() != "NONE" && params.ASSEMBLY && params.ASSEMBLY != 'stream') || rpms.toUpperCase() != "NONE") {
                     sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
                     def cmd = [

@@ -13,7 +13,8 @@ from doozerlib import assembly, model
 from doozerlib import util as doozerutil
 from errata_tool import ErrataConnector
 
-from pyartcd import constants, exectools, jenkins
+from pyartcd import exectools, constants, jenkins, record
+from pyartcd.mail import MailService
 
 logger = logging.getLogger(__name__)
 
@@ -359,4 +360,233 @@ async def sync_images(version: str, assembly: str, operator_nvrs: list,
             operator_nvrs=operator_nvrs,
             doozer_data_path=doozer_data_path,
             doozer_data_gitref=doozer_data_gitref
+        )
+
+
+def default_release_suffix():
+    """
+    Returns a release suffix based on current timestamp
+    E.g. "202312311112.p?"
+    """
+
+    return f'{datetime.strftime(datetime.now(), "%Y%m%d%H%M")}.p?'
+
+
+def dockerfile_url_for(url, branch, sub_path) -> str:
+    if not url or not branch:
+        return ''
+
+    # if it looks like an ssh GitHub remote, transform it to https
+    url = url.replace('git@', 'https://')
+    url = url.replace(':', '/')
+    url = url.replace('.git', '')
+
+    return f"{url}/blob/{branch}/{sub_path if sub_path else ''}"
+
+
+def notify_dockerfile_reconciliations(version: str, doozer_working: str, mail_client: MailService):
+    """
+    Loop through all new commits that affect dockerfiles and notify their owners
+    """
+
+    with open(Path(doozer_working) / "record.log", "r") as file:
+        record_log: dict = record.parse_record_log(file)
+
+    distgit_notify = record.get_distgit_notify(record_log)
+
+    # Convert the dict to a list of tuples
+    distgit_notify = [(key, value) for key, value in distgit_notify.items()]
+
+    for i in range(len(distgit_notify)):
+        distgit = distgit_notify[i][0]
+
+        val = distgit_notify[i][1]
+        if not val.get('owners'):
+            continue
+
+        alias = val['source_alias']
+        url = dockerfile_url_for(alias['origin_url'], alias['branch'], val['source_dockerfile_subpath'])
+        dockerfile_url = f'Upstream source file: {url}' if url else ''
+
+        # Populate the introduction for all emails to owners
+        explanation_body = """Why am I receiving this?
+------------------------
+You are receiving this message because you are listed as an owner for an
+OpenShift related image - or you recently made a modification to the definition
+of such an image in github. Upstream (github) OpenShift Dockerfiles are
+regularly pulled from their upstream source and used as an input to build our
+productized images - RHEL-based OpenShift Container Platform (OCP) images.
+
+To serve as an input to RHEL/OCP images, upstream Dockerfiles are
+programmatically modified before they are checked into a downstream git
+repository which houses all Red Hat images:
+ - https://pkgs.devel.redhat.com/cgit/containers/
+
+We call this programmatic modification "reconciliation" and you will receive an
+email when the upstream Dockerfile changes so that you can review the
+differences between the upstream & downstream Dockerfiles.\n"""
+
+        if val.get('failure', None):
+            email_subject = f'FAILURE: Error reconciling Dockerfile for {val["image"]} in OCP v{version}'
+            explanation_body += f"""
+What do I need to do?
+---------------------
+An error occurred during your reconciliation. Until this issue is addressed,
+your upstream changes may not be reflected in the product build.
+
+Please review the error message reported below to see if the issue is due to upstream
+content. If it is not, the Automated Release Tooling (ART) team will engage to address
+the issue. Please direct any questions to the ART team (#aos-art on slack).
+
+Error Reported
+--------------
+{val['failure']}\n"""
+
+        elif val.get('sha', None):
+            email_subject = f'SUCCESS: Changed Dockerfile reconciled for ${val["image"]} in OCP v{version}'
+            explanation_body += f"""
+What do I need to do?
+---------------------
+You may want to look at the result of the reconciliation. Usually,
+reconciliation is transparent and safe. However, you may be interested in any
+changes being performed by the OCP build system.
+
+
+What changed this time?
+-----------------------
+Reconciliation has just been performed for the image: ${val.image}
+${dockerfile_url}
+The reconciled (downstream OCP) Dockerfile can be viewed here:
+ - https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
+
+Please direct any questions to the Automated Release Tooling team (#aos-art on slack).\n"""
+
+        else:
+            raise RuntimeError('Unable to determine notification reason; something is broken')
+
+        mail_client.send_mail(
+            to=val['owners'],
+            subject=email_subject,
+            content=explanation_body
+        )
+
+
+def notify_bz_info_missing(version: str, doozer_working: str, mail_client: MailService):
+    with open(Path(doozer_working) / "record.log", "r") as file:
+        record_log: dict = record.parse_record_log(file)
+
+    bz_notify_entries = record_log.get('bz_maintainer_notify', [])
+    for bz_notify in bz_notify_entries:
+        owners = bz_notify.get('owners', '')
+        if not owners:
+            continue
+
+        public_upstream_url = bz_notify['public_upstream_url']
+        distgit = bz_notify['distgit']
+        email_subject = f'[ACTION REQUIRED] Bugzilla component information ' \
+                        f'missing for image {distgit} in OCP v{version}'
+        explanation_body = f"""
+Why am I receiving this?
+------------------------
+You are receiving this message because you are listed as an owner for an
+OpenShift related image - or you recently made a modification to the definition
+of such an image in github.
+
+To comply with prodsec requirements, all images in the OpenShift product
+should identify their Bugzilla component. To accomplish this, ART
+expects to find Bugzilla component information in the default branch of
+the image's upstream repository or requires it in ART image metadata.
+
+What should I do?
+------------------------
+There are two options to supply Bugzilla component information.
+1) The OWNERS file in the default branch (e.g. main / master) of {public_upstream_url}
+   can be updated to include the bugzilla component information.
+
+2) The component information can be specified directly in the
+   ART metadata for the image {distgit}.
+
+Details for either approach can be found here:
+https://docs.google.com/document/d/1V_DGuVqbo6CUro0RC86THQWZPrQMwvtDr0YQ0A75QbQ/edit?usp=sharing
+
+Thanks for your help!\n"""
+
+        mail_client.send_mail(
+            to=owners,
+            subject=email_subject,
+            content=explanation_body
+        )
+
+
+def mail_build_failure_owners(failed_builds: dict, doozer_working: str, mail_client: MailService, default_owner: str):
+    """
+     Send email to owners of failed image builds.
+
+
+     :param failed_builds: map of records as below (all values strings)
+
+     presto:
+         status: -1
+         push_status: 0
+         distgit: presto
+         image: openshift/ose-presto
+         owners: sd-operator-metering@redhat.com,czibolsk@redhat.com
+         version: v4.0.6
+         release: 1
+         dir: doozer_working/distgits/containers/presto
+         dockerfile: doozer_working/distgits/containers/presto/Dockerfile
+         task_id: 20415814
+         task_url: https://brewweb.engineering.redhat.com/brew/taskinfo?taskID=20415814
+         message: "Exception occurred: ;;; Traceback (most recent call last): [...]"
+
+    :param doozer_working: path to Doozer working directory
+
+    :param mail_client: MailService instance
+
+    :param return_address: replies to the email will go to this
+
+    :param default_owner: if no owner is listed, send build failure email to this
+    """
+
+    for failure in failed_builds.values():
+        if failure['status'] == '0':
+            continue
+
+        container_log = """
+--------------------------------------------------------------------------
+The following logs are just the container build portion of the OSBS build:
+--------------------------------------------------------------------------\n"""
+        container_log_file = f'{doozer_working}/brew-logs/{failure["distgit"]}/' \
+                             f'noarch-{failure["task_id"]}/container-build-x86_64.log'
+
+        try:
+            with open(container_log_file) as f:
+                container_log += f.read()
+
+        except:
+            container_log = "Unfortunately there were no container build logs; " \
+                            "something else about the build failed."
+            logger.warning('No container build log for failed %s build\n'
+                           '(task url %s)\n'
+                           'at path %s',
+                           failure['distgit'], failure['task_url'], container_log)
+
+        explanation_body = f"ART's brew/OSBS build of OCP image {failure['image']}:{failure['version']} has failed.\n\n"
+        if failure['owners']:
+            explanation_body += "This email is addressed to the owner(s) of this image per ART's build configuration."
+        else:
+            explanation_body += 'There is no owner listed for this build (you may want to add one).'
+        explanation_body += '\n\n'
+        explanation_body += "Builds may fail for many reasons, some under owner control, some under ART's control, " \
+                            "and some in the domain of other groups. This message is only sent when the build fails " \
+                            "consistently, so it is unlikely this failure will resolve itself without intervention.\n\n"
+        explanation_body += f'The brew build task {failure["task_url"]} failed with error message:\n' \
+                            f'{failure["message"]}\n' \
+                            f'{container_log}'
+
+        mail_client.send_mail(
+            to=['aos-art-automation+failed-ocp-build@redhat.com',
+                failure['owners'] if failure['owners'] else default_owner],
+            subject=f'Failed OCP build of {failure["image"]}:{failure["version"]}',
+            content=explanation_body
         )

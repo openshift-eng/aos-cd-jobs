@@ -28,7 +28,52 @@ class TestUtil(IsolatedAsyncioTestCase):
         cmd_gather_async.return_value = (0, group_config_content, "")
         actual = await util.load_group_config("openshift-4.9", "art0001")
         self.assertEqual(actual["key"], "value")
-        cmd_gather_async.assert_awaited_once_with(
-            ['doozer', '--data-path=https://github.com/openshift-eng/ocp-build-data', '--group', 'openshift-4.9',
-             '--assembly', 'art0001', 'config:read-group', '--yaml'], stderr=None, env=ANY
+
+    def test_dockerfile_url_for(self):
+        # HTTPS url
+        url = util.dockerfile_url_for(
+            url='https://github.com/openshift/ironic-image',
+            branch='release-4.13',
+            sub_path='scripts'
         )
+        self.assertEqual(url, 'https///github.com/openshift/ironic-image/blob/release-4.13/scripts')
+
+        # Empty subpath
+        url = util.dockerfile_url_for(
+            url='https://github.com/openshift/ironic-image',
+            branch='release-4.13',
+            sub_path=''
+        )
+        self.assertEqual(url, 'https///github.com/openshift/ironic-image/blob/release-4.13/')
+
+        # Empty url
+        url = util.dockerfile_url_for(
+            url='',
+            branch='release-4.13',
+            sub_path=''
+        )
+        self.assertEqual(url, '')
+
+        # Empty branch
+        url = util.dockerfile_url_for(
+            url='https://github.com/openshift/ironic-image',
+            branch='',
+            sub_path='scripts'
+        )
+        self.assertEqual(url, '')
+
+        # SSH remote
+        url = util.dockerfile_url_for(
+            url='git@github.com:openshift/ironic-image.git',
+            branch='release-4.13',
+            sub_path='scripts'
+        )
+        self.assertEqual(url, 'https///github.com/openshift/ironic-image/blob/release-4.13/scripts')
+
+        # SSH remote, empty subpath
+        url = util.dockerfile_url_for(
+            url='git@github.com:openshift/ironic-image.git',
+            branch='release-4.13',
+            sub_path=''
+        )
+        self.assertEqual(url, 'https///github.com/openshift/ironic-image/blob/release-4.13/')

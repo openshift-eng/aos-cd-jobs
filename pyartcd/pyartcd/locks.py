@@ -27,6 +27,12 @@ LOCK_POLICY = {
         'retry_delay_min': 0.1,
         'lock_timeout': 60 * 60 * 6,  # 6 hours
     },
+    # mass rebuild: give up after 8 hours
+    'mass_rebuild': {
+        'retry_count': 36000 * 8,
+        'retry_delay_min': 0.1,
+        'lock_timeout': 60 * 60 * 12,  # 12 hours
+    }
 }
 
 

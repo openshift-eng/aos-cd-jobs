@@ -192,7 +192,7 @@ node {
             }
 
             stage("repo: ose 'building'") {
-                if (!params.UPDATE_REPOS && params.ASSEMBLY && params.ASSEMBLY == 'test') {
+                if (!params.UPDATE_REPOS && params.ASSEMBLY && params.ASSEMBLY == 'test' || params.ASSEMBLY == 'stream' || params.ASSEMBLY == 'microshift') {
                     // For test assemblies, we can afford the risk of missing something
                     // On the other hand, we'll have faster builds which is highly desirable
                     return

@@ -131,6 +131,7 @@ class BuildMicroShiftPipeline:
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
                 message += f"\n@release-artists Attach build to microshift advisory failed" if await self._attach_builds() !=0 else f"\nAttach build to microshift advisory succeed"
+                message += f"\n@release-artists Sweep bugs to microshift advisory failed" if await self._sweep_bugs() !=0 else f"\nSweep bugs to microshift advisory succeed"
                 message += f"\n@release-artists Attach cve flaws to microshift advisory failed" if await self._attach_cve_flaws() !=0 else f"\nAttach cve flaws to microshift advisory succeed"
                 message += f"\n@release-artists Verify microshift bugs failed" if await self._verify_microshift_bugs() !=0 else f"\nVerify microshift bugs succeed"
                 message += f"\n@release-artists Change microshift advisory status to QE failed" if await self._change_advisory_status() !=0 else f"\nChange microshift advisory status to QE succeed"
@@ -158,6 +159,19 @@ class BuildMicroShiftPipeline:
             "find-builds",
             "-k", "rpm",
             "--member-only",
+            "--use-default-advisory", "microshift"
+        ]
+        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
+        return ret
+
+    async def _sweep_bugs(self):
+        """ sweep the microshift bugs to advisory
+        """
+        cmd = [
+            "elliott",
+            "--group", self.group,
+            "--assembly", self.assembly,
+            "find-bugs:sweep",
             "--use-default-advisory", "microshift"
         ]
         ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)

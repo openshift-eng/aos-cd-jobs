@@ -1,9 +1,10 @@
 import os
+from typing import Optional
 import yaml
 
 import click
 
-from pyartcd import exectools, util
+from pyartcd import constants, exectools, util
 from pyartcd import jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
@@ -11,9 +12,10 @@ from pyartcd.runtime import Runtime
 
 class Ocp4ScanPipeline:
 
-    def __init__(self, runtime: Runtime, version: str):
+    def __init__(self, runtime: Runtime, version: str, data_path: Optional[str] = None):
         self.runtime = runtime
         self.version = version
+        self.data_path = data_path or constants.OCP_BUILD_DATA_URL  # in case we will make it a parameter
         self.logger = runtime.logger
         self.rhcos_changed = False
         self.rhcos_inconsistent = False
@@ -89,9 +91,9 @@ class Ocp4ScanPipeline:
         """
 
         # Run doozer scan-sources
-        cmd = f'doozer --assembly stream --working-dir={self._doozer_working} --group=openshift-{self.version} ' \
+        cmd = f'doozer --data-path={self.data_path} --assembly stream --working-dir={self._doozer_working} --group=openshift-{self.version} ' \
               f'config:scan-sources --yaml --ci-kubeconfig {os.environ["KUBECONFIG"]}'
-        _, out, err = await exectools.cmd_gather_async(cmd)
+        _, out, _ = await exectools.cmd_gather_async(cmd, stderr=None)
         self.logger.info('scan-sources output for openshift-%s:\n%s', self.version, out)
 
         yaml_data = yaml.safe_load(out)
@@ -114,10 +116,10 @@ class Ocp4ScanPipeline:
         Check for RHCOS inconsistencies by calling doozer inspect:stream INCONSISTENT_RHCOS_RPMS
         """
 
-        cmd = f'doozer --assembly stream --working-dir {self._doozer_working} --group openshift-{self.version} ' \
+        cmd = f'doozer --data-path={self.data_path} --assembly stream --working-dir {self._doozer_working} --group openshift-{self.version} ' \
               f'inspect:stream INCONSISTENT_RHCOS_RPMS --strict'
         try:
-            _, out, _ = await exectools.cmd_gather_async(cmd)
+            _, out, _ = await exectools.cmd_gather_async(cmd, stderr=None)
             self.logger.info(out)
             self.rhcos_inconsistent = False
         except ChildProcessError as e:

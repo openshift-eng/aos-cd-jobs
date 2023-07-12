@@ -150,8 +150,8 @@ node {
                     if (params.DOOZER_DATA_PATH) {
                         cmd << "--data-path=${params.DOOZER_DATA_PATH}"
                     }
-                    if (params.FORCE_BUILD) {
-                        cmd << "--force"
+                    if (params.PIN_BUILDS) {
+                        cmd << "--pin-builds"
                     }
                     cmd += [
                         "--build-rpms=${params.BUILD_RPMS}",

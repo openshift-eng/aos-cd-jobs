@@ -443,7 +443,7 @@ Error Reported
 {val['failure']}\n"""
 
         elif val.get('sha', None):
-            email_subject = f'SUCCESS: Changed Dockerfile reconciled for ${val["image"]} in OCP v{version}'
+            email_subject = f'SUCCESS: Changed Dockerfile reconciled for {val["image"]} in OCP v{version}'
             explanation_body += f"""
 What do I need to do?
 ---------------------
@@ -454,10 +454,10 @@ changes being performed by the OCP build system.
 
 What changed this time?
 -----------------------
-Reconciliation has just been performed for the image: ${val.image}
-${dockerfile_url}
+Reconciliation has just been performed for the image: {val["image"]}
+{dockerfile_url}
 The reconciled (downstream OCP) Dockerfile can be viewed here:
- - https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
+ - https://pkgs.devel.redhat.com/cgit/{distgit}/tree/Dockerfile?id={val["sha"]}
 
 Please direct any questions to the Automated Release Tooling team (#aos-art on slack).\n"""
 

@@ -66,6 +66,7 @@ class Ocp4Pipeline:
         self.mail_list_failure = mail_list_failure
 
         self.build_plan = BuildPlan()
+        self.mass_rebuild = False
         self.version = Version()
         self.version.stream = version
         self.rpm_mirror = RpmMirror()  # will be filled in later by build-compose stage
@@ -177,6 +178,15 @@ class Ocp4Pipeline:
             assert self.image_list, 'A list of images must be specified when "except" is selected'
             self.build_plan.images_excluded = [image.strip() for image in self.image_list.split(',')]
 
+        # Account for mass rebuilds:
+        # If build plan includes more than half or excludes less than half or rebuilds everything, it's a mass rebuild
+        include_count = len(self.build_plan.images_included)
+        exclude_count = len(self.build_plan.images_excluded)
+        self.mass_rebuild = \
+            (include_count and self.build_plan.active_image_count < include_count * 2) or \
+            (exclude_count and self.build_plan.active_image_count > exclude_count * 2) or \
+            (not include_count and not exclude_count)
+
         self.runtime.logger.info('Initial build plan:\n%s', self.build_plan)
 
     async def _initialize(self):
@@ -220,8 +230,16 @@ class Ocp4Pipeline:
         if not self.build_plan.build_images:
             run_details.update_description('Images: not building.<br/>')
 
+        elif self.mass_rebuild:
+            run_details.update_title(' [mass rebuild]')
+            run_details.update_description('Mass image rebuild (more than half) - invoking serializing semaphore')
+
         elif self.build_plan.images_included:
-            run_details.update_description(f'Images: building {self.build_plan.images_included}.<br/>')
+            images_to_build = len(self.build_plan.images_included)
+            if images_to_build <= 10:
+                run_details.update_description(f'Images: building {self.build_plan.images_included}.<br/>')
+            else:
+                run_details.update_description(f'Images: building {images_to_build} images.<br/>')
 
         elif self.build_plan.images_excluded:
             run_details.update_description(f'Images: building all except {self.build_plan.images_excluded}.<br/>')
@@ -579,7 +597,12 @@ class Ocp4Pipeline:
 
         failed_images = list(failed_map.keys())
         run_details.update_status('UNSTABLE')
-        run_details.update_description(f'Failed images: f{", ".join(failed_images)}<br/>')
+
+        if len(failed_images) <= 10:
+            run_details.update_description(f'Failed images: {", ".join(failed_images)}<br/>')
+        else:
+            run_details.update_description(f'{len(failed_images)} images failed. Check record.log for details/>')
+
         self.runtime.logger.warning('Failed images: %s', ', '.join(failed_images))
 
         ratio = record_util.determine_build_failure_ratio(record_log)
@@ -612,14 +635,6 @@ class Ocp4Pipeline:
             group=f'openshift-{self.version.stream}', assembly=self.assembly)
         signing_mode = 'signed' if group_config['release_state']['release'] else 'unsigned'
 
-        # If build plan includes more than half or excludes less than half or rebuilds everything, it's a mass rebuild
-        include_count = len(self.build_plan.images_included)
-        exclude_count = len(self.build_plan.images_excluded)
-        mass_rebuild = \
-            (include_count and self.build_plan.active_image_count < include_count * 2) or \
-            (exclude_count and self.build_plan.active_image_count > exclude_count * 2) or \
-            (not include_count and not exclude_count)
-
         # Doozer command
         cmd = self._doozer_base_command.copy()
         cmd.extend(self._include_exclude('images', self.build_plan.images_included, self.build_plan.images_excluded))
@@ -632,9 +647,7 @@ class Ocp4Pipeline:
         # Build images. If more than one version is undergoing mass rebuilds,
         # serialize them to prevent flooding the queue
         try:
-            if mass_rebuild:
-                run_details.update_description(
-                    'Mass image rebuild (more than half) - invoking serializing semaphore<br/>')
+            if self.mass_rebuild:
                 await self._mass_rebuild(cmd)
             else:
                 await exectools.cmd_assert_async(cmd)

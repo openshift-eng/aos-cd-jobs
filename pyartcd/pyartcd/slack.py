@@ -56,6 +56,16 @@ class SlackClient:
                                                        icon_emoji=self.icon_emoji, reply_broadcast=False)
         return response.data
 
+    async def upload_file(self, file=None, content=None, filename=None, initial_comment=None, thread_ts: Optional[str] = None):
+        response = await self._client.files_upload(
+            file=file,
+            filename=content,
+            filetype=filename,
+            initial_comment=initial_comment,
+            channels=self.channel,
+            thread_ts=thread_ts)
+        return response.data
+
     async def post_image(self, message: str, file: str):
         attachments = []
         if self.job_run_url:

@@ -613,6 +613,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = ['image1', 'image2', 'image3']
         self.ocp4.build_plan.images_excluded = []
+        self.ocp4.check_mass_rebuild()
         await self.ocp4._build_images()
         mass_rebuild_mock.assert_awaited_once()
         cmd_assert_async_mock.assert_not_awaited()
@@ -623,6 +624,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = ['image1', 'image2']
         self.ocp4.build_plan.images_excluded = []
+        self.ocp4.check_mass_rebuild()
         await self.ocp4._build_images()
         mass_rebuild_mock.assert_not_awaited()
         cmd_assert_async_mock.assert_awaited_once()
@@ -633,6 +635,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = []
         self.ocp4.build_plan.images_excluded = ['image1']
+        self.ocp4.check_mass_rebuild()
         await self.ocp4._build_images()
         mass_rebuild_mock.assert_awaited_once()
         cmd_assert_async_mock.assert_not_awaited()
@@ -643,6 +646,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = []
         self.ocp4.build_plan.images_excluded = ['image1', 'image2', 'image3']
+        self.ocp4.check_mass_rebuild()
         await self.ocp4._build_images()
         mass_rebuild_mock.assert_not_awaited()
         cmd_assert_async_mock.assert_awaited_once()
@@ -653,6 +657,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4.build_plan.build_images = True
         self.ocp4.build_plan.images_included = []
         self.ocp4.build_plan.images_excluded = []
+        self.ocp4.check_mass_rebuild()
         await self.ocp4._build_images()
         mass_rebuild_mock.assert_awaited_once()
         cmd_assert_async_mock.assert_not_awaited()

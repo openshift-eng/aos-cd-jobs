@@ -178,6 +178,11 @@ class Ocp4Pipeline:
             assert self.image_list, 'A list of images must be specified when "except" is selected'
             self.build_plan.images_excluded = [image.strip() for image in self.image_list.split(',')]
 
+        self.check_mass_rebuild()
+
+        self.runtime.logger.info('Initial build plan:\n%s', self.build_plan)
+
+    def check_mass_rebuild(self):
         # Account for mass rebuilds:
         # If build plan includes more than half or excludes less than half or rebuilds everything, it's a mass rebuild
         include_count = len(self.build_plan.images_included)
@@ -187,7 +192,6 @@ class Ocp4Pipeline:
             (exclude_count and self.build_plan.active_image_count > exclude_count * 2) or \
             (not include_count and not exclude_count)
 
-        self.runtime.logger.info('Initial build plan:\n%s', self.build_plan)
 
     async def _initialize(self):
         await self._check_assembly()

@@ -231,6 +231,7 @@ class Ocp4Pipeline:
             run_details.update_description('Images: not building.<br/>')
 
         elif self.mass_rebuild:
+            run_details.update_title(' [mass rebuild]')
             run_details.update_description('Mass image rebuild (more than half) - invoking serializing semaphore')
 
         elif self.build_plan.images_included:

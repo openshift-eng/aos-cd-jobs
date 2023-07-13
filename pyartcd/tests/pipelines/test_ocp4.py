@@ -376,7 +376,8 @@ class TestInitialize(unittest.IsolatedAsyncioTestCase):
         # Mock datetime.now()
         class MockedDatetime(datetime):
             @classmethod
-            def now(cls, *args, **kwargs): return datetime(2100, month=12, day=31, hour=11, minute=12)
+            def now(cls, *args, **kwargs):
+                return datetime(2100, month=12, day=31, hour=11, minute=12)
         ocp4.util.datetime = MockedDatetime
 
         # Initial values

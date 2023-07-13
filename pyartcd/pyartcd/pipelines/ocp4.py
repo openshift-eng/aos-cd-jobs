@@ -344,8 +344,7 @@ class Ocp4Pipeline:
         changed_children = await self._check_changed_child_images(changes)
 
         # Update build plan
-        self.build_plan.images_included = changed_images + \
-                                          [child for child in changed_children if child not in changed_images]
+        self.build_plan.images_included = changed_images + [child for child in changed_children if child not in changed_images]
         self.build_plan.images_excluded.clear()
         run_details.update_title(self._display_tag_for(self.build_plan.images_included, 'image'))
 
@@ -677,7 +676,7 @@ class Ocp4Pipeline:
             self.runtime.logger.info('No built images to sync.')
             return
 
-        self.runtime.logger.info(f'Syncing built images')
+        self.runtime.logger.info('Syncing built images')
 
         with open(f'{self._doozer_working}/record.log', 'r') as file:
             record_log: dict = record_util.parse_record_log(file)

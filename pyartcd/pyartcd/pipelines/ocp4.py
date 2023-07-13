@@ -579,7 +579,7 @@ class Ocp4Pipeline:
 
         failed_images = list(failed_map.keys())
         run_details.update_status('UNSTABLE')
-        run_details.update_description(f'Failed images: f{", ".join(failed_images)}<br/>')
+        run_details.update_description(f'Failed images: {", ".join(failed_images)}<br/>')
         self.runtime.logger.warning('Failed images: %s', ', '.join(failed_images))
 
         ratio = record_util.determine_build_failure_ratio(record_log)

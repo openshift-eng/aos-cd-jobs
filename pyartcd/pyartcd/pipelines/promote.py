@@ -481,9 +481,10 @@ class PromotePipeline:
         extract_baremetal_installer(release_pullspec, client_mirror_dir)
 
         # Create tarball
+        binary_name = 'openshift-baremetal-install'
         archive_name = f'openshift-install-{rhel_version}.tar.gz'
         with tarfile.open(f'{client_mirror_dir}/{archive_name}', 'w:gz') as tar:
-            tar.add(f'{client_mirror_dir}/openshift-baremetal-install')
+            tar.add(f'{client_mirror_dir}/{binary_name}')
         self._logger.info('Created tarball %s at %s', archive_name, client_mirror_dir)
 
         # Write shasum to sha256sum.txt
@@ -492,8 +493,8 @@ class PromotePipeline:
         with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:
             f.write(f"{shasum}  oc-mirror.tar.gz\n")
 
-        # Remove baremetal-installer-binary
-        os.remove(f'{client_mirror_dir}/baremetal-installer')
+        # Remove baremetal-installer binary
+        os.remove(f'{client_mirror_dir}/{binary_name}')
 
     async def generate_changelog(self, release_name, client_mirror_dir, minor, build_arch):
         try:

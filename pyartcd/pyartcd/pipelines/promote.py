@@ -482,7 +482,7 @@ class PromotePipeline:
         # Create tarball
         archive_name = f'openshift-install-{rhel_version}.tar.gz'
         with tarfile.open(f'{client_mirror_dir}/{archive_name}', 'w:gz') as tar:
-            tar.add(f'{client_mirror_dir}/baremetal-installer')
+            tar.add(f'{client_mirror_dir}/openshift-baremetal-install')
         self._logger.info('Created tarball %s at %s', archive_name, client_mirror_dir)
 
         # Write shasum to sha256sum.txt

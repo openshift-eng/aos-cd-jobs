@@ -426,7 +426,8 @@ class PromotePipeline:
                 self._logger.error(f"Error get {tarball} image from release pullspec")
 
         # ART-7207 - upload baremetal installer binary to mirror
-        self.publish_baremetal_installer_binary(from_release_tag, client_mirror_dir)
+        if build_arch == 'x86_64':
+            self.publish_baremetal_installer_binary(from_release_tag, client_mirror_dir)
 
         # Starting from 4.14, oc-mirror will be synced for all arches. See ART-6820 and ART-6863
         major, minor = util.isolate_major_minor_in_group(self.group)

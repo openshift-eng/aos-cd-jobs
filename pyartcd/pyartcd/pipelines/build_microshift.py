@@ -130,15 +130,19 @@ class BuildMicroShiftPipeline:
             message = f"microshift for assembly {self.assembly} has been successfully built."
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
-                message += f"\n@release-artists Attach build to microshift advisory failed" if await self._attach_builds() !=0 else f"\nAttach build to microshift advisory succeed"
-                message += f"\n@release-artists Sweep bugs to microshift advisory failed" if await self._sweep_bugs() !=0 else f"\nSweep bugs to microshift advisory succeed"
-                message += f"\n@release-artists Attach cve flaws to microshift advisory failed" if await self._attach_cve_flaws() !=0 else f"\nAttach cve flaws to microshift advisory succeed"
-                message += f"\n@release-artists Verify microshift bugs failed" if await self._verify_microshift_bugs() !=0 else f"\nVerify microshift bugs succeed"
-                message += f"\n@release-artists Change microshift advisory status to QE failed" if await self._change_advisory_status() !=0 else f"\nChange microshift advisory status to QE succeed"
             if assembly_type in [AssemblyTypes.PREVIEW, AssemblyTypes.CANDIDATE]:
                 message += f"\n This is a {assembly_type.name} release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> to publish the build to mirror."
             if slack_client:
                 await slack_client.say(message, slack_thread)
+            # prepare microshift advisory in a new slack thread
+            if pr and slack_client:
+                slack_thread await slack_client.say(f"Start preparing microshift advisory for assembly {self.assembly}.")
+                await self._attach_builds()
+                await self._sweep_bugs()
+                await self._attach_cve_flaws()
+                await self._verify_microshift_bugs()
+                await self._change_advisory_status()
+                await slack_client.say("Complete preparing microshift advisory.", slack_thread)
         except Exception as err:
             error_message = f"Error building microshift: {err}\n {traceback.format_exc()}"
             if assembly_type != AssemblyTypes.STREAM:
@@ -161,8 +165,7 @@ class BuildMicroShiftPipeline:
             "--member-only",
             "--use-default-advisory", "microshift"
         ]
-        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
-        return ret
+        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
 
     async def _sweep_bugs(self):
         """ sweep the microshift bugs to advisory
@@ -174,8 +177,7 @@ class BuildMicroShiftPipeline:
             "find-bugs:sweep",
             "--use-default-advisory", "microshift"
         ]
-        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
-        return ret
+        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
 
     async def _attach_cve_flaws(self):
         """ attach CVE flaws to advisory
@@ -187,8 +189,7 @@ class BuildMicroShiftPipeline:
             "attach-cve-flaws",
             "--use-default-advisory", "microshift"
         ]
-        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
-        return ret
+        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
 
     async def _verify_microshift_bugs(self):
         """ verify attached bugs on microshift advisory
@@ -200,8 +201,7 @@ class BuildMicroShiftPipeline:
             "verify-attached-bugs",
             "--verify-flaws",
         ]
-        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
-        return ret
+        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
 
     async def _change_advisory_status(self):
         """ move advisory status to QE
@@ -214,8 +214,7 @@ class BuildMicroShiftPipeline:
             "-s", "QE",
             "--use-default-advisory", "microshift"
         ]
-        ret, _, _ = await exectools.cmd_gather_async(cmd, check=False, env=self._elliott_env_vars)
-        return ret
+        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
 
     @staticmethod
     async def parse_release_payloads(payloads: Iterable[str]):

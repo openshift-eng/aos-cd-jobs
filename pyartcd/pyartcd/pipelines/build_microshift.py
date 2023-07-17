@@ -139,7 +139,7 @@ class BuildMicroShiftPipeline:
             # Sends a slack message
             message = f"Hi @release-artists , microshift for assembly {self.assembly} has been successfully built."
             if pr:
-                message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
+                message += f"\nA PR to update the assembly definition has been created and merged: {pr.html_url}"
                 message += "\nReview and merge the PR before you proceed.\n"
             if assembly_type in [AssemblyTypes.CANDIDATE, AssemblyTypes.STANDARD]:
                 message += '\n'.join([
@@ -325,9 +325,11 @@ class BuildMicroShiftPipeline:
             existing_prs = api.pulls.list(state="open", base=base, head=head)
             if not existing_prs.items:
                 result = api.pulls.create(head=head, base=base, title=title, body=body, maintainer_can_modify=True)
+                api.pulls.merge(owner=owner, repo=repo, pull_number=result.number, merge_method="squash")
             else:
                 pull_number = existing_prs.items[0].number
                 result = api.pulls.update(pull_number=pull_number, title=title, body=body)
+                api.pulls.merge(owner=owner, repo=repo, pull_number=pull_number, merge_method="squash")
         else:
             self._logger.warning("PR is not created: Nothing to commit.")
         return result

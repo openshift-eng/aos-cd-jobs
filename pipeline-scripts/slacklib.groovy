@@ -115,7 +115,8 @@ def notifySlack(channel, as_user, text, attachments=[], thread_ts=null, replyBro
                                 value: "Bearer $SLACK_BOT_TOKEN"
                             ]
                         ],
-                        ignoreSslErrors: true,
+                        httpProxy: env.http_proxy,
+                        ignoreSslErrors: false,
                         requestBody: "${payload}",
                         url: 'https://slack.com/api/chat.postMessage'
         )

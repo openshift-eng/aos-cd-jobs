@@ -25,6 +25,7 @@ from pyartcd import constants, exectools, util, jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
+from pyartcd.s3 import sync_dir_to_s3_mirror
 from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary,\
     extract_release_client_tools, get_release_image_info_from_pullspec, extract_baremetal_installer
 from pyartcd.runtime import Runtime
@@ -362,6 +363,8 @@ class PromotePipeline:
                         await self.publish_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], arch, client_type)
                     else:
                         await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], data['content'], client_type)
+        # sync rhcos
+        await self.sync_rhcos_srpms(assembly_type, data)
         json.dump(data, sys.stdout)
 
     @staticmethod
@@ -373,6 +376,28 @@ class PromotePipeline:
     def _get_image_stream_name(assembly_type: assembly.AssemblyTypes, arch: str):
         go_arch_suffix = go_suffix_for_arch(arch)
         return f'4-dev-preview{go_arch_suffix}' if assembly_type == assembly.AssemblyTypes.PREVIEW else f'release{go_arch_suffix}'
+
+    async def sync_rhcos_srpms(self, assembly_type, data):
+        # Sync potential pre-release source on which RHCOS depends. See ART-6419 for details.
+        major, minor = util.isolate_major_minor_in_group(self.group)
+        if assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]:
+            src_output_dir = f"{self._working_dir}/rhcos_src_staging"
+            for arch in data['content']:
+                if arch != "multi":
+                    cmd = [
+                        "doozer",
+                        "--group", self.group,
+                        "--assembly", self.assembly,
+                        "config:rhcos-srpms",
+                        "--version", data["content"][arch]['rhcos_version'],
+                        "--arch", arch,
+                        "-o", src_output_dir,
+                    ]
+                    await exectools.cmd_assert_async(cmd, env=self._doozer_env_vars)
+            # Publish the clients to our S3 bucket.
+            await sync_dir_to_s3_mirror(src_output_dir, "/pub/openshift-v4/sources/packages/", "", "", False, False)
+         else:
+            self._logger.info("Skipping sync srpms of rhcos")
 
     def _reraise_if_not_permitted(self, err: VerificationError, code: str, permits: Iterable[Dict]):
         permit = next(filter(lambda waiver: waiver["code"] == code, permits), None)

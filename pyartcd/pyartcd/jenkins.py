@@ -21,6 +21,7 @@ class Jobs(Enum):
     OCP4 = 'aos-cd-builds/build%2Focp4'
     RHCOS = 'aos-cd-builds/build%2Frhcos'
     OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
+    SYNC_FOR_CI = 'scheduled-builds/sync-for-ci'
 
 
 jenkins_client: Optional[Jenkins] = None
@@ -85,6 +86,9 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
     logger.info('Starting new build for job: %s', job_name)
     job = jenkins_client.get_job(job_name)
     queue_item = job.invoke(build_params=params)
+    if not blocking:
+        return
+
     build_url = block_until_building(queue_item, watch_building_delay)
     logger.info('Started new build at %s', build_url)
 
@@ -204,6 +208,16 @@ def start_olm_bundle(build_version: str, assembly: str, operator_nvrs: list,
             'DOOZER_DATA_PATH': doozer_data_path,
             'DOOZER_DATA_GITREF': doozer_data_gitref,
             'OPERATOR_NVRS': ','.join(operator_nvrs)
+        },
+        blocking=blocking
+    )
+
+
+def start_sync_for_ci(version: str, blocking: bool = False):
+    return start_build(
+        job_name=Jobs.SYNC_FOR_CI.value,
+        params={
+            'ONLY_FOR_VERSION': version
         },
         blocking=blocking
     )

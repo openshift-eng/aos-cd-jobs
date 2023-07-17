@@ -481,58 +481,6 @@ def param(type, name, value) {
     return [$class: type + 'ParameterValue', name: name, value: value]
 }
 
-def sync_images(major, minor, mail_list, assembly, operator_nvrs = null, doozer_data_path, doozer_data_gitref = "") {
-    // Run an image sync after a build. This will mirror content from
-    // internal registries to quay. After a successful sync an image
-    // stream is updated with the new tags and pullspecs.
-    // Also update the app registry with operator manifests.
-    // If operator_nvrs is given, will only build manifests for specified operator NVRs.
-    // If builds don't succeed, email and set result to UNSTABLE.
-    if(major < 4) {
-        currentBuild.description = "Invalid sync request: Sync images only applies to 4.x+ builds"
-        error(currentBuild.description)
-    }
-    def fullVersion = "${major}.${minor}"
-    def results = []
-
-    parallel "build-sync": {
-        if (assembly == "test") {
-            echo "Skipping build-sync job for test assembly"
-        } else {
-            results.add build(job: 'build%2Fbuild-sync', propagate: false, parameters: [
-                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
-                param('String', 'ASSEMBLY', assembly),
-                param('String', 'DOOZER_DATA_PATH', doozer_data_path),
-                param('Boolean', 'DRY_RUN', params.DRY_RUN),
-            ])
-        }
-    }, "olm-bundle": {
-        if (operator_nvrs != []) {  // If operator_nvrs is given but empty, we will not build bundles.
-            results.add build(job: 'build%2Folm_bundle', propagate: false, parameters: [
-                param('String', 'BUILD_VERSION', fullVersion),  // https://stackoverflow.com/a/53735041
-                param('String', 'ASSEMBLY', assembly),
-                param('String', 'DOOZER_DATA_PATH', doozer_data_path),
-                param('String', 'DOOZER_DATA_GITREF', doozer_data_gitref),
-                param('String', 'OPERATOR_NVRS', operator_nvrs != null ? operator_nvrs.join(",") : ""),
-                param('Boolean', 'DRY_RUN', params.DRY_RUN),
-            ])
-        } else {
-            echo "No operators nvrs, will not build bundles"
-        }
-    }
-    if ( results.any { it.result != 'SUCCESS' } ) {
-        if (!params.DRY_RUN) {
-            commonlib.email(
-                replyTo: mail_list,
-                to: "aos-art-automation+failed-image-sync@redhat.com",
-                from: "aos-art-automation@redhat.com",
-                subject: "Problem syncing images after ${currentBuild.displayName}",
-                body: "Jenkins console: ${commonlib.buildURL('console')}",
-            )
-        }
-    }
-}
-
 /**
  * Parse record.log from Doozer into a map. The map will be keyed by the type
  * of operation performed. The values will be a list of maps. Each of these
@@ -625,21 +573,6 @@ def get_failed_builds(Map record_log, Boolean fullRecord=false) {
     }
 
     return failed_map
-}
-
-def get_successful_builds(Map record_log, Boolean fullRecord=false) {
-    // Returns a map of distgit => task_url OR full record.log dict entry IFF the distgit's build succeeded
-    builds = record_log.get('build', [])
-    success_map = [:]
-    for (i = 0; i < builds.size(); i++) {
-        bld = builds[i]
-        distgit = bld['distgit']
-        if (bld['status'] == '0') {
-            success_map[distgit] = fullRecord ? bld : bld['task_url']
-        }
-    }
-
-    return success_map
 }
 
 // gets map of emails to notify from output of parse_record_log
@@ -753,90 +686,6 @@ Thanks for your help!
 
 }
 
-def notify_dockerfile_reconciliations(doozerWorking, buildVersion) {
-    // loop through all new commits that affect dockerfiles and notify their owners
-
-    record_log = parse_record_log(doozerWorking)
-    distgit_notify = get_distgit_notify(record_log)
-    distgit_notify = mapToList(distgit_notify)
-
-    for (i = 0; i < distgit_notify.size(); i++) {
-        distgit = distgit_notify[i][0]
-        val = distgit_notify[i][1]
-        if (!val.owners) { continue }
-
-        alias = val.source_alias
-        url = dockerfile_url_for(alias.origin_url, alias.branch, val.source_dockerfile_subpath)
-        dockerfile_url = url ? "Upstream source file: ${url}" : ""
-
-        // Populate the introduction for all emails to owners
-        explanation_body = """
-Why am I receiving this?
-------------------------
-You are receiving this message because you are listed as an owner for an
-OpenShift related image - or you recently made a modification to the definition
-of such an image in github. Upstream (github) OpenShift Dockerfiles are
-regularly pulled from their upstream source and used as an input to build our
-productized images - RHEL-based OpenShift Container Platform (OCP) images.
-
-To serve as an input to RHEL/OCP images, upstream Dockerfiles are
-programmatically modified before they are checked into a downstream git
-repository which houses all Red Hat images:
- - https://pkgs.devel.redhat.com/cgit/containers/
-
-We call this programmatic modification "reconciliation" and you will receive an
-email when the upstream Dockerfile changes so that you can review the
-differences between the upstream & downstream Dockerfiles.
-"""
-
-        if ( val.failure) {
-            email_subject = "FAILURE: Error reconciling Dockerfile for ${val.image} in OCP v${buildVersion}"
-            explanation_body += """
-What do I need to do?
----------------------
-An error occurred during your reconciliation. Until this issue is addressed,
-your upstream changes may not be reflected in the product build.
-
-Please review the error message reported below to see if the issue is due to upstream
-content. If it is not, the Automated Release Tooling (ART) team will engage to address
-the issue. Please direct any questions to the ART team (#aos-art on slack).
-
-Error Reported
---------------
-${val.failure}
-
-        """
-        } else if ( val.sha ) {
-            email_subject = "SUCCESS: Changed Dockerfile reconciled for ${val.image} in OCP v${buildVersion}"
-            explanation_body += """
-What do I need to do?
----------------------
-You may want to look at the result of the reconciliation. Usually,
-reconciliation is transparent and safe. However, you may be interested in any
-changes being performed by the OCP build system.
-
-
-What changed this time?
------------------------
-Reconciliation has just been performed for the image: ${val.image}
-${dockerfile_url}
-The reconciled (downstream OCP) Dockerfile can be viewed here:
- - https://pkgs.devel.redhat.com/cgit/${distgit}/tree/Dockerfile?id=${val.sha}
-
-Please direct any questions to the Automated Release Tooling team (#aos-art on slack).
-        """
-        } else {
-            error("Unable to determine notification reason; something is broken")
-        }
-
-        commonlib.email(
-            to: val.owners,
-            from: "aos-team-art@redhat.com",
-            subject: email_subject,
-            body: explanation_body)
-    }
-}
-
 /**
  * send email to owners of failed image builds.
  * param failed_builds: map of records as below (all values strings):
@@ -946,17 +795,6 @@ def watch_brew_task_and_retry(name, taskId, brewUrl) {
     }
 }
 
-def getGroupBranch(doozerOpts) {
-    // for given doozer options determine the distgit branch from the group.yml file
-    def branch = doozer("${doozerOpts} config:read-group branch", [capture: true]).trim()
-    if (branch == "" ) {
-        error("failed to read branch from group.yml")
-    } else if (branch.contains("\n")) {
-        error("reading branch from group.yml got multiple lines:\n${branch}")
-    }
-    return branch
-}
-
 def cleanWorkspace() {
     cleanWs(cleanWhenFailure: false, notFailBuild: true)
     dir("${workspace}@tmp") {
@@ -1016,75 +854,6 @@ def defaultReleaseFor(stream) {
 String extractAdvisoryId(String elliottOut) {
     def matches = (elliottOut =~ /https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)/)
     matches[0][1]
-}
-
-/**
- * Returns the status of freeze_automation in the group.yml
- */
-def getAutomationState(doozerOpts){
-    String freeze_automation = doozer("${doozerOpts} config:read-group --default 'no' freeze_automation",
-            [capture: true]).trim()
-    return freeze_automation
-}
-
-/**
- * Checks the status of the freeze_automation key in the group.yml and
- * returns whether the current run is permitted accordingly.
- * @param doozerOpts A string containing, at least, a `--group` parameter.
- */
-def isBuildPermitted(doozerOpts) {
-    // check whether the group should be built right now
-    def freeze_automation = getAutomationState(doozerOpts)
-
-    def builderEmail
-    wrap([$class: 'BuildUser']) {
-        builderEmail = env.BUILD_USER_EMAIL
-    }
-
-    echo "Group's freeze_automation flag: ${freeze_automation}"
-    echo "Builder email: ${builderEmail}"
-
-    if (freeze_automation in ["yes", "True"]) {  // yaml parses unquoted "yes" as a boolean... accept either
-        echo "All automation is currently disabled by freeze_automation in group.yml."
-        return false
-    }
-
-    if (freeze_automation == "scheduled" && builderEmail == null) {
-        echo "Only manual runs are permitted according to freeze_automation in group.yml and this run appears to be non-manual."
-        return false
-    }
-
-    return true
-}
-
-/**
- * Throws an exception if isBuildPermitted(...) returns false.
- * @param doozerOpts A string containing, at least, a `--group` parameter.
- */
-def assertBuildPermitted(doozerOpts) {
-    if (!isBuildPermitted(doozerOpts)) {
-        currentBuild.result = 'UNSTABLE'
-        currentBuild.description = 'Builds not permitted'
-        error('This build is being terminated because it is not permitted according to current group.yml')
-    }
-}
-
-/**
- * Scans data outputted by config:scan-sources yaml and records changed
- * elements in the object it returns which has a .rpms list and an .images list.
- * The lists are empty if no change was detected.
- */
-@NonCPS
-def getChanges(yamlData) {
-    def changed = ["rpms": [], "images": []]
-    changed.each { kind, list ->
-        yamlData[kind].each {
-            if (it["changed"]) {
-                list.add(it["name"])
-            }
-        }
-    }
-    return changed
 }
 
 def get_releases_config(String group) {

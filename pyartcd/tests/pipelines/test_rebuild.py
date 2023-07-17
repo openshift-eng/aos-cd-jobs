@@ -370,8 +370,8 @@ images:
     @patch("builtins.open")
     @patch("pyartcd.pipelines.rebuild.datetime")
     async def test_run_image(self, mock_datetime: Mock, open: Mock, load_group_config: AsyncMock, load_releases_config: AsyncMock,
-                       _get_meta_config: AsyncMock, _build_plashets: AsyncMock, _rebase_image: AsyncMock,
-                       _generate_repo_file_for_image: Mock, _copy_plashet_out_to_remote: AsyncMock, _build_image: AsyncMock, _generate_example_schema: Mock):
+                             _get_meta_config: AsyncMock, _build_plashets: AsyncMock, _rebase_image: AsyncMock,
+                             _generate_repo_file_for_image: Mock, _copy_plashet_out_to_remote: AsyncMock, _build_image: AsyncMock, _generate_example_schema: Mock):
         mock_datetime.utcnow.return_value = datetime(2021, 7, 16, 0, 0, 0, 0, tzinfo=timezone.utc)
         timestamp = mock_datetime.utcnow.return_value.strftime("%Y%m%d%H%M")
         runtime = MagicMock(dry_run=False)
@@ -418,8 +418,8 @@ images:
     @patch("pyartcd.pipelines.rebuild.load_group_config")
     @patch("builtins.open")
     @patch("pyartcd.pipelines.rebuild.datetime")
-    async def test_run_rhcos(self, mock_datetime: Mock, open: Mock, load_group_config: AsyncMock, load_releases_config: AsyncMock, _build_plashets: AsyncMock,
-                       _generate_repo_file_for_rhcos: Mock, _copy_plashet_out_to_remote: AsyncMock):
+    async def test_run_rhcos(self, mock_datetime: Mock, open: Mock, load_group_config: AsyncMock, load_releases_config: AsyncMock,
+                             _build_plashets: AsyncMock, _generate_repo_file_for_rhcos: Mock, _copy_plashet_out_to_remote: AsyncMock):
         mock_datetime.utcnow.return_value = datetime(2021, 7, 16, 0, 0, 0, 0, tzinfo=timezone.utc)
         timestamp = mock_datetime.utcnow.return_value.strftime("%Y%m%d%H%M")
         runtime = MagicMock(dry_run=False)

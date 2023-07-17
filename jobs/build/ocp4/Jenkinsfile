@@ -2,8 +2,8 @@
 
 node {
     checkout scm
-    def joblib = load("build.groovy")
-    def commonlib = joblib.commonlib
+    def buildlib = load("pipeline-scripts/buildlib.groovy")
+    def commonlib = buildlib.commonlib
     def slacklib = commonlib.slacklib
 
     commonlib.describeJob("ocp4", """
@@ -126,21 +126,16 @@ node {
     try {
 
         sshagent(["openshift-bot"]) {
-            // To work on private repos, buildlib operations must run
-            // with the permissions of openshift-bot
 
             lock("github-activity-lock-${params.BUILD_VERSION}") {
-                stage("initialize") { joblib.initialize() }
-                buildlib.assertBuildPermitted(doozerOpts)
-                stage("build RPMs") {
-                    try {
-                        joblib.stageBuildRpms()
-                    } catch (err) {
-                        currentBuild.result = 'FAILURE'
-                    }
+                stage("initialize") {
+                    currentBuild.displayName = "#${currentBuild.number}"
+                    doozerWorking = "${env.WORKSPACE}/doozer_working"
+                    doozerOpts = "--working-dir ${doozerWorking} --data-path ${params.DOOZER_DATA_PATH}"
+                    buildlib.cleanWorkdir(doozerWorking)
                 }
 
-                stage("build compose") {
+                stage("ocp4") {
                     sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
 
                     def cmd = [
@@ -148,148 +143,50 @@ node {
                         "-v",
                         "--working-dir=./artcd_working",
                         "--config=./config/artcd.toml",
-                        "ocp4:build-compose",
-                        "--version=${version.stream}-${version.release}",
-                        "--assembly=${params.ASSEMBLY}"
+                        "ocp4",
+                        "--version=${params.BUILD_VERSION}",
+                        "--assembly=${params.ASSEMBLY}",
                     ]
-                    if (joblib.buildPlan.buildRpms) {
-                        cmd << "--build-rpms"
+                    if (params.DOOZER_DATA_PATH) {
+                        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
                     }
-
-                    withCredentials([
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT')
-                        ]) {
-                        sh(script: cmd.join(' '), returnStdout: true)
+                    if (params.PIN_BUILDS) {
+                        cmd << "--pin-builds"
                     }
+                    cmd += [
+                        "--build-rpms=${params.BUILD_RPMS}",
+                        "--rpm-list=${params.RPM_LIST}",
+                        "--build-images=${params.BUILD_IMAGES}",
+                        "--image-list=${params.IMAGE_LIST}"
+                    ]
 
-                    def plashets_built_yaml = "${env.WORKSPACE}/plashet-working/plashets_built.yaml"
-                    def exists = fileExists plashets_built_yaml
+                    wrap([$class: 'BuildUser']) {
+                            builderEmail = env.BUILD_USER_EMAIL
+                        }
 
-                    if (exists) {
-                        plashets_built = readYaml(file: plashets_built_yaml)
-                        mirrorPlashet = plashets_built['rhel-server-ose-rpms']
-                        echo "mirrorPlashet: ${mirrorPlashet}"
-
-                        if(mirrorPlashet) {
-                            // public rhel7 ose plashet, if present, needs mirroring to /enterprise/ for CI
-                            rpmMirror.plashetDirName = mirrorPlashet.plashetDirName
-                            rpmMirror.localPlashetPath = mirrorPlashet.localPlashetPath
+                    buildlib.withAppCiAsArtPublish() {
+                        withCredentials([
+                                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                                    string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                                    aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
+                                ]) {
+                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                                sh(script: cmd.join(' '), returnStdout: true)
+                            }
                         }
                     }
-                }
-
-                if ( params.ASSEMBLY == "stream" ) {
-                    // Since plashets may have been rebuilt, fire off sync for CI. This will transfer
-                    // RPMs out to mirror.openshift.com/enterprise so that they may be consumed through
-                    // CI rpm mirrors.
-                    build wait: false, propagate: false, job: '/scheduled-builds/sync-for-ci', parameters: [string(name: 'ONLY_FOR_VERSION', value: params.BUILD_VERSION)]
-
-                    // Also trigger rhcos builds for the release in order to absorb any changes from plashets or
-                    // RHEL which may have triggered our rebuild. If there are no changes to the RPMs, the build
-                    // should exit quickly. If there are changes, the hope is that by the time our images are done
-                    // building, RHCOS will be ready and build-sync will find consistent RPMs.
-                    build wait: false, propagate: false, job: 'build%2Frhcos', parameters: [string(name: 'BUILD_VERSION', value: params.BUILD_VERSION)]
-                }
-
-                stage("update dist-git") {
-                    withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
-                        joblib.stageUpdateDistgit()
-                    }
-                }
-                stage("build images") {
-                    withCredentials([string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
-                            joblib.stageBuildImages()
-                    }
-                }
-            }
-            stage("sync images") {
-                if (buildlib.allImagebuildfailed) { return }
-                joblib.stageSyncImages()
-            }
-            stage("mirror RPMs") {
-                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-
-                // Create artcd command
-                def cmd = [
-                    "artcd",
-                    "-v",
-                    "--working-dir=./artcd_working",
-                    "--config=./config/artcd.toml",
-                ]
-                if (params.DRY_RUN) {
-                    cmd << "--dry-run"
-                }
-                localPlashetPath = rpmMirror.localPlashetPath ? rpmMirror.localPlashetPath : ''
-                cmd += [
-                    "ocp4:mirror-rpms",
-                    "--version=${version.stream}",
-                    "--assembly=${params.ASSEMBLY}",
-                    "--local-plashet-path=${localPlashetPath}"
-                ]
-                withCredentials([
-                            aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                            string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                            string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                            string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
-                            string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
-                        ]) {
-                    retry(3) {
-                        timeout(time: 60, unit: 'MINUTES') { // aws s3 sync has been observed to hang before
-                            sh(script: cmd.join(' '), returnStdout: true)
-                        }
-                    }
-                }
-            }
-
-            stage("sweep") {
-                if (buildlib.allImagebuildfailed) { return }
-
-                cmd = [
-                    "artcd",
-                    "-v",
-                    "--working-dir=./artcd_working",
-                    "--config=./config/artcd.toml",
-                ]
-                if (params.DRY_RUN) {
-                    cmd << "--dry-run"
-                }
-                cmd += [
-                    "ocp4:sweep",
-                    "--version=${version.stream}"
-                ]
-
-                try {
-                    withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-                        sh(script: cmd.join(' '), returnStdout: true)
-                    }
-                } catch (err) {
-                    currentBuild.result = 'UNSTABLE'
-                    if (dry_run) {
-                        return
-                    }
-                    commonlib.email(
-                        replyTo: 'aos-team-art@redhat.com',
-                        to: 'aos-art-automation+failed-sweep@redhat.com',
-                        from: 'aos-art-automation@redhat.com',
-                        subject: "Problem sweeping after ${currentBuild.displayName}",
-                        body: "Jenkins console: ${commonlib.buildURL('console')}",
-                    )
                 }
             }
         }
-
-        stage("report success") { joblib.stageReportSuccess() }
 
     } catch (err) {
-
-        if (!buildlib.isBuildPermitted(doozerOpts)) {
-            echo 'Exiting because this build is not permitted: ${err}'
-            return
-        }
-
         if (params.MAIL_LIST_FAILURE.trim()) {
             commonlib.email(
                 to: params.MAIL_LIST_FAILURE,
@@ -315,12 +212,11 @@ View the build artifacts and console output on Jenkins:
     } finally {
         commonlib.compressBrewLogs()
         commonlib.safeArchiveArtifacts([
-            "doozer_working/*.log",
-            "doozer_working/brew-logs.tar.bz2",
-            "doozer_working/*.yaml",
-            "doozer_working/*.yml",
+            "artcd_working/doozer_working/*.log",
+            "artcd_working/doozer_working/brew-logs.tar.bz2",
+            "artcd_working/doozer_working/*.yaml",
+            "artcd_working/doozer_working/*.yml",
         ])
-        buildlib.cleanWorkdir(joblib.doozerWorking)
         buildlib.cleanWorkspace()
     }
 }

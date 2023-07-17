@@ -614,7 +614,7 @@ def syncRepoToS3Mirror(local_dir, s3_path, remove_old=true, timeout_minutes=60, 
     }
 }
 
-def syncDirToS3Mirror(local_dir, s3_path, include_only='', timeout_minutes=60, delete_old=true) {
+def syncDirToS3Mirror(local_dir, s3_path, delete_old=true, include_only='', timeout_minutes=60) {
     try {
         checkS3Path(s3_path)
         extra_args = ""

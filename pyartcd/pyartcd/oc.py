@@ -92,3 +92,21 @@ def extract_release_client_tools(release_pullspec: str, path_arg: str, single_ar
         args += [f"--filter-by-os={single_arch}"]
     args += [f"--from={release_pullspec}", path_arg]
     common_oc_wrapper("extract_tools", "adm", args, True, False)
+
+
+def extract_baremetal_installer(release_pullspec: str, path: str) -> (int, str):
+    """
+    Extract baremetal-installer binary to specified location
+    :param release_pullspec: e.g. quay.io/openshift-release-dev/ocp-release:4.14.0-ec.2-x86_64
+    :param path: e.g. /path/to/extracted/binary
+    """
+
+    # oc adm release extract --command=openshift-baremetal-install -n=ocp --to <path> <pullspec>
+    args = ['release', 'extract', '--command=openshift-baremetal-install', '-n=ocp', release_pullspec, f'--to={path}']
+    return common_oc_wrapper(
+        cmd_result_name='extract_baremetal',
+        cli_verb='adm',
+        oc_args=args,
+        check_status=True,
+        return_value=True
+    )

@@ -175,7 +175,7 @@ class BuildMicroShiftPipeline:
             "--member-only",
             "--use-default-advisory", "microshift"
         ]
-        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars)
 
     async def _sweep_bugs(self):
         """ sweep the microshift bugs to advisory
@@ -187,7 +187,7 @@ class BuildMicroShiftPipeline:
             "find-bugs:sweep",
             "--use-default-advisory", "microshift"
         ]
-        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars)
 
     async def _attach_cve_flaws(self):
         """ attach CVE flaws to advisory
@@ -199,7 +199,7 @@ class BuildMicroShiftPipeline:
             "attach-cve-flaws",
             "--use-default-advisory", "microshift"
         ]
-        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars)
 
     async def _verify_microshift_bugs(self):
         """ verify attached bugs on microshift advisory
@@ -211,7 +211,7 @@ class BuildMicroShiftPipeline:
             "verify-attached-bugs",
             "--verify-flaws",
         ]
-        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars)
 
     async def _change_advisory_status(self):
         """ move advisory status to QE
@@ -224,7 +224,7 @@ class BuildMicroShiftPipeline:
             "-s", "QE",
             "--use-default-advisory", "microshift"
         ]
-        await exectools.cmd_gather_async(cmd, env=self._elliott_env_vars)
+        await exectools.cmd_assert_async(cmd, env=self._elliott_env_vars)
 
     @staticmethod
     async def parse_release_payloads(payloads: Iterable[str]):

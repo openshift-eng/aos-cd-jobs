@@ -757,7 +757,7 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
             "team": "OpenShift Automatic Release Team (ART)",
             "email": "aos-team-art@redhat.com",
             "name": "ART Jobs",
-            "slack": "#aos-art",
+            "slack": "#forum-ocp-art",
         ],
         "run": [
             "url": env.BUILD_URL,

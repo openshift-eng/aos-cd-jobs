@@ -48,7 +48,7 @@ not have permission to make PRs in your fork.
 ### SKIP\_OTA\_SLACK\_NOTIFICATION
 
 Do not notify OTA team - normally when PRs are created we also send a slack notification
-in `#forum-release`. You probably would want to set this while testing job changes.
+in `#forum-ocp-release`. You probably would want to set this while testing job changes.
 
 ## Known issues
 

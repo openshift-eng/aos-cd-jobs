@@ -369,7 +369,7 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
             art_notify_frequency = 2
             forum_release_notify_frequency = 5
 
-        # Spam ourselves a little more often than forum-release
+        # Spam ourselves a little more often than forum-ocp-release
         if fail_count % art_notify_frequency == 0:
             slack_client.bind_channel(f'openshift-{version}')
             await slack_client.say(msg)
@@ -377,9 +377,9 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         if fail_count % forum_release_notify_frequency == 0:
             group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
 
-            # For GA releases, let forum-release know why no new builds
+            # For GA releases, let forum-ocp-release know why no new builds
             if group_config['release_state']['release']:
-                slack_client.bind('#forum-release').say(msg)
+                slack_client.bind('#forum-ocp-release').say(msg)
 
         raise
 

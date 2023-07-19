@@ -146,7 +146,7 @@ class BuildMicroShiftPipeline:
                 await slack_client.say(message, slack_thread)
             # prepare microshift advisory in a new slack thread
             if pr and slack_client:
-                slack_thread await slack_client.say(f"Start preparing microshift advisory for assembly {self.assembly}.")
+                slack_thread = await slack_client.say(f"Start preparing microshift advisory for assembly {self.assembly}.")
                 await self._attach_builds()
                 await self._sweep_bugs()
                 await self._attach_cve_flaws()

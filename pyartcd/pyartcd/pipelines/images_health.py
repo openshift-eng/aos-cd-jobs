@@ -47,7 +47,7 @@ class ImagesHealthPipeline:
                 await self.slack_client.say(msg)
 
             if self.send_to_aos_art:
-                self.slack_client.bind_channel('#aos-art')
+                self.slack_client.bind_channel('#forum-ocp-art')
                 await self.slack_client.say(msg)
 
         else:
@@ -61,7 +61,7 @@ class ImagesHealthPipeline:
 @click.option('--send-to-release-channel', is_flag=True,
               help='If true, send output to #art-release-4-<version>')
 @click.option('--send-to-aos-art', is_flag=True,
-              help='"If true, send notification to #aos-art')
+              help='"If true, send notification to #forum-ocp-art')
 @pass_runtime
 @click_coroutine
 async def images_health(runtime: Runtime, version: str, send_to_release_channel: bool, send_to_aos_art: bool):

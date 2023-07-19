@@ -436,7 +436,7 @@ your upstream changes may not be reflected in the product build.
 
 Please review the error message reported below to see if the issue is due to upstream
 content. If it is not, the Automated Release Tooling (ART) team will engage to address
-the issue. Please direct any questions to the ART team (#aos-art on slack).
+the issue. Please direct any questions to the ART team (#forum-ocp-art on slack).
 
 Error Reported
 --------------
@@ -459,7 +459,7 @@ Reconciliation has just been performed for the image: {val["image"]}
 The reconciled (downstream OCP) Dockerfile can be viewed here:
  - https://pkgs.devel.redhat.com/cgit/{distgit}/tree/Dockerfile?id={val["sha"]}
 
-Please direct any questions to the Automated Release Tooling team (#aos-art on slack).\n"""
+Please direct any questions to the Automated Release Tooling team (#forum-ocp-art on slack).\n"""
 
         else:
             raise RuntimeError('Unable to determine notification reason; something is broken')

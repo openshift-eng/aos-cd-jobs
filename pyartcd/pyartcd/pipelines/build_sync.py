@@ -379,7 +379,7 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
 
             # For GA releases, let forum-release know why no new builds
             if group_config['release_state']['release']:
-                slack_client.bind('#forum-release').say(msg)
+                slack_client.bind('#forum-ocp-release').say(msg)
 
         raise
 

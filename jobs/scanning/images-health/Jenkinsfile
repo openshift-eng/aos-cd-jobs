@@ -19,7 +19,7 @@ node() {
                     booleanParam(
                         name: 'SEND_TO_AOS_ART',
                         defaultValue: false,
-                        description: "If true, send notification to #aos-art"
+                        description: "If true, send notification to #forum-ocp-art"
                     ),
                     commonlib.mockParam(),
                 ]

@@ -17,11 +17,13 @@ NIGHTLY_PAYLOAD_REPOS = {
     "ppc64le": "registry.ci.openshift.org/ocp-ppc64le/release-ppc64le",
     "aarch64": "registry.ci.openshift.org/ocp-arm64/release-arm64",
 }
-# The client name mapping in nightly with name on mirror
+
+# Maps the name of a release component tag to the filename element to include
+# when creating artifacts on mirror.openshift.com.
 MIRROR_CLIENTS = {
-    "oc": "openshift-client",
+    "cli": "openshift-client",
     "installer": "openshift-installer",
-    "operator-framework-olm": "opm",
+    "operator-registry": "opm",
 }
 
 OCP_BUILD_DATA_URL = 'https://github.com/openshift-eng/ocp-build-data'

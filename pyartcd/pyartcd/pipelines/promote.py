@@ -399,16 +399,14 @@ class PromotePipeline:
         # extract release clients tools
         extract_release_client_tools(f"{quay_url}:{from_release_tag}", f"--to={client_mirror_dir}", None)
 
-        # Get cli installer operator-registory pull-spec from the release
-        for tarball in ["cli", "installer", "operator-registry"]:
-            image_stat, cli_pull_spec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", tarball)
+        # Get cli installer operator-registry pull-spec from the release
+        for release_component_tag_name, source_name in constants.MIRROR_CLIENTS.items():
+            image_stat, cli_pull_spec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", release_component_tag_name)
             if image_stat == 0:  # image exists
                 _, image_info = get_release_image_info_from_pullspec(cli_pull_spec)
                 # Retrieve the commit from image info
                 commit = image_info["config"]["config"]["Labels"]["io.openshift.build.commit.id"]
                 source_url = image_info["config"]["config"]["Labels"]["io.openshift.build.source-location"]
-                source_name = source_url.split("/")[-1]
-                source_name = constants.MIRROR_CLIENTS[source_name]
                 # URL to download the tarball a specific commit
                 response = requests.get(f"{source_url}/archive/{commit}.tar.gz", stream=True)
                 if response.ok:
@@ -423,7 +421,7 @@ class PromotePipeline:
                 else:
                     response.raise_for_status()
             else:
-                self._logger.error(f"Error get {tarball} image from release pullspec")
+                self._logger.error(f"Error get {release_component_tag_name} image from release pullspec")
 
         # ART-7207 - upload baremetal installer binary to mirror
         if build_arch == 'x86_64':

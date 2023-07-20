@@ -175,9 +175,12 @@ node {
                                     string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
                                     string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
                                     aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN')
+                                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                                    usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
+                                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-private-key', variable: 'RHSM_PULP_KEY'),
+                                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
                                 ]) {
-                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                                 sh(script: cmd.join(' '), returnStdout: true)
                             }
                         }

@@ -428,8 +428,9 @@ class PromotePipeline:
             self.publish_baremetal_installer_binary(from_release_tag, client_mirror_dir)
 
         # Starting from 4.14, oc-mirror will be synced for all arches. See ART-6820 and ART-6863
+        # oc-mirror was introduced in 4.10, so skip for <= 4.9.
         major, minor = util.isolate_major_minor_in_group(self.group)
-        if major > 4 or minor >= 14 or build_arch == 'x86_64':
+        if (major > 4 or minor >= 14) or (major == 4 and minor >= 10 and build_arch == 'x86_64'):
             # oc image  extract requires an empty destination directory. So do this before extracting tools.
             # oc adm release extract --tools does not require an empty directory.
             image_stat, oc_mirror_pullspec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "oc-mirror")

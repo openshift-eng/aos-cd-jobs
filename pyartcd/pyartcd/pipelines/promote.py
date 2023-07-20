@@ -453,7 +453,6 @@ class PromotePipeline:
 
         # create symlink for clients
         self.create_symlink(client_mirror_dir, False, False)
-        await self.generate_changelog(release_name, client_mirror_dir, minor, build_arch)
 
         # extract opm binaries
         _, operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
@@ -494,47 +493,6 @@ class PromotePipeline:
 
         # Remove baremetal-installer binary
         os.remove(f'{client_mirror_dir}/{binary_name}')
-
-    async def generate_changelog(self, release_name, client_mirror_dir, minor, build_arch):
-        try:
-            # To encourage customers to explore dev-previews & pre-GA releases, populate changelog
-            # https://issues.redhat.com/browse/ART-3040
-            prevMinor = minor - 1
-            rcArch = go_arch_for_brew_arch(build_arch)
-            rcURL = f"https://{rcArch}.ocp.releases.ci.openshift.org"
-            stableStream = "4-stable" if rcArch == "amd64" else f"4-stable-{rcArch}"
-            outputDest = f"{client_mirror_dir}/changelog.html"
-            outputDestMd = f"{client_mirror_dir}/changelog.md"
-
-            # If the previous minor is not yet GA, look for the latest fc/rc/ec. If the previous minor is GA, this should
-            # always return 4.m.0.
-            url = 'https://amd64.ocp.releases.ci.openshift.org/api/v1/releasestream/4-stable/latest'
-            full_url = f"{url}?in=>4.{prevMinor}.0-0+<4.{prevMinor}.1"
-            # See if the previous minor has GA'd yet; e.g. https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.8.0
-            async with aiohttp.ClientSession() as session:
-                async with session.get(full_url) as response:
-                    text = await response.json()
-                    prevGA = text['name']
-                async with session.get(f"{rcURL}/releasestream/{stableStream}/release/{prevGA}") as response:
-                    if response.status == 200:
-                        # If prevGA is known to the release controller, compute the changelog html
-                        async with session.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html") as response:
-                            text = await response.text()
-                            with open(outputDest, 'w') as f:
-                                f.write(await response.text())
-                        # Also collect the output in markdown for SD to consume
-                        async with session.get(f"{rcURL}/changelog?from={prevGA}&to={release_name}&format=html") as response:
-                            text = await response.text()
-                            with open(outputDestMd, 'w') as f:
-                                f.write(text)
-                    else:
-                        with open(outputDest, 'w') as f:
-                            f.write(f"<html><body><p>Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.</p></body></html>")
-                        with open(outputDestMd, 'w') as f:
-                            f.write(f"Changelog information cannot be computed for this release. Changelog information will be populated for new releases once {prevGA} is officially released.")
-        except Exception as e:
-            self._logger.error("Error generating changelog for release")
-            raise e
 
     def extract_opm(self, client_mirror_dir, release_name, operator_registry, arch):
         binaries = ['opm']

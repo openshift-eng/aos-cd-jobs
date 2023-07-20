@@ -1,7 +1,7 @@
 import os
 import re
 import subprocess
-
+import requests
 import click
 import koji
 from errata_tool import Erratum
@@ -53,7 +53,7 @@ class OperatorSDKPipeline:
         else:
             raise ValueError("no assembly or nvr provided")
 
-        sdkVersion = self._get_sdkversion(build['extra']['image']['index']['pull'][0])
+        sdkVersion = self._get_sdkversion(build)
         self._logger.info(sdkVersion)
         for arch in self.arches.split(','):
             self._extract_binaries(arch, sdkVersion, build['extra']['image']['index']['pull'][0])
@@ -61,13 +61,12 @@ class OperatorSDKPipeline:
             self._jira_client.complete_subtask(self.parent_jira_key, 7, f"operator_sdk_sync job: {self.runtime.get_job_run_url()}")
 
     def _get_sdkversion(self, build):
-        output = subprocess.getoutput(f"oc image info --filter-by-os amd64 -o json {build} | jq .digest")
-        shasum = re.findall("sha256:\\w*", output)[0]
-        cmd = f"oc image extract {constants.OPERATOR_URL}@{shasum} --path /usr/local/bin/{self.sdk}:. --confirm && chmod +x {self.sdk} && ./{self.sdk} version && rm {self.sdk}"
-        self._logger.info(cmd)
-        sdkvalue = subprocess.getoutput(cmd)
-        sdkversion = re.findall("v\\d.*-ocp", sdkvalue)[0]
-        return sdkversion
+        build_log_res = requests.get(f"{constants.BREW_DOWNLOAD_SERVER}/packages/{build['name']}/{build['version']}/{build['release']}/data/logs/x86_64.log")
+        match = re.search(r"v\d+\.\d+\.\d+-ocp", build_log_res.text)
+        if match:
+            return match.group()
+        else:
+            raise ValueError("Can't find operator SDK version in build log")
 
     def _extract_binaries(self, arch, sdkVersion, build):
         output = subprocess.getoutput(f"oc image info --filter-by-os {arch} -o json {build} | jq .digest")

@@ -105,7 +105,10 @@ node {
                 cmd << params.DISTGIT_KEY
             }
             sshagent(["openshift-bot"]) {
-                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                withCredentials([
+                    string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')
+                ]) {
                     echo "Will run ${cmd}"
                     if (params.IGNORE_LOCKS) {
                         commonlib.shell(script: cmd.join(' '))

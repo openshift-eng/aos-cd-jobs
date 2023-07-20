@@ -61,7 +61,8 @@ class RebuildPipeline:
         self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self.runtime.working_dir / "doozer-working")
 
         if not ocp_build_data_url:
-            ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
+            ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url",
+                                                                                 constants.OCP_BUILD_DATA_URL)
         if ocp_build_data_url:
             self._doozer_env_vars["DOOZER_DATA_PATH"] = ocp_build_data_url
 
@@ -69,7 +70,8 @@ class RebuildPipeline:
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
         release = f"{timestamp}.p?"
 
-        group_config = await load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
+        group_config = await load_group_config(self.group, self.assembly, env=self._doozer_env_vars,
+                                               doozer_data_path=self.ocp_build_data_url)
         releases_config = await load_releases_config(
             group=self.group,
             data_path=self.ocp_build_data_url

@@ -277,20 +277,25 @@ node {
             echo "Don't send release messages for a custom release."
             return
         }
-        if (params.SKIP_SIGNING) {
-            echo "Don't send release messages because SKIP_SIGNING is set."
-            return
-        }
         if (params.DRY_RUN) {
             echo "DRY_RUN: Would have sent release messages."
             return
         }
 
+        String[] umb_failures = []
         release_info.content.each { arch, info ->
             // Currently a multi/heterogeneous release payload has a modified release name to workaround a Cincinnati issue.
             // Using the real per-arch release name in $info instead of the one defined by release artists.
             def release_name = info.metadata.version
-            release.sendReleaseCompleteMessage(["name": release_name], release_info.advisory ?: 0, release_info.live_url, arch)
+            try {
+                release.sendReleaseCompleteMessage(["name": release_name], release_info.advisory ?: 0, release_info.live_url, arch)
+            } catch (exception) {
+                umb_failures.add("${release_name}-${arch}")
+            }
+        }
+        if (! umb_failures.isEmpty()) {
+            currentBuild.result = "UNSTABLE"
+            slacklib.to(params.VERSION).say("@release-artists Sending Release Complete informational message has failed for ${umb_failures}, please investigate")
         }
     }
 

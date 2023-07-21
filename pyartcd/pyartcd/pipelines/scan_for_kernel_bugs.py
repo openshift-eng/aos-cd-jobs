@@ -40,7 +40,6 @@ class ScanForKernelBugsPipeline:
         except Exception as err:
             error_message = f"Error scanning for kernel bugs: {err}\n {traceback.format_exc()}"
             logger.error(error_message)
-            await slack_client.say(f":warning: {error_message}")
             raise
 
     async def _clone_kernel_bugs(self):

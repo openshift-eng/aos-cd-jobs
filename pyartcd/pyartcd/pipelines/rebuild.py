@@ -48,6 +48,7 @@ class RebuildPipeline:
         self.type = type
         self.dg_key = dg_key
         self.logger = logger or runtime.logger
+        self.ocp_build_data_url = ocp_build_data_url
 
         # determines OCP version
         match = re.fullmatch(r"openshift-(\d+).(\d+)", group)
@@ -60,7 +61,8 @@ class RebuildPipeline:
         self._doozer_env_vars["DOOZER_WORKING_DIR"] = str(self.runtime.working_dir / "doozer-working")
 
         if not ocp_build_data_url:
-            ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url")
+            ocp_build_data_url = self.runtime.config.get("build_config", {}).get("ocp_build_data_url",
+                                                                                 constants.OCP_BUILD_DATA_URL)
         if ocp_build_data_url:
             self._doozer_env_vars["DOOZER_DATA_PATH"] = ocp_build_data_url
 
@@ -68,10 +70,11 @@ class RebuildPipeline:
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
         release = f"{timestamp}.p?"
 
-        group_config = await load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
+        group_config = await load_group_config(self.group, self.assembly, env=self._doozer_env_vars,
+                                               doozer_data_path=self.ocp_build_data_url)
         releases_config = await load_releases_config(
             group=self.group,
-            data_path=self._doozer_env_vars.get("DOOZER_DATA_PATH", None) or constants.OCP_BUILD_DATA_URL
+            data_path=self.ocp_build_data_url
         )
 
         if get_assembly_type(releases_config, self.assembly) == AssemblyTypes.STREAM:
@@ -174,6 +177,7 @@ class RebuildPipeline:
         signing_mode = "signed"  # We assume rpms used in rebuild job should be always signed
         cmd = [
             "doozer",
+            "--data-path", self.ocp_build_data_url,
             "--group", self.group,
             "--assembly", self.assembly,
             "config:plashet",
@@ -233,6 +237,7 @@ class RebuildPipeline:
         signing_mode = "signed"  # We assume rpms used in rebuild job should be always signed
         cmd = [
             "doozer",
+            "--data-path", self.ocp_build_data_url,
             "--group", self.group,
             "--assembly", self.assembly,
             "config:plashet",
@@ -437,6 +442,7 @@ class RebuildPipeline:
         self.logger.info("Determining distgit branch for image %s...", self.dg_key)
         cmd = [
             "doozer",
+            "--data-path", self.ocp_build_data_url,
             "--group", self.group,
             "--assembly", self.assembly,
             "-i", self.dg_key,
@@ -456,6 +462,7 @@ class RebuildPipeline:
         version = f"v{major}.{minor}"
         cmd = [
             "doozer",
+            "--data-path", self.ocp_build_data_url,
             "--group", self.group,
             "--assembly", self.assembly,
             "--latest-parent-version",
@@ -478,6 +485,7 @@ class RebuildPipeline:
         # build
         cmd = [
             "doozer",
+            "--data-path", self.ocp_build_data_url,
             "--group", self.group,
             "--assembly", self.assembly,
             "--latest-parent-version",
@@ -505,6 +513,7 @@ class RebuildPipeline:
         major, minor = self._ocp_version
         cmd = [
             "doozer",
+            "--data-path", self.ocp_build_data_url,
             "--group", self.group,
             "--assembly", self.assembly,
             "-r", self.dg_key,

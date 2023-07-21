@@ -105,12 +105,24 @@ node {
                 cmd << params.DISTGIT_KEY
             }
             sshagent(["openshift-bot"]) {
-                withCredentials([string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN')]) {
+                withCredentials([
+                    string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                    usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
+                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-private-key', variable: 'RHSM_PULP_KEY'),
+                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
+                ]) {
                     echo "Will run ${cmd}"
-                    if (params.IGNORE_LOCKS) {
+                    if (!params.IGNORE_LOCKS) {
+                        lock("github-activity-lock-${params.BUILD_VERSION}")
+                    }
+                    withEnv([
+                        "BUILD_USER_EMAIL=${builderEmail?: ''}",
+                        "BUILD_URL=${BUILD_URL}",
+                        "JOB_NAME=${JOB_NAME}",
+                        'DOOZER_DB_NAME=art_dash'
+                    ]) {
                         commonlib.shell(script: cmd.join(' '))
-                    } else {
-                        lock("github-activity-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
                     }
                 }
             }

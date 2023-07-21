@@ -192,7 +192,6 @@ class Ocp4Pipeline:
             (exclude_count and self.build_plan.active_image_count > exclude_count * 2) or \
             (not include_count and not exclude_count)
 
-
     async def _initialize(self):
         await self._check_assembly()
         await self._initialize_version()

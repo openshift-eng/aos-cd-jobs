@@ -278,7 +278,7 @@ node {
                 umb_failures.add("${release_name}-${arch}")
             }
         }
-        if (! umb_failures.isEmpty()) {
+        if (umb_failures) {
             currentBuild.result = "UNSTABLE"
             slacklib.to(params.VERSION).say("@release-artists Sending Release Complete informational message has failed for ${umb_failures}, please investigate")
         }

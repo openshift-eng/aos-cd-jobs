@@ -15,7 +15,9 @@ node() {
                             string(credentialsId: "art-bot-slack-user-token", variable: "SLACK_USER_TOKEN"),
                             string(credentialsId: "art-bot-slack-signing-secret", variable: "SLACK_SIGNING_SECRET")
                         ]) {
-            commonlib.shell(script: "scl enable rh-python38 -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
+            retry(3) {
+                commonlib.shell(script: "scl enable rh-python38 -- scheduled-jobs/scanning/unresolved-art-threads/unresolved-thread-notification.py")
+            }
         }
     } catch (e) {
         slacklib.to('#team-art').say("Error while checking unresolved threads: ${env.BUILD_URL}")

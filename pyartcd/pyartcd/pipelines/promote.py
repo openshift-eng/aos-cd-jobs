@@ -396,7 +396,7 @@ class PromotePipeline:
                     await exectools.cmd_assert_async(cmd, env=self._doozer_env_vars)
             # Publish the clients to our S3 bucket.
             await sync_dir_to_s3_mirror(src_output_dir, "/pub/openshift-v4/sources/packages/", "", "", False, False)
-         else:
+        else:
             self._logger.info("Skipping sync srpms of rhcos")
 
     def _reraise_if_not_permitted(self, err: VerificationError, code: str, permits: Iterable[Dict]):

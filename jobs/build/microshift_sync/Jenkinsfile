@@ -29,21 +29,6 @@ node {
                         defaultValue: "stream",
                         trim: true,
                     ),
-                    choice(
-                        name: 'RHEL_TARGETS',
-                        description: 'A space delimited list of target RHEL versions',
-                        choices: [
-                            "9,8",
-                            "9",
-                            "8",
-                        ].join("\n"),
-                    ),
-                    string(
-                        name: 'ARCHES',
-                        description: 'all, or a space delimited list of arches: "x86_64 s390x ..."',
-                        defaultValue: "x86_64 s390x",
-                        trim: true,
-                    ),
                     booleanParam(
                         name: 'SET_LATEST',
                         description: 'Set the latest link to point to this version',
@@ -63,12 +48,21 @@ node {
 
     def version = params.BUILD_VERSION
     def assembly = params.ASSEMBLY
-    def rhel_targets = commonlib.parseList(params.RHEL_TARGETS)
-    def out = buildlib.doozer("--group=openshift-${version} config:read-group --yaml release_state",
-                                [capture: true]).trim()
+
+    def out = buildlib.doozer("--group=openshift-${version} -r microshift config:read-rpms --yaml",
+                              [capture: true]).trim()
+    def yaml_data = readYaml(text: out)["microshift"]
+    def rhel_targets = yaml_data["rhel_targets"]
+    def arches = yaml_data["arches"]
+
+    echo "rhel_targets: ${rhel_targets}"
+    echo "arches: ${arches}"
+
+    out = buildlib.doozer("--group=openshift-${version} config:read-group --yaml release_state",
+                          [capture: true]).trim()
     def archReleaseStates = readYaml(text: out)
     echo "arch release state for ${version}: ${archReleaseStates}"
-    def arches = params.ARCHES == 'all' ? archReleaseStates["release"] : commonlib.parseList(params.ARCHES)
+
     def set_latest = params.SET_LATEST
     def dry_run = params.DRY_RUN
 
@@ -79,21 +73,21 @@ node {
 
     def slackChannel = slacklib.to(version)
 
-    def build_microshift_plashet = { String name, int el_major ->
+    def build_microshift_plashet = { String name, String el_major ->
         def plashet_arch_args = ''
         for (String arch : arches) {
             plashet_arch_args += " --arch ${arch} unsigned"
         }
         def productVersion = 'NOT_APPLICABLE'
-        def brewTag = "rhaos-${version}-rhel-${el_major}-candidate"
-        def embargoedBrewTag = "--embargoed-brew-tag rhaos-${version}-rhel-${el_major}-embargoed"
+        def brewTag = "rhaos-${version}-${el_major}-candidate"
+        def embargoedBrewTag = "--embargoed-brew-tag rhaos-${version}-${el_major}-embargoed"
         def cmd = "${doozerOpts} --rpms microshift config:plashet --base-dir ${ORG_PLASHET_DIR} --name ${name} --repo-subdir os -i microshift ${plashet_arch_args} from-tags --brew-tag ${brewTag} ${productVersion} ${embargoedBrewTag} --signing-advisory-mode clean  --signing-advisory-id 0"
         buildlib.doozer(cmd)
     }
 
     try {
         stage("Initialize") {
-            currentBuild.displayName = "$version - $assembly - el${params.RHEL_TARGETS} - $arches"
+            currentBuild.displayName = "$version - $assembly - $rhel_targets - $arches"
             if (dry_run) {
                 currentBuild.displayName = '[DRY RUN] ' + currentBuild.displayName
             } else {
@@ -116,7 +110,7 @@ node {
             for (String rhel_target in rhel_targets) {
                 def repo_name = "el$rhel_target"
                 echo "Building microshift plashet repo for ${repo_name}..."
-                build_microshift_plashet(repo_name, Integer.parseInt(rhel_target))
+                build_microshift_plashet(repo_name, rhel_target)
             }
         }
         stage('Sign with ART CI key') {

@@ -18,7 +18,7 @@ from ghapi.all import GhApi
 from ruamel.yaml import YAML
 from semver import VersionInfo
 
-from pyartcd import constants, exectools, oc, util
+from pyartcd import constants, exectools, oc, util, jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.git import GitRepository
 from pyartcd.record import parse_record_log
@@ -106,6 +106,7 @@ class BuildMicroShiftPipeline:
             # For named releases, check if the build already exists
             nvrs = []
             pr = None
+            version, release = self.generate_microshift_version_release(release_name)
 
             if assembly_type is not AssemblyTypes.STREAM and not self.force:
                 nvrs = await self._find_builds()
@@ -119,7 +120,7 @@ class BuildMicroShiftPipeline:
                     slack_client.bind_channel(self.group)
                     slack_response = await slack_client.say(f":construction: Build microshift for assembly {self.assembly} :construction:")
                     slack_thread = slack_response["message"]["ts"]
-                version, release = self.generate_microshift_version_release(release_name)
+
                 try:
                     nvrs = await self._rebase_and_build_rpm(version, release, custom_payloads)
                 except Exception as build_err:
@@ -141,7 +142,9 @@ class BuildMicroShiftPipeline:
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
             if assembly_type in [AssemblyTypes.PREVIEW, AssemblyTypes.CANDIDATE]:
-                message += f"\n This is a {assembly_type.name} release. Please run <https://saml.buildvm.hosts.prod.psi.bos.redhat.com:8888/job/aos-cd-builds/job/build%252Fmicroshift_sync/|microshift_sync> to publish the build to mirror."
+                jenkins.start_microshift_sync(version=version, assembly=self.assembly)
+                message += f"\nmicroshift_sync for version {version} and assembly {self.assembly} has been triggered\n" \
+                           f"This will publish the microshift build to mirror"
             if slack_client:
                 await slack_client.say(message, slack_thread)
             # prepare microshift advisory in a new slack thread

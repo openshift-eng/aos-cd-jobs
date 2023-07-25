@@ -144,33 +144,5 @@ def test_sort_versions() {
     }
 }
 
-def test_dockerfile_url_for() {
-    echo "test_dockerfile_url_for"
-    def failed = 0
-    [
-        [url: "spam", branch: null, path: "", expect: ""],
-        [url: "git@github.com:spam/eggs.git", branch: "bacon", path: "",
-         expect: "https://github.com/spam/eggs/blob/bacon/"],
-        [url: "https://github.com/spam/eggs", branch: "bacon", path: "beans",
-         expect: "https://github.com/spam/eggs/blob/bacon/beans"],
-    ].each { it ->
-        def actual = buildlib.dockerfile_url_for(it.url, it.branch, it.path)
-        echo "[${it.url}, ${it.branch}, ${it.path}] ->\nexpect ${it.expect}"
-        try {
-            assert actual == it.expect
-        } catch (AssertionError e) {
-            echo "actual ${actual}"
-            failed++
-        }
-    }
-    if(failed) { error("test_dockerfile_url_for had ${failed} test failures") }
-}
-
-def test_dockerfile_notifications(record_log_path) {
-    // make sure to provide params.SUPPRESS_EMAIL = true...
-    echo "test_dockerfile_notifications"
-    buildlib.notify_dockerfile_reconciliations(record_log_path, "4.1")
-}
-
 // make this a function module
 return this

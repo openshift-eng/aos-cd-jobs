@@ -348,48 +348,6 @@ def read_spec_info(filename) {
 }
 
 /**
- * Retrieve the branch list from a remote repository
- * @param repo_url a git@ repository URL.
- * @param pattern a matching pattern for the branch list. Only return matching branches
- *
- * @return a list of branch names.  Removes the leading ref path
- *
- * Requires SSH_AGENT to have set a key for access to the remote repository
- */
-def get_branches(repo_url, pattern="") {
-
-    branch_text = sh(
-        returnStdout: true,
-        script: [
-            "git ls-remote ${repo_url} ${pattern}",
-            "awk '{print \$2}'",
-            "cut -d/ -f3"
-        ].join(" | ")
-    )
-
-    return branch_text.split("\n")
-}
-
-/**
- * Retrieve a list of release numbers from the OCP remote repository
- * @param repo_url a git@ repository URL.
- * @return a list of OSE release numbers.
- *
- * Get the branch names beginning with 'enterprise-'.
- * Extract the release number string from each branch release name
- * Sort in version order (compare fields as integers, not strings)
- * Requires SSH_AGENT to have set a key for access to the remote repository
- */
-def get_releases(repo_url) {
-    // too clever: chain - get branch names, remove prefix, suffix
-    r = get_branches(repo_url, "enterprise-*").collect { it - "enterprise-" }.findAll { it =~ /^\d+((\.\d+)*)$/ }
-
-    // and sort
-    z = sort_versions(r)
-    return z
-}
-
-/**
  * Sort a list of dot separated version strings.
  * The sort function requires the NonCPS decorator.
  * @param v_in an unsorted array of version strings
@@ -575,117 +533,6 @@ def get_failed_builds(Map record_log, Boolean fullRecord=false) {
     return failed_map
 }
 
-// gets map of emails to notify from output of parse_record_log
-// map formatted as below:
-// rpms/jenkins-slave-maven-rhel7-docker
-//   source_alias: [source_alias map]
-//   image: openshift3/jenkins-slave-maven-rhel7
-//   dockerfile: /tmp/doozer-uEeF2_.tmp/distgits/jenkins-slave-maven-rhel7-docker/Dockerfile
-//   owners: bparees@redhat.com
-//   distgit: rpms/jenkins-slave-maven-rhel7-docker
-//   sha: 1b8903ef72878cd895b3f94bee1c6f5d60ce95c3    (NOT PRESENT ON FAILURE)
-//   failure: ....error description....      (ONLY PRESENT ON FAILURE)
-def get_distgit_notify( record_log ) {
-    def result = [:]
-    // It's possible there were no commits or no one specified to notify
-    if ( ! record_log.containsKey("distgit_commit") || ! record_log.containsKey("dockerfile_notify")) {
-        return result
-    }
-
-    source = record_log.get("source_alias", [])
-    commit = record_log.get("distgit_commit", [])
-    def failure = record_log.get("distgit_commit_failure", [])
-    notify = record_log.get("dockerfile_notify", [])
-
-    int i = 0
-    def source_alias = [:]
-    // will use source alias to look up where Dockerfile came from
-    for ( i = 0; i < source.size(); i++ ) {
-      source_alias[source[i]["alias"]] = source[i]
-    }
-
-    // get notification emails by distgit name
-    for ( i = 0; i < notify.size(); i++ ) {
-        notify[i].source_alias = source_alias.get(notify[i].source_alias, [:])
-        result[notify[i]["distgit"]] = notify[i]
-    }
-
-    // match commit hash with notify email record
-    for ( i = 0; i < commit.size(); i++ ) {
-      if(result.containsKey(commit[i]["distgit"])){
-        result[commit[i]["distgit"]]["sha"] = commit[i]["sha"]
-      }
-    }
-
-    // OR see if the notification is for a merge failure
-    for ( i = 0; i < failure.size(); i++ ) {
-      if(result.containsKey(failure[i]["distgit"])){
-        result[failure[i]["distgit"]]["failure"] = failure[i]["message"]
-      }
-    }
-
-    return result
-}
-
-@NonCPS
-def dockerfile_url_for(url, branch, sub_path) {
-    if(!url || !branch) { return "" }
-
-    // if it looks like an ssh github remote, transform it to https
-    url = url.replaceFirst( /(?x) ^git@  ( [\w.-]+ ) : (.+) .git$/, "https://\$1/\$2" )
-
-    return  "${url}/blob/${branch}/${sub_path ?: ''}"
-}
-
-def notify_bz_info_missing(doozerWorking, buildVersion) {
-    record_log = parse_record_log(doozerWorking)
-    bz_notify_entries = record_log.get('bz_maintainer_notify', [])
-    for (bz_notify in bz_notify_entries) {
-        public_upstream_url = bz_notify['public_upstream_url']
-        distgit = bz_notify['distgit']
-
-        owners = bz_notify.get('owners', null)
-
-        email_subject = "[ACTION REQUIRED] Bugzilla component information missing for image ${distgit} in OCP v${buildVersion}"
-
-        explanation_body = """
-Why am I receiving this?
-------------------------
-You are receiving this message because you are listed as an owner for an
-OpenShift related image - or you recently made a modification to the definition
-of such an image in github.
-
-To comply with prodsec requirements, all images in the OpenShift product
-should identify their Bugzilla component. To accomplish this, ART
-expects to find Bugzilla component information in the default branch of
-the image's upstream repository or requires it in ART image metadata.
-
-What should I do?
-------------------------
-There are two options to supply Bugzilla component information.
-1) The OWNERS file in the default branch (e.g. main / master) of ${public_upstream_url}
-   can be updated to include the bugzilla component information.
-
-2) The component information can be specified directly in the
-   ART metadata for the image ${distgit}.
-
-Details for either approach can be found here:
-https://docs.google.com/document/d/1V_DGuVqbo6CUro0RC86THQWZPrQMwvtDr0YQ0A75QbQ/edit?usp=sharing
-
-Thanks for your help!
-"""
-
-        if (owners) {
-            commonlib.email(
-                    to: owners,
-                    from: "aos-team-art@redhat.com",
-                    subject: email_subject,
-                    body: explanation_body)
-        }
-    }
-
-}
-
 /**
  * send email to owners of failed image builds.
  * param failed_builds: map of records as below (all values strings):
@@ -768,14 +615,6 @@ def determine_build_failure_ratio(record_log) {
     return [failed: failed, total: total, ratio: ratio]
 }
 
-//https://stackoverflow.com/a/42775560
-@NonCPS
-List<List<?>> mapToList(Map map) {
-  return map.collect { it ->
-    [it.key, it.value]
-  }
-}
-
 def watch_brew_task_and_retry(name, taskId, brewUrl) {
     // Watch brew task to make sure it succeeds. If it fails, retry twice before giving up.
     try {
@@ -854,21 +693,6 @@ def defaultReleaseFor(stream) {
 String extractAdvisoryId(String elliottOut) {
     def matches = (elliottOut =~ /https:\/\/errata\.devel\.redhat\.com\/advisory\/([0-9]+)/)
     matches[0][1]
-}
-
-def get_releases_config(String group) {
-    // FIXME: This method doesn't handle assembly inheritance.
-    def r = httpRequest(
-        url: "https://raw.githubusercontent.com/openshift-eng/ocp-build-data/${URLEncoder.encode(group, 'utf-8')}/releases.yml",
-        httpMode: 'GET',
-        timeout: 30,
-        validResponseCodes: '200:404',
-    )
-    if (r.status == 200)
-        return readYaml(text: r.content)
-    if (r.status == 404)
-        return null
-    error("Unable to get releases config: HTTP Error ${r.status}")
 }
 
 this.initialize()

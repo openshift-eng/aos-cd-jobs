@@ -596,9 +596,7 @@ class Ocp4Pipeline:
         if not failed_map:
             # failed so badly we don't know what failed; give up
             raise
-
         failed_images = list(failed_map.keys())
-        run_details.update_status('UNSTABLE')
 
         if len(failed_images) <= 10:
             run_details.update_description(f'Failed images: {", ".join(failed_images)}<br/>')
@@ -773,8 +771,6 @@ class Ocp4Pipeline:
             await exectools.cmd_assert_async(cmd)
 
         except ChildProcessError:
-            run_details.update_status('UNSTABLE')
-
             if self.runtime.dry_run:
                 return
 

@@ -82,25 +82,3 @@ def update_description(description: str, append: bool = True):
         data="",
         valid=[200]
     )
-
-
-@check_env_vars
-def update_status(status: str):
-    """
-    Set build status to <status>
-    """
-
-    job = jenkins.jenkins_client.get_job(job_name)
-    build = Build(
-        url=build_url.replace(constants.JENKINS_UI_URL, constants.JENKINS_SERVER_URL),
-        buildno=int(list(filter(None, build_url.split('/')))[-1]),
-        job=job
-    )
-
-    data = {'json': f'{{"result":"{status}"}}'}
-    headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Referer': f"{build.baseurl}/configure"}
-    build.job.jenkins.requester.post_url(
-        f'{build.baseurl}/configSubmit',
-        params=data,
-        data='',
-        headers=headers)

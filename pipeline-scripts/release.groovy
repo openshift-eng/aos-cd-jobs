@@ -757,7 +757,7 @@ def void sendReleaseCompleteMessage(Map release, int advisoryNumber, String advi
             "team": "OpenShift Automatic Release Team (ART)",
             "email": "aos-team-art@redhat.com",
             "name": "ART Jobs",
-            "slack": "#aos-art",
+            "slack": "#forum-ocp-art",
         ],
         "run": [
             "url": env.BUILD_URL,
@@ -1030,9 +1030,9 @@ def sendCincinnatiPRsSlackNotification(releaseName, fromReleaseTag, prs, ghorg='
     }
 
     if ( ghorg == 'openshift' && !noSlackOutput) {
-        slacklib.to('#forum-release').say(slack_msg)
+        slacklib.to('#forum-ocp-release').say(slack_msg)
     } else {
-        echo "Would have sent the following slack notification to #forum-release"
+        echo "Would have sent the following slack notification to #forum-ocp-release"
         echo slack_msg
     }
 }

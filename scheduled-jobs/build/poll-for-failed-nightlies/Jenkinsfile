@@ -133,8 +133,8 @@ node() {
                         def archReleaseStates = readYaml(text: out)
                         echo "arch release state for ${build_version}: ${archReleaseStates}"
                         if (!archReleaseStates['release'].isEmpty() && !["4.7", "4.8"].contains(build_version)) {
-                            // Only for GA releases, let forum-release know why no new builds; ignore 4.7 and 4.8
-                            commonlib.slacklib.to('#forum-release').say(msg)
+                            // Only for GA releases, let forum-ocp-release know why no new builds; ignore 4.7 and 4.8
+                            commonlib.slacklib.to('#forum-ocp-release').say(msg)
                         }
                     } else {
                         echo "Skipping notification since it has not been more than ${HOURS} hours since the last notification: ${System.currentTimeMillis()} - ${lastNotification}"

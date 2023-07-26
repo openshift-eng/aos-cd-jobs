@@ -68,6 +68,8 @@ class BuildMicroShiftPipeline:
     async def run(self):
         slack_client = None
         assembly_type = AssemblyTypes.STREAM
+        major, minor = util.isolate_major_minor_in_group(self.group)
+
         try:
             await load_group_config(self.group, self.assembly, env=self._doozer_env_vars)
             releases_config = await load_releases_config(
@@ -90,7 +92,6 @@ class BuildMicroShiftPipeline:
                 payload_infos = await self.parse_release_payloads(self.payloads)
                 if "x86_64" not in payload_infos or "aarch64" not in payload_infos:
                     raise ValueError("x86_64 payload and aarch64 payload are required for rebasing microshift.")
-                major, minor = util.isolate_major_minor_in_group(self.group)
                 for info in payload_infos.values():
                     payload_version = VersionInfo.parse(info["version"])
                     if (payload_version.major, payload_version.minor) != (major, minor):
@@ -106,7 +107,6 @@ class BuildMicroShiftPipeline:
             # For named releases, check if the build already exists
             nvrs = []
             pr = None
-            version, release = self.generate_microshift_version_release(release_name)
 
             if assembly_type is not AssemblyTypes.STREAM and not self.force:
                 nvrs = await self._find_builds()
@@ -120,6 +120,7 @@ class BuildMicroShiftPipeline:
                     slack_client.bind_channel(self.group)
                     slack_response = await slack_client.say(f":construction: Build microshift for assembly {self.assembly} :construction:")
                     slack_thread = slack_response["message"]["ts"]
+                version, release = self.generate_microshift_version_release(release_name)
 
                 try:
                     nvrs = await self._rebase_and_build_rpm(version, release, custom_payloads)
@@ -142,6 +143,7 @@ class BuildMicroShiftPipeline:
             if pr:
                 message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
             if assembly_type in [AssemblyTypes.PREVIEW, AssemblyTypes.CANDIDATE]:
+                version = f'{major}.{minor}'
                 jenkins.start_microshift_sync(version=version, assembly=self.assembly)
                 message += f"\nmicroshift_sync for version {version} and assembly {self.assembly} has been triggered\n" \
                            f"This will publish the microshift build to mirror"

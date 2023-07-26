@@ -182,6 +182,16 @@ node {
                                 ]) {
                             withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
                                 sh(script: cmd.join(' '), returnStdout: true)
+
+                                // If any image build/push failures occurred, mark the job run as unstable
+                                def record_log = buildlib.parse_record_log(doozer_working)
+                                builds = record_log.get('build', [])
+                                for (i = 0; i < builds.size(); i++) {
+                                    bld = builds[i]
+                                    if (bld['status'] != '0' || bld['push_status'] != '0') {
+                                        currentBuild.result = "UNSTABLE"
+                                    }
+                                }
                             }
                         }
                     }

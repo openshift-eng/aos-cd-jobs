@@ -235,7 +235,7 @@ class Ocp4Pipeline:
 
         elif self.mass_rebuild:
             run_details.update_title(' [mass rebuild]')
-            run_details.update_description('Mass image rebuild (more than half) - invoking serializing semaphore')
+            run_details.update_description('Mass image rebuild (more than half) - invoking serializing semaphore<br/>')
 
         elif self.build_plan.images_included:
             images_to_build = len(self.build_plan.images_included)
@@ -596,14 +596,12 @@ class Ocp4Pipeline:
         if not failed_map:
             # failed so badly we don't know what failed; give up
             raise
-
         failed_images = list(failed_map.keys())
-        run_details.update_status('UNSTABLE')
 
         if len(failed_images) <= 10:
             run_details.update_description(f'Failed images: {", ".join(failed_images)}<br/>')
         else:
-            run_details.update_description(f'{len(failed_images)} images failed. Check record.log for details/>')
+            run_details.update_description(f'{len(failed_images)} images failed. Check record.log for details<br/>')
 
         self.runtime.logger.warning('Failed images: %s', ', '.join(failed_images))
 
@@ -773,8 +771,6 @@ class Ocp4Pipeline:
             await exectools.cmd_assert_async(cmd)
 
         except ChildProcessError:
-            run_details.update_status('UNSTABLE')
-
             if self.runtime.dry_run:
                 return
 
@@ -800,7 +796,7 @@ class Ocp4Pipeline:
                             f'Elapsed image build time: {metrics[0]["elapsed_total_minutes"]} minutes\n' \
                             f'Time spent waiting for OSBS capacity: {metrics[0]["elapsed_wait_minutes"]} minutes'
 
-        run_details.update_description(f'<hr />Build results:<br/><br/>{timing_report}')
+        run_details.update_description(f'<hr />Build results:<br/><br/>{timing_report}<br/>')
 
     async def run(self):
         await self._initialize()

@@ -22,6 +22,7 @@ class Jobs(Enum):
     RHCOS = 'aos-cd-builds/build%2Frhcos'
     OLM_BUNDLE = 'aos-cd-builds/build%2Folm_bundle'
     SYNC_FOR_CI = 'scheduled-builds/sync-for-ci'
+    MICROSHIFT_SYNC = 'aos-cd-builds/build%2Fmicroshift_sync'
 
 
 jenkins_client: Optional[Jenkins] = None
@@ -218,6 +219,17 @@ def start_sync_for_ci(version: str, blocking: bool = False):
         job_name=Jobs.SYNC_FOR_CI.value,
         params={
             'ONLY_FOR_VERSION': version
+        },
+        blocking=blocking
+    )
+
+
+def start_microshift_sync(version: str, assembly: str, blocking: bool = False):
+    return start_build(
+        job_name=Jobs.MICROSHIFT_SYNC.value,
+        params={
+            'BUILD_VERSION': version,
+            'ASSEMBLY': assembly
         },
         blocking=blocking
     )

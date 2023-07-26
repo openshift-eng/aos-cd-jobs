@@ -56,7 +56,7 @@ node {
                     ),
                     booleanParam(
                         name: 'PIN_BUILDS',
-                        description: 'Build only specified rpms/images regardless of whether source has changed. WARNING: Enable this if you don't want scan sources to run, like if you're testing for new release 4.x for branch cut',
+                        description: 'Build only specified rpms/images regardless of whether source has changed. WARNING: Disable this to use scan-sources as the source',
                         defaultValue: true,
                     ),
                     choice(

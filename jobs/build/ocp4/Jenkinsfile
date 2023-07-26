@@ -56,8 +56,8 @@ node {
                     ),
                     booleanParam(
                         name: 'PIN_BUILDS',
-                        description: 'Build only specified rpms/images regardless of whether source has changed',
-                        defaultValue: false,
+                        description: 'Build only specified rpms/images regardless of whether source has changed. WARNING: Disable this to use scan-sources as the source',
+                        defaultValue: true,
                     ),
                     choice(
                         name: 'BUILD_RPMS',

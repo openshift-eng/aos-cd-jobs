@@ -378,7 +378,7 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
             group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
 
             # For GA releases, let forum-ocp-release know why no new builds
-            if group_config['release_state']['release']:
+            if group_config['software_lifecycle']['phase'] == 'release':
                 slack_client.bind('#forum-ocp-release').say(msg)
 
         raise

@@ -156,8 +156,7 @@ async def build_images(runtime: Runtime, assembly: str, version: str, data_path:
     # If any arch is ready for GA, use signed repos for all (plashets will sign everything).
     group_config = await util.load_group_config(group=f'openshift-{stream_version}', assembly=assembly,
                                                 doozer_data_path=data_path, doozer_data_gitref=data_gitref)
-    ocp_release_state = group_config['release_state']
-    repo_type = 'signed' if ocp_release_state['release'] else 'unsigned'
+    repo_type = 'signed' if group_config['software_lifecycle']['phase'] == 'release' else 'unsigned'
 
     # Update distgit
     if image_mode == 'rebase':

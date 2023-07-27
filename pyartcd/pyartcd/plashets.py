@@ -151,8 +151,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     logger.info("Building plashet repos: %s", ", ".join(plashet_config.keys()))
 
     # Check release state
-    ocp_release_state = group_config['release_state']
-    signing_mode = 'signed' if ocp_release_state['release'] else 'unsigned'
+    signing_mode = 'signed' if group_config['software_lifecycle']['phase'] == 'release' else 'unsigned'
 
     # Create plashet repos on ocp-artifacts
     # We can't safely run doozer config:plashet from-tags in parallel as this moment.
@@ -160,7 +159,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     plashets_built = {}  # hold the information of all built plashet repos
     timestamp = datetime.strptime(revision, '%Y%m%d%H%M%S')
     signing_advisory = group_config.get('signing_advisory', '0')
-    arches = ocp_release_state['release'] + ocp_release_state['pre_release']
+    arches = group_config['arches']
     group_param = f'openshift-{stream}'
     if data_gitref:
         group_param += f'@{data_gitref}'

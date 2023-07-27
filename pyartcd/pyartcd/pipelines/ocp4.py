@@ -324,7 +324,7 @@ class Ocp4Pipeline:
             return ['--latest-parent-version', f'--{kind}', ','.join(includes)]
 
         if excludes:
-            return ['--latest-parent-version', f"--{kind}=''", '--exclude', ','.join(excludes)]
+            return ['--latest-parent-version', f"--{kind}=", '--exclude', ','.join(excludes)]
 
         return [f'--{kind}=']
 

@@ -565,7 +565,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
             [
                 'doozer', '--assembly=stream', '--working-dir=doozer_working',
                 '--data-path=https://github.com/openshift-eng/ocp-build-data', '--group=openshift-4.13',
-                '--latest-parent-version', "--images=''", '--exclude', 'image1,image2,image3', 'images:build',
+                '--latest-parent-version', "--images=", '--exclude', 'image1,image2,image3', 'images:build',
                 '--repo-type', 'signed'
             ]
         )
@@ -1049,7 +1049,7 @@ class TestUtils(unittest.IsolatedAsyncioTestCase):
             includes=[],
             excludes=['image3', 'image4']
         )
-        self.assertEqual(include_exclude, ['--latest-parent-version', "--images=''", '--exclude', 'image3,image4'])
+        self.assertEqual(include_exclude, ['--latest-parent-version', "--images=", '--exclude', 'image3,image4'])
 
         # Include and exclude images: includes take precedence
         include_exclude = self.ocp4._include_exclude(

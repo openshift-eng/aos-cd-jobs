@@ -19,7 +19,7 @@ def get_next_minor(version: str) -> str:
 
 async def is_prerelease(version: str) -> bool:
     group_config = await util.load_group_config(group=f'openshift-{version}', assembly='stream')
-    return not group_config['release_state']['release']
+    return group_config['software_lifecycle']['phase'] == 'pre-release'
 
 
 class CheckBugsPipeline:

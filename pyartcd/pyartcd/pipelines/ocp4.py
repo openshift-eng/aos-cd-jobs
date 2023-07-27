@@ -633,7 +633,7 @@ class Ocp4Pipeline:
         # If any arch is GA, use signed for everything. See _build_compose() for details.
         group_config = await util.load_group_config(
             group=f'openshift-{self.version.stream}', assembly=self.assembly)
-        signing_mode = 'signed' if group_config['release_state']['release'] else 'unsigned'
+        signing_mode = 'signed' if group_config['software_lifecycle']['phase'] == 'release' else 'unsigned'
 
         # Doozer command
         cmd = self._doozer_base_command.copy()

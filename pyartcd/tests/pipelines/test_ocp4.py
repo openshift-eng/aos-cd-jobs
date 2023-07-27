@@ -527,7 +527,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("pyartcd.run_details.update_description")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
-    @patch("pyartcd.util.load_group_config", return_value={'release_state': {'release': 'bogus'}})
+    @patch("pyartcd.util.load_group_config", return_value={'software_lifecycle': {'phase': 'release'}})
     @patch("pyartcd.oc.registry_login")
     @patch("pyartcd.record.parse_record_log")
     @patch("pyartcd.exectools.cmd_assert_async")
@@ -605,7 +605,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
     @patch("pyartcd.run_details.update_description")
     @patch("pyartcd.util.default_release_suffix", return_value="2100123111.p?")
     @patch("pyartcd.exectools.cmd_gather_async", autospec=True, return_value=(0, "rhaos-4.13-rhel-8", ""))
-    @patch("pyartcd.util.load_group_config", return_value={'release_state': {'release': 'bogus'}})
+    @patch("pyartcd.util.load_group_config", return_value={'software_lifecycle': {'phase': 'release'}})
     @patch("pyartcd.pipelines.ocp4.Ocp4Pipeline._mass_rebuild")
     @patch("pyartcd.exectools.cmd_assert_async")
     async def test_mass_rebuild(self, cmd_assert_async_mock: AsyncMock, mass_rebuild_mock: AsyncMock, *_):

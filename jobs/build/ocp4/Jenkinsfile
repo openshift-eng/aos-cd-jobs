@@ -130,9 +130,6 @@ node {
             lock("github-activity-lock-${params.BUILD_VERSION}") {
                 stage("initialize") {
                     currentBuild.displayName = "#${currentBuild.number}"
-                    doozerWorking = "${env.WORKSPACE}/doozer_working"
-                    doozerOpts = "--working-dir ${doozerWorking} --data-path ${params.DOOZER_DATA_PATH}"
-                    buildlib.cleanWorkdir(doozerWorking)
                 }
 
                 stage("ocp4") {
@@ -184,7 +181,7 @@ node {
                                 sh(script: cmd.join(' '), returnStdout: true)
 
                                 // If any image build/push failures occurred, mark the job run as unstable
-                                def record_log = buildlib.parse_record_log(doozerWorking)
+                                def record_log = buildlib.parse_record_log("artcd_working/doozer_working/")
                                 builds = record_log.get('build', [])
                                 for (i = 0; i < builds.size(); i++) {
                                     bld = builds[i]

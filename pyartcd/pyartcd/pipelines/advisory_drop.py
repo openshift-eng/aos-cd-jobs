@@ -4,6 +4,7 @@ from pyartcd.runtime import Runtime
 from pyartcd import exectools
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 
+
 @cli.command('advisory-drop')
 @click.option('--group', required=True, help='OCP group')
 @click.option('--advisory', required=True, help='Advisory number')
@@ -32,4 +33,3 @@ async def advisory_drop(runtime: Runtime, group: str, advisory: str, comment: st
             'advisory-drop', advisory,
         ]
     await exectools.cmd_assert_async(cmd, env=os.environ.copy())
-  

@@ -1,7 +1,8 @@
 import click
 import os
 from pyartcd.runtime import Runtime
-from pyartcd import exectools
+from pyartcd import exectools, cli
+
 
 @cli.command('advisory-drop')
 @click.option('--group', required=True, help='OCP group')

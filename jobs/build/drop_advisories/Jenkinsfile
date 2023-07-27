@@ -45,16 +45,21 @@ node {
     }
 
     advisory_list = commonlib.parseList(params.ADVISORIES)
+    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
 
     for(adv in advisory_list) {
-        def elliott = "${buildlib.ELLIOTT_BIN} --group=openshift-${params.VERSION}"
+        def cmd = [
+            "artcd",
+            "-v",
+            "--working-dir=./artcd_working",
+            "--config=./config/artcd.toml",
+            "advisory-drop",
+            "--group=openshift-${params.VERSION}",
+            "--advisory", adv,
+            "--comment", params.COMMENT,
+        ]
         withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
-            commonlib.shell(
-                script: """
-                ${elliott} repair-bugs --advisory ${adv} --auto --comment "${comment}" --close-placeholder --from RELEASE_PENDING --to VERIFIED
-                ${elliott} advisory-drop ${adv}
-                """,
-            )
+            commonlib.shell(script: cmd.join(' '))
         }
     }
 

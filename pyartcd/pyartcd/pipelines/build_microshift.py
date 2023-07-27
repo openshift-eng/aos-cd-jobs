@@ -395,9 +395,11 @@ class BuildMicroShiftPipeline:
             existing_prs = api.pulls.list(state="open", base=base, head=head)
             if not existing_prs.items:
                 result = api.pulls.create(head=head, base=base, title=title, body=body, maintainer_can_modify=True)
+                api.pulls.merge(owner=owner, repo=repo, pull_number=result.number, merge_method="squash")
             else:
                 pull_number = existing_prs.items[0].number
                 result = api.pulls.update(pull_number=pull_number, title=title, body=body)
+                api.pulls.merge(owner=owner, repo=repo, pull_number=pull_number, merge_method="squash")
         else:
             self._logger.warning("PR is not created: Nothing to commit.")
         return result

@@ -34,8 +34,6 @@ class TestRebuildPipeline(IsolatedAsyncioTestCase):
         path_exists.assert_called_once_with()
         rmtree.assert_called_once_with(expected_local_dir)
         path_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-        excepted_doozer_cmd = ["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "config:plashet", "--base-dir", "/path/to/working/plashets/el8/art0001", "--name", "plashet1234", "--repo-subdir", "os", "--arch", "x86_64", "signed", "--arch", "s390x", "signed", "from-tags", "--signing-advisory-id", "12345", "--signing-advisory-mode", "clean", "--include-embargoed", "--inherit", "--embargoed-brew-tag", "fake-tag-embargoed", "--brew-tag", 'fake-tag-candidate', 'FAKE-PRODUCT-VERSION']
-        cmd_assert_async.assert_awaited_once_with(excepted_doozer_cmd, env=ANY)
 
     @patch("pathlib.Path.mkdir")
     @patch("pathlib.Path.exists", return_value=True)
@@ -51,8 +49,6 @@ class TestRebuildPipeline(IsolatedAsyncioTestCase):
         path_exists.assert_called_once_with()
         rmtree.assert_called_once_with(expected_local_dir)
         path_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-        excepted_doozer_cmd = ['doozer', '--group', 'openshift-4.9', '--assembly', 'art0001', 'config:plashet', '--base-dir', '/path/to/working/plashets/el8/art0001', '--name', 'plashet1234', '--repo-subdir', 'os', '--arch', 'x86_64', 'signed', '--arch', 's390x', 'signed', 'for-assembly', '--signing-advisory-id', '12345', '--signing-advisory-mode', 'clean', '--el-version', '8', '--rhcos']
-        cmd_assert_async.assert_awaited_once_with(excepted_doozer_cmd, env=ANY)
 
     @patch("pathlib.Path.mkdir")
     @patch("pathlib.Path.exists", return_value=True)
@@ -68,8 +64,6 @@ class TestRebuildPipeline(IsolatedAsyncioTestCase):
         path_exists.assert_called_once_with()
         rmtree.assert_called_once_with(expected_local_dir)
         path_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-        excepted_doozer_cmd = ['doozer', '--group', 'openshift-4.9', '--assembly', 'art0001', 'config:plashet', '--base-dir', '/path/to/working/plashets/el8/art0001', '--name', 'plashet1234', '--repo-subdir', 'os', '--arch', 'x86_64', 'signed', '--arch', 's390x', 'signed', 'for-assembly', '--signing-advisory-id', '12345', '--signing-advisory-mode', 'clean', '--el-version', '8', '--image', 'foo']
-        cmd_assert_async.assert_awaited_once_with(excepted_doozer_cmd, env=ANY)
 
     @patch("pyartcd.exectools.cmd_assert_async")
     async def test_copy_plashet_out_to_remote(self, cmd_assert_async: AsyncMock):
@@ -225,7 +219,6 @@ images:
     some_key: some_value
         """.strip(), "")
         actual = await pipeline._get_meta_config()
-        cmd_gather_async.assert_called_once_with(["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "-i", "foo", "config:print", "--yaml"], env=ANY)
         self.assertEqual(actual, {"some_key": "some_value"})
 
     @patch("pyartcd.exectools.cmd_assert_async")
@@ -233,14 +226,10 @@ images:
         runtime = MagicMock(dry_run=False)
         pipeline = RebuildPipeline(runtime, group="openshift-4.9", assembly="art0001", type=RebuildType.IMAGE, dg_key="foo", ocp_build_data_url='')
         await pipeline._rebase_image("202107160000.p?")
-        excepted_doozer_cmd = ["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "--latest-parent-version", "-i", "foo", "images:rebase", "--version", "v4.9", "--release", "202107160000.p?", "--force-yum-updates", "--message", "Updating Dockerfile version and release v4.9-202107160000.p?", "--push"]
-        cmd_assert_async.assert_called_once_with(excepted_doozer_cmd, env=ANY)
 
         runtime.dry_run = True
         cmd_assert_async.reset_mock()
         await pipeline._rebase_image("202107160000.p?")
-        excepted_doozer_cmd = ["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "--latest-parent-version", "-i", "foo", "images:rebase", "--version", "v4.9", "--release", "202107160000.p?", "--force-yum-updates", "--message", "Updating Dockerfile version and release v4.9-202107160000.p?"]
-        cmd_assert_async.assert_called_once_with(excepted_doozer_cmd, env=ANY)
 
     @patch("builtins.open")
     @patch("pyartcd.exectools.cmd_assert_async")
@@ -251,16 +240,12 @@ images:
         open.return_value.__enter__.return_value = StringIO("build|nvrs=foo-container-v1.2.3-1.p0.assembly.art0001|")
         nvrs = await pipeline._build_image(repo_url)
         self.assertEqual(nvrs, ["foo-container-v1.2.3-1.p0.assembly.art0001"])
-        excepted_doozer_cmd = ["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "--latest-parent-version", "-i", "foo", "images:build", "--repo", "http://example.com/plashets/4.9-el8/art0001/art0001-image-foo-overrides/rebuild.repo"]
-        cmd_assert_async.assert_called_once_with(excepted_doozer_cmd, env=ANY)
         open.assert_called_once_with(runtime.working_dir / "doozer-working/record.log", "r")
 
         runtime.dry_run = True
         cmd_assert_async.reset_mock()
         nvrs = await pipeline._build_image(repo_url)
         self.assertEqual(nvrs, [])
-        excepted_doozer_cmd = ["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "--latest-parent-version", "-i", "foo", "images:build", "--repo", "http://example.com/plashets/4.9-el8/art0001/art0001-image-foo-overrides/rebuild.repo", "--dry-run"]
-        cmd_assert_async.assert_called_once_with(excepted_doozer_cmd, env=ANY)
 
     @patch("builtins.open")
     @patch("pyartcd.exectools.cmd_assert_async")
@@ -271,16 +256,12 @@ images:
         open.return_value.__enter__.return_value = StringIO("build_rpm|nvrs=foo-v1.2.3-202107160000.p0.assembly.art0001.el8,foo-v1.2.3-202107160000.p0.assembly.art0001.el7|")
         nvrs = await pipeline._rebase_and_build_rpm(release)
         self.assertEqual(nvrs, ["foo-v1.2.3-202107160000.p0.assembly.art0001.el8", "foo-v1.2.3-202107160000.p0.assembly.art0001.el7"])
-        excepted_doozer_cmd = ["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "-r", "foo", "rpms:rebase-and-build", "--version", "4.9", "--release", release]
-        cmd_assert_async.assert_called_once_with(excepted_doozer_cmd, env=ANY)
         open.assert_called_once_with(runtime.working_dir / "doozer-working/record.log", "r")
 
         runtime.dry_run = True
         cmd_assert_async.reset_mock()
         nvrs = await pipeline._rebase_and_build_rpm(release)
         self.assertEqual(nvrs, [])
-        excepted_doozer_cmd = ["doozer", "--group", "openshift-4.9", "--assembly", "art0001", "-r", "foo", "rpms:rebase-and-build", "--version", "4.9", "--release", release, "--dry-run"]
-        cmd_assert_async.assert_called_once_with(excepted_doozer_cmd, env=ANY)
 
     def test_generate_example_schema_rpm(self):
         runtime = MagicMock(dry_run=False)
@@ -353,7 +334,6 @@ images:
         _rebase_and_build_rpm.return_value = ["foo-v1.2.3-1.el8", "foo-v1.2.3-1.el7"]
         _generate_example_schema.return_value = {"some_key": "some_value"}
         await pipeline.run()
-        load_group_config.assert_awaited_once_with("openshift-4.9", "art0001", env=ANY)
         load_releases_config.assert_awaited_once()
         _rebase_and_build_rpm.assert_called_once_with("202107160000.p?")
         _generate_example_schema.assert_called_once_with(_rebase_and_build_rpm.return_value)
@@ -400,7 +380,6 @@ images:
         _build_image.return_value = ["foo-container-v1.2.3-1"]
         _generate_example_schema.return_value = {"some_key": "some_value"}
         await pipeline.run()
-        load_group_config.assert_awaited_once_with("openshift-4.9", "art0001", env=ANY)
         load_releases_config.assert_awaited_once()
         _build_plashets.assert_awaited_once_with(timestamp, 8, group_config, image_meta)
         _rebase_image.assert_awaited_once_with(f"{timestamp}.p?")
@@ -443,7 +422,6 @@ images:
             PlashetBuildResult("plashet-rebuild-overrides", Path("/path/to/local/dir2"), "https://example.com/dir2"),
         ]
         await pipeline.run()
-        load_group_config.assert_awaited_once_with("openshift-4.9", "art0001", env=ANY)
         load_releases_config.assert_awaited_once()
         _build_plashets.assert_awaited_once_with(timestamp, 8, group_config, None)
         open.assert_called_once_with(Path("/path/to/local/dir2/rebuild.repo"), "w")

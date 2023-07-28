@@ -141,7 +141,7 @@ class BuildMicroShiftPipeline:
             # Sends a slack message
             message = f"microshift for assembly {self.assembly} has been successfully built."
             if pr:
-                message += f"\nA PR to update the assembly definition has been created/updated: {pr.html_url}"
+                message += f"\nA PR to update the assembly definition has been merged: {pr.html_url}"
             if assembly_type in [AssemblyTypes.PREVIEW, AssemblyTypes.CANDIDATE]:
                 version = f'{major}.{minor}'
                 jenkins.start_microshift_sync(version=version, assembly=self.assembly)

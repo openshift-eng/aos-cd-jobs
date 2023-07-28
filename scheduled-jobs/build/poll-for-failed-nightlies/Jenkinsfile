@@ -128,11 +128,10 @@ node() {
                         build_version = stream_name.split('.0-0.nightly')[0]
 
                         // Send public notifications
-                        def out = buildlib.doozer("--group=openshift-${build_version} config:read-group --yaml release_state",
-                                                    [capture: true]).trim()
+                        def out = buildlib.doozer("--group=openshift-${build_version} config:read-group --yaml software_lifecycle", [capture: true]).trim()
                         def archReleaseStates = readYaml(text: out)
                         echo "arch release state for ${build_version}: ${archReleaseStates}"
-                        if (!archReleaseStates['release'].isEmpty() && !["4.7", "4.8"].contains(build_version)) {
+                        if (archReleaseStates['phase'] == 'release' && !["4.7", "4.8"].contains(build_version)) {
                             // Only for GA releases, let forum-ocp-release know why no new builds; ignore 4.7 and 4.8
                             commonlib.slacklib.to('#forum-ocp-release').say(msg)
                         }

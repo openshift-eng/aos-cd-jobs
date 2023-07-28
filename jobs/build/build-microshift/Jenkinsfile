@@ -106,7 +106,7 @@ node {
                 if (params.NO_REBASE) {
                     cmd << "--no-rebase"
                 }
-                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'), string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'), string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN')]) {
                     echo "Will run ${cmd}"
                     if (params.IGNORE_LOCKS) {
                         commonlib.shell(script: cmd.join(' '))

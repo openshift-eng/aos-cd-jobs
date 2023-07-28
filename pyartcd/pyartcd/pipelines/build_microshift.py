@@ -175,7 +175,7 @@ class BuildMicroShiftPipeline:
             "elliott",
             "--group", self.group,
             "--assembly", self.assembly,
-            "--rpm", "microshift",
+            "--rpms", "microshift",
             "find-builds",
             "-k", "rpm",
             "--member-only",

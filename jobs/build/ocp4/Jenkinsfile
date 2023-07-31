@@ -59,6 +59,12 @@ node {
                         defaultValue: "https://github.com/openshift-eng/ocp-build-data",
                         trim: true,
                     ),
+                    string(
+                        name: 'DOOZER_DATA_GITREF',
+                        description: '(Optional) Doozer data path git [branch / tag / sha] to use',
+                        defaultValue: "",
+                        trim: true,
+                    ),
                     booleanParam(
                         name: 'PIN_BUILDS',
                         description: 'Build only specified rpms/images regardless of whether source has changed. WARNING: Disable this to use scan-sources as the source',
@@ -148,6 +154,9 @@ node {
                 ]
                 if (params.DOOZER_DATA_PATH) {
                     cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                }
+                if (params.DOOZER_DATA_GITREF) {
+                    cmd << "--data-gitref=${params.DOOZER_DATA_GITREF}"
                 }
                 if (params.PIN_BUILDS) {
                     cmd << "--pin-builds"

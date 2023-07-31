@@ -102,6 +102,11 @@ node {
                         defaultValue: "",
                         trim: true,
                     ),
+                    booleanParam(
+                        name: 'SKIP_PLASHETS',
+                        description: 'Do not build plashets (for example to save time when running multiple builds against test assembly)',
+                        defaultValue: false,
+                    ),
                     commonlib.suppressEmailParam(),
                     string(
                         name: 'MAIL_LIST_SUCCESS',
@@ -167,6 +172,9 @@ node {
                     "--build-images=${params.BUILD_IMAGES}",
                     "--image-list=${params.IMAGE_LIST}"
                 ]
+                if (params.SKIP_PLASHETS) {
+                    cmd << "--skip-plashets"
+                }
 
                 // Needed to detect manual builds
                 wrap([$class: 'BuildUser']) {

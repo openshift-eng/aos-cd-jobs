@@ -55,7 +55,7 @@ class RpmMirror:
 class Ocp4Pipeline:
     def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str,
                  pin_builds: bool, build_rpms: str, rpm_list: str, build_images: str, image_list: str,
-                 mail_list_failure):
+                 skip_plashets: bool, mail_list_failure: str):
 
         self.runtime = runtime
         self.assembly = assembly
@@ -64,6 +64,7 @@ class Ocp4Pipeline:
         self.rpm_list = rpm_list
         self.build_images = build_images
         self.image_list = image_list
+        self.skip_plashets = skip_plashets
         self.mail_list_failure = mail_list_failure
 
         self.build_plan = BuildPlan()
@@ -819,7 +820,10 @@ class Ocp4Pipeline:
             await self._plan_builds()
 
         await self._build_rpms()
-        await self._build_compose()
+        if not self.skip_plashets:
+            await self._build_compose()
+        else:
+            self.runtime.logger.warning('Skipping plashets creation as SKIP_PLASHETS was set to True')
         await self._update_distgit()
         await self._build_images()
         await self._sync_images()
@@ -852,12 +856,15 @@ class Ocp4Pipeline:
 @click.option('--image-list', required=False, default='',
               help='(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES '
                    '(e.g. logging-kibana5,openshift-jenkins-2)')
+@click.option('--skip-plashets', is_flag=True, default=False,
+              help='Do not build plashets (for example to save time when running multiple builds against test assembly)')
 @click.option('--mail-list-failure', required=False, default='aos-art-automation+failed-ocp4-build@redhat.com',
               help='Failure Mailing List')
 @pass_runtime
 @click_coroutine
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
-               build_rpms: str, rpm_list: str, build_images: str, image_list: str, mail_list_failure):
+               build_rpms: str, rpm_list: str, build_images: str, image_list: str, skip_plashets: bool,
+               mail_list_failure: str):
 
     if not await util.is_build_permitted(version):
         run_details.update_description('Builds not permitted', append=False)
@@ -876,6 +883,7 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
         rpm_list=rpm_list,
         build_images=build_images,
         image_list=image_list,
+        skip_plashets=skip_plashets,
         mail_list_failure=mail_list_failure,
     )
     await pipeline.run()

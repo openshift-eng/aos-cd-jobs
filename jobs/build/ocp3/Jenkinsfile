@@ -177,20 +177,14 @@ def buildBuildingPlashet(version, release, el_major, include_embargoed, auto_sig
      * arches with signed.
      */
 
-    def out = buildlib.doozer("--group=openshift-${params.BUILD_VERSION} config:read-group --yaml release_state",
+    def out = buildlib.doozer("--group=openshift-${params.BUILD_VERSION} config:read-group --yaml arches",
                               [capture: true]).trim()
-    def archReleaseStates = readYaml(text: out)
+    def arches = readYaml(text: out)
     def plashet_arch_args = ""
 
-    for (String release_arch : archReleaseStates['release']) {
+    // 3.11 is GA, use signed for everything (only x86).
+    for (String release_arch : arches) {
         plashet_arch_args += " --arch ${release_arch} signed"
-    }
-
-    // If any arch is GA, use signed for everything.
-    def pre_release_signing_mode = archReleaseStates['release']?'signed':'unsigned'
-
-    for (String pre_release_arch : archReleaseStates['pre-release']) {
-        plashet_arch_args += " --arch ${pre_release_arch} ${pre_release_signing_mode}"
     }
 
     def productVersion = el_major >= 8 ? "OSE-${major_minor}-RHEL-${el_major}" : "RHEL-${el_major}-OSE-${major_minor}"

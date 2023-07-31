@@ -58,11 +58,6 @@ node {
     echo "rhel_targets: ${rhel_targets}"
     echo "arches: ${arches}"
 
-    out = buildlib.doozer("--group=openshift-${version} config:read-group --yaml software_lifecycle",
-                          [capture: true]).trim()
-    def archReleaseStates = readYaml(text: out)
-    echo "arch release state for ${version}: ${archReleaseStates}"
-
     def set_latest = params.SET_LATEST
     def dry_run = params.DRY_RUN
 

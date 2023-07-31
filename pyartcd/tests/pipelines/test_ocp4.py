@@ -23,11 +23,13 @@ class TestInitialBuildPlan(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -125,11 +127,13 @@ class TestPlannedBuilds(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -335,11 +339,13 @@ class TestInitialize(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -467,11 +473,13 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
         pipeline._doozer_working = 'doozer_working'
@@ -516,7 +524,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
             [
                 'doozer', '--assembly=stream', '--working-dir=doozer_working',
                 '--data-path=https://github.com/openshift-eng/ocp-build-data', '--group=openshift-4.13',
-                '--latest-parent-version', "--rpms=''", '--exclude', 'rpm1', 'rpms:rebase-and-build',
+                '--latest-parent-version', "--rpms=", '--exclude', 'rpm1', 'rpms:rebase-and-build',
                 '--version=4.13', '--release=2100123111.p?'
             ]
         )
@@ -676,11 +684,13 @@ class TestBuildCompose(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -793,11 +803,13 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -860,11 +872,13 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -879,7 +893,8 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
         await pipeline._sync_images()
         sync_images_mock.assert_awaited_once_with(
             version='4.13', assembly='stream', operator_nvrs=['nvr1', 'nvr5'],
-            doozer_data_path='https://github.com/openshift-eng/ocp-build-data'
+            doozer_data_path='https://github.com/openshift-eng/ocp-build-data',
+            doozer_data_gitref=''
         )
 
     @patch("os.path.abspath", return_value='doozer_working')
@@ -901,11 +916,13 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -950,11 +967,13 @@ class TestMirrorRpms(unittest.IsolatedAsyncioTestCase):
             assembly='test',
             version='4.13',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -1002,11 +1021,13 @@ class TestUtils(unittest.IsolatedAsyncioTestCase):
             assembly='stream',
             version='4.14',
             data_path=constants.OCP_BUILD_DATA_URL,
+            data_gitref='',
             pin_builds=False,
             build_rpms='all',
             rpm_list='',
             build_images='all',
             image_list='',
+            skip_plashets=False,
             mail_list_failure=''
         )
 
@@ -1025,7 +1046,7 @@ class TestUtils(unittest.IsolatedAsyncioTestCase):
             includes=[],
             excludes=['rpm3', 'rpm4']
         )
-        self.assertEqual(include_exclude, ['--latest-parent-version', "--rpms=''", '--exclude', 'rpm3,rpm4'])
+        self.assertEqual(include_exclude, ['--latest-parent-version', "--rpms=", '--exclude', 'rpm3,rpm4'])
 
         # Include and exclude RPMs: includes take precedence
         include_exclude = self.ocp4._include_exclude(

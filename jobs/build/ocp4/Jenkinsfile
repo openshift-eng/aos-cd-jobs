@@ -35,6 +35,11 @@ node {
                     commonlib.dryrunParam(),
                     commonlib.mockParam(),
                     commonlib.doozerParam(),
+                    booleanParam(
+                        name: 'IGNORE_LOCKS',
+                        description: 'Do not wait for other builds in this version to complete (use only if you know they will not conflict)',
+                        defaultValue: false
+                    ),
                     commonlib.ocpVersionParam('BUILD_VERSION', '4'),
                     string(
                         name: 'NEW_VERSION',
@@ -126,71 +131,78 @@ node {
     try {
 
         sshagent(["openshift-bot"]) {
+            stage("initialize") {
+                currentBuild.displayName = "#${currentBuild.number}"
+            }
 
-            lock("github-activity-lock-${params.BUILD_VERSION}") {
-                stage("initialize") {
-                    currentBuild.displayName = "#${currentBuild.number}"
+            stage("ocp4") {
+                // artcd command
+                def cmd = [
+                    "artcd",
+                    "-v",
+                    "--working-dir=./artcd_working",
+                    "--config=./config/artcd.toml",
+                    "ocp4",
+                    "--version=${params.BUILD_VERSION}",
+                    "--assembly=${params.ASSEMBLY}",
+                ]
+                if (params.DOOZER_DATA_PATH) {
+                    cmd << "--data-path=${params.DOOZER_DATA_PATH}"
                 }
+                if (params.PIN_BUILDS) {
+                    cmd << "--pin-builds"
+                }
+                cmd += [
+                    "--build-rpms=${params.BUILD_RPMS}",
+                    "--rpm-list=${params.RPM_LIST}",
+                    "--build-images=${params.BUILD_IMAGES}",
+                    "--image-list=${params.IMAGE_LIST}"
+                ]
 
-                stage("ocp4") {
-                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-
-                    def cmd = [
-                        "artcd",
-                        "-v",
-                        "--working-dir=./artcd_working",
-                        "--config=./config/artcd.toml",
-                        "ocp4",
-                        "--version=${params.BUILD_VERSION}",
-                        "--assembly=${params.ASSEMBLY}",
-                    ]
-                    if (params.DOOZER_DATA_PATH) {
-                        cmd << "--data-path=${params.DOOZER_DATA_PATH}"
+                // Needed to detect manual builds
+                wrap([$class: 'BuildUser']) {
+                        builderEmail = env.BUILD_USER_EMAIL
                     }
-                    if (params.PIN_BUILDS) {
-                        cmd << "--pin-builds"
-                    }
-                    cmd += [
-                        "--build-rpms=${params.BUILD_RPMS}",
-                        "--rpm-list=${params.RPM_LIST}",
-                        "--build-images=${params.BUILD_IMAGES}",
-                        "--image-list=${params.IMAGE_LIST}"
-                    ]
 
-                    wrap([$class: 'BuildUser']) {
-                            builderEmail = env.BUILD_USER_EMAIL
-                        }
-
-                    buildlib.withAppCiAsArtPublish() {
-                        withCredentials([
-                                    string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
-                                    string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
-                                    string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
-                                    string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
-                                    string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
-                                    string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
-                                    string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
-                                    string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
-                                    aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                                    string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
-                                    usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
-                                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-private-key', variable: 'RHSM_PULP_KEY'),
-                                    file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
-                                ]) {
-                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                buildlib.withAppCiAsArtPublish() {
+                    withCredentials([
+                                string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
+                                string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN'),
+                                string(credentialsId: 'redis-server-password', variable: 'REDIS_SERVER_PASSWORD'),
+                                string(credentialsId: 'redis-host', variable: 'REDIS_HOST'),
+                                string(credentialsId: 'redis-port', variable: 'REDIS_PORT'),
+                                string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
+                                string(credentialsId: 'openshift-bot-token', variable: 'GITHUB_TOKEN'),
+                                string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN'),
+                                aws(credentialsId: 's3-art-srv-enterprise', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
+                                string(credentialsId: 'art-bot-slack-token', variable: 'SLACK_BOT_TOKEN'),
+                                usernamePassword(credentialsId: 'art-dash-db-login', passwordVariable: 'DOOZER_DB_PASSWORD', usernameVariable: 'DOOZER_DB_USER'),
+                                file(credentialsId: 'art-jenkins-ldap-serviceaccount-private-key', variable: 'RHSM_PULP_KEY'),
+                                file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
+                            ]) {
+                        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
+                            if (params.IGNORE_LOCKS) {
+                                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
                                 sh(script: cmd.join(' '), returnStdout: true)
-
-                                // If any image build/push failures occurred, mark the job run as unstable
-                                def record_log = buildlib.parse_record_log("artcd_working/doozer_working/")
-                                builds = record_log.get('build', [])
-                                for (i = 0; i < builds.size(); i++) {
-                                    bld = builds[i]
-                                    if (bld['status'] != '0' || bld['push_status'] != '0') {
-                                        currentBuild.result = "UNSTABLE"
-                                    }
+                            } else {
+                                lock("github-activity-lock-${params.BUILD_VERSION}") {
+                                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                                    sh(script: cmd.join(' '), returnStdout: true)
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            stage("terminate") {
+                // If any image build/push failures occurred, mark the job run as unstable
+                def record_log = buildlib.parse_record_log("artcd_working/doozer_working/")
+                builds = record_log.get('build', [])
+                for (i = 0; i < builds.size(); i++) {
+                    bld = builds[i]
+                    if (bld['status'] != '0' || bld['push_status'] != '0') {
+                        currentBuild.result = "UNSTABLE"
                     }
                 }
             }

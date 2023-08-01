@@ -31,6 +31,7 @@ node {
                 $class: 'ParametersDefinitionProperty',
                 parameterDefinitions: [
                     commonlib.ocpVersionParam('VERSION', '4'),  // not used by "stream" assembly
+                    commonlib.elliottParam(),
                     string(
                         name: 'ASSEMBLY',
                         description: 'The name of an assembly to promote.',

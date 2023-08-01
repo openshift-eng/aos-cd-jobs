@@ -27,6 +27,7 @@ node {
                     $class: "ParametersDefinitionProperty",
                     parameterDefinitions: [
                         commonlib.ocpVersionParam('VERSION'),
+                        commonlib.elliottParam(),
                         string(
                             name: "ASSEMBLY",
                             description: "The name of an assembly; must be defined in releases.yml (e.g. 4.9.1)",

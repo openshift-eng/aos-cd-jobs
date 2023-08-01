@@ -128,8 +128,12 @@ def start_build(job_name: str, params: dict, blocking: bool = False,
         return result
 
 
-def start_ocp4(build_version: str, rpm_list: list = [], image_list: list = [], blocking: bool = False) -> Optional[str]:
-    params = {'BUILD_VERSION': build_version}
+def start_ocp4(build_version: str, assembly: str, rpm_list: list = [],
+               image_list: list = [], blocking: bool = False) -> Optional[str]:
+    params = {
+        'BUILD_VERSION': build_version,
+        'ASSEMBLY': assembly
+    }
 
     # If any rpm/image changed, force a build with only changed sources
     if rpm_list or image_list:

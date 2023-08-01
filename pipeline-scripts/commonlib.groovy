@@ -101,6 +101,15 @@ def doozerParam() {
     ]
 }
 
+def elliottParam() {
+    return [
+        name: 'ELLIOTT_COMMIT',
+        description: 'Override the elliott submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+        $class: 'hudson.model.StringParameterDefinition',
+        defaultValue: ''
+    ]
+}
+
 def dryrunParam(description = 'Run job without side effects') {
     return [
         name: 'DRY_RUN',

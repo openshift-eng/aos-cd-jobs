@@ -15,21 +15,21 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 async def advisory_drop(runtime: Runtime, group: str, advisory: str, comment: str):
     # repair-bugs
     cmd = [
-            'elliott',
-            '--group', group,
-            'repair-bugs',
-            '--advisory', advisory,
-            '--auto',
-            '--comment', comment,
-            '--close-placeholder',
-            '--from', 'RELEASE_PENDING',
-            '--to', 'VERIFIED',
-        ]
+        'elliott',
+        '--group', group,
+        'repair-bugs',
+        '--advisory', advisory,
+        '--auto',
+        '--comment', comment,
+        '--close-placeholder',
+        '--from', 'RELEASE_PENDING',
+        '--to', 'VERIFIED',
+    ]
     await exectools.cmd_assert_async(cmd, env=os.environ.copy())
     # drop advisory
     cmd = [
-            'elliott',
-            '--group', group,
-            'advisory-drop', advisory,
-        ]
+        'elliott',
+        '--group', group,
+        'advisory-drop', advisory,
+    ]
     await exectools.cmd_assert_async(cmd, env=os.environ.copy())

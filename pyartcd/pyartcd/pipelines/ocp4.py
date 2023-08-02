@@ -7,7 +7,7 @@ import click
 import yaml
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets, exectools, constants,\
+from pyartcd import locks, util, plashets, exectools, constants, \
     run_details, jenkins, record as record_util, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime
@@ -584,7 +584,7 @@ class Ocp4Pipeline:
         )
 
         # Try to acquire mass-rebuild lock for build version
-        lock_name = f'mass-rebuild-serializer'
+        lock_name = 'mass-rebuild-serializer'
         try:
             async with await lock_manager.lock(lock_name):
                 self.runtime.logger.info('Running command: %s', doozer_cmd)

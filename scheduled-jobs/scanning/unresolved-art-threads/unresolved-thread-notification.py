@@ -34,15 +34,6 @@ if __name__ == '__main__':
         messages = slack_response.get('messages', {})
         all_matches.extend(messages.get('matches', []))
 
-        # API call doesn't return messages sent by the bot unless specified
-        slack_response = app.client.search_messages(
-            token=USER_TOKEN,
-            query='has::art-attention: -has::art-attention-resolved: from:art-release-bot',
-            cursor=next_cursor
-        )
-        messages = slack_response.get('messages', {})
-        all_matches.extend(messages.get('matches', []))
-
         # https://api.slack.com/docs/pagination
         response_metadata = slack_response.get('response_metadata', {})
         next_cursor = response_metadata.get('next_cursor', None)

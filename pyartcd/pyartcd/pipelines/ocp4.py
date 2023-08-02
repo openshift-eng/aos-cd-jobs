@@ -53,8 +53,9 @@ class RpmMirror:
 
 
 class Ocp4Pipeline:
-    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, pin_builds: bool, build_rpms: str,
-                 rpm_list: str, build_images: str, image_list: str, mail_list_failure):
+    def __init__(self, runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str,
+                 pin_builds: bool, build_rpms: str, rpm_list: str, build_images: str, image_list: str,
+                 skip_plashets: bool, mail_list_failure: str):
 
         self.runtime = runtime
         self.assembly = assembly
@@ -63,6 +64,7 @@ class Ocp4Pipeline:
         self.rpm_list = rpm_list
         self.build_images = build_images
         self.image_list = image_list
+        self.skip_plashets = skip_plashets
         self.mail_list_failure = mail_list_failure
 
         self.build_plan = BuildPlan()
@@ -75,12 +77,18 @@ class Ocp4Pipeline:
 
         self._doozer_working = os.path.abspath(f'{self.runtime.working_dir / "doozer_working"}')
         self.data_path = data_path
+        self.data_gitref = data_gitref
+
+        group_param = f'--group=openshift-{version}'
+        if data_gitref:
+            group_param += f'@{data_gitref}'
+
         self._doozer_base_command = [
             'doozer',
             f'--assembly={assembly}',
             f'--working-dir={self._doozer_working}',
             f'--data-path={data_path}',
-            f'--group=openshift-{version}'
+            group_param
         ]
 
         self._slack_client = runtime.new_slack_client()
@@ -497,6 +505,7 @@ class Ocp4Pipeline:
                     release=self.version.release,
                     assembly=self.assembly,
                     data_path=self.data_path,
+                    data_gitref=self.data_gitref,
                     dry_run=self.runtime.dry_run
                 )
                 self.runtime.logger.info('Built plashets: %s', json.dumps(plashets_built, indent=4))
@@ -693,7 +702,8 @@ class Ocp4Pipeline:
             version=self.version.stream,
             assembly=self.assembly,
             operator_nvrs=operator_nvrs,
-            doozer_data_path=self.data_path
+            doozer_data_path=self.data_path,
+            doozer_data_gitref=self.data_gitref
         )
 
     async def _mirror_rpms(self):
@@ -810,7 +820,10 @@ class Ocp4Pipeline:
             await self._plan_builds()
 
         await self._build_rpms()
-        await self._build_compose()
+        if not self.skip_plashets:
+            await self._build_compose()
+        else:
+            self.runtime.logger.warning('Skipping plashets creation as SKIP_PLASHETS was set to True')
         await self._update_distgit()
         await self._build_images()
         await self._sync_images()
@@ -826,8 +839,10 @@ class Ocp4Pipeline:
                   "sync builds to nightlies, create operator metadata, and sets MODIFIED bugs to ON_QA")
 @click.option('--version', required=True, help='OCP version to scan, e.g. 4.14')
 @click.option('--assembly', required=True, help='The name of an assembly to rebase & build for')
-@click.option("--data-path", required=False, default=constants.OCP_BUILD_DATA_URL,
-              help="ocp-build-data fork to use (e.g. assembly definition in your own fork)")
+@click.option('--data-path', required=False, default=constants.OCP_BUILD_DATA_URL,
+              help='ocp-build-data fork to use (e.g. assembly definition in your own fork)')
+@click.option('--data-gitref', required=False, default='',
+              help='Doozer data path git [branch / tag / sha] to use')
 @click.option('--pin-builds', is_flag=True, help='Build only specified rpms/images regardless of whether source has changed')
 @click.option('--build-rpms', required=True,
               type=click.Choice(['all', 'only', 'except', 'none'], case_sensitive=False),
@@ -841,12 +856,15 @@ class Ocp4Pipeline:
 @click.option('--image-list', required=False, default='',
               help='(Optional) Comma/space-separated list to include/exclude per BUILD_IMAGES '
                    '(e.g. logging-kibana5,openshift-jenkins-2)')
+@click.option('--skip-plashets', is_flag=True, default=False,
+              help='Do not build plashets (for example to save time when running multiple builds against test assembly)')
 @click.option('--mail-list-failure', required=False, default='aos-art-automation+failed-ocp4-build@redhat.com',
               help='Failure Mailing List')
 @pass_runtime
 @click_coroutine
-async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, pin_builds: bool, build_rpms: str,
-               rpm_list: str, build_images: str, image_list: str, mail_list_failure):
+async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
+               build_rpms: str, rpm_list: str, build_images: str, image_list: str, skip_plashets: bool,
+               mail_list_failure: str):
 
     if not await util.is_build_permitted(version):
         run_details.update_description('Builds not permitted', append=False)
@@ -859,11 +877,13 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, pi
         assembly=assembly,
         version=version,
         data_path=data_path,
+        data_gitref=data_gitref,
         pin_builds=pin_builds,
         build_rpms=build_rpms,
         rpm_list=rpm_list,
         build_images=build_images,
         image_list=image_list,
+        skip_plashets=skip_plashets,
         mail_list_failure=mail_list_failure,
     )
     await pipeline.run()

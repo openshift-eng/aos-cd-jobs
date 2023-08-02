@@ -298,7 +298,7 @@ async def is_build_permitted(version: str, data_path: str = constants.OCP_BUILD_
     # Check for frozen scheduled automation
     if freeze_automation == "scheduled" and not is_manual_build():
         logger.info('Only manual runs are permitted according to freeze_automation in group.yml '
-                     'and this run appears to be non-manual.')
+                    'and this run appears to be non-manual.')
         return False
 
     # Check if group can run on weekends
@@ -568,9 +568,9 @@ The following logs are just the container build portion of the OSBS build:
             container_log = "Unfortunately there were no container build logs; " \
                             "something else about the build failed."
             logger.warning('No container build log for failed %s build\n'
-                            '(task url %s)\n'
-                            'at path %s',
-                            failure['distgit'], failure['task_url'], container_log)
+                           '(task url %s)\n'
+                           'at path %s',
+                           failure['distgit'], failure['task_url'], container_log)
 
         explanation_body = f"ART's brew/OSBS build of OCP image {failure['image']}:{failure['version']} has failed.\n\n"
         if failure['owners']:

@@ -51,6 +51,7 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
 
     async def test_call_in_sender_thread(self):
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
+        client._sender_loop = asyncio.get_event_loop()
         actual = await client._call_in_sender_thread(lambda: "foo")
         self.assertEqual(actual, "foo")
 
@@ -58,11 +59,14 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
         def func():
             raise ValueError("Test error")
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
+        client._sender_loop = asyncio.get_event_loop()
         with self.assertRaises(ValueError):
             await client._call_in_sender_thread(func)
 
     @patch("pyartcd.umb_client.AsyncUMBClient._create_connection", autospec=True)
     async def test_connect(self, _create_connection: MagicMock):
+        stomp_conn = _create_connection.return_value
+        stomp_conn.is_connected.return_value = False
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
         loop = asyncio.get_event_loop()
         loop.call_soon(lambda: client._listener._complete_future("on_connected", None))
@@ -73,7 +77,9 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
     @patch("pyartcd.umb_client.AsyncUMBClient._create_connection", autospec=True)
     async def test_disconnect(self, _create_connection: MagicMock):
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
-        client.connected = True
+        stomp_conn = _create_connection.return_value
+        stomp_conn.is_connected.return_value = True
+        client._sender_loop = asyncio.get_event_loop()
         loop = asyncio.get_event_loop()
         loop.call_soon(lambda: client._listener._complete_future("on_disconnected", None))
         await client.disconnect()
@@ -83,6 +89,9 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
     @patch("pyartcd.umb_client.AsyncUMBClient._create_connection", autospec=True)
     async def test_subscribe(self, _create_connection: MagicMock):
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
+        stomp_conn = _create_connection.return_value
+        stomp_conn.is_connected.return_value = True
+        client._sender_loop = asyncio.get_event_loop()
         receiver = await client.subscribe(destination="/topic/foo.bar", id="fake-subscription")
         conn = _create_connection.return_value
         conn.subscribe.assert_called_once_with(destination="/topic/foo.bar", id="fake-subscription", ack="client-individual")
@@ -91,6 +100,9 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
     @patch("pyartcd.umb_client.AsyncUMBClient._create_connection", autospec=True)
     async def test_unsubscribe(self, _create_connection: MagicMock):
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
+        stomp_conn = _create_connection.return_value
+        stomp_conn.is_connected.return_value = True
+        client._sender_loop = asyncio.get_event_loop()
         client._listener._receivers["fake-subscription"] = MagicMock()
         await client.unsubscribe(id="fake-subscription")
         conn = _create_connection.return_value
@@ -100,6 +112,9 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
     @patch("pyartcd.umb_client.AsyncUMBClient._create_connection", autospec=True)
     async def test_send(self, _create_connection: MagicMock, uuid4: MagicMock):
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
+        stomp_conn = _create_connection.return_value
+        stomp_conn.is_connected.return_value = True
+        client._sender_loop = asyncio.get_event_loop()
         uuid4.return_value = "fake-uuid"
         loop = asyncio.get_event_loop()
         loop.call_soon(lambda: client._listener._complete_future(uuid4.return_value, None))
@@ -111,6 +126,9 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
     @patch("pyartcd.umb_client.AsyncUMBClient._create_connection", autospec=True)
     async def test_ack(self, _create_connection: MagicMock, uuid4: MagicMock):
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
+        stomp_conn = _create_connection.return_value
+        stomp_conn.is_connected.return_value = True
+        client._sender_loop = asyncio.get_event_loop()
         uuid4.return_value = "fake-uuid"
         loop = asyncio.get_event_loop()
         loop.call_soon(lambda: client._listener._complete_future(uuid4.return_value, None))
@@ -122,6 +140,9 @@ class TestAsyncUMBClient(IsolatedAsyncioTestCase):
     @patch("pyartcd.umb_client.AsyncUMBClient._create_connection", autospec=True)
     async def test_nack(self, _create_connection: MagicMock, uuid4: MagicMock):
         client = AsyncUMBClient("stomp+ssl://stomp1.example.com:12345", cert_file="/path/to/client.crt", key_file="/path/to/client.key")
+        stomp_conn = _create_connection.return_value
+        stomp_conn.is_connected.return_value = True
+        client._sender_loop = asyncio.get_event_loop()
         uuid4.return_value = "fake-uuid"
         loop = asyncio.get_event_loop()
         loop.call_soon(lambda: client._listener._complete_future(uuid4.return_value, None))

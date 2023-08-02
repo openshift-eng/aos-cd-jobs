@@ -15,7 +15,7 @@ pygit2 == 1.10.1 # https://github.com/libgit2/pygit2/issues/1176
 rh-doozer
 rh-elliott
 ruamel.yaml
-semver >= 2.13.0
+semver ~= 3.0.1
 slack_sdk >= 3.13.0
 stomp.py ~= 8.1.0
 tenacity

@@ -168,11 +168,11 @@ class UMBClientConnectionListener(stomp.ConnectionListener):
         # notify UMB client
         self._client.on_disconnected()
         # notify all pending futures of the disconnection
-        for id in self._futures.keys():
+        for future_id in self._futures.keys():
             if id == "on_disconnected":
                 self._complete_future("on_disconnected", None)
             else:
-                self._err_future(id, IOError("Connection lost"))
+                self._err_future(future_id, IOError("Connection lost"))
 
     def on_heartbeat_timeout(self):
         self.__print("on_heartbeat_timeout")

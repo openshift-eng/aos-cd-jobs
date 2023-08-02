@@ -24,4 +24,6 @@ jobs:
         cd pyartcd
         make venv
     - name: Run tests
-      run: make test
+      run: |
+        cd pyartcd
+        make test

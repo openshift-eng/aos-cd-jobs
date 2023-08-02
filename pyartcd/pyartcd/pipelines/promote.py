@@ -26,7 +26,7 @@ from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
 from pyartcd.s3 import sync_dir_to_s3_mirror
-from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary,\
+from pyartcd.oc import get_release_image_info, get_release_image_pullspec, extract_release_binary, \
     extract_release_client_tools, get_release_image_info_from_pullspec, extract_baremetal_installer
 from pyartcd.runtime import Runtime
 from ruamel.yaml import YAML

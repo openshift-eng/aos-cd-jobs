@@ -7,7 +7,7 @@ import click
 import yaml
 from aioredlock import LockError
 
-from pyartcd import locks, util, plashets, exectools, constants,\
+from pyartcd import locks, util, plashets, exectools, constants, \
     run_details, jenkins, record as record_util, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd.runtime import Runtime

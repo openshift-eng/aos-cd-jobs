@@ -74,8 +74,8 @@ node {
             plashet_arch_args += " --arch ${arch} unsigned"
         }
         def productVersion = 'NOT_APPLICABLE'
-        def brewTag = "rhaos-${version}-${el_major}-candidate"
-        def embargoedBrewTag = "--embargoed-brew-tag rhaos-${version}-${el_major}-embargoed"
+        def brewTag = "rhaos-${version}-rhel-${el_major}-candidate"
+        def embargoedBrewTag = "--embargoed-brew-tag rhaos-${version}-rhel-${el_major}-embargoed"
         def cmd = "${doozerOpts} --rpms microshift config:plashet --base-dir ${ORG_PLASHET_DIR} --name ${name} --repo-subdir os -i microshift ${plashet_arch_args} from-tags --brew-tag ${brewTag} ${productVersion} ${embargoedBrewTag} --signing-advisory-mode clean  --signing-advisory-id 0"
         buildlib.doozer(cmd)
     }

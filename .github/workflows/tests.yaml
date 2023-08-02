@@ -17,8 +17,8 @@ jobs:
       with:
         python-version: '3.8'
     - name: Create venv and install dependencies
-      run: make venv
-    - name: Run tests
       run: |
         cd pyartcd
-        make test
+        make venv
+    - name: Run tests
+      run: make test

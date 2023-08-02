@@ -105,7 +105,7 @@ class PromotePipeline:
         assembly_type = util.get_assembly_type(releases_config, self.assembly)
         release_name = util.get_release_name_for_assembly(self.group, releases_config, self.assembly)
         # Ensure release name is valid
-        if not VersionInfo.isvalid(release_name):
+        if not VersionInfo.is_valid(release_name):
             raise ValueError(f"Release name `{release_name}` is not a valid semver.")
         logger.info("Release name: %s", release_name)
 
@@ -129,7 +129,7 @@ class PromotePipeline:
                 raise ValueError(f"Group config for assembly {self.assembly} is missing the required `upgrades` field. If no upgrade edges are expected, please explicitly set the `upgrades` field to empty string.")
             previous_list = list(map(lambda s: s.strip(), upgrades_str.split(","))) if upgrades_str else []
             # Ensure all versions in previous list are valid semvers.
-            if any(map(lambda version: not VersionInfo.isvalid(version), previous_list)):
+            if any(map(lambda version: not VersionInfo.is_valid(version), previous_list)):
                 raise ValueError("Previous list (`upgrades` field in group config) has an invalid semver.")
 
             impetus_advisories = group_config.get("advisories", {})

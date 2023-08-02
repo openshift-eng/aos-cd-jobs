@@ -584,7 +584,7 @@ class Ocp4Pipeline:
         )
 
         # Try to acquire mass-rebuild lock for build version
-        lock_name = f'mass-rebuild-serializer'
+        lock_name = 'mass-rebuild-serializer'
         try:
             async with await lock_manager.lock(lock_name):
                 self.runtime.logger.info('Running command: %s', doozer_cmd)

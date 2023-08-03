@@ -133,8 +133,8 @@ def setup_venv(use_python38=false) {
     commonlib.shell(script: "rm -rf ${VIRTUAL_ENV}")
 
     // Used by tools that don't use buildlib.doozer() / .elliott()
-    DOOZER_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/doozer/doozer"
-    ELLIOTT_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/elliott/elliott"
+    DOOZER_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/art-tools/doozer/doozer"
+    ELLIOTT_BIN = "${VIRTUAL_ENV}/bin/python3 art-tools/art-tools/elliott/elliott"
 
     if (use_python38) {
         commonlib.shell(script: """
@@ -149,7 +149,7 @@ def setup_venv(use_python38=false) {
     }
 
     env.VIRTUAL_ENV = "${VIRTUAL_ENV}"
-    env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/elliott:${env.WORKSPACE}/art-tools/doozer:${env.PATH}"
+    env.PATH = "${VIRTUAL_ENV}/bin:${env.WORKSPACE}/art-tools/art-tools/elliott:${env.WORKSPACE}/art-tools/art-tools/doozer:${env.PATH}"
 
     commonlib.shell(script: "pip install --upgrade pip")
 
@@ -164,7 +164,9 @@ def setup_venv(use_python38=false) {
         commonlib.shell(script: "rm -rf art-tools/elliott ; cd art-tools; git clone https://github.com/${where[0]}/elliott.git; cd elliott; git checkout ${where[1]}")
     }
 
-    commonlib.shell(script: "pip install -e art-tools/elliott/ -e art-tools/doozer/ -e pyartcd/")
+    commonlib.shell(script: "cd art-tools; rm -rf art-tools; git clone https://github.com/openshift-eng/art-tools.git; cd art-tools; git checkout master")
+    commonlib.shell(script: "pip install -e art-tools/art-tools/elliott/ -e art-tools/art-tools/doozer/ -e pyartcd/")
+
     out = sh(
         script: 'pip list | grep "doozer\\|elliott"',
         returnStdout: true

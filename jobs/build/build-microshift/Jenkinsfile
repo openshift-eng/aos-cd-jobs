@@ -1,4 +1,4 @@
-node {
+node('ocp-artifacts') {
     wrap([$class: "BuildUser"]) {
         // gomod created files have filemode 444. It will lead to a permission denied error in the next build.
         sh "chmod u+w -R ."

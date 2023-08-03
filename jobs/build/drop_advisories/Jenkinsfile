@@ -56,7 +56,7 @@ node {
             "advisory-drop",
             "--group=openshift-${params.VERSION}",
             "--advisory", adv,
-            "--comment", params.COMMENT,
+            "--comment='${params.COMMENT}'"
         ]
         withCredentials([string(credentialsId: 'jboss-jira-token', variable: 'JIRA_TOKEN')]) {
             commonlib.shell(script: cmd.join(' '))

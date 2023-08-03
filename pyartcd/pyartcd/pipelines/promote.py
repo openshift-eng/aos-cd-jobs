@@ -7,7 +7,7 @@ import sys
 import traceback
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Union
 from urllib.parse import quote
 
 import aiohttp
@@ -16,12 +16,13 @@ import tarfile
 import hashlib
 import shutil
 import urllib.parse
+from pyartcd.signatory import AsyncSignatory
 import requests
 # from pyartcd.cincinnati import CincinnatiAPI
 from doozerlib import assembly
 from doozerlib.util import (brew_arch_for_go_arch, brew_suffix_for_arch,
                             go_arch_for_brew_arch, go_suffix_for_arch)
-from pyartcd import constants, exectools, util, jenkins
+from pyartcd import constants, exectools, locks, util, jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.exceptions import VerificationError
 from pyartcd.jira import JIRAClient
@@ -47,10 +48,13 @@ class PromotePipeline:
                  skip_attached_bug_check: bool = False,
                  skip_image_list: bool = False,
                  skip_build_microshift: bool = False,
+                 skip_signing: bool = False,
                  permit_overwrite: bool = False,
                  no_multi: bool = False, multi_only: bool = False,
                  skip_mirror_binaries: bool = False,
-                 use_multi_hack: bool = False) -> None:
+                 use_multi_hack: bool = False,
+                 signing_env: Optional[str] = None,
+                 ) -> None:
         self.runtime = runtime
         self.group = group
         self.assembly = assembly
@@ -59,6 +63,7 @@ class PromotePipeline:
         self.skip_image_list = skip_image_list
         self.skip_build_microshift = skip_build_microshift
         self.skip_mirror_binaries = skip_mirror_binaries
+        self.skip_signing = skip_signing
         self.permit_overwrite = permit_overwrite
 
         if multi_only and no_multi:
@@ -67,6 +72,9 @@ class PromotePipeline:
         self.multi_only = multi_only
         self.use_multi_hack = use_multi_hack
         self._multi_enabled = False
+        if not self.skip_signing and not signing_env:
+            raise ValueError("--signing-env is required unless --skip-signing is set")
+        self.signing_env = signing_env
 
         self._logger = self.runtime.logger
         self._slack_client = self.runtime.new_slack_client()
@@ -87,8 +95,29 @@ class PromotePipeline:
             self._elliott_env_vars["ELLIOTT_DATA_PATH"] = self._ocp_build_data_url
             self._doozer_env_vars["DOOZER_DATA_PATH"] = self._ocp_build_data_url
 
+    def check_environment_variables(self):
+        logger = self.runtime.logger
+
+        required_vars = ["GITHUB_TOKEN", "JIRA_TOKEN", "QUAY_PASSWORD"]
+        if not self.skip_mirror_binaries and not self.skip_signing:
+            required_vars += ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
+        if not self.skip_signing:
+            required_vars += ["SIGNING_CERT", "SIGNING_KEY", "REDIS_SERVER_PASSWORD", "REDIS_HOST", "REDIS_PORT"]
+        if not self.skip_build_microshift:
+            required_vars += ["JENKINS_SERVICE_ACCOUNT", "JENKINS_SERVICE_ACCOUNT_TOKEN"]
+
+        for env_var in required_vars:
+            if not os.environ.get(env_var):
+                msg = f"Environment variable {env_var} is not set."
+                if not self.runtime.dry_run:
+                    raise ValueError(msg)
+                else:
+                    logger.warning(msg)
+
     async def run(self):
         logger = self.runtime.logger
+        # Check if all required environment variables are set
+        self.check_environment_variables()
 
         # Load group config and releases.yml
         logger.info("Loading build data...")
@@ -98,7 +127,7 @@ class PromotePipeline:
             data_path=self._doozer_env_vars.get("DOOZER_DATA_PATH", None) or constants.OCP_BUILD_DATA_URL
         )
         if releases_config.get("releases", {}).get(self.assembly) is None:
-            raise ValueError(f"To promote this release, assembly {self.assembly} must be explictly defined in releases.yml.")
+            raise ValueError(f"To promote this release, assembly {self.assembly} must be explicitly defined in releases.yml.")
         permits = util.get_assembly_promotion_permits(releases_config, self.assembly)
 
         # Get release name
@@ -224,21 +253,18 @@ class PromotePipeline:
             reference_releases = util.get_assembly_basis(releases_config, self.assembly).get("reference_releases", {})
             tag_stable = assembly_type in [assembly.AssemblyTypes.STANDARD, assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]
             release_infos = await self.promote(assembly_type, release_name, arches, previous_list, metadata, reference_releases, tag_stable)
-            self._logger.info("All release images for %s have been promoted.", release_name)
+            pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}
+            pullspecs_repr = ", ".join(f"{arch}: {pullspecs[arch]}" for arch in sorted(pullspecs.keys()))
+            self._logger.info("All release images for %s have been promoted. Pullspecs: %s", release_name, pullspecs_repr)
 
             # Before waiting for release images to be accepted by release controllers,
             # we can start microshift build
             await self._build_microshift(releases_config)
 
-            # Wait for payloads to be accepted by release controllers
-            pullspecs = {arch: release_info["image"] for arch, release_info in release_infos.items()}
-            pullspecs_repr = ", ".join(f"{arch}: {pullspecs[arch]}" for arch in sorted(pullspecs.keys()))
             if not tag_stable:
                 self._logger.warning("Release %s will not appear on release controllers. Pullspecs: %s", release_name, pullspecs_repr)
                 await self._slack_client.say(f"Release {release_name} is ready. It will not appear on the release controllers. Please tell the user to manually pull the release images: {pullspecs_repr}", slack_thread)
-            else:  # Wait for release images to be accepted by the release controllers
-                self._logger.info("All release images for %s have been successfully promoted. Pullspecs: %s", release_name, pullspecs_repr)
-
+            else:
                 # check if release is already accepted (in case we timeout and run the job again)
                 tasks = []
                 for arch, release_info in release_infos.items():
@@ -250,6 +276,7 @@ class PromotePipeline:
                 accepted = await asyncio.gather(*tasks)
 
                 if not all(accepted):
+                    # Wait for release images to be accepted by the release controllers
                     self._logger.info("Waiting for release images for %s to be accepted by the release controller...", release_name)
                     await self._slack_client.say(f"Release {release_name} has been tagged on release controller, but is not accepted yet. Waiting.", slack_thread)
                     tasks = []
@@ -298,6 +325,16 @@ class PromotePipeline:
                     self._jira_client.assign_to_me(subtask)
                     self._jira_client.close_task(subtask)
 
+                # extract client binaries
+                client_type = "ocp"
+                if (assembly_type == assembly.AssemblyTypes.CANDIDATE and not self.assembly.startswith('rc.')) or assembly_type in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
+                    client_type = "ocp-dev-preview"
+                message_digests = []
+                if not self.skip_mirror_binaries:
+                    message_digests = await self.extract_and_publish_clients(client_type, release_infos)
+                if not self.skip_signing:
+                    await self.sign_artifacts(release_name, client_type, release_infos, message_digests)
+
         except Exception as err:
             self._logger.exception(err)
             error_message = f"Error promoting release {release_name}: {err}\n {traceback.format_exc()}"
@@ -344,25 +381,6 @@ class PromotePipeline:
             if rhcos:
                 rhcos_version = rhcos["annotations"]["io.openshift.build.versions"].split("=")[1]  # machine-os=48.84.202112162302-0 => 48.84.202112162302-0
                 data["content"][arch]["rhcos_version"] = rhcos_version
-
-        client_type = "ocp"
-        if (assembly_type == assembly.AssemblyTypes.CANDIDATE and not self.assembly.startswith('rc.')) or assembly_type in [assembly.AssemblyTypes.CUSTOM, assembly.AssemblyTypes.PREVIEW]:
-            client_type = "ocp-dev-preview"
-        data['client_type'] = client_type
-        # mirror binaries
-        if not self.skip_mirror_binaries:
-            # make sure login to quay
-            cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", f"{os.environ['QUAY_PASSWORD']}", "quay.io"]
-            await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
-            for arch in data['content']:
-                logger.info(f"Mirroring client binaries for {arch}")
-                if self.runtime.dry_run:
-                    logger.info(f"[DRY RUN] Would have sync'd client binaries for {constants.QUAY_RELEASE_REPO_URL}:{release_name}-{arch} to mirror {arch}/clients/{client_type}/{release_name}.")
-                else:
-                    if arch != "multi":
-                        await self.publish_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], arch, client_type)
-                    else:
-                        await self.publish_multi_client(self._working_dir, f"{release_name}-{arch}", data["content"][arch]['metadata']['version'], data['content'], client_type)
         # sync rhcos
         await self.sync_rhcos_srpms(assembly_type, data)
         json.dump(data, sys.stdout)
@@ -381,7 +399,8 @@ class PromotePipeline:
         # Sync potential pre-release source on which RHCOS depends. See ART-6419 for details.
         major, minor = util.isolate_major_minor_in_group(self.group)
         if assembly_type in [assembly.AssemblyTypes.CANDIDATE, assembly.AssemblyTypes.PREVIEW]:
-            src_output_dir = f"{self._working_dir}/rhcos_src_staging"
+            src_output_dir = self._working_dir / "rhcos_src_staging"
+            src_output_dir.mkdir(parents=True, exist_ok=True)
             for arch in data['content']:
                 if arch != "multi":
                     cmd = [
@@ -391,11 +410,11 @@ class PromotePipeline:
                         "config:rhcos-srpms",
                         "--version", data["content"][arch]['rhcos_version'],
                         "--arch", arch,
-                        "-o", src_output_dir,
+                        "-o", str(src_output_dir),
                     ]
                     await exectools.cmd_assert_async(cmd, env=self._doozer_env_vars)
             # Publish the clients to our S3 bucket.
-            await sync_dir_to_s3_mirror(src_output_dir, "/pub/openshift-v4/sources/packages/", "", "", False, False)
+            await sync_dir_to_s3_mirror(str(src_output_dir), "/pub/openshift-v4/sources/packages/", "", "", dry_run=self.runtime.dry_run, remove_old=False)
         else:
             self._logger.info("Skipping sync srpms of rhcos")
 
@@ -409,11 +428,133 @@ class PromotePipeline:
         self._logger.warn("Issue %s is permitted with justification: %s", err, justification)
         return justification
 
-    async def publish_client(self, working_dir, from_release_tag, release_name, build_arch, client_type):
-        _, minor = util.isolate_major_minor_in_group(self.group)
-        quay_url = constants.QUAY_RELEASE_REPO_URL
+    async def extract_and_publish_clients(self, client_type: str, release_infos: Dict):
+        logger = self._logger
+        # make sure login to quay
+        if "QUAY_PASSWORD" in os.environ:
+            cmd = ["docker", "login", "-u", "openshift-release-dev+art_quay_dev", "-p", f"{os.environ['QUAY_PASSWORD']}", "quay.io"]
+            await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
+        base_to_mirror_dir = f"{self._working_dir}/to_mirror/openshift-v4"
+        message_digests = []
+        for arch, release_info in release_infos.items():
+            logger.info("Extracting client binaries for %s", arch)
+            pullspec = release_info["image"]
+            release_name = release_info["metadata"]["version"]
+            if arch == "multi":
+                manifest_arches = [brew_arch_for_go_arch(manifest["platform"]["architecture"]) for manifest in release_info.get("manifests", [])]
+                message_digest = await self.publish_multi_client(base_to_mirror_dir, pullspec, release_name, manifest_arches, client_type)
+            else:
+                message_digest = await self.publish_client(base_to_mirror_dir, pullspec, release_name, arch, client_type)
+            message_digests.append(message_digest)
+        return message_digests
+
+    async def sign_artifacts(self, release_name: str, client_type: str, release_infos: Dict, message_digests: List[str]):
+        """ Signs artifacts and publishes signature files to mirror
+        """
+        if not self.signing_env:
+            raise ValueError("--signing-env is missing")
+        cert_file = os.environ["SIGNING_CERT"]
+        key_file = os.environ["SIGNING_KEY"]
+        uri = constants.UMB_BROKERS[self.signing_env]
+        sig_keyname = "redhatrelease2" if client_type == 'ocp' else "beta2"
+        self._logger.info("About to sign artifacts with key %s", sig_keyname)
+        json_digest_sig_dir = self._working_dir / "json_digests"
+        message_digest_sig_dir = self._working_dir / "message_digests"
+        base_to_mirror_dir = self._working_dir / "to_mirror/openshift-v4"
+
+        lock_name = f'signing-lock-{self.signing_env}'
+        lock_policy = locks.LOCK_POLICY['default']
+        lock_manager = locks.new_lock_manager(
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
+        async with await lock_manager.lock(lock_name):
+            async with AsyncSignatory(uri, cert_file, key_file, sig_keyname=sig_keyname) as signatory:
+                tasks = []
+                for release_info in release_infos.values():
+                    pullspec = release_info["image"]
+                    digest = release_info["digest"]
+                    sig_file = json_digest_sig_dir / f"{digest.replace(':', '=')}" / "signature-1"
+                    tasks.append(self._sign_json_digest(signatory, release_info["metadata"]["version"], pullspec, digest, sig_file))
+                for message_digest in message_digests:
+                    input_path = base_to_mirror_dir / message_digest
+                    if not input_path.is_file():
+                        raise IOError(f"Message digest file {input_path} doesn't exist or is not a regular file")
+                    sig_file = message_digest_sig_dir / f"{message_digest}.gpg"
+                    tasks.append(self._sign_message_digest(signatory, release_name, input_path, sig_file))
+                await asyncio.gather(*tasks)
+
+        self._logger.info("All artifacts have been successfully signed.")
+        self._logger.info("Publishing signatures...")
+        tasks = [
+            self._publish_json_digest_signatures(json_digest_sig_dir),
+            self._publish_message_digest_signatures(message_digest_sig_dir),
+        ]
+        await asyncio.gather(*tasks)
+        self._logger.info("All signatures have been published.")
+
+    async def _sign_json_digest(self, signatory: AsyncSignatory, release_name: str, pullspec: str, digest: str, sig_path: Path):
+        """ Sign a JSON digest claim
+        :param signatory: Signatory
+        :param pullspec: Pullspec of the payload
+        :param digest: SHA256 digest of the payload
+        :param sig_path: Where to save the signature file
+        """
+        self._logger.info("Signing json digest for payload %s with digest %s...", pullspec, digest)
+        if self.runtime.dry_run:
+            self._logger.warning("[DRY RUN] Would have signed the requested artifact.")
+            return
+        sig_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(sig_path, "wb") as sig_file:
+            await signatory.sign_json_digest(
+                product="openshift",
+                release_name=release_name,
+                pullspec=pullspec,
+                digest=digest,
+                sig_file=sig_file)
+
+    async def _sign_message_digest(self, signatory: AsyncSignatory, release_name, input_path: Path, sig_path: Path):
+        """ Sign a message digest
+        :param signatory: Signatory
+        :param input_path: Path to the message digest file
+        :param sig_path: Where to save the signature file
+        """
+        self._logger.info("Signing message digest file %s...", input_path.absolute())
+        if self.runtime.dry_run:
+            self._logger.warning("[DRY RUN] Would have signed the requested artifact.")
+            return
+        sig_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(input_path, "rb") as in_file, open(sig_path, "wb") as sig_file:
+            await signatory.sign_message_digest(
+                product="openshift",
+                release_name=release_name,
+                artifact=in_file,
+                sig_file=sig_file)
+
+    async def _publish_json_digest_signatures(self, local_dir: Union[str, Path], env: str = "prod"):
+        tasks = []
+        # mirror to S3
+        mirror_release_path = "release" if env == "prod" else "test"
+        tasks.append(util.mirror_to_s3(local_dir, f"s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift/{mirror_release_path}/", exclude="*", include="sha256=*", dry_run=self.runtime.dry_run))
+        if mirror_release_path == "release":
+            tasks.append(util.mirror_to_s3(local_dir, "s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release/", exclude="*", include="sha256=*", dry_run=self.runtime.dry_run))
+            tasks.append(util.mirror_to_s3(local_dir, "s3://art-srv-enterprise/pub/openshift-v4/signatures/openshift-release-dev/ocp-release-nightly/", exclude="*", include="sha256=*", dry_run=self.runtime.dry_run))
+
+        # mirror to google storage
+        google_storage_path = "official" if env == "prod" else "test-1"
+        tasks.append(util.mirror_to_google_cloud(f"{local_dir}/*", f"gs://openshift-release/{google_storage_path}/signatures/openshift/release", dry_run=self.runtime.dry_run))
+        tasks.append(util.mirror_to_google_cloud(f"{local_dir}/*", f"gs://openshift-release/{google_storage_path}/signatures/openshift-release-dev/ocp-release", dry_run=self.runtime.dry_run))
+        tasks.append(util.mirror_to_google_cloud(f"{local_dir}/*", f"gs://openshift-release/{google_storage_path}/signatures/openshift-release-dev/ocp-release-nightly", dry_run=self.runtime.dry_run))
+
+        await asyncio.gather(*tasks)
+
+    async def _publish_message_digest_signatures(self, local_dir: Union[str, Path]):
+        # mirror to S3
+        await util.mirror_to_s3(local_dir, "s3://art-srv-enterprise/pub/openshift-v4/", exclude="*", include="*/sha256sum.txt.gpg", dry_run=self.runtime.dry_run)
+
+    async def publish_client(self, base_to_mirror_dir: str, pullspec, release_name, build_arch, client_type):
         # Anything under this directory will be sync'd to the mirror
-        base_to_mirror_dir = f"{working_dir}/to_mirror/openshift-v4"
         shutil.rmtree(f"{base_to_mirror_dir}/{build_arch}", ignore_errors=True)
 
         # From the newly built release, extract the client tools into the workspace following the directory structure
@@ -422,11 +563,11 @@ class PromotePipeline:
         os.makedirs(client_mirror_dir)
 
         # extract release clients tools
-        extract_release_client_tools(f"{quay_url}:{from_release_tag}", f"--to={client_mirror_dir}", None)
+        extract_release_client_tools(pullspec, f"--to={client_mirror_dir}", None)
 
         # Get cli installer operator-registry pull-spec from the release
         for release_component_tag_name, source_name in constants.MIRROR_CLIENTS.items():
-            image_stat, cli_pull_spec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", release_component_tag_name)
+            image_stat, cli_pull_spec = get_release_image_pullspec(pullspec, release_component_tag_name)
             if image_stat == 0:  # image exists
                 _, image_info = get_release_image_info_from_pullspec(cli_pull_spec)
                 # Retrieve the commit from image info
@@ -435,14 +576,14 @@ class PromotePipeline:
                 # URL to download the tarball a specific commit
                 response = requests.get(f"{source_url}/archive/{commit}.tar.gz", stream=True)
                 if response.ok:
-                    with open(f"{client_mirror_dir}/{source_name}-src-{from_release_tag}.tar.gz", "wb") as f:
+                    with open(f"{client_mirror_dir}/{source_name}-src-{release_name}-{build_arch}.tar.gz", "wb") as f:
                         f.write(response.raw.read())
                     # calc shasum
-                    with open(f"{client_mirror_dir}/{source_name}-src-{from_release_tag}.tar.gz", 'rb') as f:
+                    with open(f"{client_mirror_dir}/{source_name}-src-{release_name}-{build_arch}.tar.gz", 'rb') as f:
                         shasum = hashlib.sha256(f.read()).hexdigest()
                     # write shasum to sha256sum.txt
                     with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:
-                        f.write(f"{shasum}  {source_name}-src-{from_release_tag}.tar.gz\n")
+                        f.write(f"{shasum}  {source_name}-src-{release_name}-{build_arch}.tar.gz\n")
                 else:
                     response.raise_for_status()
             else:
@@ -450,7 +591,7 @@ class PromotePipeline:
 
         # ART-7207 - upload baremetal installer binary to mirror
         if build_arch == 'x86_64':
-            self.publish_baremetal_installer_binary(from_release_tag, client_mirror_dir)
+            self.publish_baremetal_installer_binary(pullspec, client_mirror_dir)
 
         # Starting from 4.14, oc-mirror will be synced for all arches. See ART-6820 and ART-6863
         # oc-mirror was introduced in 4.10, so skip for <= 4.9.
@@ -458,7 +599,7 @@ class PromotePipeline:
         if (major > 4 or minor >= 14) or (major == 4 and minor >= 10 and build_arch == 'x86_64'):
             # oc image  extract requires an empty destination directory. So do this before extracting tools.
             # oc adm release extract --tools does not require an empty directory.
-            image_stat, oc_mirror_pullspec = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "oc-mirror")
+            image_stat, oc_mirror_pullspec = get_release_image_pullspec(pullspec, "oc-mirror")
             if image_stat == 0:  # image exist
                 # extract image to workdir, if failed it will raise error in function
                 extract_release_binary(oc_mirror_pullspec, [f"--path=/usr/bin/oc-mirror:{client_mirror_dir}"])
@@ -480,18 +621,17 @@ class PromotePipeline:
         self.create_symlink(client_mirror_dir, False, False)
 
         # extract opm binaries
-        _, operator_registry = get_release_image_pullspec(f"{quay_url}:{from_release_tag}", "operator-registry")
+        _, operator_registry = get_release_image_pullspec(pullspec, "operator-registry")
         self.extract_opm(client_mirror_dir, release_name, operator_registry, build_arch)
 
         util.log_dir_tree(client_mirror_dir)  # print dir tree
         util.log_file_content(f"{client_mirror_dir}/sha256sum.txt")  # print sha256sum.txt
 
         # Publish the clients to our S3 bucket.
-        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {base_to_mirror_dir}/{build_arch} s3://art-srv-enterprise/pub/openshift-v4/{build_arch}", stdout=sys.stderr)
+        await util.mirror_to_s3(f"{base_to_mirror_dir}/{build_arch}", f"s3://art-srv-enterprise/pub/openshift-v4/{build_arch}", dry_run=self.runtime.dry_run)
+        return f"{build_arch}/clients/{client_type}/{release_name}/sha256sum.txt"
 
-    def publish_baremetal_installer_binary(self, from_release_tag: str, client_mirror_dir: str):
-        # Get baremetal image pullspec
-        release_pullspec = f'{constants.QUAY_RELEASE_REPO_URL}:{from_release_tag}'
+    def publish_baremetal_installer_binary(self, release_pullspec: str, client_mirror_dir: str):
         _, baremetal_installer_pullspec = get_release_image_pullspec(release_pullspec, 'baremetal-installer')
         self._logger.info('baremetal-installer pullspec: %s', baremetal_installer_pullspec)
 
@@ -542,21 +682,18 @@ class PromotePipeline:
             with open(f"{client_mirror_dir}/sha256sum.txt", 'a') as f:  # write shasum to sha256sum.txt
                 f.write(f"{shasum}  opm-{platform}-{release_name}.tar.gz\n")
 
-    async def publish_multi_client(self, working_dir, from_release_tag, release_name, arch_list, client_type):
+    async def publish_multi_client(self, base_to_mirror_dir: str, pullspec: str, release_name, arch_list, client_type):
         # Anything under this directory will be sync'd to the mirror
-        base_to_mirror_dir = f"{working_dir}/to_mirror/openshift-v4"
         shutil.rmtree(f"{base_to_mirror_dir}/multi", ignore_errors=True)
         release_mirror_dir = f"{base_to_mirror_dir}/multi/clients/{client_type}/{release_name}"
-
-        for go_arch in [go_arch_for_brew_arch(arch) for arch in arch_list]:
-            if go_arch == "multi":
-                continue
+        for arch in arch_list:
+            go_arch = go_arch_for_brew_arch(arch)
             # From the newly built release, extract the client tools into the workspace following the directory structure
             # we expect to publish to mirror
             client_mirror_dir = f"{release_mirror_dir}/{go_arch}"
             os.makedirs(client_mirror_dir)
             # extract release clients tools
-            extract_release_client_tools(f"{constants.QUAY_RELEASE_REPO_URL}:{from_release_tag}", f"--to={client_mirror_dir}", go_arch)
+            extract_release_client_tools(pullspec, f"--to={client_mirror_dir}", go_arch)
             # create symlink for clients
             self.create_symlink(path_to_dir=client_mirror_dir, log_tree=True, log_shasum=True)
 
@@ -575,7 +712,8 @@ class PromotePipeline:
         util.log_dir_tree(release_mirror_dir)
 
         # Publish the clients to our S3 bucket.
-        await exectools.cmd_assert_async(f"aws s3 sync --no-progress --exact-timestamps {base_to_mirror_dir}/multi s3://art-srv-enterprise/pub/openshift-v4/multi", stdout=sys.stderr)
+        await util.mirror_to_s3(f"{base_to_mirror_dir}/multi", "s3://art-srv-enterprise/pub/openshift-v4/multi", dry_run=self.runtime.dry_run)
+        return f"multi/clients/{client_type}/{release_name}/sha256sum.txt"
 
     def create_symlink(self, path_to_dir, log_tree, log_shasum):
         # External consumers want a link they can rely on.. e.g. .../latest/openshift-client-linux.tgz .
@@ -947,7 +1085,6 @@ class PromotePipeline:
             self._logger.info("Pushing manifest list...")
             await self.push_manifest_list(release_name, dest_manifest_list)
             self._logger.info("Heterogeneous release payload for %s has been built. Manifest list pullspec is %s", release_name, dest_image_pullspec)
-            self._logger.info("Getting release image information for %s...", dest_image_pullspec)
 
             # Get info of the pushed manifest list
             self._logger.info("Getting release image information for %s...", dest_image_pullspec)
@@ -1230,26 +1367,34 @@ class PromotePipeline:
               help="Do not gather an advisory image list for docs.")
 @click.option("--skip-build-microshift", is_flag=True,
               help="Do not build microshift rpm")
+@click.option("--skip-signing", is_flag=True,
+              help="Do not sign artifacts")
 @click.option("--permit-overwrite", is_flag=True,
               help="DANGER! Allows the pipeline to overwrite an existing payload.")
 @click.option("--no-multi", is_flag=True, help="Do not promote a multi-arch/heterogeneous payload.")
 @click.option("--multi-only", is_flag=True, help="Do not promote arch-specific homogenous payloads.")
 @click.option("--skip-mirror-binaries", is_flag=True, help="Do not mirror client binaries to mirror")
 @click.option("--use-multi-hack", is_flag=True, help="Add '-multi' to heterogeneous payload name to workaround a Cincinnati issue")
+@click.option("--signing-env", type=click.Choice(("prod", "stage")),
+              help="Signing server environment: prod or stage")
 @pass_runtime
 @click_coroutine
 async def promote(runtime: Runtime, group: str, assembly: str,
                   skip_blocker_bug_check: bool, skip_attached_bug_check: bool,
                   skip_image_list: bool,
                   skip_build_microshift: bool,
+                  skip_signing: bool,
                   permit_overwrite: bool, no_multi: bool, multi_only: bool,
                   skip_mirror_binaries: bool,
-                  use_multi_hack: bool):
+                  use_multi_hack: bool,
+                  signing_env: Optional[str]):
     pipeline = PromotePipeline(runtime, group, assembly,
                                skip_blocker_bug_check, skip_attached_bug_check,
                                skip_image_list,
                                skip_build_microshift,
+                               skip_signing,
                                permit_overwrite, no_multi, multi_only,
                                skip_mirror_binaries,
-                               use_multi_hack)
+                               use_multi_hack,
+                               signing_env)
     await pipeline.run()

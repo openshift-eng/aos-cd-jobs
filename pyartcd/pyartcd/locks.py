@@ -9,6 +9,12 @@ from pyartcd import redis
 # - the sleep interval between two consecutive retries, in seconds
 # - a timeout, after which the lock will expire and clear itself
 LOCK_POLICY = {
+    # default policy: give up after 1 hour
+    'default': {
+        'retry_count': 36000,
+        'retry_delay_min': 0.1,
+        'lock_timeout': 60 * 60 * 1,  # 1 hours
+    },
     # olm-bundle: give up after 1 hour
     'olm_bundle': {
         'retry_count': 36000,

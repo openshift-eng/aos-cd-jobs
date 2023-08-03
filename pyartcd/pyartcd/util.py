@@ -2,10 +2,11 @@ import logging
 import os
 import re
 import shutil
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import aiofiles
 import yaml
@@ -590,3 +591,30 @@ The following logs are just the container build portion of the OSBS build:
             subject=f'Failed OCP build of {failure["image"]}:{failure["version"]}',
             content=explanation_body
         )
+
+
+async def mirror_to_s3(source: Union[str, Path], dest: str, exclude: Optional[str] = None, include: Optional[str] = None, dry_run=False):
+    """
+    Copy to AWS S3
+    """
+    cmd = ["aws", "s3", "sync", "--no-progress", "--exact-timestamps"]
+    if exclude is not None:
+        cmd.append(f"--exclude={exclude}")
+    if include is not None:
+        cmd.append(f"--include={include}")
+    if dry_run:
+        cmd.append("--dryrun")
+    cmd.extend(["--", f"{source}", f"{dest}"])
+    await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)
+
+
+async def mirror_to_google_cloud(source: Union[str, Path], dest: str, dry_run=False):
+    """
+    Copy to Google Cloud
+    """
+    # -n - no clobber/overwrite; -v - print url of item; -L - write to log for auto re-processing; -r - recursive
+    cmd = ["gsutil", "cp", "-n", "-v", "-r", "--", f"{source}", f"{dest}"]
+    if dry_run:
+        logger.warning("[DRY RUN] Would have run %s", cmd)
+        return
+    await exectools.cmd_assert_async(cmd, env=os.environ.copy(), stdout=sys.stderr)

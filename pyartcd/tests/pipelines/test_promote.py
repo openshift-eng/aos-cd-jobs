@@ -95,6 +95,22 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
         ]
     }
 
+    def setUp(self) -> None:
+        os.environ.update({
+            "GITHUB_TOKEN": "fake-github-token",
+            "JIRA_TOKEN": "fake-jira-token",
+            "QUAY_PASSWORD": "fake-quay-password",
+            "SIGNING_CERT": "/path/to/signing.crt",
+            "SIGNING_KEY": "/path/to/signing.key",
+            "REDIS_SERVER_PASSWORD": "fake-redis-server-password",
+            "REDIS_HOST": "fake-redis-host",
+            "REDIS_PORT": "12345",
+            "JENKINS_SERVICE_ACCOUNT": "fake-jenkins-service-account",
+            "JENKINS_SERVICE_ACCOUNT_TOKEN": "fake-jenkins-service-account-token",
+            "AWS_ACCESS_KEY_ID": "fake-aws-access-key-id",
+            "AWS_SECRET_ACCESS_KEY": "fake-aws-crecret-access-key",
+        })
+
     @patch("pyartcd.jira.JIRAClient.from_url", return_value=None)
     @patch("pyartcd.pipelines.promote.util.load_releases_config", return_value={})
     @patch("pyartcd.pipelines.promote.util.load_group_config", return_value=dict(arches=["x86_64", "s390x"]))
@@ -112,8 +128,8 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
-        with self.assertRaisesRegex(ValueError, "must be explictly defined"):
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", signing_env="prod")
+        with self.assertRaisesRegex(ValueError, "must be explicitly defined"):
             await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
         load_releases_config.assert_awaited_once_with(
@@ -137,7 +153,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="stream")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="stream", signing_env="prod")
         with self.assertRaisesRegex(ValueError, "not supported"):
             await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "stream", env=ANY)
@@ -164,7 +180,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             dry_run=False,
             new_slack_client=MagicMock(return_value=AsyncMock())
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001", signing_env="prod")
         with self.assertRaisesRegex(ValueError, "patch_version is not set"):
             await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "art0001", env=ANY)
@@ -216,7 +232,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
         runtime.new_slack_client.return_value.bind_channel = MagicMock()
 
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="art0001",
-                                   skip_attached_bug_check=True, skip_mirror_binaries=True)
+                                   skip_attached_bug_check=True, skip_mirror_binaries=True, signing_env="prod")
 
         await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "art0001", env=ANY)
@@ -258,13 +274,14 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
         runtime.new_slack_client.return_value = AsyncMock()
         runtime.new_slack_client.return_value.say.return_value = {'message': {'ts': ''}}
         runtime.new_slack_client.return_value.bind_channel = MagicMock()
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", signing_env="prod")
 
         with self.assertRaisesRegex(ValueError, "missing the required `upgrades` field"):
             await pipeline.run()
         load_group_config.assert_awaited_once_with("openshift-4.10", "4.10.99", env=ANY)
         load_releases_config.assert_awaited_once_with(group='openshift-4.10', data_path='https://example.com/ocp-build-data.git')
 
+    @patch("pyartcd.pipelines.promote.PromotePipeline.sign_artifacts")
     @patch("pyartcd.jira.JIRAClient.from_url", return_value=None)
     @patch("pyartcd.pipelines.promote.PromotePipeline.build_release_image", return_value=None)
     @patch("pyartcd.pipelines.promote.get_release_image_info", side_effect=lambda pullspec, raise_if_not_found=False: {
@@ -301,7 +318,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
     @patch("pyartcd.pipelines.promote.PromotePipeline.get_image_stream")
     async def test_run_with_standard_assembly(self, get_image_stream: AsyncMock, load_group_config: AsyncMock,
                                               load_releases_config: AsyncMock, get_release_image_info: AsyncMock,
-                                              build_release_image: AsyncMock, _):
+                                              build_release_image: AsyncMock, _, __):
         runtime = MagicMock(
             config={
                 "build_config": {
@@ -318,7 +335,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
         runtime.new_slack_client.return_value.say.return_value = {'message': {'ts': ''}}
         runtime.new_slack_client.return_value.bind_channel = MagicMock()
         pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99",
-                                   skip_mirror_binaries=True)
+                                   skip_mirror_binaries=True, signing_env="prod")
         pipeline.check_blocker_bugs = AsyncMock()
         pipeline.change_advisory_state = AsyncMock()
         pipeline.get_advisory_info = AsyncMock(return_value={
@@ -396,7 +413,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", signing_env="prod")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -479,7 +496,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", signing_env="prod")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -512,7 +529,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
         runtime = MagicMock(config={"build_config": {"ocp_build_data_url": "https://example.com/ocp-build-data.git"},
                                     "jira": {"url": "https://issues.redhat.com/"}},
                             working_dir=Path("/path/to/working"), dry_run=False)
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", signing_env="prod")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -572,7 +589,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", signing_env="prod")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -757,7 +774,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", use_multi_hack=True)
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", use_multi_hack=True, signing_env="prod")
         previous_list = ["4.10.98", "4.10.97", "4.9.99"]
         metadata = {"description": "whatever", "url": "https://access.redhat.com/errata/RHBA-2099:2222"}
 
@@ -870,7 +887,7 @@ class TestPromotePipeline(IsolatedAsyncioTestCase):
             working_dir=Path("/path/to/working"),
             dry_run=False
         )
-        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99")
+        pipeline = PromotePipeline(runtime, group="openshift-4.10", assembly="4.10.99", signing_env="prod")
         temp_dir = tempfile.mkdtemp()
         os.chdir(temp_dir)
         open("openshift-client-linux-4.3.0-0.nightly-2019-12-06-161135.tar.gz", "w").close()

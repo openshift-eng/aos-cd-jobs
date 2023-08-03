@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import toml
+import tomli
 
 from pyartcd.jira import JIRAClient
 from pyartcd.mail import MailService
@@ -33,8 +33,8 @@ class Runtime:
 
     @classmethod
     def from_config_file(cls, config_filename: Path, working_dir: Path, dry_run: bool):
-        with open(config_filename, "r") as config_file:
-            config_dict = toml.load(config_file)
+        with open(config_filename, "rb") as config_file:
+            config_dict = tomli.load(config_file)
         return Runtime(config=config_dict, working_dir=working_dir, dry_run=dry_run)
 
     def new_jira_client(self, jira_token: Optional[str] = None):

@@ -1,18 +1,22 @@
-aiohttp[speedups] >= 3.6
+Jinja2
 aiofiles
+aiohttp[speedups] >= 3.6
+aiohttp_retry
 aioredlock >= 0.7.3
 click
 contextvars
 errata-tool ~= 1.31.0
+cryptography
 ghapi
 jenkinsapi >= 0.3.13  # https://github.com/pycontribs/jenkinsapi/issues/833
-Jinja2
 jira >= 3.4.1  # https://github.com/pycontribs/jira/issues/1486
 openshift-client
 pygit2 == 1.10.1 # https://github.com/libgit2/pygit2/issues/1176
+rh-doozer
+rh-elliott
 ruamel.yaml
-semver >= 2.13.0
+semver ~= 3.0.1
 slack_sdk >= 3.13.0
+stomp.py ~= 8.1.0
 tenacity
-aiohttp_retry
-toml
+tomli ~= 2.0.1

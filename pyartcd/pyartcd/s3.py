@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from pyartcd import exectools
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -19,7 +20,7 @@ async def sync_repo_to_s3_mirror(local_dir: str, s3_path: str, dry_run: bool = F
         await sync_dir_to_s3_mirror(local_dir, s3_path, exclude='', include_only='', dry_run=dry_run, remove_old=True)
 
 
-async def sync_dir_to_s3_mirror(local_dir: str, s3_path: str, exclude: str, include_only: str,
+async def sync_dir_to_s3_mirror(local_dir: str, s3_path: str, exclude: Optional[str] = None, include_only: Optional[str] = None,
                                 dry_run: bool = False, remove_old: bool = True):
     """
     Sync a directory to an s3 bucket.

@@ -15,8 +15,8 @@ fi
 
 tar -cjf brew-logs.tar.bz2 ${BREWLOGS}
 tar -tf brew-logs.tar.bz2
-mv brew-logs.tar.bz2 doozer_working/brew-logs.tar.bz2
+mv brew-logs.tar.bz2 artcd_working/doozer_working/brew-logs.tar.bz2
 rm -rf $BREWLOGS
 
 echo "Compressed brew logs:"
-ls -lh doozer_working/brew-logs.tar.bz2
+ls -lh artcd_working/doozer_working/brew-logs.tar.bz2

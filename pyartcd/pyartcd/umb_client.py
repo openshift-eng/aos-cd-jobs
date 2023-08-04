@@ -169,7 +169,7 @@ class UMBClientConnectionListener(stomp.ConnectionListener):
         self._client.on_disconnected()
         # notify all pending futures of the disconnection
         for future_id in self._futures.keys():
-            if id == "on_disconnected":
+            if future_id == "on_disconnected":
                 self._complete_future("on_disconnected", None)
             else:
                 self._err_future(future_id, IOError("Connection lost"))

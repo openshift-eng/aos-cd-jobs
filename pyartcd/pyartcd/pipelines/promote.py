@@ -472,11 +472,23 @@ class PromotePipeline:
         async with await lock_manager.lock(lock_name):
             async with AsyncSignatory(uri, cert_file, key_file, sig_keyname=sig_keyname) as signatory:
                 tasks = []
+                json_digests = []
                 for release_info in release_infos.values():
+                    version = release_info["metadata"]["version"]
                     pullspec = release_info["image"]
                     digest = release_info["digest"]
+                    json_digests.append((version, pullspec, digest))
+                    # if this payload is a manifest list, iterate through each manifest
+                    manifests = release_info.get("manifests", [])
+                    for manifest in manifests:
+                        if manifest["platform"]["os"] != "linux":
+                            raise ValueError("Unsupported OS %s in manifest list %s", manifest["platform"]["os"], release_info["image"])
+                        json_digests.append((version, pullspec, manifest["digest"]))
+
+                for version, pullspec, digest in json_digests:
                     sig_file = json_digest_sig_dir / f"{digest.replace(':', '=')}" / "signature-1"
-                    tasks.append(self._sign_json_digest(signatory, release_info["metadata"]["version"], pullspec, digest, sig_file))
+                    tasks.append(self._sign_json_digest(signatory, version, pullspec, digest, sig_file))
+
                 for message_digest in message_digests:
                     input_path = base_to_mirror_dir / message_digest
                     if not input_path.is_file():
@@ -487,10 +499,11 @@ class PromotePipeline:
 
         self._logger.info("All artifacts have been successfully signed.")
         self._logger.info("Publishing signatures...")
-        tasks = [
-            self._publish_json_digest_signatures(json_digest_sig_dir),
-            self._publish_message_digest_signatures(message_digest_sig_dir),
-        ]
+        tasks = []
+        if json_digests:
+            tasks.append(self._publish_json_digest_signatures(json_digest_sig_dir))
+        if message_digests:
+            tasks.append(self._publish_message_digest_signatures(message_digest_sig_dir))
         await asyncio.gather(*tasks)
         self._logger.info("All signatures have been published.")
 

@@ -33,6 +33,12 @@ LOCK_POLICY = {
         'retry_delay_min': 0.1,
         'lock_timeout': 60 * 60 * 6,  # 6 hours
     },
+    # ocp4: give up after 1 hour
+    'ocp4': {
+        'retry_count': 36000 * 1,
+        'retry_delay_min': 0.1,
+        'lock_timeout': 60 * 60 * 6,  # 12 hours
+    },
     # mass rebuild: give up after 8 hours
     'mass_rebuild': {
         'retry_count': 36000 * 8,

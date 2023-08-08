@@ -104,6 +104,10 @@ node {
                 cmd << "--component"
                 cmd << params.DISTGIT_KEY
             }
+            if (params.IGNORE_LOCKS) {
+                cmd << "--ignore-locks"
+            }
+
             sshagent(["openshift-bot"]) {
                 withCredentials([
                     string(credentialsId: 'gitlab-ocp-release-schedule-schedule', variable: 'GITLAB_TOKEN'),
@@ -113,9 +117,6 @@ node {
                     file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
                 ]) {
                     echo "Will run ${cmd}"
-                    if (!params.IGNORE_LOCKS) {
-                        lock("github-activity-lock-${params.BUILD_VERSION}")
-                    }
                     withEnv([
                         "BUILD_USER_EMAIL=${builderEmail?: ''}",
                         "BUILD_URL=${BUILD_URL}",

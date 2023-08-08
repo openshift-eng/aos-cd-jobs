@@ -69,9 +69,6 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
         stage("Initialize") {
             currentBuild.displayName = "#${currentBuild.number} Scanning version ${params.VERSION}"
 
-            // this lock ensures we are not scanning during an active build
-            activityLockName = "github-activity-lock-${params.VERSION}"
-
             if (params.DRY_RUN) {
                 currentBuild.displayName += "[DRY_RUN]"
             }
@@ -101,46 +98,44 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                     withCredentials([string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'), string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
                         // There is a vanishingly small race condition here, but it is not dangerous;
                         // it can only lead to undesired delays (i.e. waiting to scan while a build is ongoing).
-                        lock(activityLockName) {
-                            wrap([$class: 'BuildUser']) {
-                                builderEmail = env.BUILD_USER_EMAIL
-                            }
+                        wrap([$class: 'BuildUser']) {
+                            builderEmail = env.BUILD_USER_EMAIL
+                        }
 
-                            withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
-                                try {
-                                    echo "Will run ${cmd}"
-                                    sh(script: cmd.join(' '), returnStdout: true)
+                        withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}"]) {
+                            try {
+                                echo "Will run ${cmd}"
+                                sh(script: cmd.join(' '), returnStdout: true)
 
-                                    // success email only if requested for this build
-                                    if (params.MAIL_LIST_SUCCESS.trim()) {
-                                        commonlib.email(
-                                            to: "${params.MAIL_LIST_SUCCESS}",
-                                            from: "aos-art-automation@redhat.com",
-                                            replyTo: "aos-team-art@redhat.com",
-                                            subject: "Success scanning OCP version: ${params.VERSION}",
-                                            body: "Success scanning OCP:\n${env.BUILD_URL}"
-                                        )
-                                    }
-
-                                } catch (err) {
-                                    echo "Error running ${params.VERSION} scan:\n${err}"
+                                // success email only if requested for this build
+                                if (params.MAIL_LIST_SUCCESS.trim()) {
                                     commonlib.email(
-                                        to: "${params.MAIL_LIST_FAILURE}",
+                                        to: "${params.MAIL_LIST_SUCCESS}",
                                         from: "aos-art-automation@redhat.com",
                                         replyTo: "aos-team-art@redhat.com",
-                                        subject: "Unexpected error during OCP scan!",
-                                        body: "Encountered an unexpected error while running OCP scan: ${err}"
+                                        subject: "Success scanning OCP version: ${params.VERSION}",
+                                        body: "Success scanning OCP:\n${env.BUILD_URL}"
                                     )
-                                    throw err
-
-                                } finally {
-                                    sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
-                                    sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
-                                    commonlib.safeArchiveArtifacts(["${doozer_working}/*.bz2"])
-                                    buildlib.cleanWorkspace()
                                 }
-                            } // withEnv
-                        } // lock
+
+                            } catch (err) {
+                                echo "Error running ${params.VERSION} scan:\n${err}"
+                                commonlib.email(
+                                    to: "${params.MAIL_LIST_FAILURE}",
+                                    from: "aos-art-automation@redhat.com",
+                                    replyTo: "aos-team-art@redhat.com",
+                                    subject: "Unexpected error during OCP scan!",
+                                    body: "Encountered an unexpected error while running OCP scan: ${err}"
+                                )
+                                throw err
+
+                            } finally {
+                                sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
+                                sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
+                                commonlib.safeArchiveArtifacts(["${doozer_working}/*.bz2"])
+                                buildlib.cleanWorkspace()
+                            }
+                        } // withEnv
                     } // withCredentials
                 } // withAppCiAsArtPublish
             } // sshagent

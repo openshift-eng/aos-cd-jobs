@@ -427,7 +427,7 @@ class Ocp4Pipeline:
             return f' [{kind}s except {desc}]'
         return f' [{desc} {plurality}]'
 
-    async def _build_rpms(self):
+    async def _rebase_and_build_rpms(self):
         if not self.build_plan.build_rpms:
             self.runtime.logger.info('Not building RPMs.')
             return
@@ -543,7 +543,7 @@ class Ocp4Pipeline:
             # will find consistent RPMs.
             jenkins.start_rhcos(build_version=self.version.stream, new_build=False, blocking=False)
 
-    async def _update_distgit(self):
+    async def _rebase_images(self):
         if not self.build_plan.build_images:
             self.runtime.logger.info('Not rebasing images')
             return
@@ -820,12 +820,12 @@ class Ocp4Pipeline:
             self.runtime.logger.info('Building only where source has changed.')
             await self._plan_builds()
 
-        await self._build_rpms()
+        await self._rebase_and_build_rpms()
         if not self.skip_plashets:
             await self._build_compose()
         else:
             self.runtime.logger.warning('Skipping plashets creation as SKIP_PLASHETS was set to True')
-        await self._update_distgit()
+        await self._rebase_images()
         await self._build_images()
         await self._sync_images()
         await self._mirror_rpms()
@@ -861,11 +861,13 @@ class Ocp4Pipeline:
               help='Do not build plashets (for example to save time when running multiple builds against test assembly)')
 @click.option('--mail-list-failure', required=False, default='aos-art-automation+failed-ocp4-build@redhat.com',
               help='Failure Mailing List')
+@click.option('--ignore-locks', is_flag=True, default=False,
+              help='Do not wait for other builds in this version to complete (use only if you know they will not conflict)')
 @pass_runtime
 @click_coroutine
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
                build_rpms: str, rpm_list: str, build_images: str, image_list: str, skip_plashets: bool,
-               mail_list_failure: str):
+               mail_list_failure: str, ignore_locks: bool):
 
     if not await util.is_build_permitted(version):
         run_details.update_description('Builds not permitted', append=False)
@@ -887,4 +889,24 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
         skip_plashets=skip_plashets,
         mail_list_failure=mail_list_failure,
     )
-    await pipeline.run()
+
+    if ignore_locks:
+        await pipeline.run()
+
+    else:
+        # Create a Lock manager instance
+        lock_policy = locks.LOCK_POLICY['ocp4']
+        lock_manager = locks.new_lock_manager(
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
+        lock_name = f'github-activity-lock-{version}'
+
+        try:
+            async with await lock_manager.lock(lock_name):
+                await pipeline.run()
+
+        except LockError as e:
+            runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+            raise

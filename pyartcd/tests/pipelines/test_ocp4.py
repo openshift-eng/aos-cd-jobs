@@ -496,7 +496,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
 
         # no RPMs
         self.assertFalse(self.ocp4.build_plan.build_rpms)
-        await self.ocp4._build_rpms()
+        await self.ocp4._rebase_and_build_rpms()
         cmd_assert_mock.assert_not_awaited()
 
         # Include RPMs
@@ -504,7 +504,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4.build_plan.build_rpms = True
         self.ocp4.build_plan.rpms_included = ['rpm1']
         self.ocp4.build_plan.rpms_excluded = []
-        await self.ocp4._build_rpms()
+        await self.ocp4._rebase_and_build_rpms()
         cmd_assert_mock.assert_awaited_once_with(
             [
                 'doozer', '--assembly=stream', '--working-dir=doozer_working',
@@ -519,7 +519,7 @@ class TestBuilds(unittest.IsolatedAsyncioTestCase):
         self.ocp4.build_plan.build_rpms = True
         self.ocp4.build_plan.rpms_included = []
         self.ocp4.build_plan.rpms_excluded = ['rpm1']
-        await self.ocp4._build_rpms()
+        await self.ocp4._rebase_and_build_rpms()
         cmd_assert_mock.assert_awaited_once_with(
             [
                 'doozer', '--assembly=stream', '--working-dir=doozer_working',
@@ -817,7 +817,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
 
         # No images to build
         pipeline.build_plan.build_images = False
-        await pipeline._update_distgit()
+        await pipeline._rebase_images()
         cmd_assert_mock.assert_not_awaited()
         bz_info_missing_mock.assert_not_called()
         reconciliations_mock.assert_not_called()
@@ -828,7 +828,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
         bz_info_missing_mock.reset_mock()
         reconciliations_mock.reset_mock()
         pipeline.build_plan.build_images = True
-        await pipeline._update_distgit()
+        await pipeline._rebase_images()
         cmd_assert_mock.assert_awaited_once_with(
             [
                 'doozer', '--assembly=stream', '--working-dir=doozer_working',
@@ -847,7 +847,7 @@ class TestUpdateDistgit(unittest.IsolatedAsyncioTestCase):
         reconciliations_mock.reset_mock()
         pipeline.build_plan.build_images = True
         pipeline.runtime.dry_run = True
-        await pipeline._update_distgit()
+        await pipeline._rebase_images()
         cmd_assert_mock.assert_not_awaited()
         bz_info_missing_mock.assert_not_called()
         reconciliations_mock.assert_not_called()

@@ -66,6 +66,9 @@ class BuildMicroShiftPipeline:
             self._elliott_env_vars["ELLIOTT_DATA_PATH"] = ocp_build_data_url
 
     async def run(self):
+        # Make sure our api.ci token is fresh
+        await oc.registry_login(self.runtime)
+
         slack_client = None
         assembly_type = AssemblyTypes.STREAM
         major, minor = util.isolate_major_minor_in_group(self.group)

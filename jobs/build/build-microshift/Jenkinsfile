@@ -112,10 +112,12 @@ node('ocp-artifacts') {
                                  string(credentialsId: 'jenkins-service-account', variable: 'JENKINS_SERVICE_ACCOUNT'),
                                  string(credentialsId: 'jenkins-service-account-token', variable: 'JENKINS_SERVICE_ACCOUNT_TOKEN')]) {
                     echo "Will run ${cmd}"
-                    if (params.IGNORE_LOCKS) {
-                        commonlib.shell(script: cmd.join(' '))
-                    } else {
-                        lock("build-microshift-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
+                    buildlib.withAppCiAsArtPublish() {
+                        if (params.IGNORE_LOCKS) {
+                            commonlib.shell(script: cmd.join(' '))
+                        } else {
+                            lock("build-microshift-lock-${params.BUILD_VERSION}") { commonlib.shell(script: cmd.join(' ')) }
+                        }
                     }
                 }
             }

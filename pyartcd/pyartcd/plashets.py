@@ -102,6 +102,7 @@ def plashet_config_for_major_minor(major, minor):
 
 
 async def build_plashets(stream: str, release: str, assembly: str = 'stream',
+                         doozer_working: str = 'doozer-working',
                          data_path: str = constants.OCP_BUILD_DATA_URL,
                          data_gitref: str = '', dry_run: bool = False) -> dict:
     """
@@ -112,6 +113,7 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
     :param stream: e.g. 4.14
     :param release: e.g. 202304181947.p?
     :param assembly: e.g. assembly name, defaults to 'stream'
+    :param doozer_working: Doozer working dir
     :param data_path: ocp-build-data fork to use
     :param data_gitref: Doozer data path git [branch / tag / sha] to use
     :param dry_run: do not actually run the command, just log it
@@ -182,7 +184,8 @@ async def build_plashets(stream: str, release: str, assembly: str = 'stream',
             tag_pvs=((config["tag"], config['product_version']),),
             include_previous_packages=config['include_previous_packages'],
             data_path=data_path,
-            dry_run=dry_run
+            dry_run=dry_run,
+            doozer_working=doozer_working
         )
 
         logger.info('Plashet repo for %s created: %s', repo_type, local_path)
@@ -207,7 +210,7 @@ async def build_plashet_from_tags(group_param: str, assembly: str, base_dir: os.
                                   tag_pvs: Sequence[Tuple[str, str]], embargoed_tags: Optional[Sequence[str]],
                                   include_previous_packages: Optional[Sequence[str]] = None,
                                   poll_for: int = 0, data_path: str = constants.OCP_BUILD_DATA_URL,
-                                  dry_run: bool = False):
+                                  doozer_working: str = 'doozer-working', dry_run: bool = False):
     """
     Builds Plashet repo with "from-tags"
     """
@@ -218,7 +221,7 @@ async def build_plashet_from_tags(group_param: str, assembly: str, base_dir: os.
     cmd = [
         "doozer",
         f'--data-path={data_path}',
-        "--working-dir", "doozer-working",
+        "--working-dir", doozer_working,
         "--group", group_param,
         "--assembly", assembly,
         "config:plashet",

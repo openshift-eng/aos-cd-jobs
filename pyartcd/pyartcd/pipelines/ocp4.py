@@ -504,6 +504,7 @@ class Ocp4Pipeline:
                     stream=self.version.stream,
                     release=self.version.release,
                     assembly=self.assembly,
+                    doozer_working=self._doozer_working,
                     data_path=self.data_path,
                     data_gitref=self.data_gitref,
                     dry_run=self.runtime.dry_run

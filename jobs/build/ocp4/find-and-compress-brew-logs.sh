@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-BREWLOGS=`find . -name brew-logs -type d`
+BREWLOGS=`find artcd_working -name brew-logs -type d`
 
 
 if [ -s "${BREWLOGS}" ]; then

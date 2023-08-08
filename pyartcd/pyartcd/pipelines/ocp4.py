@@ -427,7 +427,7 @@ class Ocp4Pipeline:
             return f' [{kind}s except {desc}]'
         return f' [{desc} {plurality}]'
 
-    async def _build_rpms(self):
+    async def _rebase_and_build_rpms(self):
         if not self.build_plan.build_rpms:
             self.runtime.logger.info('Not building RPMs.')
             return
@@ -543,7 +543,7 @@ class Ocp4Pipeline:
             # will find consistent RPMs.
             jenkins.start_rhcos(build_version=self.version.stream, new_build=False, blocking=False)
 
-    async def _update_distgit(self):
+    async def _rebase_images(self):
         if not self.build_plan.build_images:
             self.runtime.logger.info('Not rebasing images')
             return
@@ -820,12 +820,12 @@ class Ocp4Pipeline:
             self.runtime.logger.info('Building only where source has changed.')
             await self._plan_builds()
 
-        await self._build_rpms()
+        await self._rebase_and_build_rpms()
         if not self.skip_plashets:
             await self._build_compose()
         else:
             self.runtime.logger.warning('Skipping plashets creation as SKIP_PLASHETS was set to True')
-        await self._update_distgit()
+        await self._rebase_images()
         await self._build_images()
         await self._sync_images()
         await self._mirror_rpms()

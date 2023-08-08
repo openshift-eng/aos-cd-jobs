@@ -3,8 +3,9 @@ from typing import Optional
 import yaml
 
 import click
+from aioredlock import LockError
 
-from pyartcd import constants, exectools, util
+from pyartcd import constants, exectools, util, locks
 from pyartcd import jenkins
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.runtime import Runtime
@@ -133,4 +134,24 @@ class Ocp4ScanPipeline:
 @pass_runtime
 @click_coroutine
 async def ocp4_scan(runtime: Runtime, version: str):
-    await Ocp4ScanPipeline(runtime, version).run()
+    # Create a Lock manager instance
+    lock_policy = locks.LOCK_POLICY['default']
+    lock_manager = locks.new_lock_manager(
+        internal_lock_timeout=lock_policy['lock_timeout'],
+        retry_count=lock_policy['retry_count'],
+        retry_delay_min=lock_policy['retry_delay_min']
+    )
+    lock_name = f'github-activity-lock-{version}'
+
+    try:
+        # Skip the build if already locked
+        if await lock_manager.is_locked(lock_name):
+            runtime.logger.info('Looks like there is another build ongoing for %s -- skipping for this run', version)
+            return
+
+        async with await lock_manager.lock(lock_name):
+            await Ocp4ScanPipeline(runtime, version).run()
+
+    except LockError as e:
+        runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+        raise

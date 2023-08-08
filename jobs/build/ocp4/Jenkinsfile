@@ -180,6 +180,9 @@ node {
                 if (params.SKIP_PLASHETS) {
                     cmd << "--skip-plashets"
                 }
+                if (params.IGNORE_LOCKS) {
+                    cmd << "--ignore-locks"
+                }
 
                 // Needed to detect manual builds
                 wrap([$class: 'BuildUser']) {
@@ -203,15 +206,8 @@ node {
                                 file(credentialsId: 'art-jenkins-ldap-serviceaccount-client-cert', variable: 'RHSM_PULP_CERT'),
                             ]) {
                         withEnv(["BUILD_USER_EMAIL=${builderEmail?: ''}", "BUILD_URL=${BUILD_URL}", "JOB_NAME=${JOB_NAME}", 'DOOZER_DB_NAME=art_dash']) {
-                            if (params.IGNORE_LOCKS) {
-                                sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-                                sh(script: cmd.join(' '), returnStdout: true)
-                            } else {
-                                lock("github-activity-lock-${params.BUILD_VERSION}") {
-                                    sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
-                                    sh(script: cmd.join(' '), returnStdout: true)
-                                }
-                            }
+                            sh "rm -rf ./artcd_working && mkdir -p ./artcd_working"
+                            sh(script: cmd.join(' '), returnStdout: true)
                         }
                     }
                 }

@@ -13,8 +13,9 @@ from typing import Dict, Iterable, List, Optional, Tuple
 
 import click
 import yaml
+from aioredlock import LockError
 from doozerlib.assembly import AssemblyTypes
-from pyartcd import constants, exectools
+from pyartcd import constants, exectools, locks
 from pyartcd.cli import cli, click_coroutine, pass_runtime
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
@@ -571,8 +572,7 @@ class RebuildPipeline:
 @cli.command("rebuild")
 @click.option("--ocp-build-data-url", metavar='BUILD_DATA', default=None,
               help=f"Git repo or directory containing groups metadata e.g. {constants.OCP_BUILD_DATA_URL}")
-@click.option("-g", "--group", metavar='NAME', required=True,
-              help="The group of components on which to operate. e.g. openshift-4.9")
+@click.option("--version", required=True, help="OSE Version")
 @click.option("--assembly", metavar="ASSEMBLY_NAME", required=True,
               help="The name of an assembly to rebase & build for. e.g. 4.9.1")
 @click.option("--type", metavar="BUILD_TYPE", required=True,
@@ -580,12 +580,37 @@ class RebuildPipeline:
               help="image or rpm or rhcos")
 @click.option("--component", "-c", metavar="DISTGIT_KEY",
               help="The name of a component to rebase & build for. e.g. openshift-enterprise-cli")
+@click.option('--ignore-locks', is_flag=True, default=False,
+              help='Do not wait for other builds in this version to complete (use only if you know they will not conflict)')
 @pass_runtime
 @click_coroutine
-async def rebuild(runtime: Runtime, ocp_build_data_url: str, group: str, assembly: str, type: str, component: Optional[str]):
+async def rebuild(runtime: Runtime, ocp_build_data_url: str, version: str, assembly: str, type: str,
+                  component: Optional[str], ignore_locks: bool):
+
     if type != "rhcos" and not component:
         raise click.BadParameter(f"'--component' is required for type {type}")
     elif type == "rhcos" and component:
         raise click.BadParameter("Option '--component' cannot be used when --type == 'rhcos'")
-    pipeline = RebuildPipeline(runtime, group=group, assembly=assembly, type=RebuildType[type.upper()], dg_key=component, ocp_build_data_url=ocp_build_data_url)
-    await pipeline.run()
+    pipeline = RebuildPipeline(runtime, group=f'openshift-{version}', assembly=assembly, type=RebuildType[type.upper()],
+                               dg_key=component, ocp_build_data_url=ocp_build_data_url)
+
+    if ignore_locks:
+        await pipeline.run()
+
+    else:
+        # Create a Lock manager instance
+        lock_policy = locks.LOCK_POLICY['ocp4']
+        lock_manager = locks.new_lock_manager(
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
+        lock_name = f'github-activity-lock-{version}'
+
+        try:
+            async with await lock_manager.lock(lock_name):
+                await pipeline.run()
+
+        except LockError as e:
+            runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+            raise

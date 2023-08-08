@@ -861,11 +861,13 @@ class Ocp4Pipeline:
               help='Do not build plashets (for example to save time when running multiple builds against test assembly)')
 @click.option('--mail-list-failure', required=False, default='aos-art-automation+failed-ocp4-build@redhat.com',
               help='Failure Mailing List')
+@click.option('--ignore-locks', is_flag=True, default=False,
+              help='Do not wait for other builds in this version to complete (use only if you know they will not conflict)')
 @pass_runtime
 @click_coroutine
 async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, data_gitref: str, pin_builds: bool,
                build_rpms: str, rpm_list: str, build_images: str, image_list: str, skip_plashets: bool,
-               mail_list_failure: str):
+               mail_list_failure: str, ignore_locks: bool):
 
     if not await util.is_build_permitted(version):
         run_details.update_description('Builds not permitted', append=False)
@@ -887,4 +889,24 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
         skip_plashets=skip_plashets,
         mail_list_failure=mail_list_failure,
     )
-    await pipeline.run()
+
+    if ignore_locks:
+        await pipeline.run()
+
+    else:
+        # Create a Lock manager instance
+        lock_policy = locks.LOCK_POLICY['ocp4']
+        lock_manager = locks.new_lock_manager(
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
+        lock_name = f'github-activity-lock-{version}'
+
+        try:
+            async with await lock_manager.lock(lock_name):
+                await pipeline.run()
+
+        except LockError as e:
+            runtime.logger.error('Failed acquiring lock %s: %s', lock_name, e)
+            raise

@@ -601,7 +601,7 @@ async def rebuild(runtime: Runtime, ocp_build_data_url: str, version: str, assem
         # Create a Lock manager instance
         lock = locks.Lock.GITHUB_ACTIVITY
         lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = f'{lock}-{version}'
+        lock_name = lock.value.format(version=version)
 
         try:
             async with await lock_manager.lock(lock_name):

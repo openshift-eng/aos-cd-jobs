@@ -8,15 +8,12 @@ from pyartcd import redis
 
 # Defines the pipeline locks managed by Redis
 class Lock(enum.Enum):
-    def __str__(self):
-        return f'{self.value}-lock'
-
-    OLM_BUNDLE = 'olm-bundle'
-    MIRRORING_RPMS = 'mirroring-rpms'
-    COMPOSE = 'compose'
-    GITHUB_ACTIVITY = 'github-activity'
+    OLM_BUNDLE = 'olm-bundle-lock-{version}'
+    MIRRORING_RPMS = 'mirroring-rpms-{version}'
+    COMPOSE = 'compose-lock-{version}'
+    GITHUB_ACTIVITY = 'github-activity-lock-{version}'
     MASS_REBUILD = 'mass-rebuild-serializer'
-    SIGNING = 'signing'
+    SIGNING = 'signing-lock-{signing_env}'
 
 
 # This constant defines for each lock type:

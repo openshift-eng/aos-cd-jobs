@@ -492,7 +492,7 @@ class Ocp4Pipeline:
         # Create a Lock manager instance
         lock = Lock.COMPOSE
         lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = f'{lock}-{self.version.stream}'
+        lock_name = lock.value.format(version=self.version.stream)
 
         try:
             async with await lock_manager.lock(lock_name):
@@ -576,7 +576,7 @@ class Ocp4Pipeline:
     async def _mass_rebuild(self, doozer_cmd: list):
         lock = Lock.MASS_REBUILD
         lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = f'{lock}'  # version agnostic, only 1 mass rebuild allowed
+        lock_name = lock.value  # version agnostic, only 1 mass rebuild allowed
 
         try:
             # Try to acquire mass-rebuild lock for build version
@@ -714,7 +714,7 @@ class Ocp4Pipeline:
         # Create a Lock manager instance
         lock = Lock.MIRRORING_RPMS
         lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = f'{lock}-{self.version.stream}'
+        lock_name = lock.value.format(version=self.version.stream)
 
         # Sync plashets to mirror
         try:
@@ -886,7 +886,7 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
         # Create a Lock manager instance
         lock = Lock.GITHUB_ACTIVITY
         lock_manager = locks.LockManager.from_lock(lock)
-        lock_name = f'{lock}-{version}'
+        lock_name = lock.value.format(version=version)
 
         try:
             async with await lock_manager.lock(lock_name):

@@ -465,7 +465,7 @@ class PromotePipeline:
         base_to_mirror_dir = self._working_dir / "to_mirror/openshift-v4"
 
         lock = Lock.SIGNING
-        lock_name = f'{lock}-{self.signing_env}'
+        lock_name = lock.value.format(signing_env=self.signing_env)
         lock_manager = locks.LockManager.from_lock(lock)
 
         async with await lock_manager.lock(lock_name):

@@ -333,53 +333,54 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         runtime.logger.info('Fail count "%s" set to 0', fail_count_name)
 
     except (RuntimeError, ChildProcessError):
-        # Increment failure count
-        current_count = await redis.get_value(fail_count_name)
-        if current_count is None:
-            current_count = 0
-        fail_count = int(current_count) + 1
-        runtime.logger.info('Failure count for %s: %s', version, fail_count)
+        if assembly == 'stream':
+            # Increment failure count
+            current_count = await redis.get_value(fail_count_name)
+            if current_count is None:
+                current_count = 0
+            fail_count = int(current_count) + 1
+            runtime.logger.info('Failure count for %s: %s', version, fail_count)
 
-        # Update fail counter on Redis
-        await redis.set_value(fail_count_name, fail_count)
+            # Update fail counter on Redis
+            await redis.set_value(fail_count_name, fail_count)
 
-        # Less than 2 failures, assembly != stream: just break the build
-        if fail_count < 2 or assembly != 'stream':
-            raise
+            # Less than 2 failures, assembly != stream: just break the build
+            if fail_count < 2 or assembly != 'stream':
+                raise
 
-        # More than 2 failures: we need to notify ART and #forum-relase before breaking the build
-        slack_client = runtime.new_slack_client()
-        msg = f'Pipeline has failed to assemble release payload for {version} (assembly {assembly}) {fail_count} times.'
+            # More than 2 failures: we need to notify ART and #forum-relase before breaking the build
+            slack_client = runtime.new_slack_client()
+            msg = f'Pipeline has failed to assemble release payload for {version} (assembly {assembly}) {fail_count} times.'
 
-        # TODO https://issues.redhat.com/browse/ART-5657
-        if 10 <= fail_count <= 50:
-            art_notify_frequency = 5
-            forum_release_notify_frequency = 10
+            # TODO https://issues.redhat.com/browse/ART-5657
+            if 10 <= fail_count <= 50:
+                art_notify_frequency = 5
+                forum_release_notify_frequency = 10
 
-        elif 50 <= fail_count <= 200:
-            art_notify_frequency = 10
-            forum_release_notify_frequency = 50
+            elif 50 <= fail_count <= 200:
+                art_notify_frequency = 10
+                forum_release_notify_frequency = 50
 
-        elif fail_count > 200:
-            art_notify_frequency = 100
-            forum_release_notify_frequency = 100
+            elif fail_count > 200:
+                art_notify_frequency = 100
+                forum_release_notify_frequency = 100
 
-        else:
-            # Default notify frequency
-            art_notify_frequency = 2
-            forum_release_notify_frequency = 5
+            else:
+                # Default notify frequency
+                art_notify_frequency = 2
+                forum_release_notify_frequency = 5
 
-        # Spam ourselves a little more often than forum-ocp-release
-        if fail_count % art_notify_frequency == 0:
-            slack_client.bind_channel(f'openshift-{version}')
-            await slack_client.say(msg)
+            # Spam ourselves a little more often than forum-ocp-release
+            if fail_count % art_notify_frequency == 0:
+                slack_client.bind_channel(f'openshift-{version}')
+                await slack_client.say(msg)
 
-        if fail_count % forum_release_notify_frequency == 0:
-            group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
+            if fail_count % forum_release_notify_frequency == 0:
+                group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
 
-            # For GA releases, let forum-ocp-release know why no new builds
-            if group_config['software_lifecycle']['phase'] == 'release':
-                slack_client.bind('#forum-ocp-release').say(msg)
+                # For GA releases, let forum-ocp-release know why no new builds
+                if group_config['software_lifecycle']['phase'] == 'release':
+                    slack_client.bind('#forum-ocp-release').say(msg)
 
         raise
 

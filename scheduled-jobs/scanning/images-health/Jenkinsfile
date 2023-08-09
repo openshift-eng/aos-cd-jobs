@@ -38,6 +38,8 @@ node() {
     buildlib = load("pipeline-scripts/buildlib.groovy")
     commonlib = buildlib.commonlib
 
+    commonlib.shell('sudo systemctl restart stunnel')
+
     for ( String version : sortedVersions() ) {
         runFor(version)
     }

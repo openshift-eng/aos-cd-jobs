@@ -35,6 +35,7 @@ class BuildSyncPipeline:
         self.skip_multiarch_payload = skip_multiarch_payload
         self.logger = runtime.logger
         self.working_dir = self.runtime.working_dir
+        self.fail_count_name = f'{version}-assembly.{assembly}.count'
 
     async def run(self):
         # Make sure we're logged into the OC registry
@@ -52,6 +53,10 @@ class BuildSyncPipeline:
         # Update nightly imagestreams
         self.logger.info('Update nightly imagestreams...')
         await self._update_nightly_imagestreams()
+
+        #  All good: reset fail count to 0
+        await redis.set_value(self.fail_count_name, 0)
+        self.runtime.logger.info('Fail count "%s" set to 0', self.fail_count_name)
 
     async def _retrigger_current_nightly(self):
         """
@@ -278,6 +283,56 @@ class BuildSyncPipeline:
                     self.logger.info('Command failed: retrying, %s', e)
                     await asyncio.sleep(5)
 
+    async def handle_failure(self):
+        # Increment failure count
+        current_count = await redis.get_value(self.fail_count_name)
+        if current_count is None:
+            current_count = 0
+        fail_count = int(current_count) + 1
+        self.runtime.logger.info('Failure count for %s: %s', self.version, fail_count)
+
+        # Update fail counter on Redis
+        await redis.set_value(self.fail_count_name, fail_count)
+
+        # Less than 2 failures, assembly != stream: just break the build
+        if fail_count < 2 or self.assembly != 'stream':
+            raise
+
+        # More than 2 failures: we need to notify ART and #forum-relase before breaking the build
+        slack_client = self.runtime.new_slack_client()
+        msg = f'Pipeline has failed to assemble release payload for {self.version} ' \
+              f'(assembly {self.assembly}) {fail_count} times.'
+
+        # TODO https://issues.redhat.com/browse/ART-5657
+        if 10 <= fail_count <= 50:
+            art_notify_frequency = 5
+            forum_release_notify_frequency = 10
+
+        elif 50 <= fail_count <= 200:
+            art_notify_frequency = 10
+            forum_release_notify_frequency = 50
+
+        elif fail_count > 200:
+            art_notify_frequency = 100
+            forum_release_notify_frequency = 100
+
+        else:
+            # Default notify frequency
+            art_notify_frequency = 2
+            forum_release_notify_frequency = 5
+
+        # Spam ourselves a little more often than forum-ocp-release
+        if fail_count % art_notify_frequency == 0:
+            slack_client.bind_channel(f'openshift-{self.version}')
+            await slack_client.say(msg)
+
+        if fail_count % forum_release_notify_frequency == 0:
+            group_config = await util.load_group_config(group=f'openshift-{self.version}', assembly=self.assembly)
+
+            # For GA releases, let forum-ocp-release know why no new builds
+            if group_config['software_lifecycle']['phase'] == 'release':
+                slack_client.bind('#forum-ocp-release').say(msg)
+
 
 @cli.command('build-sync')
 @click.option("--version", required=True,
@@ -323,64 +378,16 @@ async def build_sync(runtime: Runtime, version: str, assembly: str, publish: boo
         exclude_arches=exclude_arches,
         skip_multiarch_payload=skip_multiarch_payload
     )
-    fail_count_name = f'{version}-assembly.{assembly}.count'
 
     try:
         await pipeline.run()
 
-        #  All good: reset fail count to 0
-        await redis.set_value(fail_count_name, 0)
-        runtime.logger.info('Fail count "%s" set to 0', fail_count_name)
-
     except (RuntimeError, ChildProcessError):
-        # Increment failure count
-        current_count = await redis.get_value(fail_count_name)
-        if current_count is None:
-            current_count = 0
-        fail_count = int(current_count) + 1
-        runtime.logger.info('Failure count for %s: %s', version, fail_count)
+        # Only for 'stream' assembly, track failure to enable future notifications
+        if assembly == 'stream':
+            await pipeline.handle_failure()
 
-        # Update fail counter on Redis
-        await redis.set_value(fail_count_name, fail_count)
-
-        # Less than 2 failures, assembly != stream: just break the build
-        if fail_count < 2 or assembly != 'stream':
-            raise
-
-        # More than 2 failures: we need to notify ART and #forum-relase before breaking the build
-        slack_client = runtime.new_slack_client()
-        msg = f'Pipeline has failed to assemble release payload for {version} (assembly {assembly}) {fail_count} times.'
-
-        # TODO https://issues.redhat.com/browse/ART-5657
-        if 10 <= fail_count <= 50:
-            art_notify_frequency = 5
-            forum_release_notify_frequency = 10
-
-        elif 50 <= fail_count <= 200:
-            art_notify_frequency = 10
-            forum_release_notify_frequency = 50
-
-        elif fail_count > 200:
-            art_notify_frequency = 100
-            forum_release_notify_frequency = 100
-
-        else:
-            # Default notify frequency
-            art_notify_frequency = 2
-            forum_release_notify_frequency = 5
-
-        # Spam ourselves a little more often than forum-ocp-release
-        if fail_count % art_notify_frequency == 0:
-            slack_client.bind_channel(f'openshift-{version}')
-            await slack_client.say(msg)
-
-        if fail_count % forum_release_notify_frequency == 0:
-            group_config = await util.load_group_config(group=f'openshift-{version}', assembly=assembly)
-
-            # For GA releases, let forum-ocp-release know why no new builds
-            if group_config['software_lifecycle']['phase'] == 'release':
-                slack_client.bind('#forum-ocp-release').say(msg)
-
+        # Re-reise the exception to make the job as failed
         raise
 
     except RedisError as e:

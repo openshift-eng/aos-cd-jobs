@@ -16,6 +16,8 @@ import tarfile
 import hashlib
 import shutil
 import urllib.parse
+
+from pyartcd.locks import Lock
 from pyartcd.signatory import AsyncSignatory
 import requests
 # from pyartcd.cincinnati import CincinnatiAPI
@@ -462,13 +464,10 @@ class PromotePipeline:
         message_digest_sig_dir = self._working_dir / "message_digests"
         base_to_mirror_dir = self._working_dir / "to_mirror/openshift-v4"
 
-        lock_name = f'signing-lock-{self.signing_env}'
-        lock_policy = locks.LOCK_POLICY['default']
-        lock_manager = locks.new_lock_manager(
-            internal_lock_timeout=lock_policy['lock_timeout'],
-            retry_count=lock_policy['retry_count'],
-            retry_delay_min=lock_policy['retry_delay_min']
-        )
+        lock = Lock.SIGNING
+        lock_name = f'{lock}-{self.signing_env}'
+        lock_manager = locks.new_lock_manager(lock)
+
         async with await lock_manager.lock(lock_name):
             async with AsyncSignatory(uri, cert_file, key_file, sig_keyname=sig_keyname) as signatory:
                 tasks = []

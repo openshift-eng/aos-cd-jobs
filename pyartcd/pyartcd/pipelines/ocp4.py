@@ -10,6 +10,7 @@ from aioredlock import LockError
 from pyartcd import locks, util, plashets, exectools, constants, \
     run_details, jenkins, record as record_util, oc
 from pyartcd.cli import cli, pass_runtime, click_coroutine
+from pyartcd.locks import Lock
 from pyartcd.runtime import Runtime
 from pyartcd.s3 import sync_repo_to_s3_mirror
 
@@ -489,13 +490,9 @@ class Ocp4Pipeline:
             return
 
         # Create a Lock manager instance
-        lock_policy = locks.LOCK_POLICY['compose']
-        lock_manager = locks.new_lock_manager(
-            internal_lock_timeout=lock_policy['lock_timeout'],
-            retry_count=lock_policy['retry_count'],
-            retry_delay_min=lock_policy['retry_delay_min']
-        )
-        lock_name = f'compose-lock-{self.version.stream}'
+        lock = Lock.COMPOSE
+        lock_manager = locks.new_lock_manager(lock)
+        lock_name = f'{lock}-{self.version.stream}'
 
         try:
             async with await lock_manager.lock(lock_name):
@@ -577,16 +574,12 @@ class Ocp4Pipeline:
         )
 
     async def _mass_rebuild(self, doozer_cmd: list):
-        lock_policy = locks.LOCK_POLICY['mass_rebuild']
-        lock_manager = locks.new_lock_manager(
-            internal_lock_timeout=lock_policy['lock_timeout'],
-            retry_count=lock_policy['retry_count'],
-            retry_delay_min=lock_policy['retry_delay_min']
-        )
+        lock = Lock.MASS_REBUILD
+        lock_manager = locks.new_lock_manager(lock)
+        lock_name = f'{lock}'  # version agnostic, only 1 mass rebuild allowed
 
-        # Try to acquire mass-rebuild lock for build version
-        lock_name = 'mass-rebuild-serializer'
         try:
+            # Try to acquire mass-rebuild lock for build version
             async with await lock_manager.lock(lock_name):
                 self.runtime.logger.info('Running command: %s', doozer_cmd)
                 await exectools.cmd_assert_async(doozer_cmd)
@@ -719,13 +712,9 @@ class Ocp4Pipeline:
         s3_base_dir = f'/enterprise/enterprise-{self.version.stream}'
 
         # Create a Lock manager instance
-        lock_policy = locks.LOCK_POLICY['mirroring_rpms']
-        lock_manager = locks.new_lock_manager(
-            internal_lock_timeout=lock_policy['lock_timeout'],
-            retry_count=lock_policy['retry_count'],
-            retry_delay_min=lock_policy['retry_delay_min']
-        )
-        lock_name = f'mirroring-rpms-lock-{self.version.stream}'
+        lock = Lock.MIRRORING_RPMS
+        lock_manager = locks.new_lock_manager(lock)
+        lock_name = f'{lock}-{self.version.stream}'
 
         # Sync plashets to mirror
         try:
@@ -895,13 +884,9 @@ async def ocp4(runtime: Runtime, version: str, assembly: str, data_path: str, da
 
     else:
         # Create a Lock manager instance
-        lock_policy = locks.LOCK_POLICY['ocp4']
-        lock_manager = locks.new_lock_manager(
-            internal_lock_timeout=lock_policy['lock_timeout'],
-            retry_count=lock_policy['retry_count'],
-            retry_delay_min=lock_policy['retry_delay_min']
-        )
-        lock_name = f'github-activity-lock-{version}'
+        lock = Lock.GITHUB_ACTIVITY
+        lock_manager = locks.new_lock_manager(lock)
+        lock_name = f'{lock}-{version}'
 
         try:
             async with await lock_manager.lock(lock_name):

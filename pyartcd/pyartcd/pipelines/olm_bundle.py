@@ -6,6 +6,7 @@ from aioredlock import LockError
 from pyartcd import constants, exectools
 from pyartcd.cli import cli, pass_runtime, click_coroutine
 from pyartcd import locks
+from pyartcd.locks import Lock
 from pyartcd.record import parse_record_log
 from pyartcd.runtime import Runtime
 
@@ -55,13 +56,9 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
     cmd.extend(nvrs.split(','))
 
     # Create a Lock manager instance
-    lock_policy = locks.LOCK_POLICY['olm_bundle']
-    lock_manager = locks.new_lock_manager(
-        internal_lock_timeout=lock_policy['lock_timeout'],
-        retry_count=lock_policy['retry_count'],
-        retry_delay_min=lock_policy['retry_delay_min']
-    )
-    lock_name = f'olm_bundle-{version}'
+    lock = Lock.OLM_BUNDLE
+    lock_manager = locks.new_lock_manager(lock)
+    lock_name = f'{lock}-{version}'
 
     try:
         # Try to acquire olm-bundle lock for build version

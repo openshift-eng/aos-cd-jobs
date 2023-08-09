@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from pyartcd.locks import new_lock_manager, LOCK_POLICY, Lock
+from pyartcd.locks import LockManager, LOCK_POLICY, Lock
 
 
 class TestLocks(TestCase):
@@ -21,7 +21,7 @@ class TestLocks(TestCase):
     @patch("aioredlock.algorithm.Aioredlock.__attrs_post_init__")
     def test_lock_manager(self, *_):
         lock: Lock = Lock.COMPOSE
-        lm = new_lock_manager(lock)
+        lm = LockManager.from_lock(lock)
         self.assertEqual(lm.retry_count, LOCK_POLICY[Lock.COMPOSE]['retry_count'])
         self.assertEqual(lm.retry_delay_min, LOCK_POLICY[Lock.COMPOSE]['retry_delay_min'])
         self.assertEqual(lm.internal_lock_timeout, LOCK_POLICY[Lock.COMPOSE]['lock_timeout'])

@@ -57,7 +57,7 @@ async def olm_bundle(runtime: Runtime, version: str, assembly: str, data_path: s
 
     # Create a Lock manager instance
     lock = Lock.OLM_BUNDLE
-    lock_manager = locks.new_lock_manager(lock)
+    lock_manager = locks.LockManager.from_lock(lock)
     lock_name = f'{lock}-{version}'
 
     try:

@@ -728,7 +728,7 @@ class TestBuildCompose(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res, True)
         self.ocp4._slack_client.say.assert_awaited_once()
 
-    @patch("pyartcd.locks.new_lock_manager", return_value=AsyncMock)
+    @patch("pyartcd.locks.LockManager.from_lock", return_value=AsyncMock)
     @patch("pyartcd.plashets.build_plashets", return_value=AsyncMock)
     @patch("pyartcd.jenkins.start_sync_for_ci")
     @patch("pyartcd.jenkins.start_rhcos")
@@ -959,7 +959,7 @@ class TestSyncImages(unittest.IsolatedAsyncioTestCase):
 
 
 class TestMirrorRpms(unittest.IsolatedAsyncioTestCase):
-    @patch("pyartcd.locks.new_lock_manager", return_value=AsyncMock)
+    @patch("pyartcd.locks.LockManager.from_lock", return_value=AsyncMock)
     @patch("pyartcd.pipelines.ocp4.sync_repo_to_s3_mirror")
     async def test_sync_to_mirror(self, sync_mock: AsyncMock, mocked_lm):
         pipeline = ocp4.Ocp4Pipeline(

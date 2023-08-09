@@ -466,7 +466,7 @@ class PromotePipeline:
 
         lock = Lock.SIGNING
         lock_name = f'{lock}-{self.signing_env}'
-        lock_manager = locks.new_lock_manager(lock)
+        lock_manager = locks.LockManager.from_lock(lock)
 
         async with await lock_manager.lock(lock_name):
             async with AsyncSignatory(uri, cert_file, key_file, sig_keyname=sig_keyname) as signatory:

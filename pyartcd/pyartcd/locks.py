@@ -63,10 +63,49 @@ LOCK_POLICY = {
 }
 
 
-class _LockManager(Aioredlock):
+class LockManager(Aioredlock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.logger = logging.getLogger('pyartcd')
+
+    @staticmethod
+    def from_lock(lock: Lock, use_ssl=True):
+        """
+        Builds and returns a new aioredlock.Aioredlock instance. Requires following env vars to be defined:
+        - REDIS_SERVER_PASSWORD: authentication token to the Redis server
+        - REDIS_HOST: hostname where Redis is deployed
+        - REDIS_PORT: port where Redis is exposed
+
+        If use_ssl is set, we assume Redis server is using a secure connection, and the protocol will be rediss://
+        Otherwise, it will fall back to the unsecure redis://
+
+        'lock' identifies the desired lock from an Enum class. Each lock is associated with a 'lock_policy' object;
+        'lock_policy' is a dictionary that maps the behavioral features of the lock manager.
+         It needs to be structured as:
+
+        lock_policy = {
+            'retry_count': int,
+            'retry_delay_min': float,
+            'lock_timeout': float
+        }
+
+        where:
+        - lock_timeout represents the expiration date in seconds
+          of all the locks instantiated on this LockManager instance.
+        - retry_count is the number of attempts to acquire the lock.
+          If exceeded, the lock operation will throw an Exception
+        - retry_delay is the delay time in seconds between two consecutive attempts to acquire a resource
+
+        Altogether, if the resource cannot be acquired in (retry_count * retry_delay), the lock operation will fail.
+        """
+
+        lock_policy = LOCK_POLICY[lock]
+        return LockManager(
+            [redis.redis_url(use_ssl)],
+            internal_lock_timeout=lock_policy['lock_timeout'],
+            retry_count=lock_policy['retry_count'],
+            retry_delay_min=lock_policy['retry_delay_min']
+        )
 
     async def lock(self, resource, *args):
         self.logger.info('Trying to acquire lock %s', resource)
@@ -78,39 +117,3 @@ class _LockManager(Aioredlock):
         self.logger.info('Releasing lock "%s"', lock.resource)
         await super().unlock(lock)
         self.logger.info('Lock released')
-
-
-def new_lock_manager(lock: Lock, use_ssl=True):
-    """
-    Builds and returns a new aioredlock.Aioredlock instance. Requires following env vars to be defined:
-    - REDIS_SERVER_PASSWORD: authentication token to the Redis server
-    - REDIS_HOST: hostname where Redis is deployed
-    - REDIS_PORT: port where Redis is exposed
-
-    If use_ssl is set, we assume Redis server is using a secure connection, and the protocol will be rediss://
-    Otherwise, it will fall back to the unsecure redis://
-
-    'lock' identifies the desired lock from an Enum class. Each lock is associated with a 'lock_policy' object;
-    'lock_policy' is a dictionary that maps the behavioral features of the lock manager. It needs to be structured as:
-
-    lock_policy = {
-        'retry_count': int,
-        'retry_delay_min': float,
-        'lock_timeout': float
-    }
-
-    where:
-    - lock_timeout represents the expiration date in seconds of all the locks instantiated on this LockManager instance.
-    - retry_count is the number of attempts to acquire the lock. If exceeded, the lock operation will throw an Exception
-    - retry_delay is the delay time in seconds between two consecutive attempts to acquire a resource
-
-    Altogether, if the resource cannot be acquired in (retry_count * retry_delay), the lock operation will fail.
-    """
-
-    lock_policy = LOCK_POLICY[lock]
-    return _LockManager(
-        [redis.redis_url(use_ssl)],
-        internal_lock_timeout=lock_policy['lock_timeout'],
-        retry_count=lock_policy['retry_count'],
-        retry_delay_min=lock_policy['retry_delay_min']
-    )

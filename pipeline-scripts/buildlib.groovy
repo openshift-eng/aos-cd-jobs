@@ -153,15 +153,10 @@ def setup_venv(use_python38=false) {
 
     commonlib.shell(script: "pip install --upgrade pip")
 
-    // Override Doozer submodule
-    if (params.DOOZER_COMMIT) {
-        where = DOOZER_COMMIT.split('@')
-        commonlib.shell(script: "rm -rf art-tools/doozer ; cd art-tools; git clone https://github.com/${where[0]}/doozer.git; cd doozer; git checkout ${where[1]}")
-    }
-    // Override Elliott submodule
-    if (params.ELLIOTT_COMMIT) {
-        where = ELLIOTT_COMMIT.split('@')
-        commonlib.shell(script: "rm -rf art-tools/elliott ; cd art-tools; git clone https://github.com/${where[0]}/elliott.git; cd elliott; git checkout ${where[1]}")
+    // Override art-tools submodule
+    if (params.ART_TOOLS_COMMIT) {
+        where = ART_TOOLS_COMMIT.split('@')
+        commonlib.shell(script: "rm -rf art-tools;  git clone https://github.com/${where[0]}/art-tools.git; cd art-tools; git checkout ${where[1]}")
     }
 
     commonlib.shell(script: "pip install -e art-tools/elliott/ -e art-tools/doozer/ -e pyartcd/")

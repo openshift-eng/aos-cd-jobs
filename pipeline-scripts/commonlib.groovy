@@ -92,19 +92,10 @@ def mockParam() {
     ]
 }
 
-def doozerParam() {
+def artToolsParam() {
     return [
-        name: 'DOOZER_COMMIT',
-        description: 'Override the doozer submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
-        $class: 'hudson.model.StringParameterDefinition',
-        defaultValue: ''
-    ]
-}
-
-def elliottParam() {
-    return [
-        name: 'ELLIOTT_COMMIT',
-        description: 'Override the elliott submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
+        name: 'ART_TOOLS_COMMIT',
+        description: 'Override the art-tools submodule; Format is ghuser@commitish e.g. jupierce@covscan-to-podman-2',
         $class: 'hudson.model.StringParameterDefinition',
         defaultValue: ''
     ]

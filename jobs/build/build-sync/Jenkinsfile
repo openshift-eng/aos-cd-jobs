@@ -36,7 +36,7 @@ node('covscan') {
                 commonlib.suppressEmailParam(),
                 commonlib.mockParam(),
                 commonlib.ocpVersionParam('BUILD_VERSION', '4'),
-                commonlib.doozerParam(),
+                commonlib.artToolsParam(),
                 string(
                     name: 'ASSEMBLY',
                     description: 'The name of an assembly to sync.',

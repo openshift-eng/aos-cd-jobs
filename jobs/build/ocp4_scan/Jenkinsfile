@@ -136,9 +136,12 @@ timeout(activity: true, time: 60, unit: 'MINUTES') {
                                 throw err
 
                             } finally {
-                                sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
-                                sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
-                                commonlib.safeArchiveArtifacts(["${doozer_working}/*.bz2"])
+                                // If scan was skipped, there won't be any logs to archive
+                                if (fileExists(doozer_working)) {
+                                    sh "mv ${doozer_working}/debug.log ${doozer_working}/debug-${params.VERSION}.log"
+                                    sh "bzip2 ${doozer_working}/debug-${params.VERSION}.log"
+                                    commonlib.safeArchiveArtifacts(["${doozer_working}/*.bz2"])
+                                }
                                 buildlib.cleanWorkspace()
                             }
                         } // withEnv

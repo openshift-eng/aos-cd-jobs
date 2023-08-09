@@ -1,7 +1,11 @@
+import logging
 import os
+from functools import wraps
 from string import Template
 
 import aioredis
+
+logger = logging.getLogger(__name__)
 
 # Redis instance template, to be renderes with env vars
 redis = Template('${protocol}://:${redis_password}@${redis_host}:${redis_port}')
@@ -27,16 +31,54 @@ def redis_url(use_ssl=True):
     )
 
 
-async def get_value(key: str, use_ssl: bool = True):
-    url = redis_url(use_ssl)
-    conn = await aioredis.create_redis(url, encoding="utf-8")
+def handle_connection(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        url = redis_url(use_ssl=True)
+        conn = await aioredis.create_redis(url, encoding="utf-8")
+        res = await func(conn, *args, **kwargs)
+        conn.close()
+        return res
+    return wrapper
+
+
+@handle_connection
+async def get_value(conn: aioredis.commands.Redis, key: str):
+    """
+    Returns value for a given key
+    """
+
     value = await conn.get(key)
-    conn.close()
+    logger.debug('Key %s has value %s', key, value)
     return value
 
 
-async def set_value(key: str, value, use_ssl: bool = True):
-    url = redis_url(use_ssl)
-    conn = await aioredis.create_redis(url, encoding="utf-8")
+@handle_connection
+async def set_value(conn: aioredis.commands.Redis, key: str, value):
+    """
+    Sets value for a key
+    """
+
+    logger.debug('Setting key %s to %s', key, value)
     await conn.set(key, value)
-    conn.close()
+
+
+@handle_connection
+async def get_keys(conn: aioredis.commands.Redis, pattern: str):
+    """
+    Returns a list of keys (string) matching pattern (e.g. "*.count")
+    """
+
+    keys = await conn.keys(pattern)
+    logger.debug('Found keys matching pattern %s: %s', pattern, ', '.join(keys))
+    return keys
+
+
+@handle_connection
+async def delete_key(conn: aioredis.commands.Redis, key: str):
+    """
+    Deletes given key from Redis DB
+    """
+
+    logger.debug('Deleting key %s', key)
+    await conn.delete(key)

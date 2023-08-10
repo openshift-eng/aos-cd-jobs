@@ -28,7 +28,9 @@ from pyartcd.util import (get_assembly_basis, get_assembly_type,
                           load_releases_config)
 
 yaml = YAML(typ="rt")
+yaml.default_flow_style = False
 yaml.preserve_quotes = True
+yaml.width = 4096
 
 
 class BuildMicroShiftPipeline:

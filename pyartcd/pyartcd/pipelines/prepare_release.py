@@ -265,7 +265,9 @@ class PrepareReleasePipeline:
         async with aiofiles.open(path, "r") as f:
             content = await f.read()
         yaml = YAML(typ="safe")
+        yaml.default_flow_style = False
         yaml.preserve_quotes = True
+        yaml.width = 4096
         return yaml.load(content)
 
     async def load_group_config(self) -> Dict:
@@ -275,7 +277,9 @@ class PrepareReleasePipeline:
         async with aiofiles.open(repo / "group.yml", "r") as f:
             content = await f.read()
         yaml = YAML(typ="safe")
+        yaml.default_flow_style = False
         yaml.preserve_quotes = True
+        yaml.width = 4096
         return yaml.load(content)
 
     @classmethod
@@ -393,7 +397,9 @@ class PrepareReleasePipeline:
         else:
             # update releases.yml (if we are operating on a non-stream assembly)
             yaml = YAML(typ="rt")
+            yaml.default_flow_style = False
             yaml.preserve_quotes = True
+            yaml.width = 4096
             async with aiofiles.open(repo / "releases.yml", "r") as f:
                 old = await f.read()
             releases_config = yaml.load(old)

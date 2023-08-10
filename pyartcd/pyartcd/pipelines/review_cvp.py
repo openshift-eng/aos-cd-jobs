@@ -16,6 +16,7 @@ from ruamel.yaml import YAML
 yaml = YAML(typ="rt")
 yaml.default_flow_style = False
 yaml.preserve_quotes = True
+yaml.width = 4096
 
 
 class ReviewCVPPipeline:

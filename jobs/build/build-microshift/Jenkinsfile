@@ -13,7 +13,6 @@ node('ocp-artifacts') {
         properties(
             [
                 disableResume(),
-                disableConcurrentBuilds(),
                 buildDiscarder(
                     logRotator(
                         artifactDaysToKeepStr: "30",

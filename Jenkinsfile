@@ -1,66 +1,91 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+#!/usr/bin/env groovy
+node {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib.describeJob("camel-k_sync", """
+        -----------------------------
+        Sync Camel-K client to mirror
+        -----------------------------
+        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/camel-k/
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
+        Timing: This is only ever run by humans, upon request.
+    """)
 }
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+pipeline {
+    agent any
+    options { disableResume() }
+
+    parameters {
+        string(
+            name: "VERSION",
+            description: "Desired version name. Example: 1.0",
+            defaultValue: "",
+            trim: true,
+        )
+        string(
+            name: "LINUX_BINARIES_LOCATION",
+            description: "Example: hhttp://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/linux-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            defaultValue: "",
+            trim: true,
+        )
+        string(
+            name: "MACOS_BINARIES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/mac-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            defaultValue: "",
+            trim: true,
+        )
+        string(
+            name: "WINDOWS_BINARIES_LOCATION",
+            description: "Example: http://download.eng.bos.redhat.com/devel/candidates/middleware/integration/RHI-1.0.0.TP1-CR7/windows-client-1.0.0.fuse-jdk11-800042-redhat-00006.tar.gz",
+            defaultValue: "",
+            trim: true,
+        )
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    stages {
+        stage("Validate params") {
+            steps {
+                script {
+                    if (!params.VERSION) {
+                        error "VERSION must be specified"
+                    }
+                }
+            }
+        }
+        stage("Clean working dir") {
+            steps {
+                sh "rm -rf ${params.VERSION}"
+                sh "mkdir ${params.VERSION}"
+            }
+        }
+        stage("Download artifacts") {
+            parallel {
+                stage("linux")   { steps { sh "curl -sLf ${params.LINUX_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-linux-64bit.tar.gz" }}
+                stage("macos")   { steps { sh "curl -sLf ${params.MACOS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-mac-64bit.tar.gz" }}
+                stage("windows") { steps { sh "curl -sLf ${params.WINDOWS_BINARIES_LOCATION} -o ${params.VERSION}/camel-k-client-${params.VERSION}-windows-64bit.tar.gz" }}
+            }
+        }
+        stage("Generate MD5 sum") {
+            steps {
+                sh """
+                cd ${params.VERSION} &&
+                md5sum camel-k-client-${params.VERSION}-linux-64bit.tar.gz   > camel-k-client-${params.VERSION}-linux-64bit.tar.gz.md5 &&
+                md5sum camel-k-client-${params.VERSION}-mac-64bit.tar.gz     > camel-k-client-${params.VERSION}-mac-64bit.tar.gz.md5 &&
+                md5sum camel-k-client-${params.VERSION}-windows-64bit.tar.gz > camel-k-client-${params.VERSION}-windows-64bit.tar.gz.md5 &&
+                cd ..
+                """
+                sh "tree ${params.VERSION}"
+                sh "cat ${params.VERSION}/*.md5"
+            }
+        }
+        stage("Sync to mirror") {
+            steps {
+                script {
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/camel-k/${params.VERSION}/")
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/camel-k/latest/")
+                }
+            }
+        }
+    }
 }

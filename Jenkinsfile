@@ -1,66 +1,126 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+node {
+    checkout scm
+    commonlib = load("pipeline-scripts/commonlib.groovy")
+    commonlib.describeJob("butane_sync", """
+        ------------------------------
+        Sync Butane binaries to mirror
+        ------------------------------
+        Sync butane binaries to mirror.openshift.com.
+        (formerly the Fedora CoreOS Config Transpiler, FCCT)
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
+        http://mirror.openshift.com/pub/openshift-v4/x86_64/clients/butane/
+
+        Timing: This is only ever run by humans, upon request.
+    """)
 }
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
-"""
-          }
-        }
-      }
+pipeline {
+    agent any
+    options { disableResume() }
+
+    parameters {
+        string(
+            name: "NVR",
+            description: "NVR of the brew build from which binaries should be extracted.<br/>" +
+                         "Example: butane-0.11.0-3.rhaos4.8.el8",
+            defaultValue: "",
+            trim: true,
+        )
+        string(
+            name: "VERSION",
+            description: "Under which directory to place the binaries.<br/>" +
+                         "Example: v0.11.0",
+            defaultValue: "",
+            trim: true,
+        )
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
+
+    stages {
+        stage("validate params") {
+            steps {
+                script {
+                    if (!params.NVR) {
+                        error "NVR must be specified"
+                    }
+                    if (!params.VERSION) {
+                        error "VERSION must be specified"
+                    }
+                }
+            }
+        }
+        stage("download build") {
+            steps {
+                script {
+                    commonlib.shell(
+                        script: """
+                        rm -rf ./${params.VERSION}
+                        mkdir -p ./${params.VERSION}
+                        cd ./${params.VERSION}
+                        brew download-build ${params.NVR}
+                        tree
+                        """
+                    )
+                }
+            }
+        }
+        stage("extract binaries") {
+            steps {
+                dir("./${params.VERSION}") {
+                    script {
+                        commonlib.shell(
+                            script: """
+                            rpm2cpio *.aarch64.rpm | cpio -idm ./usr/bin/butane
+                            mv ./usr/bin/butane ./butane-aarch64
+                            rm -rf *.aarch64.rpm ./usr
+                            """
+                        )
+                        commonlib.shell(
+                            script: """
+                            rpm2cpio *.noarch.rpm | cpio -idm ./usr/share/butane-redistributable/*
+                            mv ./usr/share/butane-redistributable/* .
+                            rm -rf *.noarch.rpm ./usr
+                            """
+                        )
+                        commonlib.shell(
+                            script: """
+                            rpm2cpio *.ppc64le.rpm | cpio -idm ./usr/bin/butane
+                            mv ./usr/bin/butane ./butane-ppc64le
+                            rm -rf *.ppc64le.rpm ./usr
+                            """
+                        )
+                        commonlib.shell(
+                            script: """
+                            rpm2cpio *.s390x.rpm | cpio -idm ./usr/bin/butane
+                            mv ./usr/bin/butane ./butane-s390x
+                            rm -rf *.s390x.rpm ./usr
+                            """
+                        )
+                        commonlib.shell(
+                            script: """
+                            rpm2cpio *.x86_64.rpm | cpio -idm ./usr/bin/butane
+                            mv ./usr/bin/butane ./butane-amd64
+                            ln -s ./butane-amd64 ./butane
+                            rm -rf *.x86_64.rpm ./usr
+                            """
+                        )
+                    }
+                    sh "rm *.src.rpm"
+                }
+            }
+        }
+        stage("calculate shasum") {
+            steps {
+                sh "cd ./${params.VERSION} && sha256sum * > sha256sum.txt"
+            }
+        }
+        stage("sync to mirror") {
+            steps {
+                sh "tree ./${params.VERSION} && cat ./${params.VERSION}/sha256sum.txt"
+                script {
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/${params.VERSION}/")
+                    commonlib.syncDirToS3Mirror("./${params.VERSION}/", "/pub/openshift-v4/x86_64/clients/butane/latest/")
+                }
+            }
+        }
+    }
 }

@@ -1,66 +1,66 @@
-properties(
-  [
-    disableConcurrentBuilds(),
-    disableResume(),
-    buildDiscarder(
-      logRotator(
-        artifactDaysToKeepStr: '60',
-        daysToKeepStr: '60')
-    ),
-  ]
-)
+#!/usr/bin/env groovy
 
-// https://issues.jenkins-ci.org/browse/JENKINS-33511
-def set_workspace() {
-  if(env.WORKSPACE == null) {
-    env.WORKSPACE = WORKSPACE = pwd()
-  }
-}
+node {
+    checkout scm
+    def build = load("build.groovy")
+    def commonlib = build.commonlib
 
-node('openshift-build-1') {
-  try {
-    timeout(time: 30, unit: 'MINUTES') {
-      deleteDir()
-      set_workspace()
-      dir('aos-cd-jobs') {
-        stage('clone') {
-          checkout scm
-          sh 'git checkout master'
-        }
-        stage('run') {
-          final url = sh(
-            returnStdout: true,
-            script: 'git config remote.origin.url')
-          if(!(url =~ /^[-\w]+@[-\w]+(\.[-\w]+)*:/)) {
-            error('This job uses ssh keys for auth, please use an ssh url')
-          }
-          def prune = true, key = 'openshift-bot'
-          if(url.trim() != 'git@github.com:openshift-eng/aos-cd-jobs.git') {
-            prune = false
-            key = "${(url =~ /.*:([^\/]+)/)[0][1]}-aos-cd-bot"
-          }
-          sshagent([key]) {
-            sh """\
-virtualenv ../env/ -p python3
-. ../env/bin/activate
-pip install gitpython
-export GIT_PYTHON_TRACE=full
-${prune ? 'python -m aos_cd_jobs.pruner' : 'echo Fork, skipping pruner'}
-python -m aos_cd_jobs.updater
+    // Expose properties for a parameterized build
+    properties(
+        [
+            disableResume(),
+            buildDiscarder(
+                logRotator(
+                    artifactDaysToKeepStr: '',
+                    artifactNumToKeepStr: '',
+                    daysToKeepStr: '',
+                    numToKeepStr: '')),
+            [
+                $class: 'ParametersDefinitionProperty',
+                parameterDefinitions: [
+                    commonlib.dryrunParam(),
+                    commonlib.mockParam(),
+                    commonlib.suppressEmailParam(),
+                    [
+                        name: 'MAIL_LIST_FAILURE',
+                        description: 'Failure Mailing List',
+                        $class: 'hudson.model.StringParameterDefinition',
+                        defaultValue: [
+                            'aos-art-automation+failed-buildvm-sync@redhat.com'
+                        ].join(',')
+                    ],
+                ]
+            ],
+        ]
+    )
+
+    commonlib.checkMock()
+
+    currentBuild.description = ""
+    try {
+        stage("sync") { build.stageRunBackup() }
+    } catch (err) {
+        currentBuild.description += "\n-----------------\n\n${err}"
+        currentBuild.result = "FAILURE"
+
+        if (params.MAIL_LIST_FAILURE.trim()) {
+            commonlib.email(
+                to: params.MAIL_LIST_FAILURE,
+                from: "aos-team-art@redhat.com",
+                subject: "Error backing up buildvm",
+                body:
+"""\
+Pipeline build "${currentBuild.displayName}" encountered an error:
+${currentBuild.description}
+
+
+View the build artifacts and console output on Jenkins:
+    - Jenkins job: ${env.BUILD_URL}
+    - Console output: ${env.BUILD_URL}console
+
 """
-          }
+            )
         }
-      }
+        throw err  // gets us a stack trace FWIW
     }
-  } catch(err) {
-    mail(
-      to: 'jupierce@redhat.com',
-      from: "aos-cicd@redhat.com",
-      subject: 'aos-cd-jobs-branches job: error',
-      body: """\
-Encountered an error while running the aos-cd-jobs-branches job: ${err}\n\n
-Jenkins job: ${env.BUILD_URL}
-""")
-    throw err
-  }
 }
